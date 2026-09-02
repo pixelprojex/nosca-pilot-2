@@ -6,7 +6,7 @@ import {
   Delete, Lock, Mail, Apple, Camera, Image as ImageIcon, ChevronDown, Search, Wallet,
   Receipt, Banknote, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck,
   ExternalLink, Tag, Phone, Paperclip, Clock, ListChecks, Download, Palette, Zap,
-  TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Building2, Edit3, Trophy, Award, Star
+  TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Building2, Edit3, Trophy, Award, Star, CloudRain
 } from "lucide-react";
 
 /* ==================================================================
@@ -3673,15 +3673,15 @@ const TOUR = {
      land on. */
   coach: [
     { title: "Your day", body: "Every lesson you're teaching, in order.",
-      shot: "today", ring: { x: 50, y: 34, w: 84, h: 15 } },
+      shot: "today", ring: { x: 50, y: 28, w: 84, h: 14 } },
     { title: "Log a lesson", body: "Who, what you covered, and one thing to work on.",
       shot: "log", ring: { x: 50, y: 72, w: 70, h: 12 } },
     { title: "Film it there and then", body: "Video, photos or a voice note, saved to the lesson.",
       shot: "capture", ring: { x: 50, y: 40, w: 80, h: 34 } },
     { title: "Your diary", body: "Tap any open slot to book someone in.",
-      shot: "calendar", ring: { x: 50, y: 48, w: 84, h: 14 } },
+      shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
     { title: "Standing lessons", body: "Same time every week? Set it once.",
-      shot: "recurring", ring: { x: 50, y: 34, w: 84, h: 14 } },
+      shot: "recurring", ring: { x: 50, y: 28, w: 84, h: 14 } },
   ],
   player: [
     { title: "Your next lesson", body: "When it is, and what you're working on.",
@@ -3689,17 +3689,17 @@ const TOUR = {
     { title: "Watch it back", body: "Your coach marks up your video.",
       shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
     { title: "Your practice", body: "Tick things off as you do them.",
-      shot: "practice", ring: { x: 50, y: 34, w: 84, h: 14 } },
+      shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
     { title: "Book a time", body: "Ask for an open slot; your coach confirms.",
-      shot: "calendar", ring: { x: 50, y: 48, w: 84, h: 14 } },
+      shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
     { title: "Your record", body: "Lessons, attendance and goals over the season.",
-      shot: "season", ring: { x: 50, y: 48, w: 84, h: 14 } },
+      shot: "season", ring: { x: 50, y: 43, w: 84, h: 14 } },
   ],
   parent: [
     { title: "Everyone in one place", body: "Each child and their next lesson.",
       shot: "family", ring: { x: 50, y: 30, w: 84, h: 15 } },
     { title: "You do the booking", body: "Lessons for under-18s are arranged by you.",
-      shot: "calendar", ring: { x: 50, y: 48, w: 84, h: 14 } },
+      shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
     { title: "Watch their lessons back", body: "The same video and notes they see.",
       shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
   ],
@@ -3707,7 +3707,7 @@ const TOUR = {
     { title: "Your lessons", body: "What you worked on, and your coach's video.",
       shot: "home", ring: { x: 50, y: 30, w: 84, h: 20 } },
     { title: "Your practice", body: "Tick things off as you do them.",
-      shot: "practice", ring: { x: 50, y: 34, w: 84, h: 14 } },
+      shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
     { title: "Watch it back", body: "Your coach draws on your video.",
       shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
     { title: "A grown-up does the rest", body: "Booking and messages are handled by your parent.",
@@ -3727,21 +3727,21 @@ function TourShot({ kind, ring, accent }) {
   const Row = ({ y, label, meta, on }) => (
     <g>
       <rect x="7" y={y} width="86" height="15" rx="5" fill={on ? accent : t.wash} opacity={on ? 1 : 0.8} />
-      <text x="12" y={y + 7.4} style={{ fontFamily: ui, fontSize: 5, fontWeight: 500 }}
+      <text x="12" y={y + 7.4} style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 500 }}
             fill={on ? "#fff" : t.ink} dominantBaseline="middle">{label}</text>
-      {meta && <text x="88" y={y + 7.4} textAnchor="end" style={{ fontFamily: ui, fontSize: 4.2 }}
+      {meta && <text x="88" y={y + 7.4} textAnchor="end" style={{ fontFamily: ui, fontSize: 5.2 }}
                      fill={on ? "rgba(255,255,255,0.75)" : t.faint} dominantBaseline="middle">{meta}</text>}
     </g>
   );
 
   const Title = ({ children }) => (
-    <text x="8" y="22" style={{ fontFamily: display, fontSize: 8, letterSpacing: "-0.02em" }}
+    <text x="8" y="22" style={{ fontFamily: display, fontSize: 9.5, letterSpacing: "-0.02em" }}
           fill={t.ink} dominantBaseline="middle">{children}</text>
   );
 
   return (
-    <div className="relative mx-auto" style={{ width: 176, height: 232 }}>
-      <svg viewBox="0 0 100 132" width={176} height={232}
+    <div className="relative mx-auto" style={{ width: 250, height: 330 }}>
+      <svg viewBox="0 0 100 132" width={250} height={330}
            style={{ borderRadius: R.surface, background: t.surface, border: `1px solid ${t.hair}` }}>
 
         {kind === "today" && (<>
@@ -3749,25 +3749,25 @@ function TourShot({ kind, ring, accent }) {
           <Row y={30} label="9:00  Sarah M." meta="Log" on />
           <Row y={49} label="11:30  Group" meta="4" />
           <Row y={68} label="2:00  James K." meta="" />
-          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>3 lessons today</text>
+          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>3 lessons today</text>
         </>)}
 
         {kind === "log" && (<>
           <Title>What you covered</Title>
           <rect x="7" y="30" width="41" height="16" rx="5" fill={accent} />
-          <text x="27.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5, fontWeight: 500 }}
+          <text x="27.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 500 }}
                 fill="#fff" dominantBaseline="middle">Serve</text>
           <rect x="52" y="30" width="41" height="16" rx="5" fill={t.wash} />
-          <text x="72.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5 }}
+          <text x="72.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2 }}
                 fill={t.ink} dominantBaseline="middle">Volley</text>
           <rect x="7" y="50" width="41" height="16" rx="5" fill={t.wash} />
-          <text x="27.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5 }}
+          <text x="27.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2 }}
                 fill={t.ink} dominantBaseline="middle">Footwork</text>
           <rect x="52" y="50" width="41" height="16" rx="5" fill={t.wash} />
-          <text x="72.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5 }}
+          <text x="72.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2 }}
                 fill={t.ink} dominantBaseline="middle">Return</text>
           <rect x="15" y="88" width="70" height="14" rx="7" fill={accent} />
-          <text x="50" y="95.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5, fontWeight: 600 }}
+          <text x="50" y="95.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 600 }}
                 fill="#fff" dominantBaseline="middle">Continue</text>
         </>)}
 
@@ -3777,9 +3777,9 @@ function TourShot({ kind, ring, accent }) {
           <circle cx="50" cy="53" r="9" fill="none" stroke="#fff" strokeWidth="1.4" opacity="0.9" />
           <circle cx="50" cy="53" r="5.5" fill="#fff" opacity="0.95" />
           <rect x="12" y="35" width="15" height="6" rx="3" fill="#C4342A" />
-          <text x="19.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 3.6, fontWeight: 600 }}
+          <text x="19.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 4.6, fontWeight: 600 }}
                 fill="#fff" dominantBaseline="middle">REC</text>
-          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Film · Photo · Voice</text>
+          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Film · Photo · Voice</text>
         </>)}
 
         {kind === "calendar" && (<>
@@ -3787,22 +3787,22 @@ function TourShot({ kind, ring, accent }) {
           <Row y={30} label="Mon 9:00" meta="Booked" />
           <Row y={49} label="Mon 10:30" meta="Open" on />
           <Row y={68} label="Tue 2:00" meta="Booked" />
-          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Tap an open slot to book</text>
+          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Tap an open slot to book</text>
         </>)}
 
         {kind === "recurring" && (<>
           <Title>Every week</Title>
           <Row y={30} label="Tue 4:00  Sarah" meta="Weekly" on />
           <Row y={49} label="Thu 5:30  Group" meta="Weekly" />
-          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Set once, repeats itself</text>
+          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Set once, repeats itself</text>
         </>)}
 
         {kind === "home" && (<>
           <Title>Next lesson</Title>
           <rect x="7" y="28" width="86" height="24" rx="6" fill={accent} />
-          <text x="12" y="38" style={{ fontFamily: ui, fontSize: 5.2, fontWeight: 500 }} fill="#fff">Thu 4:00 · Serve</text>
-          <text x="12" y="46" style={{ fontFamily: ui, fontSize: 4.2 }} fill="rgba(255,255,255,0.75)">with Ray Doyle</text>
-          <text x="8" y="63" style={{ fontFamily: ui, fontSize: 4.6, fontWeight: 500 }} fill={t.ink}>To practise</text>
+          <text x="12" y="38" style={{ fontFamily: ui, fontSize: 6.4, fontWeight: 500 }} fill="#fff">Thu 4:00 · Serve</text>
+          <text x="12" y="46" style={{ fontFamily: ui, fontSize: 5.4 }} fill="rgba(255,255,255,0.75)">with Ray Doyle</text>
+          <text x="8" y="63" style={{ fontFamily: ui, fontSize: 5.8, fontWeight: 500 }} fill={t.ink}>To practise</text>
           <Row y={68} label="Shadow serve  ×20" meta="" />
           <Row y={87} label="Wall rally  2 min" meta="" />
         </>)}
@@ -3812,7 +3812,7 @@ function TourShot({ kind, ring, accent }) {
           <rect x="7" y="28" width="86" height="48" rx="6" fill={t.ink} opacity="0.9" />
           <path d="M45 46 L58 52 L45 58 Z" fill="#fff" opacity="0.95" />
           <circle cx="30" cy="42" r="6" fill="none" stroke={accent} strokeWidth="1.6" />
-          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Your coach drew on this</text>
+          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Your coach drew on this</text>
         </>)}
 
         {kind === "practice" && (<>
@@ -3820,7 +3820,7 @@ function TourShot({ kind, ring, accent }) {
           <Row y={30} label="✓  Shadow serve" meta="" on />
           <Row y={49} label="Wall rally" meta="2 min" />
           <Row y={68} label="Split step ×10" meta="" />
-          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Tick them off as you go</text>
+          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Tick them off as you go</text>
         </>)}
 
         {kind === "season" && (<>
@@ -3834,7 +3834,7 @@ function TourShot({ kind, ring, accent }) {
           <Title>Your family</Title>
           <Row y={30} label="Emma · Thu 4:00" meta="" on />
           <Row y={49} label="Jack · Sat 10:00" meta="" />
-          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>You book for both</text>
+          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>You book for both</text>
         </>)}
 
         {/* tab bar — same on every screen, so it reads as one app */}
@@ -11600,13 +11600,35 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 }
 const L_CAL = (role, readOnly) => (role === "coach" ? "Schedule" : readOnly ? "Calendar" : "Book a lesson");
 
-/* ==================================================================
-   MESSAGES — urgent tagline + bulk broadcast
-================================================================== */
-function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather }) {
+/* MESSAGES
+
+   This screen had three competing calls to action stacked above the
+   conversations: a plus button, a "Message everyone" bar, and a
+   "Weather call-off" tile — two of them wearing the same icon in two
+   different visual treatments, none of them the thing you came here
+   for. The messages themselves started halfway down the page.
+
+   Now: the conversations come first, and the two coach-only broadcast
+   actions sit together in one quiet row beneath the title, matched in
+   weight and clearly secondary. */
+function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, threads }) {
   const t = useT(); const L = useL();
   const preview = (id) => { const r = id ? readMsg(id, lang) : null; return r ? r.text : ""; };
-  const list = empty ? [] : THREADS[role];
+  const list = threads
+    ? threads.map((th) => ({ name: th.who, unread: th.unread, when: "", lastId: null, last: th.last }))
+    : empty ? [] : THREADS[role];
+
+  const Action = ({ Icon, label, onPress, delay }) => (
+    <button onClick={() => { haptic(8); soft(); onPress(); }}
+            className="flex-1 flex flex-col items-center justify-center gap-2 active:opacity-60"
+            style={{ minHeight: 74, borderRadius: R.surface, border: `1px solid ${t.hair}`,
+                     background: t.surface,
+                     animation: `fadeUp 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
+      <Icon size={17} color={t.sub} strokeWidth={1.6} />
+      <span style={{ ...TYPE.caption, fontSize: 11.5, color: t.sub }}>{label}</span>
+    </button>
+  );
+
   return (
     <Screen title={tr("Messages")} right={right}
             action={<button onClick={() => { hapticCommit(); soft(); role === "coach" ? sheet("newChoice") : onNew && onNew(); }}
@@ -11618,40 +11640,27 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather }
                       <Plus size={19} color={t.onAccent} strokeWidth={2.1} />
                     </button>}>
 
-      {role === "coach" && (<div className="px-6 mb-5">
-        <button onClick={() => { haptic(8); sheet("broadcast"); }} className="w-full rounded-2xl flex items-center gap-3 px-4 active:opacity-60" style={{ minHeight: 54, border: `1px solid ${t.hair}` }}>
-          <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: t.wash }}><Radio size={15} color={t.sub} /></span>
-          <span className="flex-1" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Message everyone")}</span>
-          <ChevronRight size={16} color={t.faint} />
-        </button>
-      </div>)}
-
+      {/* Two broadcast actions, one row, equal weight — secondary to
+          the conversations below them. */}
       {role === "coach" && (
-        <div className="px-6 mb-4">
-          <Tile className="px-5 py-[18px]" onPress={() => onWeather && onWeather()}>
-            <div className="flex items-center gap-3.5">
-              <Radio size={17} color={t.sub} strokeWidth={1.6} />
-              <span className="flex-1">
-                <span className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Weather call-off")}</span>
-                <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Only those affected are told")}</span>
-              </span>
-              <ChevronRight size={15} color={t.faint} />
-            </div>
-          </Tile>
+        <div className="px-6 mb-5 flex gap-2.5">
+          <Action Icon={Radio}     label={tr("Message everyone")} onPress={() => sheet("broadcast")} delay={0} />
+          <Action Icon={CloudRain} label={tr("Weather call-off")} onPress={() => onWeather && onWeather()} delay={60} />
         </div>
       )}
+
       <div className="px-6 pb-2"><Card>{list.length === 0 ? (
         <div className="p-8 text-center">
           <span className="rounded-full flex items-center justify-center mx-auto mb-4" style={{ width: 52, height: 52, background: t.wash }}><MessageCircle size={21} color={t.sub} strokeWidth={1.6} /></span>
           <p style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{tr("No messages")}</p>
-          <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>Conversations appear here once you have someone to talk to.</p>
+          <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Conversations appear here.")}</p>
         </div>
       ) : list.map((c, i) => (
         <button key={c.name} onClick={() => { haptic(6); push("thread:" + c.name); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
           <Avatar name={c.name} size={44} group={c.group} />
           <span className="flex-1 min-w-0">
             <span className="flex items-baseline justify-between gap-2"><span className="truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: c.unread ? 700 : 600, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span><span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span></span>
-            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{preview(c.lastId)}</span>
+            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{c.last ?? preview(c.lastId)}</span>
               {c.unread > 0 && (<span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 19, height: 19, padding: "0 5px", background: t.accent, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.onAccent }}>{c.unread}</span>)}</span>
           </span>
         </button>
@@ -11659,6 +11668,7 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather }
     </Screen>
   );
 }
+
 function BroadcastBody({ nouns, say, close }) {
   const t = useT();
   const allLabel = `All ${nouns || "players"}`;
@@ -11786,7 +11796,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say })
 /* ==================================================================
    SETTINGS
 ================================================================== */
-function Settings({ role, cfg, conn, brandName, coachName, plan, region, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
+function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
   const t = useT(); const L = useL();
   const sub = role === "coach" ? `${cfg.label} coach · ${brandName}` : `${cfg.label} · ${conn?.coach || ""}`;
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -11816,7 +11826,7 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, onTour,
           <Row label={tr("Reviews")}  chevron icon={<I C={Sparkles} />} onToggle={() => push("reviews")} />
           <Row label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />
           <Row label={tr("Requests")}  chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
-          <Row label={tr("Subscription")} sub={`${BRAND} ${plan?.name || "Coach"} · €${plan?.price || 24} a month`} chevron icon={<I C={ShieldCheck} />} onToggle={() => push("subscription")} />
+          {demo && <Row label={tr("Subscription")} sub={`${BRAND} ${plan?.name || "Coach"}`} chevron icon={<I C={ShieldCheck} />} onToggle={() => push("subscription")} />}
           <Row label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
           <Row label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
           <Row label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
@@ -13184,7 +13194,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings demo={demo} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
@@ -13197,7 +13207,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h, k) => { setBookSlot({ day, time: h, kind: k }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")} />;
-  } else if (screen === "messages") { body = <MessageList role={role} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet("weather")} />;
+  } else if (screen === "messages") { body = <MessageList role={role} threads={data ? data.threads : null} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet("weather")} />;
   } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
   } else if (role === "coach") {
     bare = screen === "log";

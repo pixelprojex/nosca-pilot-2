@@ -2,7 +2,12 @@
   command = "npm run build"
   publish = "dist"
 
+# force = false so real files still win; query preserved so ?demo
+# survives the rewrite. Without this the query string is dropped and
+# the design harness becomes unreachable on the deployed site.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
+  query = {}

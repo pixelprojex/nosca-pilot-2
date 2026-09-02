@@ -84,7 +84,11 @@ function SignedIn({ profile, signOut }) {
 
 function Gate() {
   const { session, profile, loadingProfile, signOut } = useAuth();
-  const demo = typeof window !== "undefined" && window.location.search.includes("demo");
+  const demo = typeof window !== "undefined" && (
+    window.location.search.includes("demo")
+    || window.location.hash.includes("demo")
+    || window.location.pathname.replace(/\/+$/, "").endsWith("/demo")
+  );
   const [stuck, setStuck] = React.useState(false);
 
   React.useEffect(() => {
