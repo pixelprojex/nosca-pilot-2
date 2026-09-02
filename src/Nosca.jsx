@@ -1051,8 +1051,8 @@ const TRANSLATED = Object.keys(STRINGS);
 /* The sign-up as one list, so no screen can disagree with another
    about how far along you are. */
 const JOURNEY = {
-  coach:  ["region", "sport", "role", "account", "club", "plan", "code"],
-  player: ["region", "sport", "role", "who", "account", "connect"],
+  coach:  ["role", "sport", "account"],
+  player: ["role", "sport", "connect", "account"],
 };
 const stepOf = (path, key) => Math.max(0, (JOURNEY[path] || JOURNEY.player).indexOf(key));
 const stepsIn = (path) => (JOURNEY[path] || JOURNEY.player).length;
@@ -7535,20 +7535,6 @@ export function PickRegion({ region, setRegion, lang, setLang, path = "player", 
 /* After choosing Player: is this for you, a child, or both. It decides
    whether the account gets managed profiles, so it belongs here rather
    than buried in settings later. */
-export function PickWho({ lang, path, onPick, onBack }) {
-  const t = useT();
-  const L = STRINGS[lang] || STRINGS.en;
-  const [sel, setSel] = useState(null);
-  return (
-    <SignupShell step={stepOf("player", "who")} steps={stepsIn("player")} onBack={onBack} title={tr("Who's playing")}
-                 footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      <Choice label={tr("Me")}            sub={tr("You're 18 or over")}        icon={User}       on={sel === "me"}    onSelect={() => setSel("me")} />
-      <Choice label={tr("My child")}      sub={tr("You book and manage it")}   icon={UserPlus}   on={sel === "child"} onSelect={() => setSel("child")} delay={55} />
-      <Choice label={tr("Both of us")}    sub={tr("Two profiles, one login")}  icon={Users}      on={sel === "both"}  onSelect={() => setSel("both")} delay={110} />
-    </SignupShell>
-  );
-}
-
 export function PickSport({ lang, path = "player", onPick, onBack }) {
   const L = STRINGS[lang] || STRINGS.en;
   const entries = Object.entries(SPORTS);
@@ -7566,13 +7552,17 @@ export function PickSport({ lang, path = "player", onPick, onBack }) {
 
 export function PickRole({ sport, lang, path = "player", onPick, onBack }) {
   const L = STRINGS[lang] || STRINGS.en;
-  const sp = SPORTS[sport];
   const [sel, setSel] = useState(null);
+  /* Four plain options, named for what they are. No explanatory
+     sub-text — a coach knows they are a coach, and telling them
+     lessons are free reads as sales copy, not as an interface. */
   return (
-    <SignupShell step={stepOf(path, "role")} steps={stepsIn(path)} onBack={onBack} title={tr("You are")}
+    <SignupShell step={stepOf(path, "role")} steps={stepsIn(path)} onBack={onBack} title={tr("Account type")}
                  footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      <Choice label={L.coach}  sub={L.teachAndEarn} icon={Users} on={sel === "coach"}  onSelect={() => setSel("coach")} />
-      <Choice label={L.player} sub={L.takeLessons}  icon={User}  on={sel === "player"} onSelect={() => setSel("player")} delay={60} />
+      <Choice label={tr("Coach")}          on={sel === "coach"}  onSelect={() => setSel("coach")} />
+      <Choice label={tr("Player")}         on={sel === "player"} onSelect={() => setSel("player")} delay={45} />
+      <Choice label={tr("Parent")}         on={sel === "parent"} onSelect={() => setSel("parent")} delay={90} />
+      <Choice label={tr("Player under 18")} on={sel === "junior"} onSelect={() => setSel("junior")} delay={135} />
     </SignupShell>
   );
 }
@@ -12112,7 +12102,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
     : (typeof window !== "undefined" && window.location.search.includes("demo"));
 
   useTypefaces();
-  const [flow, setFlow] = useState("region");
+  const [flow, setFlow] = useState("role");
   const [region, setRegion] = useState(null);
   const [signupSport, setSignupSport] = useState("golf");
   const [coachSport, setCoachSport] = useState(account?.sport || "golf");
@@ -12644,7 +12634,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
        reset the demo's own state — otherwise there is no way back to
        the sign-in screen, because Supabase remembers you. */
     if (account && onSignOut) { onSignOut(); return; }
-    setFlow("region"); setPublished(null); setStack(["today"]); setMini(null); setJuvenile(false);
+    setFlow("role"); setPublished(null); setStack(["today"]); setMini(null); setJuvenile(false);
   };
   /* Publishing is the end of the flow. The burst plays over whatever
      is on screen, then drops the coach back on Today with the lesson
@@ -12881,17 +12871,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   if (!inApp) {
     body = {
       region:  <PickRegion region={region} setRegion={setRegion} lang={lang} setLang={setLang} path={signupPath} onDone={() => setFlow("sport")} />,
-      sport:   <PickSport lang={lang} path={signupPath} onBack={() => setFlow("region")} onPick={(s) => { setSignupSport(s); setCoachSport(s); setFlow("role"); }} />,
-      role:    <PickRole sport={signupSport} lang={lang} path={signupPath} onBack={() => setFlow("sport")}
+      sport:   <PickSport lang={lang} path={signupPath} onBack={() => setFlow("role")} onPick={(s) => { setSignupSport(s); setCoachSport(s); setFlow("role"); }} />,
+      role:    <PickRole sport={signupSport} lang={lang} path={signupPath} onBack={() => setFlow("role")}
                          onPick={(r) => { if (r === "coach") { setSignupRole("coach"); setRole("coach"); setFlow("account"); }
-                                          else { setSignupRole("player"); setRole("player"); setFlow("who"); } }} />,
+                                          else if (r === "junior") { setSignupRole("player"); setRole("player"); setJuvenile(true); setFlow("juvenile"); }
+                                          else { setSignupRole("player"); setRole("player"); setFlow("account"); } }} />,
       juvenile: <JuvenileJoin sport={signupSport} onBack={() => setFlow("role")}
                               onDone={(childName) => { setSignupName(childName); setJuvenile(true); setRole("player");
                                 setProfiles([{ id: 1, name: childName, age: 14 }]);
                                 setConns([{ id: 1, profileId: 1, sport: signupSport, coach: COACHES[signupSport][0].name, club: COACHES[signupSport][0].club, seeded: true }]);
                                 setActiveProfileId(1); setActiveId(1); setFamilyGuide(true); setFlow("app"); setStack(["home"]); hapticSuccess(); chime(); }} />,
-      who:     <PickWho lang={lang} path="player" onBack={() => setFlow("role")}
-                        onPick={(w) => { setPlayFor(w); setFlow("account"); }} />,
       account: <CreateAccount role={signupRole} lang={lang} step={3} onBack={() => setFlow("role")}
                               onDone={(d) => { setSignupName(d.name); setFlow(signupRole === "coach" ? "club" : "connect"); }} />,
       club:    <CoachClub sport={signupSport} onBack={() => setFlow("account")}
