@@ -8011,7 +8011,7 @@ export function PickCoachType({ lang, onPick, onBack }) {
   );
 }
 
-export function CreateAccount({ role, step = 3, lang, onDone, onBack }) {
+export function CreateAccount({ role, step = 3, lang, onDone, onBack, busy }) {
   const t = useT(); const L = STRINGS[lang] || STRINGS.en;
   const [name, setName] = useState(""); const [email, setEmail] = useState("");
   const [pass, setPass] = useState(""); const [phone, setPhone] = useState("");
@@ -8027,7 +8027,7 @@ export function CreateAccount({ role, step = 3, lang, onDone, onBack }) {
     const dd = Number(d), mm = Number(m), yy = Number(y);
     if (!dd || !mm || y.length !== 4) return null;
     if (dd > 31 || mm > 12) return "invalid";
-    const today = new Date(2026, 6, 24);
+    const today = new Date();
     const born = new Date(yy, mm - 1, dd);
     if (isNaN(born.getTime()) || born > today) return "invalid";
     let a = today.getFullYear() - yy;
@@ -8050,12 +8050,12 @@ export function CreateAccount({ role, step = 3, lang, onDone, onBack }) {
   return (
     <Frame step={stepOf(role === "coach" ? "coach" : "player", "account")} steps={stepsIn(role === "coach" ? "coach" : "player")} onBack={onBack}
            footer={
-             <Button tone="ink" onClick={() => {
+             <Button tone="ink" disabled={busy} onClick={() => {
                if (valid) { hapticSuccess(); onDone({ name: name.trim(), email: email.trim(), password: pass, phone: phone.trim(), dob: { d, m, y }, age }); return; }
                setTried(true); hapticWarn(); decline();
                const dobIssue = age === null || age === "invalid" || age < CONSENT_AGE;
                if (dobIssue && dobWrap.current) { dobWrap.current.scrollIntoView({ behavior: "smooth", block: "center" }); setFlash(true); setTimeout(() => setFlash(false), 900); }
-             }}>{L.continue}</Button>
+             }}>{busy ? "…" : L.continue}</Button>
            }>
       <div className="pt-8">
         <Headline>{L.yourDetails}</Headline>
@@ -8420,7 +8420,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   const childAge = (() => {
     const dd = Number(cd), mm = Number(cm), yy = Number(cy);
     if (!dd || !mm || cy.length !== 4 || dd > 31 || mm > 12) return null;
-    const today = new Date(2026, 6, 24), born = new Date(yy, mm - 1, dd);
+    const today = new Date(), born = new Date(yy, mm - 1, dd);
     if (isNaN(born.getTime()) || born > today) return null;
     let a = today.getFullYear() - yy;
     if (today.getMonth() < mm - 1 || (today.getMonth() === mm - 1 && today.getDate() < dd)) a -= 1;

@@ -53,40 +53,50 @@ export default function Auth() {
     setBusy(true); setErr("");
     beginSignUp();
 
-    const exact = dob && dob.y && dob.m && dob.d
-      ? `${dob.y}-${String(dob.m).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`
-      : null;
+    try {
+      const exact = dob && dob.y && dob.m && dob.d
+        ? `${dob.y}-${String(dob.m).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`
+        : null;
 
-    /* A code is optional. Without one the account is created empty and
-       the person adds a coach from their home screen whenever they
-       have it — which is the common case, since most people sign up
-       before their coach has sent anything. */
-    let coach = null;
-    if (!isCoach && useCode && code.trim().length >= 4) {
-      const { data: rows } = await supabase.rpc("find_coach_by_code", { p_code: code.trim().toUpperCase() });
-      coach = rows?.[0];
-      if (!coach) { endSignUp(); setErr("That code doesn't match a coach."); setBusy(false); return; }
+      /* A code is optional. Without one the account is created empty and
+         the person adds a coach from their home screen whenever they
+         have it — which is the common case, since most people sign up
+         before their coach has sent anything. */
+      let coach = null;
+      if (!isCoach && useCode && code.trim().length >= 4) {
+        const { data: rows } = await supabase.rpc("find_coach_by_code", { p_code: code.trim().toUpperCase() });
+        coach = rows?.[0];
+        if (!coach) { endSignUp(); setErr("That code doesn't match a coach."); setBusy(false); return; }
+      }
+
+      const { data, error } = await supabase.auth.signUp({ email: em, password });
+      if (error) { endSignUp(); setErr(error.message); setBusy(false); return; }
+      if (!data.user) { endSignUp(); setErr("Check your email to confirm the account, then sign in."); setBusy(false); return; }
+
+      const { error: pErr } = await supabase.from("profiles").insert({
+        id: data.user.id,
+        role: isCoach ? "coach" : "player",
+        name,
+        phone: phone || null,
+        date_of_birth: exact,
+        account_type: kind,
+        sport: isCoach ? sport : (coach ? coach.sport : sport),
+        ...(isCoach ? { invite_code: makeCode() } : (coach ? { coach_id: coach.id } : {})),
+      });
+      if (pErr) { endSignUp(); setErr(readable(pErr)); setBusy(false); return; }
+      /* The row exists now, so the auth listener's next look will find it
+         and the app swaps itself over. */
+      endSignUp();
+      setBusy(false);
+    } catch (e) {
+      /* Whatever went wrong — a network hiccup, anything unforeseen —
+         the button must end up in a state the person can act on, not
+         a spinner that never resolves. This is what "Continue does
+         nothing" almost always turns out to be. */
+      endSignUp();
+      setBusy(false);
+      setErr((e && e.message) || "Something went wrong. Please try again.");
     }
-
-    const { data, error } = await supabase.auth.signUp({ email: em, password });
-    if (error) { endSignUp(); setErr(error.message); setBusy(false); return; }
-    if (!data.user) { endSignUp(); setErr("Check your email to confirm the account, then sign in."); setBusy(false); return; }
-
-    const { error: pErr } = await supabase.from("profiles").insert({
-      id: data.user.id,
-      role: isCoach ? "coach" : "player",
-      name,
-      phone: phone || null,
-      date_of_birth: exact,
-      account_type: kind,
-      sport: isCoach ? sport : (coach ? coach.sport : sport),
-      ...(isCoach ? { invite_code: makeCode() } : (coach ? { coach_id: coach.id } : {})),
-    });
-    if (pErr) { endSignUp(); setErr(readable(pErr)); setBusy(false); return; }
-    /* The row exists now, so the auth listener's next look will find it
-       and the app swaps itself over. */
-    endSignUp();
-    setBusy(false);
   };
 
   const wrap = (node) => (
@@ -200,7 +210,7 @@ export default function Auth() {
   /* ---------- details ---------- */
   return wrap(
     <>
-      <CreateAccount role={isCoach ? "coach" : "player"} lang="en"
+      <CreateAccount role={isCoach ? "coach" : "player"} lang="en" busy={busy}
                      onBack={() => setStage("sport")}
                      onDone={(d) => {
                        /* A coach is finished here. A player gets one
