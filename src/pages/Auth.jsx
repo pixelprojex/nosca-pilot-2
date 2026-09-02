@@ -1,23 +1,20 @@
 import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
 import {
-  ThemeCtx, NEUTRAL, SPORTS, BRAND, tr,
+  ThemeCtx, NEUTRAL, BRAND, tr,
   hapticSuccess, Mark, Frame, Headline, Sub, Field, Button,
-  PickRegion, PickSport, PickRole, PickWho, CreateAccount,
+  PickSport, PickRole, PickPlayerType, PickCoachType, CreateAccount,
 } from "../Nosca";
 
-/* THE REAL SIGN-UP.
+/* SIGN UP
  *
- * Every screen here is the prototype's own: PickRegion, PickSport,
- * PickRole, PickWho, CreateAccount. They already handle the
- * three-box date of birth with auto-advance, inline validation, the
- * consent-age rule, and the progress dots that count the right number
- * of steps for a coach versus a player. This file's only job is to
- * walk through them in order and write the result to the database.
+ * One question per screen, each with a short list:
+ *   coach   — coach or player · coach type · sport · details
+ *   player  — coach or player · player type · sport · code · details
  *
- * The journey, as defined by JOURNEY in Nosca.jsx:
- *   coach  — region, sport, role, account, code
- *   player — region, sport, role, who, account, connect
+ * No region, no language: the pilot is Ireland, in English. No pricing
+ * anywhere — coaching accounts are free for the pilot and the
+ * interface should not imply otherwise.
  */
 
 const makeCode = () =>
@@ -30,18 +27,17 @@ const readable = (err) => {
 
 export default function Auth() {
   const [stage, setStage] = useState("landing");
-  const [region, setRegion] = useState(null);
-  const [lang, setLang] = useState("en");
+  const [side, setSide] = useState(null);        // coach | player
+  const [kind, setKind] = useState(null);        // head/assistant · adult/junior/parent
   const [sport, setSport] = useState(null);
-  const [role, setRole] = useState(null);      // coach | player
-  const [who, setWho] = useState(null);        // me | child | both  (players only)
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  /* ---------- sign in ---------- */
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+
+  const isCoach = side === "coach";
 
   const signIn = async () => {
     setBusy(true); setErr("");
@@ -50,34 +46,36 @@ export default function Auth() {
     setBusy(false);
   };
 
-  /* ---------- the write ---------- */
-  const createCoach = async ({ name, email, password, dob }) => {
+  const createAccount = async ({ name, email: em, password, phone, dob }) => {
     setBusy(true); setErr("");
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) { setErr(error.message); setBusy(false); return false; }
-    const { error: pErr } = await supabase.from("profiles").insert({
-      id: data.user.id, role: "coach", name, sport,
-      invite_code: makeCode(), date_of_birth: dob,
-    });
-    if (pErr) { setErr(readable(pErr)); setBusy(false); return false; }
-    setBusy(false);
-    return true;
-  };
 
-  const createPlayer = async ({ name, email, password, dob }) => {
-    setBusy(true); setErr("");
-    const { data: rows, error: findErr } = await supabase.rpc("find_coach_by_code", { p_code: code.trim() });
-    const coach = rows?.[0];
-    if (findErr || !coach) { setErr("That invite code doesn't match a coach."); setBusy(false); return false; }
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) { setErr(error.message); setBusy(false); return false; }
+    const exact = dob && dob.y && dob.m && dob.d
+      ? `${dob.y}-${String(dob.m).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`
+      : null;
+
+    let coach = null;
+    if (!isCoach) {
+      const { data: rows, error: findErr } = await supabase.rpc("find_coach_by_code", { p_code: code.trim().toUpperCase() });
+      coach = rows?.[0];
+      if (findErr || !coach) { setErr("That code doesn't match a coach."); setBusy(false); return; }
+    }
+
+    const { data, error } = await supabase.auth.signUp({ email: em, password });
+    if (error) { setErr(error.message); setBusy(false); return; }
+    if (!data.user) { setErr("Check your email to confirm the account, then sign in."); setBusy(false); return; }
+
     const { error: pErr } = await supabase.from("profiles").insert({
-      id: data.user.id, role: "player", name, sport: coach.sport, coach_id: coach.id,
-      date_of_birth: dob,
+      id: data.user.id,
+      role: isCoach ? "coach" : "player",
+      name,
+      phone: phone || null,
+      date_of_birth: exact,
+      account_type: kind,
+      sport: isCoach ? sport : coach.sport,
+      ...(isCoach ? { invite_code: makeCode() } : { coach_id: coach.id }),
     });
-    if (pErr) { setErr(readable(pErr)); setBusy(false); return false; }
+    if (pErr) { setErr(readable(pErr)); setBusy(false); return; }
     setBusy(false);
-    return true;
   };
 
   const wrap = (node) => (
@@ -90,14 +88,23 @@ export default function Auth() {
   if (stage === "landing") {
     return (
       <ThemeCtx.Provider value={NEUTRAL}>
-        <div className="min-h-screen flex flex-col items-center justify-center px-8" style={{ background: NEUTRAL.page }}>
-          <span style={{ animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) both" }}><Mark size={44} /></span>
-          <span className="mt-4" style={{ fontFamily: "'Cabinet Grotesk', ui-sans-serif", fontSize: 15,
-                         letterSpacing: "0.32em", color: NEUTRAL.ink,
-                         animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) 60ms both" }}>{BRAND}</span>
-          <div className="w-full mt-16" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 140ms both" }}>
+        <div className="flex flex-col" style={{ height: "100dvh", background: NEUTRAL.page }}>
+          {/* The mark sits in the optical centre of the upper half, with
+              the buttons anchored low — the composition a title page
+              takes, rather than everything bunched in the middle. */}
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <span style={{ animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) both" }}>
+              <Mark size={40} />
+            </span>
+            <span className="mt-5" style={{ fontFamily: "'Cabinet Grotesk', ui-sans-serif", fontSize: 13,
+                           letterSpacing: "0.42em", paddingLeft: "0.42em", color: NEUTRAL.ink,
+                           animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) 90ms both" }}>{BRAND}</span>
+          </div>
+
+          <div className="px-7" style={{ paddingBottom: "max(34px, env(safe-area-inset-bottom, 34px))",
+                                          animation: "fadeUp 640ms cubic-bezier(.22,1,.36,1) 200ms both" }}>
             <div className="mb-2.5">
-              <Button tone="ink" onClick={() => { setErr(""); setStage("region"); }}>{tr("Sign up")}</Button>
+              <Button tone="ink" onClick={() => { setErr(""); setStage("side"); }}>{tr("Create account")}</Button>
             </div>
             <Button tone="quiet" onClick={() => { setErr(""); setStage("signin"); }}>{tr("Sign in")}</Button>
           </div>
@@ -109,13 +116,12 @@ export default function Auth() {
   /* ---------- sign in ---------- */
   if (stage === "signin") {
     return wrap(
-      <Frame step={0} steps={1} onBack={() => { setStage("landing"); setErr(""); }}
+      <Frame onBack={() => { setStage("landing"); setErr(""); }}
              footer={<Button tone="ink" disabled={busy || !email || !pass} onClick={signIn}>
                        {busy ? "…" : tr("Sign in")}
                      </Button>}>
-        <div className="pt-8">
-          <Headline>{tr("Welcome back")}</Headline>
-          <Sub>{tr("Sign in to pick up where you left off.")}</Sub>
+        <div className="pt-6">
+          <Headline>{tr("Sign in")}</Headline>
           <div className="mt-8">
             <Field label={tr("Email")} value={email} onChange={setEmail} ph="you@example.ie" type="email" autoFocus />
             <Field label={tr("Password")} value={pass} onChange={setPass} type="password" ph="" reveal />
@@ -126,55 +132,52 @@ export default function Auth() {
     );
   }
 
-  /* ---------- 1 · region and language ---------- */
-  if (stage === "region") {
+  /* ---------- 1 · coach or player ---------- */
+  if (stage === "side") {
     return wrap(
-      <PickRegion region={region} setRegion={setRegion} lang={lang} setLang={setLang}
-                  path={role === "coach" ? "coach" : "player"}
-                  onDone={() => setStage("sport")} />
+      <PickRole lang="en"
+                onPick={(r) => { setSide(r); setStage(r === "coach" ? "coachType" : "playerType"); }}
+                onBack={() => setStage("landing")} />
     );
   }
 
-  /* ---------- 2 · sport ---------- */
+  /* ---------- 2 · which kind ---------- */
+  if (stage === "coachType") {
+    return wrap(
+      <PickCoachType lang="en"
+                     onPick={(k) => { setKind(k); setStage("sport"); }}
+                     onBack={() => setStage("side")} />
+    );
+  }
+
+  if (stage === "playerType") {
+    return wrap(
+      <PickPlayerType lang="en"
+                      onPick={(k) => { setKind(k); setStage("sport"); }}
+                      onBack={() => setStage("side")} />
+    );
+  }
+
+  /* ---------- 3 · sport ---------- */
   if (stage === "sport") {
     return wrap(
-      <PickSport lang={lang} path={role === "coach" ? "coach" : "player"}
-                 onPick={(id) => { setSport(id); setStage("role"); }}
-                 onBack={() => setStage("region")} />
+      <PickSport lang="en"
+                 onPick={(id) => { setSport(id); setStage(isCoach ? "account" : "connect"); }}
+                 onBack={() => setStage(isCoach ? "coachType" : "playerType")} />
     );
   }
 
-  /* ---------- 3 · coach or player ---------- */
-  if (stage === "role") {
-    return wrap(
-      <PickRole sport={sport} lang={lang} path={role === "coach" ? "coach" : "player"}
-                onPick={(r) => { setRole(r); setStage(r === "coach" ? "account" : "who"); }}
-                onBack={() => setStage("sport")} />
-    );
-  }
-
-  /* ---------- 4 · who's playing (players only) ---------- */
-  if (stage === "who") {
-    return wrap(
-      <PickWho lang={lang} path="player"
-               onPick={(w) => { setWho(w); setStage("connect"); }}
-               onBack={() => setStage("role")} />
-    );
-  }
-
-  /* ---------- 5 · the coach's code (players only) ---------- */
+  /* ---------- 4 · the coach's code ---------- */
   if (stage === "connect") {
     return wrap(
-      <Frame step={5} steps={6} onBack={() => setStage("who")}
+      <Frame onBack={() => setStage("sport")}
              footer={<Button tone="ink" disabled={code.trim().length < 4}
                              onClick={() => { hapticSuccess(); setStage("account"); }}>{tr("Continue")}</Button>}>
-        <div className="pt-8">
-          <Headline>{tr("Your coach's code")}</Headline>
-          <Sub>{who === "child"
-            ? tr("The code your child's coach gave you. You'll add their details next.")
-            : tr("Ask your coach for their six-character code.")}</Sub>
+        <div className="pt-6">
+          <Headline>{tr("Coach's code")}</Headline>
+          <Sub>{tr("Six characters, from your coach.")}</Sub>
           <div className="mt-8">
-            <Field label={tr("Invite code")} value={code} onChange={setCode} ph="ABC123" autoFocus />
+            <Field label={tr("Code")} value={code} onChange={setCode} ph="ABC123" autoFocus />
             {err && <p className="mt-3" style={{ fontFamily: "'Switzer'", fontSize: 13, color: "#C4342A" }}>{err}</p>}
           </div>
         </div>
@@ -182,24 +185,17 @@ export default function Auth() {
     );
   }
 
-  /* ---------- 6 · the account itself ---------- */
+  /* ---------- 5 · details ---------- */
   return wrap(
     <>
-      <CreateAccount role={role} lang={lang}
-                     onBack={() => setStage(role === "coach" ? "role" : "connect")}
-                     onDone={async ({ name, email: em, password, dob }) => {
-                       /* CreateAccount has already validated the date of
-                          birth and enforced the consent age before this
-                          ever runs, so the exact date it hands back can
-                          be stored as-is. */
-                       setErr("");
-                       const exact = dob && dob.y && dob.m && dob.d
-                         ? `${dob.y}-${String(dob.m).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`
-                         : null;
-                       if (role === "coach") await createCoach({ name, email: em, password, dob: exact });
-                       else await createPlayer({ name, email: em, password, dob: exact });
-                     }} />
-      {err && <p className="px-7 pb-4" style={{ fontFamily: "'Switzer'", fontSize: 13, color: "#C4342A" }}>{err}</p>}
+      <CreateAccount role={isCoach ? "coach" : "player"} lang="en"
+                     onBack={() => setStage(isCoach ? "sport" : "connect")}
+                     onDone={createAccount} />
+      {(err || busy) && (
+        <p className="px-7 pb-4" style={{ fontFamily: "'Switzer'", fontSize: 13, color: err ? "#C4342A" : NEUTRAL.faint }}>
+          {err || tr("Creating your account…")}
+        </p>
+      )}
     </>
   );
 }

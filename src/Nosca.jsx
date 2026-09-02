@@ -1051,8 +1051,8 @@ const TRANSLATED = Object.keys(STRINGS);
 /* The sign-up as one list, so no screen can disagree with another
    about how far along you are. */
 const JOURNEY = {
-  coach:  ["region", "sport", "role", "account", "club", "plan", "code"],
-  player: ["region", "sport", "role", "who", "account", "connect"],
+  coach:  ["role", "sport", "account"],
+  player: ["role", "sport", "connect", "account"],
 };
 const stepOf = (path, key) => Math.max(0, (JOURNEY[path] || JOURNEY.player).indexOf(key));
 const stepsIn = (path) => (JOURNEY[path] || JOURNEY.player).length;
@@ -7186,34 +7186,33 @@ function CameraView({ angles, onCapture, onClose }) {
    numbering and the spacing can only ever be right in one place. */
 export function Frame({ step, steps, onBack, children, footer }) {
   const t = useT();
+  /* Same reasoning as SignupShell: no progress bar, because the path
+     length depends on who you said you are. The wordmark stays — it is
+     the one piece of furniture worth keeping.
+
+     This one keeps its scroll: the details step has a date of birth,
+     four fields and a legal line, which genuinely can exceed a short
+     screen once a keyboard is up. */
   return (
     <div className="flex flex-col h-full" style={{ background: t.page }}>
+      <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
       <div className="shrink-0 pt-3">
-        <div className="flex items-center justify-center gap-2 pb-4" style={{ animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) both" }}>
+        <div className="flex items-center justify-center gap-2 pb-1" style={{ animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) both" }}>
           <Mark size={15} color={t.faint} />
           <span style={{ fontFamily: display, fontSize: 9, letterSpacing: "0.34em", color: t.faint }}>{BRAND}</span>
-        </div>
-        <div className="flex gap-1.5 px-7">
-          {Array.from({ length: steps }).map((_, i) => (
-            <span key={i} className="flex-1 rounded-full" style={{ height: 2.5, borderRadius: 2,
-                     background: i <= step ? t.accent : t.hair,
-                     transform: i === step ? "scaleY(1.6)" : "scaleY(1)",
-                     transition: "background 420ms cubic-bezier(.22,1,.36,1), transform 320ms cubic-bezier(.34,1.56,.64,1)" }} />
-          ))}
         </div>
         <div className="flex items-center px-1.5" style={{ height: 46 }}>
           {onBack
             ? <button onClick={() => { haptic(6); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={23} color={t.ink} strokeWidth={2} /></button>
             : <span style={{ width: 39 }} />}
-          <span className="flex-1" />
-          <span className="pr-4" style={{ fontFamily: ui, fontSize: 11, letterSpacing: "0.14em", color: t.faint }}>{step + 1}／{steps}</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-7 min-h-0">{children}</div>
-      {footer && <div className="px-7 pb-6 pt-2 shrink-0">{footer}</div>}
+      {footer && <div className="px-7 pt-2 shrink-0" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))" }}>{footer}</div>}
     </div>
   );
 }
+
 export const Headline = ({ children }) => { const t = useT(); return <h1 style={{ fontFamily: display, fontSize: 32, lineHeight: 1.04, letterSpacing: "-0.036em", color: t.ink, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{children}</h1>; };
 export const Sub = ({ children }) => { const t = useT(); return <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.5, color: t.faint, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 60ms both" }}>{children}</p>; };
 
@@ -7409,34 +7408,32 @@ function CoachSetup({ cfg, sport, lang, slots, onDone }) {
 ------------------------------------------------------------------ */
 export function SignupShell({ step, steps, onBack, title, sub, above, children, footer }) {
   const t = useT();
+  /* No progress bar. The number of steps differs by account type — a
+     coach and a junior player walk different lengths — so a bar
+     promising "3 of 5" would be lying to somebody. A back arrow and a
+     title are enough to know where you are.
+
+     The body does not scroll: everything on a sign-up step should be
+     visible at once, or the step is doing too much. */
   return (
     <div className="flex flex-col h-full" style={{ background: t.page }}>
-      <div className="shrink-0 pt-3">
-        <div className="flex gap-1.5 px-7">
-          {Array.from({ length: steps }).map((_, i) => (
-            <span key={i} className="flex-1 rounded-full" style={{ height: 2.5, borderRadius: 2,
-                     background: i <= step ? t.accent : t.hair,
-                     transform: i === step ? "scaleY(1.6)" : "scaleY(1)",
-                     transition: "background 420ms cubic-bezier(.22,1,.36,1), transform 320ms cubic-bezier(.34,1.56,.64,1)" }} />
-          ))}
-        </div>
-        <div className="flex items-center px-1.5" style={{ height: 46 }}>
-          {onBack
-            ? <button onClick={() => { haptic(6); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={23} color={t.ink} strokeWidth={2} /></button>
-            : <span style={{ width: 39 }} />}
-          <span className="flex-1" />
-          <span className="pr-4" style={{ fontFamily: ui, fontSize: 11, letterSpacing: "0.14em", color: t.faint }}>{step + 1}／{steps}</span>
-        </div>
+      <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
+      <div className="flex items-center px-1.5 shrink-0" style={{ height: 52 }}>
+        {onBack
+          ? <button onClick={() => { haptic(6); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={23} color={t.ink} strokeWidth={2} /></button>
+          : <span style={{ width: 39 }} />}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-7 min-h-0">
+      <div className="flex-1 flex flex-col px-7 min-h-0">
         <h1 style={{ ...TYPE.hero, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
         {sub && <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.5, color: t.faint,
                      animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 60ms both" }}>{sub}</p>}
-        <div className="mt-9 pb-8">{above}{children}</div>
+        <div className="flex-1 flex flex-col justify-center min-h-0" style={{ paddingTop: 20, paddingBottom: 12 }}>
+          {above}{children}
+        </div>
       </div>
 
-      {footer && <div className="px-7 pb-6 pt-2 shrink-0">{footer}</div>}
+      {footer && <div className="px-7 pt-2 shrink-0" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))" }}>{footer}</div>}
     </div>
   );
 }
@@ -7447,18 +7444,18 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
   const t = useT();
   return (
     <button onClick={() => { haptic(8); soft(); onSelect(); }}
-            className="w-full flex items-center gap-4 px-5 text-left mb-2.5"
+            className="w-full flex items-center gap-4 px-5 text-left mb-2"
             onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
             onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-            style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.surface,
+            style={{ minHeight: 62, borderRadius: R.surface, background: on ? t.ink : t.surface,
                      border: `1px solid ${on ? t.ink : t.hair}`, willChange: "transform",
                      transition: "background 220ms, border-color 220ms, transform 150ms cubic-bezier(.22,1,.36,1)",
                      animation: `fadeUp 460ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
       {Icon && <Icon size={20} color={on ? t.accent : t.sub} strokeWidth={1.6} />}
       {dot && <span className="rounded-full shrink-0" style={{ width: 9, height: 9, background: dot }} />}
       <span className="flex-1 min-w-0">
-        <span className="block truncate" style={{ fontFamily: display, fontSize: 20, letterSpacing: "-0.022em", color: on ? "#fff" : t.ink }}>{label}</span>
+        <span className="block truncate" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.022em", color: on ? "#fff" : t.ink }}>{label}</span>
         {sub && <span className="block mt-0.5 truncate" style={{ fontFamily: ui, fontSize: 12.5, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>{sub}</span>}
       </span>
       {on && <Check size={18} color="#fff" strokeWidth={2.1} />}
@@ -7535,20 +7532,6 @@ export function PickRegion({ region, setRegion, lang, setLang, path = "player", 
 /* After choosing Player: is this for you, a child, or both. It decides
    whether the account gets managed profiles, so it belongs here rather
    than buried in settings later. */
-export function PickWho({ lang, path, onPick, onBack }) {
-  const t = useT();
-  const L = STRINGS[lang] || STRINGS.en;
-  const [sel, setSel] = useState(null);
-  return (
-    <SignupShell step={stepOf("player", "who")} steps={stepsIn("player")} onBack={onBack} title={tr("Who's playing")}
-                 footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      <Choice label={tr("Me")}            sub={tr("You're 18 or over")}        icon={User}       on={sel === "me"}    onSelect={() => setSel("me")} />
-      <Choice label={tr("My child")}      sub={tr("You book and manage it")}   icon={UserPlus}   on={sel === "child"} onSelect={() => setSel("child")} delay={55} />
-      <Choice label={tr("Both of us")}    sub={tr("Two profiles, one login")}  icon={Users}      on={sel === "both"}  onSelect={() => setSel("both")} delay={110} />
-    </SignupShell>
-  );
-}
-
 export function PickSport({ lang, path = "player", onPick, onBack }) {
   const L = STRINGS[lang] || STRINGS.en;
   const entries = Object.entries(SPORTS);
@@ -7566,13 +7549,45 @@ export function PickSport({ lang, path = "player", onPick, onBack }) {
 
 export function PickRole({ sport, lang, path = "player", onPick, onBack }) {
   const L = STRINGS[lang] || STRINGS.en;
-  const sp = SPORTS[sport];
+  const [sel, setSel] = useState(null);
+  /* One question at a time. Coach or player first; what kind of coach,
+     or what kind of player, comes next. Four options at once made
+     someone read all four to find themselves. */
+  return (
+    <SignupShell onBack={onBack} title={tr("Coach or player")}
+                 footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
+      <Choice label={tr("Coach")}  on={sel === "coach"}  onSelect={() => setSel("coach")} />
+      <Choice label={tr("Player")} on={sel === "player"} onSelect={() => setSel("player")} delay={55} />
+    </SignupShell>
+  );
+}
+
+/* Which kind of player: an adult signing themselves up, a parent
+   setting up for their child, or someone under 18 joining directly. */
+export function PickPlayerType({ lang, onPick, onBack }) {
+  const L = STRINGS[lang] || STRINGS.en;
   const [sel, setSel] = useState(null);
   return (
-    <SignupShell step={stepOf(path, "role")} steps={stepsIn(path)} onBack={onBack} title={tr("You are")}
+    <SignupShell onBack={onBack} title={tr("Player type")}
                  footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      <Choice label={L.coach}  sub={L.teachAndEarn} icon={Users} on={sel === "coach"}  onSelect={() => setSel("coach")} />
-      <Choice label={L.player} sub={L.takeLessons}  icon={User}  on={sel === "player"} onSelect={() => setSel("player")} delay={60} />
+      <Choice label={tr("Adult player")}    on={sel === "adult"}  onSelect={() => setSel("adult")} />
+      <Choice label={tr("Under 18")}        on={sel === "junior"} onSelect={() => setSel("junior")} delay={55} />
+      <Choice label={tr("Parent")}          on={sel === "parent"} onSelect={() => setSel("parent")} delay={110} />
+    </SignupShell>
+  );
+}
+
+/* Which kind of coach. This shapes what the account can do later, and
+   eventually how it is billed — but nothing is charged during the
+   pilot, so no pricing is shown or implied here. */
+export function PickCoachType({ lang, onPick, onBack }) {
+  const L = STRINGS[lang] || STRINGS.en;
+  const [sel, setSel] = useState(null);
+  return (
+    <SignupShell onBack={onBack} title={tr("Coach type")}
+                 footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
+      <Choice label={tr("Head coach")}      on={sel === "head"}      onSelect={() => setSel("head")} />
+      <Choice label={tr("Assistant coach")} on={sel === "assistant"} onSelect={() => setSel("assistant")} delay={55} />
     </SignupShell>
   );
 }
@@ -7615,15 +7630,14 @@ export function CreateAccount({ role, step = 3, lang, onDone, onBack }) {
 
   return (
     <Frame step={stepOf(role === "coach" ? "coach" : "player", "account")} steps={stepsIn(role === "coach" ? "coach" : "player")} onBack={onBack}
-           footer={<>
+           footer={
              <Button tone="ink" onClick={() => {
                if (valid) { hapticSuccess(); onDone({ name: name.trim(), email: email.trim(), password: pass, phone: phone.trim(), dob: { d, m, y }, age }); return; }
                setTried(true); hapticWarn(); decline();
                const dobIssue = age === null || age === "invalid" || age < CONSENT_AGE;
                if (dobIssue && dobWrap.current) { dobWrap.current.scrollIntoView({ behavior: "smooth", block: "center" }); setFlash(true); setTimeout(() => setFlash(false), 900); }
              }}>{L.continue}</Button>
-             <button className="w-full mt-3 rounded-2xl flex items-center justify-center gap-2 active:opacity-60" style={{ minHeight: 54, border: `1px solid ${t.hair}`, fontFamily: ui, fontSize: 16, fontWeight: 600, color: t.ink }}><Apple size={17} /> Continue with Apple</button>
-           </>}>
+           }>
       <div className="pt-8">
         <Headline>{L.yourDetails}</Headline>
         <Sub>{role === "coach" ? "The name on your invites and in their app."
@@ -12112,7 +12126,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
     : (typeof window !== "undefined" && window.location.search.includes("demo"));
 
   useTypefaces();
-  const [flow, setFlow] = useState("region");
+  const [flow, setFlow] = useState("role");
   const [region, setRegion] = useState(null);
   const [signupSport, setSignupSport] = useState("golf");
   const [coachSport, setCoachSport] = useState(account?.sport || "golf");
@@ -12644,7 +12658,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
        reset the demo's own state — otherwise there is no way back to
        the sign-in screen, because Supabase remembers you. */
     if (account && onSignOut) { onSignOut(); return; }
-    setFlow("region"); setPublished(null); setStack(["today"]); setMini(null); setJuvenile(false);
+    setFlow("role"); setPublished(null); setStack(["today"]); setMini(null); setJuvenile(false);
   };
   /* Publishing is the end of the flow. The burst plays over whatever
      is on screen, then drops the coach back on Today with the lesson
@@ -12881,17 +12895,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   if (!inApp) {
     body = {
       region:  <PickRegion region={region} setRegion={setRegion} lang={lang} setLang={setLang} path={signupPath} onDone={() => setFlow("sport")} />,
-      sport:   <PickSport lang={lang} path={signupPath} onBack={() => setFlow("region")} onPick={(s) => { setSignupSport(s); setCoachSport(s); setFlow("role"); }} />,
-      role:    <PickRole sport={signupSport} lang={lang} path={signupPath} onBack={() => setFlow("sport")}
+      sport:   <PickSport lang={lang} path={signupPath} onBack={() => setFlow("role")} onPick={(s) => { setSignupSport(s); setCoachSport(s); setFlow("role"); }} />,
+      role:    <PickRole sport={signupSport} lang={lang} path={signupPath} onBack={() => setFlow("role")}
                          onPick={(r) => { if (r === "coach") { setSignupRole("coach"); setRole("coach"); setFlow("account"); }
-                                          else { setSignupRole("player"); setRole("player"); setFlow("who"); } }} />,
+                                          else { setSignupRole("player"); setRole("player"); setFlow("account"); } }} />,
       juvenile: <JuvenileJoin sport={signupSport} onBack={() => setFlow("role")}
                               onDone={(childName) => { setSignupName(childName); setJuvenile(true); setRole("player");
                                 setProfiles([{ id: 1, name: childName, age: 14 }]);
                                 setConns([{ id: 1, profileId: 1, sport: signupSport, coach: COACHES[signupSport][0].name, club: COACHES[signupSport][0].club, seeded: true }]);
                                 setActiveProfileId(1); setActiveId(1); setFamilyGuide(true); setFlow("app"); setStack(["home"]); hapticSuccess(); chime(); }} />,
-      who:     <PickWho lang={lang} path="player" onBack={() => setFlow("role")}
-                        onPick={(w) => { setPlayFor(w); setFlow("account"); }} />,
       account: <CreateAccount role={signupRole} lang={lang} step={3} onBack={() => setFlow("role")}
                               onDone={(d) => { setSignupName(d.name); setFlow(signupRole === "coach" ? "club" : "connect"); }} />,
       club:    <CoachClub sport={signupSport} onBack={() => setFlow("account")}
@@ -13318,7 +13330,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
                           onDone={() => { setOverture(null); push("lesson"); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
           {tour && <Walkthrough role={role} juvenile={juvenile}
-                       isParent={!juvenile && profiles.some((p) => p.age)}
+                       isParent={account ? account.accountType === "parent" : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
           {arrival && <NewLessonArrival lesson={arrival} coach={(conn || {}).coach || ""}
                         onOpen={() => { setArrival(null); setStack(["lesson"]); setTimeout(() => setSheet("rate"), 900); }} />}
