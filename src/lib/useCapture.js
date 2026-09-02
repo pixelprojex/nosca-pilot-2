@@ -130,37 +130,5 @@ export function useCapture() {
            stream: () => streamRef.current };
 }
 
-/* Speech to text, where the browser offers it. Chrome and Safari both
-   do, under different names; Firefox does not, so callers must keep the
-   typed field working rather than relying on this. */
-export function useDictation(onText) {
-  const [listening, setListening] = useState(false);
-  const ref = useRef(null);
-
-  const SR = typeof window !== "undefined"
-    && (window.SpeechRecognition || window.webkitSpeechRecognition);
-
-  const toggle = useCallback(() => {
-    if (!SR) return false;
-    if (listening) { ref.current && ref.current.stop(); setListening(false); return true; }
-    const r = new SR();
-    r.lang = "en-IE";
-    r.interimResults = true;
-    r.continuous = true;
-    r.onresult = (e) => {
-      let text = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) text += e.results[i][0].transcript;
-      onText(text);
-    };
-    r.onend = () => setListening(false);
-    r.onerror = () => setListening(false);
-    r.start();
-    ref.current = r;
-    setListening(true);
-    return true;
-  }, [SR, listening, onText]);
-
-  useEffect(() => () => { if (ref.current) ref.current.stop(); }, []);
-
-  return { supported: !!SR, listening, toggle };
-}
+/* Speech to text lives in Nosca.jsx itself, alongside the microphone
+   button it's wired to — this file only handles the camera. */

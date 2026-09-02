@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useContext, createContext } from "react";
-import { useCapture, useDictation } from "./lib/useCapture";
+import { useCapture } from "./lib/useCapture";
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home, Library,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
