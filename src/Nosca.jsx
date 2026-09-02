@@ -3668,50 +3668,40 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
    describing it, and it survives translation better too.
 ================================================================== */
 const TOUR = {
-  /* One line each. A walkthrough people read is short; a walkthrough
-     people skip is long. Every step names a screen they'll actually
-     land on. */
+  /* Three or four words a step. Anything longer and it stops being a
+     signpost and starts being a manual. Every screen in the app is
+     covered once, in the order someone will actually meet them. */
   coach: [
-    { title: "Your day", body: "Every lesson you're teaching, in order.",
-      shot: "today", ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Log a lesson", body: "Who, what you covered, and one thing to work on.",
-      shot: "log", ring: { x: 50, y: 72, w: 70, h: 12 } },
-    { title: "Film it there and then", body: "Video, photos or a voice note, saved to the lesson.",
-      shot: "capture", ring: { x: 50, y: 40, w: 80, h: 34 } },
-    { title: "Your diary", body: "Tap any open slot to book someone in.",
-      shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Standing lessons", body: "Same time every week? Set it once.",
-      shot: "recurring", ring: { x: 50, y: 28, w: 84, h: 14 } },
+    { title: "Your day",        body: "Today's lessons, in order.",        shot: "today",     ring: { x: 50, y: 28, w: 84, h: 14 } },
+    { title: "Log a lesson",    body: "What you covered.",                 shot: "log",       ring: { x: 50, y: 72, w: 70, h: 12 } },
+    { title: "Film it",         body: "Video, photo or voice note.",       shot: "capture",   ring: { x: 50, y: 40, w: 80, h: 34 } },
+    { title: "Set drills",      body: "They tick them off at home.",       shot: "practice",  ring: { x: 50, y: 28, w: 84, h: 14 } },
+    { title: "Your diary",      body: "Tap a slot to book.",               shot: "calendar",  ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "Every week",      body: "Set a standing lesson once.",       shot: "recurring", ring: { x: 50, y: 28, w: 84, h: 14 } },
+    { title: "Take a register", body: "Who turned up.",                    shot: "season",    ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "Messages",        body: "Or call off a lesson for rain.",    shot: "family",    ring: { x: 50, y: 30, w: 84, h: 15 } },
   ],
   player: [
-    { title: "Your next lesson", body: "When it is, and what you're working on.",
-      shot: "home", ring: { x: 50, y: 30, w: 84, h: 20 } },
-    { title: "Watch it back", body: "Your coach marks up your video.",
-      shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
-    { title: "Your practice", body: "Tick things off as you do them.",
-      shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Book a time", body: "Ask for an open slot; your coach confirms.",
-      shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Your record", body: "Lessons, attendance and goals over the season.",
-      shot: "season", ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "Your next lesson", body: "When, and what you're on.",        shot: "home",     ring: { x: 50, y: 30, w: 84, h: 20 } },
+    { title: "Watch it back",    body: "Your coach draws on it.",          shot: "lesson",   ring: { x: 50, y: 40, w: 84, h: 38 } },
+    { title: "Your practice",    body: "Tick things off.",                 shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
+    { title: "Book a time",      body: "Ask; your coach confirms.",        shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "Your record",      body: "Lessons and attendance.",          shot: "season",   ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "Message your coach", body: "Questions between lessons.",     shot: "family",   ring: { x: 50, y: 30, w: 84, h: 15 } },
   ],
   parent: [
-    { title: "Everyone in one place", body: "Each child and their next lesson.",
-      shot: "family", ring: { x: 50, y: 30, w: 84, h: 15 } },
-    { title: "You do the booking", body: "Lessons for under-18s are arranged by you.",
-      shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Watch their lessons back", body: "The same video and notes they see.",
-      shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
+    { title: "Everyone here",   body: "Each child, one screen.",           shot: "family",   ring: { x: 50, y: 30, w: 84, h: 15 } },
+    { title: "You book",        body: "Under-18s are arranged by you.",    shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "Watch it back",   body: "The same video they see.",          shot: "lesson",   ring: { x: 50, y: 40, w: 84, h: 38 } },
+    { title: "Their practice",  body: "What they're working on.",          shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
+    { title: "Their record",    body: "Lessons and attendance.",           shot: "season",   ring: { x: 50, y: 43, w: 84, h: 14 } },
   ],
   juvenile: [
-    { title: "Your lessons", body: "What you worked on, and your coach's video.",
-      shot: "home", ring: { x: 50, y: 30, w: 84, h: 20 } },
-    { title: "Your practice", body: "Tick things off as you do them.",
-      shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Watch it back", body: "Your coach draws on your video.",
-      shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
-    { title: "A grown-up does the rest", body: "Booking and messages are handled by your parent.",
-      shot: "family", ring: { x: 50, y: 30, w: 84, h: 15 } },
+    { title: "Your lessons",    body: "What you worked on.",               shot: "home",     ring: { x: 50, y: 30, w: 84, h: 20 } },
+    { title: "Watch it back",   body: "Your coach draws on it.",           shot: "lesson",   ring: { x: 50, y: 40, w: 84, h: 38 } },
+    { title: "Your practice",   body: "Tick things off.",                  shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
+    { title: "Your record",     body: "How you're getting on.",            shot: "season",   ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "A grown-up helps", body: "They book and message.",           shot: "family",   ring: { x: 50, y: 30, w: 84, h: 15 } },
   ],
 };
 
@@ -3876,8 +3866,9 @@ function Walkthrough({ role, juvenile, isParent, onClose }) {
         <Mark size={19} color={t.mark} />
         <span className="ml-2.5" style={{ fontFamily: display, fontSize: 10.5, letterSpacing: "0.3em", color: t.ink }}>{BRAND}</span>
         <span className="flex-1" />
-        <button onClick={() => { haptic(6); onClose(); }} className="px-2 py-1 active:opacity-50"
-                style={{ ...TYPE.small, color: t.faint }}>{tr("Skip")}</button>
+        <button onClick={() => { haptic(6); onClose(); }} className="px-4 active:opacity-60"
+                style={{ minHeight: 36, borderRadius: R.pill, background: t.wash,
+                         ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("Skip")}</button>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
@@ -5801,6 +5792,70 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
         </div>
       </Screen>
     </SwipeBack>
+  );
+}
+
+/* NO COACH YET
+
+   What a player sees before they've joined anyone. The whole screen is
+   the one action, because there is genuinely nothing else to do here
+   yet — an empty lesson list and a disabled diary would just be
+   furniture around a single button. */
+function NoCoach({ onJoin, juvenile }) {
+  const t = useT();
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (code.trim().length < 4) return;
+    setBusy(true); setErr("");
+    const res = await onJoin(code);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message); }
+    else { hapticSuccess(); soft(); }
+  };
+
+  return (
+    <div className="flex flex-col h-full" style={{ background: t.page }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+        <span className="rounded-full flex items-center justify-center mb-7"
+              style={{ width: 74, height: 74, background: t.wash,
+                       animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) both" }}>
+          <UserPlus size={28} color={t.sub} strokeWidth={1.5} />
+        </span>
+
+        <h1 style={{ ...TYPE.hero, fontSize: 27, color: t.ink,
+                     animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 70ms both" }}>
+          {juvenile ? tr("Join your coach") : tr("Add your coach")}
+        </h1>
+        <p className="mt-3" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.55, color: t.sub,
+                     animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 130ms both" }}>
+          {juvenile
+            ? tr("Ask a parent for the code your coach gave them.")
+            : tr("Your lessons, drills and video appear here once you do.")}
+        </p>
+
+        <div className="w-full mt-9" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 190ms both" }}>
+          <div className="flex items-center px-4"
+               style={{ minHeight: 58, borderRadius: R.surface, background: t.surface,
+                        border: `1px solid ${err ? DANGER : t.hair}` }}>
+            <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setErr(""); }}
+                   placeholder="ABC123" autoCapitalize="characters" autoCorrect="off" spellCheck="false"
+                   className="w-full outline-none text-center"
+                   style={{ fontFamily: display, fontSize: 22, letterSpacing: "0.22em",
+                            color: t.ink, background: "transparent" }} />
+          </div>
+          {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+        </div>
+      </div>
+
+      <div className="px-7 shrink-0" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))" }}>
+        <Button tone="ink" disabled={busy || code.trim().length < 4} onClick={submit}>
+          {busy ? "…" : tr("Add coach")}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -12976,7 +13031,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   /* the feed runs edge to edge, under the status bar */
   const bleed = inApp && screen === "log" && prefs.logView === "feed" && role !== "coach";
   let body, bare = !inApp;
-  if (!inApp) {
+  /* A player with no coach has an account and nothing in it. Rather
+     than show empty lessons, an empty diary and a disabled chat, the
+     whole screen becomes the one thing worth doing. */
+  const needsCoach = !!account && role === "player" && data && !data.hasCoach;
+  if (needsCoach) {
+    body = <NoCoach juvenile={juvenile} onJoin={(c) => data.joinCoach(c)} />;
+    bare = true;
+  } else if (!inApp) {
     body = {
       region:  <PickRegion region={region} setRegion={setRegion} lang={lang} setLang={setLang} path={signupPath} onDone={() => setFlow("sport")} />,
       sport:   <PickSport lang={lang} path={signupPath} onBack={() => setFlow("role")} onPick={(s) => { setSignupSport(s); setCoachSport(s); setFlow("role"); }} />,

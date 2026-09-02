@@ -33,6 +33,7 @@ export default function Auth() {
   const [kind, setKind] = useState(null);        // head/assistant · adult/junior/parent
   const [sport, setSport] = useState(null);
   const [code, setCode] = useState("");
+  const [pending, setPending] = useState(null);   // details held while the code step runs
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -56,11 +57,15 @@ export default function Auth() {
       ? `${dob.y}-${String(dob.m).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`
       : null;
 
+    /* A code is optional. Without one the account is created empty and
+       the person adds a coach from their home screen whenever they
+       have it — which is the common case, since most people sign up
+       before their coach has sent anything. */
     let coach = null;
-    if (!isCoach) {
-      const { data: rows, error: findErr } = await supabase.rpc("find_coach_by_code", { p_code: code.trim().toUpperCase() });
+    if (!isCoach && code.trim()) {
+      const { data: rows } = await supabase.rpc("find_coach_by_code", { p_code: code.trim().toUpperCase() });
       coach = rows?.[0];
-      if (findErr || !coach) { endSignUp(); setErr("That code doesn't match a coach."); setBusy(false); return; }
+      if (!coach) { endSignUp(); setErr("That code doesn't match a coach."); setBusy(false); return; }
     }
 
     const { data, error } = await supabase.auth.signUp({ email: em, password });
@@ -74,8 +79,8 @@ export default function Auth() {
       phone: phone || null,
       date_of_birth: exact,
       account_type: kind,
-      sport: isCoach ? sport : coach.sport,
-      ...(isCoach ? { invite_code: makeCode() } : { coach_id: coach.id }),
+      sport: isCoach ? sport : (coach ? coach.sport : sport),
+      ...(isCoach ? { invite_code: makeCode() } : (coach ? { coach_id: coach.id } : {})),
     });
     if (pErr) { endSignUp(); setErr(readable(pErr)); setBusy(false); return; }
     /* The row exists now, so the auth listener's next look will find it
@@ -160,20 +165,29 @@ export default function Auth() {
   if (stage === "sport") {
     return wrap(
       <PickSport lang="en"
-                 onPick={(id) => { setSport(id); setStage(isCoach ? "account" : "connect"); }}
+                 onPick={(id) => { setSport(id); setStage("account"); }}
                  onBack={() => setStage(isCoach ? "side" : "playerType")} />
     );
   }
 
-  /* ---------- 4 · the coach's code ---------- */
+  /* ---------- 4 · your coach, optional and last ---------- */
   if (stage === "connect") {
     return wrap(
-      <Frame onBack={() => setStage("sport")}
-             footer={<Button tone="ink" disabled={code.trim().length < 4}
-                             onClick={() => { hapticSuccess(); setStage("account"); }}>{tr("Continue")}</Button>}>
+      <Frame onBack={() => setStage("account")}
+             footer={<>
+               <Button tone="ink" disabled={busy || code.trim().length < 4}
+                       onClick={() => { hapticSuccess(); createAccount(pending); }}>
+                 {busy ? "…" : tr("Add coach")}
+               </Button>
+               <button onClick={() => { haptic(6); createAccount(pending); }} disabled={busy}
+                       className="w-full mt-3 active:opacity-60"
+                       style={{ minHeight: 50, fontFamily: "'Switzer'", fontSize: 14.5, color: NEUTRAL.faint }}>
+                 {tr("I'll do this later")}
+               </button>
+             </>}>
         <div className="pt-6">
-          <Headline>{tr("Coach's code")}</Headline>
-          <Sub>{tr("Six characters, from your coach.")}</Sub>
+          <Headline>{tr("Your coach")}</Headline>
+          <Sub>{tr("Enter their code, or add it any time from your home screen.")}</Sub>
           <div className="mt-8">
             <Field label={tr("Code")} value={code} onChange={setCode} ph="ABC123" autoFocus />
             {err && <p className="mt-3" style={{ fontFamily: "'Switzer'", fontSize: 13, color: "#C4342A" }}>{err}</p>}
@@ -183,12 +197,17 @@ export default function Auth() {
     );
   }
 
-  /* ---------- 5 · details ---------- */
+  /* ---------- details ---------- */
   return wrap(
     <>
       <CreateAccount role={isCoach ? "coach" : "player"} lang="en"
-                     onBack={() => setStage(isCoach ? "sport" : "connect")}
-                     onDone={createAccount} />
+                     onBack={() => setStage("sport")}
+                     onDone={(d) => {
+                       /* A coach is finished here. A player gets one
+                          more, optional, screen. */
+                       if (isCoach) { createAccount(d); return; }
+                       setPending(d); setStage("connect");
+                     }} />
       {(err || busy) && (
         <p className="px-7 pb-4" style={{ fontFamily: "'Switzer'", fontSize: 13, color: err ? "#C4342A" : NEUTRAL.faint }}>
           {err || tr("Creating your account…")}

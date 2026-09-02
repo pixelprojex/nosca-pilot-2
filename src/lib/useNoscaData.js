@@ -390,6 +390,21 @@ export function useNoscaData(profile) {
     return { error };
   };
 
+  /* Joining a coach after the fact — from the empty home screen, or
+     from settings. The same code that could have been entered during
+     sign-up, doing the same thing. */
+  const joinCoach = async (rawCode) => {
+    const { data: rows } = await supabase.rpc("find_coach_by_code", { p_code: (rawCode || "").trim().toUpperCase() });
+    const coach = rows?.[0];
+    if (!coach) return { error: { message: "That code doesn't match a coach." } };
+    const { error } = await supabase.from("profiles")
+      .update({ coach_id: coach.id, sport: coach.sport })
+      .eq("id", profile.id);
+    if (error) return { error };
+    await load();
+    return { coach };
+  };
+
   /* a signed URL for a piece of media, valid for an hour */
   const mediaFor = async (lessonId) => {
     const { data } = await supabase.from("lesson_media").select("*").eq("lesson_id", lessonId);
@@ -409,6 +424,7 @@ export function useNoscaData(profile) {
     addBooking, cancelBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, sendMessage, submitReview,
+    savePrefs, sendMessage, submitReview, joinCoach,
+    hasCoach: !!profile?.coach_id,
   };
 }
