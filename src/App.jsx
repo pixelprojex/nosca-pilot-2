@@ -68,7 +68,13 @@ function SignedIn({ profile, signOut }) {
     <Nosca
       account={{
         id: profile.id, role: profile.role, name: profile.name, sport: profile.sport,
-        juvenile: profile.role === "player" && isUnder18(profile.date_of_birth),
+        accountType: profile.account_type,
+        /* Either answer marks someone as a minor: what they chose at
+           sign-up, or what their date of birth says. Trusting only the
+           date would miss a junior who mistyped it; trusting only the
+           choice would miss one who picked "adult player" by accident. */
+        juvenile: profile.role === "player"
+          && (profile.account_type === "junior" || isUnder18(profile.date_of_birth)),
       }}
       data={data}
       onSignOut={signOut}
