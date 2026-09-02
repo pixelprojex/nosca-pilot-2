@@ -3670,185 +3670,212 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
    describing it, and it survives translation better too.
 ================================================================== */
 const TOUR = {
-  /* Three or four words a step. Anything longer and it stops being a
-     signpost and starts being a manual. Every screen in the app is
-     covered once, in the order someone will actually meet them. */
+  /* ring = { x, y, w, h } in the shot's own viewBox units (100 x 132),
+     matching exactly the rect drawn for that element. */
   coach: [
-    { title: "Your day",        body: "Today's lessons, in order.",        shot: "today",     ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Log a lesson",    body: "What you covered.",                 shot: "log",       ring: { x: 50, y: 72, w: 70, h: 12 } },
-    { title: "Film it",         body: "Video, photo or voice note.",       shot: "capture",   ring: { x: 50, y: 40, w: 80, h: 34 } },
-    { title: "Set drills",      body: "They tick them off at home.",       shot: "practice",  ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Your diary",      body: "Tap a slot to book.",               shot: "calendar",  ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Every week",      body: "Set a standing lesson once.",       shot: "recurring", ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Take a register", body: "Who turned up.",                    shot: "season",    ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Messages",        body: "Or call off a lesson for rain.",    shot: "family",    ring: { x: 50, y: 30, w: 84, h: 15 } },
+    { title: "Your day",     body: "Today's lessons, in order.",     shot: "today",     ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { title: "Log a lesson", body: "What you covered.",              shot: "log",       ring: { x: 14, y: 75, w: 72, h: 17 } },
+    { title: "Film it",      body: "Video, photo or voice note.",    shot: "capture",   ring: { x: 6, y: 27, w: 88, h: 54 } },
+    { title: "Set drills",   body: "They tick them off at home.",    shot: "practice",  ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { title: "Your diary",   body: "Tap a slot to book.",            shot: "calendar",  ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { title: "Every week",   body: "Set a standing lesson once.",    shot: "recurring", ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { title: "Attendance",   body: "Who turned up.",                 shot: "season",    ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { title: "Messages",     body: "Or call off for weather.",       shot: "family",    ring: { x: 6, y: 27, w: 88, h: 17 } },
   ],
   player: [
-    { title: "Your next lesson", body: "When, and what you're on.",        shot: "home",     ring: { x: 50, y: 30, w: 84, h: 20 } },
-    { title: "Watch it back",    body: "Your coach draws on it.",          shot: "lesson",   ring: { x: 50, y: 40, w: 84, h: 38 } },
-    { title: "Your practice",    body: "Tick things off.",                 shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Book a time",      body: "Ask; your coach confirms.",        shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Your record",      body: "Lessons and attendance.",          shot: "season",   ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Message your coach", body: "Questions between lessons.",     shot: "family",   ring: { x: 50, y: 30, w: 84, h: 15 } },
+    { title: "Your next lesson",   body: "When, and what you're on.", shot: "home",     ring: { x: 6, y: 25, w: 88, h: 28 } },
+    { title: "Watch it back",      body: "Your coach draws on it.",   shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
+    { title: "Your practice",      body: "Tick things off.",          shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { title: "Book a time",        body: "Ask; your coach confirms.", shot: "calendar", ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { title: "Your record",        body: "Lessons and attendance.",   shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { title: "Message your coach", body: "Questions between lessons.", shot: "family",  ring: { x: 6, y: 27, w: 88, h: 17 } },
   ],
   parent: [
-    { title: "Everyone here",   body: "Each child, one screen.",           shot: "family",   ring: { x: 50, y: 30, w: 84, h: 15 } },
-    { title: "You book",        body: "Under-18s are arranged by you.",    shot: "calendar", ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "Watch it back",   body: "The same video they see.",          shot: "lesson",   ring: { x: 50, y: 40, w: 84, h: 38 } },
-    { title: "Their practice",  body: "What they're working on.",          shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Their record",    body: "Lessons and attendance.",           shot: "season",   ring: { x: 50, y: 43, w: 84, h: 14 } },
+    { title: "Everyone here",  body: "Each child, one screen.",        shot: "family",   ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { title: "You book",       body: "Under-18s are arranged by you.", shot: "calendar", ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { title: "Watch it back",  body: "The same video they see.",       shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
+    { title: "Their practice", body: "What they're working on.",       shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { title: "Their record",   body: "Lessons and attendance.",        shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
   ],
   juvenile: [
-    { title: "Your lessons",    body: "What you worked on.",               shot: "home",     ring: { x: 50, y: 30, w: 84, h: 20 } },
-    { title: "Watch it back",   body: "Your coach draws on it.",           shot: "lesson",   ring: { x: 50, y: 40, w: 84, h: 38 } },
-    { title: "Your practice",   body: "Tick things off.",                  shot: "practice", ring: { x: 50, y: 28, w: 84, h: 14 } },
-    { title: "Your record",     body: "How you're getting on.",            shot: "season",   ring: { x: 50, y: 43, w: 84, h: 14 } },
-    { title: "A grown-up helps", body: "They book and message.",           shot: "family",   ring: { x: 50, y: 30, w: 84, h: 15 } },
+    { title: "Your lessons",     body: "What you worked on.",       shot: "home",     ring: { x: 6, y: 25, w: 88, h: 28 } },
+    { title: "Watch it back",    body: "Your coach draws on it.",   shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
+    { title: "Your practice",    body: "Tick things off.",          shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { title: "Your record",      body: "How you're getting on.",    shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { title: "A grown-up helps", body: "They book and message.",    shot: "family",   ring: { x: 6, y: 27, w: 88, h: 17 } },
   ],
 };
 
 /* A REAL LOOK AT THE SCREEN
 
-   The old version drew grey bars — every step looked like the same
-   blank card, so the walkthrough taught nothing. This draws what each
-   screen actually contains: the words on it, the icons, the shapes a
-   person will recognise thirty seconds later when they get there. */
+   Two things had to change here.
+
+   The highlight ring used to be an HTML overlay positioned in
+   percentages, centred with translate(-50%,-50%) — but the pulse
+   keyframes set `transform: scale()`, which replaces that translate
+   outright, so every ring jumped a half-width down and right. It now
+   lives inside the SVG in the same coordinate space as the thing it
+   points at, so it cannot drift.
+
+   And the bottom of each shot is now an actual tab bar with icons and
+   labels, not a row of dots that read as pagination. */
 function TourShot({ kind, ring, accent }) {
   const t = useT();
 
   const Row = ({ y, label, meta, on }) => (
     <g>
-      <rect x="7" y={y} width="86" height="15" rx="5" fill={on ? accent : t.wash} opacity={on ? 1 : 0.8} />
-      <text x="12" y={y + 7.4} style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 500 }}
+      <rect x="7" y={y} width="86" height="15" rx="5" fill={on ? accent : t.wash} opacity={on ? 1 : 0.85} />
+      <text x="12" y={y + 7.6} style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 500 }}
             fill={on ? "#fff" : t.ink} dominantBaseline="middle">{label}</text>
-      {meta && <text x="88" y={y + 7.4} textAnchor="end" style={{ fontFamily: ui, fontSize: 5.2 }}
-                     fill={on ? "rgba(255,255,255,0.75)" : t.faint} dominantBaseline="middle">{meta}</text>}
+      {meta && <text x="88" y={y + 7.6} textAnchor="end" style={{ fontFamily: ui, fontSize: 5.2 }}
+                     fill={on ? "rgba(255,255,255,0.78)" : t.faint} dominantBaseline="middle">{meta}</text>}
     </g>
   );
 
   const Title = ({ children }) => (
-    <text x="8" y="22" style={{ fontFamily: display, fontSize: 9.5, letterSpacing: "-0.02em" }}
+    <text x="8" y="20" style={{ fontFamily: display, fontSize: 9.5, letterSpacing: "-0.02em" }}
           fill={t.ink} dominantBaseline="middle">{children}</text>
   );
 
+  /* the app's own tab bar, drawn to scale */
+  const TabBar = ({ active }) => {
+    const tabs = kind === "today" || kind === "log" || kind === "calendar" || kind === "recurring" || kind === "capture"
+      ? ["Today", "Diary", "Roster", "Chat"]
+      : ["Home", "Lessons", "Drills", "Chat"];
+    return (
+      <g>
+        <line x1="0" y1="107" x2="100" y2="107" stroke={t.hair} strokeWidth="0.5" />
+        {tabs.map((label, i) => {
+          const cx = 12.5 + i * 25;
+          const on = i === active;
+          return (
+            <g key={label}>
+              <rect x={cx - 4} y={112} width="8" height="8" rx="2.4"
+                    fill="none" stroke={on ? accent : t.faint} strokeWidth="1.2" />
+              <text x={cx} y={126} textAnchor="middle"
+                    style={{ fontFamily: ui, fontSize: 4.6, fontWeight: on ? 600 : 400 }}
+                    fill={on ? accent : t.faint}>{label}</text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
+
+  const screens = {
+    today: { tab: 0, el: (<>
+      <Title>Today</Title>
+      <Row y={28} label="9:00  Sarah M." meta="Log" on />
+      <Row y={47} label="11:30  Group" meta="4" />
+      <Row y={66} label="2:00  James K." />
+    </>) },
+
+    log: { tab: 0, el: (<>
+      <Title>What you covered</Title>
+      <rect x="7" y="28" width="41" height="16" rx="5" fill={accent} />
+      <text x="27.5" y="36.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6, fontWeight: 500 }} fill="#fff" dominantBaseline="middle">Serve</text>
+      <rect x="52" y="28" width="41" height="16" rx="5" fill={t.wash} />
+      <text x="72.5" y="36.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Volley</text>
+      <rect x="7" y="48" width="41" height="16" rx="5" fill={t.wash} />
+      <text x="27.5" y="56.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Footwork</text>
+      <rect x="52" y="48" width="41" height="16" rx="5" fill={t.wash} />
+      <text x="72.5" y="56.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Return</text>
+      <rect x="15" y="76" width="70" height="15" rx="7.5" fill={accent} />
+      <text x="50" y="83.8" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6, fontWeight: 600 }} fill="#fff" dominantBaseline="middle">Continue</text>
+    </>) },
+
+    capture: { tab: 0, el: (<>
+      <Title>Capture</Title>
+      <rect x="7" y="28" width="86" height="52" rx="6" fill="#14201C" />
+      <rect x="12" y="33" width="16" height="7" rx="3.5" fill="#C4342A" />
+      <text x="20" y="36.7" textAnchor="middle" style={{ fontFamily: ui, fontSize: 4.4, fontWeight: 700 }} fill="#fff" dominantBaseline="middle">REC</text>
+      <circle cx="50" cy="56" r="10" fill="none" stroke="#fff" strokeWidth="1.5" opacity="0.9" />
+      <circle cx="50" cy="56" r="6" fill="#fff" />
+      <text x="50" y="88" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5.4 }} fill={t.faint}>Film · Photo · Voice</text>
+    </>) },
+
+    calendar: { tab: 1, el: (<>
+      <Title>Diary</Title>
+      <Row y={28} label="Mon 9:00" meta="Booked" />
+      <Row y={47} label="Mon 10:30" meta="Open" on />
+      <Row y={66} label="Tue 2:00" meta="Booked" />
+    </>) },
+
+    recurring: { tab: 1, el: (<>
+      <Title>Every week</Title>
+      <Row y={28} label="Tue 4:00  Sarah" meta="Weekly" on />
+      <Row y={47} label="Thu 5:30  Group" meta="Weekly" />
+    </>) },
+
+    home: { tab: 0, el: (<>
+      <Title>Next lesson</Title>
+      <rect x="7" y="26" width="86" height="26" rx="6" fill={accent} />
+      <text x="12" y="36" style={{ fontFamily: ui, fontSize: 6.4, fontWeight: 500 }} fill="#fff">Thu 4:00 · Serve</text>
+      <text x="12" y="45" style={{ fontFamily: ui, fontSize: 5.2 }} fill="rgba(255,255,255,0.78)">with Ray Doyle</text>
+      <text x="8" y="62" style={{ fontFamily: ui, fontSize: 5.8, fontWeight: 500 }} fill={t.ink}>To practise</text>
+      <Row y={66} label="Shadow serve  ×20" />
+      <Row y={85} label="Wall rally  2 min" />
+    </>) },
+
+    lesson: { tab: 1, el: (<>
+      <Title>Your video</Title>
+      <rect x="7" y="26" width="86" height="54" rx="6" fill="#14201C" />
+      <path d="M45 46 L60 53.5 L45 61 Z" fill="#fff" opacity="0.95" />
+      <circle cx="28" cy="40" r="7" fill="none" stroke={accent} strokeWidth="1.8" />
+      <text x="50" y="90" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5.4 }} fill={t.faint}>Your coach drew on this</text>
+    </>) },
+
+    practice: { tab: 2, el: (<>
+      <Title>Practice</Title>
+      <Row y={28} label="✓  Shadow serve" on />
+      <Row y={47} label="Wall rally" meta="2 min" />
+      <Row y={66} label="Split step ×10" />
+    </>) },
+
+    season: { tab: 0, el: (<>
+      <Title>Your record</Title>
+      <Row y={28} label="Lessons" meta="12" />
+      <Row y={47} label="Attended" meta="92%" on />
+      <Row y={66} label="Goals met" meta="3 of 5" />
+    </>) },
+
+    family: { tab: 0, el: (<>
+      <Title>Your family</Title>
+      <Row y={28} label="Emma · Thu 4:00" on />
+      <Row y={47} label="Jack · Sat 10:00" />
+    </>) },
+  };
+
+  const scr = screens[kind] || screens.today;
+
   return (
-    <div className="relative mx-auto" style={{ width: 250, height: 330 }}>
+    <div className="mx-auto" style={{ width: 250, height: 330 }}>
       <svg viewBox="0 0 100 132" width={250} height={330}
            style={{ borderRadius: R.surface, background: t.surface, border: `1px solid ${t.hair}` }}>
+        {scr.el}
+        <TabBar active={scr.tab} />
 
-        {kind === "today" && (<>
-          <Title>Today</Title>
-          <Row y={30} label="9:00  Sarah M." meta="Log" on />
-          <Row y={49} label="11:30  Group" meta="4" />
-          <Row y={68} label="2:00  James K." meta="" />
-          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>3 lessons today</text>
-        </>)}
-
-        {kind === "log" && (<>
-          <Title>What you covered</Title>
-          <rect x="7" y="30" width="41" height="16" rx="5" fill={accent} />
-          <text x="27.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 500 }}
-                fill="#fff" dominantBaseline="middle">Serve</text>
-          <rect x="52" y="30" width="41" height="16" rx="5" fill={t.wash} />
-          <text x="72.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2 }}
-                fill={t.ink} dominantBaseline="middle">Volley</text>
-          <rect x="7" y="50" width="41" height="16" rx="5" fill={t.wash} />
-          <text x="27.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2 }}
-                fill={t.ink} dominantBaseline="middle">Footwork</text>
-          <rect x="52" y="50" width="41" height="16" rx="5" fill={t.wash} />
-          <text x="72.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2 }}
-                fill={t.ink} dominantBaseline="middle">Return</text>
-          <rect x="15" y="88" width="70" height="14" rx="7" fill={accent} />
-          <text x="50" y="95.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 600 }}
-                fill="#fff" dominantBaseline="middle">Continue</text>
-        </>)}
-
-        {kind === "capture" && (<>
-          <Title>Capture</Title>
-          <rect x="7" y="30" width="86" height="46" rx="6" fill={t.ink} opacity="0.88" />
-          <circle cx="50" cy="53" r="9" fill="none" stroke="#fff" strokeWidth="1.4" opacity="0.9" />
-          <circle cx="50" cy="53" r="5.5" fill="#fff" opacity="0.95" />
-          <rect x="12" y="35" width="15" height="6" rx="3" fill="#C4342A" />
-          <text x="19.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 4.6, fontWeight: 600 }}
-                fill="#fff" dominantBaseline="middle">REC</text>
-          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Film · Photo · Voice</text>
-        </>)}
-
-        {kind === "calendar" && (<>
-          <Title>Diary</Title>
-          <Row y={30} label="Mon 9:00" meta="Booked" />
-          <Row y={49} label="Mon 10:30" meta="Open" on />
-          <Row y={68} label="Tue 2:00" meta="Booked" />
-          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Tap an open slot to book</text>
-        </>)}
-
-        {kind === "recurring" && (<>
-          <Title>Every week</Title>
-          <Row y={30} label="Tue 4:00  Sarah" meta="Weekly" on />
-          <Row y={49} label="Thu 5:30  Group" meta="Weekly" />
-          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Set once, repeats itself</text>
-        </>)}
-
-        {kind === "home" && (<>
-          <Title>Next lesson</Title>
-          <rect x="7" y="28" width="86" height="24" rx="6" fill={accent} />
-          <text x="12" y="38" style={{ fontFamily: ui, fontSize: 6.4, fontWeight: 500 }} fill="#fff">Thu 4:00 · Serve</text>
-          <text x="12" y="46" style={{ fontFamily: ui, fontSize: 5.4 }} fill="rgba(255,255,255,0.75)">with Ray Doyle</text>
-          <text x="8" y="63" style={{ fontFamily: ui, fontSize: 5.8, fontWeight: 500 }} fill={t.ink}>To practise</text>
-          <Row y={68} label="Shadow serve  ×20" meta="" />
-          <Row y={87} label="Wall rally  2 min" meta="" />
-        </>)}
-
-        {kind === "lesson" && (<>
-          <Title>Your video</Title>
-          <rect x="7" y="28" width="86" height="48" rx="6" fill={t.ink} opacity="0.9" />
-          <path d="M45 46 L58 52 L45 58 Z" fill="#fff" opacity="0.95" />
-          <circle cx="30" cy="42" r="6" fill="none" stroke={accent} strokeWidth="1.6" />
-          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Your coach drew on this</text>
-        </>)}
-
-        {kind === "practice" && (<>
-          <Title>Practice</Title>
-          <Row y={30} label="✓  Shadow serve" meta="" on />
-          <Row y={49} label="Wall rally" meta="2 min" />
-          <Row y={68} label="Split step ×10" meta="" />
-          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>Tick them off as you go</text>
-        </>)}
-
-        {kind === "season" && (<>
-          <Title>Your record</Title>
-          <Row y={30} label="Lessons" meta="12" />
-          <Row y={49} label="Attended" meta="92%" on />
-          <Row y={68} label="Goals met" meta="3 of 5" />
-        </>)}
-
-        {kind === "family" && (<>
-          <Title>Your family</Title>
-          <Row y={30} label="Emma · Thu 4:00" meta="" on />
-          <Row y={49} label="Jack · Sat 10:00" meta="" />
-          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 5.6 }} fill={t.faint}>You book for both</text>
-        </>)}
-
-        {/* tab bar — same on every screen, so it reads as one app */}
-        <rect x="10" y="112" width="80" height="12" rx="6" fill={t.wash} />
-        {[0,1,2,3].map((i) => <circle key={i} cx={22 + i * 19} cy="118" r="2.4" fill={i === 0 ? accent : t.hair} />)}
+        {/* The ring lives in the same coordinate space as everything
+            above it, so what it points at is exactly what's drawn. The
+            pulse animates stroke and radius rather than transform,
+            which is what threw the old overlay off centre. */}
+        {ring && (
+          <>
+            <rect x={ring.x} y={ring.y} width={ring.w} height={ring.h} rx={ring.h / 2}
+                  fill="none" stroke={accent} strokeWidth="1.1" opacity="0.9">
+              <animate attributeName="opacity" values="0.9;0.25;0.9" dur="1.9s" repeatCount="indefinite" />
+            </rect>
+            <rect x={ring.x - 1.5} y={ring.y - 1.5} width={ring.w + 3} height={ring.h + 3} rx={(ring.h + 3) / 2}
+                  fill="none" stroke={accent} strokeWidth="0.7" opacity="0.35">
+              <animate attributeName="opacity" values="0.35;0;0.35" dur="1.9s" repeatCount="indefinite" />
+            </rect>
+          </>
+        )}
       </svg>
-
-      {ring && (
-        <>
-          <span className="absolute rounded-full" aria-hidden="true"
-                style={{ left: `${ring.x}%`, top: `${ring.y}%`, width: `${ring.w}%`, height: `${ring.h}%`,
-                         transform: "translate(-50%,-50%)", border: `2px solid ${accent}`,
-                         animation: "ringFlash 1.8s cubic-bezier(.2,.6,.3,1) infinite" }} />
-          <span className="absolute rounded-full" aria-hidden="true"
-                style={{ left: `${ring.x}%`, top: `${ring.y}%`, width: `${ring.w}%`, height: `${ring.h}%`,
-                         transform: "translate(-50%,-50%)", border: `2px solid ${accent}`,
-                         animation: "ringHold 1.8s ease-in-out infinite" }} />
-        </>
-      )}
     </div>
   );
 }
+
 
 
 function Walkthrough({ role, juvenile, isParent, onClose }) {
@@ -9632,7 +9659,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <Eyebrow>{q ? `${matches.length} found` : nouns}</Eyebrow>
             <div className="px-6 pb-4">
               {matches.length === 0 ? (
-                <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>Nobody matching “{q}”.</p>
+                <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”.` : tr("No players yet.")}</p>
               ) : (
                 <div style={{ borderTop: `1px solid ${t.hair}` }}>
                   {matches.map((pl) => {
@@ -12527,7 +12554,7 @@ function useTypefaces() {
   }, []);
 }
 
-export default function Nosca({ demo: demoProp, account, onSignOut, data } = {}) {
+export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach } = {}) {
   /* Flip the seed switch before any child renders, so nothing can draw
      invented history even on the very first paint. */
   setLiveAccount(!!account);
@@ -12877,6 +12904,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   const [activeProfileId, setActiveProfileId] = useState(1);
   const clubName = "";   /* only ever what the account carries */
   const inviteCode = data ? data.inviteCode : FAMILY_CODE;
+  /* Months, from real logged lessons. An account with nothing logged
+     shows zeroes — which is the truth — rather than someone else's
+     season. */
+  const realMonthly = React.useMemo(() => {
+    if (!data) return null;
+    const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const now = new Date();
+    const out = [];
+    for (let back = 5; back >= 0; back--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+      const count = (data.lessons || []).filter((l) => {
+        const idx = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"].indexOf(l.m);
+        return idx === d.getMonth();
+      }).length;
+      out.push([names[d.getMonth()], count]);
+    }
+    return out;
+  }, [data && data.lessons]);
+  const seasonMonthly = realMonthly || MONTHLY;
   const [conns, setConns] = useState([
     { id: 1, profileId: 1, sport: "golf", coach: "Ray Doyle", club: "", seeded: true },
   ]);
@@ -13317,7 +13363,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   const needsCoach = !!account && role === "player" && data && !data.hasCoach;
   if (needsCoach) {
     body = <NoCoach juvenile={juvenile} onJoin={async (c) => {
-      const res = await data.joinCoach(c);
+      const res = await (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c));
       if (res && !res.error) setJoined({ coachName: res.coach?.name || data.coachName, sport: res.coach?.sport });
       return res;
     }} />;
@@ -13497,7 +13543,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
         <Screen title={tr("Your season")} onBack={pop} meta="2026">
           <div className="px-6 pb-2">
             <div className="mb-3"><RatingTile sport={sport} /></div>
-            <SeasonPanel role={role} monthly={MONTHLY} arc={seasonArc}
+            <SeasonPanel role={role} monthly={seasonMonthly} arc={seasonArc}
                          priv={role === "coach" ? 148 : 17} grp={role === "coach" ? 62 : 5}
                          hours={role === "coach" ? 158 : 17} streak={role === "coach" ? 9 : 4} />
           </div>
@@ -13562,9 +13608,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={freshAccount ? 0 : 1284} monthly={MONTHLY} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
       log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} />,
-    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={freshAccount ? 0 : 1284} monthly={MONTHLY} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>

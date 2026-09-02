@@ -83,7 +83,15 @@ export function useNoscaData(profile) {
       ]);
 
       const people = pRes.data || [];
-      const me = people.find((x) => x.id === profile.id);
+
+      /* Fetch our own row directly — the general people list only
+         contains rows RLS lets us see (our players, our coach), and
+         our own row may not be in it when we have no connections yet.
+         A direct .eq("id", profile.id) always works. */
+      const { data: me } = await supabase.from("profiles")
+        .select("invite_code, family_code")
+        .eq("id", profile.id)
+        .maybeSingle();
       setInviteCode(me?.invite_code || null);
       setFamilyCode(me?.family_code || null);
       /* everyone who points at me as their guardian */

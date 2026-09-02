@@ -49,7 +49,7 @@ export default function Auth() {
     setBusy(false);
   };
 
-  const createAccount = async ({ name, email: em, password, phone, dob }) => {
+  const createAccount = async ({ name, email: em, password, phone, dob }, useCode = true) => {
     setBusy(true); setErr("");
     beginSignUp();
 
@@ -62,7 +62,7 @@ export default function Auth() {
        have it — which is the common case, since most people sign up
        before their coach has sent anything. */
     let coach = null;
-    if (!isCoach && code.trim()) {
+    if (!isCoach && useCode && code.trim().length >= 4) {
       const { data: rows } = await supabase.rpc("find_coach_by_code", { p_code: code.trim().toUpperCase() });
       coach = rows?.[0];
       if (!coach) { endSignUp(); setErr("That code doesn't match a coach."); setBusy(false); return; }
@@ -179,7 +179,7 @@ export default function Auth() {
                        onClick={() => { hapticSuccess(); createAccount(pending); }}>
                  {busy ? "…" : tr("Add coach")}
                </Button>
-               <button onClick={() => { haptic(6); createAccount(pending); }} disabled={busy}
+               <button onClick={() => { haptic(6); setCode(""); setErr(""); createAccount(pending, false); }} disabled={busy}
                        className="w-full mt-3 active:opacity-60"
                        style={{ minHeight: 50, fontFamily: "'Switzer'", fontSize: 14.5, color: NEUTRAL.faint }}>
                  {tr("I'll do this later")}

@@ -34,6 +34,7 @@ function isUnder18(dob) {
 
 function SignedIn({ profile, signOut, email }) {
   const data = useNoscaData(profile);
+  const { refreshProfile } = useAuth();
 
   if (data.loading) {
     return (
@@ -80,6 +81,11 @@ function SignedIn({ profile, signOut, email }) {
       }}
       data={data}
       onSignOut={signOut}
+      onJoinCoach={async (code) => {
+        const res = await data.joinCoach(code);
+        if (res && !res.error) await refreshProfile();
+        return res;
+      }}
     />
   );
 }

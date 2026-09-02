@@ -17,7 +17,8 @@
 -- players. Both limits are gone, so the trigger has nothing left to
 -- enforce and is removed rather than left as a no-op.
 drop trigger if exists enforce_pilot_limits_trg on public.profiles;
-drop function if exists public.enforce_pilot_limits();
+drop trigger if exists trg_pilot_limits on public.profiles;
+drop function if exists public.enforce_pilot_limits() cascade;
 
 -- ------------------------------------------------------------
 -- 2 · a code should match however it was typed
