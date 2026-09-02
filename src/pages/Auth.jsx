@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/AuthContext";
 import {
   ThemeCtx, NEUTRAL, BRAND, tr,
   hapticSuccess, Mark, Frame, Headline, Sub, Field, Button,
-  PickSport, PickRole, PickPlayerType, PickCoachType, CreateAccount,
+  PickSport, PickRole, PickPlayerType, CreateAccount,
 } from "../Nosca";
 
 /* SIGN UP
@@ -26,6 +27,7 @@ const readable = (err) => {
 };
 
 export default function Auth() {
+  const { beginSignUp, endSignUp } = useAuth();
   const [stage, setStage] = useState("landing");
   const [side, setSide] = useState(null);        // coach | player
   const [kind, setKind] = useState(null);        // head/assistant · adult/junior/parent
@@ -48,6 +50,7 @@ export default function Auth() {
 
   const createAccount = async ({ name, email: em, password, phone, dob }) => {
     setBusy(true); setErr("");
+    beginSignUp();
 
     const exact = dob && dob.y && dob.m && dob.d
       ? `${dob.y}-${String(dob.m).padStart(2, "0")}-${String(dob.d).padStart(2, "0")}`
@@ -57,12 +60,12 @@ export default function Auth() {
     if (!isCoach) {
       const { data: rows, error: findErr } = await supabase.rpc("find_coach_by_code", { p_code: code.trim().toUpperCase() });
       coach = rows?.[0];
-      if (findErr || !coach) { setErr("That code doesn't match a coach."); setBusy(false); return; }
+      if (findErr || !coach) { endSignUp(); setErr("That code doesn't match a coach."); setBusy(false); return; }
     }
 
     const { data, error } = await supabase.auth.signUp({ email: em, password });
-    if (error) { setErr(error.message); setBusy(false); return; }
-    if (!data.user) { setErr("Check your email to confirm the account, then sign in."); setBusy(false); return; }
+    if (error) { endSignUp(); setErr(error.message); setBusy(false); return; }
+    if (!data.user) { endSignUp(); setErr("Check your email to confirm the account, then sign in."); setBusy(false); return; }
 
     const { error: pErr } = await supabase.from("profiles").insert({
       id: data.user.id,
@@ -74,7 +77,10 @@ export default function Auth() {
       sport: isCoach ? sport : coach.sport,
       ...(isCoach ? { invite_code: makeCode() } : { coach_id: coach.id }),
     });
-    if (pErr) { setErr(readable(pErr)); setBusy(false); return; }
+    if (pErr) { endSignUp(); setErr(readable(pErr)); setBusy(false); return; }
+    /* The row exists now, so the auth listener's next look will find it
+       and the app swaps itself over. */
+    endSignUp();
     setBusy(false);
   };
 
@@ -136,20 +142,12 @@ export default function Auth() {
   if (stage === "side") {
     return wrap(
       <PickRole lang="en"
-                onPick={(r) => { setSide(r); setStage(r === "coach" ? "coachType" : "playerType"); }}
+                onPick={(r) => { setSide(r); setStage(r === "coach" ? "sport" : "playerType"); }}
                 onBack={() => setStage("landing")} />
     );
   }
 
-  /* ---------- 2 · which kind ---------- */
-  if (stage === "coachType") {
-    return wrap(
-      <PickCoachType lang="en"
-                     onPick={(k) => { setKind(k); setStage("sport"); }}
-                     onBack={() => setStage("side")} />
-    );
-  }
-
+  /* ---------- 2 · which kind of player ---------- */
   if (stage === "playerType") {
     return wrap(
       <PickPlayerType lang="en"
@@ -163,7 +161,7 @@ export default function Auth() {
     return wrap(
       <PickSport lang="en"
                  onPick={(id) => { setSport(id); setStage(isCoach ? "account" : "connect"); }}
-                 onBack={() => setStage(isCoach ? "coachType" : "playerType")} />
+                 onBack={() => setStage(isCoach ? "side" : "playerType")} />
     );
   }
 

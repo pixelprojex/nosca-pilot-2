@@ -3668,107 +3668,180 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
    describing it, and it survives translation better too.
 ================================================================== */
 const TOUR = {
+  /* One line each. A walkthrough people read is short; a walkthrough
+     people skip is long. Every step names a screen they'll actually
+     land on. */
   coach: [
-    { title: "Your day, first thing", body: "Everything you're teaching today, in order. The bright card is a lesson still to log.",
-      shot: "today", ring: { x: 50, y: 38, w: 76, h: 22 } },
-    { title: "Log it in a minute", body: "Six short pages. Who, what you covered, a voice note, media, drills, and one thing to hold onto.",
-      shot: "log", ring: { x: 50, y: 78, w: 70, h: 12 } },
-    { title: "Film it as it happens", body: "Record a swing or photograph a launch monitor mid-lesson. It's waiting when you log.",
-      shot: "capture", ring: { x: 27, y: 30, w: 40, h: 22 } },
-    { title: "Your week, at a glance", body: "Tap any open slot to book someone straight in. The pencil edits that day's hours.",
-      shot: "calendar", ring: { x: 78, y: 30, w: 34, h: 12 } },
-    { title: "Standing lessons", body: "Someone every Tuesday at four? Set it once. End or extend it whenever you like.",
-      shot: "recurring", ring: { x: 50, y: 22, w: 80, h: 16 } },
+    { title: "Your day", body: "Every lesson you're teaching, in order.",
+      shot: "today", ring: { x: 50, y: 34, w: 84, h: 15 } },
+    { title: "Log a lesson", body: "Who, what you covered, and one thing to work on.",
+      shot: "log", ring: { x: 50, y: 72, w: 70, h: 12 } },
+    { title: "Film it there and then", body: "Video, photos or a voice note, saved to the lesson.",
+      shot: "capture", ring: { x: 50, y: 40, w: 80, h: 34 } },
+    { title: "Your diary", body: "Tap any open slot to book someone in.",
+      shot: "calendar", ring: { x: 50, y: 48, w: 84, h: 14 } },
+    { title: "Standing lessons", body: "Same time every week? Set it once.",
+      shot: "recurring", ring: { x: 50, y: 34, w: 84, h: 14 } },
   ],
   player: [
-    { title: "Everything in one place", body: "Your next lesson, what you're working on, and what your coach has asked you to practise.",
-      shot: "home", ring: { x: 50, y: 34, w: 80, h: 20 } },
-    { title: "Watch it back", body: "Your coach marks up your video and talks over it. The drawing appears as they speak.",
-      shot: "lesson", ring: { x: 50, y: 44, w: 74, h: 26 } },
-    { title: "Book a time", body: "Open slots show a Book button. Ask for a time and your coach confirms it.",
-      shot: "calendar", ring: { x: 82, y: 48, w: 26, h: 11 } },
-    { title: "See how far you've come", body: "Side-by-side video and a season of numbers. Progress you can actually see.",
-      shot: "season", ring: { x: 50, y: 30, w: 80, h: 18 } },
+    { title: "Your next lesson", body: "When it is, and what you're working on.",
+      shot: "home", ring: { x: 50, y: 30, w: 84, h: 20 } },
+    { title: "Watch it back", body: "Your coach marks up your video.",
+      shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
+    { title: "Your practice", body: "Tick things off as you do them.",
+      shot: "practice", ring: { x: 50, y: 34, w: 84, h: 14 } },
+    { title: "Book a time", body: "Ask for an open slot; your coach confirms.",
+      shot: "calendar", ring: { x: 50, y: 48, w: 84, h: 14 } },
+    { title: "Your record", body: "Lessons, attendance and goals over the season.",
+      shot: "season", ring: { x: 50, y: 48, w: 84, h: 14 } },
   ],
   parent: [
-    { title: "Everyone in one view", body: "Each child, their next lesson, and what they still have to practise.",
-      shot: "family", ring: { x: 50, y: 32, w: 80, h: 22 } },
-    { title: "You book, they play", body: "Lessons for anyone under 18 are booked and managed by you.",
-      shot: "calendar", ring: { x: 82, y: 48, w: 26, h: 11 } },
-    { title: "They get their own account at 18", body: "When they turn 18 the account becomes theirs, and their whole history goes with them.",
-      shot: "family", ring: { x: 50, y: 62, w: 80, h: 16 } },
+    { title: "Everyone in one place", body: "Each child and their next lesson.",
+      shot: "family", ring: { x: 50, y: 30, w: 84, h: 15 } },
+    { title: "You do the booking", body: "Lessons for under-18s are arranged by you.",
+      shot: "calendar", ring: { x: 50, y: 48, w: 84, h: 14 } },
+    { title: "Watch their lessons back", body: "The same video and notes they see.",
+      shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
   ],
   juvenile: [
-    { title: "Your lessons", body: "What you worked on, and the video your coach marked up for you.",
-      shot: "home", ring: { x: 50, y: 36, w: 80, h: 20 } },
-    { title: "Your practice", body: "Tick things off as you do them. Some have a timer built in.",
-      shot: "practice", ring: { x: 50, y: 30, w: 80, h: 16 } },
-    { title: "A grown-up looks after the rest", body: "Booking and messages are handled by your parent, so you can just play.",
-      shot: "home", ring: { x: 50, y: 70, w: 80, h: 14 } },
+    { title: "Your lessons", body: "What you worked on, and your coach's video.",
+      shot: "home", ring: { x: 50, y: 30, w: 84, h: 20 } },
+    { title: "Your practice", body: "Tick things off as you do them.",
+      shot: "practice", ring: { x: 50, y: 34, w: 84, h: 14 } },
+    { title: "Watch it back", body: "Your coach draws on your video.",
+      shot: "lesson", ring: { x: 50, y: 40, w: 84, h: 38 } },
+    { title: "A grown-up does the rest", body: "Booking and messages are handled by your parent.",
+      shot: "family", ring: { x: 50, y: 30, w: 84, h: 15 } },
   ],
 };
 
-/* A small, honest drawing of the screen being described. Not a real
-   screenshot — a diagram, which stays correct as the app changes. */
+/* A REAL LOOK AT THE SCREEN
+
+   The old version drew grey bars — every step looked like the same
+   blank card, so the walkthrough taught nothing. This draws what each
+   screen actually contains: the words on it, the icons, the shapes a
+   person will recognise thirty seconds later when they get there. */
 function TourShot({ kind, ring, accent }) {
   const t = useT();
-  const bar = (y, w, dark) => (
-    <rect x={(100 - w) / 2} y={y} width={w} height="5" rx="2.5"
-          fill={dark ? t.ink : t.hair} opacity={dark ? 0.16 : 0.5} />
+
+  const Row = ({ y, label, meta, on }) => (
+    <g>
+      <rect x="7" y={y} width="86" height="15" rx="5" fill={on ? accent : t.wash} opacity={on ? 1 : 0.8} />
+      <text x="12" y={y + 7.4} style={{ fontFamily: ui, fontSize: 5, fontWeight: 500 }}
+            fill={on ? "#fff" : t.ink} dominantBaseline="middle">{label}</text>
+      {meta && <text x="88" y={y + 7.4} textAnchor="end" style={{ fontFamily: ui, fontSize: 4.2 }}
+                     fill={on ? "rgba(255,255,255,0.75)" : t.faint} dominantBaseline="middle">{meta}</text>}
+    </g>
   );
+
+  const Title = ({ children }) => (
+    <text x="8" y="22" style={{ fontFamily: display, fontSize: 8, letterSpacing: "-0.02em" }}
+          fill={t.ink} dominantBaseline="middle">{children}</text>
+  );
+
   return (
     <div className="relative mx-auto" style={{ width: 176, height: 232 }}>
       <svg viewBox="0 0 100 132" width={176} height={232}
            style={{ borderRadius: R.surface, background: t.surface, border: `1px solid ${t.hair}` }}>
-        {/* status + title */}
-        <rect x="8" y="7" width="16" height="3" rx="1.5" fill={t.hair} />
-        <rect x="8" y="16" width="44" height="8" rx="3" fill={t.ink} opacity="0.2" />
 
         {kind === "today" && (<>
-          <rect x="8" y="32" width="84" height="26" rx="6" fill={accent} opacity="0.9" />
-          <rect x="14" y="40" width="34" height="4" rx="2" fill="#fff" opacity="0.85" />
-          <rect x="14" y="48" width="22" height="3" rx="1.5" fill="#fff" opacity="0.5" />
-          {bar(66, 84)} {bar(80, 84)} {bar(94, 84)}
-        </>)}
-        {kind === "log" && (<>
-          {[0,1,2,3,4,5].map((i) => <rect key={i} x={8 + i * 14.2} y="30" width="12" height="2" rx="1" fill={i < 2 ? accent : t.hair} />)}
-          <rect x="8" y="40" width="40" height="7" rx="3" fill={t.ink} opacity="0.2" />
-          {bar(56, 84)} {bar(70, 84)}
-          <rect x="15" y="88" width="70" height="14" rx="7" fill={accent} />
-        </>)}
-        {kind === "capture" && (<>
-          <rect x="8" y="30" width="40" height="26" rx="6" fill={accent} opacity="0.14" stroke={accent} strokeWidth="0.7" />
-          <rect x="52" y="30" width="40" height="26" rx="6" fill={t.wash} />
-          <rect x="8" y="62" width="40" height="26" rx="6" fill={t.wash} />
-          <rect x="52" y="62" width="40" height="26" rx="6" fill={t.wash} />
-          <circle cx="28" cy="41" r="4" fill={accent} />
-        </>)}
-        {kind === "calendar" && (<>
-          <rect x="8" y="30" width="84" height="10" rx="5" fill={t.wash} />
-          <rect x="10" y="32" width="40" height="6" rx="3" fill={t.surface} />
-          {[0,1,2].map((i) => (<g key={i}>
-            <rect x="8" y={48 + i * 22} width="84" height="18" rx="6" fill={t.wash} />
-            <rect x="13" y={54 + i * 22} width="14" height="3" rx="1.5" fill={t.hair} />
-            <rect x="72" y={53 + i * 22} width="15" height="8" rx="4" fill={i === 1 ? accent : t.hair} opacity={i === 1 ? 1 : 0.6} />
-          </g>))}
-        </>)}
-        {kind === "recurring" && (<>
-          <rect x="8" y="26" width="84" height="20" rx="7" fill={accent} opacity="0.12" stroke={accent} strokeWidth="0.7" />
-          <circle cx="19" cy="36" r="5" fill={accent} />
-          {bar(54, 84)} {bar(70, 84)} {bar(86, 84)}
-        </>)}
-        {(kind === "home" || kind === "family" || kind === "season" || kind === "practice" || kind === "lesson") && (<>
-          <rect x="8" y="30" width="84" height="22" rx="7" fill={accent} opacity="0.14" stroke={accent} strokeWidth="0.7" />
-          {kind === "lesson" && <rect x="14" y="58" width="72" height="30" rx="6" fill={t.ink} opacity="0.85" />}
-          {kind !== "lesson" && (<>{bar(60, 84)} {bar(74, 84)} {bar(88, 84)}</>)}
+          <Title>Today</Title>
+          <Row y={30} label="9:00  Sarah M." meta="Log" on />
+          <Row y={49} label="11:30  Group" meta="4" />
+          <Row y={68} label="2:00  James K." meta="" />
+          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>3 lessons today</text>
         </>)}
 
-        {/* tab bar */}
+        {kind === "log" && (<>
+          <Title>What you covered</Title>
+          <rect x="7" y="30" width="41" height="16" rx="5" fill={accent} />
+          <text x="27.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5, fontWeight: 500 }}
+                fill="#fff" dominantBaseline="middle">Serve</text>
+          <rect x="52" y="30" width="41" height="16" rx="5" fill={t.wash} />
+          <text x="72.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5 }}
+                fill={t.ink} dominantBaseline="middle">Volley</text>
+          <rect x="7" y="50" width="41" height="16" rx="5" fill={t.wash} />
+          <text x="27.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5 }}
+                fill={t.ink} dominantBaseline="middle">Footwork</text>
+          <rect x="52" y="50" width="41" height="16" rx="5" fill={t.wash} />
+          <text x="72.5" y="58.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5 }}
+                fill={t.ink} dominantBaseline="middle">Return</text>
+          <rect x="15" y="88" width="70" height="14" rx="7" fill={accent} />
+          <text x="50" y="95.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5, fontWeight: 600 }}
+                fill="#fff" dominantBaseline="middle">Continue</text>
+        </>)}
+
+        {kind === "capture" && (<>
+          <Title>Capture</Title>
+          <rect x="7" y="30" width="86" height="46" rx="6" fill={t.ink} opacity="0.88" />
+          <circle cx="50" cy="53" r="9" fill="none" stroke="#fff" strokeWidth="1.4" opacity="0.9" />
+          <circle cx="50" cy="53" r="5.5" fill="#fff" opacity="0.95" />
+          <rect x="12" y="35" width="15" height="6" rx="3" fill="#C4342A" />
+          <text x="19.5" y="38.4" textAnchor="middle" style={{ fontFamily: ui, fontSize: 3.6, fontWeight: 600 }}
+                fill="#fff" dominantBaseline="middle">REC</text>
+          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Film · Photo · Voice</text>
+        </>)}
+
+        {kind === "calendar" && (<>
+          <Title>Diary</Title>
+          <Row y={30} label="Mon 9:00" meta="Booked" />
+          <Row y={49} label="Mon 10:30" meta="Open" on />
+          <Row y={68} label="Tue 2:00" meta="Booked" />
+          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Tap an open slot to book</text>
+        </>)}
+
+        {kind === "recurring" && (<>
+          <Title>Every week</Title>
+          <Row y={30} label="Tue 4:00  Sarah" meta="Weekly" on />
+          <Row y={49} label="Thu 5:30  Group" meta="Weekly" />
+          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Set once, repeats itself</text>
+        </>)}
+
+        {kind === "home" && (<>
+          <Title>Next lesson</Title>
+          <rect x="7" y="28" width="86" height="24" rx="6" fill={accent} />
+          <text x="12" y="38" style={{ fontFamily: ui, fontSize: 5.2, fontWeight: 500 }} fill="#fff">Thu 4:00 · Serve</text>
+          <text x="12" y="46" style={{ fontFamily: ui, fontSize: 4.2 }} fill="rgba(255,255,255,0.75)">with Ray Doyle</text>
+          <text x="8" y="63" style={{ fontFamily: ui, fontSize: 4.6, fontWeight: 500 }} fill={t.ink}>To practise</text>
+          <Row y={68} label="Shadow serve  ×20" meta="" />
+          <Row y={87} label="Wall rally  2 min" meta="" />
+        </>)}
+
+        {kind === "lesson" && (<>
+          <Title>Your video</Title>
+          <rect x="7" y="28" width="86" height="48" rx="6" fill={t.ink} opacity="0.9" />
+          <path d="M45 46 L58 52 L45 58 Z" fill="#fff" opacity="0.95" />
+          <circle cx="30" cy="42" r="6" fill="none" stroke={accent} strokeWidth="1.6" />
+          <text x="8" y="86" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Your coach drew on this</text>
+        </>)}
+
+        {kind === "practice" && (<>
+          <Title>Practice</Title>
+          <Row y={30} label="✓  Shadow serve" meta="" on />
+          <Row y={49} label="Wall rally" meta="2 min" />
+          <Row y={68} label="Split step ×10" meta="" />
+          <text x="8" y="95" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>Tick them off as you go</text>
+        </>)}
+
+        {kind === "season" && (<>
+          <Title>Your record</Title>
+          <Row y={30} label="Lessons" meta="12" />
+          <Row y={49} label="Attended" meta="92%" on />
+          <Row y={68} label="Goals met" meta="3 of 5" />
+        </>)}
+
+        {kind === "family" && (<>
+          <Title>Your family</Title>
+          <Row y={30} label="Emma · Thu 4:00" meta="" on />
+          <Row y={49} label="Jack · Sat 10:00" meta="" />
+          <text x="8" y="76" style={{ fontFamily: ui, fontSize: 4.4 }} fill={t.faint}>You book for both</text>
+        </>)}
+
+        {/* tab bar — same on every screen, so it reads as one app */}
         <rect x="10" y="112" width="80" height="12" rx="6" fill={t.wash} />
         {[0,1,2,3].map((i) => <circle key={i} cx={22 + i * 19} cy="118" r="2.4" fill={i === 0 ? accent : t.hair} />)}
       </svg>
 
-      {/* the ring that says: this one */}
       {ring && (
         <>
           <span className="absolute rounded-full" aria-hidden="true"
@@ -3784,6 +3857,7 @@ function TourShot({ kind, ring, accent }) {
     </div>
   );
 }
+
 
 function Walkthrough({ role, juvenile, isParent, onClose }) {
   const t = useT();

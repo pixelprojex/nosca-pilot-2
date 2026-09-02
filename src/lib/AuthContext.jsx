@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase";
 
 const Ctx = createContext(null);
@@ -8,21 +8,29 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined); // undefined = still checking
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const signingUp = useRef(false);
 
   const loadProfile = async (userId) => {
     setLoadingProfile(true);
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
+      /* During sign-up the session exists a moment before the profile
+         row does — signUp() creates the account, and only then does the
+         insert run. Looking once and giving up would sign the person
+         straight back out of the account they just created, which is
+         exactly what was happening. So: look a few times, briefly,
+         before concluding the row genuinely isn't there. */
+      let data = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const res = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+        if (res.data) { data = res.data; break; }
+        if (signingUp.current) await new Promise((r) => setTimeout(r, 400));
+        else break;                       // not mid-sign-up: one look is enough
+      }
 
       if (!data) {
-        /* The session exists but the profile row is gone — this happens
-           after a reset wipes the accounts table. Sign out cleanly so
-           the person lands on the sign-in screen rather than spinning
-           forever. */
+        /* No row after all that — the account really is orphaned, which
+           happens after a reset wipes the profiles table. Sign out
+           cleanly rather than spinning forever. */
         await supabase.auth.signOut();
         setProfile(null);
       } else {
@@ -58,6 +66,8 @@ export function AuthProvider({ children }) {
   return (
     <Ctx.Provider value={{
       session, profile, setProfile, loadingProfile, signOut,
+      beginSignUp: () => { signingUp.current = true; },
+      endSignUp: () => { signingUp.current = false; },
       refreshProfile: () => session && loadProfile(session.user.id),
     }}>
       {children}
