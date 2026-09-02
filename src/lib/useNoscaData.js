@@ -52,6 +52,8 @@ export function useNoscaData(profile) {
   const [prefs, setPrefs] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [coachName, setCoachName] = useState(null);
+  const [familyCode, setFamilyCode] = useState(null);
+  const [family, setFamily] = useState([]);
   const [threads, setThreads] = useState([]);
   const [reviewSummary, setReviewSummary] = useState(null);
   const [myReview, setMyReview] = useState(null);
@@ -67,7 +69,7 @@ export function useNoscaData(profile) {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
       const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes] = await Promise.all([
-        supabase.from("profiles").select("id, name, role, invite_code, created_at"),
+        supabase.from("profiles").select("id, name, role, invite_code, family_code, guardian_id, created_at"),
         supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
         supabase.from("tips").select("*").order("created_at", { ascending: false }),
@@ -83,6 +85,9 @@ export function useNoscaData(profile) {
       const people = pRes.data || [];
       const me = people.find((x) => x.id === profile.id);
       setInviteCode(me?.invite_code || null);
+      setFamilyCode(me?.family_code || null);
+      /* everyone who points at me as their guardian */
+      setFamily(people.filter((x) => x.guardian_id === profile.id).map((x) => ({ id: x.id, name: x.name })));
 
       /* A player needs their coach's real name. Row-level security means
          the coach's own row is visible to them, so it comes back here. */
@@ -236,7 +241,7 @@ export function useNoscaData(profile) {
       if (!upErr) {
         await supabase.from("lesson_media").insert({
           lesson_id: lesson.id,
-          kind: f.type.startsWith("video") ? "video" : "photo",
+          kind: f.type.startsWith("video") ? "video" : f.type.startsWith("audio") ? "audio" : "photo",
           storage_path: path,
         });
       }
@@ -394,15 +399,63 @@ export function useNoscaData(profile) {
      from settings. The same code that could have been entered during
      sign-up, doing the same thing. */
   const joinCoach = async (rawCode) => {
-    const { data: rows } = await supabase.rpc("find_coach_by_code", { p_code: (rawCode || "").trim().toUpperCase() });
+    const clean = (rawCode || "").trim().toUpperCase();
+    if (clean.length < 4) return { error: { message: "Enter the full code." } };
+
+    const { data: rows, error: findErr } = await supabase.rpc("find_coach_by_code", { p_code: clean });
+    if (findErr) return { error: { message: "Couldn't check that code. Try again." } };
     const coach = rows?.[0];
     if (!coach) return { error: { message: "That code doesn't match a coach." } };
-    const { error } = await supabase.from("profiles")
-      .update({ coach_id: coach.id, sport: coach.sport })
-      .eq("id", profile.id);
+
+    /* The player's own sport stays as they chose it — joining a coach
+       links the two accounts, it doesn't overwrite what the person
+       said they play. A coach who teaches something else simply
+       becomes one of their sports.
+
+       .select() matters here: without it a row blocked by row-level
+       security comes back as success with nothing changed, and the
+       screen would say "joined" while the account stayed empty. */
+    const { data: updated, error } = await supabase.from("profiles")
+      .update({ coach_id: coach.id })
+      .eq("id", profile.id)
+      .select();
     if (error) return { error };
+    if (!updated || updated.length === 0) {
+      return { error: { message: "Couldn't join that coach. Please try again." } };
+    }
     await load();
     return { coach };
+  };
+
+  /* Joining a family — identical in shape to joining a coach. Any
+     player can hand out their family code; anyone who enters it joins
+     that person's family. */
+  const joinFamily = async (rawCode) => {
+    const clean = (rawCode || "").trim().toUpperCase();
+    if (clean.length < 4) return { error: { message: "Enter the full code." } };
+    const { data: rows, error: findErr } = await supabase.rpc("find_guardian_by_code", { p_code: clean });
+    if (findErr) return { error: { message: "Couldn't check that code. Try again." } };
+    const guardian = rows?.[0];
+    if (!guardian) return { error: { message: "That code doesn't match a family." } };
+    if (guardian.id === profile.id) return { error: { message: "That's your own code." } };
+    const { data: updated, error } = await supabase.from("profiles")
+      .update({ guardian_id: guardian.id }).eq("id", profile.id).select();
+    if (error) return { error };
+    if (!updated || updated.length === 0) return { error: { message: "Couldn't join that family. Please try again." } };
+    await load();
+    return { guardian };
+  };
+
+  /* Verifies the password belongs to this account, by signing in again
+     with it. Supabase has no "check password" call, and doing it this
+     way means a wrong password is rejected by the server rather than
+     by anything the app could be tricked into skipping. */
+  const verifyPassword = async (password) => {
+    const email = profile?.email || (await supabase.auth.getUser()).data?.user?.email;
+    if (!email) return { error: "Couldn't confirm your account." };
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: "That password isn't right." };
+    return {};
   };
 
   /* a signed URL for a piece of media, valid for an hour */
@@ -415,7 +468,7 @@ export function useNoscaData(profile) {
   };
 
   return {
-    loading, loadError, isCoach, inviteCode, coachName,
+    loading, loadError, isCoach, inviteCode, coachName, familyCode, family,
     roster, lessons, drills, tips, registers,
     bookings, competitions, recurring, prefs, threads,
     reviewSummary, myReview,
@@ -424,7 +477,8 @@ export function useNoscaData(profile) {
     addBooking, cancelBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, sendMessage, submitReview, joinCoach,
+    savePrefs, sendMessage, submitReview, joinCoach, joinFamily, verifyPassword,
+    hasGuardian: !!profile?.guardian_id,
     hasCoach: !!profile?.coach_id,
   };
 }

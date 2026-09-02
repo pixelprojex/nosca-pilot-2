@@ -4,7 +4,7 @@ import { useAuth } from "../lib/AuthContext";
 import {
   ThemeCtx, NEUTRAL, BRAND, tr,
   hapticSuccess, Mark, Frame, Headline, Sub, Field, Button,
-  PickSport, PickRole, PickPlayerType, CreateAccount,
+  PickSport, PickRole, PickPlayerType, CreateAccount, CodeBoxes,
 } from "../Nosca";
 
 /* SIGN UP
@@ -188,9 +188,9 @@ export default function Auth() {
         <div className="pt-6">
           <Headline>{tr("Your coach")}</Headline>
           <Sub>{tr("Enter their code, or add it any time from your home screen.")}</Sub>
-          <div className="mt-8">
-            <Field label={tr("Code")} value={code} onChange={setCode} ph="ABC123" autoFocus />
-            {err && <p className="mt-3" style={{ fontFamily: "'Switzer'", fontSize: 13, color: "#C4342A" }}>{err}</p>}
+          <div className="mt-9">
+            <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
+            {err && <p className="mt-3 text-center" style={{ fontFamily: "'Switzer'", fontSize: 13, color: "#C4342A" }}>{err}</p>}
           </div>
         </div>
       </Frame>

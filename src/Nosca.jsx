@@ -1808,6 +1808,8 @@ const ShimmerCSS = () => (
        it. Staggering by role rather than by index is what stops a
        screen looking like a list of things that all arrived together. */
     @keyframes headerSettle{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+    @keyframes joinLeft{0%{transform:translateX(-46px);opacity:0}55%{opacity:1}100%{transform:translateX(0);opacity:1}}
+    @keyframes joinRight{0%{transform:translateX(46px);opacity:0}55%{opacity:1}100%{transform:translateX(0);opacity:1}}
     @keyframes contentRise{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
     @keyframes figureCount{0%{opacity:0;transform:translateY(12px) scale(.94)}60%{opacity:1;transform:translateY(-2px) scale(1.02)}100%{opacity:1;transform:translateY(0) scale(1)}}
     @keyframes edgeGlow{0%,100%{opacity:0}50%{opacity:.5}}
@@ -5837,16 +5839,8 @@ function NoCoach({ onJoin, juvenile }) {
         </p>
 
         <div className="w-full mt-9" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 190ms both" }}>
-          <div className="flex items-center px-4"
-               style={{ minHeight: 58, borderRadius: R.surface, background: t.surface,
-                        border: `1px solid ${err ? DANGER : t.hair}` }}>
-            <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setErr(""); }}
-                   placeholder="ABC123" autoCapitalize="characters" autoCorrect="off" spellCheck="false"
-                   className="w-full outline-none text-center"
-                   style={{ fontFamily: display, fontSize: 22, letterSpacing: "0.22em",
-                            color: t.ink, background: "transparent" }} />
-          </div>
-          {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+          <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
+          {err && <p className="mt-3 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
         </div>
       </div>
 
@@ -5856,6 +5850,203 @@ function NoCoach({ onJoin, juvenile }) {
         </Button>
       </div>
     </div>
+  );
+}
+
+/* CONFIRM WITH YOUR PASSWORD
+
+   A weather call-off messages every affected player at once and can't
+   be taken back. That deserves more friction than a single tap — so it
+   asks for the password to the account, the same way a bank asks
+   before a transfer. Re-authenticating also proves it's the coach
+   holding the phone, not someone who picked it up unlocked. */
+function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
+  const t = useT();
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const go = async () => {
+    if (!pass) return;
+    setBusy(true); setErr("");
+    const res = await onConfirm(pass);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); decline(); setErr(res.error); setPass(""); }
+    else { hapticCommit(); close(); }
+  };
+
+  return (
+    <Sheet onClose={close} title={title}>
+      <div className="px-6 pb-6">
+        <p style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{detail}</p>
+
+        <div className="mt-6">
+          <span className="block mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Your password")}</span>
+          <input type="password" value={pass} autoFocus
+                 onChange={(e) => { setPass(e.target.value); setErr(""); }}
+                 onKeyDown={(e) => { if (e.key === "Enter") go(); }}
+                 className="w-full outline-none px-4"
+                 style={{ minHeight: 54, borderRadius: R.surface, background: t.surface,
+                          border: `1px solid ${err ? DANGER : t.hair}`,
+                          fontFamily: ui, fontSize: 16, color: t.ink }} />
+          {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+        </div>
+
+        <button onClick={go} disabled={busy || !pass}
+                className="w-full mt-6 active:opacity-85 disabled:opacity-30"
+                style={{ minHeight: 54, borderRadius: R.control, background: DANGER,
+                         ...TYPE.subhead, fontSize: 15.5, color: "#fff" }}>
+          {busy ? "…" : actionLabel}
+        </button>
+        <button onClick={close} className="w-full mt-2.5 active:opacity-60"
+                style={{ minHeight: 48, ...TYPE.body, fontSize: 14.5, color: t.faint }}>
+          {tr("Cancel")}
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+/* YOU'RE IN
+
+   The one moment in a player's first week that deserves a full screen:
+   the account was empty, and now it has a coach in it. The two marks
+   drawing together are the brand's own image of a connection being
+   made — which is literally what just happened. */
+function JoinedCoach({ coachName, sport, onDone }) {
+  const t = useT();
+  const sp = SPORTS[sport];
+  const accent = sp ? sp.theme.accent : t.accent;
+
+  useEffect(() => {
+    hapticSuccess(); chime();
+    const x = setTimeout(onDone, 2600);
+    return () => clearTimeout(x);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-9 text-center"
+         style={{ zIndex: 80, background: t.page,
+                  animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+      {/* two rings that start apart and settle into the mark */}
+      <div className="relative" style={{ width: 96, height: 96 }}>
+        <span className="absolute rounded-full" style={{ width: 62, height: 62, left: 0, top: 17,
+                border: `3px solid ${accent}`, animation: "joinLeft 1100ms cubic-bezier(.22,1,.36,1) 120ms both" }} />
+        <span className="absolute rounded-full" style={{ width: 62, height: 62, right: 0, top: 17,
+                border: `3px solid ${t.ink}`, animation: "joinRight 1100ms cubic-bezier(.22,1,.36,1) 120ms both" }} />
+      </div>
+
+      <h1 className="mt-9" style={{ ...TYPE.hero, fontSize: 30, color: t.ink,
+                     animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 900ms both" }}>
+        {tr("You're in")}
+      </h1>
+      <p className="mt-3" style={{ fontFamily: ui, fontSize: 15.5, color: t.sub,
+                    animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 1050ms both" }}>
+        {coachName ? `${tr("Now coached by")} ${coachName}` : tr("Your coach is set")}
+      </p>
+      {sp && (
+        <span className="mt-4 rounded-full px-3.5 py-1.5"
+              style={{ background: `${accent}18`, ...TYPE.caption, color: accent,
+                       animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 1200ms both" }}>
+          {sp.label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* FAMILY
+
+   One screen, two halves. Your code, to give to someone joining you.
+   A place to enter someone else's, to join them. Any player can do
+   either — a parent adding a child, or an adult whose younger sibling
+   is starting lessons. The shape is deliberately identical to joining
+   a coach, so the second time someone sees six boxes they already know
+   what to do. */
+function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
+  const t = useT();
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const share = async () => {
+    if (!familyCode) return;
+    haptic(8); soft();
+    const text = `${tr("Join my family on")} ${BRAND}: ${familyCode}`;
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else { await navigator.clipboard.writeText(familyCode); say && say(tr("Copied")); }
+    } catch (e) { /* the person closed the share sheet — nothing to do */ }
+  };
+
+  const join = async () => {
+    if (code.trim().length < 4) return;
+    setBusy(true); setErr("");
+    const res = await onJoin(code);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message); }
+    else { hapticSuccess(); soft(); setCode(""); say && say(tr("Joined")); }
+  };
+
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Family")} onBack={pop}>
+        <div className="px-6">
+
+          {/* your code */}
+          <Eyebrow>{tr("Your family code")}</Eyebrow>
+          <Card className="p-6 mb-8 text-center">
+            <span className="block" style={{ fontFamily: display, fontSize: 34, letterSpacing: "0.28em", paddingLeft: "0.28em", color: t.ink }}>
+              {familyCode || "——————"}
+            </span>
+            <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>
+              {tr("Anyone who enters this joins your family.")}
+            </p>
+            <button onClick={share} disabled={!familyCode}
+                    className="mt-5 inline-flex items-center gap-2 px-5 active:opacity-70 disabled:opacity-30"
+                    style={{ minHeight: 44, borderRadius: R.pill, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}>
+              <Share2 size={14} strokeWidth={2} />
+              {tr("Share")}
+            </button>
+          </Card>
+
+          {/* who's in it */}
+          {family.length > 0 && (
+            <>
+              <Eyebrow>{tr("In your family")}</Eyebrow>
+              <Card className="mb-8">
+                {family.map((m, i) => (
+                  <Row key={m.id} label={m.name} last={i === family.length - 1}
+                       icon={<Avatar name={m.name} size={34} />} />
+                ))}
+              </Card>
+            </>
+          )}
+
+          {/* join someone else's */}
+          {!hasGuardian && (
+            <>
+              <Eyebrow>{tr("Join a family")}</Eyebrow>
+              <Card className="p-6">
+                <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
+                {err && <p className="mt-3 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+                <button onClick={join} disabled={busy || code.trim().length < 4}
+                        className="w-full mt-5 active:opacity-80 disabled:opacity-30"
+                        style={{ minHeight: 50, borderRadius: R.control, background: t.ink, color: "#fff", ...TYPE.subhead, fontSize: 15 }}>
+                  {busy ? "…" : tr("Join")}
+                </button>
+              </Card>
+            </>
+          )}
+          {hasGuardian && (
+            <p className="text-center pb-4" style={{ ...TYPE.caption, color: t.faint }}>
+              {tr("You're part of a family already.")}
+            </p>
+          )}
+          <div style={{ height: 26 }} />
+        </div>
+      </Screen>
+    </SwipeBack>
   );
 }
 
@@ -7377,6 +7568,77 @@ export function Field({ label, value, onChange, ph, type = "text", Icon, autoFoc
 /* Kept at module scope on purpose. Defined inside a component it would
    be a new type on every keystroke, so React would remount it and the
    keyboard would close after each digit. */
+/* SIX BOXES FOR A SIX-CHARACTER CODE
+
+   The shape of the input tells you how long the code is before you
+   start typing, and each character landing in its own box gives a
+   small sense of progress. Paste works too: dropping the whole code
+   into any box fills them all, because people are usually copying it
+   out of a message rather than reading it off a card. */
+export function CodeBoxes({ value, onChange, onComplete, bad }) {
+  const t = useT();
+  const refs = [0, 1, 2, 3, 4, 5].map(() => useRef(null));
+  const chars = value.padEnd(6, " ").slice(0, 6).split("");
+
+  const setAt = (i, raw) => {
+    const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!clean) return;
+
+    if (clean.length > 1) {                       // pasted, or typed fast
+      const next = (value + clean).replace(/[^A-Z0-9]/g, "").slice(0, 6);
+      onChange(next);
+      const land = Math.min(next.length, 5);
+      refs[land].current && refs[land].current.focus();
+      if (next.length === 6) { hapticSuccess(); onComplete && onComplete(next); }
+      return;
+    }
+
+    const arr = value.padEnd(6, " ").split("");
+    arr[i] = clean;
+    const next = arr.join("").trimEnd();
+    onChange(next);
+    haptic(5);
+    if (i < 5) refs[i + 1].current && refs[i + 1].current.focus();
+    if (next.replace(/\s/g, "").length === 6) { hapticSuccess(); onComplete && onComplete(next); }
+  };
+
+  const back = (i, e) => {
+    if (e.key !== "Backspace") return;
+    e.preventDefault();
+    const arr = value.padEnd(6, " ").split("");
+    if (arr[i] && arr[i] !== " ") { arr[i] = " "; onChange(arr.join("").trimEnd()); haptic(5); return; }
+    if (i > 0) {
+      arr[i - 1] = " ";
+      onChange(arr.join("").trimEnd());
+      refs[i - 1].current && refs[i - 1].current.focus();
+      haptic(5);
+    }
+  };
+
+  return (
+    <div className="flex justify-center gap-2">
+      {chars.map((c, i) => {
+        const filled = c !== " ";
+        return (
+          <input key={i} ref={refs[i]} value={filled ? c : ""}
+                 inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck="false"
+                 maxLength={6}
+                 onChange={(e) => setAt(i, e.target.value)}
+                 onKeyDown={(e) => back(i, e)}
+                 onFocus={(e) => e.target.select()}
+                 className="text-center outline-none"
+                 style={{ width: 46, height: 58, borderRadius: R.surface,
+                          background: t.surface,
+                          border: `1.5px solid ${bad ? DANGER : filled ? t.ink : t.hair}`,
+                          fontFamily: display, fontSize: 22, letterSpacing: 0, color: t.ink,
+                          transition: "border-color 200ms cubic-bezier(.22,1,.36,1)",
+                          animation: `fadeUp 400ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }} />
+        );
+      })}
+    </div>
+  );
+}
+
 const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, len, bad, onDone }, ref) {
   const t = useT();
   return (
@@ -7666,7 +7928,8 @@ export function PickSport({ lang, path = "player", onPick, onBack }) {
   const entries = Object.entries(SPORTS);
   const [sel, setSel] = useState(null);
   return (
-    <SignupShell step={stepOf(path, "sport")} steps={stepsIn(path)} onBack={onBack} title={tr("Sport")}
+    <SignupShell step={stepOf(path, "sport")} steps={stepsIn(path)} onBack={onBack} title={tr("Main sport")}
+                 sub={tr("You can add others later.")}
                  footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
       {entries.map(([id, sp], i) => (
         <Choice key={id} label={sp.label} dot={sp.theme.accent} on={sel === id} delay={i * 45}
@@ -8292,7 +8555,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
              onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
         <Row label={tr("Add a coach")} sub={tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage("sport")} />
         <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
-        <Row label={tr("Add someone under 18")} sub={inviteCode ? `${tr("They join with")} ${inviteCode}` : tr("Share your code")} last icon={<UserPlus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage("child")} />
+        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => push("familyCode")} />
       </Card>
     </>
   );
@@ -9236,9 +9499,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
      Live capture, or "Capture during the lesson" from the player's own
      sheet — waits here under their name until pulled into a write-up. */
   const [pulled, setPulled] = useState([]);
-  const waiting = who.flatMap((name) => (captured[name] || [])
+  /* Anything captured for a named player, plus anything captured with
+     nobody chosen yet — that pile belongs to whoever is being logged
+     next, which is exactly what a coach filming between lessons
+     expects. */
+  const waiting = [...who, "__unassigned"].flatMap((name) => (captured[name] || [])
     .filter((it) => !pulled.some((p) => p.id === it.id))
-    .map((it) => ({ ...it, from: name })));
+    .map((it) => ({ ...it, from: name === "__unassigned" ? tr("Captured earlier") : name })));
 
   /* Videos, photos and anything pulled in, held in one list so the
      slide renders one shape regardless of where it came from. */
@@ -9296,7 +9563,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     type: group ? "group" : "private", who, groupName: pickedGroup, focus: chosen.join(" · "),
     focusList: chosen, focusIds: focus, custom, subs, ctx,
     note: note || videos.map((v) => v.transcript).filter(Boolean).join(" ") || null, videos, photos, secs,
-    nextDrills, nextTip, wantRating, m: logM, d: logD, time: logTime,
+    nextDrills, nextTip, wantRating, m: logM, d: logD, time: logTime, pulled,
   });
 
   const titles = [tr("Who"), tr("When"), tr("Focus"), tr("Notes"), tr("Media"), tr("Drills"), tr("Takeaway")];
@@ -11673,14 +11940,16 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
     ? threads.map((th) => ({ name: th.who, unread: th.unread, when: "", lastId: null, last: th.last }))
     : empty ? [] : THREADS[role];
 
-  const Action = ({ Icon, label, onPress, delay }) => (
-    <button onClick={() => { haptic(8); soft(); onPress(); }}
-            className="flex-1 flex flex-col items-center justify-center gap-2 active:opacity-60"
-            style={{ minHeight: 74, borderRadius: R.surface, border: `1px solid ${t.hair}`,
-                     background: t.surface,
+  const Action = ({ Icon, label, onPress, delay, danger }) => (
+    <button onClick={() => { danger ? hapticWarn() : haptic(8); soft(); onPress(); }}
+            className="flex-1 flex flex-col items-center justify-center gap-2 active:opacity-70"
+            style={{ minHeight: 78, borderRadius: R.surface,
+                     border: `1px solid ${danger ? `${DANGER}44` : t.hair}`,
+                     background: danger ? `${DANGER}0D` : t.surface,
                      animation: `fadeUp 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
-      <Icon size={17} color={t.sub} strokeWidth={1.6} />
-      <span style={{ ...TYPE.caption, fontSize: 11.5, color: t.sub }}>{label}</span>
+      <Icon size={18} color={danger ? DANGER : t.sub} strokeWidth={1.7} />
+      <span style={{ ...TYPE.caption, fontSize: 12, fontWeight: danger ? 600 : 500,
+                     color: danger ? DANGER : t.sub }}>{label}</span>
     </button>
   );
 
@@ -11700,7 +11969,7 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
       {role === "coach" && (
         <div className="px-6 mb-5 flex gap-2.5">
           <Action Icon={Radio}     label={tr("Message everyone")} onPress={() => sheet("broadcast")} delay={0} />
-          <Action Icon={CloudRain} label={tr("Weather call-off")} onPress={() => onWeather && onWeather()} delay={60} />
+          <Action Icon={CloudRain} label={tr("Call off for weather")} onPress={() => onWeather && onWeather()} delay={60} danger />
         </div>
       )}
 
@@ -11995,9 +12264,18 @@ function LanguageScreen({ lang, setLang, pop, say }) {
     </SwipeBack>
   );
 }
-function Details({ role, pop, say }) {
+function Details({ role, pop, say, me }) {
   const t = useT();
-  const [f, setF] = useState(role === "coach"
+  /* A real account shows its own details. The seeded pair below are
+     for the design harness only — showing someone else's name, email
+     and phone on a person's own settings screen is the worst possible
+     place for invented data. */
+  const [f, setF] = useState(me
+    ? (role === "coach"
+        ? { Name: me.name || "", Email: me.email || "", Phone: me.phone || "",
+            Qualifications: "", Bio: "" }
+        : { Name: me.name || "", Email: me.email || "", Phone: me.phone || "" })
+    : role === "coach"
     ? { Name: "Ray Doyle", Email: "ray@hollowbrook.ie", Phone: "+353 87 123 4567", Qualifications: "PGA Professional, Level 3", Bio: "Twelve years coaching, mostly short game." }
     : { Name: "Marcus Tran", Email: "marcus.tran@gmail.com", Phone: "+353 86 998 2211" });
   return (
@@ -12300,6 +12578,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
     setStack([account.role === "coach" ? "today" : "home"]);
   }, [account]);
   const [celeb, setCeleb] = useState(null);
+  const [joined, setJoined] = useState(null);   // { coachName, sport } while the join screen plays
   const [goalFor, setGoalFor] = useState(null);
   const [scenarios, setScenarios] = useState(false);
   const [famLoaded, setFamLoaded] = useState(false);
@@ -12832,7 +13111,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
         focus: l.focus || (l.focusList || []).join(" · ") || "Lesson",
         subs: l.subs || [],
         note: l.note,
-        files: (l.videos || []).map((v) => v.file).filter(Boolean),
+        files: [...(l.videos || []), ...(l.photos || []), ...(l.pulled || [])]
+          .map((v) => v.file).filter(Boolean),
         date: lessonDate,
       });
       /* anything the coach set alongside the lesson */
@@ -13026,7 +13306,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
       ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
       : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
-  const pushedScreens = ["you", "details", "notifications", "support", "subscription", "availability", "branding", "library", "search", "alerts", "tips", "stats", "language", "requests", "unlogged", "tool", "groups", "archive", "region", "season", "events", "credentials", "reviews", "recurring", "sources", "atrisk", "digest", "checkins", "lesson", "prefs", "attendance", "coachProfile"].concat(Object.keys(LEGAL).map((k) => "legal:" + k));
+  const pushedScreens = ["you", "details", "notifications", "support", "subscription", "availability", "branding", "library", "search", "alerts", "tips", "stats", "language", "requests", "unlogged", "tool", "groups", "archive", "region", "season", "events", "credentials", "reviews", "recurring", "sources", "atrisk", "digest", "checkins", "lesson", "prefs", "attendance", "coachProfile", "familyCode"].concat(Object.keys(LEGAL).map((k) => "legal:" + k));
 
   /* the feed runs edge to edge, under the status bar */
   const bleed = inApp && screen === "log" && prefs.logView === "feed" && role !== "coach";
@@ -13036,7 +13316,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
      whole screen becomes the one thing worth doing. */
   const needsCoach = !!account && role === "player" && data && !data.hasCoach;
   if (needsCoach) {
-    body = <NoCoach juvenile={juvenile} onJoin={(c) => data.joinCoach(c)} />;
+    body = <NoCoach juvenile={juvenile} onJoin={async (c) => {
+      const res = await data.joinCoach(c);
+      if (res && !res.error) setJoined({ coachName: res.coach?.name || data.coachName, sport: res.coach?.sport });
+      return res;
+    }} />;
     bare = true;
   } else if (!inApp) {
     body = {
@@ -13157,6 +13441,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
                setCeleb({ label: tr("Sent"), sub: c.who }); }}
              onSend={() => { setCheckIns((v) => [{ id: Date.now(), who: (activeProfile || {}).name || "", when: tr("Just now"), note: "", state: "waiting", secs: 9 }, ...v]);
                setCeleb({ label: tr("Sent"), sub: tr("Your coach will look at it.") }); }} />;
+  } else if (screen === "familyCode") {
+    body = <FamilyScreen familyCode={data ? data.familyCode : null} family={data ? data.family : []}
+                         hasGuardian={data ? data.hasGuardian : false}
+                         onJoin={(c) => data && data.joinFamily(c)} say={say} pop={pop} />;
   } else if (screen === "coachProfile") {
     body = <CoachProfile coachName={coachName} sport={sport}
                           reviewSummary={data ? data.reviewSummary : null}
@@ -13245,7 +13533,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
   } else if (screen === "region") {
     body = <RegionScreen region={region} setRegion={setRegion} lang={lang} setLang={setLang} pop={pop} />;
   } else if (screen === "language") { body = <LanguageScreen lang={lang} setLang={setLang} pop={pop} say={say} />;
-  } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} />;
+  } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} me={account ? { name: account.name, email: account.email, phone: account.phone } : null} />;
   } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} />;
   } else if (screen === "support") { body = <Support pop={pop} say={say} />;
   } else if (screen === "subscription") { body = <Subscription pop={pop} say={say} plan={plan} />;
@@ -13269,7 +13557,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h, k) => { setBookSlot({ day, time: h, kind: k }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")} />;
-  } else if (screen === "messages") { body = <MessageList role={role} threads={data ? data.threads : null} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet("weather")} />;
+  } else if (screen === "messages") { body = <MessageList role={role} threads={data ? data.threads : null} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
   } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
   } else if (role === "coach") {
     bare = screen === "log";
@@ -13475,6 +13763,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
           {overture && <LessonOverture lesson={overture} mark={theme.mark}
                           onDone={() => { setOverture(null); push("lesson"); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
+          {joined && <JoinedCoach coachName={joined.coachName} sport={joined.sport} onDone={() => setJoined(null)} />}
           {tour && <Walkthrough role={role} juvenile={juvenile}
                        isParent={account ? account.accountType === "parent" : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
@@ -13569,20 +13858,28 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
                                             close={() => setSheet(null)} say={say} />
             : sheet === "capture" ? <LiveCapture lessons={TODAY_SCHEDULE || []} chosen={captureFor}
                                             onChoose={setCaptureFor}
-                                            items={(captured[(captureFor || {}).who] || [])}
+                                            items={(captured[captureFor ? captureFor.who : "__unassigned"] || [])}
                                             onAdd={(item) => {
-                                              if (!captureFor) return;
+                                              /* LiveCapture hands back { type, file, name }. The
+                                                 file is the whole point — it's what uploads with
+                                                 the lesson — so it's kept on the item rather than
+                                                 dropped. A real account with nothing scheduled
+                                                 today still needs somewhere to put a capture, so
+                                                 it goes under a holding key and is offered when
+                                                 the next lesson is logged. */
+                                              const who = captureFor ? captureFor.who : "__unassigned";
                                               const id = Date.now();
-                                              const mapped = item.kind === "video" ? { id, kind: "video", angle: tr("Live capture"), secs: item.secs }
-                                                : item.kind === "photo" ? { id, kind: "action" }
-                                                : item.kind === "voice" ? { id, kind: "voice", secs: item.secs }
+                                              const kind = item.type || item.kind;
+                                              const mapped = kind === "video" ? { id, kind: "video", angle: tr("Live capture"), file: item.file, name: item.name }
+                                                : kind === "photo" ? { id, kind: "action", file: item.file, name: item.name }
+                                                : kind === "audio" || kind === "voice" ? { id, kind: "voice", file: item.file, name: item.name }
                                                 : { id, kind: "note", text: item.label };
-                                              setCaptured((c) => ({ ...c, [captureFor.who]: [...(c[captureFor.who] || []), mapped] }));
+                                              setCaptured((c) => ({ ...c, [who]: [...(c[who] || []), mapped] }));
                                             }}
                                             onDrop={(i) => {
-                                              if (!captureFor) return;
-                                              const mine = captured[captureFor.who] || [];
-                                              setCaptured((c) => ({ ...c, [captureFor.who]: mine.filter((_, k) => k !== i) }));
+                                              const who = captureFor ? captureFor.who : "__unassigned";
+                                              const mine = captured[who] || [];
+                                              setCaptured((c) => ({ ...c, [who]: mine.filter((_, k) => k !== i) }));
                                             }}
                                             close={() => setSheet(null)} say={say} />
             : sheet === "photo" ? <PhotoSheet name={(activeProfile || {}).name || coachName}
@@ -13683,6 +13980,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data } = {})
                                             close={() => setSheet(null)} />
               : sheet === "compare" ? <VideoCompare cfg={cfg} lessons={role === "coach" ? cfg.lessons : playerLessons}
                                             onClose={() => setSheet(null)} />
+              : sheet === "weatherConfirm" ? <ConfirmPassword
+                                            title={tr("Call off for weather")}
+                                            detail={tr("Everyone affected is told straight away, and this can't be undone. Confirm with your password.")}
+                                            actionLabel={tr("Confirm call-off")}
+                                            onConfirm={async (pw) => {
+                                              if (!data) return {};
+                                              const res = await data.verifyPassword(pw);
+                                              if (res.error) return res;
+                                              setSheet("weather");
+                                              return {};
+                                            }}
+                                            close={() => setSheet(null)} />
               : sheet === "weather" ? <WeatherCallOff day={weatherDay || `${DAY_NAMES[dowOf(TODAY.m, TODAY.d)]} ${TODAY.d}`}
                                             bookings={(mySeedBooked[key(TODAY.m, TODAY.d)] || [])} duration={duration}
                                             onConfirm={callOff} close={() => setSheet(null)} />

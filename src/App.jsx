@@ -32,7 +32,7 @@ function isUnder18(dob) {
   return age < 18;
 }
 
-function SignedIn({ profile, signOut }) {
+function SignedIn({ profile, signOut, email }) {
   const data = useNoscaData(profile);
 
   if (data.loading) {
@@ -69,6 +69,8 @@ function SignedIn({ profile, signOut }) {
       account={{
         id: profile.id, role: profile.role, name: profile.name, sport: profile.sport,
         accountType: profile.account_type,
+        email: email || null,
+        phone: profile.phone || null,
         /* Either answer marks someone as a minor: what they chose at
            sign-up, or what their date of birth says. Trusting only the
            date would miss a junior who mistyped it; trusting only the
@@ -115,7 +117,7 @@ function Gate() {
       </div>
     );
   }
-  return <SignedIn profile={profile} signOut={signOut} />;
+  return <SignedIn profile={profile} signOut={signOut} email={session?.user?.email} />;
 }
 
 export default function App() {
