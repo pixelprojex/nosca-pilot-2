@@ -91,7 +91,7 @@ function SignedIn({ profile, signOut, email }) {
 }
 
 function Gate() {
-  const { session, profile, loadingProfile, signOut } = useAuth();
+  const { session, profile, loadingProfile, signOut, needsProfile } = useAuth();
   const demo = typeof window !== "undefined" && (
     window.location.search.includes("demo")
     || window.location.hash.includes("demo")
@@ -110,6 +110,29 @@ function Gate() {
 
   if (session === undefined) return null;
   if (!session) return <Auth />;
+
+  /* Signed in, but the profile row never got created — an interrupted
+     sign-up. Rather than a dead end, say what happened and give the
+     two things that actually fix it. */
+  if (needsProfile && !loadingProfile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
+           style={{ background: "#FAF7F0" }}>
+        <p style={{ color: "#1A1815", fontSize: 17, marginBottom: 10 }}>Your account isn't finished</p>
+        <p style={{ color: "#6B6560", fontSize: 14, lineHeight: 1.55, maxWidth: 330, marginBottom: 26 }}>
+          The account exists but its details were never saved — usually because
+          email confirmation interrupted the sign-up. Signing out and signing
+          up again with the same email will finish it.
+        </p>
+        <button onClick={signOut}
+                style={{ background: "#1A1815", color: "#fff", borderRadius: 9,
+                         padding: "13px 26px", fontSize: 14.5, width: 220 }}>
+          Sign out and start again
+        </button>
+      </div>
+    );
+  }
+
   if (loadingProfile || !profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"

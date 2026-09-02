@@ -44,8 +44,21 @@ export default function Auth() {
 
   const signIn = async () => {
     setBusy(true); setErr("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) setErr(error.message);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        /* "Email not confirmed" is the other half of the sign-up
+           problem, and the raw message doesn't tell anyone what to do
+           about it. */
+        const msg = /confirm/i.test(error.message)
+          ? "This account needs its email confirmed. Check your inbox for the link, "
+            + "or turn off \"Confirm email\" in Supabase → Authentication → Sign In / Providers."
+          : error.message;
+        setErr(msg);
+      }
+    } catch (e) {
+      setErr((e && e.message) || "Couldn't sign in. Please try again.");
+    }
     setBusy(false);
   };
 
@@ -71,7 +84,25 @@ export default function Auth() {
 
       const { data, error } = await supabase.auth.signUp({ email: em, password });
       if (error) { endSignUp(); setErr(error.message); setBusy(false); return; }
-      if (!data.user) { endSignUp(); setErr("Check your email to confirm the account, then sign in."); setBusy(false); return; }
+
+      /* THE THING THAT BREAKS SIGN-UP.
+         With Supabase's "Confirm email" setting on (which is the
+         default), signUp returns a user but NO session. The profile
+         insert is guarded by `with check (id = auth.uid())`, and with
+         no session auth.uid() is null — so the insert is refused, the
+         account is left with no profile, and signing in afterwards
+         fails with "Email not confirmed".
+
+         Checking for the session rather than the user is what catches
+         this, and the message says exactly what to do about it. */
+      if (!data.session) {
+        endSignUp();
+        setErr("Your account was created, but email confirmation is switched on. "
+             + "Open the link in your email, then sign in. "
+             + "(To skip this for the pilot: Supabase → Authentication → Sign In / Providers → turn off \"Confirm email\".)");
+        setBusy(false);
+        return;
+      }
 
       const { error: pErr } = await supabase.from("profiles").insert({
         id: data.user.id,

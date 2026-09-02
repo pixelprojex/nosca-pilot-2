@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const signingUp = useRef(false);
+  const [needsProfile, setNeedsProfile] = useState(false);
 
   const loadProfile = async (userId) => {
     setLoadingProfile(true);
@@ -28,12 +29,19 @@ export function AuthProvider({ children }) {
       }
 
       if (!data) {
-        /* No row after all that — the account really is orphaned, which
-           happens after a reset wipes the profiles table. Sign out
-           cleanly rather than spinning forever. */
-        await supabase.auth.signOut();
+        /* An account with no profile row. Two ways to get here: a reset
+           wiped the profiles table, or a sign-up was interrupted before
+           the profile insert ran — which is exactly what happens when
+           email confirmation is on, because there's no session and the
+           insert is refused by row-level security.
+
+           Signing out was wrong: the person then has an account they
+           can authenticate into but never use, with no way back. This
+           flags it so the app can offer to finish the setup. */
         setProfile(null);
+        setNeedsProfile(true);
       } else {
+        setNeedsProfile(false);
         setProfile(data);
       }
     } catch (e) {
@@ -65,7 +73,7 @@ export function AuthProvider({ children }) {
 
   return (
     <Ctx.Provider value={{
-      session, profile, setProfile, loadingProfile, signOut,
+      session, profile, setProfile, loadingProfile, signOut, needsProfile,
       beginSignUp: () => { signingUp.current = true; },
       endSignUp: () => { signingUp.current = false; },
       refreshProfile: () => session && loadProfile(session.user.id),
