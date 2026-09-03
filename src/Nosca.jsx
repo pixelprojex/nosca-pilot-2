@@ -4950,6 +4950,7 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
    those falls back to choosing a file rather than to a dead end. */
 function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, say }) {
   const t = useT();
+  const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
   const [mode, setMode] = useState("video");        // video | photo | audio
   const cap = useCapture();
   const videoRef = useRef(null);
@@ -7295,7 +7296,7 @@ const Card = ({ children, className = "", style = {}, delay = 0 }) => {
 };
 const Eyebrow = ({ children }) => {
   const t = useT();
-  return (<div className="mb-3 px-6 mt-1" style={{ marginLeft: 1 }} style={{ fontFamily: ui, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: t.faint,
+  return (<div className="mb-3 px-6 mt-1" style={{ marginLeft: 1, fontFamily: ui, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: t.faint,
                   animation: "slideIn 460ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>);
 };
 export function Button({ children, onClick, tone = "accent", disabled }) {
@@ -8411,7 +8412,7 @@ function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin 
   );
 }
 
-function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, mySports = [], main, onSetMain, onPhoto, close, say }) {
+function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, mySports = [], main, onSetMain, onPhoto, close, say }) {
   const t = useT();
   const [stage, setStage] = useState("root");   // root | child | childSport | childCode | sport | code
   const [childName, setChildName] = useState("");
@@ -8582,7 +8583,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
              onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
         <Row label={tr("Add a coach")} sub={tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage("sport")} />
         <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
-        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => push("familyCode")} />
+        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
       </Card>
     </>
   );
@@ -9588,7 +9589,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     && (lessonCounts ? (lessonCounts[who[0]] || 0) === 0 : false);
   const finish = () => onPublish({
     type: group ? "group" : "private", who, groupName: pickedGroup, focus: chosen.join(" · "),
-    focusList: chosen, focusIds: focus, custom, subs, ctx,
+    focusList: chosen, focusIds: focus, custom, subs: [], ctx,   // the wizard has no sub-focus picker
     note: note || videos.map((v) => v.transcript).filter(Boolean).join(" ") || null, videos, photos, secs,
     nextDrills, nextTip, wantRating, m: logM, d: logD, time: logTime, pulled,
   });
@@ -12431,8 +12432,12 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push }) {
   const lessons = term ? hadLessons(cfg).filter((l) => hit(l.focus) || l.subs.some(hit)) : [];
   const drills = term ? library.filter((d) => hit(d.t) || hit(d.d)) : [];
   const tipHits = term ? tips.filter((x) => hit(x.title) || hit(x.body)) : [];
-  const people = term && role === "coach" ? ROSTER.filter((r) => hit(r.name)) : [];
-  const msgs = term ? THREADS[role].filter((c) => hit(c.name) || hit((readMsg(c.lastId, LANG) || {}).text || "")) : [];
+  /* Seeded people and threads belong to the design harness only. A real
+     account searches its own data; until messages are wired in here it
+     finds none, rather than somebody invented. */
+  const preview = (id) => (readMsg(id, LANG) || {}).text || "";
+  const people = term && role === "coach" && !LIVE_ACCOUNT ? ROSTER.filter((r) => hit(r.name)) : [];
+  const msgs = term && !LIVE_ACCOUNT ? THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))) : [];
   const total = lessons.length + drills.length + tipHits.length + people.length + msgs.length;
   const suggestions = role === "coach" ? ["Bunker", "Marcus", "Putting", "Payment"] : ["Bunker", "Putting", "Drills", "Ray"];
   return (
@@ -12621,6 +12626,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* A term's worth of registers, so the attendance screen has
      something to show before anyone takes one. */
   const [registers, setRegisters] = useState(() => {
+    if (account) return {};              // a real account's registers come from the database, below
     const out = {};
     const who = ["Marcus Tran","Priya Ellis","Aoife Nolan","Tom Beckett","Hannah Doyle"];
     const days = [["14 JUN","Summer clinic"],["07 JUN","Marcus Tran"],["31 MAY","Junior squad"],
@@ -12634,6 +12640,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     });
     return out;
   });
+  /* Registers the coach actually took, keyed exactly as the seeds are
+     ("14 JUN Summer clinic" → { name: "in" | "out" }), so every screen
+     that reads them is unchanged. A new player named like a seeded one
+     was being shown a seeded attendance figure. */
+  useEffect(() => {
+    if (data && data.registers) setRegisters(data.registers);
+  }, [data && data.registers]);
   const [captureFor, setCaptureFor] = useState(null);
   const [captureItems, setCaptureItems] = useState([]);
   const [prefs, setPrefsLocal] = useState(PREF_DEFAULTS);
@@ -13947,11 +13960,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               const c = conns.find((x) => x.profileId === activeProfileId && x.sport === sp);
                                               if (c) { setActiveId(c.id); setCoachSport(sp); } }}
                                             close={() => setSheet(null)} />
-            : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onPhoto={() => setSheet("photo")}
+            : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onFamily={() => push("familyCode")} onPhoto={() => setSheet("photo")}
                                             mySports={[...new Set(conns.filter((c) => c.profileId === activeProfileId).map((c) => c.sport))]}
                                             main={mainSport[activeProfileId]}
                                             onSetMain={(sp) => { setMainSport((v) => ({ ...v, [activeProfileId]: sp })); setCoachSport(sp); }}
-                                            onPhoto={() => say(tr("Opens your photos"))} close={() => setSheet(null)} say={say} />
+                                            close={() => setSheet(null)} say={say} />
               : sheet === "invite" ? <InviteBody say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />

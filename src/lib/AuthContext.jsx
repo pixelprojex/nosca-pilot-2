@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 
 const Ctx = createContext(null);
@@ -23,8 +23,10 @@ export function AuthProvider({ children }) {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const loadedFor = useRef(null);   // whose profile the last load was for
 
   const loadProfile = async (userId) => {
+    loadedFor.current = userId;
     setLoadingProfile(true);
     setNeedsProfile(false);
     setLoadError(null);
@@ -41,10 +43,12 @@ export function AuthProvider({ children }) {
            already existed and was fine. An unreadable profile and a
            missing profile are different problems and now read
            differently. */
+        loadedFor.current = null;   // so the next sign-in event tries again
         setProfile(null);
         setLoadError(error.message || "Couldn't read your profile.");
         setNeedsProfile(false);
       } else if (!data) {
+        loadedFor.current = null;
         setProfile(null);
         setLoadError(null);
         setNeedsProfile(true);
@@ -53,6 +57,7 @@ export function AuthProvider({ children }) {
         setProfile(data);
       }
     } catch (e) {
+      loadedFor.current = null;
       setProfile(null);
       setLoadError((e && e.message) || "Couldn't reach the database.");
       setNeedsProfile(false);
@@ -66,14 +71,21 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data }) => {
       if (!alive) return;
       setSession(data.session);
-      if (data.session) loadProfile(data.session.user.id);
+      /* The listener below usually gets here first with INITIAL_SESSION;
+         this only loads if it hasn't already. */
+      if (data.session && data.session.user.id !== loadedFor.current) loadProfile(data.session.user.id);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (!alive) return;
       setSession(next);
-      if (next) loadProfile(next.user.id);
-      else { setProfile(null); setNeedsProfile(false); }
+      if (!next) { loadedFor.current = null; setProfile(null); setNeedsProfile(false); setLoadError(null); return; }
+      /* Tokens refresh quietly in the background, and the library
+         re-announces the same session when a tab regains focus. Neither
+         changes who is signed in, so neither refetches the profile — a
+         refetch here would re-render the whole app from the top each
+         time the phone woke up. */
+      if (next.user.id !== loadedFor.current || event === "USER_UPDATED") loadProfile(next.user.id);
     });
 
     return () => { alive = false; sub.subscription.unsubscribe(); };
@@ -81,8 +93,10 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    loadedFor.current = null;
     setProfile(null);
     setNeedsProfile(false);
+    setLoadError(null);
   };
 
   return (

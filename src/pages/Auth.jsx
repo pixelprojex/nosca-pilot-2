@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
 import {
-  ThemeCtx, NEUTRAL, BRAND, tr,
+  ThemeCtx, NEUTRAL, BRAND, tr, ui, display,
   hapticSuccess, hapticWarn, haptic, Mark, Frame, Headline, Sub, Field, Button,
   PickSport, PickRole, PickPlayerType, CreateAccount, CodeBoxes,
 } from "../Nosca";
@@ -83,6 +83,19 @@ export default function Auth() {
         ? `${d.dob.y}-${String(d.dob.m).padStart(2, "0")}-${String(d.dob.d).padStart(2, "0")}`
         : null;
 
+      /* A code is checked before the account exists, not after. The
+         database deliberately never fails a sign-up over a code it
+         doesn't recognise — so without this, a mistyped code would
+         create the account silently unlinked and drop the person on
+         "Add your coach" with no idea why. The lookup is the same one
+         the home screen uses, callable without a session. */
+      const code = (joinCode || "").trim().toUpperCase();
+      if (code) {
+        const { data: found, error: findErr } = await supabase.rpc("find_coach_by_code", { p_code: code });
+        if (findErr) { hapticWarn(); setErr("Couldn't check that code. Try again, or skip for now."); setBusy(false); return; }
+        if (!found || found.length === 0) { hapticWarn(); setErr("That code doesn't match a coach. Check it, or skip for now."); setBusy(false); return; }
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: d.email.trim().toLowerCase(),
         password: d.password,
@@ -94,12 +107,20 @@ export default function Auth() {
             account_type: isCoach ? "coach" : (kind || "adult"),
             date_of_birth: dob,
             phone: (d.phone || "").trim(),
-            coach_code: (joinCode || "").trim().toUpperCase(),
+            coach_code: code,
           },
         },
       });
 
       if (error) { hapticWarn(); setErr(friendly(error.message)); setBusy(false); return; }
+
+      /* With email confirmation on, Supabase answers a sign-up for an
+         address that already has an account with a fake, identity-less
+         user instead of an error — so nobody can probe which emails are
+         registered. Read that way, the honest message is "sign in". */
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        hapticWarn(); setErr(friendly("already registered")); setBusy(false); return;
+      }
 
       /* The account and its profile both exist now. If email
          confirmation is switched on there's no session yet, so say so
@@ -126,7 +147,7 @@ export default function Auth() {
   );
 
   const Err = () => err ? (
-    <p className="mt-4" style={{ fontFamily: "'Switzer'", fontSize: 13.5, lineHeight: 1.5, color: "#C4342A" }}>
+    <p className="mt-4" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.5, color: "#C4342A" }}>
       {err}
     </p>
   ) : null;
@@ -138,7 +159,7 @@ export default function Auth() {
         <div className="flex flex-col" style={{ height: "100dvh", background: NEUTRAL.page }}>
           <div className="flex-1 flex flex-col items-center justify-center">
             <span style={{ animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) both" }}><Mark size={40} /></span>
-            <span className="mt-5" style={{ fontFamily: "'Cabinet Grotesk', ui-sans-serif", fontSize: 13,
+            <span className="mt-5" style={{ fontFamily: display, fontSize: 13,
                            letterSpacing: "0.42em", paddingLeft: "0.42em", color: NEUTRAL.ink,
                            animation: "fadeUp 700ms cubic-bezier(.22,1,.36,1) 90ms both" }}>{BRAND}</span>
           </div>
@@ -214,7 +235,7 @@ export default function Auth() {
                </Button>
                <button onClick={() => { haptic(6); createAccount(details, ""); }} disabled={busy}
                        className="w-full mt-3 active:opacity-60 disabled:opacity-40"
-                       style={{ minHeight: 50, fontFamily: "'Switzer'", fontSize: 14.5, color: NEUTRAL.sub }}>
+                       style={{ minHeight: 50, fontFamily: ui, fontSize: 14.5, color: NEUTRAL.sub }}>
                  {tr("Skip for now")}
                </button>
              </>}>
