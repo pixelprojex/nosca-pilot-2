@@ -91,7 +91,7 @@ function SignedIn({ profile, signOut, email }) {
 }
 
 function Gate() {
-  const { session, profile, loadingProfile, signOut, needsProfile } = useAuth();
+  const { session, profile, loadingProfile, signOut, needsProfile, refreshProfile } = useAuth();
   const demo = typeof window !== "undefined" && (
     window.location.search.includes("demo")
     || window.location.hash.includes("demo")
@@ -111,23 +111,56 @@ function Gate() {
   if (session === undefined) return null;
   if (!session) return <Auth />;
 
-  /* Signed in, but the profile row never got created — an interrupted
-     sign-up. Rather than a dead end, say what happened and give the
-     two things that actually fix it. */
+  /* The database refused or failed the read. This is a fault to be
+     fixed, not something the person did — so it says what the
+     database said, rather than blaming their account. */
+  if (loadError && !loadingProfile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
+           style={{ background: "#FAF7F0" }}>
+        <p style={{ color: "#1A1815", fontSize: 17, marginBottom: 10 }}>Couldn't load your account</p>
+        <p style={{ color: "#6B6560", fontSize: 13.5, lineHeight: 1.55, maxWidth: 340, marginBottom: 8 }}>
+          The database returned:
+        </p>
+        <p style={{ color: "#C4342A", fontSize: 13, lineHeight: 1.5, maxWidth: 340,
+                    marginBottom: 24, fontFamily: "ui-monospace, monospace" }}>
+          {loadError}
+        </p>
+        <button onClick={() => window.location.reload()}
+                style={{ background: "#1A1815", color: "#fff", borderRadius: 9,
+                         padding: "13px 26px", fontSize: 14.5, width: 220, marginBottom: 12 }}>
+          Try again
+        </button>
+        <button onClick={signOut} style={{ color: "#A39E93", fontSize: 13, textDecoration: "underline" }}>
+          Sign out
+        </button>
+      </div>
+    );
+  }
+
+  /* Signed in but the profile couldn't be READ. With the trigger in
+     place the row always exists, so reaching here means the read
+     itself failed — and the cause worth naming is the recursive
+     policy that used to sit on this table, which raised on every
+     select. Retrying costs nothing and succeeds the moment the SQL
+     has been run, so this offers that rather than a dead end. */
   if (needsProfile && !loadingProfile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
            style={{ background: "#FAF7F0" }}>
-        <p style={{ color: "#1A1815", fontSize: 17, marginBottom: 10 }}>Your account isn't finished</p>
-        <p style={{ color: "#6B6560", fontSize: 14, lineHeight: 1.55, maxWidth: 330, marginBottom: 26 }}>
-          The account exists but its details were never saved — usually because
-          email confirmation interrupted the sign-up. Signing out and signing
-          up again with the same email will finish it.
+        <p style={{ color: "#1A1815", fontSize: 17, marginBottom: 10 }}>Couldn't load your account</p>
+        <p style={{ color: "#6B6560", fontSize: 14, lineHeight: 1.55, maxWidth: 340, marginBottom: 26 }}>
+          Your account is there, but its details couldn't be read. If
+          rebuild-signup.sql hasn't been run in Supabase yet, that's the reason —
+          run it, then press Try again.
         </p>
-        <button onClick={signOut}
+        <button onClick={refreshProfile}
                 style={{ background: "#1A1815", color: "#fff", borderRadius: 9,
-                         padding: "13px 26px", fontSize: 14.5, width: 220 }}>
-          Sign out and start again
+                         padding: "13px 26px", fontSize: 14.5, width: 220, marginBottom: 14 }}>
+          Try again
+        </button>
+        <button onClick={signOut} style={{ color: "#A39E93", fontSize: 13, textDecoration: "underline" }}>
+          Sign out
         </button>
       </div>
     );

@@ -454,6 +454,25 @@ export function useNoscaData(profile) {
     return { guardian };
   };
 
+  /* Deletes this account and everything belonging to it, for good.
+     Uploaded files go first — storage objects can't be reached once
+     their rows are gone — then the database call removes the account
+     itself and cascades through every table. */
+  const deleteAccount = async () => {
+    try {
+      const { data: files } = await supabase.storage.from("media").list(profile.id);
+      if (files && files.length) {
+        await supabase.storage.from("media")
+          .remove(files.map((f) => `${profile.id}/${f.name}`));
+      }
+    } catch (e) { /* nothing uploaded, or already gone */ }
+
+    const { error } = await supabase.rpc("delete_my_account");
+    if (error) return { error: { message: error.message } };
+    await supabase.auth.signOut();
+    return {};
+  };
+
   /* Verifies the password belongs to this account, by signing in again
      with it. Supabase has no "check password" call, and doing it this
      way means a wrong password is rejected by the server rather than
@@ -485,7 +504,7 @@ export function useNoscaData(profile) {
     addBooking, cancelBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, sendMessage, submitReview, joinCoach, joinFamily, verifyPassword,
+    savePrefs, sendMessage, submitReview, joinCoach, joinFamily, verifyPassword, deleteAccount,
     hasGuardian: !!profile?.guardian_id,
     hasCoach: !!profile?.coach_id,
   };

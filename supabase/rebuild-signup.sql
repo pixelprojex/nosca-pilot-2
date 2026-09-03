@@ -236,17 +236,89 @@ create policy "update your own profile" on public.profiles
   for update using (id = auth.uid()) with check (id = auth.uid());
 
 -- Yourself, your coach, your players, your family.
+-- ------------------------------------------------------------
+-- THE ACTUAL BUG, AND ITS FIX
+--
+-- The previous version of this policy contained a subquery against
+-- public.profiles — inside a policy ON public.profiles. That recurses.
+-- Postgres raises 42P17, "infinite recursion detected in policy for
+-- relation profiles", on EVERY read of the table. The profile row was
+-- always being created correctly; the app simply could never read it,
+-- which is why both sign-up and sign-in ended on "your account isn't
+-- finished".
+--
+-- Security definer functions run as their owner and are not subject
+-- to row-level security, so there is nothing for them to recurse
+-- into. Every branch below is now either a plain column comparison
+-- or one of those functions.
+-- ------------------------------------------------------------
+create or replace function public.my_coach_id()
+returns uuid language sql stable security definer set search_path = ''
+as $fn$ select p.coach_id from public.profiles p where p.id = auth.uid(); $fn$;
+
+create or replace function public.my_guardian_id()
+returns uuid language sql stable security definer set search_path = ''
+as $fn$ select p.guardian_id from public.profiles p where p.id = auth.uid(); $fn$;
+
+grant execute on function public.my_coach_id()    to authenticated;
+grant execute on function public.my_guardian_id() to authenticated;
+
 drop policy if exists "see your own coach group" on public.profiles;
 drop policy if exists "see yourself, your coach, or your own players" on public.profiles;
 drop policy if exists "see yourself, your coach, your players, or your family" on public.profiles;
-create policy "see yourself, your coach, your players, or your family" on public.profiles
+drop policy if exists "profiles you are entitled to see" on public.profiles;
+create policy "profiles you are entitled to see" on public.profiles
   for select using (
-    id = auth.uid()
-    or coach_id = auth.uid()
-    or id = (select p.coach_id    from public.profiles p where p.id = auth.uid())
-    or guardian_id = auth.uid()
-    or id = (select p.guardian_id from public.profiles p where p.id = auth.uid())
+    id = auth.uid()                 -- yourself
+    or coach_id = auth.uid()        -- your players, if you coach
+    or guardian_id = auth.uid()     -- your family, if you run one
+    or id = public.my_coach_id()    -- your coach
+    or id = public.my_guardian_id() -- your guardian
   );
+
+drop policy if exists "delete your own profile" on public.profiles;
+create policy "delete your own profile" on public.profiles
+  for delete using (id = auth.uid());
+
+
+-- ------------------------------------------------------------
+-- DELETING YOUR OWN ACCOUNT, COMPLETELY
+--
+-- Removing the auth.users row cascades through profiles, lessons,
+-- media, drills, tips, attendance, bookings, competitions, recurring
+-- slots, preferences, messages and reviews.
+--
+-- security definer is what makes this possible from the app: a
+-- signed-in person has no rights over auth.users, but this function
+-- runs as its owner and only ever deletes auth.uid() — the caller's
+-- own row, never anyone else's.
+-- ------------------------------------------------------------
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  me uuid := auth.uid();
+begin
+  if me is null then
+    raise exception 'Not signed in.';
+  end if;
+
+  delete from public.lesson_media
+  where lesson_id in (select l.id from public.lessons l
+                      where l.coach_id = me or l.player_id = me);
+
+  -- people linked to this account keep their own, minus the link
+  update public.profiles set guardian_id = null where guardian_id = me;
+  update public.profiles set coach_id    = null where coach_id    = me;
+
+  delete from auth.users where id = me;
+end;
+$fn$;
+
+grant execute on function public.delete_my_account() to authenticated;
 
 
 -- ============================================================
@@ -255,10 +327,15 @@ create policy "see yourself, your coach, your players, or your family" on public
 -- Everything should be zero — you just wiped it. What matters is that
 -- trigger_installed is true.
 -- ============================================================
+-- THE IMPORTANT LINE. Before the fix this raised
+-- "infinite recursion detected in policy for relation profiles".
+-- It must now return a number with no error.
+select count(*) as readable_profiles from public.profiles;
+
 select
   (select count(*) from auth.users)      as auth_accounts,
   (select count(*) from public.profiles) as profiles,
-  (select exists (
-     select 1 from pg_trigger
-     where tgname = 'on_auth_user_created'
-   ))                                    as trigger_installed;
+  (select exists (select 1 from pg_trigger where tgname = 'on_auth_user_created'))
+                                         as trigger_installed,
+  (select exists (select 1 from pg_proc where proname = 'delete_my_account'))
+                                         as delete_installed;

@@ -12147,7 +12147,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say })
 /* ==================================================================
    SETTINGS
 ================================================================== */
-function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
+function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
   const t = useT(); const L = useL();
   const sub = role === "coach" ? `${cfg.label} coach · ${brandName}` : `${cfg.label} · ${conn?.coach || ""}`;
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -12245,6 +12245,13 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, o
 
         <div className="px-6 mb-6"><Card>
           <Row label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={restart} />
+          {onDeleteAccount && (
+            <Row label={tr("Delete account")}
+                 sub={tr("Everything, permanently")}
+                 icon={<Trash2 size={18} color={DANGER} strokeWidth={2} />}
+                 danger last
+                 onToggle={() => sheet("deleteAccount")} />
+          )}
           <Row label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />
         </Card></div>
 
@@ -13590,7 +13597,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings demo={demo} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
@@ -14026,6 +14033,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} />
               : sheet === "compare" ? <VideoCompare cfg={cfg} lessons={role === "coach" ? cfg.lessons : playerLessons}
                                             onClose={() => setSheet(null)} />
+              : sheet === "deleteAccount" ? <ConfirmPassword
+                                            title={tr("Delete account")}
+                                            detail={tr("Every lesson, video, message and drill on this account is removed for good. This cannot be undone. Confirm with your password.")}
+                                            actionLabel={tr("Delete everything")}
+                                            onConfirm={async (pw) => {
+                                              if (!data) return {};
+                                              const check = await data.verifyPassword(pw);
+                                              if (check.error) return check;
+                                              const res = await data.deleteAccount();
+                                              if (res.error) return { error: res.error.message };
+                                              /* The account is gone and the session with
+                                                 it — the app returns to the landing page
+                                                 on its own. */
+                                              return {};
+                                            }}
+                                            close={() => setSheet(null)} />
               : sheet === "weatherConfirm" ? <ConfirmPassword
                                             title={tr("Call off for weather")}
                                             detail={tr("Everyone affected is told straight away, and this can't be undone. Confirm with your password.")}

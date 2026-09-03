@@ -22,28 +22,40 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   const loadProfile = async (userId) => {
     setLoadingProfile(true);
     setNeedsProfile(false);
+    setLoadError(null);
     try {
       const { data, error } = await supabase
         .from("profiles").select("*").eq("id", userId).maybeSingle();
 
       if (error) {
-        /* A real failure reading the row — network, or permissions.
-           Don't sign out: the session is fine and a retry may work. */
+        /* Show what the database actually said. The previous version
+           reported "your account isn't finished" for any failure at
+           all, which was badly misleading: the real cause was a
+           recursive security policy making every read impossible, and
+           the message sent people off to re-create an account that
+           already existed and was fine. An unreadable profile and a
+           missing profile are different problems and now read
+           differently. */
         setProfile(null);
-        setNeedsProfile(true);
+        setLoadError(error.message || "Couldn't read your profile.");
+        setNeedsProfile(false);
       } else if (!data) {
         setProfile(null);
+        setLoadError(null);
         setNeedsProfile(true);
       } else {
+        setLoadError(null);
         setProfile(data);
       }
     } catch (e) {
       setProfile(null);
-      setNeedsProfile(true);
+      setLoadError((e && e.message) || "Couldn't reach the database.");
+      setNeedsProfile(false);
     }
     setLoadingProfile(false);
   };
@@ -75,7 +87,7 @@ export function AuthProvider({ children }) {
 
   return (
     <Ctx.Provider value={{
-      session, profile, setProfile, loadingProfile, needsProfile, signOut,
+      session, profile, setProfile, loadingProfile, needsProfile, loadError, signOut,
       refreshProfile: () => session && loadProfile(session.user.id),
     }}>
       {children}
