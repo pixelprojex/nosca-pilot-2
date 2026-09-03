@@ -1,81 +1,81 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
 const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
 
+/* AUTH
+ *
+ * A database trigger creates the profile in the same transaction as
+ * the user, so a session always has a profile behind it. That removes
+ * the whole category of problem this file used to work around —
+ * retries, orphan detection, signing people out of accounts they had
+ * just created.
+ *
+ * One case remains worth handling: a profile that genuinely isn't
+ * there, which now only happens if the database was wiped underneath
+ * a live session. That gets a clear signal rather than a silent
+ * sign-out.
+ */
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(undefined); // undefined = still checking
+  const [session, setSession] = useState(undefined);   // undefined = still checking
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const signingUp = useRef(false);
   const [needsProfile, setNeedsProfile] = useState(false);
 
   const loadProfile = async (userId) => {
     setLoadingProfile(true);
+    setNeedsProfile(false);
     try {
-      /* During sign-up the session exists a moment before the profile
-         row does — signUp() creates the account, and only then does the
-         insert run. Looking once and giving up would sign the person
-         straight back out of the account they just created, which is
-         exactly what was happening. So: look a few times, briefly,
-         before concluding the row genuinely isn't there. */
-      let data = null;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const res = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-        if (res.data) { data = res.data; break; }
-        if (signingUp.current) await new Promise((r) => setTimeout(r, 400));
-        else break;                       // not mid-sign-up: one look is enough
-      }
+      const { data, error } = await supabase
+        .from("profiles").select("*").eq("id", userId).maybeSingle();
 
-      if (!data) {
-        /* An account with no profile row. Two ways to get here: a reset
-           wiped the profiles table, or a sign-up was interrupted before
-           the profile insert ran — which is exactly what happens when
-           email confirmation is on, because there's no session and the
-           insert is refused by row-level security.
-
-           Signing out was wrong: the person then has an account they
-           can authenticate into but never use, with no way back. This
-           flags it so the app can offer to finish the setup. */
+      if (error) {
+        /* A real failure reading the row — network, or permissions.
+           Don't sign out: the session is fine and a retry may work. */
+        setProfile(null);
+        setNeedsProfile(true);
+      } else if (!data) {
         setProfile(null);
         setNeedsProfile(true);
       } else {
-        setNeedsProfile(false);
         setProfile(data);
       }
     } catch (e) {
-      /* Network error or anything else unexpected — sign out rather
-         than leaving the app in an unrecoverable loading state. */
-      await supabase.auth.signOut();
       setProfile(null);
+      setNeedsProfile(true);
     }
     setLoadingProfile(false);
   };
 
   useEffect(() => {
+    let alive = true;
+
     supabase.auth.getSession().then(({ data }) => {
+      if (!alive) return;
       setSession(data.session);
       if (data.session) loadProfile(data.session.user.id);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (newSession) loadProfile(newSession.user.id);
-      else { setProfile(null); }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      if (!alive) return;
+      setSession(next);
+      if (next) loadProfile(next.user.id);
+      else { setProfile(null); setNeedsProfile(false); }
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => { alive = false; sub.subscription.unsubscribe(); };
   }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setNeedsProfile(false);
   };
 
   return (
     <Ctx.Provider value={{
-      session, profile, setProfile, loadingProfile, signOut, needsProfile,
-      beginSignUp: () => { signingUp.current = true; },
-      endSignUp: () => { signingUp.current = false; },
+      session, profile, setProfile, loadingProfile, needsProfile, signOut,
       refreshProfile: () => session && loadProfile(session.user.id),
     }}>
       {children}
