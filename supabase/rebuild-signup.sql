@@ -58,6 +58,7 @@ create unique index if not exists profiles_family_code_key on public.profiles (f
 -- without a coach. A raised exception inside a sign-up transaction
 -- fails the whole sign-up, which is exactly what was happening.
 drop trigger if exists enforce_pilot_limits_trg on public.profiles;
+drop trigger if exists trg_pilot_limits         on public.profiles;   -- schema.sql's original name for it
 drop function if exists public.enforce_pilot_limits();
 
 
@@ -266,6 +267,7 @@ grant execute on function public.my_guardian_id() to authenticated;
 drop policy if exists "see your own coach group" on public.profiles;
 drop policy if exists "see yourself, your coach, or your own players" on public.profiles;
 drop policy if exists "see yourself, your coach, your players, or your family" on public.profiles;
+drop policy if exists "read profiles you are connected to"                     on public.profiles;   -- 2-FIX-RECURSION.sql's name
 drop policy if exists "profiles you are entitled to see" on public.profiles;
 create policy "profiles you are entitled to see" on public.profiles
   for select using (
@@ -325,12 +327,47 @@ grant execute on function public.delete_my_account() to authenticated;
 -- CHECK IT WORKED
 --
 -- Everything should be zero — you just wiped it. What matters is that
--- trigger_installed is true.
+-- trigger_installed is true and profiles_policy says OK.
 -- ============================================================
--- THE IMPORTANT LINE. Before the fix this raised
--- "infinite recursion detected in policy for relation profiles".
--- It must now return a number with no error.
-select count(*) as readable_profiles from public.profiles;
+-- THE IMPORTANT CHECK. The SQL editor runs as the owner of the table,
+-- and row-level security is never applied to the owner — so a plain
+-- "select count(*) from profiles" here says nothing about the policy.
+-- It passed while every sign-in was failing with "infinite recursion
+-- detected in policy for relation profiles". This runs the same read
+-- as a signed-in user, which is the only way to exercise the policy
+-- from here, and raises if it is broken — the script cannot end
+-- looking healthy when it isn't.
+create temp table if not exists signup_check (result text);
+delete from signup_check;
+
+do $chk$
+declare
+  n int;
+  names text;
+begin
+  begin
+    execute 'set local role authenticated';
+  exception when insufficient_privilege then
+    insert into signup_check values ('NOT CHECKED — could not switch to the authenticated role here; sign in through the app to verify');
+    return;
+  end;
+  -- both spellings, because auth.uid() reads one or the other depending on the project's age
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000000', true);
+  perform set_config('request.jwt.claims',
+                     '{"sub":"00000000-0000-0000-0000-000000000000","role":"authenticated"}', true);
+  begin
+    select count(*) into n from public.profiles;
+  exception when others then
+    execute 'reset role';
+    select string_agg(policyname, ', ') into names
+    from pg_policies where schemaname = 'public' and tablename = 'profiles';
+    raise exception 'profiles policy is broken — every sign-in will fail. % (%). Policies on profiles: %',
+      sqlerrm, sqlstate, names;
+  end;
+  execute 'reset role';
+  insert into signup_check values (format('OK — a signed-in user with no connections sees %s row(s); 0 is right', n));
+end
+$chk$;
 
 select
   (select count(*) from auth.users)      as auth_accounts,
@@ -338,4 +375,5 @@ select
   (select exists (select 1 from pg_trigger where tgname = 'on_auth_user_created'))
                                          as trigger_installed,
   (select exists (select 1 from pg_proc where proname = 'delete_my_account'))
-                                         as delete_installed;
+                                         as delete_installed,
+  (select result from signup_check)      as profiles_policy;

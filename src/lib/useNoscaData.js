@@ -57,12 +57,21 @@ export function useNoscaData(profile) {
   const [threads, setThreads] = useState([]);
   const [reviewSummary, setReviewSummary] = useState(null);
   const [myReview, setMyReview] = useState(null);
+  /* Who this person is linked to, read fresh on every load rather than
+     taken from the cached sign-in profile — so joining a coach or a
+     family is reflected the moment it is written, with nothing else
+     needing to remember to refresh. */
+  const [links, setLinks] = useState(null);
 
   const isCoach = profile?.role === "coach";
 
   const load = useCallback(async () => {
     if (!profile) return;
-    setLoading(true);
+    /* `loading` is true only until the first load lands. Every write
+       below calls load() again to pick up its own result, and flipping
+       loading back on for those would swap the whole interface for a
+       "Loading…" screen — unmounting every sheet, every screen and the
+       navigation stack — on every save. */
     setLoadError(null);
 
     try {
@@ -89,11 +98,12 @@ export function useNoscaData(profile) {
          our own row may not be in it when we have no connections yet.
          A direct .eq("id", profile.id) always works. */
       const { data: me } = await supabase.from("profiles")
-        .select("invite_code, family_code")
+        .select("invite_code, family_code, coach_id, guardian_id")
         .eq("id", profile.id)
         .maybeSingle();
       setInviteCode(me?.invite_code || null);
       setFamilyCode(me?.family_code || null);
+      if (me) setLinks({ coach: me.coach_id || null, guardian: me.guardian_id || null });
       /* everyone who points at me as their guardian */
       setFamily(people.filter((x) => x.guardian_id === profile.id).map((x) => ({ id: x.id, name: x.name })));
 
@@ -224,7 +234,10 @@ export function useNoscaData(profile) {
     } finally {
       setLoading(false);
     }
-  }, [profile]);
+  /* Keyed on the id, not the profile object: the sign-in context hands
+     out a new object on every refresh, and reloading all of this each
+     time would be wasted work — every write already reloads itself. */
+  }, [profile?.id, isCoach]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -505,7 +518,7 @@ export function useNoscaData(profile) {
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
     savePrefs, sendMessage, submitReview, joinCoach, joinFamily, verifyPassword, deleteAccount,
-    hasGuardian: !!profile?.guardian_id,
-    hasCoach: !!profile?.coach_id,
+    hasGuardian: links ? !!links.guardian : !!profile?.guardian_id,
+    hasCoach: links ? !!links.coach : !!profile?.coach_id,
   };
 }

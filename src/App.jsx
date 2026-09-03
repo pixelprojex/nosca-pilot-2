@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Auth from "./pages/Auth";
 import Nosca from "./Nosca";
@@ -36,6 +36,24 @@ function SignedIn({ profile, signOut, email }) {
   const data = useNoscaData(profile);
   const { refreshProfile } = useAuth();
 
+  /* One object per real change. Nosca resets its navigation whenever
+     this prop's identity changes, and SignedIn re-renders on every data
+     refresh — so a fresh object each render would send the coach back
+     to Today after every save. Memoised on the fields it is made of. */
+  const account = useMemo(() => ({
+    id: profile.id, role: profile.role, name: profile.name, sport: profile.sport,
+    accountType: profile.account_type,
+    email: email || null,
+    phone: profile.phone || null,
+    /* Either answer marks someone as a minor: what they chose at
+       sign-up, or what their date of birth says. Trusting only the
+       date would miss a junior who mistyped it; trusting only the
+       choice would miss one who picked "adult player" by accident. */
+    juvenile: profile.role === "player"
+      && (profile.account_type === "junior" || isUnder18(profile.date_of_birth)),
+  }), [profile.id, profile.role, profile.name, profile.sport, profile.account_type,
+       profile.phone, profile.date_of_birth, email]);
+
   if (data.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center"
@@ -67,18 +85,7 @@ function SignedIn({ profile, signOut, email }) {
 
   return (
     <Nosca
-      account={{
-        id: profile.id, role: profile.role, name: profile.name, sport: profile.sport,
-        accountType: profile.account_type,
-        email: email || null,
-        phone: profile.phone || null,
-        /* Either answer marks someone as a minor: what they chose at
-           sign-up, or what their date of birth says. Trusting only the
-           date would miss a junior who mistyped it; trusting only the
-           choice would miss one who picked "adult player" by accident. */
-        juvenile: profile.role === "player"
-          && (profile.account_type === "junior" || isUnder18(profile.date_of_birth)),
-      }}
+      account={account}
       data={data}
       onSignOut={signOut}
       onJoinCoach={async (code) => {
@@ -91,7 +98,7 @@ function SignedIn({ profile, signOut, email }) {
 }
 
 function Gate() {
-  const { session, profile, loadingProfile, signOut, needsProfile, refreshProfile } = useAuth();
+  const { session, profile, loadingProfile, signOut, needsProfile, loadError, refreshProfile } = useAuth();
   const demo = typeof window !== "undefined" && (
     window.location.search.includes("demo")
     || window.location.hash.includes("demo")
@@ -110,6 +117,12 @@ function Gate() {
 
   if (session === undefined) return null;
   if (!session) return <Auth />;
+
+  /* Everything from here to the end only applies while there is no
+     profile yet. Once one is loaded the app stays mounted, even while
+     a refresh is in flight — otherwise joining a coach (which refreshes
+     the profile) would tear the whole interface down mid-moment. */
+  if (profile) return <SignedIn profile={profile} signOut={signOut} email={session?.user?.email} />;
 
   /* The database refused or failed the read. This is a fault to be
      fixed, not something the person did — so it says what the
@@ -166,20 +179,17 @@ function Gate() {
     );
   }
 
-  if (loadingProfile || !profile) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
-           style={{ background: "#FAF7F0" }}>
-        <p style={{ color: "#A39E93", fontSize: 14, marginBottom: stuck ? 20 : 0 }}>Loading…</p>
-        {stuck && (
-          <button onClick={signOut} style={{ color: "#A39E93", fontSize: 13, textDecoration: "underline" }}>
-            Taking too long? Sign out
-          </button>
-        )}
-      </div>
-    );
-  }
-  return <SignedIn profile={profile} signOut={signOut} email={session?.user?.email} />;
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
+         style={{ background: "#FAF7F0" }}>
+      <p style={{ color: "#A39E93", fontSize: 14, marginBottom: stuck ? 20 : 0 }}>Loading…</p>
+      {stuck && (
+        <button onClick={signOut} style={{ color: "#A39E93", fontSize: 13, textDecoration: "underline" }}>
+          Taking too long? Sign out
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function App() {
