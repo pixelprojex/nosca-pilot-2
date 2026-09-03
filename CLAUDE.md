@@ -69,11 +69,17 @@ seeded data and no account.
 
 ## Database
 
-`supabase/rebuild-signup.sql` is authoritative; every other SQL file is
-historical and overlaps. Its final statement runs the `profiles` read
-as the `authenticated` role — the only way to exercise row-level
+`supabase/nosca.sql` is the only SQL file. It sets up a fresh project
+and upgrades an existing one, and is safe to run again — every
+statement is idempotent, nothing in it deletes an account (the wipe at
+the top is commented out). Every policy, function, foreign key and
+storage rule lives there; change the database by changing that file
+and re-running it. Its final block runs the reads as the
+`authenticated` and `anon` roles — the only way to exercise row-level
 security from the SQL editor, which otherwise runs as the table owner
-and bypasses policies entirely.
+and bypasses policies entirely — and stops the file if a policy errors
+or leaks. The editor shows only the last statement's result, so the
+file ends with one row that says what state everything is in.
 
 ## How the founder works
 

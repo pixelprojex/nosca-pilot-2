@@ -34,7 +34,7 @@ const friendly = (msg) => {
     return "This account still needs its email confirmed. Check your inbox, or turn off \"Confirm email\" in Supabase → Authentication → Sign In / Providers.";
   if (m.includes("password")) return "Passwords need at least 6 characters.";
   if (m.includes("database error"))
-    return "The database rejected the sign-up. Run rebuild-signup.sql in Supabase, then try again.";
+    return "The database rejected the sign-up. Run supabase/nosca.sql in Supabase, then try again.";
   if (m.includes("failed to fetch") || m.includes("networkerror"))
     return "Couldn't reach the server. Check your connection and try again.";
   return msg || "Something went wrong. Please try again.";

@@ -164,7 +164,7 @@ function Gate() {
         <p style={{ color: "#1A1815", fontSize: 17, marginBottom: 10 }}>Couldn't load your account</p>
         <p style={{ color: "#6B6560", fontSize: 14, lineHeight: 1.55, maxWidth: 340, marginBottom: 26 }}>
           Your account is there, but its details couldn't be read. If
-          rebuild-signup.sql hasn't been run in Supabase yet, that's the reason —
+          nosca.sql hasn't been run in Supabase yet, that's the reason —
           run it, then press Try again.
         </p>
         <button onClick={refreshProfile}
