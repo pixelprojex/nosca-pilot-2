@@ -52,6 +52,7 @@ export function useNoscaData(profile) {
   const [prefs, setPrefs] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [coachName, setCoachName] = useState(null);
+  const [guardianName, setGuardianName] = useState(null);
   const [familyCode, setFamilyCode] = useState(null);
   const [family, setFamily] = useState([]);
   const [threads, setThreads] = useState([]);
@@ -108,9 +109,15 @@ export function useNoscaData(profile) {
       setFamily(people.filter((x) => x.guardian_id === profile.id).map((x) => ({ id: x.id, name: x.name })));
 
       /* A player needs their coach's real name. Row-level security means
-         the coach's own row is visible to them, so it comes back here. */
-      const theCoach = people.find((x) => x.role === "coach");
+         the coach's own row is visible to them, so it comes back here.
+         Looked up by the id on their own row, not "any coach in the
+         list" — a guardian or a family member's coach can be visible
+         too, and neither of those is this person's coach. */
+      const theCoach = me?.coach_id ? people.find((x) => x.id === me.coach_id) : null;
       setCoachName(theCoach?.name || null);
+      /* likewise the guardian's — their row is visible for the same reason */
+      const theGuardian = me?.guardian_id ? people.find((x) => x.id === me.guardian_id) : null;
+      setGuardianName(theGuardian?.name || null);
 
       /* the coach sees their players; a player sees only themselves */
       const players = people.filter((x) => x.role === "player");
@@ -322,7 +329,7 @@ export function useNoscaData(profile) {
       /* The interface already hides this action for a junior; this is
          the second, independent line — reached if it's ever called
          some other way. The database itself is the third and final
-         line, in migration-005.sql. */
+         line, in supabase/nosca.sql. */
       return { error: { message: "Booking is arranged by your coach." } };
     }
     const { error } = await supabase.from("bookings").insert({
@@ -416,55 +423,55 @@ export function useNoscaData(profile) {
     return { error };
   };
 
+  /* The database's own words for what went wrong. join_coach and
+     join_family raise plain sentences meant to be shown as they are;
+     the two failures that aren't theirs get a sentence of their own. */
+  const rpcMessage = (error, fallback) => {
+    const m = (error && error.message) || "";
+    if (/failed to fetch|networkerror|load failed/i.test(m)) return "Couldn't reach the server. Check your connection and try again.";
+    if (error && error.code === "PGRST202") return "The database needs updating. Run supabase/nosca.sql, then try again.";
+    return m || fallback;
+  };
+
   /* Joining a coach after the fact — from the empty home screen, or
      from settings. The same code that could have been entered during
-     sign-up, doing the same thing. */
+     sign-up, doing the same thing. One database call does the lookup
+     and the link together and returns {id, name, sport} of the coach,
+     or raises a message meant to be shown word for word. The player's
+     own sport stays as they chose it — joining links the accounts, it
+     doesn't overwrite what the person said they play. */
   const joinCoach = async (rawCode) => {
     const clean = (rawCode || "").trim().toUpperCase();
     if (clean.length < 4) return { error: { message: "Enter the full code." } };
-
-    const { data: rows, error: findErr } = await supabase.rpc("find_coach_by_code", { p_code: clean });
-    if (findErr) return { error: { message: "Couldn't check that code. Try again." } };
-    const coach = rows?.[0];
-    if (!coach) return { error: { message: "That code doesn't match a coach." } };
-
-    /* The player's own sport stays as they chose it — joining a coach
-       links the two accounts, it doesn't overwrite what the person
-       said they play. A coach who teaches something else simply
-       becomes one of their sports.
-
-       .select() matters here: without it a row blocked by row-level
-       security comes back as success with nothing changed, and the
-       screen would say "joined" while the account stayed empty. */
-    const { data: updated, error } = await supabase.from("profiles")
-      .update({ coach_id: coach.id })
-      .eq("id", profile.id)
-      .select();
-    if (error) return { error };
-    if (!updated || updated.length === 0) {
-      return { error: { message: "Couldn't join that coach. Please try again." } };
-    }
+    const { data: coach, error } = await supabase.rpc("join_coach", { p_code: clean });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't join that coach. Please try again.") } };
     await load();
     return { coach };
   };
 
-  /* Joining a family — identical in shape to joining a coach. Any
-     player can hand out their family code; anyone who enters it joins
-     that person's family. */
+  /* Joining a family — identical in shape. Any player can hand out
+     their family code; anyone who enters it joins that person's family. */
   const joinFamily = async (rawCode) => {
     const clean = (rawCode || "").trim().toUpperCase();
     if (clean.length < 4) return { error: { message: "Enter the full code." } };
-    const { data: rows, error: findErr } = await supabase.rpc("find_guardian_by_code", { p_code: clean });
-    if (findErr) return { error: { message: "Couldn't check that code. Try again." } };
-    const guardian = rows?.[0];
-    if (!guardian) return { error: { message: "That code doesn't match a family." } };
-    if (guardian.id === profile.id) return { error: { message: "That's your own code." } };
-    const { data: updated, error } = await supabase.from("profiles")
-      .update({ guardian_id: guardian.id }).eq("id", profile.id).select();
-    if (error) return { error };
-    if (!updated || updated.length === 0) return { error: { message: "Couldn't join that family. Please try again." } };
+    const { data: guardian, error } = await supabase.rpc("join_family", { p_code: clean });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't join that family. Please try again.") } };
     await load();
     return { guardian };
+  };
+
+  const leaveCoach = async () => {
+    const { error } = await supabase.rpc("leave_coach");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't leave. Please try again.") } };
+    await load();
+    return {};
+  };
+
+  const leaveFamily = async () => {
+    const { error } = await supabase.rpc("leave_family");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't leave. Please try again.") } };
+    await load();
+    return {};
   };
 
   /* Deletes this account and everything belonging to it, for good.
@@ -473,11 +480,20 @@ export function useNoscaData(profile) {
      itself and cascades through every table. */
   const deleteAccount = async () => {
     try {
-      const { data: files } = await supabase.storage.from("media").list(profile.id);
-      if (files && files.length) {
-        await supabase.storage.from("media")
-          .remove(files.map((f) => `${profile.id}/${f.name}`));
+      /* Files live at <person>/<lesson>/<file>. A storage listing is
+         one level deep and removing a folder path deletes nothing, so
+         each lesson folder is listed in turn and the full file paths
+         are removed. An entry with no id is a folder; one with an id
+         is a file. */
+      const bucket = supabase.storage.from("media");
+      const { data: top } = await bucket.list(profile.id);
+      const paths = [];
+      for (const entry of top || []) {
+        if (entry.id) { paths.push(`${profile.id}/${entry.name}`); continue; }
+        const { data: inner } = await bucket.list(`${profile.id}/${entry.name}`);
+        for (const f of inner || []) if (f.id) paths.push(`${profile.id}/${entry.name}/${f.name}`);
       }
+      if (paths.length) await bucket.remove(paths);
     } catch (e) { /* nothing uploaded, or already gone */ }
 
     const { error } = await supabase.rpc("delete_my_account");
@@ -508,7 +524,7 @@ export function useNoscaData(profile) {
   };
 
   return {
-    loading, loadError, isCoach, inviteCode, coachName, familyCode, family,
+    loading, loadError, isCoach, inviteCode, coachName, guardianName, familyCode, family,
     roster, lessons, drills, tips, registers,
     bookings, competitions, recurring, prefs, threads,
     reviewSummary, myReview,
@@ -517,7 +533,7 @@ export function useNoscaData(profile) {
     addBooking, cancelBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, sendMessage, submitReview, joinCoach, joinFamily, verifyPassword, deleteAccount,
+    savePrefs, sendMessage, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount,
     hasGuardian: links ? !!links.guardian : !!profile?.guardian_id,
     hasCoach: links ? !!links.coach : !!profile?.coach_id,
   };

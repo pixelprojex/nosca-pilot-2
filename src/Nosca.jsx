@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useContext, createContext } from "react";
 import { useCapture } from "./lib/useCapture";
+import QRCode from "qrcode";
+import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home, Library,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
@@ -7487,6 +7489,22 @@ function QrSvg({ size = 150, accent, seed = 1234 }) {
   );
 }
 
+/* A real QR of a real link, drawn by the qrcode package. QrSvg above
+   is a picture of one for the design harness, where there is no code. */
+export function QrImage({ url, size = 148 }) {
+  const [src, setSrc] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    if (!url) { setSrc(null); return; }
+    QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#1A1815", light: "#ffffff" } })
+      .then((svg) => { if (alive) setSrc("data:image/svg+xml;utf8," + encodeURIComponent(svg)); })
+      .catch(() => { if (alive) setSrc(null); });
+    return () => { alive = false; };
+  }, [url]);
+  if (!src) return <span className="block" style={{ width: size, height: size, background: "#fff" }} />;
+  return <img src={src} width={size} height={size} alt={tr("QR code")} style={{ display: "block", width: size, height: size }} />;
+}
+
 /* ==================================================================
    CAMERA
 ================================================================== */
@@ -7566,7 +7584,7 @@ export const Sub = ({ children }) => { const t = useT(); return <p className="mt
 
 /* A field that lives outside the parent's render, so typing never
    remounts it and loses focus. */
-export function Field({ label, value, onChange, ph, type = "text", Icon, autoFocus, error, onBlur, reveal }) {
+export function Field({ label, value, onChange, ph, type = "text", Icon, autoFocus, error, onBlur, reveal, autoComplete, inputMode }) {
   const t = useT();
   const [shown, setShown] = useState(false);
   const bad = !!error;
@@ -7578,6 +7596,7 @@ export function Field({ label, value, onChange, ph, type = "text", Icon, autoFoc
         <span className="flex-1">
           {label && <span className="block" style={{ fontFamily: ui, fontSize: 11, color: bad ? DANGER : t.faint }}>{label}</span>}
           <input type={inputType} value={value} placeholder={ph} autoFocus={autoFocus} onBlur={onBlur}
+                 autoComplete={autoComplete} inputMode={inputMode}
                  onChange={(e) => onChange(e.target.value)} className="w-full outline-none"
                  style={{ fontFamily: ui, fontSize: 16.5, color: bad ? DANGER : t.ink, background: "transparent" }} />
         </span>
@@ -7667,7 +7686,7 @@ export function CodeBoxes({ value, onChange, onComplete, bad }) {
   );
 }
 
-const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, len, bad, onDone }, ref) {
+export const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, len, bad, onDone }, ref) {
   const t = useT();
   return (
     <input ref={ref} value={value} placeholder={ph} inputMode="numeric" maxLength={len}
@@ -10002,7 +10021,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   );
 }
 
-function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say, right, coachName, noun, nouns }) {
+function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say, right, coachName, noun, nouns, code }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
   const [tab, setTab] = useState(nounTitle); const [q, setQ] = useState("");
@@ -10026,7 +10045,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
             </span>
             <span className="flex-1 min-w-0">
               <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8, color: "rgba(255,255,255,0.5)" }}>{tr("Invite")} {nouns}</span>
-              <span className="block mt-1.5" style={{ fontFamily: display, fontSize: 22, letterSpacing: "0.12em", color: "#fff" }}>RD4K9P</span>
+              <span className="block mt-1.5" style={{ fontFamily: display, fontSize: 22, letterSpacing: "0.12em", color: "#fff" }}>{code || "——————"}</span>
             </span>
             <Share2 size={18} color="rgba(255,255,255,0.7)" />
           </button>
@@ -12148,7 +12167,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say })
 /* ==================================================================
    SETTINGS
 ================================================================== */
-function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
+function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
   const t = useT(); const L = useL();
   const sub = role === "coach" ? `${cfg.label} coach · ${brandName}` : `${cfg.label} · ${conn?.coach || ""}`;
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -12183,7 +12202,7 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, o
           <Row label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
           <Row label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
           <Row label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
-          <Row label={tr("Invite code & QR")} value="RD4K9P" chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
+          <Row label={tr("Invite code & QR")} value={inviteCode || "——————"} chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
         </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card>
           <Row label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
           <Row label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
@@ -12246,14 +12265,14 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, o
 
         <div className="px-6 mb-6"><Card>
           <Row label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={restart} />
-          {onDeleteAccount && (
-            <Row label={tr("Delete account")}
-                 sub={tr("Everything, permanently")}
-                 icon={<Trash2 size={18} color={DANGER} strokeWidth={2} />}
-                 danger last
-                 onToggle={() => sheet("deleteAccount")} />
-          )}
-          <Row label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />
+          {onDeleteAccount
+            ? <Row label={tr("Delete account")}
+                   sub={tr("Everything, permanently")}
+                   icon={<Trash2 size={18} color={DANGER} strokeWidth={2} />}
+                   danger last
+                   onToggle={() => sheet("deleteAccount")} />
+            /* the design harness has no account behind it; this row only shows the sheet */
+            : <Row label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />}
         </Card></div>
 
         <div className="flex flex-col items-center pb-6"><Mark size={30} color={t.faint} /><p className="mt-2.5" style={{ ...TYPE.caption, color: t.faint }}>{BRAND} {VERSION}</p><p className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>{tr("Made in Ireland")}</p></div>
@@ -12400,15 +12419,37 @@ function Support({ pop, say }) {
     </SwipeBack>
   );
 }
-function InviteBody({ say }) {
+function InviteBody({ code, say }) {
   const t = useT();
+  /* The QR is the join link, so scanning it opens the sign-up with the
+     code already filled in. Share hands the same link to the OS share
+     sheet; without one it goes to the clipboard, and the toast says
+     which happened. */
+  const url = code ? joinLink("coach", code) : null;
+  const share = async () => {
+    if (!code) { say(tr("Invite shared")); return; }
+    const r = await shareOrCopy({ title: `${tr("Join me on")} ${BRAND}`, text: `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${code}`, url });
+    if (r === "shared") say(tr("Invite shared"));
+    else if (r === "copied") say(tr("Link copied"));
+    else if (r === "failed") say(tr("Couldn't share. Copy the code instead."));
+  };
+  const copy = async () => {
+    if (!code) return;
+    haptic(8);
+    const ok = await copyText(code);
+    say(ok ? tr("Code copied") : tr("Couldn't copy"));
+  };
   return (
     <div className="flex flex-col items-center">
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, color: t.ink }}>{tr("Invite a player")}</h2>
       <p className="mb-6 text-center" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("They enter the code or scan this.")}</p>
-      <div className="rounded-3xl p-4 mb-5" style={{ border: `1px solid ${t.hair}` }}><QrSvg size={148} /></div>
-      <div className="mb-6" style={{ fontFamily: display, fontSize: 36, letterSpacing: "0.16em", color: t.ink }}>RD4K9P</div>
-      <Button onClick={() => say("Invite shared")}><span className="flex items-center justify-center gap-2"><Share2 size={17} /> Share invite</span></Button>
+      <div className="rounded-3xl p-4 mb-5" style={{ border: `1px solid ${t.hair}`, background: "#fff" }}>
+        {url ? <QrImage url={url} size={148} /> : <QrSvg size={148} />}
+      </div>
+      <div className="mb-6" style={{ fontFamily: display, fontSize: 36, letterSpacing: "0.16em", paddingLeft: "0.16em", color: t.ink }}>{code || "——————"}</div>
+      <Button onClick={share}><span className="flex items-center justify-center gap-2"><Share2 size={17} /> {tr("Share invite")}</span></Button>
+      <button onClick={copy} disabled={!code} className="mt-3 w-full active:opacity-50 disabled:opacity-30"
+              style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Copy code")}</button>
     </div>
   );
 }
@@ -12924,6 +12965,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [activeProfileId, setActiveProfileId] = useState(1);
   const clubName = "";   /* only ever what the account carries */
   const inviteCode = data ? data.inviteCode : FAMILY_CODE;
+  /* what the code surfaces show: the real code for a real account (a
+     player has none), the seed for the harness */
+  const inviteShown = data ? (data.inviteCode || null) : "RD4K9P";
   /* Months, from real logged lessons. An account with nothing logged
      shows zeroes — which is the truth — rather than someone else's
      season. */
@@ -13380,7 +13424,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* A player with no coach has an account and nothing in it. Rather
      than show empty lessons, an empty diary and a disabled chat, the
      whole screen becomes the one thing worth doing. */
-  const needsCoach = !!account && role === "player" && data && !data.hasCoach;
+  /* A parent has no coach of their own — their children do — so they
+     are never held here; Home, Family and the family code are theirs
+     from the start. */
+  const needsCoach = !!account && role === "player" && data && !data.hasCoach && account.accountType !== "parent";
   if (needsCoach) {
     body = <NoCoach juvenile={juvenile} onJoin={async (c) => {
       const res = await (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c));
@@ -13476,7 +13523,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} />;
   } else if (screen === "library") { body = <DrillLibrary cfg={cfg} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }))} pop={pop} assign={openAssignDrills} say={say} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={(v) => setAvail((p) => ({ ...p, [coachSport]: v }))} slots={slots} setSlots={setSlots} duration={duration} setDuration={setDuration} pop={pop} say={say} />;
-  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} />;
+  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} />;
   } else if (screen.startsWith("history:")) {
     const hname = screen.split(":")[1];
     body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={attendance} goals={goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
@@ -13610,7 +13657,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings demo={demo} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
@@ -13965,7 +14012,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             main={mainSport[activeProfileId]}
                                             onSetMain={(sp) => { setMainSport((v) => ({ ...v, [activeProfileId]: sp })); setCoachSport(sp); }}
                                             close={() => setSheet(null)} say={say} />
-              : sheet === "invite" ? <InviteBody say={(m) => { setSheet(null); say(m); }} />
+              : sheet === "invite" ? <InviteBody code={inviteShown} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
               : sheet === "tip" ? <TipBody focusLabel={assignFocus || (cfg.focus[0] || {}).label} prompts={TIP_PROMPTS[coachSport]} onSet={doSetTip} close={() => setSheet(null)} />

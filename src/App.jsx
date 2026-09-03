@@ -1,21 +1,42 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Auth from "./pages/Auth";
+import Arrival from "./pages/Arrival";
 import Nosca from "./Nosca";
 import { useNoscaData } from "./lib/useNoscaData";
 
 /* The full designed application, behind the real sign-in.
- *
- * Nosca still runs on its own seeded data at this point — porting each
- * screen onto the database is the next stage of work, done one screen
- * at a time so the app stays usable throughout. What this gives us now
- * is the real interface, live, behind real accounts.
  *
  * Appending ?demo to the URL brings back the design harness: the
  * preview toolbar, persona switcher and phone frame. The previous
  * plain pilot screens are preserved in App.pilot.jsx.bak and in
  * src/pages, so nothing built so far has been discarded.
  */
+
+const isDemoUrl = () => typeof window !== "undefined" && (
+  window.location.search.includes("demo")
+  || window.location.hash.includes("demo")
+  || window.location.pathname.replace(/\/+$/, "").endsWith("/demo")
+);
+
+/* A join link — https://<site>/?join=CODE or ?family=CODE — is read once
+   when the app starts and taken out of the address bar, so a reload
+   doesn't offer the invitation twice and the code never sits in the
+   URL a person shares on. Never in the design harness. */
+const INVITE = (() => {
+  if (typeof window === "undefined" || isDemoUrl()) return null;
+  const params = new URLSearchParams(window.location.search);
+  const clean = (v) => (v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+  const join = clean(params.get("join")), family = clean(params.get("family"));
+  if (!join && !family) return null;
+  params.delete("join"); params.delete("family");
+  const rest = params.toString();
+  try {
+    window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : "") + window.location.hash);
+  } catch (e) { /* nothing depends on it */ }
+  return join ? { kind: "coach", code: join } : { kind: "family", code: family };
+})();
+
 /* Whole years between a date of birth and today. Used only to decide
    whether booking and messaging should be handled by the coach instead
    of the player themselves — the database enforces the same rule
@@ -32,9 +53,17 @@ function isUnder18(dob) {
   return age < 18;
 }
 
+/* Set by Auth the moment an account is created; read here once and
+   cleared, so the arrival screen shows exactly one time. */
+const readArrival = () => {
+  try { return window.sessionStorage.getItem("nosca.arrival") || null; } catch (e) { return null; }
+};
+
 function SignedIn({ profile, signOut, email }) {
   const data = useNoscaData(profile);
   const { refreshProfile } = useAuth();
+  const [arrival, setArrival] = useState(readArrival);
+  useEffect(() => { try { window.sessionStorage.removeItem("nosca.arrival"); } catch (e) { /* private mode */ } }, []);
 
   /* One object per real change. Nosca resets its navigation whenever
      this prop's identity changes, and SignedIn re-renders on every data
@@ -83,6 +112,13 @@ function SignedIn({ profile, signOut, email }) {
     );
   }
 
+  /* Straight after creating the account: the code to hand out, or who
+     they're linked to. Once, then the app. The data hook stays mounted
+     underneath, so the app opens with everything already loaded. */
+  if (arrival) {
+    return <Arrival role={arrival} profile={profile} data={data} onDone={() => setArrival(null)} />;
+  }
+
   return (
     <Nosca
       account={account}
@@ -98,12 +134,8 @@ function SignedIn({ profile, signOut, email }) {
 }
 
 function Gate() {
-  const { session, profile, loadingProfile, signOut, needsProfile, loadError, refreshProfile } = useAuth();
-  const demo = typeof window !== "undefined" && (
-    window.location.search.includes("demo")
-    || window.location.hash.includes("demo")
-    || window.location.pathname.replace(/\/+$/, "").endsWith("/demo")
-  );
+  const { session, profile, loadingProfile, signOut, needsProfile, loadError, refreshProfile, recovery } = useAuth();
+  const demo = isDemoUrl();
   const [stuck, setStuck] = React.useState(false);
 
   React.useEffect(() => {
@@ -116,7 +148,11 @@ function Gate() {
   if (demo) return <Nosca demo />;
 
   if (session === undefined) return null;
-  if (!session) return <Auth />;
+  if (!session) return <Auth invite={INVITE} />;
+
+  /* Arrived from a password-reset email. There is a session, but the
+     one thing to do is set the new password — before the app. */
+  if (recovery) return <Auth mode="recovery" />;
 
   /* Everything from here to the end only applies while there is no
      profile yet. Once one is loaded the app stays mounted, even while
