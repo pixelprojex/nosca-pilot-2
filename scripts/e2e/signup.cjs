@@ -503,6 +503,98 @@ const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name ==
       t = await rootText(page);
       if (!/Code copied/.test(t)) note("FAIL no Code copied toast");
     });
+    /* a player who already has an account, no coach yet, taps the coach's join link */
+    await scenario(browser, "15-join-link-signed-in-coachless-player", async ({ page, db, shot, note }) => {
+      const id = uuid();
+      db.users["tom@example.ie"] = { id, email: "tom@example.ie", password: "secret123", meta: { role: "player", name: "Tom Beckett", sport: "tennis", account_type: "adult" } };
+      db.profiles[id] = { id, role: "player", name: "Tom Beckett", sport: "tennis", account_type: "adult", coach_id: null, guardian_id: null, invite_code: null, family_code: "TOM222", date_of_birth: "1988-11-11", phone: null, club: null, created_at: "2026-02-01T00:00:00Z" };
+      await signIn(page, "tom@example.ie", "secret123");
+      await page.waitForTimeout(1200);
+      /* the link, opened in the same browser: the stored session signs them straight in */
+      await page.goto(`${BASE}/?join=abc234`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(1500);
+      if (/join=/.test(page.url())) note("FAIL the code was left in the address bar: " + page.url()); else note("code removed from the URL");
+      await waitSplash(page); await dismissTour(page); await shot("nocoach-prefilled");
+      let t = await rootText(page);
+      if (!/Add your coach/.test(t)) { note("FAIL expected the Add your coach screen, got: " + t.slice(0, 120)); return; }
+      const vals = await codeBoxes(page).evaluateAll((els) => els.map((e) => e.value).join(""));
+      if (vals !== "ABC234") note("FAIL code boxes not pre-filled from the link: " + JSON.stringify(vals)); else note("code boxes pre-filled with ABC234");
+      if (await btn(page, "Add coach").isDisabled()) note("FAIL Add coach is disabled with the code filled in");
+      await btn(page, "Add coach").click();
+      let sawJoined = false;
+      for (let i = 0; i < 40; i++) { await page.waitForTimeout(100); t = await rootText(page); if (/Sinéad Walsh/.test(t)) sawJoined = true; }
+      await shot("after-join");
+      if (!sawJoined) note("FAIL the joined-coach moment never appeared");
+      if (!db.rpcs.some((r) => r.fn === "join_coach" && r.args.p_code === "ABC234")) note("FAIL join did not go through join_coach");
+      if (db.profiles[id].coach_id !== COACH_ID) note("FAIL coach_id not written"); else note("linked to the coach through the join link");
+    });
+
+    /* a player who already has a coach taps a different coach's join link: offered by name, once */
+    await scenario(browser, "16-join-link-signed-in-player-with-coach", async ({ page, db, shot, note }) => {
+      const other = uuid();
+      db.profiles[other] = { id: other, role: "coach", name: "Pádraig Óg", sport: "golf", account_type: "coach", coach_id: null, guardian_id: null, invite_code: "KLM456", family_code: "FAM456", date_of_birth: null, phone: null, club: null, created_at: "2026-01-01T00:00:00Z" };
+      const id = uuid();
+      db.users["ann@example.ie"] = { id, email: "ann@example.ie", password: "secret123", meta: { role: "player", name: "Ann Burke", sport: "tennis", account_type: "adult" } };
+      db.profiles[id] = { id, role: "player", name: "Ann Burke", sport: "tennis", account_type: "adult", coach_id: COACH_ID, guardian_id: null, invite_code: null, family_code: "ANN333", date_of_birth: "1985-01-01", phone: null, club: null, created_at: "2026-02-01T00:00:00Z" };
+      await signIn(page, "ann@example.ie", "secret123");
+      await page.waitForTimeout(1200);
+      await page.goto(`${BASE}/?join=klm456`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(1500);
+      await waitSplash(page); await dismissTour(page); await page.waitForTimeout(800); await shot("offer");
+      let t = await rootText(page);
+      if (!/You've been invited/.test(t)) { note("FAIL no invitation offer for a signed-in player: " + t.slice(0, 160)); return; }
+      if (!/Join Pádraig Óg\? You'd leave Sinéad Walsh\./.test(t)) note("FAIL the offer does not name both coaches: " + t.slice(0, 200)); else note("offer names the new coach and the one they'd leave");
+      if (!db.rpcs.some((r) => r.fn === "find_coach_by_code" && r.args.p_code === "KLM456")) note("FAIL the code was not looked up before the offer");
+      await btn(page, "Join").click();
+      let sawJoined = false;
+      for (let i = 0; i < 40; i++) { await page.waitForTimeout(100); t = await rootText(page); if (/Pádraig Óg/.test(t) && !/You've been invited/.test(t)) sawJoined = true; }
+      await shot("after-join");
+      if (!sawJoined) note("FAIL the joined-coach moment never appeared");
+      if (db.profiles[id].coach_id !== other) note("FAIL coach_id not switched to the new coach"); else note("switched coach through the offer");
+      /* a reload is not offered it again */
+      await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(1500); await waitSplash(page); await dismissTour(page);
+      t = await rootText(page);
+      if (/You've been invited/.test(t)) note("FAIL the invitation was offered again after a reload"); else note("not offered again after a reload");
+    });
+    /* a real account's walkthrough leaves out steps whose control it never has */
+    await scenario(browser, "17-live-tour-skips-harness-only-steps", async ({ page, db, shot, note }) => {
+      const counter = async () => (await page.locator("[data-tour-counter]").first().textContent().catch(() => "")) || "";
+      await signIn(page, "coach@example.ie", "secret123");
+      await page.waitForTimeout(1200); await waitSplash(page); await shot("coach-tour");
+      const c = await counter();
+      /* the ?demo coach tour has 67 steps; Paperwork and Requests are harness-only, Help stays (a support address is configured) */
+      if (c.trim() !== "1 / 65") note("FAIL coach tour counter is " + JSON.stringify(c) + ", expected 1 / 65"); else note("coach tour: 65 steps for a real account (Paperwork, Requests left out)");
+      await dismissTour(page);
+      const id = uuid();
+      db.users["ann@example.ie"] = { id, email: "ann@example.ie", password: "secret123", meta: { role: "player", name: "Ann Burke", sport: "tennis", account_type: "adult" } };
+      db.profiles[id] = { id, role: "player", name: "Ann Burke", sport: "tennis", account_type: "adult", coach_id: COACH_ID, guardian_id: null, invite_code: null, family_code: "ANN333", date_of_birth: "1985-01-01", phone: null, club: null, created_at: "2026-02-01T00:00:00Z" };
+      await page.evaluate(() => localStorage.clear());
+      await signIn(page, "ann@example.ie", "secret123");
+      await page.waitForTimeout(1200); await waitSplash(page); await shot("player-tour");
+      const p = await counter();
+      /* the ?demo player tour has 40 steps; Sporting record is harness-only */
+      if (p.trim() !== "1 / 39") note("FAIL player tour counter is " + JSON.stringify(p) + ", expected 1 / 39"); else note("player tour: 39 steps for a real account (Sporting record left out)");
+      await dismissTour(page);
+    });
+
+    /* a family link, opened by a signed-in player */
+    await scenario(browser, "18-family-link-signed-in-player", async ({ page, db, shot, note }) => {
+      const id = uuid();
+      db.users["ann@example.ie"] = { id, email: "ann@example.ie", password: "secret123", meta: { role: "player", name: "Ann Burke", sport: "tennis", account_type: "adult" } };
+      db.profiles[id] = { id, role: "player", name: "Ann Burke", sport: "tennis", account_type: "adult", coach_id: COACH_ID, guardian_id: null, invite_code: null, family_code: "ANN333", date_of_birth: "1985-01-01", phone: null, club: null, created_at: "2026-02-01T00:00:00Z" };
+      await signIn(page, "ann@example.ie", "secret123");
+      await page.waitForTimeout(1200);
+      await page.goto(`${BASE}/?family=fam777`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(1500); await waitSplash(page); await dismissTour(page); await page.waitForTimeout(800); await shot("offer");
+      let t = await rootText(page);
+      if (!/Join Sinéad Walsh's family\?/.test(t)) { note("FAIL no family offer by name: " + t.slice(0, 160)); return; }
+      note("offer names the family");
+      await btn(page, "Join").click(); await page.waitForTimeout(1500); await shot("joined");
+      if (!db.rpcs.some((r) => r.fn === "join_family" && r.args.p_code === "FAM777")) note("FAIL join did not go through join_family");
+      if (db.profiles[id].guardian_id !== COACH_ID) note("FAIL guardian_id not written"); else note("joined the family through the link");
+      t = await rootText(page);
+      if (/You've been invited/.test(t)) note("FAIL the offer is still open after joining");
+    });
   } finally {
     await browser.close(); try { process.kill(-server.pid, "SIGTERM"); } catch {} server.stdout.destroy(); server.stderr.destroy();
   }

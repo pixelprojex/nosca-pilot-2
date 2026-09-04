@@ -9,6 +9,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const [distDir, portArg, outDir] = process.argv.slice(2);
 const PORT = Number(portArg || 4197), BASE = `http://localhost:${PORT}`, SB = "https://mock.supabase.co";
 const ROOT = require("path").resolve(__dirname, "../..");
+/* FIXED_TIME=2026-11-15T10:30:00 runs the browser (and the mock's clock) from that moment */
+const FIXED = process.env.FIXED_TIME ? new Date(process.env.FIXED_TIME) : null;
+const nowMs = () => (FIXED ? FIXED.getTime() : Date.now());
 fs.mkdirSync(outDir, { recursive: true });
 const b64u = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 
@@ -19,7 +22,7 @@ const SEEDED = ["Ray Doyle", "ray@hollowbrook", "+353 87 123 4567", "Marcus Tran
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d" };
 const pad = (n) => String(n).padStart(2, "0");
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const TODAY = ymd(new Date());
+const TODAY = ymd(new Date(nowMs()));
 let seq = 0; const uuid = () => `40000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`;
 
 function freshDb() {
@@ -40,7 +43,7 @@ function freshDb() {
     reviews: [{ id: uuid(), coach_id: IDS.coach, player_id: IDS.adult, rating: 5, comment: "Brilliant with the short game.", created_at: "2026-08-01T10:00:00Z" }],
     log: [], posts: [], patches: [], deletes: [], rpcs: [], auth: [] };
 }
-function session(u) { const exp = Math.floor(Date.now() / 1000) + 86400; const token = `${b64u({ alg: "HS256", typ: "JWT" })}.${b64u({ sub: u.id, email: u.email, role: "authenticated", aud: "authenticated", exp })}.sig`;
+function session(u) { const exp = Math.floor(nowMs() / 1000) + 86400; const token = `${b64u({ alg: "HS256", typ: "JWT" })}.${b64u({ sub: u.id, email: u.email, role: "authenticated", aud: "authenticated", exp })}.sig`;
   return { access_token: token, token_type: "bearer", expires_in: 86400, expires_at: exp, refresh_token: "rt_" + u.id, user: { id: u.id, aud: "authenticated", role: "authenticated", email: u.email, email_confirmed_at: "2026-01-01T00:00:00Z", app_metadata: { provider: "email" }, user_metadata: u.meta, identities: [{ id: u.id, user_id: u.id, provider: "email", identity_data: { email: u.email } }], created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" } }; }
 
 function attach(page, db) {
@@ -114,6 +117,9 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
     const u = Object.values(db.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, permissions: ["clipboard-read", "clipboard-write"] });
     const page = await ctx.newPage(); attach(page, db);
+    if (FIXED) await page.addInitScript((t0) => { const Real = Date; const started = Real.now();
+      class Shifted extends Real { constructor(...a) { if (a.length === 0) super(t0 + (Real.now() - started)); else super(...a); } static now() { return t0 + (Real.now() - started); } }
+      window.Date = Shifted; }, FIXED.getTime());
     errorsByRole[role] = errorsByRole[role] || []; page.on("pageerror", (e) => errorsByRole[role].push(String(e.message || e)));
     await page.addInitScript(([key, sess]) => { try { localStorage.setItem(key, JSON.stringify(sess)); localStorage.setItem("nosca.seen." + sess.user.id, "1"); } catch {}
       window.__opened = []; window.open = (u) => { window.__opened.push(u); return null; };
@@ -165,6 +171,12 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       await back(page); await tap(page, '[aria-label="Diary"]');
       const t1 = await leak("coach diary"); await shot("06-coach-diary");
       check("(b) coach diary lists the real week, no seeded names", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && !SEEDED.some((s) => t1.includes(s)), t1.slice(0, 200));
+      {
+        const want = new Date(nowMs()).toLocaleDateString("en-IE", { month: "long", year: "numeric" });
+        await click(page, "Calendar"); const tm = await text(); await shot("06b-coach-diary-month");
+        check(`(k) the month view opens on the current month (${want})`, tm.includes(want), tm.slice(0, 200));
+        await click(page, "List");
+      }
       await tap(page, '[data-tour="agenda-book"]');
       const t2 = await text(); await shot("07-coach-bookwho");
       check("(b) Book someone in lists the real roster", t2.includes("Book someone in") && t2.includes("Cian Murphy") && !t2.includes("Marcus Tran"), t2.slice(0, 200));
