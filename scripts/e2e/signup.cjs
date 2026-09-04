@@ -253,11 +253,13 @@ const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name ==
       if (!clip2 || !clip2.includes(`/?join=${prof.invite_code}`)) note("FAIL the shared text has no join link");
       await btn(page, "Show me around").click();
       const tourNow = await page.evaluate(() => sessionStorage.getItem("nosca.tour.now"));
-      if (tourNow !== "1") note("FAIL nosca.tour.now not set by Show me around");
+      /* the walkthrough consumes and clears the flag the moment it mounts, so
+         either the flag is still there or the tour has already opened */
       await page.waitForTimeout(300);
       if (await rootEmpty(page)) { note("FAIL blank page after arrival"); return; }
       await waitSplash(page);
       const hadTour = await dismissTour(page); note("walkthrough opened after Show me around: " + hadTour);
+      if (tourNow !== "1" && !hadTour) note("FAIL Show me around neither set nosca.tour.now nor opened the walkthrough");
       await shot("home");
       t = await rootText(page);
       if (/You're set up|Create account/.test(t.slice(0, 60))) note("FAIL did not reach the app after arrival");
