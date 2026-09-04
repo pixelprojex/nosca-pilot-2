@@ -5905,9 +5905,14 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
     else { hapticCommit(); close(); }
   };
 
+  /* Rendered INSIDE the app's one bottom sheet (see the sheet switch in
+     Nosca), so it must not open a second Sheet of its own: nested, the
+     inner one sat translated 760px off-screen with pointer events off,
+     and "Delete account" opened an empty white panel nobody could use. */
   return (
-    <Sheet onClose={close} title={title}>
-      <div className="px-6 pb-6">
+    <>
+      <div className="pb-1">
+        <h2 className="mb-3" style={{ fontFamily: display, fontSize: 25, color: t.ink }}>{title}</h2>
         <p style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{detail}</p>
 
         <div className="mt-6">
@@ -5933,7 +5938,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
           {tr("Cancel")}
         </button>
       </div>
-    </Sheet>
+    </>
   );
 }
 
@@ -7149,7 +7154,10 @@ function Sheet({ open, onClose, children }) {
 function Toast({ msg }) {
   const t = useT();
   return (
-    <div className="absolute left-0 right-0 flex justify-center z-50 px-6" style={{ bottom: 98 }}>
+    /* pointer-events off: the wrapper is always mounted, and an invisible
+       strip that swallows taps 98px above the bottom of every screen is
+       exactly the kind of "button that does nothing" that gets reported. */
+    <div className="absolute left-0 right-0 flex justify-center z-50 px-6" style={{ bottom: 98, pointerEvents: "none" }}>
       <div className="rounded-full px-5 py-3" style={{ background: t.ink, opacity: msg ? 1 : 0,
                     transform: msg ? "translateY(0)" : "translateY(12px)", transition: "opacity 240ms, transform 240ms" }}>
         <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{msg || ""}</span>
