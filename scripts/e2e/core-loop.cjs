@@ -127,7 +127,9 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
   const boot = async (role) => {
     const db = freshDb(); const u = Object.values(db.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, acceptDownloads: true });
-    const page = await ctx.newPage(); attach(page, db);
+    const page = await ctx.newPage();
+  /* the day is real but the hour is pinned to 08:00, so the two morning bookings are always still ahead and the register offers both */
+  await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); attach(page, db);
     errorsByRole[role] = errorsByRole[role] || []; page.on("pageerror", (e) => errorsByRole[role].push(String(e.message || e)));
     await page.addInitScript(([key, sess]) => { try { localStorage.setItem(key, JSON.stringify(sess)); localStorage.setItem("nosca.seen." + sess.user.id, "1"); } catch {} }, ["nosca.auth", session(u)]);
     await page.goto(BASE, { waitUntil: "networkidle" }); await page.waitForTimeout(7200);
