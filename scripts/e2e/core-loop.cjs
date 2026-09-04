@@ -231,8 +231,9 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       await byText(page, "Attendance").click(); await page.waitForTimeout(800);
       const t4 = await leak("coach attendance"); await shot("coach-attendance");
       check("(d) Attendance lists today's real confirmed bookings by name", t4.includes("Cian Murphy") && t4.includes("9:00 am") && t4.includes("Saoirse Kelly") && t4.includes("10:30 am") && !t4.includes("4:00 pm"), t4.slice(0, 240));
-      await byText(page, "Cian Murphy").click(); await page.waitForTimeout(500);
-      await page.getByRole("button", { name: "Present", exact: true }).first().click(); await page.waitForTimeout(300);
+      /* scoped to the open sheet: Today now lists the same booking behind it */
+      await page.locator("div.z-40").getByRole("button", { name: /Cian Murphy/ }).first().click(); await page.waitForTimeout(500);
+      await page.locator("div.z-40").getByRole("button", { name: "Present", exact: true }).first().click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: /Submit register/ }).click(); await page.waitForTimeout(1200);
       const sess = db.posts.find((x) => x.table === "attendance_sessions"); const marks = db.posts.find((x) => x.table === "attendance_marks");
       check("(d) submitting posts attendance_sessions + attendance_marks with real ids", !!sess && sess.rows[0].label === "Cian Murphy" && sess.rows[0].coach_id === IDS.coach && !!marks && marks.rows[0].player_id === IDS.adult && marks.rows[0].state === "in", JSON.stringify({ sess: sess && sess.rows[0], marks: marks && marks.rows }));
