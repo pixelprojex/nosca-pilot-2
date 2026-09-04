@@ -15,6 +15,12 @@ never floods.
    with "loadError is not defined" was exactly this.
 2. `npm run build` — the deploy runs this. A failed build leaves Netlify
    serving the last good one, so fixes appear to do nothing.
+3. `supabase/test/run.sh` whenever `supabase/nosca.sql` changed — runs
+   it on a throwaway Postgres, twice, plus 22 behavioural checks.
+4. Render it. The Playwright scripts under `scripts/e2e/` drive the
+   built app against a mocked Supabase: sign-up for every role, codes
+   both ways, deletion, the walkthrough's ring alignment, and a seed
+   sweep that crawls every screen as each role.
 
 Deploys cost credits. Get it right locally first.
 
@@ -45,10 +51,22 @@ seeded data and no account.
   `signUp` call and never touches `profiles` during sign-up. Nothing on
   `profiles` may reject an insert — the trigger must never raise.
 - **Seed data must never reach a real account.** With `data` present a
-  screen reads real values; seeds are for the harness only.
-  `LIVE_ACCOUNT` (set from `account`) gates the seed generators. The
-  tell is a component reading a top-level const like `MONTHLY`,
-  `THREADS`, `ROSTER` without checking `data` or `LIVE_ACCOUNT` first.
+  screen reads real values; seeds are for the harness only. The gate is
+  the `LiveCtx` context (`useLive()`, provided by Nosca as `!!account`);
+  the seed generators take `live` as a parameter. The tell is a
+  component reading a top-level const like `MONTHLY`, `THREADS`,
+  `ROSTER` without checking `data` or `useLive()` first. A real account
+  either does the real thing through `useNoscaData` or does not show
+  the control — nothing may toast and pretend.
+- **The walkthrough is the app.** Each tour step renders a second
+  `<Nosca showcase={…}>` (harness data, inert, scaled) and rings a real
+  control found by its `data-tour` attribute. Add a step by adding the
+  attribute and a TOUR entry; never type ring coordinates.
+- **One bottom sheet.** Nosca renders sheet bodies inside its single
+  `<Sheet>`; a body that wraps itself in another `<Sheet>` ends up 760px
+  off-screen with pointer events off (Delete account and Live capture
+  opened empty panels this way). Overlays that stay mounted while idle
+  must set `pointer-events: none` (the toast strip swallowed taps).
 - **Don't unmount the app on a refresh.** `loading` in `useNoscaData`
   is true for the first load only; the gate keeps `SignedIn` mounted
   while a profile refresh runs; `account` is memoised on its fields.
