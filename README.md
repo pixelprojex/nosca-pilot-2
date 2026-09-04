@@ -105,15 +105,24 @@ Look at the `storage_policies` column of the row from Part 1:
      bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text
      ```
 
-### Part 3 — turn off email confirmation
+### Part 3 — three authentication settings
 
-Otherwise every sign-up has to click a verification link in an email
-before they can use the app — unnecessary friction for a small pilot.
-
-1. Left sidebar → **Authentication**
-2. Tabs along the top → **Sign In / Providers**
-3. Click **Email** in the list
-4. Find the toggle **Confirm email** → switch it **off** → save
+1. Left sidebar → **Authentication** → **Sign In / Providers** → **Email**.
+   - **Confirm email**: switch it **off** for the pilot, so nobody has to
+     find a verification email before they can use the app. (If you
+     leave it on, the app copes: it shows "Check your inbox" with a
+     Resend button, and the person's code is shown the first time they
+     sign in.)
+   - **Minimum password length**: set it to **8**. The app already
+     insists on eight characters; this makes the server agree.
+2. **Authentication** → **URL Configuration**: set **Site URL** to your
+   Netlify address (for example `https://nosca.netlify.app`) and add the
+   same address under **Redirect URLs**. Without this, the "Forgot
+   password?" email links land on the wrong page.
+3. Optional: in Netlify's environment variables add
+   `VITE_SUPPORT_EMAIL` with the address you want "Email support" and
+   "Report a problem" to write to. Until it is set, those rows are hidden
+   rather than pointing nowhere.
 
 ### Part 4 — get your two keys
 
