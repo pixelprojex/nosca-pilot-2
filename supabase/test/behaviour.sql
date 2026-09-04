@@ -187,3 +187,19 @@ commit;
 select ((select count(*) from auth.users where id = :'p1') = 0 and (select guardian_id from public.profiles where id = :'j1') is null) as ok \gset
 \if :ok \echo PASS deleting the parent unlinked the child \else \echo FAIL parent deletion \endif
 \echo === done
+
+\echo === 6. a player cancels their own booking, and only that
+insert into auth.users (id, email, raw_user_meta_data) values ('77777777-7777-4777-8777-777777777777', 'coach2@example.ie', '{"role":"coach","name":"Second Coach","sport":"golf","account_type":"coach"}');
+insert into auth.users (id, email, raw_user_meta_data) values ('88888888-8888-4888-8888-888888888888', 'player2@example.ie', jsonb_build_object('role','player','name','Player Two','sport','golf','account_type','adult','date_of_birth','1995-01-01','coach_code', (select invite_code from public.profiles where id = '77777777-7777-4777-8777-777777777777')));
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-10', '10:00', 45, 'private', 'requested') returning id as bk \gset
+with u as (update public.bookings set status = 'cancelled' where id = :'bk' returning id) select count(*) as n1 from u \gset
+commit;
+\if :n1 \echo PASS a player can cancel their own booking \else \echo FAIL player could not cancel their own booking \endif
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+\set ON_ERROR_STOP off
+update public.bookings set status = 'confirmed' where id = :'bk';
+\set ON_ERROR_STOP on
+rollback;
+select (status = 'cancelled') as ok from public.bookings where id = :'bk' \gset
+\if :ok \echo PASS a player cannot confirm a booking (the error above is the refusal) \else \echo FAIL player changed a booking to confirmed \endif

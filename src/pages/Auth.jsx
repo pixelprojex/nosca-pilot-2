@@ -627,6 +627,11 @@ export default function Auth({ invite, mode }) {
 
       /* The account and its profile both exist. With email confirmation
          on there is no session yet — say so, with a way to resend. */
+      /* The gate shows the arrival screen once, on the first sign-in in
+         this browser — set before the confirmation branch, so an account
+         confirmed by email still gets its code shown when it comes back. */
+      try { window.sessionStorage.setItem("nosca.arrival", role); } catch (e) { /* private mode */ }
+
       if (!data.session) {
         setSigninEmail(d.email);
         setInbox({ email: d.email, kind: "signup" });
@@ -635,9 +640,7 @@ export default function Auth({ invite, mode }) {
         return;
       }
 
-      /* Session exists. The gate shows the arrival screen once, then
-         the app; the auth listener takes it from here. */
-      try { window.sessionStorage.setItem("nosca.arrival", role); } catch (e) { /* private mode */ }
+      /* Session exists; the auth listener takes it from here. */
       hapticSuccess();
     } catch (e) {
       hapticWarn(); setErr(friendly(e && e.message));
@@ -674,8 +677,8 @@ export default function Auth({ invite, mode }) {
     return (
       <Neutral>
         <InboxStep email={inbox.email} kind={inbox.kind} note={inbox.note} onResend={resend}
-                   onBack={() => go(inbox.kind === "reset" ? "forgot" : "details")}
-                   onChangeEmail={() => go(inbox.kind === "reset" ? "forgot" : "details")}
+                   onBack={() => go(inbox.kind === "reset" ? "forgot" : role ? "details" : "signin")}
+                   onChangeEmail={() => go(inbox.kind === "reset" ? "forgot" : role ? "details" : "signin")}
                    onSignIn={() => { setSigninEmail(inbox.email); go("signin"); }} />
       </Neutral>
     );

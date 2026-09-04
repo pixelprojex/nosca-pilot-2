@@ -1204,6 +1204,15 @@ create policy "bookings: a guardian requests one for their family" on public.boo
     and status = 'requested'
   );
 
+-- A player, or their guardian, may cancel one of their own bookings and
+-- nothing else about it: the only value the new row may carry is
+-- status = 'cancelled'. Without this the app's Cancel said "Cancelled"
+-- while the update touched zero rows.
+create policy "bookings: a player or guardian cancels their own" on public.bookings
+  for update to authenticated
+  using (player_id = auth.uid() or player_id in (select public.my_family_ids()))
+  with check (status = 'cancelled');
+
 -- ---------- competitions ----------
 create policy "competitions: yours or your family's" on public.competitions
   for select to authenticated using (
