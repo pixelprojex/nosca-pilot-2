@@ -70,6 +70,20 @@ insert into public.reviews (coach_id, player_id, rating, comment) values (:'c1',
 commit;
 \echo PASS player could request a booking, add a competition, save preferences, message, review
 
+-- the coach's hours reach their player through coach_availability(), and nobody else's do
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.preferences (id, availability, groups) values (:'c1', '{"days":{"1":["9:00 am"]},"duration":45}', '[{"name":"Tuesday squad"}]')
+  on conflict (id) do update set availability = excluded.availability, groups = excluded.groups;
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true);
+select (public.coach_availability() -> 'days' -> '1' ->> 0) as slot, (select count(*) from public.preferences where id = :'c1') as leaked \gset
+rollback;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'t1'), true);
+select public.coach_availability()::text as none \gset
+rollback;
+select (:'slot' = '9:00 am' and :leaked = 0 and :'none' = '{}') as ok \gset
+\if :ok \echo PASS player reads the coach s hours through coach_availability() only; a player with no coach gets {} \else \echo FAIL coach_availability slot=:slot leaked=:leaked none=:none \endif
+
 -- things a player must NOT be able to do
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true);
 \set ON_ERROR_STOP off

@@ -74,6 +74,7 @@ function SignedIn({ profile, signOut, email }) {
     accountType: profile.account_type,
     email: email || null,
     phone: profile.phone || null,
+    club: profile.club || null,
     /* Either answer marks someone as a minor: what they chose at
        sign-up, or what their date of birth says. Trusting only the
        date would miss a junior who mistyped it; trusting only the
@@ -81,7 +82,7 @@ function SignedIn({ profile, signOut, email }) {
     juvenile: profile.role === "player"
       && (profile.account_type === "junior" || isUnder18(profile.date_of_birth)),
   }), [profile.id, profile.role, profile.name, profile.sport, profile.account_type,
-       profile.phone, profile.date_of_birth, email]);
+       profile.phone, profile.club, profile.date_of_birth, email]);
 
   if (data.loading) {
     return (
@@ -129,6 +130,10 @@ function SignedIn({ profile, signOut, email }) {
         if (res && !res.error) await refreshProfile();
         return res;
       }}
+      /* Personal details and Branding write to the profile row; the
+         cached sign-in profile is refreshed so the header and the
+         settings sub-line follow without a reload. */
+      onProfileChanged={refreshProfile}
     />
   );
 }
