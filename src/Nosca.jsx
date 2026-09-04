@@ -3331,7 +3331,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
   const isGroup = booking.kind && booking.kind.startsWith("Group");
   const focus = agreed || f.tip;
 
-  const lessons = (past || f.recent || [
+  const lessons = (past || (live ? [] : null) || f.recent || [   /* a real account never falls through to the seeded list */
     { d: "14 Jun", focus: "Short game", note: "Cleaner contact off a tight lie." },
     { d: "31 May", focus: "Driving",    note: "Tempo over speed." },
     { d: "17 May", focus: "Putting",    note: "Same routine every putt." },
