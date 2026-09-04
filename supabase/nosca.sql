@@ -86,6 +86,8 @@ create table if not exists public.lessons (
 );
 alter table public.lessons add column if not exists subs   text[] not null default '{}';
 alter table public.lessons add column if not exists unread boolean not null default true;
+-- the coach asked, on this lesson, for a rating; the player is prompted once
+alter table public.lessons add column if not exists rating_requested boolean not null default false;
 
 -- ---------- lesson_media ----------
 -- One row per uploaded file. storage_path is the path inside the
@@ -943,6 +945,7 @@ select
   l.notes,
   l.lesson_date,
   l.unread,
+  l.rating_requested,
   l.created_at,
   to_char(l.lesson_date, 'DD')          as d,
   upper(to_char(l.lesson_date, 'Mon'))  as m,

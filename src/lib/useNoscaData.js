@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
 
 /* THE DATA LAYER
@@ -30,13 +30,24 @@ const toLesson = (r) => {
     m: MONTHS[dt.getMonth()],
     type: r.kind === "group" ? "Group" : "Private",
     videos: r.videos || 0,
+    /* everything attached, not just clips — a lesson with one photo
+       or one voice note still has media to open */
+    media: r.media ?? r.videos ?? 0,
     unread: r.unread,
     note: r.notes,
     who: r.who,
+    playerId: r.player_id,
     coach: r.coach_name,
     date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
+    iso: r.lesson_date,
+    ratingRequested: !!r.rating_requested,
   };
 };
+
+/* A signed URL lasts an hour; anything younger than fifty minutes is
+   reused rather than signed again, so opening the same lesson twice
+   in a session costs one round trip, not two. */
+const MEDIA_TTL = 50 * 60 * 1000;
 
 export function useNoscaData(profile) {
   const [loading, setLoading] = useState(true);
@@ -63,6 +74,7 @@ export function useNoscaData(profile) {
      family is reflected the moment it is written, with nothing else
      needing to remember to refresh. */
   const [links, setLinks] = useState(null);
+  const mediaCache = useRef(new Map());          // lesson id -> { at, items }
 
   const isCoach = profile?.role === "coach";
 
@@ -79,7 +91,7 @@ export function useNoscaData(profile) {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
       const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes] = await Promise.all([
-        supabase.from("profiles").select("id, name, role, invite_code, family_code, guardian_id, created_at"),
+        supabase.from("profiles").select("id, name, role, invite_code, family_code, guardian_id, coach_id, created_at"),
         supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
         supabase.from("tips").select("*").order("created_at", { ascending: false }),
@@ -105,8 +117,13 @@ export function useNoscaData(profile) {
       setInviteCode(me?.invite_code || null);
       setFamilyCode(me?.family_code || null);
       if (me) setLinks({ coach: me.coach_id || null, guardian: me.guardian_id || null });
-      /* everyone who points at me as their guardian */
-      setFamily(people.filter((x) => x.guardian_id === profile.id).map((x) => ({ id: x.id, name: x.name })));
+      /* everyone who points at me as their guardian — with who coaches
+         them, because a guardian writes to that coach on their behalf */
+      setFamily(people.filter((x) => x.guardian_id === profile.id).map((x) => ({
+        id: x.id, name: x.name,
+        coachId: x.coach_id || null,
+        coachName: (people.find((p) => p.id === x.coach_id) || {}).name || null,
+      })));
 
       /* A player needs their coach's real name. Row-level security means
          the coach's own row is visible to them, so it comes back here.
@@ -250,8 +267,8 @@ export function useNoscaData(profile) {
 
   /* ---------------- writes ---------------- */
 
-  const logLesson = async ({ who, playerId, groupName, focus, subs, note, files, date }) => {
-    const { data: lesson, error } = await supabase.from("lessons").insert({
+  const logLesson = async ({ who, playerId, groupName, focus, subs, note, files, date, ratingRequested }) => {
+    const row = {
       coach_id: profile.id,
       player_id: groupName ? null : playerId,
       group_name: groupName || null,
@@ -260,7 +277,15 @@ export function useNoscaData(profile) {
       subs: subs || [],
       notes: note || null,
       ...(date ? { lesson_date: date } : {}),
-    }).select().single();
+    };
+    /* Sent only when asked for, so a project whose nosca.sql predates
+       the column still logs lessons; if the column is missing the
+       lesson is written without the ask rather than not at all. */
+    let res = await supabase.from("lessons").insert(ratingRequested ? { ...row, rating_requested: true } : row).select().single();
+    if (res.error && ratingRequested && /rating_requested/.test(res.error.message || "")) {
+      res = await supabase.from("lessons").insert(row).select().single();
+    }
+    const { data: lesson, error } = res;
     if (error) return { error };
 
     for (const f of files || []) {
@@ -397,18 +422,69 @@ export function useNoscaData(profile) {
     return { error };
   };
 
+  /* A thread is one coach and one player. The coach names the player;
+     a player writes in their own thread; a guardian may name someone
+     in their family and writes to that person's coach. */
+  const threadFor = (playerId) => {
+    if (isCoach) return { coach_id: profile.id, player_id: playerId };
+    const kin = playerId && playerId !== profile.id ? family.find((f) => f.id === playerId) : null;
+    if (kin) return { coach_id: kin.coachId, player_id: kin.id };
+    return { coach_id: (links && links.coach) || profile.coach_id, player_id: profile.id };
+  };
+
   const sendMessage = async (playerId, body) => {
     if (!isCoach && isJunior) {
       return { error: { message: "Messages with your coach are handled by your parent or guardian." } };
     }
     const { error } = await supabase.from("messages").insert({
-      coach_id: isCoach ? profile.id : profile.coach_id,
-      player_id: isCoach ? playerId : profile.id,
+      ...threadFor(playerId),
       sender_id: profile.id,
       body,
     });
     if (!error) await load();
     return { error };
+  };
+
+  /* One message to every player on the roster, as separate threads —
+     each person sees it as a message from their coach, nothing else. */
+  const broadcast = async (body) => {
+    if (!isCoach) return { error: { message: "Only a coach can message everyone." }, count: 0 };
+    const rows = roster.map((r) => ({ coach_id: profile.id, player_id: r.id, sender_id: profile.id, body }));
+    if (!rows.length) return { error: { message: "Nobody on your roster yet." }, count: 0 };
+    const { data: sent, error } = await supabase.from("messages").insert(rows).select("id");
+    if (!error) await load();
+    return { error, count: (sent || []).length };
+  };
+
+  /* Everything the other side sent in this thread, marked read. Local
+     state is updated straight away so the badge clears as the thread
+     opens; the database write follows. */
+  const markRead = async (playerId) => {
+    const th = threads.find((t) => t.playerId === playerId);
+    if (!th || !th.unread) return {};
+    setThreads((v) => v.map((t) => (t.playerId === playerId
+      ? { ...t, unread: 0, messages: t.messages.map((m) => ({ ...m, unread: false })) }
+      : t)));
+    const { error } = await supabase.from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("player_id", playerId)
+      .neq("sender_id", profile.id)
+      .is("read_at", null)
+      .select("id");
+    if (error) await load();
+    return { error };
+  };
+
+  /* The coach asks, after the fact, for a rating on a lesson already
+     logged — the burst's button. .select() proves the row changed. */
+  const requestRating = async (lessonId) => {
+    if (!lessonId) return { error: { message: "No lesson to ask about." } };
+    const { data: rows, error } = await supabase.from("lessons")
+      .update({ rating_requested: true }).eq("id", lessonId).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't update that lesson." } };
+    setLessons((v) => v.map((l) => (l.id === lessonId ? { ...l, ratingRequested: true } : l)));
+    return {};
   };
 
   /* A player leaves this whenever they choose to, from the coach's
@@ -514,14 +590,32 @@ export function useNoscaData(profile) {
     return {};
   };
 
-  /* a signed URL for a piece of media, valid for an hour */
-  const mediaFor = async (lessonId) => {
-    const { data } = await supabase.from("lesson_media").select("*").eq("lesson_id", lessonId);
-    return Promise.all((data || []).map(async (m) => {
-      const { data: signed } = await supabase.storage.from("media").createSignedUrl(m.storage_path, 3600);
-      return { type: m.kind, url: signed?.signedUrl, id: m.id };
-    }));
+  /* Everything attached to a lesson, each with a signed URL valid for
+     an hour, cached for the session (see MEDIA_TTL). One storage call
+     signs the whole set. */
+  const lessonMedia = async (lessonId) => {
+    const hit = mediaCache.current.get(lessonId);
+    if (hit && Date.now() - hit.at < MEDIA_TTL) return hit.items;
+    const { data: rows, error } = await supabase.from("lesson_media")
+      .select("id, kind, storage_path, created_at").eq("lesson_id", lessonId).order("created_at");
+    if (error || !rows || !rows.length) return [];
+    const paths = rows.map((m) => m.storage_path);
+    const { data: signed } = await supabase.storage.from("media").createSignedUrls(paths, 3600);
+    const urlFor = (path, i) => {
+      const s = (signed || []).find((x) => x.path === path) || (signed || [])[i];
+      return s && !s.error ? s.signedUrl : null;
+    };
+    const items = rows.map((m, i) => ({
+      id: m.id,
+      type: m.kind,                                   // video · photo · audio
+      kind: m.kind,
+      url: urlFor(m.storage_path, i),
+      name: m.storage_path.split("/").pop().replace(/^\d+-/, ""),
+    })).filter((m) => m.url);
+    mediaCache.current.set(lessonId, { at: Date.now(), items });
+    return items;
   };
+  const mediaFor = lessonMedia;
 
   return {
     loading, loadError, isCoach, inviteCode, coachName, guardianName, familyCode, family,
@@ -529,11 +623,11 @@ export function useNoscaData(profile) {
     bookings, competitions, recurring, prefs, threads,
     reviewSummary, myReview,
     reload: load,
-    logLesson, setDrill, tickDrill, setTip, takeRegister, mediaFor,
+    logLesson, setDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia, requestRating,
     addBooking, cancelBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, sendMessage, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount,
+    savePrefs, sendMessage, broadcast, markRead, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount,
     hasGuardian: links ? !!links.guardian : !!profile?.guardian_id,
     hasCoach: links ? !!links.coach : !!profile?.coach_id,
   };
