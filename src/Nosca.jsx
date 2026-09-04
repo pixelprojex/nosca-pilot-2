@@ -10615,7 +10615,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
                            boxShadow: ELEV.raise, transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
                            animation: "liftIn 460ms cubic-bezier(.22,1,.36,1) both" }}>
             <span className="p-1.5 shrink-0" style={{ borderRadius: R.field, background: "rgba(255,255,255,0.1)" }}>
-              <QrSvg size={36} />
+              {code ? <QrImage url={joinLink("coach", code)} size={36} /> : <QrSvg size={36} />}
             </span>
             <span className="flex-1 min-w-0">
               <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8, color: "rgba(255,255,255,0.5)" }}>{tr("Invite")} {nouns}</span>
@@ -14611,7 +14611,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       lessonReqs.length && { id: "j3", what: tr("lesson requests"), count: lessonReqs.length, tone: CAUTION, go: () => go("today") },
       atRisk(roster, mySeriesLive, live).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, mySeriesLive, live).length, tone: DANGER, go: () => push("atrisk") },
       focusReqs.length && { id: "j5", what: tr("focus to agree"), count: focusReqs.length, tone: CAUTION, go: () => go("today") },
-      (TODAY_SCHEDULE || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (TODAY_SCHEDULE || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
+      (todayList || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (todayList || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
     ].filter(Boolean);
 
     /* Player or parent: what happened to them. */
@@ -15177,7 +15177,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onProfile={() => { setSheet(null); push("player:" + peek.who); }}
                                             onLog={() => { setSheet(null); setPrefill({ m: todayMD.m, d: todayMD.d, ...peek }); go("log"); }}
                                             onNoShow={() => { markNoShow(peek); setSheet(null); }}
-                                            onCapture={() => { setSheet(null); push("capture:" + peek.who); }}
+                                            onCapture={() => { setSheet(null);
+                                              /* a real account films into the real capture sheet, filed under this
+                                                 booking; the older capture screen with its invented readings is the harness's */
+                                              if (data) { const bk = peek; setTimeout(() => { setCaptureFor(bk); setSheet("capture"); }, 180); }
+                                              else push("capture:" + peek.who); }}
                                             onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setCancelBk(peek); setSheet("cancel"); }}
                                             close={() => setSheet(null)} />
               : sheet === "editDay" && editDay ? <EditDay day={editDay} slots={ALL_TIMES} duration={duration}
