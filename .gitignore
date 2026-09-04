@@ -10,3 +10,4 @@ package-lock.json
 
 # agent worktrees and local harness state
 .claude/
+.e2e-out/
