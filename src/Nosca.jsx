@@ -65,14 +65,17 @@ const PLAYER_FILE = {
   "Tom Beckett":  { done: 1,  lastFocus: "Short game", lastOn: "20 Apr",
                     tip: null, goal: null, note: "Left-handed" },
 };
-/* Set once, at sign-in. While true, every seed generator below returns
-   nothing — so no screen, sheet or tab can surface invented history,
-   whether or not it remembered to ask for the live data. */
-let LIVE_ACCOUNT = false;
-export const setLiveAccount = (v) => { LIVE_ACCOUNT = !!v; };
+/* Whether this tree is a real, signed-in account. While true, every seed
+   generator below returns nothing — so no screen, sheet or tab can
+   surface invented history, whether or not it remembered to ask for the
+   live data. It travels by context rather than a module flag because the
+   walkthrough renders a second, seeded instance of the app inside a real
+   one, and each must keep its own answer. */
+const LiveCtx = createContext(false);
+const useLive = () => useContext(LiveCtx);
 
 const EMPTY_FILE = { done: 0, lastFocus: null, lastOn: null, tip: null, goal: null, note: "", lessons: [] };
-const fileFor = (n) => LIVE_ACCOUNT ? EMPTY_FILE : (PLAYER_FILE[n] || EMPTY_FILE);
+const fileFor = (n, live) => live ? EMPTY_FILE : (PLAYER_FILE[n] || EMPTY_FILE);
 
 /* Lessons per month, for the little bar chart on both sides. */
 /* The kit each sport actually uses. A photo of the screen is the
@@ -282,8 +285,8 @@ const FAMILY_CODE = "TR7M2K";
 /* A coach's full history, built from the sport's lesson shapes spread
    across the roster so it reads like a real archive rather than five
    repeated rows. */
-function buildArchive(cfg) {
-  if (LIVE_ACCOUNT) return [];        // a real account has no archive until it earns one
+function buildArchive(cfg, live) {
+  if (live) return [];        // a real account has no archive until it earns one
   const out = [];
   const months = [["JUL", 7], ["JUN", 6], ["MAY", 5], ["APR", 4]];
   let id = 1;
@@ -362,7 +365,7 @@ const meaning = {
 /* Lessons a person actually had. Empty for a real account — the sport
    config's own list is a catalogue of focus areas for suggestions, not
    a history, and must never be shown as one. */
-const hadLessons = (cfg) => (LIVE_ACCOUNT ? [] : (cfg?.lessons || []));
+const hadLessons = (cfg, live) => (live ? [] : (cfg?.lessons || []));
 
 export const SPORTS = {
   golf: {
@@ -1423,7 +1426,12 @@ const cal = () => CAL_I18N[LANG] || CAL_I18N.en;
 
 const DOW_FOR = () => cal().d.map((x) => x.slice(0, 1).toUpperCase());
 const DOW = ["M", "T", "W", "T", "F", "S", "S"];
-const DAY_NAMES = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().d[Number(k)] : cal().d[k] ?? Array.prototype[k]) });
+/* `has` matters: Array.prototype.map (and every other array method that
+   checks HasProperty before Get) skips indexes the proxy says it lacks,
+   so without it DAY_NAMES.map(...) returned seven holes and every day
+   picker built from it rendered empty. */
+const DAY_NAMES = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().d[Number(k)] : cal().d[k] ?? Array.prototype[k]),
+                                  has: (_, k) => k in cal().d });
 const MONTH_SHAPE = [
   { idx: 6,  days: 30, start: 0 }, { idx: 7,  days: 31, start: 2 },
   { idx: 8,  days: 31, start: 5 }, { idx: 9,  days: 30, start: 1 },
@@ -1783,6 +1791,7 @@ const ShimmerCSS = () => (
     @keyframes orbitB{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
     @keyframes hueCycle{0%{stroke:var(--c0)}20%{stroke:var(--c1)}40%{stroke:var(--c2)}60%{stroke:var(--c3)}80%{stroke:var(--c4)}100%{stroke:var(--c0)}}
     @keyframes chase{0%{stroke-dashoffset:0}100%{stroke-dashoffset:-170}}
+    @keyframes tourPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 var(--ring)}50%{opacity:.78;box-shadow:0 0 0 9px transparent}}
     @keyframes pulseDot{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
     /* Seamless loops only — every one ends exactly where it began, so
        nothing visibly restarts. */
@@ -2496,7 +2505,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
               </span>
               <span className="flex-1" />
               {role === "coach" && (
-                <button onClick={() => { haptic(9); soft(); onEditDay(day); }} className="p-1.5 active:opacity-50"
+                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="p-1.5 active:opacity-50"
                         aria-label={tr("Edit this day")}>
                   <Edit3 size={14} color={t.faint} strokeWidth={2} />
                 </button>
@@ -2515,7 +2524,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                 const line = { borderBottom: last ? "none" : `1px solid ${t.hair}` };
 
                 if (bk && isCoach) return (
-                  <button key={h} onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
+                  <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
                     <span className="shrink-0" style={{ width: 62, ...TYPE.small, color: t.ink, fontVariantNumeric: "tabular-nums" }}>{h.replace(/ (am|pm)/, "")}</span>
@@ -2548,7 +2557,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                     <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.faint }}>
                       {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : tr("Open")}
                     </span>
-                    <button onClick={() => { hapticCommit(); soft(); onBookInto(day, h, kind); }}
+                    <button data-tour="agenda-book" onClick={() => { hapticCommit(); soft(); onBookInto(day, h, kind); }}
                             onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                             onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                             onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -3264,7 +3273,8 @@ function NewLessonArrival({ lesson, coach, onOpen }) {
 function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
                       onProfile, onLog, onNoShow, onCancel, onWeather, onCapture, onHistory, onEditComp, close }) {
   const t = useT();
-  const f = fileFor(booking.who);
+  const live = useLive();
+  const f = fileFor(booking.who, live);
   const isGroup = booking.kind && booking.kind.startsWith("Group");
   const focus = agreed || f.tip;
 
@@ -3333,7 +3343,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
       )}
 
       {/* one action, and the ways out */}
-      <button onClick={() => { hapticCommit(); onLog(); }}
+      <button data-tour="peek-log" onClick={() => { hapticCommit(); onLog(); }}
               onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
               onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -3560,7 +3570,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
     <SwipeBack onBack={pop}>
       <Screen title={tr("Recurring lessons")} onBack={pop}
               meta={live.length ? `${live.length} ${tr("running")}` : tr("None yet")}
-              action={<button onClick={() => { hapticCommit(); soft(); onNew(); }}
+              action={<button data-tour="recur-add" onClick={() => { hapticCommit(); soft(); onNew(); }}
                               className="rounded-full flex items-center justify-center active:opacity-70"
                               style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }}
                               aria-label={tr("Add")}>
@@ -3669,222 +3679,325 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
    ring on the control in question — pointing at the thing beats
    describing it, and it survives translation better too.
 ================================================================== */
+/* ==================================================================
+   WALKTHROUGH — the real app, inert and scaled
+
+   The tour used to draw its own little pictures of the app, which
+   looked nothing like it. Now each step renders the product itself —
+   a second <Nosca> given a `showcase` state, seeded, made inert, and
+   scaled into a card — and rings the real control by finding its
+   data-tour attribute and measuring it. The ring is drawn inside the
+   scaled frame, in the frame's own units, so it cannot drift.
+
+   Steps are grouped by area so the whole thing reads as "where
+   everything is". One control per step; a path caption says how to
+   get there by hand.
+================================================================== */
+const FRAME_W = 390, FRAME_H = 780;
+
+/* The one wizard prefill every logging step shares. */
+const TOUR_PREFILL = { who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: "Private" };
+const TOUR_PEEK = { time: "3:00 pm", who: "Priya Ellis", kind: "Private", hoursUntil: 3.5 };
+
+/* { area, title, body, path, target, state } — `state` is merged into
+   the showcase prop: stack, sheet, logView, prefill, peek, wizardStep. */
 const TOUR = {
-  /* ring = { x, y, w, h } in the shot's own viewBox units (100 x 132),
-     matching exactly the rect drawn for that element. */
   coach: [
-    { title: "Your day",     body: "Today's lessons, in order.",     shot: "today",     ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Log a lesson", body: "What you covered.",              shot: "log",       ring: { x: 14, y: 75, w: 72, h: 17 } },
-    { title: "Film it",      body: "Video, photo or voice note.",    shot: "capture",   ring: { x: 6, y: 27, w: 88, h: 54 } },
-    { title: "Set drills",   body: "They tick them off at home.",    shot: "practice",  ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Your diary",   body: "Tap a slot to book.",            shot: "calendar",  ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Every week",   body: "Set a standing lesson once.",    shot: "recurring", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Attendance",   body: "Who turned up.",                 shot: "season",    ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Messages",     body: "Or call off for weather.",       shot: "family",    ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { area: "Today", title: "Your day", body: "Lessons, in order.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
+    { area: "Today", title: "Just finished", body: "One tap to log it.", path: "Today → Just finished", target: "today-justdone", state: { stack: ["today"] } },
+    { area: "Today", title: "Next lesson", body: "Tap for the brief.", path: "Today → Next lesson", target: "peek-log", state: { stack: ["today"], sheet: "peek", peek: TOUR_PEEK } },
+    { area: "Today", title: "Past lessons", body: "Unlogged, waiting.", path: "Today → Past lessons", target: "fold-past", state: { stack: ["today"] } },
+    { area: "Today", title: "Later today", body: "Still ahead.", path: "Today → Later today", target: "fold-next", state: { stack: ["today"] } },
+    { area: "Today", title: "Lesson requests", body: "Accept, or offer a time.", path: "Today → Lesson requests", target: "fold-asks", state: { stack: ["today"] } },
+    { area: "Today", title: "Competitions", body: "Dates they're building to.", path: "Today → Competitions", target: "fold-events", state: { stack: ["today"] } },
+    { area: "Today", title: "Your coaching", body: "Lifetime and season.", path: "Today → Your coaching", target: "fold-stats", state: { stack: ["today"] } },
+
+    { area: "Quick menu", title: "The plus", body: "Everything you do, here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
+    { area: "Quick menu", title: "Log a lesson", body: "Start here, after a lesson.", path: "Plus → Log a lesson", target: "quick-log", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Attendance", body: "Who turned up.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Live capture", body: "Film mid-lesson.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Set a tip", body: "One thing to work on.", path: "Plus → Set a tip", target: "quick-tip", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Set drills", body: "They tick them off.", path: "Plus → Set drills", target: "quick-drills", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Add player", body: "Share your code.", path: "Plus → Add player", target: "quick-player", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "New group", body: "Squads and clinics.", path: "Plus → New group", target: "quick-group", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Message", body: "Anyone you coach.", path: "Plus → Message", target: "quick-message", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Competition", body: "Add a date.", path: "Plus → Competition", target: "quick-comp", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Rearrange", body: "Drag tiles; resize them.", path: "Plus → Edit", target: "quick-edit", state: { stack: ["today"], sheet: "quick" } },
+
+    { area: "Attendance", title: "The register", body: "Tap a lesson, mark them.", path: "Plus → Attendance", target: "attend-row", state: { stack: ["today"], sheet: "attend" } },
+    { area: "Live capture", title: "Film, photo, voice", body: "Kept until you log.", path: "Plus → Live capture", target: "capture-modes", state: { stack: ["today"], sheet: "capture" } },
+
+    { area: "Log a lesson", title: "Who", body: "One player, or a group.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
+    { area: "Log a lesson", title: "When", body: "Date and time.", path: "Log a lesson → When", target: "wiz-when", state: { stack: ["log"], prefill: { who: "Marcus Tran" }, wizardStep: 1 } },
+    { area: "Log a lesson", title: "Focus", body: "What you covered.", path: "Log a lesson → Focus", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
+    { area: "Log a lesson", title: "Notes", body: "Say it; it's typed for you.", path: "Log a lesson → Notes", target: "wiz-notes", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
+    { area: "Log a lesson", title: "Media", body: "Clips, photos, device data.", path: "Log a lesson → Media", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 4 } },
+    { area: "Log a lesson", title: "Drills", body: "What to practise.", path: "Log a lesson → Drills", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 5 } },
+    { area: "Log a lesson", title: "Takeaway", body: "One sentence they'll see.", path: "Log a lesson → Takeaway", target: "wiz-tip", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
+    { area: "Log a lesson", title: "Publish", body: "It lands on their phone.", path: "Log a lesson → Publish", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
+
+    { area: "Diary", title: "Diary", body: "Your week, as a list.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "List or month", body: "Switch the view.", path: "Diary → List / Calendar", target: "cal-view", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Book", body: "Tap a free slot.", path: "Diary → Book", target: "agenda-book", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "A booking", body: "Tap for the brief.", path: "Diary → name", target: "agenda-row", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Edit a day", body: "Change that day's hours.", path: "Diary → pencil", target: "agenda-edit", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Recurring", body: "Standing weekly slots.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "A series", body: "Add, extend or end one.", path: "Diary → Recurring lessons → +", target: "recur-add", state: { stack: ["calendar", "recurring"] } },
+    { area: "Diary", title: "Availability", body: "Days, hours, lesson length.", path: "Diary → Hours and lesson length", target: "avail-days", state: { stack: ["calendar", "availability"] } },
+
+    { area: "Roster", title: "Roster", body: "Your code, then everyone.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
+    { area: "Roster", title: "A player", body: "Tap for their file.", path: "Roster → name", target: "roster-row", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Per row", body: "Message, or their history.", path: "Roster → icons", target: "roster-message", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Groups", body: "Squads live here.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Player file", body: "Message, drills, more.", path: "Roster → name", target: "player-actions", state: { stack: ["roster", "player:Marcus Tran"] } },
+    { area: "Roster", title: "History", body: "Lessons, attendance, goals.", path: "Roster → history icon", target: "history-tabs", state: { stack: ["roster", "history:Marcus Tran"] } },
+
+    { area: "Chat", title: "Chat", body: "Threads with players.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
+    { area: "Chat", title: "New", body: "A person, or a group.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Everyone", body: "One message to all.", path: "Chat → Message everyone", target: "chat-broadcast", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Weather", body: "Call a day off.", path: "Chat → Call off for weather", target: "chat-weather", state: { stack: ["messages"] } },
+    { area: "Chat", title: "A thread", body: "Tap to open it.", path: "Chat → name", target: "chat-row", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Send", body: "Type, or hold the mic.", path: "Chat → name → Send", target: "thread-send", state: { stack: ["messages", "thread:Marcus Tran"] } },
+
+    { area: "Alerts", title: "Alerts", body: "What needs you.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
+    { area: "Search", title: "Search", body: "Players, lessons, drills.", path: "Header → search", target: "search", state: { stack: ["today"] } },
+
+    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["today"] } },
+    { area: "You", title: "Coaching", body: "Invite code & QR lives here.", path: "You → Coaching", target: "settings-coaching", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Drills", body: "Your reusable library.", path: "You → Drills", target: "settings-library", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Drill library", body: "Add, filter, assign.", path: "You → Drills → New", target: "library-new", state: { stack: ["today", "you", "library"] } },
+    { area: "You", title: "Availability", body: "Days and times you coach.", path: "You → Weekly availability", target: "settings-availability", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Reviews", body: "What players said.", path: "You → Reviews", target: "settings-reviews", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Paperwork", body: "Vetting, insurance, dates.", path: "You → Paperwork", target: "settings-credentials", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Requests", body: "People asking to join.", path: "You → Requests", target: "settings-requests", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Branding", body: "Logo, colour, club name.", path: "You → Branding", target: "settings-branding", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Appearance", body: "Dark mode, text size.", path: "You → Appearance", target: "settings-appearance", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["today", "you"] } },
+    { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["today", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Help", body: "Help centre, contact us.", path: "You → Help centre", target: "settings-help", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Delete account", body: "Everything, permanently.", path: "You → Delete account", target: "settings-delete", state: { stack: ["today", "you"] } },
   ],
   player: [
-    { title: "Your next lesson",   body: "When, and what you're on.", shot: "home",     ring: { x: 6, y: 25, w: 88, h: 28 } },
-    { title: "Watch it back",      body: "Your coach draws on it.",   shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
-    { title: "Your practice",      body: "Tick things off.",          shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Book a time",        body: "Ask; your coach confirms.", shot: "calendar", ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Your record",        body: "Lessons and attendance.",   shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Message your coach", body: "Questions between lessons.", shot: "family",  ring: { x: 6, y: 27, w: 88, h: 17 } },
-  ],
-  parent: [
-    { title: "Everyone here",  body: "Each child, one screen.",        shot: "family",   ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "You book",       body: "Under-18s are arranged by you.", shot: "calendar", ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Watch it back",  body: "The same video they see.",       shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
-    { title: "Their practice", body: "What they're working on.",       shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Their record",   body: "Lessons and attendance.",        shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { area: "Start", title: "Add your coach", body: "Their code gets you in.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
+
+    { area: "Home", title: "Home", body: "Your day at a glance.", path: "Tab bar → Home", target: "tab-home", state: { stack: ["home"] } },
+    { area: "Home", title: "Working on", body: "Your coach's one thing.", path: "Home → Working on", target: "home-tip", state: { stack: ["home"] } },
+    { area: "Home", title: "Next lesson", body: "When, and what for.", path: "Home → Next", target: "home-next", state: { stack: ["home"] } },
+    { area: "Home", title: "To practise", body: "Drills left.", path: "Home → To practise", target: "home-practice", state: { stack: ["home"] } },
+    { area: "Home", title: "Lessons", body: "Everything logged.", path: "Home → Lessons", target: "home-lessons", state: { stack: ["home"] } },
+    { area: "Home", title: "Coming up", body: "Competitions ahead.", path: "Home → Coming up", target: "home-events", state: { stack: ["home"] } },
+    { area: "Home", title: "Your coach", body: "Profile and review.", path: "Home → Your coach", target: "home-coach", state: { stack: ["home"] } },
+    { area: "Home", title: "Attendance", body: "Your record.", path: "Home → Attendance", target: "home-attendance", state: { stack: ["home"] } },
+    { area: "Home", title: "Request a lesson", body: "Ask; your coach confirms.", path: "Home → Request a lesson", target: "home-request", state: { stack: ["home"] } },
+
+    { area: "Lessons", title: "Lessons", body: "Newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Views", body: "Feed, cards or list.", path: "Lessons → switch", target: "log-view", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "A lesson", body: "Tap to open it.", path: "Lessons → row", target: "log-row", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Clips", body: "Every angle they filmed.", path: "Lessons → row → clip", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Lessons", title: "Save offline", body: "Keep it on your phone.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Lessons", title: "From here", body: "Drills, or book again.", path: "Lesson → bottom", target: "lesson-next", state: { stack: ["log", "lesson"], logView: "list" } },
+
+    { area: "Drills", title: "Drills", body: "What to practise.", path: "Tab bar → Drills", target: "tab-practice", state: { stack: ["practice"] } },
+    { area: "Drills", title: "Tick it off", body: "Your coach sees it.", path: "Drills → row", target: "drill-row", state: { stack: ["practice"] } },
+
+    { area: "Diary", title: "Diary", body: "Open slots to request.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Request", body: "Tap; your coach confirms.", path: "Diary → Request", target: "agenda-book", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Month view", body: "Pick a day, then a time.", path: "Diary → Calendar", target: "cal-view", state: { stack: ["calendar"] } },
+
+    { area: "Chat", title: "Chat", body: "Your coach, any time.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Thread", body: "Tap to open.", path: "Chat → name", target: "chat-row", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Send", body: "Type, or hold the mic.", path: "Chat → name → Send", target: "thread-send", state: { stack: ["messages", "thread:Ray Doyle"] } },
+
+    { area: "Your coach", title: "Review", body: "Stars and a line.", path: "Home → Your coach", target: "coach-review", state: { stack: ["home", "coachProfile"] } },
+    { area: "Your coach", title: "Message", body: "Straight to chat.", path: "Home → Your coach → Message", target: "coach-message", state: { stack: ["home", "coachProfile"] } },
+
+    { area: "Family", title: "Profile pill", body: "Coaches, groups, family.", path: "Header → your name", target: "profile-pill", state: { stack: ["home"] } },
+    { area: "Family", title: "Your account", body: "Add a coach; see groups.", path: "Your name → sheet", target: "family-rows", state: { stack: ["home"], sheet: "family" } },
+    { area: "Family", title: "Family code", body: "Share it; they join you.", path: "Your name → Family", target: "family-share", state: { stack: ["home", "familyCode"] } },
+    { area: "Family", title: "Join a family", body: "Enter a parent's code.", path: "Your name → Family → Join", target: "family-join", state: { stack: ["home", "familyCode"] } },
+
+    { area: "Alerts", title: "Alerts", body: "What's new for you.", path: "Header → bell", target: "alerts", state: { stack: ["home"] } },
+    { area: "Search", title: "Search", body: "Find, or do, anything.", path: "Header → search", target: "search", state: { stack: ["home"] } },
+
+    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["home"] } },
+    { area: "You", title: "Attendance", body: "Your record.", path: "You → Attendance", target: "settings-attendance", state: { stack: ["home", "you"] } },
+    { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Sporting record", body: "Share it with a new coach.", path: "You → Your sporting record", target: "settings-transfer", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["home", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Delete account", body: "Everything, permanently.", path: "You → Delete account", target: "settings-delete", state: { stack: ["home", "you"] } },
   ],
   juvenile: [
-    { title: "Your lessons",     body: "What you worked on.",       shot: "home",     ring: { x: 6, y: 25, w: 88, h: 28 } },
-    { title: "Watch it back",    body: "Your coach draws on it.",   shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
-    { title: "Your practice",    body: "Tick things off.",          shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Your record",      body: "How you're getting on.",    shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "A grown-up helps", body: "They book and message.",    shot: "family",   ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { area: "Start", title: "Join your coach", body: "Ask a parent for the code.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
+    { area: "Home", title: "Home", body: "Your day at a glance.", path: "Tab bar → Home", target: "tab-home", state: { stack: ["home"] } },
+    { area: "Home", title: "Working on", body: "Your coach's one thing.", path: "Home → Working on", target: "home-tip", state: { stack: ["home"] } },
+    { area: "Home", title: "Next lesson", body: "When, and what for.", path: "Home → Next", target: "home-next", state: { stack: ["home"] } },
+    { area: "Home", title: "Attendance", body: "Your record.", path: "Home → Attendance", target: "home-attendance", state: { stack: ["home"] } },
+    { area: "Lessons", title: "Lessons", body: "Newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "A lesson", body: "Tap to open it.", path: "Lessons → row", target: "log-row", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Clips", body: "Every angle they filmed.", path: "Lessons → row → clip", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Drills", title: "Drills", body: "What to practise.", path: "Tab bar → Drills", target: "tab-practice", state: { stack: ["practice"] } },
+    { area: "Drills", title: "Tick it off", body: "Your coach sees it.", path: "Drills → row", target: "drill-row", state: { stack: ["practice"] } },
+    { area: "Diary", title: "Diary", body: "View only — a parent books.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Chat", title: "No chat", body: "A grown-up handles it.", path: "Tab bar", target: "tabbar", state: { stack: ["home"] } },
+    { area: "Search", title: "Search", body: "Lessons, drills, tips.", path: "Header → search", target: "search", state: { stack: ["home"] } },
+    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["home"] } },
+    { area: "You", title: "Coaches & profiles", body: "Add another coach.", path: "You → Coaches & profiles", target: "settings-family", state: { stack: ["home", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["home", "you"] } },
   ],
 };
+/* A parent has everything a player has, plus the family: the pill
+   switches person, the dashboard shows everyone, the diary filters by
+   child, and the parent does the booking for anyone under 18. */
+TOUR.parent = (() => {
+  const base = TOUR.player.map((s) => s.target === "profile-pill" ? { ...s, body: "Switch to your child." }
+    : s.target === "agenda-book" ? { ...s, title: "You book", body: "Under-18s: you arrange it." } : s);
+  const at = base.findIndex((s) => s.area === "Family");
+  const family = [
+    { area: "Family", title: "Family dashboard", body: "Everyone, one screen.", path: "You → Family dashboard", target: "family-person", state: { stack: ["family"] } },
+    { area: "Family", title: "Everyone's diary", body: "All lessons, one list.", path: "Family → Everyone's diary", target: "family-diary", state: { stack: ["family"] } },
+    { area: "Family", title: "This month", body: "How each child got on.", path: "Family → This month", target: "digest-tile", state: { stack: ["family", "digest"] } },
+    { area: "Family", title: "Everyone", body: "Filter the diary by child.", path: "Diary → Everyone", target: "cal-family", state: { stack: ["calendar"] } },
+  ];
+  return [...base.slice(0, at), ...family, ...base.slice(at)];
+})();
 
-/* A REAL LOOK AT THE SCREEN
-
-   Two things had to change here.
-
-   The highlight ring used to be an HTML overlay positioned in
-   percentages, centred with translate(-50%,-50%) — but the pulse
-   keyframes set `transform: scale()`, which replaces that translate
-   outright, so every ring jumped a half-width down and right. It now
-   lives inside the SVG in the same coordinate space as the thing it
-   points at, so it cannot drift.
-
-   And the bottom of each shot is now an actual tab bar with icons and
-   labels, not a row of dots that read as pagination. */
-function TourShot({ kind, ring, accent }) {
-  const t = useT();
-
-  const Row = ({ y, label, meta, on }) => (
-    <g>
-      <rect x="7" y={y} width="86" height="15" rx="5" fill={on ? accent : t.wash} opacity={on ? 1 : 0.85} />
-      <text x="12" y={y + 7.6} style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 500 }}
-            fill={on ? "#fff" : t.ink} dominantBaseline="middle">{label}</text>
-      {meta && <text x="88" y={y + 7.6} textAnchor="end" style={{ fontFamily: ui, fontSize: 5.2 }}
-                     fill={on ? "rgba(255,255,255,0.78)" : t.faint} dominantBaseline="middle">{meta}</text>}
-    </g>
-  );
-
-  const Title = ({ children }) => (
-    <text x="8" y="20" style={{ fontFamily: display, fontSize: 9.5, letterSpacing: "-0.02em" }}
-          fill={t.ink} dominantBaseline="middle">{children}</text>
-  );
-
-  /* the app's own tab bar, drawn to scale */
-  const TabBar = ({ active }) => {
-    const tabs = kind === "today" || kind === "log" || kind === "calendar" || kind === "recurring" || kind === "capture"
-      ? ["Today", "Diary", "Roster", "Chat"]
-      : ["Home", "Lessons", "Drills", "Chat"];
-    return (
-      <g>
-        <line x1="0" y1="107" x2="100" y2="107" stroke={t.hair} strokeWidth="0.5" />
-        {tabs.map((label, i) => {
-          const cx = 12.5 + i * 25;
-          const on = i === active;
-          return (
-            <g key={label}>
-              <rect x={cx - 4} y={112} width="8" height="8" rx="2.4"
-                    fill="none" stroke={on ? accent : t.faint} strokeWidth="1.2" />
-              <text x={cx} y={126} textAnchor="middle"
-                    style={{ fontFamily: ui, fontSize: 4.6, fontWeight: on ? 600 : 400 }}
-                    fill={on ? accent : t.faint}>{label}</text>
-            </g>
-          );
-        })}
-      </g>
-    );
-  };
-
-  const screens = {
-    today: { tab: 0, el: (<>
-      <Title>Today</Title>
-      <Row y={28} label="9:00  Sarah M." meta="Log" on />
-      <Row y={47} label="11:30  Group" meta="4" />
-      <Row y={66} label="2:00  James K." />
-    </>) },
-
-    log: { tab: 0, el: (<>
-      <Title>What you covered</Title>
-      <rect x="7" y="28" width="41" height="16" rx="5" fill={accent} />
-      <text x="27.5" y="36.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6, fontWeight: 500 }} fill="#fff" dominantBaseline="middle">Serve</text>
-      <rect x="52" y="28" width="41" height="16" rx="5" fill={t.wash} />
-      <text x="72.5" y="36.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Volley</text>
-      <rect x="7" y="48" width="41" height="16" rx="5" fill={t.wash} />
-      <text x="27.5" y="56.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Footwork</text>
-      <rect x="52" y="48" width="41" height="16" rx="5" fill={t.wash} />
-      <text x="72.5" y="56.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Return</text>
-      <rect x="15" y="76" width="70" height="15" rx="7.5" fill={accent} />
-      <text x="50" y="83.8" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6, fontWeight: 600 }} fill="#fff" dominantBaseline="middle">Continue</text>
-    </>) },
-
-    capture: { tab: 0, el: (<>
-      <Title>Capture</Title>
-      <rect x="7" y="28" width="86" height="52" rx="6" fill="#14201C" />
-      <rect x="12" y="33" width="16" height="7" rx="3.5" fill="#C4342A" />
-      <text x="20" y="36.7" textAnchor="middle" style={{ fontFamily: ui, fontSize: 4.4, fontWeight: 700 }} fill="#fff" dominantBaseline="middle">REC</text>
-      <circle cx="50" cy="56" r="10" fill="none" stroke="#fff" strokeWidth="1.5" opacity="0.9" />
-      <circle cx="50" cy="56" r="6" fill="#fff" />
-      <text x="50" y="88" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5.4 }} fill={t.faint}>Film · Photo · Voice</text>
-    </>) },
-
-    calendar: { tab: 1, el: (<>
-      <Title>Diary</Title>
-      <Row y={28} label="Mon 9:00" meta="Booked" />
-      <Row y={47} label="Mon 10:30" meta="Open" on />
-      <Row y={66} label="Tue 2:00" meta="Booked" />
-    </>) },
-
-    recurring: { tab: 1, el: (<>
-      <Title>Every week</Title>
-      <Row y={28} label="Tue 4:00  Sarah" meta="Weekly" on />
-      <Row y={47} label="Thu 5:30  Group" meta="Weekly" />
-    </>) },
-
-    home: { tab: 0, el: (<>
-      <Title>Next lesson</Title>
-      <rect x="7" y="26" width="86" height="26" rx="6" fill={accent} />
-      <text x="12" y="36" style={{ fontFamily: ui, fontSize: 6.4, fontWeight: 500 }} fill="#fff">Thu 4:00 · Serve</text>
-      <text x="12" y="45" style={{ fontFamily: ui, fontSize: 5.2 }} fill="rgba(255,255,255,0.78)">with Ray Doyle</text>
-      <text x="8" y="62" style={{ fontFamily: ui, fontSize: 5.8, fontWeight: 500 }} fill={t.ink}>To practise</text>
-      <Row y={66} label="Shadow serve  ×20" />
-      <Row y={85} label="Wall rally  2 min" />
-    </>) },
-
-    lesson: { tab: 1, el: (<>
-      <Title>Your video</Title>
-      <rect x="7" y="26" width="86" height="54" rx="6" fill="#14201C" />
-      <path d="M45 46 L60 53.5 L45 61 Z" fill="#fff" opacity="0.95" />
-      <circle cx="28" cy="40" r="7" fill="none" stroke={accent} strokeWidth="1.8" />
-      <text x="50" y="90" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5.4 }} fill={t.faint}>Your coach drew on this</text>
-    </>) },
-
-    practice: { tab: 2, el: (<>
-      <Title>Practice</Title>
-      <Row y={28} label="✓  Shadow serve" on />
-      <Row y={47} label="Wall rally" meta="2 min" />
-      <Row y={66} label="Split step ×10" />
-    </>) },
-
-    season: { tab: 0, el: (<>
-      <Title>Your record</Title>
-      <Row y={28} label="Lessons" meta="12" />
-      <Row y={47} label="Attended" meta="92%" on />
-      <Row y={66} label="Goals met" meta="3 of 5" />
-    </>) },
-
-    family: { tab: 0, el: (<>
-      <Title>Your family</Title>
-      <Row y={28} label="Emma · Thu 4:00" on />
-      <Row y={47} label="Jack · Sat 10:00" />
-    </>) },
-  };
-
-  const scr = screens[kind] || screens.today;
-
-  return (
-    <div className="mx-auto" style={{ width: 250, height: 330 }}>
-      <svg viewBox="0 0 100 132" width={250} height={330}
-           style={{ borderRadius: R.surface, background: t.surface, border: `1px solid ${t.hair}` }}>
-        {scr.el}
-        <TabBar active={scr.tab} />
-
-        {/* The ring lives in the same coordinate space as everything
-            above it, so what it points at is exactly what's drawn. The
-            pulse animates stroke and radius rather than transform,
-            which is what threw the old overlay off centre. */}
-        {ring && (
-          <>
-            <rect x={ring.x} y={ring.y} width={ring.w} height={ring.h} rx={ring.h / 2}
-                  fill="none" stroke={accent} strokeWidth="1.1" opacity="0.9">
-              <animate attributeName="opacity" values="0.9;0.25;0.9" dur="1.9s" repeatCount="indefinite" />
-            </rect>
-            <rect x={ring.x - 1.5} y={ring.y - 1.5} width={ring.w + 3} height={ring.h + 3} rx={(ring.h + 3) / 2}
-                  fill="none" stroke={accent} strokeWidth="0.7" opacity="0.35">
-              <animate attributeName="opacity" values="0.35;0;0.35" dur="1.9s" repeatCount="indefinite" />
-            </rect>
-          </>
-        )}
-      </svg>
-    </div>
-  );
+/* Which seeded person a showcase renders as. Player seeds exist for
+   golf (Marcus) and tennis (Ellie); a coach's seeds cover every sport. */
+function showcasePersona(sc) {
+  const coachOf = (s) => ({ sport: s, coach: COACHES[s][0].name, club: COACHES[s][0].club, seeded: true });
+  const me = { id: 1, name: "Marcus Tran", age: null };
+  const kid = { id: 2, name: "Ellie Tran", age: 14, turns18: "March 2030" };
+  const booking = (connId) => [{ m: 7, d: 31, time: "4:30 pm", connId }];
+  if (sc.role === "player" && sc.juvenile) {
+    const id = sc.sport === "tennis" ? 2 : 1;
+    return { profiles: sc.profiles || [{ ...kid, id }], activeProfileId: id,
+             conns: [{ id, profileId: id, ...coachOf(sc.sport) }], activeId: id, bookings: booking(id) };
+  }
+  if (sc.role === "player" && sc.parent) {
+    return { profiles: sc.profiles || [me, kid], activeProfileId: 1,
+             conns: [{ id: 1, profileId: 1, ...coachOf(sc.sport) }, { id: 2, profileId: 2, ...coachOf("tennis") }], activeId: 1, bookings: booking(1) };
+  }
+  return { profiles: sc.profiles || [me], activeProfileId: 1,
+           conns: [{ id: 1, profileId: 1, ...coachOf(sc.sport) }], activeId: 1, bookings: booking(1) };
 }
 
+/* Scroll the nearest scrollable ancestor inside the frame so `el` sits
+   in the middle. Not scrollIntoView: that would also nudge the scaled
+   card and the page around it. Rects are screen pixels; scrollTop is
+   the element's own, so the delta is divided by the frame's scale. */
+function centreInFrame(el, root, scale) {
+  let p = el.parentElement;
+  while (p && p !== root) {
+    const cs = window.getComputedStyle(p);
+    if (/(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight + 1) {
+      const pr = p.getBoundingClientRect(), er = el.getBoundingClientRect();
+      p.scrollTop += ((er.top + er.height / 2) - (pr.top + pr.height / 2)) / scale;
+      return true;
+    }
+    p = p.parentElement;
+  }
+  return false;
+}
 
+/* Something in the frame still moving? Finite CSS animations and
+   transitions on the element, on anything above it inside the frame, or
+   on anything inside it. Infinite ones (a breathing bar, a pulsing dot)
+   never end, so they don't count. */
+function frameSettled(el, root) {
+  if (typeof el.getAnimations !== "function") return true;
+  const running = (node, opts) => node.getAnimations(opts).some((a) => {
+    if (a.playState !== "running" && a.playState !== "pending") return false;
+    const timing = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+    return !timing || timing.iterations !== Infinity;
+  });
+  if (running(el, { subtree: true })) return false;
+  for (let p = el.parentElement; p && p !== root; p = p.parentElement) if (running(p)) return false;
+  return true;
+}
 
-function Walkthrough({ role, juvenile, isParent, onClose }) {
+/* The showcased app, insulated from the walkthrough's own re-renders:
+   a fresh element tree each time it re-rendered would restart every
+   entrance animation and move the very thing being measured. */
+const ShowcaseApp = React.memo(function ShowcaseApp({ showcase }) {
+  return <Nosca showcase={showcase} />;
+});
+
+function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
   const t = useT();
   const key = juvenile ? "juvenile" : isParent ? "parent" : role === "coach" ? "coach" : "player";
-  const cards = TOUR[key] || TOUR.player;
+  const steps = TOUR[key] || TOUR.player;
   const [i, setI] = useState(0);
-  const last = i === cards.length - 1;
-  const card = cards[i];
+  const last = i === steps.length - 1;
+  const step = steps[i];
+
+  /* A coach's seeds exist for every sport; a player's for golf and tennis. */
+  const scSport = key === "coach" ? (sport || "golf") : sport === "tennis" ? "tennis" : "golf";
+  const showcase = useMemo(() => ({ role: key === "coach" ? "coach" : "player", juvenile: key === "juvenile", parent: key === "parent",
+                                    sport: scSport, ...step.state }), [key, scSport, step]);
+
+  const stageRef = useRef(null);   // the space the card may fill
+  const frameRef = useRef(null);   // the 390×780 logical frame, scaled
+  const [k, setK] = useState(0.5);
+  const [ring, setRing] = useState(null);
+  const [fits, setFits] = useState(0);
+
+  useEffect(() => {
+    const el = stageRef.current; if (!el) return;
+    const fit = () => {
+      const r = el.getBoundingClientRect();
+      setK(Math.max(0.2, Math.min((r.width - 12) / FRAME_W, (r.height - 12) / FRAME_H)));
+      setFits((n) => n + 1);
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(fit); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /* Measure the target once the screen has settled. Skeletons last
+     560ms, sheets slide for 340ms and rows settle in with delays, so
+     this polls by animation frame and asks the frame whether anything
+     that could move the target is still animating. A quiet box that
+     holds for two frames is drawn; if something later moves it, it is
+     redrawn, for up to ~2.6s. No target → no ring. */
+  useEffect(() => {
+    setRing(null);
+    const root = frameRef.current; if (!root) return;
+    let raf = 0, stop = false, scrolled = false, seen = null, still = 0, drawn = null;
+    const t0 = performance.now();
+    const same = (a, b) => a && b && Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5
+      && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5;
+    const look = () => {
+      if (stop) return;
+      const el = root.querySelector(`[data-tour="${step.target}"]`);
+      const fr = root.getBoundingClientRect();
+      const scale = fr.width / FRAME_W || 1;
+      const age = performance.now() - t0;
+      if (el) {
+        const er = el.getBoundingClientRect();
+        const box = { x: (er.left - fr.left) / scale, y: (er.top - fr.top) / scale, w: er.width / scale, h: er.height / scale };
+        const off = box.y < 0 || box.y + box.h > FRAME_H;
+        const quiet = frameSettled(el, root);
+        if (!quiet) { still = 0; seen = box; }
+        else if (off && !scrolled) { scrolled = true; centreInFrame(el, root, scale); seen = null; still = 0; }
+        else if (box.w > 0 && box.h > 0) {
+          still = same(box, seen) ? still + 1 : 0;
+          seen = box;
+          if (still >= 2 && !same(box, drawn)) { drawn = box; setRing(box); }
+        }
+      }
+      if (age < 2600) raf = requestAnimationFrame(look);
+      else if (!drawn && seen && seen.w > 0) setRing(seen);
+      else if (!drawn && import.meta.env.DEV) console.warn(`[walkthrough] no target "${step.target}" for ${key} step ${i + 1}`);
+    };
+    raf = requestAnimationFrame(look);
+    return () => { stop = true; cancelAnimationFrame(raf); };
+  }, [i, key, fits]);
 
   const next = () => { if (last) { hapticSuccess(); chime(); onClose(); } else { haptic(9); soft(); setI(i + 1); } };
 
@@ -3900,23 +4013,43 @@ function Walkthrough({ role, juvenile, isParent, onClose }) {
                          ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("Skip")}</button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
-        <div key={`s${i}`} style={{ animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) both" }}>
-          <TourShot kind={card.shot} ring={card.ring} accent={t.accent} />
-        </div>
-        <div key={`t${i}`} className="text-center mt-9" style={{ animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) 80ms both" }}>
-          <h2 style={{ fontFamily: display, fontSize: 25, lineHeight: 1.12, letterSpacing: "-0.032em", color: t.ink }}>{tr(card.title)}</h2>
-          <p className="mt-3.5" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.6, color: t.sub }}>{tr(card.body)}</p>
+      {/* the app itself, at whatever size is left */}
+      <div ref={stageRef} className="flex-1 min-h-0 flex items-center justify-center px-6 pb-3">
+        <div key={`s${i}`} className="relative overflow-hidden"
+             style={{ width: Math.round(FRAME_W * k), height: Math.round(FRAME_H * k), borderRadius: 26 * k + 8,
+                      border: `1px solid ${t.hair}`, boxShadow: ELEV.float, background: t.page,
+                      animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) both" }}>
+          <div ref={frameRef} style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${k})`, transformOrigin: "top left", position: "relative" }}>
+            <div inert="" aria-hidden="true" style={{ width: FRAME_W, height: FRAME_H, pointerEvents: "none" }}>
+              <ShowcaseApp showcase={showcase} />
+            </div>
+            {ring && (
+              <div data-tour-ring="" data-for={step.target} aria-hidden="true"
+                   style={{ position: "absolute", left: ring.x - 5, top: ring.y - 5, width: ring.w + 10, height: ring.h + 10,
+                            borderRadius: 16, border: `2.5px solid ${t.accent}`, ["--ring"]: `${t.accent}66`,
+                            boxSizing: "border-box", pointerEvents: "none", zIndex: 100,
+                            animation: "tourPulse 1.5s ease-in-out infinite" }} />
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="px-8 pb-9 shrink-0">
-        <div className="flex justify-center gap-1.5 mb-6">
-          {cards.map((_, k) => (
-            <span key={k} className="rounded-full" style={{ height: 6, width: k === i ? 20 : 6,
-                     background: k === i ? t.accent : t.hair,
-                     transition: "width 320ms cubic-bezier(.34,1.56,.64,1), background 320ms" }} />
-          ))}
+      <div key={`t${i}`} className="text-center px-8 shrink-0" style={{ animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) 80ms both" }}>
+        <span className="block uppercase" style={{ ...TYPE.eyebrow, color: t.accent }}>{tr(step.area)}</span>
+        <h2 className="mt-2" data-tour-title="" style={{ fontFamily: display, fontSize: 24, lineHeight: 1.12, letterSpacing: "-0.032em", color: t.ink }}>{tr(step.title)}</h2>
+        <p className="mt-2" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.5, color: t.sub }}>{tr(step.body)}</p>
+        <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{step.path}</p>
+      </div>
+
+      <div className="px-8 pb-9 pt-5 shrink-0">
+        {/* progress — a track rather than one dot per step, since a
+            complete tour runs long */}
+        <div className="flex items-center gap-3 mb-5">
+          <span className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: t.hair }}>
+            <span className="block h-full rounded-full" style={{ width: `${((i + 1) / steps.length) * 100}%`, background: t.accent,
+                     transition: "width 320ms cubic-bezier(.22,1,.36,1)" }} />
+          </span>
+          <span data-tour-counter="" style={{ ...TYPE.caption, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{i + 1} / {steps.length}</span>
         </div>
         <div className="flex gap-2.5">
           {i > 0 && (
@@ -4037,9 +4170,9 @@ function Sources({ sport, pop, say }) {
    coach: people don't announce that they're drifting away, they just
    stop booking. Surfacing that early is worth more than any new
    feature, because keeping someone costs less than finding someone. */
-function atRisk(roster, series) {
+function atRisk(roster, series, live) {
   return (roster || []).map((r) => {
-    const f = fileFor(r.name);
+    const f = fileFor(r.name, live);
     const booked = (series || []).some((x) => x.who === r.name && !x.ended);
     const gap = r.last || 0;
     let why = null, weight = 0;
@@ -4098,15 +4231,16 @@ function AtRisk({ list, onMessage, onBook, pop }) {
    having to go looking for it. */
 function ParentDigest({ profiles, cfg, pop }) {
   const t = useT();
+  const live = useLive();
   const kids = (profiles || []).filter((p) => p.age);
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("This month")} onBack={pop} meta={tr("How everyone's getting on")}>
         <div className="px-6 pb-2">
           {kids.map((k, i) => {
-            const f = fileFor(k.name);
+            const f = fileFor(k.name, live);
             return (
-              <Tile key={k.id} className="px-5 py-5 mb-3" delay={i * 80}>
+              <Tile key={k.id} tour="digest-tile" className="px-5 py-5 mb-3" delay={i * 80}>
                 <div className="flex items-center gap-3.5 mb-4">
                   <Avatar name={k.name} size={44} />
                   <span className="flex-1 min-w-0">
@@ -4540,7 +4674,7 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
     const lifted = held === i;
 
     return (
-      <button data-tile={i}
+      <button data-tile={i} data-tour={"quick-" + it.id}
               onPointerDown={(e) => grab(e, i)}
               onPointerMove={drag}
               onPointerUp={drop}
@@ -4608,7 +4742,7 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
         <span className="flex-1" style={{ ...TYPE.eyebrow, color: edit ? t.accent : t.faint }}>
           {edit ? tr("Drag to move · tap the corner to resize") : tr("Quick actions")}
         </span>
-        <button onClick={() => { haptic(10); soft(); setEdit(!edit); setHeld(null); }}
+        <button data-tour="quick-edit" onClick={() => { haptic(10); soft(); setEdit(!edit); setHeld(null); }}
                 className="rounded-full flex items-center justify-center active:opacity-60"
                 style={{ width: 32, height: 32, background: edit ? t.accent : t.wash,
                          transition: "background 220ms" }}
@@ -4619,7 +4753,7 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
       </div>
 
       {!edit && (
-        <button onClick={() => { hapticCommit(); soft(); onLog(); }}
+        <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
                 onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
                 onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                 onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -4908,7 +5042,7 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
           const total = membersOf(l).length;
           const live = !l.done && (l.hoursUntil ?? 9) <= 0.5;
           return (
-            <button key={key} onClick={() => open(l)}
+            <button key={key} data-tour={i === 0 ? "attend-row" : undefined} onClick={() => open(l)}
                     className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                     style={{ minHeight: 66, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
@@ -5001,10 +5135,15 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
   const live = cap.state === "recording";
 
   return (
-    <Sheet onClose={close} title={tr("Capture")}>
-      <div className="px-6 pb-6">
+    <>
+      {/* This body already sits inside the app's one Sheet. Wrapping it
+          in a second <Sheet> with no `open` slid the whole thing 760px
+          off the bottom, so the plus menu's Live capture opened onto an
+          empty panel. */}
+      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Capture")}</h2>
+      <div className="pb-2">
         {/* which kind */}
-        <div className="flex gap-1 p-1 mb-5 rounded-full w-fit" style={{ background: t.wash }}>
+        <div className="flex gap-1 p-1 mb-5 rounded-full w-fit" data-tour="capture-modes" style={{ background: t.wash }}>
           {[["video", tr("Film")], ["photo", tr("Photo")], ["audio", tr("Voice")]].map(([id, label]) => (
             <button key={id} disabled={live}
                     onClick={() => { haptic(6); cap.cancel(); setMode(id); }}
@@ -5109,7 +5248,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
           </div>
         )}
       </div>
-    </Sheet>
+    </>
   );
 }
 
@@ -5127,6 +5266,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
    usually wants to act rather than browse. */
 function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, close }) {
   const t = useT();
+  const live = useLive();
   const [q, setQ] = useState("");
   const term = q.trim().toLowerCase();
   const hit = (x) => (x || "").toLowerCase().includes(term);
@@ -5218,7 +5358,7 @@ function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, clos
           <Group title={cfg.nouns}>
             {people.slice(0, 4).map((r, i) => (
               <Line key={r.name} i={i} Ico={User} label={r.name}
-                    sub={`${fileFor(r.name).done} ${tr("lessons")}`}
+                    sub={`${fileFor(r.name, live).done} ${tr("lessons")}`}
                     act={() => { close(); push("player:" + r.name); }} />
             ))}
           </Group>
@@ -5581,7 +5721,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
 
 /* One control, used in the feed and on the list screen, so the three
    views read as equals wherever you meet them. */
-function ViewSwitch({ view, setView, onDark }) {
+function ViewSwitch({ view, setView, onDark, tour }) {
   const t = useT();
   const opts = [
     { id: "feed",  Ico: Play,       label: "Feed" },
@@ -5589,7 +5729,7 @@ function ViewSwitch({ view, setView, onDark }) {
     { id: "list",  Ico: ListChecks, label: "List" },
   ];
   return (
-    <div className="flex gap-1 p-1" style={{ borderRadius: R.pill,
+    <div data-tour={tour} className="flex gap-1 p-1" style={{ borderRadius: R.pill,
            background: onDark ? "rgba(255,255,255,0.14)" : t.wash,
            backdropFilter: onDark ? "blur(14px)" : "none", WebkitBackdropFilter: onDark ? "blur(14px)" : "none" }}>
       {opts.map((o) => {
@@ -5789,7 +5929,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
           </div>
 
           {!juvenile && (
-            <button onClick={() => { haptic(8); soft(); onMessage(); }}
+            <button data-tour="coach-message" onClick={() => { haptic(8); soft(); onMessage(); }}
                     className="w-full flex items-center justify-center gap-2 mb-8 active:opacity-80"
                     style={{ minHeight: 50, borderRadius: R.control, border: `1px solid ${HAIR(t.ink, 0.18)}`,
                              ...TYPE.subhead, fontSize: 15, color: t.ink }}>
@@ -5799,7 +5939,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
           )}
 
           {!juvenile && (
-            <div className="pt-2" style={{ borderTop: `1px solid ${HAIR(t.ink, 0.14)}` }}>
+            <div className="pt-2" data-tour="coach-review" style={{ borderTop: `1px solid ${HAIR(t.ink, 0.14)}` }}>
               <Eyebrow>{myReview ? tr("Your review") : tr("Leave a review")}</Eyebrow>
               <div className="flex items-center justify-center gap-2 py-5">
                 {[1, 2, 3, 4, 5].map((n) => (
@@ -5866,7 +6006,7 @@ function NoCoach({ onJoin, juvenile }) {
             : tr("Your lessons, drills and video appear here once you do.")}
         </p>
 
-        <div className="w-full mt-9" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 190ms both" }}>
+        <div className="w-full mt-9" data-tour="nocoach-code" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 190ms both" }}>
           <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
           {err && <p className="mt-3 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
         </div>
@@ -5904,8 +6044,12 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
   };
 
   return (
-    <Sheet onClose={close} title={title}>
-      <div className="px-6 pb-6">
+    <>
+      {/* Same as LiveCapture: a body inside the app's Sheet, not a Sheet
+          of its own — which is why Delete account and the weather
+          call-off confirmation opened onto an empty panel. */}
+      <h2 className="mb-2" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{title}</h2>
+      <div className="pb-2">
         <p style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{detail}</p>
 
         <div className="mt-6">
@@ -5931,7 +6075,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
           {tr("Cancel")}
         </button>
       </div>
-    </Sheet>
+    </>
   );
 }
 
@@ -6030,7 +6174,7 @@ function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
             <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>
               {tr("Anyone who enters this joins your family.")}
             </p>
-            <button onClick={share} disabled={!familyCode}
+            <button data-tour="family-share" onClick={share} disabled={!familyCode}
                     className="mt-5 inline-flex items-center gap-2 px-5 active:opacity-70 disabled:opacity-30"
                     style={{ minHeight: 44, borderRadius: R.pill, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}>
               <Share2 size={14} strokeWidth={2} />
@@ -6055,7 +6199,7 @@ function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
           {!hasGuardian && (
             <>
               <Eyebrow>{tr("Join a family")}</Eyebrow>
-              <Card className="p-6">
+              <Card tour="family-join" className="p-6">
                 <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
                 {err && <p className="mt-3 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
                 <button onClick={join} disabled={busy || code.trim().length < 4}
@@ -6220,11 +6364,11 @@ function Preferences({ prefs, setPrefs, role, cfg, pop, say }) {
    These give each item its own surface — compartmentalised, with a
    quiet border and a lift on press — without becoming heavy.
 ================================================================== */
-function Tile({ children, onPress, accent, className = "", style = {}, delay = 0 }) {
+function Tile({ children, onPress, accent, className = "", style = {}, delay = 0, tour }) {
   const t = useT();
   const Comp = onPress ? "button" : "div";
   return (
-    <Comp onClick={onPress ? () => { haptic(7); soft(); onPress(); } : undefined}
+    <Comp data-tour={tour} onClick={onPress ? () => { haptic(7); soft(); onPress(); } : undefined}
           onPointerDown={onPress ? (e) => { e.currentTarget.style.transform = "scale(0.97)"; } : undefined}
           onPointerUp={onPress ? (e) => { e.currentTarget.style.transform = "scale(1)"; } : undefined}
           onPointerLeave={onPress ? (e) => { e.currentTarget.style.transform = "scale(1)"; } : undefined}
@@ -6686,7 +6830,8 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
 function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow, onCancel, push, delay = 0 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const f = fileFor(item.who);
+  const live = useLive();
+  const f = fileFor(item.who, live);
   const isGroup = item.kind && item.kind.startsWith("Group");
   const accent = isGroup ? GROUP : t.accent;
 
@@ -6934,7 +7079,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
 
   return (
     <div className="shrink-0 relative z-30" style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 24, paddingTop: 4 }}>
-      <div ref={(el) => { barRef.current = el; shellRef.current = el; }}
+      <div ref={(el) => { barRef.current = el; shellRef.current = el; }} data-tour="tabbar"
            onPointerDown={(e) => {
              measure();
              S.current.startX = e.clientX;
@@ -7004,7 +7149,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
              previous pass. It gets its own render now. */
           if (tb.raised) {
             return (
-              <button key={tb.id} aria-label={tb.label || tr("Add")}
+              <button key={tb.id} aria-label={tb.label || tr("Add")} data-tour="quick"
                       onClick={() => { if (S.current.suppress) return; haptic(12); soft(); onSelect(tb.id); }}
                       className="flex-1 flex items-center justify-center"
                       style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
@@ -7021,7 +7166,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
           }
 
           return (
-            <button key={tb.id} aria-label={tb.label} aria-current={on ? "page" : undefined}
+            <button key={tb.id} aria-label={tb.label} aria-current={on ? "page" : undefined} data-tour={"tab-" + tb.id}
                     onClick={() => { if (S.current.suppress) return; haptic(11); soft(); onSelect(tb.id); }}
                     className="flex-1 flex items-center justify-center"
                     style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
@@ -7155,10 +7300,10 @@ function Toast({ msg }) {
     </div>
   );
 }
-function Segmented({ options, value, onChange }) {
+function Segmented({ options, value, onChange, tour }) {
   const t = useT();
   return (
-    <div className="flex rounded-xl p-0.5" style={{ background: t.wash }}>
+    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash }}>
       {options.map((o) => {
         const on = value === o;
         return (
@@ -7289,9 +7434,9 @@ function VoiceArea({ value, onChange, ph, rows = 3 }) {
 /* ==================================================================
    PRIMITIVES
 ================================================================== */
-const Card = ({ children, className = "", style = {}, delay = 0 }) => {
+const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
                   animation: `liftIn 440ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>{children}</div>);
 };
 const Eyebrow = ({ children }) => {
@@ -7299,7 +7444,7 @@ const Eyebrow = ({ children }) => {
   return (<div className="mb-3 px-6 mt-1" style={{ marginLeft: 1, fontFamily: ui, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: t.faint,
                   animation: "slideIn 460ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>);
 };
-export function Button({ children, onClick, tone = "accent", disabled }) {
+export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   const t = useT();
   const looks = {
     accent: { background: t.accent, color: t.onAccent, border: "none" },
@@ -7309,7 +7454,7 @@ export function Button({ children, onClick, tone = "accent", disabled }) {
     dangerQuiet: { background: "transparent", color: DANGER, border: `1px solid ${t.hair}` },
   }[tone];
   return (
-    <button onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
+    <button data-tour={tour} onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
             className="w-full disabled:opacity-20"
             onPointerDown={(e) => { if (!disabled) e.currentTarget.style.transform = "scale(0.97)"; }}
             onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -7318,15 +7463,15 @@ export function Button({ children, onClick, tone = "accent", disabled }) {
                      transition: "transform 140ms cubic-bezier(.22,1,.36,1), opacity 140ms", willChange: "transform", ...looks }}>{children}</button>
   );
 }
-const TextBtn = ({ children, onClick, color }) => {
+const TextBtn = ({ children, onClick, color, tour }) => {
   const t = useT();
-  return (<button onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
+  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
 };
-function Row({ label, sub, value, checked, onToggle, radio, last, chevron, dot, icon, danger, right }) {
+function Row({ label, sub, value, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
   const t = useT();
   const Tag = onToggle ? "button" : "div";
   return (
-    <Tag onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
+    <Tag data-tour={tour} onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
          className={`w-full flex items-center gap-3.5 px-5 text-left ${onToggle ? "active:opacity-50" : ""}`}
          onPointerDown={(e) => { if (onToggle) e.currentTarget.style.transform = "scale(0.97)"; }}
          onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -7442,10 +7587,10 @@ const Avatar = ({ name, size = 44, group, tint }) => {
     </span>
   );
 };
-const IconBtn = ({ C, onOpen, label, count }) => {
+const IconBtn = ({ C, onOpen, label, count, tour }) => {
   const t = useT();
   return (
-    <button onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="relative active:opacity-50 p-0.5">
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="relative active:opacity-50 p-0.5">
       <C size={21} color={t.ink} strokeWidth={1.6} />
       {count > 0 && (<span className="absolute rounded-full flex items-center justify-center" style={{ top: -3, right: -4, minWidth: 15, height: 15, padding: "0 4px", background: DANGER, border: `1.5px solid ${t.page}`, fontFamily: ui, fontSize: 9, fontWeight: 600, color: "#fff" }}>{count}</span>)}
     </button>
@@ -8367,10 +8512,10 @@ function VDeck({ lessons, go, push, saved }) {
 /* ==================================================================
    FAMILY — profiles + coach connections in one switcher
 ================================================================== */
-function FamilyPill({ name, tint, onOpen }) {
+function FamilyPill({ name, tint, onOpen, tour }) {
   const t = useT();
   return (
-    <button onClick={() => { haptic(6); onOpen(); }} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
       <Avatar name={name} size={22} tint={tint} />
       <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink }}>{(name || "").split(" ")[0]}</span>
       <ChevronDown size={13} color={t.sub} />
@@ -8578,7 +8723,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         </>
       )}
 
-      <Card>
+      <Card tour="family-rows">
         <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<Users size={18} color={t.sub} strokeWidth={1.6} />}
              onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
         <Row label={tr("Add a coach")} sub={tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage("sport")} />
@@ -8757,8 +8902,8 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
   const tipText = typeof tip === "string" ? tip : (tip && (tip.title || tip.text)) || "";
   const tipBody = tip && tip.body;
 
-  const Line = ({ label, value, meta, tone, onPress, delay = 0, last }) => (
-    <button onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+  const Line = ({ label, value, meta, tone, onPress, delay = 0, last, tour }) => (
+    <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className="w-full flex items-center gap-4 text-left active:opacity-50"
             style={{ minHeight: 66, borderBottom: last ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}`,
                      animation: `settle 400ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
@@ -8784,7 +8929,7 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
               in a filled disc at the bottom so there is no question
               that pressing it goes somewhere. */}
           {tipText && (
-            <button onClick={() => { hapticCommit(); soft(); push("tips"); }}
+            <button data-tour="home-tip" onClick={() => { hapticCommit(); soft(); push("tips"); }}
                     onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
                     onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                     onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -8843,32 +8988,32 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
           {/* the rest of the day, one line each */}
           <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
             {nextBooking && (
-              <Line label={tr("Next")} value={nextBooking.focus || tr("Lesson")}
+              <Line tour="home-next" label={tr("Next")} value={nextBooking.focus || tr("Lesson")}
                     meta={nextBooking.when} delay={60} onPress={() => go("calendar")} />
             )}
-            <Line label={tr("To practise")}
+            <Line tour="home-practice" label={tr("To practise")}
                   value={todo.length ? `${todo.length} ${todo.length === 1 ? tr("drill") : tr("drills")}` : tr("All done")}
                   tone={todo.length ? t.ink : STEADY}
                   delay={110} onPress={() => go("practice")} />
-            <Line label={tr("Lessons")} value={`${lessons.length} ${tr("logged")}`}
+            <Line tour="home-lessons" label={tr("Lessons")} value={`${lessons.length} ${tr("logged")}`}
                   meta={lessons[0] ? `${lessons[0].d} ${lessons[0].m}` : ""}
                   delay={160} onPress={() => go("log")} />
             {nextEvent && (
-              <Line label={tr("Coming up")} value={nextEvent.name}
+              <Line tour="home-events" label={tr("Coming up")} value={nextEvent.name}
                     meta={`${nextEvent.days}d`} tone={nextEvent.days <= 7 ? CAUTION : null}
                     delay={210} onPress={() => go("events")} />
             )}
             {!juvenile && (
-              <Line label={tr("Your coach")} value={conn?.coach || tr("Not connected")}
+              <Line tour="home-coach" label={tr("Your coach")} value={conn?.coach || tr("Not connected")}
                     delay={260} onPress={() => conn && push("coachProfile")} />
             )}
-            <Line label={tr("Attendance")} value={attendPct != null ? `${attendPct}%` : tr("None taken")}
+            <Line tour="home-attendance" label={tr("Attendance")} value={attendPct != null ? `${attendPct}%` : tr("None taken")}
                   tone={attendPct == null ? t.faint : attendPct >= 90 ? STEADY : attendPct >= 75 ? CAUTION : DANGER}
                   delay={310} last onPress={() => push("attendance")} />
           </div>
 
           {!juvenile && (
-            <button onClick={() => { hapticCommit(); soft(); onRequest && onRequest(); }}
+            <button data-tour="home-request" onClick={() => { hapticCommit(); soft(); onRequest && onRequest(); }}
                     className="w-full flex items-center justify-center gap-2 mt-8 active:opacity-90"
                     style={{ minHeight: 54, borderRadius: R.control,
                              border: `1px solid ${HAIR(t.ink, 0.18)}`,
@@ -8923,7 +9068,7 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
       <div className="px-6 pt-1">
         {/* the view switch does the work a title was doing badly */}
         <div className="flex items-center gap-3 mb-4">
-          <ViewSwitch view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
+          <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
           <span className="flex-1" />
           <span style={{ ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>
             {lessons.length}
@@ -8957,7 +9102,7 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
       ) : (
         <div className="px-6 pb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
           {shown.map((l, i) => (
-            <button key={l.id} onClick={() => { haptic(8); soft(); push("lesson"); }}
+            <button key={l.id} data-tour={i === 0 ? "log-row" : undefined} onClick={() => { haptic(8); soft(); push("lesson"); }}
                     className="w-full flex items-center gap-4 text-left active:opacity-50"
                     style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              animation: `settle 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 45}ms both` }}>
@@ -9016,11 +9161,11 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
   return (
     <SwipeBack onBack={pop}>
       <Screen bare onBack={pop}
-              right={<IconBtn C={Download} label={tr("Save offline")} onOpen={() => { haptic(9); toggleSave(id); }} />}>
+              right={<IconBtn tour="lesson-save" C={Download} label={tr("Save offline")} onOpen={() => { haptic(9); toggleSave(id); }} />}>
 
         {/* the clip, edge to edge — the reason you opened this */}
         {l.videos.length > 0 ? (
-          <div className="mb-6">
+          <div className="mb-6" data-tour="lesson-clip">
             <Clip angle={l.videos[a] || "Clip"} saved={isSaved} onMinimise={() => minimise(l.videos[a] || "Clip")} />
             {l.videos.length > 1 && (
               <div className="flex gap-2 overflow-x-auto px-6 mt-3" style={{ scrollbarWidth: "none" }}>
@@ -9096,7 +9241,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
           </div>
 
           {/* two ways on, as text buttons rather than slabs */}
-          <div className="flex gap-6 py-6 mt-1" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}` }}>
+          <div className="flex gap-6 py-6 mt-1" data-tour="lesson-next" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}` }}>
             <button onClick={() => { hapticCommit(); soft(); go("practice"); }}
                     className="flex items-center gap-1.5 active:opacity-50"
                     style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>
@@ -9156,7 +9301,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
     const ev = f && f.event;
     const rained = p.name === "Fionn Breathnach";
     return (
-      <button onClick={() => { haptic(8); soft(); onSwitch(p.id); }}
+      <button data-tour="family-person" onClick={() => { haptic(8); soft(); onSwitch(p.id); }}
               onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
               onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9210,7 +9355,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
             {[[tr("Everyone's diary"), () => go("calendar")],
               [tr("Messages"), () => go("messages")],
               [tr("This month"), () => push("digest")]].map(([lbl, act], i) => (
-              <button key={lbl} onClick={() => { haptic(7); soft(); act(); }}
+              <button key={lbl} data-tour={["family-diary", "family-messages", "family-month"][i]} onClick={() => { haptic(7); soft(); act(); }}
                       className="w-full flex items-center text-left active:opacity-50"
                       style={{ minHeight: 54, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
@@ -9229,10 +9374,10 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
 /* A section that opens. Sits on a surface like the player's cards
    rather than floating on hairlines, so the day reads as a set of
    objects you can pick up. */
-function Fold({ label, count, open, onToggle, tone, cleared, children, delay = 0, last }) {
+function Fold({ label, count, open, onToggle, tone, cleared, children, delay = 0, last, tour }) {
   const t = useT();
   return (
-    <div className="mb-2.5" style={{ animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
+    <div data-tour={tour} className="mb-2.5" style={{ animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
       <div style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest, overflow: "hidden" }}>
         <button onClick={() => { haptic(8); soft(); onToggle(); }}
                 className="w-full flex items-center gap-3 px-5 text-left active:opacity-70"
@@ -9333,7 +9478,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
           <div className="mb-7" style={{ animation: "contentRise 500ms cubic-bezier(.22,1,.36,1) both" }}>
             {justDone && (
               <div className="relative mb-2">
-              <button onClick={() => { hapticCommit(); soft(); onLogFor && onLogFor(justDone); }}
+              <button data-tour="today-justdone" onClick={() => { hapticCommit(); soft(); onLogFor && onLogFor(justDone); }}
                       onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                       onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9353,7 +9498,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
             )}
 
             {next && (
-              <button onClick={() => { haptic(8); soft(); onPeek && onPeek(next); }}
+              <button data-tour="today-next" onClick={() => { haptic(8); soft(); onPeek && onPeek(next); }}
                       onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                       onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9377,7 +9522,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
         )}
 
         {/* ---- the folds. nothing lives outside them ---- */}
-        <Fold label={tr("Past lessons")} count={done.length} tone={done.length ? DANGER : null} cleared
+        <Fold tour="fold-past" label={tr("Past lessons")} count={done.length} tone={done.length ? DANGER : null} cleared
               open={open === "past"} onToggle={() => flip("past")} delay={60}>
           {done.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("All logged.")}</p>
@@ -9388,19 +9533,19 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
                     <Row l={l} cta={tr("Log")} onTap={() => onLogFor && onLogFor(l)} />
                   </SwipeRow>
                 ))}
-                <button onClick={() => { haptic(7); push("archive"); }} className="w-full px-5 py-4 text-left active:opacity-50"
+                <button data-tour="today-archive" onClick={() => { haptic(7); push("archive"); }} className="w-full px-5 py-4 text-left active:opacity-50"
                         style={{ ...TYPE.small, color: t.sub }}>{tr("Everything you've logged")}</button>
               </>}
         </Fold>
 
-        <Fold label={tr("Later today")} count={ahead.length} tone={null}
+        <Fold tour="fold-next" label={tr("Later today")} count={ahead.length} tone={null}
               open={open === "next"} onToggle={() => flip("next")} delay={100}>
           {ahead.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing else today.")}</p>
             : ahead.map((l, i) => <Row key={i} l={l} onTap={() => onPeek && onPeek(l)} />)}
         </Fold>
 
-        <Fold label={tr("Lesson requests")} count={asks.length} tone={asks.length ? DANGER : null} cleared
+        <Fold tour="fold-asks" label={tr("Lesson requests")} count={asks.length} tone={asks.length ? DANGER : null} cleared
               open={open === "asks"} onToggle={() => flip("asks")} delay={120}>
           {asks.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("None waiting.")}</p>
@@ -9432,7 +9577,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
               ))}
         </Fold>
 
-        <Fold label={tr("Competitions")} count={events.length} tone={null}
+        <Fold tour="fold-events" label={tr("Competitions")} count={events.length} tone={null}
               open={open === "events"} onToggle={() => flip("events")} delay={140}>
           {events.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("None yet.")}</p>
@@ -9451,7 +9596,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
                   style={{ ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("Add a competition")}</button>
         </Fold>
 
-        <Fold label={tr("Your coaching")} open={open === "stats"} onToggle={() => flip("stats")} delay={180}>
+        <Fold tour="fold-stats" label={tr("Your coaching")} open={open === "stats"} onToggle={() => flip("stats")} delay={180}>
           <div className="px-5 py-5">
             <div className="flex mb-6">
               {[[lifetime, tr("lessons given")], [monthly.reduce((a, b) => a + b[1], 0), tr("this season")]].map(([v, k], i) => (
@@ -9482,8 +9627,9 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
 /* Three light pages: who, what, and anything to add. One question at a
    time, and a coach who arrives from an unlogged session skips straight
    past the first because we already know who it was with. */
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill }) {
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt }) {
   const t = useT(); const L = useL();
+  const live = useLive();
 
   const seedWho = prefill
     ? (prefill.kind && prefill.kind.startsWith("Group")
@@ -9499,7 +9645,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
      exactly the case this step exists for. */
   const needsDateTime = !prefill || !prefill.time;
   const startStep = known.length ? (needsDateTime ? 1 : 2) : 0;
-  const [step, setStep] = useState(startStep);
+  /* `startAt` is the walkthrough's: it shows one step of the wizard,
+     inert, without walking there. */
+  const [step, setStep] = useState(startAt ?? startStep);
   /* The demo's TODAY is a fixed date for the design harness. A real
      log, with nothing booked to anchor it, should default to the
      actual day it's being written on — not July the 24th, whenever
@@ -9579,7 +9727,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 
   const suggestion = (() => {
     if (who.length !== 1) return null;
-    const last = hadLessons(cfg)[0];
+    const last = hadLessons(cfg, live)[0];
     return last ? { ids: [last.focusId], subs: last.subs, label: `Carry on from ${last.focus.toLowerCase()}` } : null;
   })();
 
@@ -9663,10 +9811,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”.` : tr("No players yet.")}</p>
               ) : (
                 <div style={{ borderTop: `1px solid ${t.hair}` }}>
-                  {matches.map((pl) => {
+                  {matches.map((pl, pi) => {
                     const on = who.includes(pl);
                     return (
-                      <button key={pl} onClick={() => { haptic(6); setPickedGroup(null); tog(who, setWho, pl); }}
+                      <button key={pl} data-tour={pi === 0 ? "wiz-who" : undefined} onClick={() => { haptic(6); setPickedGroup(null); tog(who, setWho, pl); }}
                               className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                               style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
                         <Avatar name={pl} size={36} />
@@ -9702,7 +9850,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                        className="w-full outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
               </div>
 
-              <div style={{ borderRadius: R.surface, background: t.surface,
+              <div data-tour="wiz-when" style={{ borderRadius: R.surface, background: t.surface,
                              border: `1px solid ${t.hair}`, padding: "16px 18px" }}>
                 <span className="block mb-1.5" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{tr("Time")}</span>
                 <input type="time" value={logTime} onChange={(e) => { setLogTime(e.target.value); haptic(4); }}
@@ -9733,7 +9881,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             )}
 
-            <div className="px-6 flex flex-wrap gap-2 mb-3">
+            <div className="px-6 flex flex-wrap gap-2 mb-3" data-tour="wiz-focus">
               {cfg.focus.map((f) => {
                 const on = focus.includes(f.id);
                 return (
@@ -9764,7 +9912,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {step === 3 && (<div className="px-6">
 
             {rec === "idle" && !note && (
-              <button onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
+              <button data-tour="wiz-notes" onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
                       style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
                 <span className="rounded-full flex items-center justify-center" style={{ width: 68, height: 68, background: t.accent }}>
                   <Mic size={26} color={t.onAccent} strokeWidth={1.6} />
@@ -9793,7 +9941,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {step === 4 && (<div className="px-6">
             {/* Five ways in. Everything captured lands below in the same
                 shape, so the screen never turns into competing sections. */}
-            <div className="grid grid-cols-5 gap-1.5 mb-5">
+            <div className="grid grid-cols-5 gap-1.5 mb-5" data-tour="wiz-media">
               {[
                 { id: "rec",   label: tr("Record"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
                 { id: "lib",   label: tr("Library"), Icon: ImageIcon, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
@@ -9879,7 +10027,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               that is how drills stop getting set at all. */}
           {/* ---------- 5 · drills ---------- */}
           {step === 5 && (<div className="px-6">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
               {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d, i) => {
                 const on = nextDrills.includes(d.t);
                 return (
@@ -9921,8 +10069,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 
           {/* ---------- 6 · the one thing ---------- */}
           {step === 6 && (<div className="px-6">
-            <VoiceInput value={nextTip} onChange={setNextTip}
-                        ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} autoFocus />
+            <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip}
+                        ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} autoFocus /></div>
             <div className="flex flex-wrap gap-2 mt-4">
               {(cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp, i) => (
                 <button key={tp} onClick={() => { haptic(6); soft(); setNextTip(tp); }} className="px-3.5 active:opacity-60"
@@ -9975,7 +10123,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                                  transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
                                  fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.sub }}>{L.publish}</button>
               )}
-              <div className="flex-1"><Button tone="ink" disabled={!canAdvance}
+              <div className="flex-1" data-tour="wiz-next"><Button tone="ink" disabled={!canAdvance}
                     onClick={() => { haptic(8); if (step === 6 && !showReviewAsk) finish(); else setStep(step + 1); }}>
                     {step === 6 && !showReviewAsk ? L.publish : L.continue}
                   </Button></div>
@@ -10034,7 +10182,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
 
         {requests && requests.length > 0 && (
           <div className="px-6 mb-4">
-            <button onClick={() => { haptic(8); push("requests"); }} className="w-full px-5 flex items-center gap-3.5 active:opacity-60"
+            <button data-tour="roster-requests" onClick={() => { haptic(8); push("requests"); }} className="w-full px-5 flex items-center gap-3.5 active:opacity-60"
                     style={{ minHeight: 56, borderRadius: R.surface, background: `${t.accent}0F`, border: `1px solid ${t.accent}1C` }}>
               <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 30, height: 30, background: t.accent }}>
                 <UserPlus size={14} color={t.onAccent} />
@@ -10047,7 +10195,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
           </div>
         )}
 
-        <div className="px-6 mb-4"><Segmented options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
+        <div className="px-6 mb-4"><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
         {tab === nounTitle ? (<>
           <div className="px-6 mb-4"><div className="flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
             <Search size={16} color={t.faint} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${nouns || "players"}`} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
@@ -10059,7 +10207,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
               <div key={r.name} className="flex items-center gap-3 px-4"
                    style={{ minHeight: 66, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}`,
                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
-                <button onClick={() => { haptic(6); push("player:" + r.name); }} className="flex-1 flex items-center gap-3.5 text-left min-w-0 active:opacity-50">
+                <button data-tour={i === 0 ? "roster-row" : undefined} onClick={() => { haptic(6); push("player:" + r.name); }} className="flex-1 flex items-center gap-3.5 text-left min-w-0 active:opacity-50">
                   <Avatar name={r.name} size={38} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
@@ -10068,7 +10216,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
                     </span>
                   </span>
                 </button>
-                <button onClick={() => { haptic(6); push("thread:" + r.name); }} className="shrink-0 active:opacity-50 p-2" aria-label={`Message ${r.name}`}>
+                <button data-tour={i === 0 ? "roster-message" : undefined} onClick={() => { haptic(6); push("thread:" + r.name); }} className="shrink-0 active:opacity-50 p-2" aria-label={`Message ${r.name}`}>
                   <MessageCircle size={17} color={t.faint} strokeWidth={1.6} />
                 </button>
                 <button onClick={() => { haptic(6); push("history:" + r.name); }} className="shrink-0 active:opacity-50 p-2" aria-label={`${r.name} history`}>
@@ -10094,7 +10242,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
                    icon={<span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 38, height: 38, background: t.wash }}><Users size={16} color={GROUP} /></span>}
                    onToggle={() => push("group:" + g.name)} />
             ))}</Card>
-            <Card><Row label={tr("Create a group")} last icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => sheet("group")} /></Card>
+            <Card><Row tour="roster-newgroup" label={tr("Create a group")} last icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => sheet("group")} /></Card>
           </div>
         )}
       </Screen>
@@ -10106,12 +10254,13 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
    session is the most common reason to open a player at all. */
 function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live }) {
   const t = useT();
+  const seeded = !useLive();
   /* `live` is the real roster. With it, an unknown player is genuinely
      unknown — no invented file, no borrowed history from a seeded
      person. */
   const r = live ? (live.find((x) => x.name === name) || { name, lessons: 0 })
                  : (ROSTER.find((x) => x.name === name) || ROSTER[0]);
-  const f = live ? { lessons: [], name } : fileFor(name);
+  const f = live ? { lessons: [], name } : fileFor(name, !seeded);
   const [more, setMore] = useState(false);
   const past = (f.lessons || [
     { d: "14 Jun", focus: f.lastFocus || "Short game", note: "Contact much cleaner off a tighter lie." },
@@ -10175,7 +10324,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
             </div>
           )}
 
-          <div className="flex gap-2.5 mb-6">
+          <div className="flex gap-2.5 mb-6" data-tour="player-actions">
             <button onClick={() => { haptic(8); push("thread:" + name); }} className="flex-1 active:opacity-60"
                     style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message")}</button>
@@ -10911,6 +11060,7 @@ function FamilyGuide({ juvenile, name, onDone }) {
    left as decoration. */
 function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, pop, push, say, lessons }) {
   const t = useT();
+  const live = useLive();
   const [tab, setTab] = useState("Lessons");
   const [newGoal, setNewGoal] = useState(""); const [byWhen, setByWhen] = useState("");
 
@@ -10920,7 +11070,7 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
   const total = att ? att.showed + att.noShow + att.cancelled : 0;
   const rate = total ? Math.round((att.showed / total) * 100) : null;
   const myGoals = goals[name] || [];
-  const list = lessons || hadLessons(cfg);
+  const list = lessons || hadLessons(cfg, live);
 
   const Stat = ({ n, label, tone }) => (
     <span className="flex-1 text-center">
@@ -10934,7 +11084,7 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
       <Screen title={name} onBack={pop}
               meta={list.length ? `${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}` : tr("Nothing logged yet")}>
         <div className="px-6 mb-5">
-          <Segmented options={[tr("Lessons"), tr("Attendance"), tr("Goals")]} value={tab} onChange={setTab} />
+          <Segmented tour="history-tabs" options={[tr("Lessons"), tr("Attendance"), tr("Goals")]} value={tab} onChange={setTab} />
         </div>
 
         {tab === tr("Lessons") && (
@@ -11293,7 +11443,7 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
           <div className="px-6 pb-2"><Card>
             {items.map((x, i) => (
               <div key={x.id}>
-              <button onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
+              <button data-tour={i === 0 ? "drill-row" : undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
                       className="w-full flex items-start gap-3.5 px-5 py-4 text-left active:opacity-50"
                       style={{ borderBottom: i === items.length - 1 ? "none" : `1px solid ${t.hair}`,
                                animation: `rowIn 420ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
@@ -11367,7 +11517,7 @@ function DrillLibrary({ cfg, library, addDrill, removeDrill, pop, assign, say })
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Drills")} onBack={pop} meta={`${library.length} in your library`}
-              right={<TextBtn onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
+              right={<TextBtn tour="library-new" onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
         {adding && (
           <div className="px-6 mb-5"><Card className="p-5">
             <VoiceInput value={f.t} onChange={(v) => setF({ ...f, t: v })} ph={tr("Drill name")} autoFocus />
@@ -11559,7 +11709,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
             </Card>
           )}
         </div>
-        <div className="px-6 pb-2"><Card>{DAY_NAMES.map((name, day) => { const times = draft[day] || []; const on = times.length > 0; const expanded = openDay === day; return (
+        <div className="px-6 pb-2"><Card tour="avail-days">{DAY_NAMES.map((name, day) => { const times = draft[day] || []; const on = times.length > 0; const expanded = openDay === day; return (
           <div key={name} style={{ borderBottom: day === 6 ? "none" : `1px solid ${t.hair}` }}>
             <div className="flex items-center gap-3 px-5" style={{ minHeight: 62 }}>
               <button onClick={() => { haptic(6); setOpenDay(expanded ? -1 : day); }} className="flex-1 text-left active:opacity-50">
@@ -11633,7 +11783,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               <span style={{ ...TYPE.heading, color: t.ink }}>{tr("Everyone")}</span>
               <span style={{ ...TYPE.caption, color: t.faint }}>next {sorted.length}</span>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-4" style={{ scrollbarWidth: "none" }}>
+            <div className="flex gap-2 overflow-x-auto pb-4" data-tour="cal-family" style={{ scrollbarWidth: "none" }}>
               {["Everyone", ...family.map((f) => f.name.split(" ")[0])].map((n) => {
                 const on = famFilter === n;
                 return (
@@ -11675,7 +11825,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
       {role === "coach" && (
         <div className="px-6 mb-4">
-          <button onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
+          <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
                   onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                   onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                   onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -11698,7 +11848,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       )}
 
       <div className="px-6 mb-5">
-        <Segmented options={[tr("List"), tr("Calendar")]} value={view} onChange={(v) => { haptic(7); soft(); setView(v); }} />
+        <Segmented tour="cal-view" options={[tr("List"), tr("Calendar")]} value={view} onChange={(v) => { haptic(7); soft(); setView(v); }} />
       </div>
 
       {view === tr("List") ? (
@@ -11811,7 +11961,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             ) : <FreeDay onSetHours={() => push("availability")} />}
 
             {booked.length > 0 && (
-              <button onClick={() => { haptic(9); onWeatherDay && onWeatherDay(); }}
+              <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay(); }}
                       className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
                       style={{ minHeight: 54, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 <Radio size={16} color={t.sub} strokeWidth={1.6} />
@@ -11937,7 +12087,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           </div>
         )}
         {role === "coach" && (
-          <button onClick={() => push("availability")} className="w-full flex items-center text-left active:opacity-50 mt-6"
+          <button data-tour="cal-hours" onClick={() => push("availability")} className="w-full flex items-center text-left active:opacity-50 mt-6"
                   style={{ minHeight: 58, borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
             <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Hours and lesson length")}</span><ChevronRight size={16} color={t.faint} />
           </button>
@@ -11968,8 +12118,8 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
     ? threads.map((th) => ({ name: th.who, unread: th.unread, when: "", lastId: null, last: th.last }))
     : empty ? [] : THREADS[role];
 
-  const Action = ({ Icon, label, onPress, delay, danger }) => (
-    <button onClick={() => { danger ? hapticWarn() : haptic(8); soft(); onPress(); }}
+  const Action = ({ Icon, label, onPress, delay, danger, tour }) => (
+    <button data-tour={tour} onClick={() => { danger ? hapticWarn() : haptic(8); soft(); onPress(); }}
             className="flex-1 flex flex-col items-center justify-center gap-2 active:opacity-70"
             style={{ minHeight: 78, borderRadius: R.surface,
                      border: `1px solid ${danger ? `${DANGER}44` : t.hair}`,
@@ -11983,7 +12133,7 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
 
   return (
     <Screen title={tr("Messages")} right={right}
-            action={<button onClick={() => { hapticCommit(); soft(); role === "coach" ? sheet("newChoice") : onNew && onNew(); }}
+            action={<button data-tour="chat-new" onClick={() => { hapticCommit(); soft(); role === "coach" ? sheet("newChoice") : onNew && onNew(); }}
                             className="rounded-full flex items-center justify-center active:opacity-70"
                             style={{ width: 40, height: 40, background: t.accent,
                                      boxShadow: `0 4px 14px ${t.accent}22`,
@@ -11996,8 +12146,8 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
           the conversations below them. */}
       {role === "coach" && (
         <div className="px-6 mb-5 flex gap-2.5">
-          <Action Icon={Radio}     label={tr("Message everyone")} onPress={() => sheet("broadcast")} delay={0} />
-          <Action Icon={CloudRain} label={tr("Call off for weather")} onPress={() => onWeather && onWeather()} delay={60} danger />
+          <Action tour="chat-broadcast" Icon={Radio}     label={tr("Message everyone")} onPress={() => sheet("broadcast")} delay={0} />
+          <Action tour="chat-weather" Icon={CloudRain} label={tr("Call off for weather")} onPress={() => onWeather && onWeather()} delay={60} danger />
         </div>
       )}
 
@@ -12008,7 +12158,7 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
           <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Conversations appear here.")}</p>
         </div>
       ) : list.map((c, i) => (
-        <button key={c.name} onClick={() => { haptic(6); push("thread:" + c.name); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
+        <button key={c.name} data-tour={i === 0 ? "chat-row" : undefined} onClick={() => { haptic(6); push("thread:" + c.name); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
           <Avatar name={c.name} size={44} group={c.group} />
           <span className="flex-1 min-w-0">
             <span className="flex items-baseline justify-between gap-2"><span className="truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: c.unread ? 700 : 600, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span><span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span></span>
@@ -12104,7 +12254,7 @@ function Thread({ role, name, isGroup, lang, pop, say }) {
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
-            <button onClick={send} disabled={!draft.trim()} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-25" style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
+            <button data-tour="thread-send" onClick={send} disabled={!draft.trim()} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-25" style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
           </div>
         </div>
       </div>
@@ -12174,29 +12324,29 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, o
           )}
         </Card></div>
 
-        {role === "coach" ? (<><Eyebrow>{tr("Coaching")}</Eyebrow><div className="px-6 mb-6"><Card>
-          <Row label={tr("Reviews")}  chevron icon={<I C={Sparkles} />} onToggle={() => push("reviews")} />
-          <Row label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />
-          <Row label={tr("Requests")}  chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
+        {role === "coach" ? (<><Eyebrow>{tr("Coaching")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-coaching">
+          <Row tour="settings-reviews" label={tr("Reviews")}  chevron icon={<I C={Sparkles} />} onToggle={() => push("reviews")} />
+          <Row tour="settings-credentials" label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />
+          <Row tour="settings-requests" label={tr("Requests")}  chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
           {demo && <Row label={tr("Subscription")} sub={`${BRAND} ${plan?.name || "Coach"}`} chevron icon={<I C={ShieldCheck} />} onToggle={() => push("subscription")} />}
-          <Row label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
-          <Row label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
-          <Row label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
-          <Row label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
+          <Row tour="settings-availability" label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
+          <Row tour="settings-roster" label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
+          <Row tour="settings-library" label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
+          <Row tour="settings-branding" label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
           <Row label={tr("Invite code & QR")} value="RD4K9P" chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
-        </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card>
-          <Row label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
-          <Row label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
-          <Row label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />
-          <Row label={tr("Downloads")} sub={tr("Videos saved for offline")} chevron icon={<I C={Download} />} onToggle={() => say("Manage saved videos")} />
+        </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-playing">
+          <Row tour="settings-digest" label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
+          <Row tour="settings-dashboard" label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
+          <Row tour="settings-family" label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />
+          <Row tour="settings-downloads" label={tr("Downloads")} sub={tr("Videos saved for offline")} chevron icon={<I C={Download} />} onToggle={() => say("Manage saved videos")} />
           <Row label={tr("Subscription")} sub={tr("Free — your coach's plan covers you")} last icon={<I C={ShieldCheck} />} />
         </Card></div></>)}
 
         <Eyebrow>{L.appearance}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={L.region || "Region"} value={REGIONS.find((x) => x.id === region)?.name} chevron icon={<I C={Building2} />} onToggle={() => push("region")} />
-          <Row label={L.language} value={LANGS.find((x) => x.id === lang)?.native} chevron icon={<I C={ExternalLink} />} onToggle={() => push("language")} />
-          <Row label={L.darkMode} right={<Toggle on={dark} onChange={setDark} />} />
+        <div className="px-6 mb-6"><Card tour="settings-appearance">
+          <Row tour="settings-region" label={L.region || "Region"} value={REGIONS.find((x) => x.id === region)?.name} chevron icon={<I C={Building2} />} onToggle={() => push("region")} />
+          <Row tour="settings-language" label={L.language} value={LANGS.find((x) => x.id === lang)?.native} chevron icon={<I C={ExternalLink} />} onToggle={() => push("language")} />
+          <Row tour="settings-dark" label={L.darkMode} right={<Toggle on={dark} onChange={setDark} />} />
           <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.hair}` }}>
             <div className="flex items-center justify-between mb-3">
               <span style={{ fontFamily: ui, fontSize: 15.5, color: t.ink }}>{L.textSize}</span>
@@ -12218,42 +12368,42 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, o
         </Card></div>
 
         <Eyebrow>{tr("Account")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={tr("Photo")}  chevron icon={<I C={Camera} />} onToggle={() => onPhoto && onPhoto()} />
+        <div className="px-6 mb-6"><Card tour="settings-account">
+          <Row tour="settings-photo" label={tr("Photo")}  chevron icon={<I C={Camera} />} onToggle={() => onPhoto && onPhoto()} />
           {multiSport && <Row label={tr("Main sport")} sub={mainLabel} chevron icon={<I C={Tag} />} onToggle={() => onMainSport && onMainSport()} />}
-          <Row label={tr("Personal details")} chevron icon={<I C={User} />} onToggle={() => push("details")} />
-          <Row label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={() => push("notifications")} />
-          {role === "player" && <Row label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
-          <Row label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />
-          <Row label={tr("Data & permissions")} chevron last icon={<I C={ShieldCheck} />} onToggle={() => push("legal:data")} />
+          <Row tour="settings-details" label={tr("Personal details")} chevron icon={<I C={User} />} onToggle={() => push("details")} />
+          <Row tour="settings-notifications" label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={() => push("notifications")} />
+          {role === "player" && <Row tour="settings-transfer" label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
+          <Row tour="settings-sources" label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />
+          <Row tour="settings-data" label={tr("Data & permissions")} chevron last icon={<I C={ShieldCheck} />} onToggle={() => push("legal:data")} />
         </Card></div>
 
         <Eyebrow>{tr("Support")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={tr("Attendance")} sub={tr("Your record")} chevron icon={<I C={Check} />} onToggle={() => push("attendance")} />
-          <Row label={tr("How it works")} sub={tr("Views, alerts, what others see")} chevron icon={<I C={Palette} />} onToggle={() => push("prefs")} />
-          <Row label={tr("How Nosca works")}  chevron icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
-          <Row label={tr("Help centre")} chevron icon={<I C={HelpCircle} />} onToggle={() => push("support")} />
-          <Row label={tr("Contact us")} chevron last icon={<I C={Mail} />} onToggle={() => push("support")} />
+        <div className="px-6 mb-6"><Card tour="settings-support">
+          <Row tour="settings-attendance" label={tr("Attendance")} sub={tr("Your record")} chevron icon={<I C={Check} />} onToggle={() => push("attendance")} />
+          <Row tour="settings-prefs" label={tr("How it works")} sub={tr("Views, alerts, what others see")} chevron icon={<I C={Palette} />} onToggle={() => push("prefs")} />
+          <Row tour="settings-tour" label={tr("How Nosca works")}  chevron icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
+          <Row tour="settings-help" label={tr("Help centre")} chevron icon={<I C={HelpCircle} />} onToggle={() => push("support")} />
+          <Row tour="settings-contact" label={tr("Contact us")} chevron last icon={<I C={Mail} />} onToggle={() => push("support")} />
         </Card></div>
 
         <Eyebrow>{tr("Legal")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={tr("Terms of Service")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:terms")} />
-          <Row label={tr("Privacy Policy")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:privacy")} />
-          <Row label={tr("Licences")} chevron last icon={<I C={FileText} />} onToggle={() => push("legal:licences")} />
+        <div className="px-6 mb-6"><Card tour="settings-legal">
+          <Row tour="settings-terms" label={tr("Terms of Service")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:terms")} />
+          <Row tour="settings-privacy" label={tr("Privacy Policy")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:privacy")} />
+          <Row tour="settings-licences" label={tr("Licences")} chevron last icon={<I C={FileText} />} onToggle={() => push("legal:licences")} />
         </Card></div>
 
         <div className="px-6 mb-6"><Card>
-          <Row label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={restart} />
+          <Row tour="settings-signout" label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={restart} />
           {onDeleteAccount && (
-            <Row label={tr("Delete account")}
+            <Row tour="settings-delete" label={tr("Delete account")}
                  sub={tr("Everything, permanently")}
                  icon={<Trash2 size={18} color={DANGER} strokeWidth={2} />}
                  danger last
                  onToggle={() => sheet("deleteAccount")} />
           )}
-          <Row label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />
+          <Row tour="settings-delete" label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />
         </Card></div>
 
         <div className="flex flex-col items-center pb-6"><Mark size={30} color={t.faint} /><p className="mt-2.5" style={{ ...TYPE.caption, color: t.faint }}>{BRAND} {VERSION}</p><p className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>{tr("Made in Ireland")}</p></div>
@@ -12428,16 +12578,16 @@ function DeleteBody({ onCancel, say }) {
    SEARCH + NOTIFICATION CENTRE
 ================================================================== */
 function SearchScreen({ role, cfg, library, tips, pop, go, push }) {
-  const t = useT(); const [q, setQ] = useState(""); const term = q.trim().toLowerCase(); const hit = (s) => s.toLowerCase().includes(term);
-  const lessons = term ? hadLessons(cfg).filter((l) => hit(l.focus) || l.subs.some(hit)) : [];
+  const t = useT(); const live = useLive(); const [q, setQ] = useState(""); const term = q.trim().toLowerCase(); const hit = (s) => s.toLowerCase().includes(term);
+  const lessons = term ? hadLessons(cfg, live).filter((l) => hit(l.focus) || l.subs.some(hit)) : [];
   const drills = term ? library.filter((d) => hit(d.t) || hit(d.d)) : [];
   const tipHits = term ? tips.filter((x) => hit(x.title) || hit(x.body)) : [];
   /* Seeded people and threads belong to the design harness only. A real
      account searches its own data; until messages are wired in here it
      finds none, rather than somebody invented. */
   const preview = (id) => (readMsg(id, LANG) || {}).text || "";
-  const people = term && role === "coach" && !LIVE_ACCOUNT ? ROSTER.filter((r) => hit(r.name)) : [];
-  const msgs = term && !LIVE_ACCOUNT ? THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))) : [];
+  const people = term && role === "coach" && !live ? ROSTER.filter((r) => hit(r.name)) : [];
+  const msgs = term && !live ? THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))) : [];
   const total = lessons.length + drills.length + tipHits.length + people.length + msgs.length;
   const suggestions = role === "coach" ? ["Bunker", "Marcus", "Putting", "Payment"] : ["Bunker", "Putting", "Drills", "Ray"];
   return (
@@ -12566,10 +12716,19 @@ function useTypefaces() {
   }, []);
 }
 
-export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach } = {}) {
-  /* Flip the seed switch before any child renders, so nothing can draw
-     invented history even on the very first paint. */
-  setLiveAccount(!!account);
+export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach, showcase } = {}) {
+  /* A real account gates every seed generator. The answer travels by
+     context (LiveCtx, below) so nothing can draw invented history even
+     on the first paint, and so a nested showcase instance keeps its own
+     answer rather than flipping its host's. */
+  const live = !!account;
+  /* `showcase` renders one state of the product — inert, seeded, at
+     390×780 — for the walkthrough. Everything it names arrives as lazy
+     initial state, so the frame paints the right screen on its first
+     frame with no flash and no effects. Nothing else changes for a real
+     account or for the ?demo harness. */
+  const sc = showcase || null;
+  const persona = sc ? showcasePersona(sc) : null;
   /* `account` is the real, signed-in person — passed down once real
      auth succeeds. When present, the app must land directly on their
      home screen, not run its own onboarding on top of a login that
@@ -12578,20 +12737,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Design-harness mode. A real user gets the product full-screen; the
      preview toolbar, persona switcher and phone frame appear only when
      explicitly asked for via ?demo in the URL. */
-  const demo = demoProp !== undefined ? demoProp
+  const demo = sc ? false : demoProp !== undefined ? demoProp
     : (typeof window !== "undefined" && window.location.search.includes("demo"));
 
   useTypefaces();
-  const [flow, setFlow] = useState("role");
+  const [flow, setFlow] = useState(sc ? "app" : "role");
   const [region, setRegion] = useState(null);
   const [signupSport, setSignupSport] = useState("golf");
-  const [coachSport, setCoachSport] = useState(account?.sport || "golf");
-  const [role, setRole] = useState("coach");
-  const [stack, setStack] = useState(["today"]);
+  const [coachSport, setCoachSport] = useState(sc ? sc.sport : (account?.sport || "golf"));
+  const [role, setRole] = useState(sc ? sc.role : "coach");
+  const [stack, setStack] = useState(sc ? sc.stack : ["today"]);
   const [published, setPublished] = useState(null);
   const lessonKey = (l) => l.time + l.who;
   const [loggedKeys, setLoggedKeys] = useState(() => new Set());
-  const [sheet, setSheet] = useState(null);
+  const [sheet, setSheet] = useState(sc ? (sc.sheet || null) : null);
   const [assignTo, setAssignTo] = useState(null);
   const [assignFocus, setAssignFocus] = useState(null);
   const [tipFor, setTipFor] = useState(null);
@@ -12602,9 +12761,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [signupRole, setSignupRole] = useState("coach");
   const [playFor, setPlayFor] = useState("me");
   const signupPath = signupRole === "coach" ? "coach" : "player";
-  const [juvenile, setJuvenile] = useState(false);
+  const [juvenile, setJuvenile] = useState(sc ? !!sc.juvenile : false);
   const [familyGuide, setFamilyGuide] = useState(false);
-  const [splash, setSplash] = useState(true);
+  const [splash, setSplash] = useState(!sc);
   useEffect(() => {
     if (!account) return;               // demo/harness path — untouched
     if (account.sport) setCoachSport(account.sport);
@@ -12649,7 +12808,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }, [data && data.registers]);
   const [captureFor, setCaptureFor] = useState(null);
   const [captureItems, setCaptureItems] = useState([]);
-  const [prefs, setPrefsLocal] = useState(PREF_DEFAULTS);
+  const [prefs, setPrefsLocal] = useState(sc && sc.logView ? { ...PREF_DEFAULTS, logView: sc.logView } : PREF_DEFAULTS);
   /* With a real account, preferences live in the database. The setter
      keeps the same signature the screens already call, so nothing
      downstream needs to know the difference. */
@@ -12776,14 +12935,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [burst, setBurst] = useState(null);
   const [logged, setLogged] = useState(0);
   const [slotKinds, setSlotKinds] = useState({});
-  const [peek, setPeek] = useState(null);
+  const [peek, setPeek] = useState(sc ? (sc.peek || null) : null);
   const [editDay, setEditDay] = useState(null);
   const [bookSlot, setBookSlot] = useState(null);
   const [captured, setCaptured] = useState({});
   const [checkIns, setCheckIns] = useState(CHECKIN_SEED);
   const [tour, setTour] = useState(false);
   useEffect(() => {
-    if (!account) return;
+    if (!account || sc) return;
     const key = `nosca.seen.${account.id}`;
     try {
       if (!window.localStorage.getItem(key)) {
@@ -12792,6 +12951,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       }
     } catch (e) { /* private browsing — skip rather than fail */ }
   }, [account]);
+  /* The arrival screen can ask for the walkthrough on the next mount;
+     the request is consumed so a refresh doesn't replay it. */
+  useEffect(() => {
+    if (sc) return;
+    try {
+      if (window.sessionStorage.getItem("nosca.tour.now") === "1") {
+        window.sessionStorage.removeItem("nosca.tour.now");
+        setTour(true);
+      }
+    } catch (e) { /* storage unavailable — nothing to consume */ }
+  }, []);
 
   /* A no-show is recorded and the lesson still counts against the
      package — that is the whole point of recording it. A cancellation
@@ -12859,7 +13029,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [unlogged, setUnlogged] = useState(UNLOGGED);
   const [goals, setGoals] = useState({ "Marcus Tran": [{ id: 1, t: "Break 90 at the club champs", by: "End of season", done: false }] });
   const [attendance, setAttendance] = useState({});
-  const [prefill, setPrefill] = useState(null);
+  const [prefill, setPrefill] = useState(sc ? (sc.prefill || null) : null);
   const [slots, setSlots] = useState(ALL_TIMES);
   const [duration, setDuration] = useState(45);
   const [recurrence, setRecurrence] = useState("once");
@@ -12920,8 +13090,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [playerNotes, setPlayerNotes] = useState({ "Marcus Tran": "Prefers video over verbal. Club champs in September." });
   const [mini, setMini] = useState(null);
 
-  const [profiles, setProfiles] = useState([{ id: 1, name: "Marcus Tran", age: null }]);
-  const [activeProfileId, setActiveProfileId] = useState(1);
+  const [profiles, setProfiles] = useState(persona ? persona.profiles : [{ id: 1, name: "Marcus Tran", age: null }]);
+  const [activeProfileId, setActiveProfileId] = useState(persona ? persona.activeProfileId : 1);
   const clubName = "";   /* only ever what the account carries */
   const inviteCode = data ? data.inviteCode : FAMILY_CODE;
   /* Months, from real logged lessons. An account with nothing logged
@@ -12943,15 +13113,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return out;
   }, [data && data.lessons]);
   const seasonMonthly = realMonthly || MONTHLY;
-  const [conns, setConns] = useState([
+  const [conns, setConns] = useState(persona ? persona.conns : [
     { id: 1, profileId: 1, sport: "golf", coach: "Ray Doyle", club: "", seeded: true },
   ]);
-  const [activeId, setActiveId] = useState(1);
+  const [activeId, setActiveId] = useState(persona ? persona.activeId : 1);
 
   const [avail, setAvail] = useState(DEFAULT_AVAIL);
   const [blocked, setBlocked] = useState(Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])));
   const [seedBooked, setSeedBooked] = useState(account ? Object.fromEntries(Object.keys(SPORTS).map((id) => [id, {}])) : SEED_BOOKINGS);
-  const [bookings, setBookings] = useState([{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
+  const [bookings, setBookings] = useState(persona ? persona.bookings : [{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
   const [groups, setGroups] = useState({
     ...Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])),
     golf: [{ id: 1, name: "Summer clinic", members: ["Marcus Tran","Priya Ellis","Dan Okafor","Sofia Reyes","Tom Beckett"], day: 5, time: "2:00 pm", weeks: 6 }],
@@ -13083,7 +13253,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const inApp = flow === "app";
   const sport = account ? account.sport : role === "coach" ? coachSport : (conn?.sport || "golf");
   const cfg = SPORTS[sport];
-  const archive = freshAccount ? [] : buildArchive(cfg);
+  const archive = freshAccount ? [] : buildArchive(cfg, live);
   const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
@@ -13319,15 +13489,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const unread = data ? 0 : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
-      + atRisk(roster, series).length + focusReqs.length;
+      + atRisk(roster, series, live).length + focusReqs.length;
   const alerts = (freshAccount ? 0 : NOTIFS[role].filter((n) => n.fresh).length) + waiting;
-  const navRight = (<>{role === "player" && !juvenile && <FamilyPill name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}<IconBtn C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} /><YouAvatarBtn name={coachName} onOpen={() => push("you")} /></>);
-  const slimRight = (<>{role === "player" && !juvenile && <FamilyPill name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}
-    <IconBtn C={Search} label={L.search} onOpen={() => push("search")} />
-    {role === "coach" && <IconBtn C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}
-    <YouAvatarBtn name={coachName} onOpen={() => push("you")} />
+  const navRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} /><YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} /></>);
+  const slimRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}
+    <IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} />
+    {role === "coach" && <IconBtn tour="alerts" C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}
+    <YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} />
   </>);
-  const juvRight = (<><IconBtn C={Search} label={L.search} onOpen={() => push("search")} /><YouAvatarBtn name={coachName} onOpen={() => push("you")} /></>);
+  const juvRight = (<><IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} /><YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} /></>);
 
   /* One row per person the account manages, with their next session. */
   const familyCalendar = (role === "player" && profiles.filter((pf) => pf.age).length > 0)
@@ -13456,7 +13626,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       openRequests.length && { id: "j1", what: tr("asking to join"), count: openRequests.length, tone: CAUTION, go: () => push("requests") },
       checkIns.filter((x) => x.state === "waiting").length && { id: "j2", what: tr("clips to look at"), count: checkIns.filter((x) => x.state === "waiting").length, tone: CAUTION, go: () => push("checkins") },
       lessonReqs.length && { id: "j3", what: tr("lesson requests"), count: lessonReqs.length, tone: CAUTION, go: () => go("today") },
-      atRisk(roster, series).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, series).length, tone: DANGER, go: () => push("atrisk") },
+      atRisk(roster, series, live).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, series, live).length, tone: DANGER, go: () => push("atrisk") },
       focusReqs.length && { id: "j5", what: tr("focus to agree"), count: focusReqs.length, tone: CAUTION, go: () => go("today") },
       (TODAY_SCHEDULE || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (TODAY_SCHEDULE || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
     ].filter(Boolean);
@@ -13496,7 +13666,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
              onEdit={(x, patch) => setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y)))}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, series)} pop={pop}
+    body = <AtRisk list={atRisk(roster, series, live)} pop={pop}
              onMessage={(n) => push("thread:" + n)}
              onBook={(n) => { setRecurFor(n); push("calendar"); }} />;
   } else if (screen === "digest") {
@@ -13628,9 +13798,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
-      log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} />,
-    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series, live).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
+    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series, live).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>
@@ -13645,7 +13815,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
   } else {
     const shared = { cfg, conn, lessons: playerLessons, go, fresh: published, saved: mySaved, juvenile };
-    body = {
+    /* The walkthrough shows the no-coach screen as a state of its own;
+       a real account reaches it through the gate above. */
+    if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
+    else body = {
       home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
       log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} />,
       lesson: <PlayerLesson {...shared} toggleSave={toggleSave} minimise={(clip) => { setMini(clip); go("log"); say("Playing in the corner"); }} />,
@@ -13653,13 +13826,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }
 
   return (
-    <ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <LiveCtx.Provider value={live}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={demo ? { background: "#0B0F0C" } : { background: theme.page }}>
+           style={demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
           <Mark size={30} color="#E7EBE4" />
@@ -13784,7 +13957,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
         <div className="overflow-hidden w-full flex flex-col relative"
              style={{ maxWidth: demo ? 384 : "none",
-                      height: demo ? 768 : "100dvh",
+                      height: demo ? 768 : sc ? 780 : "100dvh",
                       borderRadius: demo ? 34 : 0, background: theme.page,
                    ...(reduceMotion ? { ["--motion"]: "none" } : {}), border: demo ? "6px solid #05070A" : "none", boxShadow: demo ? "0 2px 8px rgba(0,0,0,0.4), 0 40px 100px rgba(0,0,0,0.62)" : "none", fontSize: `${textScale * 100}%` }}>
           {/* A drawn clock and battery belong to a mockup, not to a real
@@ -13830,7 +14003,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           onDone={() => { setOverture(null); push("lesson"); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
           {joined && <JoinedCoach coachName={joined.coachName} sport={joined.sport} onDone={() => setJoined(null)} />}
-          {tour && <Walkthrough role={role} juvenile={juvenile}
+          {tour && <Walkthrough role={role} juvenile={juvenile} sport={sport}
                        isParent={account ? account.accountType === "parent" : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
           {arrival && <NewLessonArrival lesson={arrival} coach={(conn || {}).coach || ""}
@@ -14167,14 +14340,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></LiveCtx.Provider>
   );
 }
 
 /* Small helpers kept at the bottom to avoid hoisting issues */
-function YouAvatarBtn({ name, onOpen }) {
+function YouAvatarBtn({ name, onOpen, tour }) {
   return (
-    <button onClick={() => { haptic(6); onOpen(); }} aria-label={tr("Your profile")} className="active:opacity-50">
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={tr("Your profile")} className="active:opacity-50">
       <Avatar name={name} size={30} />
     </button>
   );
