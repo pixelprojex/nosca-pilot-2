@@ -24,6 +24,8 @@ node scripts/e2e/signup.cjs /tmp/nosca-dist 4181 /tmp/nosca-out/signup
 | `auth-basics.cjs` | the earlier, smaller set (sign in, wrong password, session across reload, wrong code) |
 | `delete-account.cjs` | Settings → Delete account → wrong password refused → right password: files removed by full path, `delete_my_account` called, signed out, landing |
 | `seed-sweep.cjs` | signs in as each role (session injected) and crawls every screen it can tap into, failing on any seeded name, number, email or code |
+| `core-loop.cjs` | lessons open by id with real media, download a lesson log, real chat (send, read, message everyone), attendance and live capture on today's bookings, the wizard's real voice note — 34 checks as coach, adult and under-18 |
+| `diary.cjs` | booking requests and confirmations, drills and tips set outside the wizard, competitions, recurring lessons, weekly availability, personal details and password, invite routes, and the honesty pass — 61 checks (build with `VITE_SUPPORT_EMAIL` set) |
 | `walkthrough-alignment.cjs` | opens `/?demo`, runs all four walkthroughs step by step and asserts each ring encloses its target; serve the build first: `npx vite preview --outDir /tmp/nosca-dist --port 4190` |
 
 Every script takes `<absolute dist dir> <port> <absolute output dir>`
