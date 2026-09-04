@@ -69,6 +69,10 @@ export function useNoscaData(profile) {
   const [threads, setThreads] = useState([]);
   const [reviewSummary, setReviewSummary] = useState(null);
   const [myReview, setMyReview] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  /* a player's coach's weekly hours, read through coach_availability() —
+     null until it has been asked for, {} when the coach has set nothing */
+  const [coachAvailability, setCoachAvailability] = useState(null);
   /* Who this person is linked to, read fresh on every load rather than
      taken from the cached sign-in profile — so joining a coach or a
      family is reflected the moment it is written, with nothing else
@@ -91,7 +95,7 @@ export function useNoscaData(profile) {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
       const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes] = await Promise.all([
-        supabase.from("profiles").select("id, name, role, invite_code, family_code, guardian_id, coach_id, created_at"),
+        supabase.from("profiles").select("id, name, role, sport, invite_code, family_code, guardian_id, coach_id, date_of_birth, created_at"),
         supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
         supabase.from("tips").select("*").order("created_at", { ascending: false }),
@@ -121,9 +125,21 @@ export function useNoscaData(profile) {
          them, because a guardian writes to that coach on their behalf */
       setFamily(people.filter((x) => x.guardian_id === profile.id).map((x) => ({
         id: x.id, name: x.name,
+        sport: x.sport || null,
+        dateOfBirth: x.date_of_birth || null,
         coachId: x.coach_id || null,
         coachName: (people.find((p) => p.id === x.coach_id) || {}).name || null,
       })));
+
+      /* The hours a player can book into are their coach's, and the
+         coach's preferences row is otherwise theirs alone — so this
+         comes through a function that returns just that. A project
+         whose nosca.sql predates it answers with an error; that reads
+         as "nothing set yet", which is the honest answer either way. */
+      if (!isCoach) {
+        const { data: hours, error: hoursErr } = await supabase.rpc("coach_availability");
+        setCoachAvailability(hoursErr ? {} : (hours || {}));
+      }
 
       /* A player needs their coach's real name. Row-level security means
          the coach's own row is visible to them, so it comes back here.
@@ -187,8 +203,13 @@ export function useNoscaData(profile) {
           who: b.group_name || nameOf[b.player_id] || "—",
           kind: b.kind === "group" ? `Group · ${b.group_name ? "" : ""}`.trim() || "Group" : "Private",
           group: b.kind === "group",
+          groupName: b.group_name || null,
+          playerId: b.player_id || null,
           status: b.status,
           duration: b.duration,
+          date: b.booking_date,
+          m: dt.getMonth() + 1,
+          d: dt.getDate(),
         });
       });
       setBookings(byDay);
@@ -211,10 +232,19 @@ export function useNoscaData(profile) {
       setRecurring((rRes.data || []).map((r) => ({
         id: r.id,
         who: r.group_name || nameOf[r.player_id] || "—",
-        day: DAY_NAMES[r.weekday],
+        playerId: r.player_id || null,
+        groupName: r.group_name || null,
+        /* the database counts Sunday as 0; the interface counts Monday
+           as 0 — both are carried so neither side has to convert */
+        weekday: r.weekday,
+        day: (r.weekday + 6) % 7,
+        dayName: DAY_NAMES[r.weekday],
         time: r.start_time,
+        freq: r.cadence,
         every: r.cadence === "fortnightly" ? "Fortnightly"
              : r.cadence === "monthly" ? "Monthly" : "Weekly",
+        until: r.until_date || null,
+        ended: false,
       })));
 
       /* One thread per player, newest last, so a screen can render it
@@ -244,6 +274,15 @@ export function useNoscaData(profile) {
        the profile screen can show "you already said this" rather than
        a blank form. */
     const allReviews = rvRes.data || [];
+    setReviews(allReviews
+      .slice()
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map((r) => ({
+        id: r.id, rating: r.rating, comment: r.comment || "",
+        playerId: r.player_id,
+        who: nameOf[r.player_id] || "—",
+        when: new Date(r.created_at).toLocaleDateString("en-IE", { month: "short", year: "numeric" }),
+      })));
     setReviewSummary(
       allReviews.length
         ? { count: allReviews.length, average: allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length }
@@ -310,6 +349,36 @@ export function useNoscaData(profile) {
     return { error };
   };
 
+  /* several at once — one insert, one reload */
+  const assignDrills = async (playerId, titles) => {
+    const rows = (titles || []).filter(Boolean).map((title) => ({ coach_id: profile.id, player_id: playerId, title }));
+    if (!rows.length) return { error: { message: "Nothing to set." } };
+    const { error } = await supabase.from("drills").insert(rows);
+    if (!error) await load();
+    return { error };
+  };
+
+  /* The coach may rename or remove a drill they set; the policies
+     allow exactly that. .select() proves a row was actually touched —
+     an update the policy refuses returns success and no rows. */
+  const updateDrill = async (id, title) => {
+    const clean = (title || "").trim();
+    if (!clean) return { error: { message: "A drill needs a name." } };
+    const { data: rows, error } = await supabase.from("drills").update({ title: clean }).eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't change that drill." } };
+    await load();
+    return {};
+  };
+
+  const removeDrill = async (id) => {
+    const { data: rows, error } = await supabase.from("drills").delete().eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't remove that drill." } };
+    await load();
+    return {};
+  };
+
   const tickDrill = async (id, done) => {
     setDrills((v) => v.map((d) => (d.id === id ? { ...d, done } : d)));  // optimistic
     const { error } = await supabase.from("drills").update({ done }).eq("id", id);
@@ -371,10 +440,41 @@ export function useNoscaData(profile) {
     return { error };
   };
 
-  const cancelBooking = async (id, reason = "cancelled") => {
-    const { error } = await supabase.from("bookings").update({ status: reason }).eq("id", id);
+  /* Several at once — a standing arrangement or a group books its
+     whole run in one insert. Coach only: the database refuses a player
+     anything but a single request. */
+  const addBookings = async (list) => {
+    const rows = (list || []).map(({ playerId, groupName, date, time, duration = 45 }) => ({
+      coach_id: profile.id,
+      player_id: groupName ? null : (playerId || null),
+      group_name: groupName || null,
+      booking_date: date,
+      start_time: time,
+      duration,
+      kind: groupName ? "group" : "private",
+      status: "confirmed",
+    }));
+    if (!rows.length) return { count: 0 };
+    const { data: made, error } = await supabase.from("bookings").insert(rows).select("id");
     if (!error) await load();
-    return { error };
+    return { error, count: (made || []).length };
+  };
+
+  const cancelBooking = async (id, reason = "cancelled") => {
+    const { data: rows, error } = await supabase.from("bookings").update({ status: reason }).eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't change that booking." } };
+    await load();
+    return {};
+  };
+
+  /* The coach accepts a player's request. */
+  const confirmBooking = async (id) => {
+    const { data: rows, error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't confirm that booking." } };
+    await load();
+    return {};
   };
 
   /* A player adds their own competition; a coach adds one only they see.
@@ -420,6 +520,42 @@ export function useNoscaData(profile) {
       .upsert({ id: profile.id, ...patch, updated_at: new Date().toISOString() });
     if (error) await load();
     return { error };
+  };
+
+  /* A coach's weekly hours and their groups live on their preferences
+     row as JSON — the whole value each time, so what is saved is
+     exactly what the screen showed. */
+  const saveAvailability = (availability) => savePrefs({ availability: availability || {} });
+  const saveGroups = (groups) => savePrefs({ groups: groups || [] });
+
+  /* Name, phone and club are the person's own to change. .select()
+     proves the row changed — an update the policy refuses comes back
+     as success with no rows. The cached sign-in profile is refreshed
+     by the caller (App.jsx) so the header follows. */
+  const updateProfile = async ({ name, phone, club } = {}) => {
+    const patch = {};
+    if (name !== undefined) {
+      const clean = (name || "").trim();
+      if (!clean) return { error: { message: "Your name can't be blank." } };
+      patch.name = clean;
+    }
+    if (phone !== undefined) patch.phone = (phone || "").trim() || null;
+    if (club !== undefined) patch.club = (club || "").trim() || null;
+    if (!Object.keys(patch).length) return {};
+    const { data: rows, error } = await supabase.from("profiles").update(patch).eq("id", profile.id).select("id");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't save your details.") } };
+    if (!rows || !rows.length) return { error: { message: "Couldn't save your details." } };
+    await load();
+    return {};
+  };
+
+  /* A new password for the signed-in account. Supabase checks the
+     session; the length rule here matches the sign-up screen. */
+  const changePassword = async (password) => {
+    if (!password || password.length < 8) return { error: { message: "Use at least 8 characters." } };
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't change your password.") } };
+    return {};
   };
 
   /* A thread is one coach and one player. The coach names the player;
@@ -621,13 +757,13 @@ export function useNoscaData(profile) {
     loading, loadError, isCoach, inviteCode, coachName, guardianName, familyCode, family,
     roster, lessons, drills, tips, registers,
     bookings, competitions, recurring, prefs, threads,
-    reviewSummary, myReview,
+    reviewSummary, myReview, reviews, coachAvailability,
     reload: load,
-    logLesson, setDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia, requestRating,
-    addBooking, cancelBooking,
+    logLesson, setDrill, setDrills: assignDrills, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia, requestRating,
+    addBooking, addBookings, cancelBooking, confirmBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, sendMessage, broadcast, markRead, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount,
+    savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount,
     hasGuardian: links ? !!links.guardian : !!profile?.guardian_id,
     hasCoach: links ? !!links.coach : !!profile?.coach_id,
   };

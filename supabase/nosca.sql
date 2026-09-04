@@ -195,10 +195,17 @@ create table if not exists public.preferences (
   reduce_data    boolean not null default false,
   ask_for_review boolean not null default true,
   custom_drills  jsonb not null default '{}'::jsonb,   -- the coach's own drills, keyed by sport
+  availability   jsonb not null default '{}'::jsonb,   -- a coach's weekly hours (see coach_availability)
+  groups         jsonb not null default '[]'::jsonb,   -- a coach's groups: name, members, day, time
   updated_at     timestamptz not null default now()
 );
 alter table public.preferences add column if not exists ask_for_review boolean not null default true;
 alter table public.preferences add column if not exists custom_drills  jsonb not null default '{}'::jsonb;
+-- { days: { "0": ["9:00 am", …], … "6": [] }, duration: 45, slots: [...], blocked: ["2026-09-08|9:00 am"] }
+-- Day keys are Monday-first (0 = Monday), the same as everywhere in the app.
+alter table public.preferences add column if not exists availability   jsonb not null default '{}'::jsonb;
+-- [ { id, name, members: [player ids], names: [player names], day, time, weeks } ]
+alter table public.preferences add column if not exists groups         jsonb not null default '[]'::jsonb;
 
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the
@@ -657,6 +664,18 @@ create or replace function public.coach_of(p_player uuid)
 returns uuid language sql stable security definer set search_path = ''
 as $fn$ select p.coach_id from public.profiles p where p.id = p_player; $fn$;
 
+-- your coach's weekly hours. Preferences are otherwise yours alone, and
+-- a player needs exactly one thing from their coach's row — the hours
+-- they can book into — so this returns that and nothing else. A player
+-- with no coach, or a coach who has set nothing, gets an empty object.
+create or replace function public.coach_availability()
+returns jsonb language sql stable security definer set search_path = ''
+as $fn$
+  select coalesce((select pr.availability from public.preferences pr
+                   where pr.id = (select p.coach_id from public.profiles p where p.id = auth.uid())),
+                  '{}'::jsonb);
+$fn$;
+
 -- registers you, or someone in your family, were marked in. The
 -- sessions policy needs this because it may not read the marks table
 -- directly: the marks policy reads sessions, and two tables reading
@@ -694,6 +713,7 @@ revoke all on function public.my_players_guardian_ids()     from public, anon;
 revoke all on function public.coach_of(uuid)                from public, anon;
 revoke all on function public.my_attendance_session_ids()   from public, anon;
 revoke all on function public.is_junior()                   from public, anon;
+revoke all on function public.coach_availability()          from public, anon;
 grant execute on function public.my_coach_id()               to authenticated;
 grant execute on function public.my_guardian_id()            to authenticated;
 grant execute on function public.my_family_ids()             to authenticated;
@@ -702,6 +722,7 @@ grant execute on function public.my_players_guardian_ids()   to authenticated;
 grant execute on function public.coach_of(uuid)              to authenticated;
 grant execute on function public.my_attendance_session_ids() to authenticated;
 grant execute on function public.is_junior()                 to authenticated;
+grant execute on function public.coach_availability()        to authenticated;
 
 
 -- ============================================================
@@ -1452,7 +1473,7 @@ with
   want_functions as (
     select unnest(array['new_code', 'handle_new_user', 'find_coach_by_code', 'find_guardian_by_code',
                         'my_coach_id', 'my_guardian_id', 'my_family_ids', 'my_family_coach_ids', 'my_players_guardian_ids',
-                        'coach_of', 'my_attendance_session_ids', 'is_junior',
+                        'coach_of', 'my_attendance_session_ids', 'is_junior', 'coach_availability',
                         'join_coach', 'join_family', 'leave_coach', 'leave_family',
                         'delete_my_account']) as f
   ),

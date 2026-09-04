@@ -15,6 +15,9 @@ import {
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
 ================================================================== */
 export const BRAND = "NOSCA";
+/* Where "Email support" goes. Unset in a build, and the help rows are
+   not shown — nothing offers a route that leads nowhere. */
+const SUPPORT_EMAIL = (import.meta.env && import.meta.env.VITE_SUPPORT_EMAIL) || "";
 const VERSION = "1.2.0 (38)";
 
 export function Mark({ size = 34, color = "#16201A" }) {
@@ -2410,8 +2413,9 @@ function SeasonPanel({ role, monthly, priv, grp, hours, streak, arc }) {
    grid — so every day gets its own block with the lessons and the gaps
    between them, running as far forward as they want to look. */
 function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slotKinds,
-                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile }) {
+                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now }) {
   const t = useT();
+  const T = now || TODAY;   // the real day for a real account; the harness keeps its designed one
   /* Names are stripped for anyone who is not the coach. A player has no
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
@@ -2420,7 +2424,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
   MONTHS.forEach((mo) => {
     if (mo.idx < monthIdx) return;
     for (let d = 1; d <= mo.days; d++) {
-      if (mo.idx === TODAY.m && d < TODAY.d) continue;
+      if (mo.idx < T.m || (mo.idx === T.m && d < T.d)) continue;
       const hours = avail[dowOf(mo.idx, d)] || [];
       if (!hours.length) continue;
       days.push({ m: mo.idx, d, mo, hours,
@@ -2445,7 +2449,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
           const taken = day.booked.length;
           const total = day.hours.length;
           const on = focus && focus.m === day.m && focus.d === day.d;
-          const isToday = day.m === TODAY.m && day.d === TODAY.d;
+          const isToday = day.m === T.m && day.d === T.d;
           const full = total > 0 && taken >= total;
           return (
             <button key={key(day.m, day.d)}
@@ -2486,7 +2490,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
 
       <div className="px-6">
       {shown.map((day, di) => {
-        const isToday = day.m === TODAY.m && day.d === TODAY.d;
+        const isToday = day.m === T.m && day.d === T.d;
         const free = day.hours.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h));
         /* A player is here to find a time, so only open slots are
            shown. A coach is here to see their day, so everything is. */
@@ -2829,15 +2833,18 @@ function EventCard({ event, sport, onPress, delay = 0 }) {
 
 /* Everything a coach and player are working towards, and what the
    weeks between now and then should hold. */
-function EventsScreen({ sport, cfg, role, pop, say }) {
+function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove, now }) {
   const t = useT();
-  const list = EVENTS[sport] || [];
+  /* a real account lists its own competitions; the seeds are the harness's */
+  const list = live ? (comps || []).map((c) => ({ ...c, where: c.venue || "" })) : (EVENTS[sport] || []);
+  const [removing, setRemoving] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [kind, setKind] = useState(tr("Competition"));
   const [where, setWhere] = useState("");
   const [dd, setDd] = useState("");
-  const [mm, setMm] = useState(TODAY.m);
+  const [mm, setMm] = useState((now || TODAY).m);
   const [time, setTime] = useState("9:00 am");
   const [extra, setExtra] = useState([]);
   const all = [...extra, ...list].sort((a, b) => a.days - b.days);
@@ -2873,7 +2880,7 @@ function EventsScreen({ sport, cfg, role, pop, say }) {
                        style={{ width: 58, minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink }} />
                 <select value={mm} onChange={(e) => setMm(e.target.value)} className="flex-1 outline-none px-3"
                         style={{ minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink, border: "none" }}>
-                  {MONTHS.map((mo) => <option key={mo.idx} value={mo.idx}>{mo.name}</option>)}
+                  {(live ? Array.from({ length: 12 }, (_, i) => ({ idx: i + 1, name: MONTHS_FULL[i] })) : MONTHS).map((mo) => <option key={mo.idx} value={mo.idx}>{mo.name}</option>)}
                 </select>
               </div>
 
@@ -2890,8 +2897,21 @@ function EventsScreen({ sport, cfg, role, pop, say }) {
               <VoiceInput value={where} onChange={setWhere} ph={tr("Club or venue")} />
 
               <div className="mt-5">
-                <Button disabled={!name.trim() || !dd} onClick={() => {
+                <Button disabled={!name.trim() || !dd || busy} onClick={async () => {
                   const d = Number(dd), mo = Number(mm);
+                  if (live) {
+                    /* the real date, next year if that day has already passed */
+                    const T = now || TODAY;
+                    const y = new Date().getFullYear() + (mo < T.m || (mo === T.m && d < T.d) ? 1 : 0);
+                    const iso = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                    const chk = new Date(iso);
+                    if (isNaN(chk.getTime()) || chk.getDate() !== d) { hapticWarn(); say(tr("That date isn't right.")); return; }
+                    setBusy(true);
+                    const res = onAdd ? await onAdd({ name: name.trim(), kind, venue: where.trim(), date: iso }) : { error: { message: tr("Not available.") } };
+                    setBusy(false);
+                    if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't add that.")); return; }
+                    setName(""); setWhere(""); setDd(""); setAdding(false); hapticSuccess(); chime(); return;
+                  }
                   const days = Math.max(1, (mo - TODAY.m) * 30 + (d - TODAY.d));
                   setExtra([{ name: name.trim(), kind, where: where.trim(), time,
                               when: `${DAY_NAMES[dowOf(mo, d)].slice(0, 3)} ${d} ${MONTHS.find((x) => x.idx === mo)?.name.split(" ")[0]}`,
@@ -2901,12 +2921,28 @@ function EventsScreen({ sport, cfg, role, pop, say }) {
             </div>
           )}
 
+          {live && all.length === 0 && !adding && (
+            <p className="py-12 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing coming up. Add one with +.")}</p>
+          )}
+
           {all.map((e, i) => (
-            <EventCard key={e.name} event={e} sport={sport} delay={i * 70}
-                       onPress={() => say(role === "coach" ? tr("Plan the weeks into this") : tr("Your coach is planning for this"))} />
+            <React.Fragment key={e.id || e.name}>
+              <EventCard event={e} sport={sport} delay={i * 70}
+                         onPress={() => { if (live) { haptic(6); setRemoving(removing === e.id ? null : e.id); return; }
+                           say(role === "coach" ? tr("Plan the weeks into this") : tr("Your coach is planning for this")); }} />
+              {live && removing === e.id && (
+                <div className="flex gap-2.5 mb-4" style={{ animation: "liftIn 300ms cubic-bezier(.22,1,.36,1) both" }}>
+                  <button onClick={() => { haptic(6); setRemoving(null); }} className="px-4 active:opacity-60"
+                          style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{tr("Keep it")}</button>
+                  <button onClick={async () => { const r = onRemove ? await onRemove(e.id) : null; if (r && r.error) { say(r.error.message); return; } hapticWarn(); setRemoving(null); }}
+                          className="flex-1 active:opacity-75"
+                          style={{ minHeight: 44, borderRadius: R.control, background: DANGER, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{tr("Remove")}</button>
+                </div>
+              )}
+            </React.Fragment>
           ))}
 
-          {all.length > 0 && all[0].days <= 21 && (
+          {!live && all.length > 0 && all[0].days <= 21 && (
             <Tile className="px-5 py-[18px] mt-4" delay={200}>
               <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {tr("Between now and then")}
@@ -2993,18 +3029,29 @@ function Credentials({ pop, say }) {
 
 /* Social proof, asked for at the right moment and shown where it does
    work — on the profile a prospective player sees. */
-function Testimonials({ role, pop, say }) {
+function Testimonials({ role, pop, say, live, reviews: given, summary, code }) {
   const t = useT();
-  const reviews = [
+  const seeded = [
     { who: "Marcus T.", score: 5, when: "Jul", text: "Completely changed how I practise. The video breakdowns are worth it on their own.", tags: ["Clear", "Practical"] },
     { who: "Priya E.",  score: 5, when: "Jun", text: "Patient, and explains the why. My handicap is down four in a season.", tags: ["Encouraging"] },
     { who: "Dan O.",    score: 4, when: "Jun", text: "Good structure to every session. Would like a bit more on course management.", tags: ["Well paced"] },
   ];
-  const avg = (reviews.reduce((n, r) => n + r.score, 0) / reviews.length).toFixed(1);
+  /* a real coach's own reviews, as their players wrote them — or none */
+  const reviews = live
+    ? (given || []).map((r) => ({ who: r.who, score: r.rating, when: r.when, text: r.comment, tags: [] }))
+    : seeded;
+  const avg = reviews.length ? (reviews.reduce((n, r) => n + r.score, 0) / reviews.length).toFixed(1) : "–";
+  const share = async () => {
+    hapticCommit();
+    if (!live) { say(tr("Link copied — share it anywhere")); return; }
+    if (!code) return;
+    const r = await shareOrCopy({ title: `${tr("Join me on")} ${BRAND}`, text: `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${code}`, url: joinLink("coach", code) });
+    if (r === "shared") say(tr("Shared")); else if (r === "copied") say(tr("Link copied")); else if (r === "failed") say(tr("Couldn't share."));
+  };
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Reviews")} onBack={pop} meta={`${avg} · ${reviews.length} ${tr("reviews")}`}>
+      <Screen title={tr("Reviews")} onBack={pop} meta={reviews.length ? `${avg} · ${reviews.length} ${tr("reviews")}` : tr("None yet")}>
         <div className="px-6 pb-2">
           <Tile className="px-5 py-5 mb-4">
             <div className="flex items-center gap-4">
@@ -3025,6 +3072,10 @@ function Testimonials({ role, pop, say }) {
             </div>
           </Tile>
 
+          {live && reviews.length === 0 && (
+            <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.faint }}>{tr("No reviews yet. Players leave one from your profile.")}</p>
+          )}
+
           {reviews.map((r, i) => (
             <Tile key={i} className="px-5 py-4 mb-2.5" delay={i * 70}>
               <div className="flex items-center gap-3 mb-2.5">
@@ -3037,7 +3088,7 @@ function Testimonials({ role, pop, say }) {
                 </span>
                 <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{r.when}</span>
               </div>
-              <p style={{ fontFamily: display, fontSize: 14.5, lineHeight: 1.6, color: t.ink }}>{r.text}</p>
+              {r.text && <p style={{ fontFamily: display, fontSize: 14.5, lineHeight: 1.6, color: t.ink }}>{r.text}</p>}
               {r.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {r.tags.map((tg) => (
@@ -3049,13 +3100,13 @@ function Testimonials({ role, pop, say }) {
             </Tile>
           ))}
 
-          <button onClick={() => { hapticCommit(); say(tr("Link copied — share it anywhere")); }}
+          {(!live || code) && <button onClick={share}
                   className="w-full mt-4 flex items-center justify-center gap-2 active:opacity-70"
                   style={{ minHeight: 54, borderRadius: R.surface, background: t.accent,
                            fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.onAccent }}>
             <Share2 size={16} color={t.onAccent} />
             {tr("Share your profile")}
-          </button>
+          </button>}
           <div style={{ height: 26 }} />
         </div>
       </Screen>
@@ -3562,7 +3613,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
    of ten — they have someone on a Tuesday at four until one of them
    says otherwise. So a series runs until it is ended, and an end date
    is offered rather than required. */
-function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, onNew, pop, say }) {
+function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, onNew, pop, say, real }) {
   const t = useT();
   const [confirming, setConfirming] = useState(null);
   const live = series.filter((x) => !x.ended);
@@ -3629,7 +3680,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {["Weekly", "Fortnightly", "Monthly"].map((f) => {
-                      const on = (x.freq || "Weekly") === f;
+                      const on = String(x.freq || "Weekly").toLowerCase() === f.toLowerCase();
                       return (<button key={f} onClick={() => { haptic(5); soft(); onEdit(x, { freq: f }); }}
                                       className="px-3 active:opacity-60"
                                       style={{ minHeight: 34, borderRadius: R.pill, background: on ? t.accent : t.wash,
@@ -3637,12 +3688,13 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                                                color: on ? "#fff" : t.sub, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{tr(f)}</button>);
                     })}
                     <span className="flex-1" />
-                    <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 active:opacity-60"
+                    {/* an end date is not kept for a real account yet, so the two are not offered */}
+                    {!real && <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
-                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>
-                    <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 active:opacity-60"
+                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>}
+                    {!real && <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
-                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>
+                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
                     <button onClick={() => { haptic(9); setConfirming(x); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
                                      fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
@@ -4231,10 +4283,12 @@ function AtRisk({ list, onMessage, onBook, pop }) {
 
 /* What a parent actually wants: proof it is going somewhere, without
    having to go looking for it. */
-function ParentDigest({ profiles, cfg, pop }) {
+function ParentDigest({ profiles, cfg, pop, stats }) {
   const t = useT();
   const live = useLive();
   const kids = (profiles || []).filter((p) => p.age);
+  /* a real account counts from the data; nothing is invented */
+  const st = (k) => (stats ? (stats[k.id] || { lessons: 0, drillsDone: 0, drillsTotal: 0, tip: null }) : null);
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("This month")} onBack={pop} meta={tr("How everyone's getting on")}>
@@ -4250,16 +4304,26 @@ function ParentDigest({ profiles, cfg, pop }) {
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{cfg.label}</span>
                   </span>
                 </div>
-                <div className="flex mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
-                  <Stat value={4} label={tr("Lessons")} />
-                  <span style={{ width: 1, background: t.hair }} />
-                  <Stat value={"3h"} label={tr("On court")} />
-                  <span style={{ width: 1, background: t.hair }} />
-                  <Stat value={"9/12"} label={tr("Drills done")} />
-                </div>
-                <p style={{ ...TYPE.body, lineHeight: 1.65, color: t.ink }}>
-                  {tr("Working on")} {(f.tip || cfg.focus[0].label).toLowerCase()}. {tr("Their coach says they're sticking with it.")}
-                </p>
+                {st(k) ? (
+                  <div className="flex mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
+                    <Stat value={st(k).lessons} label={tr("Lessons")} />
+                    <span style={{ width: 1, background: t.hair }} />
+                    <Stat value={`${st(k).drillsDone}/${st(k).drillsTotal}`} label={tr("Drills done")} />
+                  </div>
+                ) : (
+                  <div className="flex mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
+                    <Stat value={4} label={tr("Lessons")} />
+                    <span style={{ width: 1, background: t.hair }} />
+                    <Stat value={"3h"} label={tr("On court")} />
+                    <span style={{ width: 1, background: t.hair }} />
+                    <Stat value={"9/12"} label={tr("Drills done")} />
+                  </div>
+                )}
+                {st(k)
+                  ? (st(k).tip && <p style={{ ...TYPE.body, lineHeight: 1.65, color: t.ink }}>{tr("Working on")} {st(k).tip}.</p>)
+                  : <p style={{ ...TYPE.body, lineHeight: 1.65, color: t.ink }}>
+                      {tr("Working on")} {(f.tip || cfg.focus[0].label).toLowerCase()}. {tr("Their coach says they're sticking with it.")}
+                    </p>}
               </Tile>
             );
           })}
@@ -8656,8 +8720,11 @@ function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin 
   );
 }
 
-function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, mySports = [], main, onSetMain, onPhoto, close, say }) {
+function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, mySports = [], main, onSetMain, onPhoto, close, say, live, hasCoach, onJoinCode }) {
   const t = useT();
+  /* a real account joins a coach through the database (join_coach); the
+     harness's pretend lookup below is never reached with `live` */
+  const [joinErr, setJoinErr] = useState(null); const [joining, setJoining] = useState(false);
   const [stage, setStage] = useState("root");   // root | child | childSport | childCode | sport | code
   const [childName, setChildName] = useState("");
   const [cd, setCd] = useState(""); const [cm, setCm] = useState(""); const [cy, setCy] = useState("");
@@ -8681,10 +8748,10 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   const kids = profiles.filter((p) => p.age);
 
   useEffect(() => {
-    if (code.length !== 6 || !newSport) { setFound(null); return; }
+    if (live || code.length !== 6 || !newSport) { setFound(null); return; }
     const x = setTimeout(() => { setFound(COACHES[newSport][0]); haptic(14); tone(720, 0.12, 0.04); }, 500);
     return () => clearTimeout(x);
-  }, [code, newSport]);
+  }, [code, newSport, live]);
 
 
   const SportList = ({ onPick, title, onBack }) => (
@@ -8767,6 +8834,32 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   if (stage === "sport") return <SportListPick t={t} title={tr("Sport")} onBack={() => setStage("root")}
     onPick={(id) => { setNewSport(id); setCode(""); setFound(null); setStage("code"); }} />;
 
+  if (stage === "code" && live) return (
+    <>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{tr("Coach code")}</h2></div>
+      <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Six characters from the coach")}</p>
+      {/* typed, not tapped: a real code is six letters and digits */}
+      <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)); setJoinErr(null); }}
+             placeholder="ABC123" autoCapitalize="characters" autoCorrect="off" spellCheck={false} autoFocus aria-label={tr("Coach code")}
+             className="w-full outline-none text-center mb-2"
+             style={{ minHeight: 54, borderRadius: R.control, background: t.wash, fontFamily: display, fontSize: 24, letterSpacing: "0.18em", color: t.ink, border: "none" }} />
+      <div className="mb-4" style={{ minHeight: 44 }}>
+        {joinErr && <p className="text-center pt-3" style={{ ...TYPE.small, color: DANGER }}>{joinErr}</p>}
+      </div>
+      <Button disabled={code.length !== 6 || joining} onClick={async () => {
+        if (!onJoinCode) return;
+        setJoining(true);
+        const res = await onJoinCode(code);
+        setJoining(false);
+        if (res && res.error) { hapticWarn(); setJoinErr(res.error.message || tr("Couldn't join that coach.")); return; }
+        hapticSuccess(); chime();
+        say && say(`${(res && res.coach && res.coach.name) || tr("Coach")} ${tr("added")}`);
+        close();
+      }}>{joining ? tr("Joining…") : tr("Join")}</Button>
+    </>
+  );
+
   if (stage === "code") return (
     <CoachCodeStep t={t} newSport={newSport} code={code} setCode={setCode} found={found}
               who={`For ${profiles.find((p) => p.id === activeProfileId)?.name.split(" ")[0]}.`} onBack={() => setStage("sport")}
@@ -8782,9 +8875,9 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         <Card className="mb-4">
           {profiles.map((pf, i) => (
             <Row key={pf.id} label={pf.name}
-                 sub={!pf.age ? "You" : pf.turns18 ? `Age ${pf.age} · yours until ${pf.turns18}` : `Age ${pf.age} · managed by you`}
+                 sub={pf.kin ? [pf.age ? `Age ${pf.age}` : null, pf.coach ? `${tr("with")} ${pf.coach}` : tr("in your family")].filter(Boolean).join(" · ") : !pf.age ? "You" : pf.turns18 ? `Age ${pf.age} · yours until ${pf.turns18}` : `Age ${pf.age} · managed by you`}
                  checked={pf.id === activeProfileId} last={i === profiles.length - 1}
-                 icon={<Avatar name={pf.name} size={38} />} onToggle={() => { onSwitchProfile(pf.id); close(); }} />
+                 icon={<Avatar name={pf.name} size={38} />} onToggle={live ? undefined : () => { onSwitchProfile(pf.id); close(); }} />
           ))}
         </Card>
       )}
@@ -8794,9 +8887,9 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         {myConns.length === 0 ? (
           <div className="p-6 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No coach connected yet.")}</p></div>
         ) : myConns.map((c, i) => (
-          <Row key={c.id} label={c.coach} sub={`${SPORTS[c.sport].label} · ${c.club}`} checked={c.id === activeConnId} last={i === myConns.length - 1}
+          <Row key={c.id} label={c.coach} sub={c.club ? `${SPORTS[c.sport].label} · ${c.club}` : SPORTS[c.sport].label} checked={c.id === activeConnId} last={i === myConns.length - 1}
                icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: SPORTS[c.sport].theme.mark }} />}
-               onToggle={() => { onPickConn(c.id); close(); }} />
+               onToggle={live ? undefined : () => { onPickConn(c.id); close(); }} />
         ))}
       </Card>
 
@@ -8825,7 +8918,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       <Card tour="family-rows">
         <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<Users size={18} color={t.sub} strokeWidth={1.6} />}
              onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
-        <Row label={tr("Add a coach")} sub={tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage("sport")} />
+        {!(live && hasCoach) && <Row label={tr("Add a coach")} sub={live ? tr("Enter their code") : tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage(live ? "code" : "sport")} />}
         <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
         <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
       </Card>
@@ -8977,7 +9070,7 @@ function TipBody({ focusLabel, prompts, onSet, close }) {
       )}
       <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("Short headline")} /></div>
       <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={3} ph={tr("One or two sentences")} /></div>
-      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() || "Keep at what we worked on." }); close(); }}>{tr("Set as their focus")}</Button>
+      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() }); close(); }}>{tr("Set as their focus")}</Button>
     </>
   );
 }
@@ -9558,7 +9651,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
    So: anyone with something outstanding rises to the top, everyone else
    is a quiet row, and a child with no coach yet reads as an invitation
    rather than an error. */
-function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProfileId, onSwitch, go, push, right, photos = {}, say }) {
+function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProfileId, onSwitch, go, push, right, photos = {}, say, counts }) {
   const t = useT();
   const ready = useLoad();
 
@@ -9616,7 +9709,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               : !conn ? tr("No coach yet")
               : todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}`
               : ev ? `${ev.name} · ${ev.days}d`
-              : `${f ? f.done : 0} ${tr("lessons")}`}
+              : `${f ? f.done : (counts && counts[p.id]) || 0} ${tr("lessons")}`}
           </span>
         </span>
         <ChevronRight size={14} color={t.faint} />
@@ -10582,7 +10675,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
             <div className="px-6 pb-2"><Card>
               {invited.map((p, i) => (
                 <Row key={p.name} label={p.name} sub={tr("Sent a text with your invite link")} icon={<Avatar name={p.name} size={38} />}
-                     right={<TextBtn onClick={() => say(`Resent to ${p.name.split(" ")[0]}`)}>{tr("Resend")}</TextBtn>}
+                     right={<TextBtn onClick={() => sheet("import")}>{tr("Resend")}</TextBtn>}
                      last={i === invited.length - 1} />
               ))}
             </Card></div>
@@ -11106,12 +11199,14 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    what the session covered. */
 function GroupHistory({ group, cfg, pop, say, onOpen }) {
   const t = useT();
-  const weeks = [
+  const live = useLive();
+  /* a real group's sessions are its lessons and registers, not a script */
+  const weeks = live ? [] : [
     { when: "Sat 19 Jul", covered: cfg.focus[2].label, subs: cfg.focus[2].subs.slice(0, 2), present: group.members.length, absent: 0 },
     { when: "Sat 12 Jul", covered: cfg.focus[0].label, subs: cfg.focus[0].subs.slice(0, 2), present: group.members.length - 1, absent: 1 },
     { when: "Sat 5 Jul",  covered: cfg.focus[3].label, subs: cfg.focus[3].subs.slice(0, 1), present: group.members.length - 2, absent: 2 },
   ];
-  const avg = Math.round(weeks.reduce((n, w) => n + w.present, 0) / weeks.length);
+  const avg = weeks.length ? Math.round(weeks.reduce((n, w) => n + w.present, 0) / weeks.length) : 0;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={group.name} onBack={pop} meta={`${group.members.length} ${cfg.nouns} · ${DAY_NAMES[group.day]}s ${group.time}`}>
@@ -11581,30 +11676,59 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
    already talks to people, and the person taps it on their own phone. */
 function ImportRoster({ existingNames, onSend, close, say, noun, nouns, code }) {
   const t = useT();
-  const joinCode = code || FAMILY_CODE;
-  const link = `nosca.app/j/${joinCode}`;
+  const live = useLive();
+  /* The invite is the join link with the real code. Each route hands
+     that link to the app in question; nothing is sent from here. */
+  const joinCode = code || (live ? null : FAMILY_CODE);
+  const link = joinCode ? joinLink("coach", joinCode) : "";
+  const shown = link.replace(/^https?:\/\//, "");
+  const text = joinCode ? `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${joinCode}` : "";
   const routes = [
     { id: "wa", label: "WhatsApp", Icon: MessageCircle },
     { id: "sms", label: tr("Messages"), Icon: Send },
     { id: "mail", label: tr("Email"), Icon: Mail },
     { id: "copy", label: tr("Copy link"), Icon: Paperclip },
   ];
+  const openRoute = async (id) => {
+    if (!joinCode) { say(tr("No code yet.")); return; }
+    hapticSuccess(); soft();
+    if (id === "copy") { const ok = await copyText(link); say(ok ? tr("Link copied") : tr("Couldn't copy")); close(); return; }
+    const body = `${text} ${link}`;
+    const href = id === "wa" ? `https://wa.me/?text=${encodeURIComponent(body)}`
+      : id === "sms" ? `sms:?&body=${encodeURIComponent(body)}`
+      : `mailto:?subject=${encodeURIComponent(`${tr("Join me on")} ${BRAND}`)}&body=${encodeURIComponent(body)}`;
+    if (id === "wa") window.open(href, "_blank", "noopener"); else window.location.href = href;
+  };
+  /* Only where the phone offers a contact picker; otherwise the row is
+     not there at all. */
+  const canPickContacts = typeof navigator !== "undefined" && !!navigator.contacts && typeof navigator.contacts.select === "function";
+  const pickContacts = async () => {
+    if (!joinCode) { say(tr("No code yet.")); return; }
+    try {
+      const picked = await navigator.contacts.select(["name", "tel"], { multiple: true });
+      const names = (picked || []).map((c) => (c.name && c.name[0]) || "").filter(Boolean);
+      const tels = (picked || []).flatMap((c) => c.tel || []);
+      if (!tels.length) { say(tr("No number on that contact.")); return; }
+      onSend && onSend(names);
+      window.location.href = `sms:${tels.join(",")}?&body=${encodeURIComponent(`${text} ${link}`)}`;
+    } catch (e) { /* they closed the picker */ }
+  };
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("Invite")} {nouns}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}></p>
 
       <div className="px-5 py-4 mb-5 flex items-center gap-3" style={{ borderRadius: R.surface, background: t.wash }}>
-        <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{link}</span>
+        <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{shown || "—"}</span>
         <span className="rounded-full px-2.5 py-1" style={{ background: t.surface, fontFamily: ui, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", color: t.sub }}>
-          {joinCode}
+          {joinCode || "——————"}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         {routes.map((r, i) => (
-          <button key={r.id} onClick={() => { hapticSuccess(); soft(); say(`${tr("Shared via")} ${r.label}`); if (r.id === "copy") close(); }}
-                  className="flex flex-col items-center justify-center gap-2.5 active:opacity-60"
+          <button key={r.id} onClick={() => openRoute(r.id)} disabled={!joinCode}
+                  className="flex flex-col items-center justify-center gap-2.5 active:opacity-60 disabled:opacity-30"
                   style={{ minHeight: 92, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                            animation: `liftIn 400ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
             <r.Icon size={20} color={t.accent} strokeWidth={1.6} />
@@ -11613,13 +11737,15 @@ function ImportRoster({ existingNames, onSend, close, say, noun, nouns, code }) 
         ))}
       </div>
 
-      <button onClick={() => { haptic(8); say(tr("Opens your phone's Contacts")); }}
-              className="w-full flex items-center gap-3.5 px-5 active:opacity-60"
-              style={{ minHeight: 56, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-        <Users size={17} color={t.sub} strokeWidth={1.6} />
-        <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
-        <ChevronRight size={15} color={t.faint} />
-      </button>
+      {canPickContacts && (
+        <button onClick={() => { haptic(8); pickContacts(); }}
+                className="w-full flex items-center gap-3.5 px-5 active:opacity-60"
+                style={{ minHeight: 56, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
+          <Users size={17} color={t.sub} strokeWidth={1.6} />
+          <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
+          <ChevronRight size={15} color={t.faint} />
+        </button>
+      )}
     </>
   );
 }
@@ -11762,6 +11888,7 @@ function Subscription({ pop, say, plan }) {
 ================================================================== */
 function PlayerPractice({ conn, items, toggle, right, say }) {
   const t = useT();
+  const live = useLive();
   const done = items.filter((x) => x.done).length;
   const pct = items.length ? (done / items.length) * 100 : 0;
   const allDone = items.length > 0 && done === items.length;
@@ -11843,11 +11970,11 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
               </div>
             ))}
           </Card>
-          <button onClick={() => { haptic(8); tone(660, 0.12, 0.04); say && say(`${who} will see that`); }}
+          {!live && <button onClick={() => { haptic(8); tone(660, 0.12, 0.04); say && say(`${who} will see that`); }}
                   className="w-full mt-4 py-3.5 active:opacity-50"
                   style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>
             {tr("Leave optional feedback")}
-          </button>
+          </button>}
           </div>
         </>
       )}
@@ -11858,9 +11985,23 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
 /* ==================================================================
    COACH · practice + drill library + suggestion-aware assign
 ================================================================== */
-function CoachPractice({ items, sheet, push, right }) {
+function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemoveDrill, onRenameDrill, say }) {
   const t = useT(); const marcusDone = items.filter((x) => x.done).length;
-  const rows = ROSTER.map((r) => r.name === "Marcus Tran" ? { name: r.name, done: marcusDone, total: items.length } : { name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
+  const [open, setOpen] = useState(null);
+  const [draft, setDraft] = useState({});
+  /* A real coach's roster, with what each person has been set counted
+     from the drills themselves; a drill can be renamed or removed here.
+     The seeded fifteen are the harness's. */
+  const rename = async (d) => {
+    const v = (draft[d.id] ?? d.t).trim();
+    if (!v || v === d.t) { setDraft((x) => ({ ...x, [d.id]: undefined })); return; }
+    const r = onRenameDrill ? await onRenameDrill(d.id, v) : null;
+    if (r && r.error) { say && say(r.error.message); return; }
+    setDraft((x) => ({ ...x, [d.id]: undefined }));
+  };
+  const rows = live
+    ? (roster || []).map((r) => { const mine = (drills || []).filter((d) => d.playerId === r.id); return { id: r.id, name: r.name, done: mine.filter((d) => d.done).length, total: mine.length, list: mine }; })
+    : ROSTER.map((r) => r.name === "Marcus Tran" ? { name: r.name, done: marcusDone, total: items.length } : { name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
   return (
     <Screen title={tr("Practice")} meta={tr("What you've set, and who's doing it")} right={right}>
       <div className="px-6 mb-6">
@@ -11872,10 +12013,28 @@ function CoachPractice({ items, sheet, push, right }) {
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
-      <div className="px-6 pb-2"><Card>{rows.map((r, i) => { const none = r.total === 0; return (
-        <Row key={r.name} label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
-             right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: r.total }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
-             last={i === rows.length - 1} onToggle={() => sheet(r.name)} />
+      <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet.")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.name; return (
+        <div key={r.name}>
+        <Row label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
+             right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: Math.min(r.total, 12) }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
+             last={i === rows.length - 1 && !isOpen} onToggle={() => (live ? setOpen(isOpen ? null : r.name) : sheet(r.name))} />
+        {isOpen && (
+          <div className="px-5 pb-4" style={{ background: t.wash, borderBottom: i === rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>
+            {r.list.map((d) => (
+              <div key={d.id} className="flex items-center gap-2" style={{ minHeight: 48, borderBottom: `1px solid ${t.hair}` }}>
+                <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: d.done ? t.accent : t.hair }} />
+                <input value={draft[d.id] ?? d.t} onChange={(e) => setDraft((x) => ({ ...x, [d.id]: e.target.value }))} onBlur={() => rename(d)}
+                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="flex-1 min-w-0 outline-none"
+                       style={{ fontFamily: ui, fontSize: 14, color: t.ink, background: "transparent" }} aria-label={tr("Drill name")} />
+                <button onClick={async () => { const res = onRemoveDrill ? await onRemoveDrill(d.id) : null; if (res && res.error) { say && say(res.error.message); return; } hapticWarn(); }}
+                        className="p-2 active:opacity-50" aria-label={tr("Remove")}><Trash2 size={15} color={DANGER} /></button>
+              </div>
+            ))}
+            {r.list.length === 0 && <p className="pt-3" style={{ fontFamily: ui, fontSize: 13, color: t.faint }}>{tr("Nothing set.")}</p>}
+            <button onClick={() => { haptic(8); sheet(r.name); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Set drills")}</button>
+          </div>
+        )}
+        </div>
       ); })}</Card></div>
     </Screen>
   );
@@ -12116,19 +12275,25 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
    The grid stays quiet — only availability is signalled — and the times
    carry the weight, one per line, with the finish time always shown. */
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now }) {
   const t = useT();
-  const [mi, setMi] = useState(1);
-  const [sel, setSel] = useState(TODAY.d);
+  const live = useLive();
+  /* the real day for a real account; the harness keeps its designed 24 July */
+  const T = now || TODAY;
+  const isGone = (m, d) => m < T.m || (m === T.m && d < T.d);
+  const [mi, setMi] = useState(() => Math.max(0, MONTHS.findIndex((x) => x.idx === T.m)));
+  const [sel, setSel] = useState(T.d);
   const [pick, setPick] = useState(null);
   const [famFilter, setFamFilter] = useState("Everyone");
   const [view, setView] = useState(tr("List"));
   const mo = MONTHS[mi];
   const mineOn = (m, d) => bookings.find((b) => b.m === m && b.d === d);
-  const open = openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked);
+  const open = isGone(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked);
   const booked = seedBooked[key(mo.idx, sel)] || [];
   const myDay = mineOn(mo.idx, sel);
-  const past = isPast(mo.idx, sel);
+  const past = isGone(mo.idx, sel);
+  /* a player whose coach has set no hours at all is told so, rather than shown an empty week */
+  const noHours = role === "player" && live && !Object.values(avail || {}).some((x) => x && x.length);
   const dayHours = avail[dowOf(mo.idx, sel)] || [];
   const move = (dir) => { const n = Math.max(0, Math.min(MONTHS.length - 1, mi + dir)); if (n === mi) return; haptic(8); setMi(n); setSel(1); setPick(null); };
   const cells = []; for (let i = 0; i < mo.start; i++) cells.push(null); for (let d = 1; d <= mo.days; d++) cells.push(d);
@@ -12225,6 +12390,12 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         </div>
       )}
 
+      {noHours && (
+        <div className="px-6 mb-4">
+          <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>{tr("Your coach hasn't set times yet.")}</p>
+        </div>
+      )}
+
       <div className="px-6 mb-5">
         <Segmented tour="cal-view" options={[tr("List"), tr("Calendar")]} value={view} onChange={(v) => { haptic(7); soft(); setView(v); }} />
       </div>
@@ -12235,7 +12406,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     onOpen={(day, bk) => onPeek && onPeek(day && day.m ? { ...bk, m: day.m, d: day.d } : bk)}
                     onEditDay={(day) => onEditDay && onEditDay(day)}
                     onBookInto={(day, h, k) => onBookInto && onBookInto(day, h, k)}
-                    onRecurring={() => onRecurring && onRecurring()} push={push} />
+                    onRecurring={() => onRecurring && onRecurring()} push={push} now={T} />
       ) : (<>
 
       {/* ---- month grid: quiet, availability-led ---- */}
@@ -12254,10 +12425,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           {cells.map((d, i) => {
             if (d === null) return <span key={`b${i}`} />;
             if (!prefs.weekends && dowOf(mo.idx, d) > 4) return null;
-            const gone = isPast(mo.idx, d);
+            const gone = isGone(mo.idx, d);
             const on = sel === d;
-            const today = mo.idx === TODAY.m && d === TODAY.d;
-            const nOpen = openTimes(mo.idx, d, avail, blocked, bookings, seedBooked).length;
+            const today = mo.idx === T.m && d === T.d;
+            const nOpen = gone ? 0 : openTimes(mo.idx, d, avail, blocked, bookings, seedBooked).length;
             const dayBooked = (seedBooked[key(mo.idx, d)] || []).length;
             const mine = !!mineOn(mo.idx, d);
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
@@ -12304,7 +12475,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
         {myDay && (
           <div className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="uppercase block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Your lesson")}</span>
+            <span className="uppercase block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, duration)}</span>
               {readOnly
@@ -12392,6 +12563,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         {/* booking confirmation, with recurrence for private lessons */}
         {pick && role === "player" && !readOnly && (
           <div className="mt-6">
+            {/* a real player asks for one lesson at a time; standing slots are the coach's to set */}
+            {!live && (<>
             <span className="uppercase block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Repeat")}</span>
             <div className="flex gap-2 mb-5">
               {[["once", "Just once"], ["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]].map(([id, lbl]) => {
@@ -12401,8 +12574,9 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                                          fontFamily: ui, fontSize: 12, fontWeight: 600, color: onR ? "#fff" : t.sub }}>{lbl}</button>);
               })}
             </div>
+            </>)}
             <Button onClick={() => { onBook({ m: mo.idx, d: sel, time: pick }); setPick(null); }}>
-              Book {span(pick, duration)}{recurrence !== "once" ? `, ${recurrence}` : ""}
+              {live ? tr("Request") : "Book"} {span(pick, duration)}{!live && recurrence !== "once" ? `, ${recurrence}` : ""}
             </Button>
           </div>
         )}
@@ -12422,7 +12596,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                      {DAY_NAMES[r.day]}s {r.time} · {r.freq} · {r.total - r.used} of {r.total} left
+                      {DAY_NAMES[r.day]}s {r.time} · {r.every || r.freq}{r.total ? ` · ${r.total - r.used} of ${r.total} left` : ""}
                     </span>
                   </span>
                   <ChevronRight size={15} color={t.faint} />
@@ -12674,24 +12848,40 @@ function Thread({ role, name, isGroup, lang, pop, say, live }) {
 /* ==================================================================
    BRANDING — expanded swatches + clearer preview
 ================================================================== */
-function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say }) {
+function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, live, onSave }) {
   const t = useT();
+  const [busy, setBusy] = useState(false);
+  /* A real account keeps the club name, on the profile. A logo and an
+     accent colour are not stored anywhere yet, so they are not offered. */
+  const save = async () => {
+    if (onSave) {
+      setBusy(true);
+      const res = await onSave(clubName);
+      setBusy(false);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
+    }
+    say(live ? tr("Saved") : "Branding saved"); pop();
+  };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Branding")} onBack={pop} meta={tr("How they see the app")} right={<TextBtn onClick={() => { say("Branding saved"); pop(); }}>{tr("Save")}</TextBtn>}>
-        <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
-          <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.faint} /></div>
-          <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>{tr("Upload your logo")}</span>
-          <span className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>Square PNG, 512px or larger</span>
-        </Card></div>
+      <Screen title={tr("Branding")} onBack={pop} meta={tr("How they see the app")} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
+        {!live && (
+          <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
+            <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.faint} /></div>
+            <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>{tr("Upload your logo")}</span>
+            <span className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>Square PNG, 512px or larger</span>
+          </Card></div>
+        )}
         <Eyebrow>{tr("Club or academy name")}</Eyebrow>
-        <div className="px-6 mb-6"><Card><div className="px-5 py-4"><input value={clubName} onChange={(e) => setClubName(e.target.value)} className="w-full outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} /></div></Card></div>
-        <Eyebrow>{tr("Accent colour")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>{SWATCHES.map((s, i) => (
-          <Row key={s.id} label={s.name} checked={swatch.id === s.id} last={i === SWATCHES.length - 1}
-               icon={<span className="rounded-full shrink-0" style={{ width: 22, height: 22, background: s.accent || t.accent, border: s.accent ? "none" : `2px dashed ${t.hair}` }} />}
-               onToggle={() => { haptic(8); setSwatch(s); }} />
-        ))}</Card></div>
+        <div className="px-6 mb-6"><Card><div className="px-5 py-4"><input value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder={tr("Your club")} className="w-full outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} /></div></Card></div>
+        {!live && (<>
+          <Eyebrow>{tr("Accent colour")}</Eyebrow>
+          <div className="px-6 mb-6"><Card>{SWATCHES.map((s, i) => (
+            <Row key={s.id} label={s.name} checked={swatch.id === s.id} last={i === SWATCHES.length - 1}
+                 icon={<span className="rounded-full shrink-0" style={{ width: 22, height: 22, background: s.accent || t.accent, border: s.accent ? "none" : `2px dashed ${t.hair}` }} />}
+                 onToggle={() => { haptic(8); setSwatch(s); }} />
+          ))}</Card></div>
+        </>)}
         <div className="px-6 pb-2"><Card className="p-5">
           <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 10.5, letterSpacing: "0.13em", fontWeight: 600, color: t.faint }}>{tr("Preview — this is exactly what players see")}</div>
           <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
@@ -12747,9 +12937,9 @@ function LessonLogs({ role, lessons, onDownload, pop }) {
 /* ==================================================================
    SETTINGS
 ================================================================== */
-function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
+function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
   const t = useT(); const L = useL();
-  const sub = role === "coach" ? `${cfg.label} coach · ${brandName}` : `${cfg.label} · ${conn?.coach || ""}`;
+  const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
   return (
     <SwipeBack onBack={pop}>
@@ -12775,21 +12965,21 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, i
 
         {role === "coach" ? (<><Eyebrow>{tr("Coaching")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-coaching">
           <Row tour="settings-reviews" label={tr("Reviews")}  chevron icon={<I C={Sparkles} />} onToggle={() => push("reviews")} />
-          <Row tour="settings-credentials" label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />
+          {!live && <Row tour="settings-credentials" label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />}
           <Row tour="settings-requests" label={tr("Requests")}  chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
           {demo && <Row label={tr("Subscription")} sub={`${BRAND} ${plan?.name || "Coach"}`} chevron icon={<I C={ShieldCheck} />} onToggle={() => push("subscription")} />}
           <Row tour="settings-availability" label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
           <Row tour="settings-roster" label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
           <Row tour="settings-library" label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
           <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
-          <Row tour="settings-branding" label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
+          <Row tour="settings-branding" label={tr("Branding")} sub={live ? tr("Club name") : tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
           <Row tour="settings-invite" label={tr("Invite code & QR")} value={inviteCode || "——————"} chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
         </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-playing">
           <Row tour="settings-digest" label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
           <Row tour="settings-dashboard" label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
           <Row tour="settings-family" label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />
-          <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
-          <Row label={tr("Subscription")} sub={tr("Free — your coach's plan covers you")} last icon={<I C={ShieldCheck} />} />
+          <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron last={live} icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
+          {!live && <Row label={tr("Subscription")} sub={tr("Free — your coach's plan covers you")} last icon={<I C={ShieldCheck} />} />}
         </Card></div></>)}
 
         <Eyebrow>{L.appearance}</Eyebrow>
@@ -12823,8 +13013,8 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, i
           {multiSport && <Row label={tr("Main sport")} sub={mainLabel} chevron icon={<I C={Tag} />} onToggle={() => onMainSport && onMainSport()} />}
           <Row tour="settings-details" label={tr("Personal details")} chevron icon={<I C={User} />} onToggle={() => push("details")} />
           <Row tour="settings-notifications" label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={() => push("notifications")} />
-          {role === "player" && <Row tour="settings-transfer" label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
-          <Row tour="settings-sources" label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />
+          {role === "player" && !live && <Row tour="settings-transfer" label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
+          {!live && <Row tour="settings-sources" label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />}
           <Row tour="settings-data" label={tr("Data & permissions")} chevron last icon={<I C={ShieldCheck} />} onToggle={() => push("legal:data")} />
         </Card></div>
 
@@ -12832,9 +13022,9 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, i
         <div className="px-6 mb-6"><Card tour="settings-support">
           <Row tour="settings-attendance" label={tr("Attendance")} sub={tr("Your record")} chevron icon={<I C={Check} />} onToggle={() => push("attendance")} />
           <Row tour="settings-prefs" label={tr("How it works")} sub={tr("Views, alerts, what others see")} chevron icon={<I C={Palette} />} onToggle={() => push("prefs")} />
-          <Row tour="settings-tour" label={tr("How Nosca works")}  chevron icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
-          <Row tour="settings-help" label={tr("Help centre")} chevron icon={<I C={HelpCircle} />} onToggle={() => push("support")} />
-          <Row tour="settings-contact" label={tr("Contact us")} chevron last icon={<I C={Mail} />} onToggle={() => push("support")} />
+          <Row tour="settings-tour" label={tr("How Nosca works")}  chevron last={live && !SUPPORT_EMAIL} icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
+          {(!live || SUPPORT_EMAIL) && <Row tour="settings-help" label={tr("Help centre")} chevron icon={<I C={HelpCircle} />} onToggle={() => push("support")} />}
+          {(!live || SUPPORT_EMAIL) && <Row tour="settings-contact" label={tr("Contact us")} chevron last icon={<I C={Mail} />} onToggle={() => push("support")} />}
         </Card></div>
 
         <Eyebrow>{tr("Legal")}</Eyebrow>
@@ -12899,40 +13089,66 @@ function LanguageScreen({ lang, setLang, pop, say }) {
     </SwipeBack>
   );
 }
-function Details({ role, pop, say, me }) {
+function Details({ role, pop, say, me, onSave, onChangePassword }) {
   const t = useT();
-  /* A real account shows its own details. The seeded pair below are
-     for the design harness only — showing someone else's name, email
-     and phone on a person's own settings screen is the worst possible
-     place for invented data. */
+  /* A real account shows and saves its own details — name, phone and,
+     for a coach, the club, which is what the profile row keeps. The
+     seeded pair below are for the design harness only. */
   const [f, setF] = useState(me
     ? (role === "coach"
-        ? { Name: me.name || "", Email: me.email || "", Phone: me.phone || "",
-            Qualifications: "", Bio: "" }
-        : { Name: me.name || "", Email: me.email || "", Phone: me.phone || "" })
+        ? { Name: me.name || "", Phone: me.phone || "", Club: me.club || "" }
+        : { Name: me.name || "", Phone: me.phone || "" })
     : role === "coach"
     ? { Name: "Ray Doyle", Email: "ray@hollowbrook.ie", Phone: "+353 87 123 4567", Qualifications: "PGA Professional, Level 3", Bio: "Twelve years coaching, mostly short game." }
     : { Name: "Marcus Tran", Email: "marcus.tran@gmail.com", Phone: "+353 86 998 2211" });
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (onSave) {
+      setBusy(true);
+      const res = await onSave({ name: f.Name, phone: f.Phone, ...(role === "coach" ? { club: f.Club } : {}) });
+      setBusy(false);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
+    }
+    say(tr("Saved")); pop();
+  };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn onClick={() => { say("Saved"); pop(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 pb-2">
           <Card className="mb-5">{Object.keys(f).map((k, i, arr) => (
             <div key={k} className="px-5 py-3.5" style={{ borderBottom: i === arr.length - 1 ? "none" : `1px solid ${t.hair}` }}>
-              <div style={{ ...TYPE.caption, color: t.faint }}>{k}</div>
+              <div style={{ ...TYPE.caption, color: t.faint }}>{tr(k)}</div>
               {k === "Bio" ? (<textarea value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} rows={3} className="w-full outline-none resize-none mt-1" style={{ fontFamily: ui, fontSize: 15.5, lineHeight: 1.5, color: t.ink, background: "transparent" }} />)
-                          : (<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="w-full outline-none mt-1" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />)}
+                          : (<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} aria-label={tr(k)} className="w-full outline-none mt-1" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />)}
             </div>
           ))}</Card>
+          {me && me.email && (
+            <p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Signed in as")} {me.email}</p>
+          )}
           {role === "player" && (<p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.6, color: t.faint }}>Handicap and WTN now live under your stats — tap "Edit stats" on your home screen.</p>)}
-          <Card><Row label={tr("Change password")} chevron last icon={<Lock size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => {}} /></Card>
+          {onChangePassword && <Card><Row label={tr("Change password")} chevron last icon={<Lock size={17} color={t.sub} strokeWidth={1.6} />} onToggle={onChangePassword} /></Card>}
         </div>
       </Screen>
     </SwipeBack>
   );
 }
-function Notifications({ role, pop, pushOn, setPushOn }) {
+function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify }) {
   const t = useT(); const cats = NOTIF_CATS[role]; const [state, setState] = useState(cats.map((c, i) => i < cats.length - 1)); const [mode, setMode] = useState("Instant"); const [quiet, setQuiet] = useState(true);
+  /* A real account keeps one thing here — how it likes to be told —
+     and that is what is shown. There is no push yet, so nothing says
+     there is. */
+  const CHOICES = [["instant", tr("As they happen")], ["digest", tr("Once a day")], ["quiet", tr("Only urgent")]];
+  if (live) return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Notifications")} onBack={pop} meta={tr("How you like to be told")}>
+        <Eyebrow>{tr("When to tell you")}</Eyebrow>
+        <div className="px-6 mb-6"><Card>{CHOICES.map(([id, lbl], i) => (
+          <Row key={id} label={lbl} radio checked={(notify || "instant") === id} last={i === CHOICES.length - 1} onToggle={() => { haptic(6); setNotify && setNotify(id); }} />
+        ))}</Card></div>
+        <p className="px-8 pb-4" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Bookings, messages and lessons show in the app when you open it.")}</p>
+      </Screen>
+    </SwipeBack>
+  );
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Notifications")} onBack={pop} meta={tr("Choose what reaches you, and when")}>
@@ -12984,16 +13200,20 @@ function Legal({ docKey, pop }) {
     </SwipeBack>
   );
 }
-function Support({ pop, say }) {
+function Support({ pop, say, live }) {
   const t = useT(); const faqs = ["How do I connect to my coach?", "How do family profiles work?", "Where do my videos go?", "How do drills and tips work?", "How do I cancel my subscription?"];
+  /* A real account gets the one thing that works: a mail to the support
+     address, with a subject for a problem. The questions and the seeded
+     address are the harness's. */
+  const mail = (subject) => { window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`\n\n—\n${BRAND} ${VERSION}`)}`; };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Help")} onBack={pop} meta={tr("We usually reply within a day")}>
+      <Screen title={tr("Help")} onBack={pop} meta={live ? "" : tr("We usually reply within a day")}>
         <div className="px-6 pb-2">
-          <Eyebrow>{tr("Common questions")}</Eyebrow><Card className="mb-6">{faqs.map((f, i) => <Row key={f} label={f} chevron last={i === faqs.length - 1} onToggle={() => {}} />)}</Card>
+          {!live && (<><Eyebrow>{tr("Common questions")}</Eyebrow><Card className="mb-6">{faqs.map((f, i) => <Row key={f} label={f} chevron last={i === faqs.length - 1} onToggle={() => {}} />)}</Card></>)}
           <Eyebrow>{tr("Get in touch")}</Eyebrow><Card>
-            <Row label={tr("Email support")} sub="help@nosca.app" chevron icon={<Mail size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => say("Opens your mail app")} />
-            <Row label={tr("Report a problem")} chevron last icon={<HelpCircle size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => say("Thanks — we'll look into it")} />
+            <Row label={tr("Email support")} sub={live ? SUPPORT_EMAIL : "help@nosca.app"} chevron icon={<Mail size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a question")}`) : say("Opens your mail app"))} />
+            <Row label={tr("Report a problem")} chevron last icon={<HelpCircle size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a problem")}`) : say("Thanks — we'll look into it"))} />
           </Card>
         </div>
       </Screen>
@@ -13032,6 +13252,37 @@ function InviteBody({ code, say }) {
       <button onClick={copy} disabled={!code} className="mt-3 w-full active:opacity-50 disabled:opacity-30"
               style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Copy code")}</button>
     </div>
+  );
+}
+/* A new password, twice, from inside the app. The sign-in session is
+   what authorises it; the rule on length is the sign-up screen's. */
+function ChangePasswordBody({ onSubmit, say, close }) {
+  const t = useT();
+  const [pw, setPw] = useState(""); const [again, setAgain] = useState("");
+  const [err, setErr] = useState(null); const [busy, setBusy] = useState(false);
+  const ok = pw.length >= 8 && pw === again;
+  const field = { minHeight: 50, borderRadius: R.field, background: t.wash, fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
+  return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Change password")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("At least 8 characters.")}</p>
+      <input type="password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(null); }} placeholder={tr("New password")} autoComplete="new-password"
+             aria-label={tr("New password")} className="w-full outline-none px-4 mb-2.5" style={field} />
+      <input type="password" value={again} onChange={(e) => { setAgain(e.target.value); setErr(null); }} placeholder={tr("Again")} autoComplete="new-password"
+             aria-label={tr("New password again")} className="w-full outline-none px-4 mb-2" style={field} />
+      <div className="mb-4" style={{ minHeight: 22 }}>
+        {err ? <p style={{ ...TYPE.small, color: DANGER }}>{err}</p>
+             : again && pw !== again ? <p style={{ ...TYPE.small, color: t.faint }}>{tr("Those don't match yet.")}</p> : null}
+      </div>
+      <Button disabled={!ok || busy} onClick={async () => {
+        if (!onSubmit) { close(); return; }
+        setBusy(true);
+        const res = await onSubmit(pw);
+        setBusy(false);
+        if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't change your password.")); return; }
+        hapticSuccess(); chime(); say && say(tr("Password changed")); close();
+      }}>{busy ? tr("Changing…") : tr("Change password")}</Button>
+    </>
   );
 }
 function DeleteBody({ onCancel, say }) {
@@ -13189,7 +13440,7 @@ function useTypefaces() {
   }, []);
 }
 
-export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach, showcase } = {}) {
+export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach, onProfileChanged, showcase } = {}) {
   /* A real account gates every seed generator. The answer travels by
      context (LiveCtx, below) so nothing can draw invented history even
      on the first paint, and so a nested showcase instance keeps its own
@@ -13253,7 +13504,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setRole(account.role);
     setFlow("app");
     setStack([account.role === "coach" ? "today" : "home"]);
-  }, [account]);
+  /* Keyed on who the account is, not its every field: saving a name or
+     a club refreshes the profile, and that must not reset the screen. */
+  }, [account && account.id, account && account.role]);
   const [celeb, setCeleb] = useState(null);
   const [joined, setJoined] = useState(null);   // { coachName, sport } while the join screen plays
   const [goalFor, setGoalFor] = useState(null);
@@ -13380,6 +13633,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Real competitions, grouped by whose they are, so the lesson sheet
      and the player's own screen both read the same source. */
   const liveComps = data ? data.competitions : null;
+  const liveEvents = data ? (liveComps || []).map((c) => ({ ...c, when: c.date })).sort((a, b) => a.days - b.days) : [];
   const [askRating, setAskRating] = useState(null);   // off unless the coach asks
   const [lessonReqs, setLessonReqs] = useState(account ? [] : LESSON_REQUESTS);
   const [avatars, setAvatars] = useState({});     // profileId -> tint
@@ -13389,7 +13643,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Someone who plays two sports shouldn't be asked which one every
      time they open the app. Set once, per person. */
 
-  const acceptAsk = (r) => {
+  const acceptAsk = async (r) => {
+    if (data) {
+      const res = await data.confirmBooking(r.id);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't confirm that.")); return; }
+      hapticSuccess(); chime();
+      setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${MONTHS_FULL[r.m - 1]}` });
+      return;
+    }
     hapticSuccess(); chime();
     setSeedBooked((prev) => {
       const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
@@ -13421,6 +13682,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [rescheduleFor, setRescheduleFor] = useState(null);
   const [calledOff, setCalledOff] = useState(null);
   const [cancelling, setCancelling] = useState(null);
+  const [cancelBk, setCancelBk] = useState(null);    // the booking behind `cancelling`, for a real account
   const [cancelNotice, setCancelNotice] = useState(null);
   const [transferTo, setTransferTo] = useState(null);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -13522,8 +13784,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [goals, setGoals] = useState({ "Marcus Tran": [{ id: 1, t: "Break 90 at the club champs", by: "End of season", done: false }] });
   const [attendance, setAttendance] = useState({});
   const [prefill, setPrefill] = useState(sc ? (sc.prefill || null) : null);
-  const [slots, setSlots] = useState(ALL_TIMES);
-  const [duration, setDuration] = useState(45);
+  /* A real coach's saved slots and lesson length; a real player gets
+     their coach's. The harness keeps the designed defaults. */
+  const savedHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
+  const [slots, setSlots] = useState(savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots : ALL_TIMES);
+  const [duration, setDuration] = useState((savedHours && Number(savedHours.duration)) || 45);
   const [recurrence, setRecurrence] = useState("once");
   /* A real day: several behind you and unlogged, several still ahead. */
   /* A full day, so the folds carry a realistic load. */
@@ -13598,8 +13863,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [playerNotes, setPlayerNotes] = useState({ "Marcus Tran": "Prefers video over verbal. Club champs in September." });
   const [mini, setMini] = useState(null);
 
-  const [profiles, setProfiles] = useState(persona ? persona.profiles : [{ id: 1, name: "Marcus Tran", age: null }]);
-  const [activeProfileId, setActiveProfileId] = useState(persona ? persona.activeProfileId : 1);
+  const [seedProfiles, setProfiles] = useState(persona ? persona.profiles : [{ id: 1, name: "Marcus Tran", age: null }]);
+  /* A real account is the person themselves plus everyone who names
+     them as guardian, read from the data on every render — never the
+     seeded household. Whole years, the same sum as everywhere else. */
+  const yearsOld = (dob) => {
+    if (!dob) return null;
+    const b = new Date(dob), n = new Date();
+    let a = n.getFullYear() - b.getFullYear();
+    if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a -= 1;
+    return a;
+  };
+  const profiles = account
+    ? [{ id: account.id, name: account.name, age: null },
+       ...((data && data.family) || []).map((f) => {
+         const a = yearsOld(f.dateOfBirth);
+         return { id: f.id, name: f.name, age: a != null && a < ADULT_AGE ? a : null, kin: true, coach: f.coachName, sport: f.sport };
+       })]
+    : seedProfiles;
+  const [activeProfileId, setActiveProfileId] = useState(persona ? persona.activeProfileId : account ? account.id : 1);
   const clubName = "";   /* only ever what the account carries */
   const inviteCode = data ? data.inviteCode : FAMILY_CODE;
   /* what the code surfaces show: the real code for a real account (a
@@ -13624,15 +13906,28 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return out;
   }, [data && data.lessons]);
   const seasonMonthly = realMonthly || MONTHLY;
-  const [conns, setConns] = useState(persona ? persona.conns : [
+  const [seedConns, setConns] = useState(persona ? persona.conns : [
     { id: 1, profileId: 1, sport: "golf", coach: "Ray Doyle", club: "", seeded: true },
   ]);
+  /* A real account's connections are its own coach link and its
+     family's — from the data, so joining or leaving a coach shows the
+     moment it is written. A coach has none. */
+  const conns = account
+    ? [
+        ...(role === "player" && data && data.hasCoach
+          ? [{ id: 1, profileId: account.id, sport: account.sport, coach: data.coachName || "Your coach", club: "", seeded: false }] : []),
+        ...((data && data.family) || []).filter((f) => f.coachId).map((f, i) => (
+          { id: 100 + i, profileId: f.id, sport: f.sport || account.sport, coach: f.coachName || "Their coach", club: "", seeded: false })),
+      ]
+    : seedConns;
   const [activeId, setActiveId] = useState(persona ? persona.activeId : 1);
 
-  const [avail, setAvail] = useState(DEFAULT_AVAIL);
+  /* A real coach starts with an empty week and sets their own hours;
+     the seeded patterns are for the harness only. */
+  const [avail, setAvail] = useState(account ? Object.fromEntries(Object.keys(SPORTS).map((id) => [id, {}])) : DEFAULT_AVAIL);
   const [blocked, setBlocked] = useState(Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])));
   const [seedBooked, setSeedBooked] = useState(account ? Object.fromEntries(Object.keys(SPORTS).map((id) => [id, {}])) : SEED_BOOKINGS);
-  const [bookings, setBookings] = useState(persona ? persona.bookings : [{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
+  const [bookings, setBookings] = useState(persona ? persona.bookings : account ? [] : [{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
   const [groups, setGroups] = useState({
     ...Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])),
     golf: [{ id: 1, name: "Summer clinic", members: ["Marcus Tran","Priya Ellis","Dan Okafor","Sofia Reyes","Tom Beckett"], day: 5, time: "2:00 pm", weeks: 6 }],
@@ -13659,14 +13954,33 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [manualStats, setManualStats] = useState({});
   const [saved, setSaved] = useState({});
   const [swatch, setSwatch] = useState(SWATCHES[0]);
-  const [brandName, setBrandName] = useState(clubName);
+  const [brandName, setBrandName] = useState(account && account.club ? account.club : clubName);
+  /* the club is the profile's: a save from Personal details or Branding
+     refreshes the profile, and this follows it */
+  useEffect(() => { if (account) setBrandName(account.club || ""); }, [account && account.club]);
   const [library, setLibrary] = useState(Object.fromEntries(Object.entries(SPORTS).map(([id, cf]) => [id, cf.drills])));
 
   const roster = data ? data.roster : freshAccount ? [] : ROSTER;
   const mySeries = data ? data.recurring : freshAccount ? [] : series.filter((x) => x.sport === coachSport);
 
   /* Saving an arrangement books every slot out on the calendar. */
-  const saveSeries = (v) => {
+  const saveSeries = async (v) => {
+    if (data) {
+      const who = (data.roster || []).find((r) => r.name === v.who);
+      if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
+      const old = (data.recurring || []).find((x) => x.who === v.who);
+      if (old) { const r0 = await data.removeRecurring(old.id); if (r0 && r0.error) { say(r0.error.message); return; } }
+      const r1 = await data.addRecurring({ playerId: who.id, weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq });
+      if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save that.")); return; }
+      if (!old) {
+        /* the arrangement books its run out in the diary, as the button says */
+        const occ = occurrencesFrom(v.day, v.total, v.freq);
+        const r2 = await data.addBookings(occ.map((iso) => ({ playerId: who.id, date: iso, time: v.time, duration })));
+        if (r2 && r2.error) { say(r2.error.message); return; }
+        hapticSuccess(); chime(); say(`${occ.length} ${tr("lessons booked for")} ${v.who.split(" ")[0]}`); return;
+      }
+      hapticSuccess(); chime(); say(tr("Updated")); return;
+    }
     const existing = series.find((x) => x.who === v.who && x.sport === coachSport);
     const id = existing ? existing.id : Date.now();
     const rec = { id, sport: coachSport, used: existing?.used || 0, ...v };
@@ -13685,7 +13999,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     say(`${v.total} lessons booked for ${v.who.split(" ")[0]}`);
   };
 
-  const endSeries = (rec) => {
+  const endSeries = async (rec) => {
+    if (data) {
+      const r = await data.removeRecurring(rec.id);
+      if (r && r.error) { hapticWarn(); say(r.error.message || tr("Couldn't end that.")); return; }
+      say(`${rec.who.split(" ")[0]}'s arrangement ended`); return;
+    }
     setSeries((list) => list.filter((x) => x.id !== rec.id));
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: {} };
@@ -13780,10 +14099,52 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mySelected = selectedStats[pKey] || cfg.defaultStats;
   const myManual = manualStats[pKey] || {};
   const mySaved = saved[pKey] || [];
-  const myBookings = bookings.filter((b) => b.connId === conn?.id);
-  const myAvail = avail[coachSport]; const myBlocked = blocked[coachSport];
-  const mySeedBooked = data ? data.bookings : seedBooked[coachSport];
-  const myGroups = data ? [] : freshAccount ? [] : (groups[coachSport] || []);
+  /* Real dates for a real account: the year is the clock's, rolling
+     forward when a month has already passed. */
+  const isoOf = (m, d) => {
+    const y = clock.getFullYear() + (account && m < todayMD.m ? 1 : 0);
+    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  };
+  /* The next N dates on a weekday (Monday = 0), from tomorrow, a week,
+     a fortnight or four weeks apart. */
+  const occurrencesFrom = (dayIdx, count, freq) => {
+    const step = freq === "fortnightly" ? 14 : freq === "monthly" ? 28 : 7;
+    const out = [];
+    const cur = new Date(clock.getFullYear(), clock.getMonth(), clock.getDate() + 1);
+    while ((cur.getDay() + 6) % 7 !== dayIdx) cur.setDate(cur.getDate() + 1);
+    for (let i = 0; i < count; i++) {
+      out.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`);
+      cur.setDate(cur.getDate() + step);
+    }
+    return out;
+  };
+  /* Every booking row a real account can see, flat. */
+  const liveBookingRows = data ? Object.values(data.bookings || {}).flat() : null;
+  /* The player's own — asked for or confirmed; nothing cancelled. */
+  const myBookings = data
+    ? (liveBookingRows || []).filter((b) => b.playerId === account.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
+    : bookings.filter((b) => b.connId === conn?.id);
+  /* A player's requests, waiting on the coach. */
+  const liveAsks = data
+    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date }))
+    : null;
+  /* The coach's own saved hours; for a player, their coach's. Nothing
+     invented — a coach who has set nothing has an empty week. */
+  const liveHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
+  const myAvail = data ? (liveHours.days || {}) : avail[coachSport];
+  const myBlocked = data
+    ? (liveHours.blocked || []).map((x) => { const [iso, time] = String(x).split("|"); const dt = new Date(iso); return { m: dt.getMonth() + 1, d: dt.getDate(), time }; })
+    : blocked[coachSport];
+  const writeAvail = (week) => {
+    if (data) { data.saveAvailability({ ...(liveHours || {}), days: week, duration, slots }); return; }
+    setAvail((p) => ({ ...p, [coachSport]: week }));
+  };
+  /* The diary shows what is confirmed; requests wait in Today's fold. */
+  const mySeedBooked = data
+    ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed")]).filter(([, rows]) => rows.length))
+    : seedBooked[coachSport];
+  const mySeriesLive = data ? mySeries : series;
+  const myGroups = data ? ((data.prefs && data.prefs.groups) || []) : freshAccount ? [] : (groups[coachSport] || []);
   const myLibrary = library[coachSport] || [];
 
   const say = (m) => { setToast(m); setTimeout(() => setToast(""), 1900); };
@@ -13906,9 +14267,35 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setRole("player"); setFlow("app"); setStack([landOnFamily ? "family" : "home"]); haptic(16);
   };
 
-  const book = (b) => { setBookings((x) => [...x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id)), { ...b, connId: conn?.id }]); haptic(18); say("Booked"); };
-  const cancel = (b) => { setBookings((x) => x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id))); haptic(10); say("Cancelled"); };
-  const nextBooking = [...myBookings].sort((a, b) => a.m - b.m || a.d - b.d)[0];
+  const book = async (b) => {
+    if (data) {
+      /* a player may only ask; the coach confirms it from Today */
+      const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
+      hapticSuccess(); setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); return;
+    }
+    setBookings((x) => [...x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id)), { ...b, connId: conn?.id }]); haptic(18); say("Booked");
+  };
+  const cancel = async (b) => {
+    if (data) {
+      if (!b || !b.id) return;
+      const res = await data.cancelBooking(b.id, "cancelled");
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't cancel that.")); return; }
+      haptic(10); return;
+    }
+    setBookings((x) => x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id))); haptic(10); say("Cancelled");
+  };
+  const nextBooking = data
+    ? (() => {
+        const todayIso = isoOf(todayMD.m, todayMD.d);
+        const up = myBookings.filter((b) => b.date >= todayIso)
+          .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
+        if (!up) return null;
+        const dt = new Date(up.date);
+        return { ...up, when: `${DAY_NAMES[(dt.getDay() + 6) % 7].slice(0, 3)} ${up.d} ${MONTHS_FULL[up.m - 1]} · ${up.time}`,
+                 focus: up.status === "requested" ? tr("Requested") : null };
+      })()
+    : [...myBookings].sort((a, b) => a.m - b.m || a.d - b.d)[0];
 
   const switchProfile = (id) => {
     setActiveProfileId(id);
@@ -13957,13 +14344,27 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const bumpUses = (names) => setLibrary((l) => ({
     ...l, [coachSport]: (l[coachSport] || []).map((d) => (names.includes(d.t) ? { ...d, uses: (d.uses || 0) + 1 } : d)),
   }));
-  const doAssignDrills = (name, drills) => {
+  const doAssignDrills = async (name, drills) => {
     bumpUses(drills.map((d) => d.t));
+    if (data) {
+      const who = (data.roster || []).find((r) => r.name === name);
+      if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
+      const res = await data.setDrills(who.id, drills.map((d) => d.t));
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set those drills.")); return; }
+      say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${name.split(" ")[0]}`); haptic(18); return;
+    }
     if (name === "Marcus Tran" && coachSport === "golf") setPractice((p) => ({ ...p, "1:golf": drills.map((d, i) => ({ id: `golf-${Date.now()}-${i}`, t: d.t, d: d.d, done: false })) }));
     say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${(name || "").split(" ")[0]}`); haptic(18);
   };
   const openAssignTip = (name, focusLabel) => { setAssignTo(name); setAssignFocus(focusLabel); setSheet("tip"); haptic(8); };
-  const doSetTip = (tip) => {
+  const doSetTip = async (tip) => {
+    if (data) {
+      const who = (data.roster || []).find((r) => r.name === assignTo);
+      if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
+      const res = await data.setTip(who.id, tip.title, tip.body);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set that.")); return; }
+      chime(); say(`${tr("Focus set for")} ${(assignTo || "").split(" ")[0]}`); haptic(18); return;
+    }
     if (assignTo === "Marcus Tran" && coachSport === "golf") {
       setTips((p) => ({ ...p, "1:golf": [{ id: Date.now(), title: tip.title, body: tip.body, focus: assignFocus || "General", date: "Today", weeksAgo: 0 }, ...(p["1:golf"] || [])] }));
     }
@@ -13994,7 +14395,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setActiveId(id); go("home"); say(`Connected with ${coachInfo.name}`);
   };
 
-  const createGroup = (g) => {
+  const createGroup = async (g) => {
+    if (data) {
+      const byName = Object.fromEntries((data.roster || []).map((r) => [r.name, r.id]));
+      const rec = { id: `g-${Date.now()}`, name: g.name, members: g.members, memberIds: g.members.map((n) => byName[n]).filter(Boolean),
+                    day: g.day, time: g.time, weeks: g.weeks, createdAt: new Date().toISOString() };
+      const cur = (data.prefs && data.prefs.groups) || [];
+      if (cur.some((x) => (x.name || "").toLowerCase() === rec.name.toLowerCase())) { hapticWarn(); say(tr("You already have a group with that name.")); return; }
+      const r1 = await data.saveGroups([...cur, rec]);
+      if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save the group.")); return; }
+      await data.addRecurring({ groupName: g.name, weekday: (g.day + 1) % 7, time: g.time, cadence: "weekly" });
+      const occ = occurrencesFrom(g.day, g.weeks, "weekly");
+      if (occ.length) await data.addBookings(occ.map((iso) => ({ groupName: g.name, date: iso, time: g.time, duration })));
+      say(`${g.name} ${tr("created")} · ${occ.length} ${tr("lessons scheduled")}`); haptic(20); return;
+    }
     const id = Date.now();
     setGroups((prev) => ({ ...prev, [coachSport]: [...(prev[coachSport] || []), { id, ...g }] }));
     const occ = nextOccurrences(g.day, g.weeks);
@@ -14031,7 +14445,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
-      + atRisk(roster, series, live).length + focusReqs.length;
+      + atRisk(roster, mySeriesLive, live).length + focusReqs.length;
   const alerts = (freshAccount ? 0 : NOTIFS[role].filter((n) => n.fresh).length) + waiting;
   const navRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} /><YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} /></>);
   const slimRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}
@@ -14179,7 +14593,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pname = screen.split(":")[1];
-    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} seriesFor={series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
+    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
   } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? data.lessons : null} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
@@ -14195,7 +14609,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       openRequests.length && { id: "j1", what: tr("asking to join"), count: openRequests.length, tone: CAUTION, go: () => push("requests") },
       checkIns.filter((x) => x.state === "waiting").length && { id: "j2", what: tr("clips to look at"), count: checkIns.filter((x) => x.state === "waiting").length, tone: CAUTION, go: () => push("checkins") },
       lessonReqs.length && { id: "j3", what: tr("lesson requests"), count: lessonReqs.length, tone: CAUTION, go: () => go("today") },
-      atRisk(roster, series, live).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, series, live).length, tone: DANGER, go: () => push("atrisk") },
+      atRisk(roster, mySeriesLive, live).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, mySeriesLive, live).length, tone: DANGER, go: () => push("atrisk") },
       focusReqs.length && { id: "j5", what: tr("focus to agree"), count: focusReqs.length, tone: CAUTION, go: () => go("today") },
       (TODAY_SCHEDULE || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (TODAY_SCHEDULE || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
     ].filter(Boolean);
@@ -14212,9 +14626,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
     body = <NotifCentre role={role} isParent={isParent} jobs={jobs} mine={mine} family={family}
                         pop={pop} push={push} go={go} empty={freshAccount} />;
-  } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} />;
-  } else if (screen === "library") { body = <DrillLibrary cfg={cfg} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }))} pop={pop} assign={openAssignDrills} say={say} />;
-  } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={(v) => setAvail((p) => ({ ...p, [coachSport]: v }))} slots={slots} setSlots={setSlots} duration={duration} setDuration={setDuration} pop={pop} say={say} />;
+  } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} live={!!data}
+                                                   onSave={data ? async (club) => { const res = await data.updateProfile({ club }); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null} />;
+  } else if (screen === "library") { body = <DrillLibrary cfg={cfg} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => { setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }));
+                                              /* a real account's own drills live on its preferences; the removal goes there too */
+                                              if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
+  } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
   } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} />;
   } else if (screen.startsWith("history:")) {
     const hname = screen.split(":")[1];
@@ -14237,19 +14654,29 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const who = screen.slice(8);
     body = <CaptureNow booking={{ who }} sport={sport} cfg={cfg} captured={captured} setCaptured={setCaptured} pop={pop} say={say} />;
   } else if (screen === "recurring") {
-    body = <RecurringManager series={series} roster={roster} duration={duration}
-             onEnd={(x) => { setSeries((v) => v.map((y) => (y === x ? { ...y, ended: true } : y)));
+    body = <RecurringManager series={data ? mySeries : series} roster={roster} duration={duration} real={!!data}
+             onEnd={async (x) => { if (data) { const r = await data.removeRecurring(x.id); if (r && r.error) { say(r.error.message); return; } setCeleb({ label: tr("Ended"), sub: x.who, tone: DANGER }); return; }
+               setSeries((v) => v.map((y) => (y === x ? { ...y, ended: true } : y)));
                setCeleb({ label: tr("Ended"), sub: x.who, tone: DANGER }); }}
              onExtend={(x, how) => { setSeries((v) => v.map((y) => (y === x ? { ...y, until: how === "open" ? null : "30 Sep" } : y)));
                say(how === "open" ? tr("Runs until you end it") : tr("Extended by a month")); }}
-             onEdit={(x, patch) => setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y)))}
+             onEdit={async (x, patch) => { if (data) {
+                 /* a standing slot is replaced, not edited in place — the row is small and the diary reads it fresh */
+                 const nx = { ...x, ...patch }; const r0 = await data.removeRecurring(x.id); if (r0 && r0.error) { say(r0.error.message); return; }
+                 await data.addRecurring({ playerId: x.playerId, groupName: x.groupName, weekday: (nx.day + 1) % 7, time: nx.time, cadence: String(nx.freq || "weekly").toLowerCase() }); return; }
+               setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, series, live)} pop={pop}
+    body = <AtRisk list={atRisk(roster, mySeriesLive, live)} pop={pop}
              onMessage={(n) => push("thread:" + n)}
              onBook={(n) => { setRecurFor(n); push("calendar"); }} />;
   } else if (screen === "digest") {
-    body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop} />;
+    body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop}
+             stats={data ? Object.fromEntries(profiles.map((pf) => [pf.id, {
+               lessons: (data.lessons || []).filter((l) => l.playerId === pf.id).length,
+               drillsDone: (data.drills || []).filter((d) => d.playerId === pf.id && d.done).length,
+               drillsTotal: (data.drills || []).filter((d) => d.playerId === pf.id).length,
+               tip: ((data.tips || []).find((tp) => tp.playerId === pf.id) || {}).title || null }])) : null} />;
   } else if (screen === "checkins") {
     body = <CheckIns role={role} list={freshAccount ? [] : checkIns} pop={pop} say={say}
              onAnswer={(c) => { setCheckIns((v) => v.map((x) => (x === c ? { ...x, state: "answered", reply: tr("Looks better — keep the turn going through it.") } : x)));
@@ -14289,9 +14716,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "credentials") {
     body = <Credentials pop={pop} say={say} />;
   } else if (screen === "reviews") {
-    body = <Testimonials role={role} pop={pop} say={say} />;
+    body = <Testimonials role={role} pop={pop} say={say} live={!!data} reviews={data ? data.reviews : null} summary={data ? data.reviewSummary : null} code={data ? data.inviteCode : null} />;
   } else if (screen === "events") {
-    body = <EventsScreen sport={sport} cfg={cfg} role={role} pop={pop} say={say} />;
+    body = <EventsScreen sport={sport} cfg={cfg} role={role} pop={pop} say={say} live={!!data} comps={liveEvents} now={todayMD}
+             onAdd={data ? (c) => data.addCompetition(c) : null} onRemove={data ? (id) => data.removeCompetition(id) : null} />;
   } else if (screen === "season") {
     /* Read the arc off the actual log: the focus that recurred most is
        the theme; the one least revisited is where to go next. Nothing
@@ -14348,38 +14776,43 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "region") {
     body = <RegionScreen region={region} setRegion={setRegion} lang={lang} setLang={setLang} pop={pop} />;
   } else if (screen === "language") { body = <LanguageScreen lang={lang} setLang={setLang} pop={pop} say={say} />;
-  } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} me={account ? { name: account.name, email: account.email, phone: account.phone } : null} />;
-  } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} />;
-  } else if (screen === "support") { body = <Support pop={pop} say={say} />;
+  } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} me={account ? { name: account.name, email: account.email, phone: account.phone, club: account.club } : null}
+                                                   onSave={data ? async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null}
+                                                   onChangePassword={data ? () => setSheet("password") : null} />;
+  } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} live={!!data} notify={prefs.notify} setNotify={(v) => setPrefs((p) => ({ ...p, notify: v }))} />;
+  } else if (screen === "support") { body = <Support pop={pop} say={say} live={!!data} />;
   } else if (screen === "subscription") { body = <Subscription pop={pop} say={say} plan={plan} />;
   } else if (screen === "family") {
     body = <FamilyDashboard profiles={profiles} conns={conns} practice={practice} tips={tips} bookings={bookings}
+                            counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
-  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} setBlocked={(fn) => setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn }))}
-                                                            bookings={role === "player" ? myBookings : []} seedBooked={mySeedBooked} onBook={book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={aiPick} readOnly={juvenile}
+  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} now={todayMD}
+                                                            setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
+                                                              setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
+                                                            bookings={role === "player" ? myBookings : []} seedBooked={mySeedBooked} onBook={book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={aiPick} readOnly={juvenile}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
-                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(l); setSheet("cancel"); }}
+                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h, k) => { setBookSlot({ day, time: h, kind: k }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")} />;
   } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
-  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
+  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
       log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
-    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>
@@ -14398,14 +14831,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
+      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
       log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
   }
 
   return (
@@ -14719,6 +15152,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               if (c) { setActiveId(c.id); setCoachSport(sp); } }}
                                             close={() => setSheet(null)} />
             : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onFamily={() => push("familyCode")} onPhoto={() => setSheet("photo")}
+                                            live={!!data} hasCoach={data ? !!data.hasCoach : false} onJoinCode={onJoinCoach}
                                             mySports={[...new Set(conns.filter((c) => c.profileId === activeProfileId).map((c) => c.sport))]}
                                             main={mainSport[activeProfileId]}
                                             onSetMain={(sp) => { setMainSport((v) => ({ ...v, [activeProfileId]: sp })); setCoachSport(sp); }}
@@ -14731,7 +15165,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} existingNames={[...PLAYERS, ...invited.map((p) => p.name)]}
                                                     onSend={(names) => setInvited((v) => [...v, ...names.map((n) => ({ name: n, sentAt: "just now" }))])}
                                                     close={() => setSheet(null)} say={say} />
+              : sheet === "password" ? <ChangePasswordBody onSubmit={data ? (pw) => data.changePassword(pw) : null} say={say} close={() => setSheet(null)} />
               : sheet === "peek" && peek ? <LessonPeek booking={peek} duration={duration} sport={coachSport} agreed={agreedFocus[peek.who]}
+                                            past={data ? (data.lessons || []).filter((l) => l.who === peek.who).slice(0, 2) : undefined}
                                             onHistory={() => { setSheet(null); push("history:" + peek.who); }}
                                             cfg={cfg} onWeather={() => setSheet("weather")}
                                             comps={liveComps
@@ -14742,10 +15178,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onLog={() => { setSheet(null); setPrefill({ m: todayMD.m, d: todayMD.d, ...peek }); go("log"); }}
                                             onNoShow={() => { markNoShow(peek); setSheet(null); }}
                                             onCapture={() => { setSheet(null); push("capture:" + peek.who); }}
-                                            onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setSheet("cancel"); }}
+                                            onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setCancelBk(peek); setSheet("cancel"); }}
                                             close={() => setSheet(null)} />
               : sheet === "editDay" && editDay ? <EditDay day={editDay} slots={ALL_TIMES} duration={duration}
-                                            avail={avail[coachSport] || {}} setAvail={(nx) => setAvail({ ...avail, [coachSport]: nx })}
+                                            avail={myAvail || {}} setAvail={writeAvail}
                                             slotKinds={slotKinds} setSlotKinds={setSlotKinds}
                                             onWeather={() => setSheet("weather")} close={() => setSheet(null)} say={say} />
               : sheet === "bookWho" && bookSlot ? (
@@ -14757,7 +15193,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <div className="flex flex-col gap-2">
                       {roster.map((r, i) => (
                         <Tile key={r.name} className="px-4 py-3.5" delay={i * 45}
-                              onPress={() => { setSeedBooked((prev) => {
+                              onPress={async () => {
+                                if (data) {
+                                  const res = await data.addBooking({ playerId: r.id, date: isoOf(bookSlot.day.m, bookSlot.day.d), time: bookSlot.time, duration });
+                                  if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't book that.")); return; }
+                                  setSheet(null); setCeleb({ label: tr("Booked"), sub: `${r.name} · ${bookSlot.time}` }); return;
+                                }
+                                setSeedBooked((prev) => {
                                   const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
                                   const k = key(bookSlot.day.m, bookSlot.day.d);
                                   nx[coachSport][k] = [...(nx[coachSport][k] || []), { time: bookSlot.time, who: r.name, kind: "Private" }];
@@ -14779,14 +15221,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
                       {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
                     </p>
-                    <Button onClick={() => { setSheet(null); setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); }}>{tr("Request it")}</Button>
+                    <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); }}>{tr("Request it")}</Button>
                   </>
                 )
               : sheet === "rebookAfter" ? (
                   <>
                     <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Book the next one")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>{(conn || {}).coach}</p>
-                    <Button onClick={() => { setSheet(null); setCeleb({ label: tr("Booked"), sub: tr("Same time next week") }); }}>{tr("Book it")}</Button>
+                    <Button onClick={() => { setSheet(null); if (data) { go("calendar"); return; } setCeleb({ label: tr("Booked"), sub: tr("Same time next week") }); }}>{tr("Book it")}</Button>
                     <button onClick={() => { setSheet(null); go("calendar"); }} className="w-full mt-3 py-3 active:opacity-50"
                             style={{ fontFamily: ui, fontSize: 13.5, color: theme.sub }}>{tr("Pick another time")}</button>
                   </>
@@ -14796,7 +15238,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onDone={(parts) => setCeleb({ label: tr("Record shared"), sub: `${parts.length} ${tr("parts")}` })}
                                             close={() => setSheet(null)} />
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
-                                            onDone={({ reason, offer }) => {
+                                            onDone={async ({ reason, offer }) => {
+                                              if (data) {
+                                                /* the booking is marked cancelled; an offered time is booked in its place */
+                                                const bk = cancelBk;
+                                                if (!bk || !bk.id) { say(tr("Couldn't find that booking.")); return; }
+                                                const r1 = await data.cancelBooking(bk.id, "cancelled");
+                                                if (r1 && r1.error) { hapticWarn(); say(r1.error.message); return; }
+                                                if (offer && role === "coach") {
+                                                  const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration }]);
+                                                  if (r2 && r2.error) { say(r2.error.message); return; }
+                                                }
+                                                setCeleb({ label: tr("Cancelled"), sub: offer ? `${tr("Rebooked")} ${offer}` : tr("Their diary is updated."), tone: DANGER });
+                                                return;
+                                              }
                                               setCancelNotice({ from: role === "coach" ? coachName : (activeProfile || {}).name, lesson: cancelling, reason, offer });
                                               /* comes back to the package, unlike a no show */
                                               setSeries((list) => list.map((x) => (cancelling && cancelling.includes(x.who) ? { ...x, total: x.total + 1 } : x)));
@@ -14867,7 +15322,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   </>
                 )
               : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
-                                            onCreate={(g) => { setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
+                                            onCreate={(g) => { if (data) { createGroup(g); return; }
+                                              setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
                                               setCeleb({ label: tr("Group created"), sub: `${g.name} · ${g.members.length}` }); }}
                                             close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
@@ -14882,7 +15338,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {slots.slice(0, 6).map((sl) => (
-                        <button key={sl} onClick={() => { hapticSuccess(); soft();
+                        <button key={sl} onClick={async () => { hapticSuccess(); soft();
+                                  if (data) {
+                                    /* the request is declined and the offered time booked in its place */
+                                    const r1 = await data.cancelBooking(declining.id, "cancelled");
+                                    const r2 = (r1 && r1.error) ? r1 : await data.addBookings([{ playerId: declining.playerId, date: declining.date || isoOf(declining.m, declining.d), time: sl, duration }]);
+                                    if (r2 && r2.error) { say(r2.error.message || tr("Couldn't offer that time.")); return; }
+                                    setSheet(null); setCeleb({ label: tr("Booked"), sub: `${declining.who} · ${sl}` }); return;
+                                  }
                                   setAskedFor((v) => v.filter((x) => x !== declining));
                                   setSheet(null); setCeleb({ label: tr("Offered"), sub: `${declining.who} · ${sl}` }); }}
                                 className="px-3.5 active:opacity-60"
@@ -14890,7 +15353,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                          ...TYPE.small, fontWeight: 500, color: theme.ink }}>{sl}</button>
                       ))}
                     </div>
-                    <Button tone="dangerQuiet" onClick={() => { setAskedFor((v) => v.filter((x) => x !== declining));
+                    <Button tone="dangerQuiet" onClick={async () => {
+                              if (data) { const r = await data.cancelBooking(declining.id, "cancelled"); if (r && r.error) { say(r.error.message); return; } }
+                              setAskedFor((v) => v.filter((x) => x !== declining));
                               setSheet(null); say(tr("Declined")); }}>{tr("Just decline")}</Button>
                   </>
                 )
@@ -14899,7 +15364,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who's it for")}</h2>
                     <div className="flex flex-col gap-2">
                       {roster.map((r, i) => {
-                        const has = series.some((x) => x.who === r.name && !x.ended);
+                        const has = mySeriesLive.some((x) => x.who === r.name && !x.ended);
                         return (
                           <Tile key={r.name} className="px-4 py-3.5" delay={i * 45}
                                 onPress={has ? null : () => { setRecurFor(r.name); setSheet("recurring"); }}>
@@ -14917,7 +15382,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     </div>
                   </>
                 )
-              : sheet === "recurring" ? <RecurringSetup name={recurFor || (roster[0] || ROSTER[0]).name} existing={series.find((x) => x.who === recurFor && x.sport === coachSport)}
+              : sheet === "recurring" ? <RecurringSetup name={recurFor || (roster[0] || (data ? {} : ROSTER[0])).name || ""} existing={data ? mySeries.find((x) => x.who === recurFor) : series.find((x) => x.who === recurFor && x.sport === coachSport)}
                                           slots={slots} duration={duration} onSave={saveSeries} onEnd={endSeries}
                                           close={() => setSheet(null)} say={say} />
               : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} onSend={data ? (text) => data.broadcast(text) : null} />
