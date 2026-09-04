@@ -3074,7 +3074,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
   const isVoice = item.kind === "voice";
   const isNote = item.kind === "note";
   const label = isVideo ? item.angle : isData ? cap.device
-    : isVoice ? tr("Voice note") : isNote ? (item.text || tr("Note")) : tr("Photo");
+    : isVoice ? (item.name || tr("Voice note")) : isNote ? (item.text || tr("Note")) : (item.name || tr("Photo"));
   const Icon = isVideo ? Play : isData ? Receipt : isVoice ? Mic : isNote ? Edit3 : Tag;
 
   return (
@@ -3087,14 +3087,14 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
         <span className="flex-1 min-w-0">
           <span className="block truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{label}</span>
           <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>
-            {isVideo || isVoice ? `0:${String(item.secs || 0).padStart(2, "0")}`
+            {isVideo || isVoice ? (item.secs ? `0:${String(item.secs).padStart(2, "0")}` : tr("Attached"))
               : isNote ? tr("Attached")
               : item.reading ? tr("Reading the numbers…")
               : item.values ? tr("Tap a number to correct it")
               : tr("Attached")}
           </span>
         </span>
-        {(isVideo || isVoice) && (
+        {(isVideo || isVoice) && onAnnotate && (
           <button onClick={onAnnotate} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60"
                   style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Mark it up")}>
             <Palette size={15} color={t.sub} />
@@ -3122,7 +3122,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
         </div>
       )}
 
-      {isVideo && !item.transcript && !item.working && (
+      {isVideo && onTranscribe && !item.transcript && !item.working && (
         <button onClick={onTranscribe} className="w-full mt-3 flex items-center justify-center gap-2 active:opacity-60"
                 style={{ minHeight: 38, borderRadius: R.field, border: `1px solid ${t.hair}` }}>
           <FileText size={12} color={t.sub} />
@@ -4925,7 +4925,11 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
   const [picked, setPicked] = useState(soleLive.length === 1 ? soleLive[0] : null);
   const [marks, setMarks] = useState(soleLive.length === 1 ? (taken[soleLive[0].time + soleLive[0].who] || {}) : {});
 
-  const membersOf = (l) => (l && l.kind && l.kind.startsWith("Group"))
+  /* A real group booking names no members, so the whole roster is
+     offered and the coach marks who came. The head-count slice is the
+     design harness's seeded groups only. */
+  const membersOf = (l) => (l && l.members) ? l.members
+    : (l && l.kind && l.kind.startsWith("Group"))
     ? (roster || []).slice(0, Number((l.kind.match(/\d+/) || [6])[0])).map((r) => r.name)
     : l ? [l.who] : [];
 
@@ -5036,6 +5040,26 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Attendance")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Today")}</p>
 
+      {(lessons || []).length === 0 && (
+        <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>
+          {tr("Nothing booked today.")}{(roster || []).length ? ` ${tr("You can still mark someone.")}` : ""}
+        </p>
+      )}
+      {(lessons || []).length === 0 && (roster || []).length > 0 && (
+        <div className="mb-2" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          {(roster || []).map((r, i) => (
+            <button key={r.id || r.name} onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
+                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
+                             animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
+              <Avatar name={r.name} size={30} />
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
+              <ChevronRight size={14} color={t.faint} />
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
         {(lessons || []).map((l, i) => {
           const key = l.time + l.who;
@@ -5144,6 +5168,30 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
           empty panel. */}
       <h2 className="mb-4" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Capture")}</h2>
       <div className="pb-2">
+        {/* where it files: one of today's bookings, or the holding pile
+            that is offered when the next lesson is logged */}
+        {lessons && lessons.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Filing under")}</div>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+              {[...lessons, null].map((l) => {
+                const on = l ? !!(chosen && chosen.who === l.who && chosen.time === l.time) : !chosen;
+                return (
+                  <button key={l ? l.time + l.who : "none"} disabled={live}
+                          onClick={() => { haptic(6); onChoose && onChoose(l); }}
+                          className="px-3.5 shrink-0 active:opacity-60"
+                          style={{ minHeight: 34, borderRadius: R.pill,
+                                   background: on ? t.accent : "transparent",
+                                   border: `0.5px solid ${on ? t.accent : HAIR(t.ink, 0.2)}`,
+                                   ...TYPE.caption, fontWeight: 500, color: on ? t.onAccent : t.sub }}>
+                    {l ? `${l.who} · ${l.time}` : tr("Nobody yet")}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* which kind */}
         <div className="flex gap-1 p-1 mb-5 rounded-full w-fit" data-tour="capture-modes" style={{ background: t.wash }}>
           {[["video", tr("Film")], ["photo", tr("Photo")], ["audio", tr("Voice")]].map(([id, label]) => (
@@ -5360,7 +5408,7 @@ function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, clos
           <Group title={cfg.nouns}>
             {people.slice(0, 4).map((r, i) => (
               <Line key={r.name} i={i} Ico={User} label={r.name}
-                    sub={`${fileFor(r.name, live).done} ${tr("lessons")}`}
+                    sub={`${r.lessons ?? fileFor(r.name, live).done} ${tr("lessons")}`}
                     act={() => { close(); push("player:" + r.name); }} />
             ))}
           </Group>
@@ -5370,7 +5418,7 @@ function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, clos
           <Group title={tr("Lessons")}>
             {found.map((l, i) => (
               <Line key={l.id} i={i} Ico={Library} label={l.focus} sub={`${l.d} ${l.m}`}
-                    act={() => { close(); push("lesson"); }} />
+                    act={() => { close(); push(role === "coach" ? `clesson:${l.who}:${l.id}` : `lesson:${l.id}`); }} />
             ))}
           </Group>
         )}
@@ -5511,6 +5559,16 @@ function Evidence({ item, live, mark }) {
              className="absolute inset-0 w-full h-full"
              style={{ objectFit: "cover", zIndex: 1 }} />
       </>
+    );
+  }
+
+  if (item.type === "audio") {
+    /* a voice note in the feed: the browser's own player, nothing drawn */
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8" style={{ background: "#0B0F10" }}>
+        <Mic size={40} color="rgba(255,255,255,0.85)" strokeWidth={1.4} />
+        <audio src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+      </div>
     );
   }
 
@@ -6141,7 +6199,7 @@ function JoinedCoach({ coachName, sport, onDone }) {
    is starting lessons. The shape is deliberately identical to joining
    a coach, so the second time someone sees six boxes they already know
    what to do. */
-function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
+function FamilyScreen({ familyCode, family, hasGuardian, onJoin, onMessage, say, pop }) {
   const t = useT();
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
@@ -6195,7 +6253,13 @@ function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
               <Card className="mb-8">
                 {family.map((m, i) => (
                   <Row key={m.id} label={m.name} last={i === family.length - 1}
-                       icon={<Avatar name={m.name} size={34} />} />
+                       sub={m.coachName ? `${tr("Coached by")} ${m.coachName}` : m.coachId ? tr("Has a coach") : tr("No coach yet")}
+                       icon={<Avatar name={m.name} size={34} />}
+                       right={m.coachId && onMessage ? (
+                         /* a guardian writes to the junior's coach on their behalf */
+                         <button onClick={() => { haptic(6); onMessage(m); }} className="shrink-0 p-2 active:opacity-50" aria-label={`Message ${m.name}`}>
+                           <MessageCircle size={17} color={t.sub} strokeWidth={1.6} />
+                         </button>) : null} />
                 ))}
               </Card>
             </>
@@ -6593,11 +6657,14 @@ function GoalSheet({ name, cfg, onSave, close }) {
 /* Starting a conversation. A player can only reach a coach they are
    actually connected to, and a coach only their own roster — the list
    is the safeguard, not a search box over every user. */
-function NewThread({ role, roster, conns, onPick, close }) {
+function NewThread({ role, roster, conns, people: given, onPick, close }) {
   const t = useT();
   const [q, setQ] = useState("");
-  const people = role === "coach"
-    ? roster.map((r) => ({ name: r.name, sub: `${r.lessons} ${tr("lessons")}` }))
+  /* `people` is the real list when there is one — the coach, and any
+     family member with a coach of their own; the seeded connections
+     are the design harness's. */
+  const people = given ? given : role === "coach"
+    ? roster.map((r) => ({ id: r.id, name: r.name, sub: `${r.lessons} ${tr("lessons")}` }))
     : conns.map((c) => ({ name: c.coach, sub: `${SPORTS[c.sport].label} · ${c.club}` }));
   const term = q.trim().toLowerCase();
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
@@ -6615,7 +6682,7 @@ function NewThread({ role, roster, conns, onPick, close }) {
       ) : (
         <div className="flex flex-col gap-2.5">
           {shown.map((p, i) => (
-            <Tile key={p.name} className="px-4 py-3.5" delay={i * 45} onPress={() => { onPick(p.name); close(); }}>
+            <Tile key={p.id || p.name} className="px-4 py-3.5" delay={i * 45} onPress={() => { onPick(p.id || p.name); close(); }}>
               <div className="flex items-center gap-3.5">
                 <Avatar name={p.name} size={38} />
                 <span className="flex-1 min-w-0">
@@ -8438,7 +8505,7 @@ const CARD_H = 292, CARD_STEP = CARD_H + 14;
    rule, then the first frame of whatever was filmed. Where there is no
    footage the space isn't wasted or apologetic: it carries the mark
    over a field of the sport's own colour. */
-function LessonCard({ lesson, onOpen, active, saved }) {
+function LessonCard({ lesson, onOpen, active, saved, media, live }) {
   const t = useT();
   const has = (lesson.videos || 0) > 0;
 
@@ -8476,7 +8543,13 @@ function LessonCard({ lesson, onOpen, active, saved }) {
 
       {/* the first frame, or the mark on the sport's colour */}
       <div className="relative" style={{ height: CARD_H - 118 }}>
-        {has ? (
+        {media && media.type === "video" ? (
+          <video src={media.url} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full"
+                 style={{ objectFit: "cover", background: "#0B0F10" }} />
+        ) : media && media.type === "photo" ? (
+          <img src={media.url} alt="" className="absolute inset-0 w-full h-full"
+               style={{ objectFit: "cover", background: "#0B0F10" }} />
+        ) : has && !live ? (
           <>
             {/* a still: horizon band, ground, and the sport's light */}
             <div className="absolute inset-0" style={{ background: "#121618" }} />
@@ -8517,7 +8590,7 @@ function LessonCard({ lesson, onOpen, active, saved }) {
   );
 }
 
-function VDeck({ lessons, go, push, saved }) {
+function VDeck({ lessons, go, push, saved, liveMedia }) {
   const t = useT(); const [a, setA] = useState(0);
   return (
     <>
@@ -8528,7 +8601,7 @@ function VDeck({ lessons, go, push, saved }) {
            }}
            style={{ scrollbarWidth: "none", scrollSnapType: "y mandatory", overscrollBehaviorY: "contain" }}>
         {lessons.map((l, i) => (<div key={l.id} className="snap-center" style={{ scrollSnapAlign: "center", scrollSnapStop: "always",
-                          paddingBottom: i === lessons.length - 1 ? 24 : 14 }}><LessonCard lesson={l} active={i === a} saved={saved.includes(l.id)} onOpen={() => push("lesson")} /></div>))}
+                          paddingBottom: i === lessons.length - 1 ? 24 : 14 }}><LessonCard lesson={l} active={i === a} saved={saved.includes(l.id)} live={!!liveMedia} media={liveMedia && liveMedia[l.id] ? liveMedia[l.id].find((m) => m.type !== "audio") : null} onOpen={() => push(`lesson:${l.id}`)} /></div>))}
       </div>
       <div className="shrink-0 flex items-center justify-center gap-1.5 py-2.5">{lessons.map((l, i) => (<span key={l.id} className="rounded-full" style={{ width: 5, height: i === a ? 15 : 5, background: i === a ? t.ink : t.hair, transition: "height 200ms" }} />))}</div>
     </>
@@ -9059,7 +9132,7 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
 
 
 
-function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, setPrefs, sport, ownMedia, onUpload, onOverture }) {
+function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, setPrefs, sport, ownMedia, onUpload, onOverture, liveMedia }) {
   const t = useT();
   const ready = useLoad();
   const view = (prefs && prefs.logView) === "list" ? "List" : "Cards";
@@ -9070,7 +9143,13 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
   /* Immersive is a different animal — it owns the screen, so it is not
      a segment inside this one. */
   if ((prefs && prefs.logView) === "feed" && lessons.length > 0) {
-    const mediaFor = (l, i) => {
+    /* A real account shows what was actually attached — the sport's
+       colour field while it loads or when there is nothing. The drawn
+       frames, the device readout and the test-media control are the
+       design harness's only. */
+    const mediaFor = liveMedia
+      ? (l) => liveMedia[l.id] || []
+      : (l, i) => {
       const own = (ownMedia && ownMedia[i]) || [];
       if (own.length) return own;
       const n = l.videos || 0;
@@ -9084,8 +9163,8 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
     };
     return <LessonFeed lessons={lessons} mediaFor={mediaFor}
                        view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
-                       onPickFiles={(files) => onUpload && onUpload(0, files)}
-                       loaded={Object.keys(ownMedia || {}).length}
+                       onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
+                       loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
                        onOpen={(l) => onOverture(l)} />;
   }
 
@@ -9124,11 +9203,11 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
           {lessons.length === 0 ? tr("No lessons yet.") : tr("Nothing under that.")}
         </p>
       ) : view === "Cards" ? (
-        <VDeck lessons={shown} go={go} push={push} saved={saved} />
+        <VDeck lessons={shown} go={go} push={push} saved={saved} liveMedia={liveMedia} />
       ) : (
         <div className="px-6 pb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
           {shown.map((l, i) => (
-            <button key={l.id} data-tour={i === 0 ? "log-row" : undefined} onClick={() => { haptic(8); soft(); push("lesson"); }}
+            <button key={l.id} data-tour={i === 0 ? "log-row" : undefined} onClick={() => { haptic(8); soft(); push(`lesson:${l.id}`); }}
                     className="w-full flex items-center gap-4 text-left active:opacity-50"
                     style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              animation: `settle 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 45}ms both` }}>
@@ -9156,6 +9235,133 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
   );
 }
 
+/* REAL MEDIA
+
+   What a coach attached is fetched by lesson id and played by the
+   browser's own <video>, <img> and <audio>; the data layer signs the
+   URLs and caches them for the session. `null` while loading, `[]`
+   when nothing is attached. The drawn stand-ins further down are the
+   design harness's — a real account never sees them. */
+function useLessonMedia(lessonId, loader, count) {
+  const [items, setItems] = useState(null);
+  const has = !!loader && !!lessonId;
+  useEffect(() => {
+    if (!has) { setItems(null); return; }
+    if (!count) { setItems([]); return; }
+    let alive = true;
+    setItems(null);
+    loader(lessonId).then((m) => { if (alive) setItems(m || []); })
+                    .catch(() => { if (alive) setItems([]); });
+    return () => { alive = false; };
+  }, [lessonId, count, has]);
+  return items;
+}
+
+const mediaLabel = (it, i, all) => {
+  const same = (all || []).filter((x) => x.type === it.type);
+  const n = same.length > 1 ? ` ${same.indexOf(it) + 1}` : "";
+  return it.type === "video" ? `${tr("Clip")}${n}` : it.type === "audio" ? `${tr("Voice note")}${n}` : `${tr("Photo")}${n}`;
+};
+
+function MediaView({ item, height = 220 }) {
+  const t = useT();
+  if (!item) return null;
+  if (item.type === "video") {
+    return (
+      <video key={item.url} src={item.url} playsInline controls preload="metadata" className="block w-full"
+             style={{ height, objectFit: "cover", background: "#0B0F10", borderRadius: 18 }} />
+    );
+  }
+  if (item.type === "photo") {
+    return (
+      <img key={item.url} src={item.url} alt="" className="block w-full"
+           style={{ height, objectFit: "cover", background: "#0B0F10", borderRadius: 18 }} />
+    );
+  }
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 px-6"
+         style={{ height: Math.min(height, 150), borderRadius: 18, background: t.wash }}>
+      <Mic size={22} color={t.sub} strokeWidth={1.6} />
+      <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+    </div>
+  );
+}
+
+/* A LESSON LOG, AS A FILE
+
+   One self-contained HTML page: the date, who, the focus, the notes,
+   and links to the media. It is the person's own record, so it leaves
+   through the share sheet where there is one (iOS puts it into Files,
+   Notes or Mail), otherwise as a plain download, otherwise in a new
+   tab. Nothing in it is invented — a section with nothing to say is
+   left out. */
+const escapeHtml = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const longDate = (iso, fallback) => {
+  if (!iso) return fallback || "";
+  const d = new Date(iso);
+  return isNaN(d) ? (fallback || "") : d.toLocaleDateString("en-IE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+};
+function lessonLogHtml({ lesson, coach, who, media = [], drills = [], tip }) {
+  const e = escapeHtml;
+  const when = longDate(lesson.iso, lesson.date);
+  const section = (label, inner) => (inner ? `<section><h2>${e(label)}</h2>${inner}</section>` : "");
+  const subs = (lesson.subs || []).filter(Boolean);
+  const drillList = (drills || []).map((d) => (typeof d === "string" ? d : d && d.t)).filter(Boolean);
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${e(lesson.focus)} · ${e(when)}</title>
+<style>
+  body{margin:0;background:#FAF7F0;color:#1A1815;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:640px;margin:0 auto;padding:40px 24px 64px}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8A857C}
+  h1{font-size:34px;line-height:1.05;letter-spacing:-.03em;font-weight:400;margin:10px 0 6px}
+  .meta{color:#6B6560;font-size:14px;margin:0 0 28px}
+  section{border-top:1px solid rgba(26,24,21,.13);padding:20px 0}
+  h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8A857C;font-weight:600;margin:0 0 10px}
+  p,li{font-size:16px;margin:0 0 8px}
+  ul{padding-left:18px;margin:0}
+  a{color:#1A1815}
+  .note{font-size:12.5px;color:#8A857C;margin-top:10px}
+  footer{margin-top:40px;font-size:12px;color:#8A857C}
+</style></head><body><main>
+  <div class="eyebrow">${e(BRAND)} · ${e(lesson.type === "Group" ? "Group lesson" : "Lesson")}</div>
+  <h1>${e(lesson.focus)}</h1>
+  <p class="meta">${e(when)}${coach ? ` · ${e(coach)}` : ""}${who ? ` · ${e(who)}` : ""}</p>
+  ${section("Sub-focus", subs.length ? `<p>${subs.map(e).join(" · ")}</p>` : "")}
+  ${section("Notes", lesson.note ? `<p>${e(lesson.note).replace(/\n/g, "<br>")}</p>` : "")}
+  ${section("Drills set", drillList.length ? `<ul>${drillList.map((d) => `<li>${e(d)}</li>`).join("")}</ul>` : "")}
+  ${section("Takeaway", tip ? `<p>${e(tip)}</p>` : "")}
+  ${section("Media", media.length
+    ? `<ul>${media.map((m, i) => `<li><a href="${e(m.url)}">${e(mediaLabel(m, i, media))}</a></li>`).join("")}</ul>`
+      + `<p class="note">These links open for about an hour after this file was made. The clips themselves stay in ${e(BRAND)}.</p>`
+    : "")}
+  <footer>Saved from ${e(BRAND)}</footer>
+</main></body></html>`;
+}
+async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }) {
+  if (!lesson) return;
+  const html = lessonLogHtml({ lesson, coach, who, media: media || [], drills, tip });
+  const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const name = `nosca-lesson-${lesson.iso || slug(lesson.date) || "log"}${lesson.focus ? "-" + slug(lesson.focus) : ""}.html`;
+  const file = new File([html], name, { type: "text/html" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: lesson.focus });
+      return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; /* anything else: fall through to a download */ }
+  const url = URL.createObjectURL(file);
+  if ("download" in HTMLAnchorElement.prototype) {
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    say && say(tr("Saved"));
+  } else {
+    window.open(url, "_blank");
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 /* A LESSON, OPENED
 
    Rebuilt as one continuous page rather than a stack of boxes. The
@@ -9163,18 +9369,27 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
    hairlines — the way a match report reads. Boxes were being used to
    group things that were already grouped by proximity, which just
    added edges to look at. */
-function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance }) {
+function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance, lessonId, mediaFor, onDownload, onRate }) {
   const t = useT();
-  const base = lessons[0];
+  const live = !!mediaFor;
+  /* the one that was tapped — by id, never "the newest" */
+  const base = lessonId != null
+    ? (lessons.find((x) => String(x.id) === String(lessonId)) || null)
+    : lessons[0];
   const id = fresh ? 999 : base?.id;
   const l = fresh
     ? { focus: fresh.focus, subs: fresh.subs, date: "Today", type: fresh.type === "group" ? "Group" : "Private",
         videos: fresh.videos.map((v) => v.angle || v), note: fresh.note, tip: fresh.nextTip, drills: fresh.nextDrills }
     : { focus: base?.focus || "Lesson", subs: base?.subs || [], date: base ? `${base.d} ${base.m}` : "",
-        type: base?.type || "Private", videos: cfg.angles.slice(0, base?.videos || 0),
+        type: base?.type || "Private", videos: live ? [] : cfg.angles.slice(0, base?.videos || 0),
         note: base?.note, tip: base?.tip, drills: base?.drills };
   const [a, setA] = useState(0);
   const isSaved = saved.includes(id);
+  /* what the coach actually attached, signed for this session */
+  const count = base ? (base.media ?? base.videos ?? 0) : 0;
+  const media = useLessonMedia(live && !fresh && base ? base.id : null, mediaFor, count);
+  const items = media || [];
+  const current = items[Math.min(a, Math.max(0, items.length - 1))];
 
   const Line = ({ label, children, delay = 0 }) => (
     <div className="py-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}`,
@@ -9184,15 +9399,48 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
     </div>
   );
 
+  if (!fresh && lessonId != null && !base) {
+    return (
+      <SwipeBack onBack={pop}>
+        <Screen bare onBack={pop}>
+          <p className="px-6 py-16 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That lesson isn't available.")}</p>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
   return (
     <SwipeBack onBack={pop}>
       <Screen bare onBack={pop}
-              right={<IconBtn tour="lesson-save" C={Download} label={tr("Save offline")} onOpen={() => { haptic(9); toggleSave(id); }} />}>
+              right={live
+                ? <IconBtn tour="lesson-save" C={Download} label={tr("Download lesson log")} onOpen={() => { haptic(9); onDownload && base && onDownload(base, items); }} />
+                : <IconBtn tour="lesson-save" C={Download} label={tr("Save offline")} onOpen={() => { haptic(9); toggleSave(id); }} />}>
 
         {/* the clip, edge to edge — the reason you opened this */}
-        {l.videos.length > 0 ? (
+        {live && !fresh ? (
+          media === null && count > 0 ? (
+            <div className="px-6 mb-6"><Bone h={220} r={18} /></div>
+          ) : items.length > 0 ? (
+            <div className="px-6 mb-6" data-tour="lesson-clip">
+              <MediaView item={current} />
+              {items.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
+                  {items.map((it, i) => (
+                    <button key={it.id || i} onClick={() => { haptic(7); soft(); setA(i); }}
+                            className="px-3.5 shrink-0 active:opacity-60"
+                            style={{ minHeight: 32, borderRadius: R.pill,
+                                     background: i === a ? t.accent : "transparent",
+                                     border: `0.5px solid ${i === a ? t.accent : HAIR(t.ink, 0.2)}`,
+                                     ...TYPE.caption, fontWeight: 500,
+                                     color: i === a ? t.onAccent : t.sub }}>{mediaLabel(it, i, items)}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null
+        ) : l.videos.length > 0 ? (
           <div className="mb-6" data-tour="lesson-clip">
-            <Clip angle={l.videos[a] || "Clip"} saved={isSaved} onMinimise={() => minimise(l.videos[a] || "Clip")} />
+            <Clip angle={l.videos[a] || "Clip"} saved={isSaved} onMinimise={() => minimise(l.videos[a] || "Clip", id)} />
             {l.videos.length > 1 && (
               <div className="flex gap-2 overflow-x-auto px-6 mt-3" style={{ scrollbarWidth: "none" }}>
                 {l.videos.map((v, i) => (
@@ -9262,6 +9510,17 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
                     : <><X size={15} color={DANGER} strokeWidth={2.4} />
                         <span style={{ ...TYPE.body, color: t.ink }}>{tr("Marked absent")}</span></>}
                 </span>
+              </Line>
+            )}
+
+            {/* the coach asked for a rating on this one — once, and only
+                until a review exists */}
+            {onRate && base && base.ratingRequested && (
+              <Line label={tr("Your coach asked")} delay={260}>
+                <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="flex items-center gap-1.5 active:opacity-50"
+                        style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>
+                  {tr("Leave a rating")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
+                </button>
               </Line>
             )}
           </div>
@@ -9696,6 +9955,45 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [showWaiting, setShowWaiting] = useState(false);
   const [wantRating, setWantRating] = useState(false);
 
+  /* A real voice note: the microphone, a file, and nothing invented.
+     It uploads with the lesson as audio; the typed note is separate.
+     Media comes from the camera or a real file picker the same way. */
+  const cap = useCapture();
+  const [voice, setVoice] = useState(null);            // { file, secs, url }
+  const fileInput = useRef(null);
+  const startVoice = async () => {
+    haptic(14);
+    const stream = await cap.start("audio");
+    if (!stream) return;
+    cap.record("audio"); setSecs(0); setRec("recording");
+  };
+  const stopVoice = async () => {
+    haptic(10);
+    const file = await cap.stop("audio");
+    cap.stopStream(); setRec("idle");
+    if (file) {
+      setVoice((v) => { if (v && v.url) URL.revokeObjectURL(v.url); return { file, secs, url: URL.createObjectURL(file) }; });
+      hapticSuccess();
+    }
+  };
+  useEffect(() => () => cap.cancel(), []);
+  const pickFiles = (accept, capture) => {
+    haptic(8);
+    const el = fileInput.current; if (!el) return;
+    el.accept = accept;
+    if (capture) el.setAttribute("capture", capture); else el.removeAttribute("capture");
+    el.click();
+  };
+  const addFiles = (files) => {
+    files.forEach((f, k) => {
+      const at = Date.now() + k;
+      if (f.type.startsWith("video")) setVideos((v) => [...v, { angle: f.name, secs: 0, file: f, name: f.name }]);
+      else if (f.type.startsWith("audio")) setPhotos((ps) => [...ps, { at, kind: "voice", file: f, name: f.name, values: null, reading: false }]);
+      else setPhotos((ps) => [...ps, { at, kind: "action", file: f, name: f.name, values: null, reading: false }]);
+    });
+    if (files.length) { hapticSuccess(); soft(); }
+  };
+
 
   /* Anything filmed or noted outside the wizard — via the plus menu's
      Live capture, or "Capture during the lesson" from the player's own
@@ -9712,8 +10010,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   /* Videos, photos and anything pulled in, held in one list so the
      slide renders one shape regardless of where it came from. */
   const items = [
-    ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working })),
-    ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading })),
+    ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name })),
+    ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
     ...pulled.map((it) => ({ ...it, id: `c${it.id}` })),
   ];
   const addPhoto = (kind) => {
@@ -9743,7 +10041,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const recommended = (cfg.drills || []).filter((d) => focus.includes(d.focus)).concat(cfg.drills.slice(0, 3)).slice(0, 6);
 
   useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
-  useEffect(() => { if (rec !== "working") return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg]);
+  /* the harness's pretend transcription — never on a real account */
+  useEffect(() => { if (rec !== "working" || live) return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg, live]);
 
   const chosen = cfg.focus.filter((f) => focus.includes(f.id)).map((f) => f.label).concat(custom);
   const group = who.length > 1 || !!pickedGroup;
@@ -9764,7 +10063,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const finish = () => onPublish({
     type: group ? "group" : "private", who, groupName: pickedGroup, focus: chosen.join(" · "),
     focusList: chosen, focusIds: focus, custom, subs: [], ctx,   // the wizard has no sub-focus picker
-    note: note || videos.map((v) => v.transcript).filter(Boolean).join(" ") || null, videos, photos, secs,
+    note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
     nextDrills, nextTip, wantRating, m: logM, d: logD, time: logTime, pulled,
   });
 
@@ -9937,24 +10236,42 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* ---------- 3 · voice ---------- */}
           {step === 3 && (<div className="px-6">
 
-            {rec === "idle" && !note && (
-              <button data-tour="wiz-notes" onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
-                      style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-                <span className="rounded-full flex items-center justify-center" style={{ width: 68, height: 68, background: t.accent }}>
-                  <Mic size={26} color={t.onAccent} strokeWidth={1.6} />
+            {/* a real account types or dictates the note, and may add a
+                voice note as a file; nothing is transcribed for them */}
+            {live && (
+              <div className="mb-4"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} /></div>
+            )}
+            {live && voice && (
+              <Card className="p-4 mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Mic size={16} color={t.accent} strokeWidth={1.8} />
+                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")}</span>
+                  <span className="flex-1" />
+                  <span style={{ ...TYPE.caption, color: t.faint }}>{Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
+                </div>
+                <audio src={voice.url} controls preload="metadata" className="w-full" />
+                <button onClick={() => { haptic(6); URL.revokeObjectURL(voice.url); setVoice(null); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Remove")}</button>
+              </Card>
+            )}
+            {rec === "idle" && !(live ? voice : note) && !(live && !cap.supported) && (
+              <button data-tour="wiz-notes" onClick={() => { if (live) { startVoice(); return; } haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
+                      style={{ minHeight: live ? 130 : 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
+                <span className="rounded-full flex items-center justify-center" style={{ width: live ? 52 : 68, height: live ? 52 : 68, background: t.accent }}>
+                  <Mic size={live ? 20 : 26} color={t.onAccent} strokeWidth={1.6} />
                 </span>
-                <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Tap to record")}</span>
+                <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{live ? tr("Record a voice note") : tr("Tap to record")}</span>
               </button>
             )}
+            {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
             {rec === "recording" && (
               <div className="flex flex-col items-center justify-center" style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
                 <div className="flex items-end gap-1 h-8 mb-4">{[8,20,13,28,17,30,11,24,15,28,19,22].map((v, i) => (<div key={i} className="rounded-full" style={{ width: 3, height: v, background: t.accent, opacity: 0.3 + (i % 4) * 0.17 }} />))}</div>
-                <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>0:{String(secs % 60).padStart(2, "0")}</div>
-                <button onClick={() => { haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-5" style={{ width: 58, height: 58, background: DANGER }} aria-label={tr("Stop")}><Square size={17} color="#fff" fill="#fff" /></button>
+                <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
+                <button onClick={() => { if (live) { stopVoice(); return; } haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-5" style={{ width: 58, height: 58, background: DANGER }} aria-label={tr("Stop")}><Square size={17} color="#fff" fill="#fff" /></button>
               </div>
             )}
-            {rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
-            {note && (
+            {!live && rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
+            {!live && note && (
               <Card className="p-5">
                 <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.65, color: t.ink }}>{note}</p>
                 <button onClick={() => { setRec("idle"); setNote(null); setSecs(0); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Record again")}</button>
@@ -9967,14 +10284,23 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {step === 4 && (<div className="px-6">
             {/* Five ways in. Everything captured lands below in the same
                 shape, so the screen never turns into competing sections. */}
-            <div className="grid grid-cols-5 gap-1.5 mb-5" data-tour="wiz-media">
-              {[
+            <input ref={fileInput} type="file" multiple className="hidden"
+                   onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+            <div className="grid gap-1.5 mb-5" data-tour="wiz-media" style={{ gridTemplateColumns: `repeat(${live ? 4 : 5}, minmax(0, 1fr))` }}>
+              {(live ? [
+                /* the camera where there is one, a file picker where there
+                   isn't; no device readouts — nothing is read off a photo */
+                { id: "rec",   label: tr("Record"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") },
+                { id: "lib",   label: tr("Library"), Icon: ImageIcon, act: () => pickFiles("video/*,image/*,audio/*", null) },
+                { id: "shot",  label: tr("Photo"),   Icon: Tag,       act: () => pickFiles("image/*", "environment") },
+                { id: "live",  label: tr("Captured"), Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, badge: waiting.length },
+              ] : [
                 { id: "rec",   label: tr("Record"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
                 { id: "lib",   label: tr("Library"), Icon: ImageIcon, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
                 { id: "data",  label: CAPTURE[sport].device.split(" ")[0], Icon: Receipt, act: () => addPhoto("data") },
                 { id: "shot",  label: tr("Photo"),   Icon: Tag,       act: () => addPhoto("action") },
                 { id: "live",  label: tr("Captured"), Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, badge: waiting.length },
-              ].map((o, i) => (
+              ]).map((o, i) => (
                 <button key={o.id} onClick={o.act}
                         onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                         onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -10038,8 +10364,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               <div className="flex flex-col gap-2.5">
                 {items.map((it, i) => (
                   <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
-                            onAnnotate={() => onAnnotate && onAnnotate(it.angle)}
-                            onTranscribe={() => transcribeClip(it.id)}
+                            onAnnotate={live ? null : () => onAnnotate && onAnnotate(it.angle)}
+                            onTranscribe={live ? null : () => transcribeClip(it.id)}
                             onRemove={() => removeItem(it.id)} />
                 ))}
               </div>
@@ -10170,7 +10496,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             </button>
           )}
         </div>
-        {cam && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
+        {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
       </div>
     </SwipeBack>
   );
@@ -10591,14 +10917,32 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
 
 /* What the coach sees when they open a lesson they gave: the same
    record the player has, plus what they set afterwards. */
-function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills }) {
+function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload }) {
   const t = useT();
   const [a, setA] = useState(0);
-  const angles = cfg.angles.slice(0, lesson.videos || 1);
+  const angles = live ? [] : cfg.angles.slice(0, lesson.videos || 1);
+  /* a real lesson shows what was attached; the drawn clips are the harness's */
+  const count = lesson.media ?? lesson.videos ?? 0;
+  const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
+  const items = media || [];
+  const current = items[Math.min(a, Math.max(0, items.length - 1))];
   return (
     <SwipeBack onBack={pop}>
       <Screen title={lesson.focus} onBack={pop} meta={`${name} · ${lesson.d} ${lesson.m}`}>
         <div className="px-6">
+          {live && (media === null && count > 0 ? <Bone h={220} r={18} /> : items.length > 0 ? (<>
+            <MediaView item={current} />
+            {items.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
+                {items.map((it, i) => (
+                  <button key={it.id || i} onClick={() => { haptic(6); setA(i); }} className="px-3.5 shrink-0 active:opacity-60"
+                          style={{ minHeight: 32, borderRadius: R.pill, background: i === a ? t.accent : "transparent",
+                                   border: `0.5px solid ${i === a ? t.accent : HAIR(t.ink, 0.2)}`, ...TYPE.caption, fontWeight: 500,
+                                   color: i === a ? t.onAccent : t.sub }}>{mediaLabel(it, i, items)}</button>
+                ))}
+              </div>
+            )}
+          </>) : null)}
           {angles.length > 0 && (<>
             <Clip angle={angles[a]} />
             {angles.length > 1 && (
@@ -10624,9 +10968,11 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills }) {
             ))}
           </div>
 
-          <Eyebrow>{tr("What you said")}</Eyebrow>
+          <Eyebrow>{tr(live ? "Your notes" : "What you said")}</Eyebrow>
           <Card className="p-5 mb-6">
-            <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.7, color: t.ink }}>{cfg.transcript}</p>
+            <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.7, color: live && !lesson.note ? t.faint : t.ink }}>
+              {live ? (lesson.note || tr("No notes on this one.")) : cfg.transcript}
+            </p>
           </Card>
 
           <div style={{ borderTop: `1px solid ${t.hair}` }}>
@@ -10638,10 +10984,16 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills }) {
                     style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
               <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>Message {(name || "").split(" ")[0]}</span><ChevronRight size={16} color={t.faint} />
             </button>
-            <button onClick={() => { haptic(8); say("Duplicated — edit and publish"); }} className="w-full flex items-center text-left active:opacity-50"
+            <button onClick={() => { haptic(8); if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }} className="w-full flex items-center text-left active:opacity-50"
                     style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
               <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Log another like this")}</span><ChevronRight size={16} color={t.faint} />
             </button>
+            {live && onDownload && (
+              <button onClick={() => { haptic(8); onDownload(lesson, items); }} className="w-full flex items-center text-left active:opacity-50"
+                      style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Download lesson log")}</span><Download size={16} color={t.faint} />
+              </button>
+            )}
           </div>
           <div style={{ height: 26 }} />
         </div>
@@ -11880,7 +12232,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       {view === tr("List") ? (
         <AgendaList role={role} avail={avail} blocked={blocked} seedBooked={seedBooked} duration={duration}
                     monthIdx={mo.idx} slotKinds={slotKinds || {}} juvenile={juvenile}
-                    onOpen={(day, bk) => onPeek && onPeek(bk)}
+                    onOpen={(day, bk) => onPeek && onPeek(day && day.m ? { ...bk, m: day.m, d: day.d } : bk)}
                     onEditDay={(day) => onEditDay && onEditDay(day)}
                     onBookInto={(day, h, k) => onBookInto && onBookInto(day, h, k)}
                     onRecurring={() => onRecurring && onRecurring()} push={push} />
@@ -11980,7 +12332,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                 {booked.map((b, i) => (
                   <ScheduleBlock key={b.time + i} item={b} duration={duration} delay={i * 70}
                                  hoursUntil={Math.max(0, (parseTime(b.time) - 11 * 60) / 60)}
-                                 onOpenLast={(n) => push("history:" + n)} onLog={() => onLogFor && onLogFor(b)}
+                                 onOpenLast={(n) => push("history:" + n)} onLog={() => onLogFor && onLogFor({ ...b, m: mo.idx, d: sel })}
                                  onCancel={(l) => onCancelWithReason && onCancelWithReason(l)} push={push} />
                 ))}
               </>
@@ -12141,7 +12493,7 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
   const t = useT(); const L = useL();
   const preview = (id) => { const r = id ? readMsg(id, lang) : null; return r ? r.text : ""; };
   const list = threads
-    ? threads.map((th) => ({ name: th.who, unread: th.unread, when: "", lastId: null, last: th.last }))
+    ? threads.map((th) => ({ id: th.playerId, name: th.who, sub: th.sub, unread: th.unread, when: "", lastId: null, last: th.last }))
     : empty ? [] : THREADS[role];
 
   const Action = ({ Icon, label, onPress, delay, danger, tour }) => (
@@ -12184,11 +12536,11 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
           <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Conversations appear here.")}</p>
         </div>
       ) : list.map((c, i) => (
-        <button key={c.name} data-tour={i === 0 ? "chat-row" : undefined} onClick={() => { haptic(6); push("thread:" + c.name); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
+        <button key={c.id || c.name} data-tour={i === 0 ? "chat-row" : undefined} onClick={() => { haptic(6); push("thread:" + (c.id || c.name)); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
           <Avatar name={c.name} size={44} group={c.group} />
           <span className="flex-1 min-w-0">
             <span className="flex items-baseline justify-between gap-2"><span className="truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: c.unread ? 700 : 600, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span><span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span></span>
-            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{c.last ?? preview(c.lastId)}</span>
+            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{c.last || c.sub || preview(c.lastId)}</span>
               {c.unread > 0 && (<span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 19, height: 19, padding: "0 5px", background: t.accent, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.onAccent }}>{c.unread}</span>)}</span>
           </span>
         </button>
@@ -12197,32 +12549,59 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
   );
 }
 
-function BroadcastBody({ nouns, say, close }) {
+function BroadcastBody({ nouns, say, close, onSend }) {
   const t = useT();
   const allLabel = `All ${nouns || "players"}`;
-  const [aud, setAud] = useState(allLabel); const [text, setText] = useState("");
+  const [aud, setAud] = useState(allLabel); const [text, setText] = useState(""); const [busy, setBusy] = useState(false);
+  /* With a real account this writes one message into every player's
+     thread through the data layer; the seeded count is the harness's. */
+  const send = async () => {
+    if (onSend) {
+      setBusy(true);
+      const res = await onSend(text.trim());
+      setBusy(false);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send")); return; }
+      say(`${tr("Sent to")} ${res && res.count != null ? res.count : ""} ${nouns || "players"}`.replace(/\s+/g, " "));
+      close(); return;
+    }
+    say(`Sent to ${aud === allLabel ? ROSTER.length + " " + (nouns || "players") : "your groups"}`); close();
+  };
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Message everyone")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("One message, sent to every thread at once.")}</p>
-      <div className="mb-5"><Segmented options={[allLabel, "Groups only"]} value={aud} onChange={setAud} /></div>
+      {!onSend && <div className="mb-5"><Segmented options={[allLabel, "Groups only"]} value={aud} onChange={setAud} /></div>}
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Write or say your message")} /></div>
-      <Button disabled={!text.trim()} onClick={() => { say(`Sent to ${aud === allLabel ? ROSTER.length + " " + (nouns || "players") : "your groups"}`); close(); }}>{tr("Send")}</Button>
+      <Button disabled={!text.trim() || busy} onClick={send}>{busy ? "…" : tr("Send")}</Button>
     </>
   );
 }
-function Thread({ role, name, isGroup, lang, pop, say }) {
+function Thread({ role, name, isGroup, lang, pop, say, live }) {
   const t = useT(); const L = useL(); const other = role === "coach" ? "player" : "coach";
   const [originals, setOriginals] = useState({});
-  const [msgs, setMsgs] = useState(SEEDS[name] || []); const [draft, setDraft] = useState(""); const [typing, setTyping] = useState(false);
-  const feed = useRef(null); const group = isGroup || THREADS.coach.find((c) => c.name === name)?.group;
-  useEffect(() => { if (feed.current) feed.current.scrollTop = feed.current.scrollHeight; }, [msgs, typing]);
-  const send = () => {
-    const text = draft.trim(); if (!text) return; haptic(10);
-    setMsgs((m) => [...m, { from: role, text, at: "now" }]); setDraft("");
+  /* A real thread is the database's rows, sent through the data layer.
+     The seeded conversation and the canned reply belong to the design
+     harness only. */
+  const [local, setLocal] = useState(live ? [] : (SEEDS[name] || []));
+  const msgs = live ? live.messages.map((m) => ({ from: m.mine ? role : other, text: m.body, at: m.at, key: m.id })) : local;
+  const [draft, setDraft] = useState(""); const [typing, setTyping] = useState(false); const [sending, setSending] = useState(false);
+  const feed = useRef(null); const group = !live && (isGroup || THREADS.coach.find((c) => c.name === name)?.group);
+  useEffect(() => { if (feed.current) feed.current.scrollTop = feed.current.scrollHeight; }, [msgs.length, typing]);
+  /* opening the thread is reading it */
+  useEffect(() => { if (live && live.unread > 0 && live.markRead) live.markRead(); }, [live && live.playerId, live && live.unread]);
+  const send = async () => {
+    const text = draft.trim(); if (!text || sending) return; haptic(10);
+    if (live) {
+      setSending(true); setDraft("");
+      const res = await live.send(text);
+      setSending(false);
+      if (res && res.error) { setDraft(text); hapticWarn(); say && say(res.error.message || tr("Couldn't send")); }
+      return;
+    }
+    setLocal((m) => [...m, { from: role, text, at: "now" }]); setDraft("");
     if (group) return;
     setTyping(true);
-    setTimeout(() => { setTyping(false); const pool = REPLIES[other]; setMsgs((m) => [...m, { from: other, text: pool[m.length % pool.length], at: "now" }]); haptic(8); }, 1700);
+    setTimeout(() => { setTyping(false); const pool = REPLIES[other]; setLocal((m) => [...m, { from: other, text: pool[m.length % pool.length], at: "now" }]); haptic(8); }, 1700);
   };
   /* A message is shown in your language when we have it, with the
      original one tap away. Nothing is hidden — you can always read
@@ -12258,8 +12637,10 @@ function Thread({ role, name, isGroup, lang, pop, say }) {
         <div className="shrink-0 flex items-center px-1.5 relative z-20" style={{ height: 52, background: `${t.page}E6`, backdropFilter: "saturate(180%) blur(18px)", borderBottom: `1px solid ${t.hair}` }}>
           <button onClick={() => { haptic(); pop(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={25} color={t.accent} strokeWidth={2.1} /></button>
           <Avatar name={name} size={32} group={group} />
-          <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : role === "coach" ? "Player" : "Your coach"}</span></span>
-          <button onClick={() => { haptic(6); say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.faint} /></button>
+          <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : live && live.sub ? live.sub : role === "coach" ? "Player" : "Your coach"}</span></span>
+          {(!live || live.onDetails) && (
+            <button onClick={() => { haptic(6); if (live) live.onDetails(); else say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.faint} /></button>
+          )}
         </div>
         <div ref={feed} className="flex-1 overflow-y-auto px-4 pt-5 pb-3">
           {lang !== "en" && (
@@ -12269,18 +12650,20 @@ function Thread({ role, name, isGroup, lang, pop, say }) {
             </div>
           )}
           <p className="text-center mb-5" style={{ ...TYPE.caption, color: t.faint }}>{L.today}</p>
-          {msgs.length === 0 ? (<p className="text-center mt-8" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Say hello to get the group started.")}</p>) : msgs.map((m, i) => <Bubble key={i} m={m} idx={i} />)}
+          {msgs.length === 0 ? (<p className="text-center mt-8" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{live ? tr("No messages yet.") : tr("Say hello to get the group started.")}</p>) : msgs.map((m, i) => <Bubble key={m.key || i} m={m} idx={i} />)}
           {typing && (<div className="flex justify-start mb-2.5"><div className="rounded-3xl px-4 py-3.5 flex gap-1.5" style={{ background: t.surface, border: `1px solid ${t.hair}`, borderBottomLeftRadius: 8 }}>
             {[0, 1, 2].map((i) => (<span key={i} className="rounded-full" style={{ width: 6, height: 6, background: t.faint, animation: `bl 1.2s ${i * 0.16}s infinite` }} />))}</div></div>)}
         </div>
         <div className="shrink-0 px-3 pt-2 pb-3" style={{ background: `${t.surface}F2`, backdropFilter: "blur(18px)", borderTop: `1px solid ${t.hair}` }}>
           <div className="flex items-end gap-2">
-            <button onClick={() => { haptic(6); say("Attach a photo"); }} className="rounded-full flex items-center justify-center shrink-0 active:opacity-50" style={{ width: 40, height: 40, background: t.wash }} aria-label={tr("Attach")}><Paperclip size={18} color={t.sub} /></button>
+            {!live && (
+              <button onClick={() => { haptic(6); say("Attach a photo"); }} className="rounded-full flex items-center justify-center shrink-0 active:opacity-50" style={{ width: 40, height: 40, background: t.wash }} aria-label={tr("Attach")}><Paperclip size={18} color={t.sub} /></button>
+            )}
             <div className="flex-1 rounded-3xl px-4 py-2.5 flex items-center gap-2" style={{ background: t.wash }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
-            <button data-tour="thread-send" onClick={send} disabled={!draft.trim()} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-25" style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
+            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-25" style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
           </div>
         </div>
       </div>
@@ -12316,6 +12699,46 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say })
             <span className="rounded-full px-3 py-1.5" style={{ background: t.accent, fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.onAccent }}>{tr("Request")}</span>
           </div>
         </Card></div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
+/* LESSON LOGS
+
+   Every lesson this person can see, each with a Download — the same
+   file the download icon on an open lesson makes. */
+function LessonLogs({ role, lessons, onDownload, pop }) {
+  const t = useT();
+  const list = lessons || [];
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Lesson logs")} onBack={pop}
+              meta={list.length ? `${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}` : tr("Nothing logged yet")}>
+        <div className="px-6 pb-2">
+          {list.length === 0 ? (
+            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
+              {tr("Each lesson can be saved as a file once it's logged.")}
+            </p>
+          ) : (
+            <Card>
+              {list.map((l, i) => (
+                <Row key={l.id} label={l.focus}
+                     sub={`${l.d} ${l.m}${role === "coach" && l.who ? ` · ${l.who}` : ""}${l.subs && l.subs.length ? ` · ${l.subs.join(", ")}` : ""}`}
+                     last={i === list.length - 1}
+                     icon={<span className="rounded-xl flex items-center justify-center shrink-0" style={{ width: 38, height: 38, background: t.wash }}>
+                             <span style={{ fontFamily: display, fontSize: 15, color: t.ink }}>{l.d}</span></span>}
+                     right={<button onClick={() => { haptic(8); onDownload(l); }} className="shrink-0 flex items-center gap-1.5 px-3 active:opacity-60"
+                                    aria-label={`${tr("Download")} ${l.focus}`}
+                                    style={{ minHeight: 34, borderRadius: R.pill, border: `0.5px solid ${HAIR(t.ink, 0.2)}`,
+                                             ...TYPE.caption, fontWeight: 600, color: t.ink }}>
+                              <Download size={13} strokeWidth={2} />{tr("Download")}
+                            </button>} />
+              ))}
+            </Card>
+          )}
+          <div style={{ height: 26 }} />
+        </div>
       </Screen>
     </SwipeBack>
   );
@@ -12358,13 +12781,14 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, i
           <Row tour="settings-availability" label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
           <Row tour="settings-roster" label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
           <Row tour="settings-library" label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
+          <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
           <Row tour="settings-branding" label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
           <Row tour="settings-invite" label={tr("Invite code & QR")} value={inviteCode || "——————"} chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
         </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-playing">
           <Row tour="settings-digest" label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
           <Row tour="settings-dashboard" label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
           <Row tour="settings-family" label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />
-          <Row tour="settings-downloads" label={tr("Downloads")} sub={tr("Videos saved for offline")} chevron icon={<I C={Download} />} onToggle={() => say("Manage saved videos")} />
+          <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
           <Row label={tr("Subscription")} sub={tr("Free — your coach's plan covers you")} last icon={<I C={ShieldCheck} />} />
         </Card></div></>)}
 
@@ -12625,9 +13049,10 @@ function DeleteBody({ onCancel, say }) {
 /* ==================================================================
    SEARCH + NOTIFICATION CENTRE
 ================================================================== */
-function SearchScreen({ role, cfg, library, tips, pop, go, push }) {
-  const t = useT(); const live = useLive(); const [q, setQ] = useState(""); const term = q.trim().toLowerCase(); const hit = (s) => s.toLowerCase().includes(term);
-  const lessons = term ? hadLessons(cfg, live).filter((l) => hit(l.focus) || l.subs.some(hit)) : [];
+function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given }) {
+  const t = useT(); const live = useLive(); const [q, setQ] = useState(""); const term = q.trim().toLowerCase(); const hit = (s) => (s || "").toLowerCase().includes(term);
+  /* a real account searches its own lessons; the catalogue is the harness's */
+  const lessons = term ? (given || hadLessons(cfg, live)).filter((l) => hit(l.focus) || (l.subs || []).some(hit) || hit(l.who)) : [];
   const drills = term ? library.filter((d) => hit(d.t) || hit(d.d)) : [];
   const tipHits = term ? tips.filter((x) => hit(x.title) || hit(x.body)) : [];
   /* Seeded people and threads belong to the design harness only. A real
@@ -12637,7 +13062,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push }) {
   const people = term && role === "coach" && !live ? ROSTER.filter((r) => hit(r.name)) : [];
   const msgs = term && !live ? THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))) : [];
   const total = lessons.length + drills.length + tipHits.length + people.length + msgs.length;
-  const suggestions = role === "coach" ? ["Bunker", "Marcus", "Putting", "Payment"] : ["Bunker", "Putting", "Drills", "Ray"];
+  const suggestions = [...(cfg.focus || []).slice(0, 3).map((f) => f.label), tr("Drills")];
   return (
     <SwipeBack onBack={pop}>
       <div className="flex flex-col h-full" style={{ background: t.page }}>
@@ -12657,7 +13082,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push }) {
             ))}</div>
           </div>) : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
           ) : (<>
-            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push("lesson")} />))}</Card></div></>)}
+            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.who}:${l.id}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
             {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
             {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.name} label={r.name} sub={`${r.lessons} lessons · since ${r.since}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
@@ -12797,6 +13222,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [stack, setStack] = useState(sc ? sc.stack : ["today"]);
   const [published, setPublished] = useState(null);
   const lessonKey = (l) => l.time + l.who;
+  /* The real clock, for a real account. The design harness keeps its
+     fixed 24 July so the seeded day still reads as designed. */
+  const clock = new Date();
+  const todayMD = account ? { m: clock.getMonth() + 1, d: clock.getDate() } : TODAY;
+  const dowToday = account ? (clock.getDay() + 6) % 7 : dowOf(TODAY.m, TODAY.d);
+  const nowMins = clock.getHours() * 60 + clock.getMinutes();
   const [loggedKeys, setLoggedKeys] = useState(() => new Set());
   const [sheet, setSheet] = useState(sc ? (sc.sheet || null) : null);
   const [assignTo, setAssignTo] = useState(null);
@@ -12901,6 +13332,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      actual footage rather than a stand-in. Object URLs are revoked
      when replaced. */
   const [ownMedia, setOwnMedia] = useState({});
+  /* Signed media for a player's own lessons, loaded while the log is
+     open so the feed and the cards show what was actually attached. */
+  const [liveMedia, setLiveMedia] = useState({});
+  useEffect(() => {
+    if (!data || !account || account.role === "coach" || stack[stack.length - 1] !== "log") return;
+    const want = (data.lessons || []).filter((l) => (l.media ?? l.videos) > 0 && !(l.id in liveMedia)).slice(0, 12);
+    if (!want.length) return;
+    let alive = true;
+    want.forEach((l) => data.lessonMedia(l.id)
+      .then((items) => { if (alive) setLiveMedia((m) => ({ ...m, [l.id]: items })); })
+      .catch(() => {}));
+    return () => { alive = false; };
+  }, [data && data.lessons, stack]);
   const addOwnMedia = (idx, files) => {
     if (!files.length) return;
 
@@ -13022,7 +13466,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (data && bk.id) data.cancelBooking(bk.id, "cancelled");
     setSeedBooked((prev) => {
       const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
-      const k = key(TODAY.m, TODAY.d);
+      const k = key(todayMD.m, todayMD.d);
       nx[coachSport][k] = (nx[coachSport][k] || []).filter((b) => b.time !== bk.time);
       if (!nx[coachSport][k].length) delete nx[coachSport][k];
       return nx;
@@ -13041,13 +13485,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (data) (affected || []).forEach((b) => { if (b.id) data.cancelBooking(b.id, "weather"); });
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
-      const k = key(TODAY.m, TODAY.d);
+      const k = key(todayMD.m, todayMD.d);
       next[coachSport][k] = (next[coachSport][k] || []).filter((b) => !affected.includes(b));
       if (!next[coachSport][k].length) delete next[coachSport][k];
       return next;
     });
     setSeries((list) => list.map((x) => (affected.some((a) => a.who === x.who) ? { ...x, total: x.total + 1 } : x)));
-    setCalledOff(`${DAY_NAMES[dowOf(TODAY.m, TODAY.d)]} ${affected[0] ? affected[0].time : ""}`);
+    setCalledOff(`${DAY_NAMES[dowToday]} ${affected[0] ? affected[0].time : ""}`);
     setCeleb({ label: tr("Called off"), sub: `${affected.length} ${tr("told, packages extended")}`, tone: DANGER });
   };
   /* Focus suggestions in flight, and what has been agreed per person. */
@@ -13121,7 +13565,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      day looks like, this session's own log actions say what's actually
      left, and the two are combined every time either is read. */
   const TODAY_SCHEDULE = rawSchedule.map((l) => loggedKeys.has(lessonKey(l)) ? { ...l, done: false } : l);
-  const liveNow = (TODAY_SCHEDULE || []).find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5) || null;
+  /* A real account's day is its confirmed bookings for the real date,
+     in the shape the register and live capture already read: `done`
+     once the slot has passed and nothing has been logged for it,
+     `members` for a group so the whole roster can be marked. */
+  const realToday = data ? (((data.bookings || {})[key(todayMD.m, todayMD.d)] || [])
+    .filter((b) => !b.status || b.status === "confirmed")
+    .map((b) => {
+      const start = parseTime(b.time);
+      const hoursUntil = start == null ? 9 : (start - nowMins) / 60;
+      const over = start != null && start + (b.duration || 45) <= nowMins;
+      return { ...b, m: todayMD.m, d: todayMD.d, hoursUntil,
+               done: over && !loggedKeys.has(lessonKey(b)),
+               members: b.group ? (data.roster || []).map((r) => r.name) : undefined };
+    })
+    .sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0))) : null;
+  const todayList = realToday || TODAY_SCHEDULE;
+  const liveNow = (todayList || []).find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5) || null;
 
   const [toolRows, setToolRows] = useState(Object.fromEntries(Object.entries(TOOLS).map(([k, v]) => [k, v.rows])));
   const [waitlist, setWaitlist] = useState([
@@ -13304,7 +13764,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const inApp = flow === "app";
   const sport = account ? account.sport : role === "coach" ? coachSport : (conn?.sport || "golf");
   const cfg = SPORTS[sport];
-  const archive = freshAccount ? [] : buildArchive(cfg, live);
+  const archive = data ? (data.lessons || []).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
   const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
@@ -13368,6 +13828,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Publishing is the end of the flow. The burst plays over whatever
      is on screen, then drops the coach back on Today with the lesson
      counted. There is no separate screen to land on. */
+  /* the lesson just written, so the burst's "Ask for a rating" can mark
+     it after the fact — or note the ask if the button beat the insert */
+  const lastLogged = useRef(null);
+  const askForRating = async () => {
+    const cur = lastLogged.current;
+    if (cur && cur.id) {
+      const res = await data.requestRating(cur.id);
+      say(res && res.error ? (res.error.message || tr("Couldn't ask")) : tr("They'll be asked once"));
+    } else {
+      lastLogged.current = { id: null, pending: true };
+      say(tr("They'll be asked once"));
+    }
+  };
   const publish = async (l) => {
     const lesson = { ...l, when: "just now" };
     setLogged((n) => n + 1);
@@ -13392,16 +13865,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const lessonDate = l.m && l.d
         ? `${year}-${String(l.m).padStart(2, "0")}-${String(l.d).padStart(2, "0")}`
         : undefined;
-      await data.logLesson({
+      lastLogged.current = { id: null, pending: false };
+      const res = await data.logLesson({
         playerId: isGroup ? null : match?.id,
         groupName: isGroup ? (l.groupName || named) : null,
         focus: l.focus || (l.focusList || []).join(" · ") || "Lesson",
         subs: l.subs || [],
         note: l.note,
-        files: [...(l.videos || []), ...(l.photos || []), ...(l.pulled || [])]
+        files: [...(l.videos || []), ...(l.photos || []), ...(l.pulled || []), ...(l.voice ? [l.voice] : [])]
           .map((v) => v.file).filter(Boolean),
         date: lessonDate,
+        ratingRequested: !!l.wantRating,
       });
+      if (res && res.lesson) {
+        const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
+        lastLogged.current = { id: res.lesson.id, pending: false };
+        if (askedMeanwhile) data.requestRating(res.lesson.id);
+      }
       /* anything the coach set alongside the lesson */
       for (const d of l.nextDrills || []) {
         if (match?.id) await data.setDrill(match.id, typeof d === "string" ? d : d.t);
@@ -13537,7 +14017,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return seed;
   })();
 
-  const unread = data ? 0 : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
+  /* Real threads: one per roster player for the coach; for a player,
+     their coach, plus anyone in their family who has one. */
+  const liveThreads = data ? (() => {
+    const byId = Object.fromEntries((data.threads || []).map((th) => [th.playerId, th]));
+    const row = (playerId, who, sub) => { const th = byId[playerId]; return { playerId, who, sub, unread: th ? th.unread : 0, last: th ? th.last : "" }; };
+    if (role === "coach") return (data.roster || []).map((r) => row(r.id, r.name, tr("Player")));
+    const rows = [];
+    if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach")));
+    (data.family || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.name, `${tr("with")} ${f.coachName || tr("their coach")}`)));
+    return rows;
+  })() : null;
+  const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
       + atRisk(roster, series, live).length + focusReqs.length;
@@ -13663,6 +14154,24 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         </div>
       </Screen>
     );
+  } else if (screen.startsWith("thread:") && data) {
+    /* the key is a player id, or a name from an older entry point —
+       either way the thread is the real one, or honestly unavailable */
+    const threadKey = screen.slice(7);
+    const row = (liveThreads || []).find((c) => c.playerId === threadKey || c.who === threadKey);
+    const th = row ? (data.threads || []).find((x) => x.playerId === row.playerId) : null;
+    const liveThread = row ? {
+      playerId: row.playerId, sub: row.sub, unread: th ? th.unread : 0, messages: th ? th.messages : [],
+      send: (text) => data.sendMessage(row.playerId, text),
+      markRead: () => data.markRead(row.playerId),
+      onDetails: role === "coach" ? () => push("player:" + row.who)
+               : row.playerId === account.id ? () => push("coachProfile") : null,
+    } : {
+      playerId: null, sub: "", unread: 0, messages: [],
+      send: async () => ({ error: { message: tr("This conversation isn't available.") } }),
+      markRead: () => {}, onDetails: null,
+    };
+    body = <Thread role={role} name={row ? row.who : threadKey} lang={lang} pop={pop} say={say} live={liveThread} />;
   } else if (screen.startsWith("thread:")) {
     const threadName = screen.split(":")[1];
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
@@ -13672,7 +14181,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pname = screen.split(":")[1];
     body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} seriesFor={series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
-  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} pop={pop} go={go} push={push} />;
+  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? data.lessons : null} pop={pop} go={go} push={push} />;
+  } else if (screen === "lessonLogs") {
+    body = <LessonLogs role={role} lessons={data ? data.lessons : playerLessons} pop={pop}
+                       onDownload={async (l) => {
+                         const media = data ? await data.lessonMedia(l.id) : [];
+                         downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName), who: role === "coach" || l.type === "Group" ? l.who : null, media, say });
+                       }} />;
   } else if (screen === "alerts") {
     const isParent = role !== "coach" && profiles.some((pf) => pf.age);
     /* Coach: everything blocking someone else's week. */
@@ -13706,8 +14221,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={attendance} goals={goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("clesson:")) {
     const [, cname, lid] = screen.split(":");
-    const les = cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0];
-    body = <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills} />;
+    /* the tapped lesson, by id — a real account never falls back to the catalogue */
+    const les = data
+      ? ((data.lessons || []).find((x) => String(x.id) === lid) || null)
+      : (cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0]);
+    body = les
+      ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
+                         live={!!data} mediaFor={data ? data.lessonMedia : null}
+                         onDuplicate={(l) => { setPrefill({ who: l.who, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
+                         onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: coachName, who: l.who, media: items, say })} />
+      : <SwipeBack onBack={pop}><Screen title={tr("Lesson")} onBack={pop}>
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available.")}</p>
+        </Screen></SwipeBack>;
   } else if (screen.startsWith("capture:")) {
     const who = screen.slice(8);
     body = <CaptureNow booking={{ who }} sport={sport} cfg={cfg} captured={captured} setCaptured={setCaptured} pop={pop} say={say} />;
@@ -13732,7 +14257,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
              onSend={() => { setCheckIns((v) => [{ id: Date.now(), who: (activeProfile || {}).name || "", when: tr("Just now"), note: "", state: "waiting", secs: 9 }, ...v]);
                setCeleb({ label: tr("Sent"), sub: tr("Your coach will look at it.") }); }} />;
   } else if (screen === "familyCode") {
-    body = <FamilyScreen familyCode={data ? data.familyCode : null} family={data ? data.family : []}
+    body = <FamilyScreen familyCode={data ? data.familyCode : null} family={data ? data.family : []} onMessage={juvenile ? null : (m) => push("thread:" + m.id)}
                          hasGuardian={data ? data.hasGuardian : false}
                          onJoin={(c) => data && data.joinFamily(c)} say={say} pop={pop} />;
   } else if (screen === "coachProfile") {
@@ -13841,20 +14366,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} setBlocked={(fn) => setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn }))}
                                                             bookings={role === "player" ? myBookings : []} seedBooked={mySeedBooked} onBook={book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={aiPick} readOnly={juvenile}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
-                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(l); setSheet("cancel"); }}
+                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h, k) => { setBookSlot({ day, time: h, kind: k }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")} />;
-  } else if (screen === "messages") { body = <MessageList role={role} threads={data ? data.threads : null} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
+  } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
   } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series, live).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
       log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
-    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series, live).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>
@@ -13874,9 +14399,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
       home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
-      log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} />,
-      lesson: <PlayerLesson {...shared} toggleSave={toggleSave} minimise={(clip) => { setMini(clip); go("log"); say("Playing in the corner"); }} />,
-    }[screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+      log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} />,
+      lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
+                            lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
+                            mediaFor={data ? data.lessonMedia : null}
+                            onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
+                            onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
   }
 
   return (
@@ -14054,19 +14583,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           )}
           {loader && <Loader onTap={() => { haptic(8); setLoader(false); }} />}
           {overture && <LessonOverture lesson={overture} mark={theme.mark}
-                          onDone={() => { setOverture(null); push("lesson"); }} />}
+                          onDone={() => { const id = overture.id; setOverture(null); push(id != null ? "lesson:" + id : "lesson"); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
           {joined && <JoinedCoach coachName={joined.coachName} sport={joined.sport} onDone={() => setJoined(null)} />}
           {tour && <Walkthrough role={role} juvenile={juvenile} sport={sport}
                        isParent={account ? account.accountType === "parent" : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
           {arrival && <NewLessonArrival lesson={arrival} coach={(conn || {}).coach || ""}
-                        onOpen={() => { setArrival(null); setStack(["lesson"]); setTimeout(() => setSheet("rate"), 900); }} />}
+                        onOpen={() => { const id = arrival.id; setArrival(null); setStack([id != null ? "lesson:" + id : "lesson"]); setTimeout(() => setSheet("rate"), 900); }} />}
           {burst && <PublishedBurst lesson={burst} tally={logged}
-                        onAskRating={() => { setAskRating(burst); say(tr("They'll be asked after this lesson")); }}
-                        remaining={(TODAY_SCHEDULE || []).filter((l) => l.done).length}
-                        onLogNext={(TODAY_SCHEDULE || []).filter((l) => l.done).length > 0
-                          ? () => { const nx = (TODAY_SCHEDULE || []).filter((l) => l.done)[0]; setBurst(null); setPublished(null);
+                        onAskRating={data
+                          ? (burst.wantRating ? null : askForRating)
+                          : () => { setAskRating(burst); say(tr("They'll be asked after this lesson")); }}
+                        remaining={(todayList || []).filter((l) => l.done).length}
+                        onLogNext={(todayList || []).filter((l) => l.done).length > 0
+                          ? () => { const nx = (todayList || []).filter((l) => l.done)[0]; setBurst(null); setPublished(null);
                                     setPrefill(nx); setStack(["today"]); setTimeout(() => go("log"), 40); }
                           : null}
                         onDone={() => { setBurst(null); setPublished(null); setStack(["today"]); }} />}
@@ -14076,7 +14607,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              roleLabel={juvenile ? "Under 18" : role === "coach" ? "Coach" : hasFamily ? "Parent" : (cfg.noun === "player" ? "Player" : cfg.noun)}
                              onDone={() => setSplash(false)} />}
 
-          {mini && !bare && !familyGuide && (<MiniPlayer clip={mini} onClose={() => { haptic(8); setMini(null); }} onExpand={() => { setMini(null); go("lesson"); }} />)}
+          {mini && !bare && !familyGuide && (<MiniPlayer clip={mini.label} onClose={() => { haptic(8); setMini(null); }} onExpand={() => { setMini(null); go(mini.id != null ? "lesson:" + mini.id : "lesson"); }} />)}
 
           {!bare && !familyGuide && (
             <TabBar tabs={tabs} theme={theme} dark={dark}
@@ -14094,14 +14625,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
             {sheet === "cmd" ? <CommandBar role={role} cfg={cfg} roster={roster}
-                                            lessons={cfg.lessons} library={myLibrary}
+                                            lessons={data ? data.lessons : cfg.lessons} library={myLibrary}
                                             go={go} push={push}
                                             close={() => setSheet(null)}
                                             onAct={(id, who) => {
                                               const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
                                               if (id === "log")     { setSheet(null); setPrefill(null); return go("log"); }
                                               if (id === "attend")  return later(() => setSheet("attend"));
-                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || TODAY_SCHEDULE[0]); setSheet("capture"); });
+                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
                                               if (id === "comp")    { setSheet(null); return push("events"); }
                                               if (id === "tip")     { setGoalFor(who); setAssignTo(who); return later(() => setSheet("tip")); }
                                               if (id === "drills")  return later(() => openAssignDrills(who));
@@ -14126,7 +14657,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onRun={(id) => {
                                               const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
                                               if (id === "attend")  return later(() => setSheet("attend"));
-                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || TODAY_SCHEDULE[0]); setSheet("capture"); });
+                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
                                               if (id === "tip")     { setPickFor("tip");    return later(() => setSheet("pickWho")); }
                                               if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
                                               if (id === "player")  return later(() => setSheet("invite"));
@@ -14135,7 +14666,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               if (id === "comp")    { setSheet(null); push("events"); }
                                             }}
                                             close={() => setSheet(null)} />
-            : sheet === "attend" ? <Attendance lessons={TODAY_SCHEDULE || []} roster={roster} taken={registers}
+            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers}
                                             onSubmit={(l, marks) => {
                                               if (data) {
                                                 /* map display names back to real ids before saving */
@@ -14149,7 +14680,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               setCeleb({ label: tr("Register taken"), sub: `${n} ${tr("present")}` });
                                             }}
                                             close={() => setSheet(null)} say={say} />
-            : sheet === "capture" ? <LiveCapture lessons={TODAY_SCHEDULE || []} chosen={captureFor}
+            : sheet === "capture" ? <LiveCapture lessons={todayList || []} chosen={captureFor}
                                             onChoose={setCaptureFor}
                                             items={(captured[captureFor ? captureFor.who : "__unassigned"] || [])}
                                             onAdd={(item) => {
@@ -14208,7 +14739,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               : [...(playerComps[peek.who] || []), ...(freshAccount ? [] : (EVENTS[coachSport] || []).slice(0, 1).map((e) => ({ ...e, mine: true })))]}
                                             onEditComp={() => { setSheet(null); push("events"); }}
                                             onProfile={() => { setSheet(null); push("player:" + peek.who); }}
-                                            onLog={() => { setSheet(null); setPrefill({ ...peek, m: TODAY.m, d: TODAY.d }); go("log"); }}
+                                            onLog={() => { setSheet(null); setPrefill({ m: todayMD.m, d: todayMD.d, ...peek }); go("log"); }}
                                             onNoShow={() => { markNoShow(peek); setSheet(null); }}
                                             onCapture={() => { setSheet(null); push("capture:" + peek.who); }}
                                             onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setSheet("cancel"); }}
@@ -14301,8 +14832,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               return {};
                                             }}
                                             close={() => setSheet(null)} />
-              : sheet === "weather" ? <WeatherCallOff day={weatherDay || `${DAY_NAMES[dowOf(TODAY.m, TODAY.d)]} ${TODAY.d}`}
-                                            bookings={(mySeedBooked[key(TODAY.m, TODAY.d)] || [])} duration={duration}
+              : sheet === "weather" ? <WeatherCallOff day={weatherDay || `${DAY_NAMES[dowToday]} ${todayMD.d}`}
+                                            bookings={((mySeedBooked || {})[key(todayMD.m, todayMD.d)] || [])} duration={duration}
                                             onConfirm={callOff} close={() => setSheet(null)} />
               : sheet === "reschedule" ? <RescheduleOffer lesson={rescheduleFor || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
                                             onPick={(sl) => { setCalledOff(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} close={() => setSheet(null)} />
@@ -14340,6 +14871,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               setCeleb({ label: tr("Group created"), sub: `${g.name} · ${g.members.length}` }); }}
                                             close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
+                                            people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             onPick={(n) => push("thread:" + n)} close={() => setSheet(null)} />
               : sheet === "rate" ? <RateLesson focus={(playerLessons[0] || {}).focus || ""} coach={conn?.coach || ""}
                                             onDone={() => { setCeleb({ label: tr("Thanks"), sub: tr("Your coach will see it.") }); setTimeout(() => setSheet("rebookAfter"), 1900); }}
@@ -14388,7 +14920,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "recurring" ? <RecurringSetup name={recurFor || (roster[0] || ROSTER[0]).name} existing={series.find((x) => x.who === recurFor && x.sport === coachSport)}
                                           slots={slots} duration={duration} onSave={saveSeries} onEnd={endSeries}
                                           close={() => setSheet(null)} say={say} />
-              : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} />
+              : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} onSend={data ? (text) => data.broadcast(text) : null} />
               : null}
           </Sheet>
           <Toast msg={toast} />
