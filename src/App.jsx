@@ -59,7 +59,7 @@ const readArrival = () => {
   try { return window.sessionStorage.getItem("nosca.arrival") || null; } catch (e) { return null; }
 };
 
-function SignedIn({ profile, signOut, email }) {
+function SignedIn({ profile, signOut, email, invite, onInviteUsed }) {
   const data = useNoscaData(profile);
   const { refreshProfile } = useAuth();
   const [arrival, setArrival] = useState(readArrival);
@@ -134,6 +134,9 @@ function SignedIn({ profile, signOut, email }) {
          cached sign-in profile is refreshed so the header and the
          settings sub-line follow without a reload. */
       onProfileChanged={refreshProfile}
+      /* a join link opened while signed in: the app offers it once */
+      invite={invite}
+      onInviteUsed={onInviteUsed}
     />
   );
 }
@@ -142,6 +145,11 @@ function Gate() {
   const { session, profile, loadingProfile, signOut, needsProfile, loadError, refreshProfile, recovery } = useAuth();
   const demo = isDemoUrl();
   const [stuck, setStuck] = React.useState(false);
+  /* The join link, held until whichever side uses it: the sign-up
+     (codes pre-filled) or the signed-in app (offered once). Cleared
+     then, so a later sign-in in this tab is not offered it again. */
+  const [invite, setInvite] = useState(INVITE);
+  const inviteUsed = () => setInvite(null);
 
   React.useEffect(() => {
     if (!loadingProfile) { setStuck(false); return; }
@@ -153,7 +161,7 @@ function Gate() {
   if (demo) return <Nosca demo />;
 
   if (session === undefined) return null;
-  if (!session) return <Auth invite={INVITE} />;
+  if (!session) return <Auth invite={invite} onInviteUsed={inviteUsed} />;
 
   /* Arrived from a password-reset email. There is a session, but the
      one thing to do is set the new password — before the app. */
@@ -163,7 +171,7 @@ function Gate() {
      profile yet. Once one is loaded the app stays mounted, even while
      a refresh is in flight — otherwise joining a coach (which refreshes
      the profile) would tear the whole interface down mid-moment. */
-  if (profile) return <SignedIn profile={profile} signOut={signOut} email={session?.user?.email} />;
+  if (profile) return <SignedIn profile={profile} signOut={signOut} email={session?.user?.email} invite={invite} onInviteUsed={inviteUsed} />;
 
   /* The database refused or failed the read. This is a fault to be
      fixed, not something the person did — so it says what the

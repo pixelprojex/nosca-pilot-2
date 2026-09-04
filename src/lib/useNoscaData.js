@@ -645,6 +645,18 @@ export function useNoscaData(profile) {
     return m || fallback;
   };
 
+  /* Who a code belongs to — the same lookups the sign-up screen uses,
+     for a join link opened by someone already signed in. {id, name,
+     sport} for a coach, {id, name} for a family; null when it matches
+     nobody. */
+  const lookupCode = async (kind, rawCode) => {
+    const clean = (rawCode || "").trim().toUpperCase();
+    if (!clean) return { found: null };
+    const { data: rows, error } = await supabase.rpc(kind === "family" ? "find_guardian_by_code" : "find_coach_by_code", { p_code: clean });
+    if (error) return { found: null, error: { message: rpcMessage(error, "Couldn't check that code.") } };
+    return { found: (rows && rows[0]) || null };
+  };
+
   /* Joining a coach after the fact — from the empty home screen, or
      from settings. The same code that could have been entered during
      sign-up, doing the same thing. One database call does the lookup
@@ -763,8 +775,11 @@ export function useNoscaData(profile) {
     addBooking, addBookings, cancelBooking, confirmBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount,
+    savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount, lookupCode,
     hasGuardian: links ? !!links.guardian : !!profile?.guardian_id,
     hasCoach: links ? !!links.coach : !!profile?.coach_id,
+    /* the ids behind those, so a join link can tell "already with them" apart */
+    coachId: links ? links.coach : (profile?.coach_id || null),
+    guardianId: links ? links.guardian : (profile?.guardian_id || null),
   };
 }

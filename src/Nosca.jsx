@@ -1438,16 +1438,40 @@ const DOW = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_NAMES = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().d[Number(k)] : cal().d[k] ?? Array.prototype[k]),
                                   has: (_, k) => k in cal().d });
 const MONTH_SHAPE = [
-  { idx: 6,  days: 30, start: 0 }, { idx: 7,  days: 31, start: 2 },
-  { idx: 8,  days: 31, start: 5 }, { idx: 9,  days: 30, start: 1 },
-  { idx: 10, days: 31, start: 3 },
+  { idx: 6,  year: 2026, days: 30, start: 0 }, { idx: 7,  year: 2026, days: 31, start: 2 },
+  { idx: 8,  year: 2026, days: 31, start: 5 }, { idx: 9,  year: 2026, days: 30, start: 1 },
+  { idx: 10, year: 2026, days: 31, start: 3 },
 ];
 /* name resolves against whichever language is live */
-const MONTHS = MONTH_SHAPE.map((m) => Object.defineProperty({ ...m }, "name", {
-  get() { return cal().m[this.idx - 1] + " 2026"; }, enumerable: true,
+const nameMonths = (shapes) => shapes.map((m) => Object.defineProperty({ ...m }, "name", {
+  get() { return `${cal().m[this.idx - 1]} ${this.year}`; }, enumerable: true,
 }));
+const MONTHS = nameMonths(MONTH_SHAPE);
 const MONTHS_FULL = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().m[Number(k)] : cal().m[k] ?? Array.prototype[k]) });
+/* a month's name on its own, for any month number — "July" */
+const monthName = (m) => cal().m[m - 1] || "";
 const TODAY = { m: 7, d: 24 };
+
+/* THE CALENDAR A TREE RUNS ON
+
+   The design harness lives in a fixed summer — June to October 2026,
+   today the 24th of July — so every seeded screen reads as designed. A
+   real account runs on the clock: six months from the current one,
+   each shaped from the real calendar. The helpers below take the
+   calendar as a parameter and default to the harness's; the app hands
+   the right one down through CalendarCtx, so a harness instance
+   rendered inside a live one (the walkthrough) keeps its own. */
+const HARNESS_CALENDAR = { months: MONTHS, today: TODAY, year: 2026 };
+const monthShape = (y, m) => ({ idx: m, year: y, days: new Date(y, m, 0).getDate(), start: (new Date(y, m - 1, 1).getDay() + 6) % 7 });
+function calendarFor(clock, span = 6) {
+  const months = nameMonths(Array.from({ length: span }, (_, i) => {
+    const d = new Date(clock.getFullYear(), clock.getMonth() + i, 1);
+    return monthShape(d.getFullYear(), d.getMonth() + 1);
+  }));
+  return { months, today: { m: clock.getMonth() + 1, d: clock.getDate() }, year: clock.getFullYear() };
+}
+const CalendarCtx = createContext(HARNESS_CALENDAR);
+const useCalendar = () => useContext(CalendarCtx);
 const DURATIONS = [30, 45, 60, 90];
 /* "9:00 am" + 45 -> "9:45 am". Booking without a finish time is how
    coaches end up double-booked. */
@@ -1550,22 +1574,43 @@ const UNLOGGED = [
 ];
 
 const key = (m, d) => `${m}-${String(d).padStart(2, "0")}`;
-const dowOf = (m, d) => { const mo = MONTHS.find((x) => x.idx === m); return (mo.start + d - 1) % 7; };
-const isPast = (m, d) => m < TODAY.m || (m === TODAY.m && d < TODAY.d);
+/* The year a month number belongs to on a calendar: the table's own
+   where the month is in it; otherwise this year, rolling forward for a
+   month already gone — the same rule the diary's ISO dates follow. */
+const yearOf = (m, c = HARNESS_CALENDAR) => {
+  const mo = c.months.find((x) => x.idx === m);
+  if (mo) return mo.year;
+  return m < c.today.m ? c.year + 1 : c.year;
+};
+/* Weekday, Monday = 0. A month outside the table — a lesson logged last
+   spring, a booking a year out — is worked out from the real calendar
+   rather than failing. */
+const dowOf = (m, d, c = HARNESS_CALENDAR) => {
+  const mo = c.months.find((x) => x.idx === m);
+  if (mo) return (mo.start + d - 1) % 7;
+  return (new Date(yearOf(m, c), m - 1, d).getDay() + 6) % 7;
+};
+/* Before today on this calendar. Compared by year first: on a rolling
+   calendar January can sit after November. */
+const isPast = (m, d, c = HARNESS_CALENDAR) => {
+  const a = yearOf(m, c) * 10000 + m * 100 + d;
+  const b = c.year * 10000 + c.today.m * 100 + c.today.d;
+  return a < b;
+};
 
-function openTimes(m, d, avail, blocked, mine, seedBooked) {
-  if (isPast(m, d)) return [];
-  const base = avail[dowOf(m, d)] || [];
+function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR) {
+  if (isPast(m, d, c)) return [];
+  const base = avail[dowOf(m, d, c)] || [];
   const taken = (seedBooked[key(m, d)] || []).map((b) => b.time);
   const off = blocked.filter((b) => b.m === m && b.d === d).map((b) => b.time);
   const own = mine.filter((b) => b.m === m && b.d === d).map((b) => b.time);
   return base.filter((t) => !taken.includes(t) && !off.includes(t) && !own.includes(t));
 }
-function earliestSlot(avail, blocked, mine, seedBooked) {
-  for (const mo of MONTHS) {
+function earliestSlot(avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR) {
+  for (const mo of c.months) {
     for (let d = 1; d <= mo.days; d++) {
-      if (isPast(mo.idx, d)) continue;
-      const times = openTimes(mo.idx, d, avail, blocked, mine, seedBooked);
+      if (isPast(mo.idx, d, c)) continue;
+      const times = openTimes(mo.idx, d, avail, blocked, mine, seedBooked, c);
       if (times.length) return { m: mo.idx, d, time: times[0], month: mo.name.split(" ")[0] };
     }
   }
@@ -1575,15 +1620,16 @@ function earliestSlot(avail, blocked, mine, seedBooked) {
    powers recurring-group scheduling, months out if the range allows it. */
 /* Walks forward from today collecting occurrences, honouring the gap
    between them: weekly, fortnightly or monthly. */
-function seriesOccurrences(dowTarget, count, freq, fromM, fromD) {
+function seriesOccurrences(dowTarget, count, freq, fromM, fromD, c = HARNESS_CALENDAR) {
   const stepWeeks = freq === "fortnightly" ? 2 : freq === "monthly" ? 4 : 1;
   const out = [];
-  let mi = MONTHS.findIndex((m) => m.idx === (fromM || TODAY.m));
+  const months = c.months;
+  let mi = months.findIndex((m) => m.idx === (fromM || c.today.m));
   if (mi < 0) mi = 0;
-  let d = (fromD || TODAY.d) + 1, m = MONTHS[mi], hits = 0;
-  while (out.length < count && mi < MONTHS.length) {
-    if (d > m.days) { d = 1; mi += 1; if (mi >= MONTHS.length) break; m = MONTHS[mi]; continue; }
-    if (dowOf(m.idx, d) === dowTarget) {
+  let d = (fromD || c.today.d) + 1, m = months[mi], hits = 0;
+  while (out.length < count && mi < months.length) {
+    if (d > m.days) { d = 1; mi += 1; if (mi >= months.length) break; m = months[mi]; continue; }
+    if (dowOf(m.idx, d, c) === dowTarget) {
       if (hits % stepWeeks === 0) out.push({ m: m.idx, d });
       hits += 1;
     }
@@ -1592,13 +1638,14 @@ function seriesOccurrences(dowTarget, count, freq, fromM, fromD) {
   return out;
 }
 
-function nextOccurrences(dowTarget, count) {
+function nextOccurrences(dowTarget, count, c = HARNESS_CALENDAR) {
   const out = [];
-  let mi = MONTHS.findIndex((m) => m.idx === TODAY.m);
-  let d = TODAY.d + 1, m = MONTHS[mi];
-  while (out.length < count && mi < MONTHS.length) {
-    if (d > m.days) { d = 1; mi += 1; if (mi >= MONTHS.length) break; m = MONTHS[mi]; continue; }
-    if (dowOf(m.idx, d) === dowTarget) out.push({ m: m.idx, d });
+  const months = c.months;
+  let mi = Math.max(0, months.findIndex((m) => m.idx === c.today.m));
+  let d = c.today.d + 1, m = months[mi];
+  while (out.length < count && mi < months.length) {
+    if (d > m.days) { d = 1; mi += 1; if (mi >= months.length) break; m = months[mi]; continue; }
+    if (dowOf(m.idx, d, c) === dowTarget) out.push({ m: m.idx, d });
     d += 1;
   }
   return out;
@@ -2415,17 +2462,22 @@ function SeasonPanel({ role, monthly, priv, grp, hours, streak, arc }) {
 function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slotKinds,
                      onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now }) {
   const t = useT();
-  const T = now || TODAY;   // the real day for a real account; the harness keeps its designed one
+  /* the tree's own calendar — the real months for a real account, the
+     harness's fixed summer otherwise */
+  const calendar = useCalendar();
+  const cx = now ? { ...calendar, today: now } : calendar;
+  const T = cx.today;
   /* Names are stripped for anyone who is not the coach. A player has no
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
   const isCoach = role === "coach";
   const days = [];
-  MONTHS.forEach((mo) => {
-    if (mo.idx < monthIdx) return;
+  const from = Math.max(0, cx.months.findIndex((x) => x.idx === monthIdx));
+  cx.months.forEach((mo, mi) => {
+    if (mi < from) return;
     for (let d = 1; d <= mo.days; d++) {
-      if (mo.idx < T.m || (mo.idx === T.m && d < T.d)) continue;
-      const hours = avail[dowOf(mo.idx, d)] || [];
+      if (isPast(mo.idx, d, cx)) continue;
+      const hours = avail[dowOf(mo.idx, d, cx)] || [];
       if (!hours.length) continue;
       days.push({ m: mo.idx, d, mo, hours,
                   booked: isCoach ? (seedBooked[key(mo.idx, d)] || [])
@@ -2460,7 +2512,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                              border: `0.5px solid ${on ? t.accent : isToday ? "transparent" : HAIR(t.ink, 0.14)}`,
                              transition: "background 200ms, border-color 200ms" }}>
               <span style={{ ...TYPE.eyebrow, fontSize: 8.5,
-                             color: on ? t.onAccent : t.faint }}>{DAY_NAMES[dowOf(day.m, day.d)].slice(0, 2)}</span>
+                             color: on ? t.onAccent : t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 2)}</span>
               <span className="mt-0.5" style={{ ...TYPE.figure, fontSize: 17,
                              color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
               {/* load: one dot per slot, filled where booked */}
@@ -2504,7 +2556,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
             {/* one quiet line, not a header competing with the rows */}
             <div className="flex items-center gap-2.5 mb-2.5 px-1">
               <span style={{ ...TYPE.heading, fontSize: 16, color: isToday ? t.accent : t.ink }}>
-                {DAY_NAMES[dowOf(day.m, day.d)]} {day.d}
+                {DAY_NAMES[dowOf(day.m, day.d, cx)]} {day.d}
               </span>
               <span style={{ ...TYPE.caption, color: t.faint }}>
                 {role === "coach" ? `${day.booked.length}/${day.hours.length}` : `${free.length} ${tr("open")}`}
@@ -2844,7 +2896,9 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
   const [kind, setKind] = useState(tr("Competition"));
   const [where, setWhere] = useState("");
   const [dd, setDd] = useState("");
-  const [mm, setMm] = useState((now || TODAY).m);
+  const calendar = useCalendar();
+  const T = now || calendar.today;
+  const [mm, setMm] = useState(T.m);
   const [time, setTime] = useState("9:00 am");
   const [extra, setExtra] = useState([]);
   const all = [...extra, ...list].sort((a, b) => a.days - b.days);
@@ -2880,7 +2934,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                        style={{ width: 58, minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink }} />
                 <select value={mm} onChange={(e) => setMm(e.target.value)} className="flex-1 outline-none px-3"
                         style={{ minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink, border: "none" }}>
-                  {(live ? Array.from({ length: 12 }, (_, i) => ({ idx: i + 1, name: MONTHS_FULL[i] })) : MONTHS).map((mo) => <option key={mo.idx} value={mo.idx}>{mo.name}</option>)}
+                  {(live ? Array.from({ length: 12 }, (_, i) => ({ idx: i + 1, name: MONTHS_FULL[i] })) : calendar.months).map((mo) => <option key={mo.idx} value={mo.idx}>{mo.name}</option>)}
                 </select>
               </div>
 
@@ -2901,7 +2955,6 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                   const d = Number(dd), mo = Number(mm);
                   if (live) {
                     /* the real date, next year if that day has already passed */
-                    const T = now || TODAY;
                     const y = new Date().getFullYear() + (mo < T.m || (mo === T.m && d < T.d) ? 1 : 0);
                     const iso = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
                     const chk = new Date(iso);
@@ -2912,9 +2965,9 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't add that.")); return; }
                     setName(""); setWhere(""); setDd(""); setAdding(false); hapticSuccess(); chime(); return;
                   }
-                  const days = Math.max(1, (mo - TODAY.m) * 30 + (d - TODAY.d));
+                  const days = Math.max(1, (mo - T.m) * 30 + (d - T.d));
                   setExtra([{ name: name.trim(), kind, where: where.trim(), time,
-                              when: `${DAY_NAMES[dowOf(mo, d)].slice(0, 3)} ${d} ${MONTHS.find((x) => x.idx === mo)?.name.split(" ")[0]}`,
+                              when: `${DAY_NAMES[dowOf(mo, d, calendar)].slice(0, 3)} ${d} ${monthName(mo)}`,
                               days }, ...extra]);
                   setName(""); setWhere(""); setDd(""); setAdding(false); hapticSuccess(); chime(); }}>{tr("Add")}</Button>
               </div>
@@ -3442,7 +3495,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
    buried in a separate availability screen. */
 function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKinds, onWeather, close, say }) {
   const t = useT();
-  const dow = dowOf(day.m, day.d);
+  const calendar = useCalendar();
+  const dow = dowOf(day.m, day.d, calendar);
   const hours = avail[dow] || day.hours || [];
   const kindOf = (h) => slotKinds[`${day.m}-${day.d}-${h}`] || "either";
   const taken = (h) => (day.booked || []).find((b) => b.time === h);
@@ -3754,7 +3808,9 @@ const TOUR_PREFILL = { who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: 
 const TOUR_PEEK = { time: "3:00 pm", who: "Priya Ellis", kind: "Private", hoursUntil: 3.5 };
 
 /* { area, title, body, path, target, state } — `state` is merged into
-   the showcase prop: stack, sheet, logView, prefill, peek, wizardStep. */
+   the showcase prop: stack, sheet, logView, prefill, peek, wizardStep.
+   `skipLive` marks a step whose control only the design harness has;
+   a real account's tour leaves it out. */
 const TOUR = {
   coach: [
     { area: "Today", title: "Your day", body: "Lessons, in order.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
@@ -3822,14 +3878,14 @@ const TOUR = {
     { area: "You", title: "Drill library", body: "Add, filter, assign.", path: "You → Drills → New", target: "library-new", state: { stack: ["today", "you", "library"] } },
     { area: "You", title: "Availability", body: "Days and times you coach.", path: "You → Weekly availability", target: "settings-availability", state: { stack: ["today", "you"] } },
     { area: "You", title: "Reviews", body: "What players said.", path: "You → Reviews", target: "settings-reviews", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Paperwork", body: "Vetting, insurance, dates.", path: "You → Paperwork", target: "settings-credentials", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Requests", body: "People asking to join.", path: "You → Requests", target: "settings-requests", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Paperwork", body: "Vetting, insurance, dates.", path: "You → Paperwork", target: "settings-credentials", state: { stack: ["today", "you"] }, skipLive: true },
+    { area: "You", title: "Requests", body: "People asking to join.", path: "You → Requests", target: "settings-requests", state: { stack: ["today", "you"] }, skipLive: true },
     { area: "You", title: "Branding", body: "Logo, colour, club name.", path: "You → Branding", target: "settings-branding", state: { stack: ["today", "you"] } },
     { area: "You", title: "Appearance", body: "Dark mode, text size.", path: "You → Appearance", target: "settings-appearance", state: { stack: ["today", "you"] } },
     { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["today", "you"] } },
     { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["today", "you"] } },
     { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Help", body: "Help centre, contact us.", path: "You → Help centre", target: "settings-help", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Help", body: "Help centre, contact us.", path: "You → Help centre", target: "settings-help", state: { stack: ["today", "you"] }, skipLive: !SUPPORT_EMAIL },
     { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["today", "you"] } },
     { area: "You", title: "Delete account", body: "Everything, permanently.", path: "You → Delete account", target: "settings-delete", state: { stack: ["today", "you"] } },
   ],
@@ -3850,7 +3906,7 @@ const TOUR = {
     { area: "Lessons", title: "Views", body: "Feed, cards or list.", path: "Lessons → switch", target: "log-view", state: { stack: ["log"], logView: "list" } },
     { area: "Lessons", title: "A lesson", body: "Tap to open it.", path: "Lessons → row", target: "log-row", state: { stack: ["log"], logView: "list" } },
     { area: "Lessons", title: "Clips", body: "Every angle they filmed.", path: "Lessons → row → clip", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Lessons", title: "Save offline", body: "Keep it on your phone.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Lessons", title: "Download lesson log", body: "Keep a copy of any lesson.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
     { area: "Lessons", title: "From here", body: "Drills, or book again.", path: "Lesson → bottom", target: "lesson-next", state: { stack: ["log", "lesson"], logView: "list" } },
 
     { area: "Drills", title: "Drills", body: "What to practise.", path: "Tab bar → Drills", target: "tab-practice", state: { stack: ["practice"] } },
@@ -3878,7 +3934,7 @@ const TOUR = {
     { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["home"] } },
     { area: "You", title: "Attendance", body: "Your record.", path: "You → Attendance", target: "settings-attendance", state: { stack: ["home", "you"] } },
     { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["home", "you"] } },
-    { area: "You", title: "Sporting record", body: "Share it with a new coach.", path: "You → Your sporting record", target: "settings-transfer", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Sporting record", body: "Share it with a new coach.", path: "You → Your sporting record", target: "settings-transfer", state: { stack: ["home", "you"] }, skipLive: true },
     { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["home", "you"] } },
     { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
     { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["home", "you"] } },
@@ -3905,17 +3961,20 @@ const TOUR = {
   ],
 };
 /* A parent has everything a player has, plus the family: the pill
-   switches person, the dashboard shows everyone, the diary filters by
-   child, and the parent does the booking for anyone under 18. */
+   switches person, the dashboard shows everyone, and the month digest
+   counts each child's lessons and drills. Booking is not theirs yet —
+   a child's coach books, or the child requests from their own account —
+   so the tour says exactly that and promises nothing else. */
 TOUR.parent = (() => {
-  const base = TOUR.player.map((s) => s.target === "profile-pill" ? { ...s, body: "Switch to your child." }
-    : s.target === "agenda-book" ? { ...s, title: "You book", body: "Under-18s: you arrange it." } : s);
+  const base = TOUR.player
+    .filter((s) => s.target !== "agenda-book" && s.target !== "cal-view" && s.target !== "home-request")
+    .map((s) => s.target === "profile-pill" ? { ...s, body: "Switch to your child." }
+      : s.target === "tab-calendar" ? { ...s, body: "Your own lessons. A child's coach books theirs." } : s);
   const at = base.findIndex((s) => s.area === "Family");
   const family = [
     { area: "Family", title: "Family dashboard", body: "Everyone, one screen.", path: "You → Family dashboard", target: "family-person", state: { stack: ["family"] } },
     { area: "Family", title: "Everyone's diary", body: "All lessons, one list.", path: "Family → Everyone's diary", target: "family-diary", state: { stack: ["family"] } },
     { area: "Family", title: "This month", body: "How each child got on.", path: "Family → This month", target: "digest-tile", state: { stack: ["family", "digest"] } },
-    { area: "Family", title: "Everyone", body: "Filter the diary by child.", path: "Diary → Everyone", target: "cal-family", state: { stack: ["calendar"] } },
   ];
   return [...base.slice(0, at), ...family, ...base.slice(at)];
 })();
@@ -3984,7 +4043,11 @@ const ShowcaseApp = React.memo(function ShowcaseApp({ showcase }) {
 function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
   const t = useT();
   const key = juvenile ? "juvenile" : isParent ? "parent" : role === "coach" ? "coach" : "player";
-  const steps = TOUR[key] || TOUR.player;
+  /* The HOST app's answer, not the showcase's: this component sits in
+     the real app, so useLive() says whether the person is on a real
+     account, and steps that ring a control they never have are left out. */
+  const hostLive = useLive();
+  const steps = useMemo(() => (TOUR[key] || TOUR.player).filter((s) => !(hostLive && s.skipLive)), [key, hostLive]);
   const [i, setI] = useState(0);
   const last = i === steps.length - 1;
   const step = steps[i];
@@ -6095,9 +6158,9 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
    the one action, because there is genuinely nothing else to do here
    yet — an empty lesson list and a disabled diary would just be
    furniture around a single button. */
-function NoCoach({ onJoin, juvenile }) {
+function NoCoach({ onJoin, juvenile, initialCode }) {
   const t = useT();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode || "");   // a join link arrives with it filled in
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -6142,6 +6205,58 @@ function NoCoach({ onJoin, juvenile }) {
         </Button>
       </div>
     </div>
+  );
+}
+
+/* A JOIN LINK, OPENED BY SOMEONE ALREADY SIGNED IN
+
+   The link's code is looked up first, so the offer names the person —
+   "Join Niamh Byrne?" — and says plainly when it is already done or the
+   code matches nobody. Joining goes through the same calls as the code
+   boxes on Home and Family. Rendered inside the app's one Sheet. */
+function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGuardian, onJoinCoach, onJoinFamily, onDone, close }) {
+  const t = useT();
+  const family = invite.kind === "family";
+  const [found, setFound] = useState(undefined);   // undefined = checking · null = no match
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(lookup ? lookup(invite.kind, invite.code) : { found: null })
+      .then((r) => { if (alive) { setFound((r && r.found) || null); if (r && r.error) setErr(r.error.message); } })
+      .catch(() => { if (alive) setFound(null); });
+    return () => { alive = false; };
+  }, [invite.kind, invite.code]);
+
+  const already = !!found && (family ? found.id === currentGuardian : found.id === currentCoach);
+  const line = found === undefined ? tr("Checking the code…")
+    : !found ? (family ? tr("That code doesn't match a family.") : tr("That code doesn't match a coach."))
+    : already ? (family ? `${tr("You're already in")} ${found.name}${tr("'s family.")}` : `${tr("You're already with")} ${found.name}.`)
+    : family ? `${tr("Join")} ${found.name}${tr("'s family?")}`
+    : currentCoachName ? `${tr("Join")} ${found.name}? ${tr("You'd leave")} ${currentCoachName}.`
+    : `${tr("Join")} ${found.name}?`;
+  const join = async () => {
+    if (!found || already || busy) return;
+    setBusy(true); setErr("");
+    const res = family ? await onJoinFamily(invite.code) : await onJoinCoach(invite.code);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't join.")); return; }
+    hapticSuccess(); onDone(found, res);
+  };
+  return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("You've been invited")}</h2>
+      <p className="mb-1" style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{line}</p>
+      <p className="mb-5" style={{ ...TYPE.caption, color: t.faint, letterSpacing: "0.12em" }}>{invite.code}</p>
+      {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+      {found && !already && (
+        <div className="mb-3"><Button tone="ink" disabled={busy} onClick={join}>{busy ? "…" : tr("Join")}</Button></div>
+      )}
+      <button onClick={() => { haptic(6); close(); }} className="w-full active:opacity-60"
+              style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: t.sub }}>
+        {found && !already ? tr("Not now") : tr("OK")}
+      </button>
+    </>
   );
 }
 
@@ -9204,8 +9319,9 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
                   delay={310} last onPress={() => push("attendance")} />
           </div>
 
-          {!juvenile && (
-            <button data-tour="home-request" onClick={() => { hapticCommit(); soft(); onRequest && onRequest(); }}
+          {/* not for a junior, nor for a parent — neither books for themselves */}
+          {!juvenile && onRequest && (
+            <button data-tour="home-request" onClick={() => { hapticCommit(); soft(); onRequest(); }}
                     className="w-full flex items-center justify-center gap-2 mt-8 active:opacity-90"
                     style={{ minHeight: 54, borderRadius: R.control,
                              border: `1px solid ${HAIR(t.ink, 0.18)}`,
@@ -9936,7 +10052,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
                     <span className="flex-1 min-w-0">
                       <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
                       <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                        {r.d} {MONTHS.find((x) => x.idx === r.m)?.name.split(" ")[0]} · {r.time}
+                        {r.d} {monthName(r.m)} · {r.time}
                       </span>
                     </span>
                   </div>
@@ -10943,8 +11059,9 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
   const [time, setTime] = useState(existing?.time ?? slots[0]);
   const [freq, setFreq] = useState(existing?.freq ?? "weekly");
   const [total, setTotal] = useState(existing?.total ?? 10);
+  const calendar = useCalendar();
 
-  const preview = seriesOccurrences(day, Math.min(total, 3), freq);
+  const preview = seriesOccurrences(day, Math.min(total, 3), freq, undefined, undefined, calendar);
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.02em", color: t.ink }}>
@@ -10993,7 +11110,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       <div className="p-4 mb-5" style={{ borderRadius: R.surface, background: t.wash }}>
         <p style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.sub }}>
           {DAY_NAMES[day]}s at {time}, {freq}. First three:{" "}
-          {preview.map((o) => `${o.d} ${MONTHS.find((x) => x.idx === o.m)?.name.slice(0, 3)}`).join(", ")}.
+          {preview.map((o) => `${o.d} ${monthName(o.m).slice(0, 3)}`).join(", ")}.
         </p>
       </div>
 
@@ -11306,7 +11423,7 @@ function UnloggedLessons({ items, onLog, onDismiss, pop }) {
                 <span className="rounded-2xl flex flex-col items-center justify-center shrink-0" style={{ width: 46, height: 46, background: t.wash }}>
                   <span style={{ fontFamily: display, fontSize: 17, lineHeight: 1, color: t.ink }}>{u.d}</span>
                   <span className="uppercase" style={{ fontFamily: ui, fontSize: 8, letterSpacing: "0.1em", fontWeight: 600, color: t.faint }}>
-                    {MONTHS.find((x) => x.idx === u.m)?.name.slice(0, 3)}
+                    {monthName(u.m).slice(0, 3)}
                   </span>
                 </span>
                 <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{u.who}</span>
@@ -12275,29 +12392,33 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
    The grid stays quiet — only availability is signalled — and the times
    carry the weight, one per line, with the finish time always shown. */
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent }) {
   const t = useT();
   const live = useLive();
-  /* the real day for a real account; the harness keeps its designed 24 July */
-  const T = now || TODAY;
-  const isGone = (m, d) => m < T.m || (m === T.m && d < T.d);
-  const [mi, setMi] = useState(() => Math.max(0, MONTHS.findIndex((x) => x.idx === T.m)));
+  /* the tree's calendar: the real months for a real account, the
+     harness's fixed summer (today 24 July) otherwise */
+  const calendar = useCalendar();
+  const cx = now ? { ...calendar, today: now } : calendar;
+  const T = cx.today;
+  const months = cx.months;
+  const isGone = (m, d) => isPast(m, d, cx);
+  const [mi, setMi] = useState(() => Math.max(0, months.findIndex((x) => x.idx === T.m)));
   const [sel, setSel] = useState(T.d);
   const [pick, setPick] = useState(null);
   const [famFilter, setFamFilter] = useState("Everyone");
   const [view, setView] = useState(tr("List"));
-  const mo = MONTHS[mi];
+  const mo = months[Math.min(mi, months.length - 1)];
   const mineOn = (m, d) => bookings.find((b) => b.m === m && b.d === d);
-  const open = isGone(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked);
+  const open = isGone(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx);
   const booked = seedBooked[key(mo.idx, sel)] || [];
   const myDay = mineOn(mo.idx, sel);
   const past = isGone(mo.idx, sel);
   /* a player whose coach has set no hours at all is told so, rather than shown an empty week */
   const noHours = role === "player" && live && !Object.values(avail || {}).some((x) => x && x.length);
-  const dayHours = avail[dowOf(mo.idx, sel)] || [];
-  const move = (dir) => { const n = Math.max(0, Math.min(MONTHS.length - 1, mi + dir)); if (n === mi) return; haptic(8); setMi(n); setSel(1); setPick(null); };
+  const dayHours = avail[dowOf(mo.idx, sel, cx)] || [];
+  const move = (dir) => { const n = Math.max(0, Math.min(months.length - 1, mi + dir)); if (n === mi) return; haptic(8); setMi(n); setSel(1); setPick(null); };
   const cells = []; for (let i = 0; i < mo.start; i++) cells.push(null); for (let d = 1; d <= mo.days; d++) cells.push(d);
-  const dayLabel = `${DAY_NAMES[dowOf(mo.idx, sel)]} ${sel} ${mo.name.split(" ")[0]}`;
+  const dayLabel = `${DAY_NAMES[dowOf(mo.idx, sel, cx)]} ${sel} ${mo.name.split(" ")[0]}`;
 
   return (
     <Screen title={L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "Your week" : conn ? `with ${conn.coach}` : ""}>
@@ -12309,7 +12430,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         family.forEach((f) => {
           if (!f.next) return;
           upcoming.push({ ...f.next, name: f.name, sport: f.sport, coach: f.coach, id: f.id });
-          seriesOccurrences(dowOf(f.next.m, f.next.d), 2, "weekly", f.next.m, f.next.d)
+          seriesOccurrences(dowOf(f.next.m, f.next.d, cx), 2, "weekly", f.next.m, f.next.d, cx)
             .forEach((o) => upcoming.push({ ...o, time: f.next.time, name: f.name, sport: f.sport, coach: f.coach, id: f.id }));
         });
         const filtered = famFilter === "Everyone" ? upcoming : upcoming.filter((u) => u.name.split(" ")[0] === famFilter);
@@ -12346,7 +12467,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     <span className="shrink-0 text-center" style={{ width: 38 }}>
                       <span className="block" style={{ fontFamily: display, fontSize: 19, lineHeight: 1, color: t.ink }}>{g.d}</span>
                       <span className="block mt-1 uppercase" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.14em", color: t.faint }}>
-                        {DAY_NAMES[dowOf(g.m, g.d)].slice(0, 3)}
+                        {DAY_NAMES[dowOf(g.m, g.d, cx)].slice(0, 3)}
                       </span>
                     </span>
                     <span className="flex-1 min-w-0">
@@ -12392,7 +12513,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
       {noHours && (
         <div className="px-6 mb-4">
-          <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>{tr("Your coach hasn't set times yet.")}</p>
+          {/* a parent has no coach of their own to book with; their children's coaches book */}
+          <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
+            {parent ? tr("Your child's coach books their lessons, or they request one from their own account.") : tr("Your coach hasn't set times yet.")}
+          </p>
         </div>
       )}
 
@@ -12415,7 +12539,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <span style={{ ...TYPE.heading, color: t.ink }}>{mo.name}</span>
           <span className="flex items-center gap-1">
             <button onClick={() => move(-1)} disabled={mi === 0} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Previous month")}><ChevronLeft size={18} color={t.ink} /></button>
-            <button onClick={() => move(1)} disabled={mi === MONTHS.length - 1} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><ChevronRight size={18} color={t.ink} /></button>
+            <button onClick={() => move(1)} disabled={mi >= months.length - 1} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><ChevronRight size={18} color={t.ink} /></button>
           </span>
         </div>
         <div className={`grid mb-2`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
@@ -12424,11 +12548,11 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         <div className="gap-y-1.5" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
           {cells.map((d, i) => {
             if (d === null) return <span key={`b${i}`} />;
-            if (!prefs.weekends && dowOf(mo.idx, d) > 4) return null;
+            if (!prefs.weekends && dowOf(mo.idx, d, cx) > 4) return null;
             const gone = isGone(mo.idx, d);
             const on = sel === d;
             const today = mo.idx === T.m && d === T.d;
-            const nOpen = gone ? 0 : openTimes(mo.idx, d, avail, blocked, bookings, seedBooked).length;
+            const nOpen = gone ? 0 : openTimes(mo.idx, d, avail, blocked, bookings, seedBooked, cx).length;
             const dayBooked = (seedBooked[key(mo.idx, d)] || []).length;
             const mine = !!mineOn(mo.idx, d);
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
@@ -13440,7 +13564,7 @@ function useTypefaces() {
   }, []);
 }
 
-export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach, onProfileChanged, showcase } = {}) {
+export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach, onProfileChanged, showcase, invite, onInviteUsed } = {}) {
   /* A real account gates every seed generator. The answer travels by
      context (LiveCtx, below) so nothing can draw invented history even
      on the first paint, and so a nested showcase instance keeps its own
@@ -13476,7 +13600,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* The real clock, for a real account. The design harness keeps its
      fixed 24 July so the seeded day still reads as designed. */
   const clock = new Date();
-  const todayMD = account ? { m: clock.getMonth() + 1, d: clock.getDate() } : TODAY;
+  /* Six real months from this one for a real account; the harness's
+     fixed summer otherwise. Handed to every screen through CalendarCtx
+     (see calendarFor), rebuilt only when the day changes. */
+  const calendar = useMemo(() => (account ? calendarFor(clock) : HARNESS_CALENDAR),
+    [!!account, clock.getFullYear(), clock.getMonth(), clock.getDate()]);
+  const todayMD = calendar.today;
   const dowToday = account ? (clock.getDay() + 6) % 7 : dowOf(TODAY.m, TODAY.d);
   const nowMins = clock.getHours() * 60 + clock.getMinutes();
   const [loggedKeys, setLoggedKeys] = useState(() => new Set());
@@ -13659,7 +13788,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       return nx;
     });
     setAskedFor((v) => v.filter((x) => x !== r));
-    setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${MONTHS.find((x) => x.idx === r.m)?.name.split(" ")[0]}` });
+    setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${monthName(r.m)}` });
   };
 
   /* Loads the Breathnach household. Everything it touches is state the
@@ -13716,6 +13845,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       }
     } catch (e) { /* storage unavailable — nothing to consume */ }
   }, []);
+  /* A join link opened by someone already signed in. Taken from the app
+     once (onInviteUsed) and kept here until it is dealt with: a player
+     with no coach gets it filled into the code boxes; anyone else is
+     offered it by name; a coach hands codes out and is not offered one. */
+  const [pendingInvite, setPendingInvite] = useState(() => (account && invite && !sc ? invite : null));
+  useEffect(() => { if (invite && onInviteUsed && !sc) onInviteUsed(); }, []);
+  useEffect(() => {
+    if (!pendingInvite || !data || !account || sc) return;
+    if (account.role === "coach") { setPendingInvite(null); return; }
+    const coachless = !data.hasCoach && account.accountType !== "parent";
+    if (pendingInvite.kind === "coach" && coachless) return;   // the code boxes on the first screen have it
+    setSheet("inviteOffer");
+  }, [pendingInvite, !!data]);
 
   /* A no-show is recorded and the lesson still counts against the
      package — that is the whole point of recording it. A cancellation
@@ -13985,7 +14127,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const id = existing ? existing.id : Date.now();
     const rec = { id, sport: coachSport, used: existing?.used || 0, ...v };
     setSeries((list) => (existing ? list.map((x) => (x.id === id ? rec : x)) : [...list, rec]));
-    const occ = seriesOccurrences(v.day, v.total, v.freq);
+    const occ = seriesOccurrences(v.day, v.total, v.freq, undefined, undefined, calendar);
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
       occ.forEach(({ m, d }) => {
@@ -14031,7 +14173,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         const all = Object.entries(next[coachSport]).flatMap(([kk, day]) =>
           day.filter((b) => b.seriesId === rec.id).map(() => ({ m: Number(kk.split("-")[0]), d: Number(kk.split("-")[1]) })));
         const lastOne = all.sort((a, b) => a.m - b.m || a.d - b.d).pop() || { m, d };
-        const extra = seriesOccurrences(rec.day, 1, rec.freq, lastOne.m, lastOne.d)[0];
+        const extra = seriesOccurrences(rec.day, 1, rec.freq, lastOne.m, lastOne.d, calendar)[0];
         if (extra) {
           const ek = key(extra.m, extra.d);
           next[coachSport][ek] = [...(next[coachSport][ek] || []), { time: rec.time, who: rec.who, kind: "Private", seriesId: rec.id, addedBack: true }];
@@ -14101,10 +14243,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mySaved = saved[pKey] || [];
   /* Real dates for a real account: the year is the clock's, rolling
      forward when a month has already passed. */
-  const isoOf = (m, d) => {
-    const y = clock.getFullYear() + (account && m < todayMD.m ? 1 : 0);
-    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-  };
+  const isoOf = (m, d) => `${yearOf(m, calendar)}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   /* The next N dates on a weekday (Monday = 0), from tomorrow, a week,
      a fortnight or four weeks apart. */
   const occurrencesFrom = (dayIdx, count, freq) => {
@@ -14411,7 +14550,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }
     const id = Date.now();
     setGroups((prev) => ({ ...prev, [coachSport]: [...(prev[coachSport] || []), { id, ...g }] }));
-    const occ = nextOccurrences(g.day, g.weeks);
+    const occ = nextOccurrences(g.day, g.weeks, calendar);
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
       occ.forEach(({ m, d }) => { const k = key(m, d); next[coachSport][k] = [...(next[coachSport][k] || []), { time: g.time, who: g.name, kind: `Group · ${g.members.length}`, group: true }]; });
@@ -14470,9 +14609,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      a small thing, but it removes most of the scanning. */
   const aiPick = (() => {
     if (role !== "player" || freshAccount) return null;
-    const soonest = earliestSlot(myAvail, myBlocked, myBookings, mySeedBooked);
+    const soonest = earliestSlot(myAvail, myBlocked, myBookings, mySeedBooked, calendar);
     if (!soonest) return null;
-    return { ...soonest, reason: `${DAY_NAMES[dowOf(soonest.m, soonest.d)].slice(0, 3)} ${soonest.d} at ${soonest.time} — like your usual` };
+    return { ...soonest, reason: `${DAY_NAMES[dowOf(soonest.m, soonest.d, calendar)].slice(0, 3)} ${soonest.d} at ${soonest.time} — like your usual` };
   })();
   const practiceTodo = myPractice.filter((x) => !x.done).length;
   const hasFamily = profiles.some((pf) => pf.age);
@@ -14509,11 +14648,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* A parent has no coach of their own — their children do — so they
      are never held here; Home, Family and the family code are theirs
      from the start. */
-  const needsCoach = !!account && role === "player" && data && !data.hasCoach && account.accountType !== "parent";
+  const parentAccount = !!account && account.accountType === "parent";
+  const needsCoach = !!account && role === "player" && data && !data.hasCoach && !parentAccount;
   if (needsCoach) {
-    body = <NoCoach juvenile={juvenile} onJoin={async (c) => {
+    /* a join link opened by this person arrives with the code filled in */
+    body = <NoCoach juvenile={juvenile} initialCode={pendingInvite && pendingInvite.kind === "coach" ? pendingInvite.code : ""} onJoin={async (c) => {
       const res = await (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c));
-      if (res && !res.error) setJoined({ coachName: res.coach?.name || data.coachName, sport: res.coach?.sport });
+      if (res && !res.error) { setPendingInvite(null); setJoined({ coachName: res.coach?.name || data.coachName, sport: res.coach?.sport }); }
       return res;
     }} />;
     bare = true;
@@ -14794,7 +14935,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
-  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} now={todayMD}
+  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
                                                             bookings={role === "player" ? myBookings : []} seedBooked={mySeedBooked} onBook={book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={aiPick} readOnly={juvenile}
@@ -14831,18 +14972,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
+      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
       log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
   }
 
   return (
-    <LiveCtx.Provider value={live}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <LiveCtx.Provider value={live}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -15166,6 +15307,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                     onSend={(names) => setInvited((v) => [...v, ...names.map((n) => ({ name: n, sentAt: "just now" }))])}
                                                     close={() => setSheet(null)} say={say} />
               : sheet === "password" ? <ChangePasswordBody onSubmit={data ? (pw) => data.changePassword(pw) : null} say={say} close={() => setSheet(null)} />
+              : sheet === "inviteOffer" && pendingInvite && data ? <InviteOffer invite={pendingInvite} lookup={data.lookupCode}
+                                            currentCoach={data.coachId} currentCoachName={data.coachName} currentGuardian={data.guardianId}
+                                            onJoinCoach={(c) => (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c))}
+                                            onJoinFamily={(c) => data.joinFamily(c)}
+                                            onDone={(found, res) => {
+                                              const kind = pendingInvite.kind;
+                                              setPendingInvite(null); setSheet(null);
+                                              if (kind === "coach") setJoined({ coachName: (res && res.coach && res.coach.name) || (found && found.name), sport: res && res.coach && res.coach.sport });
+                                              else { chime(); setCeleb({ label: tr("Joined"), sub: `${(found && found.name) || ""}${tr("'s family")}` }); }
+                                            }}
+                                            close={() => { setPendingInvite(null); setSheet(null); }} />
               : sheet === "peek" && peek ? <LessonPeek booking={peek} duration={duration} sport={coachSport} agreed={agreedFocus[peek.who]}
                                             past={data ? (data.lessons || []).filter((l) => l.who === peek.who).slice(0, 2) : undefined}
                                             onHistory={() => { setSheet(null); push("history:" + peek.who); }}
@@ -15192,7 +15344,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   <>
                     <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Book someone in")}</h2>
                     <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
                     </p>
                     <div className="flex flex-col gap-2">
                       {roster.map((r, i) => (
@@ -15223,7 +15375,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   <>
                     <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Confirm")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
                     </p>
                     <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); }}>{tr("Request it")}</Button>
                   </>
@@ -15395,7 +15547,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></LiveCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></LiveCtx.Provider>
   );
 }
 

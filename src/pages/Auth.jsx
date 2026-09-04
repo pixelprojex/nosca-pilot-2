@@ -517,7 +517,7 @@ function SetPassword() {
 
 /* ================================================================== */
 
-export default function Auth({ invite, mode }) {
+export default function Auth({ invite, mode, onInviteUsed }) {
   const [stage, setStage] = useState("landing");
   const [role, setRole] = useState(null);         // coach | player | parent
   const [sport, setSport] = useState(null);
@@ -631,6 +631,9 @@ export default function Auth({ invite, mode }) {
          this browser — set before the confirmation branch, so an account
          confirmed by email still gets its code shown when it comes back. */
       try { window.sessionStorage.setItem("nosca.arrival", role); } catch (e) { /* private mode */ }
+      /* The join link did its job here — the trigger linked the account
+         from the code — so the app is not offered it again. */
+      if (invite && c && (c.coach_code === invite.code || c.family_code === invite.code) && onInviteUsed) onInviteUsed();
 
       if (!data.session) {
         setSigninEmail(d.email);
