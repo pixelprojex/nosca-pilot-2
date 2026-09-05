@@ -16,6 +16,12 @@ export const useAuth = () => useContext(Ctx);
  * there, which now only happens if the database was wiped underneath
  * a live session. That gets a clear signal rather than a silent
  * sign-out.
+ *
+ * Password recovery: the link in the reset email opens the app with a
+ * recovery token. The library turns that into a session and announces
+ * PASSWORD_RECOVERY instead of SIGNED_IN. `recovery` stays true until
+ * the new password is saved, and the gate shows "Set a new password"
+ * for as long as it is — even though, technically, they are signed in.
  */
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined);   // undefined = still checking
@@ -23,6 +29,7 @@ export function AuthProvider({ children }) {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [recovery, setRecovery] = useState(false);
   const loadedFor = useRef(null);   // whose profile the last load was for
 
   const loadProfile = async (userId) => {
@@ -79,7 +86,8 @@ export function AuthProvider({ children }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (!alive) return;
       setSession(next);
-      if (!next) { loadedFor.current = null; setProfile(null); setNeedsProfile(false); setLoadError(null); return; }
+      if (!next) { loadedFor.current = null; setProfile(null); setNeedsProfile(false); setLoadError(null); setRecovery(false); return; }
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
       /* Tokens refresh quietly in the background, and the library
          re-announces the same session when a tab regains focus. Neither
          changes who is signed in, so neither refetches the profile — a
@@ -97,11 +105,13 @@ export function AuthProvider({ children }) {
     setProfile(null);
     setNeedsProfile(false);
     setLoadError(null);
+    setRecovery(false);
   };
 
   return (
     <Ctx.Provider value={{
       session, profile, setProfile, loadingProfile, needsProfile, loadError, signOut,
+      recovery, clearRecovery: () => setRecovery(false),
       refreshProfile: () => session && loadProfile(session.user.id),
     }}>
       {children}

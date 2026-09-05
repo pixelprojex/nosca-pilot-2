@@ -1,8 +1,9 @@
 # Nosca — Pilot
 
-A real, working version of Nosca: one coach account, up to 20 players,
-real sign-up, real lesson logging with real video/photo upload, real
-attendance, real drills and tips. No payments anywhere in the code.
+A real, working version of Nosca: coach and player sign-up, real
+lesson logging with real video/photo/voice-note upload, real
+attendance, real drills and tips, a diary, messaging, families for
+under-18s. No payments anywhere in the code.
 
 **I (Claude) cannot create accounts or deploy this for you — my
 environment has no internet access.** Everything below that needs an
@@ -12,13 +13,16 @@ account is yours to click through; it's about 10 minutes total, once.
 
 ## What's real in this build
 
-- Coach sign-up (the database itself refuses a second coach account)
-- Player sign-up by invite code (the database refuses a 21st player)
+- Coach sign-up, with an invite code to hand to players
+- Player sign-up — with the coach's code, or without one and added later
 - **The full designed interface**, behind that real sign-in
 - Log a lesson — private or group, notes, and real video/photo upload
 - Lesson history — the coach sees everyone's; a player sees only theirs
 - Attendance — the coach takes a real register; a player sees their own %
 - Drills and tips — the coach sets them; a player ticks drills done
+- Families — anyone can hand out a family code; whoever enters it
+  joins that person's family, and the database lets a guardian see
+  their family's lessons and book or message for them
 
 ## Where the work stands
 
@@ -37,48 +41,54 @@ The plain pilot screens built first are preserved in `src/pages` and
 
 ## Step 1 — Create the database (Supabase, free) — ~5 minutes
 
-### Part 1 — the tables
+### Part 1 — run the one SQL file
 
 1. Go to **supabase.com** → sign up → **New project**. Any name/password/region.
 2. Once it's created, open **SQL Editor** (left sidebar) → **New query**.
-3. Open `supabase/schema.sql` in this folder, copy the whole file, paste
-   it into the query box, click **Run**. This creates every table and
-   the two hard limits (1 coach, 20 players) directly in the database.
-4. Check **Table Editor** — you should see `profiles`, `lessons`,
-   `drills`, `tips`, `attendance_sessions`, `attendance_marks`. If they're
-   not there, the run failed — see **Troubleshooting** at the bottom.
+3. Open `supabase/nosca.sql` in this folder, copy the whole file, paste
+   it into the query box, click **Run**. Run it once, in full. It
+   creates every table, the sign-up trigger, the security rules and the
+   storage bucket, and checks its own work.
+4. Read the one row that comes back under the query. `tables` should
+   say `13 of 13`, `signup_trigger` `true`, `profiles_policy` should
+   begin `OK`, and so should `tables_as_user` and `tables_as_anon`. If
+   instead you see red text, nothing was changed — see
+   **Troubleshooting** at the bottom.
 
-### Part 2 — the second migration
+You can run `nosca.sql` again at any time — after pulling a new
+version of this code, or if you're not sure it ran. It is safe: it
+never deletes an account, and running it twice changes nothing.
 
-Open `supabase/migration-002.sql`, copy the whole file, paste it into a
-**New query** in the SQL Editor and **Run** it. This adds the fields the
-designed interface expects: sub-focus tags and an unread flag on
-lessons, plus tables for competitions, recurring lessons, bookings and
-per-person preferences.
+### Part 2 — the video/photo storage
 
-### Part 3 — the video/photo storage (done through the dashboard, not SQL)
+The script creates the private `media` bucket itself. What it may not
+be allowed to do is create the *permissions* on it: Supabase blocks
+that from the SQL Editor on some projects ("must be owner of table
+objects"), a platform restriction, not a mistake in the script.
 
-Supabase currently blocks creating storage permissions via the SQL
-Editor ("must be owner of table objects") — a platform restriction, not
-a mistake in the schema. Do this instead, once:
+Look at the `storage_policies` column of the row from Part 1:
 
-1. Left sidebar → **Storage** → **New bucket** → name it exactly `media`
-   → leave **Public bucket** switched **off** → Create.
+- **`OK — 3 policies on the media bucket`** — done, skip to Part 3.
+- **`create in the dashboard …`** — do this once, by hand:
+
+1. Left sidebar → **Storage**. If there is no `media` bucket (the
+   `storage_bucket` column will have said so), **New bucket** → name it
+   exactly `media` → leave **Public bucket** switched **off** → Create.
 2. Click into the `media` bucket → **Policies** tab → **New policy**.
 3. Choose **"For full customization"** (a blank policy) and create
-   **two** policies with these exact settings:
+   **three** policies with these exact settings:
 
    **Policy 1 — reading**
-   - Policy name: `coach group can read own media`
+   - Policy name: `media: your own folder, or a file from a lesson you can see`
    - Allowed operation: `SELECT`
    - Target roles: `authenticated`
    - USING expression:
      ```
-     bucket_id = 'media' and (storage.foldername(name))[1] = public.my_coach_id()::text
+     bucket_id = 'media' and ((storage.foldername(name))[1] = auth.uid()::text or exists (select 1 from public.lesson_media lm where lm.storage_path = name))
      ```
 
    **Policy 2 — uploading**
-   - Policy name: `coach can upload own media`
+   - Policy name: `media: upload into your own folder`
    - Allowed operation: `INSERT`
    - Target roles: `authenticated`
    - WITH CHECK expression:
@@ -86,17 +96,35 @@ a mistake in the schema. Do this instead, once:
      bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text
      ```
 
-### Part 4 — turn off email confirmation
+   **Policy 3 — deleting**
+   - Policy name: `media: delete from your own folder`
+   - Allowed operation: `DELETE`
+   - Target roles: `authenticated`
+   - USING expression:
+     ```
+     bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text
+     ```
 
-Otherwise every sign-up has to click a verification link in an email
-before they can use the app — unnecessary friction for a small pilot.
+### Part 3 — three authentication settings
 
-1. Left sidebar → **Authentication**
-2. Tabs along the top → **Providers**
-3. Click **Email** in the list
-4. Find the toggle **Confirm email** → switch it **off** → save
+1. Left sidebar → **Authentication** → **Sign In / Providers** → **Email**.
+   - **Confirm email**: switch it **off** for the pilot, so nobody has to
+     find a verification email before they can use the app. (If you
+     leave it on, the app copes: it shows "Check your inbox" with a
+     Resend button, and the person's code is shown the first time they
+     sign in.)
+   - **Minimum password length**: set it to **8**. The app already
+     insists on eight characters; this makes the server agree.
+2. **Authentication** → **URL Configuration**: set **Site URL** to your
+   Netlify address (for example `https://nosca.netlify.app`) and add the
+   same address under **Redirect URLs**. Without this, the "Forgot
+   password?" email links land on the wrong page.
+3. Optional: in Netlify's environment variables add
+   `VITE_SUPPORT_EMAIL` with the address you want "Email support" and
+   "Report a problem" to write to. Until it is set, those rows are hidden
+   rather than pointing nowhere.
 
-### Part 5 — get your two keys
+### Part 4 — get your two keys
 
 You'll paste these into Netlify in Step 3, so grab them now.
 
@@ -136,7 +164,7 @@ above are complete on their own.)
    - Open `.env.example` from this project, copy its contents, paste
      them into the box Netlify gives you
    - Edit the two placeholder values to your real ones from Step 1,
-     Part 5 — `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+     Part 4 — `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
    - Import/save
 3. Click **Deploy**. In about a minute you'll have a real URL — something
    like `nosca-pilot.netlify.app`.
@@ -159,25 +187,33 @@ npm run dev
 
 ## Troubleshooting
 
-**"Failed to get project's logs" right after running the schema** — this
+**"Failed to get project's logs" right after running the SQL** — this
 is a Supabase dashboard quirk (it tries to fetch a log after your query
 runs, and that separate fetch can fail) — it does not mean your SQL
-failed. Check Table Editor; if the tables are there, ignore it.
+failed. Scroll down to the results panel; if the one-row summary is
+there, it worked.
 
-**Table Editor shows nothing after running the schema** — the whole
-paste runs as one transaction, so any single failing line rolls back
-everything above it too. Re-run it and read the red text in the
-results panel directly under the query (not a popup) for the real
-error. If it says `must be owner of table objects`, you're running an
-older copy of this file — the current `schema.sql` no longer touches
-storage at all; that's Part 2 above instead.
+**Red text instead of the one-row summary** — the whole file runs as
+one transaction, so any single failing line rolls back everything
+above it too; nothing is half-done. Read the red text directly under
+the query (not a popup) for the real error, then run the file again
+once it's fixed. If it says `profiles policy is broken` or
+`row-level security check failed`, the file caught the problem itself
+— that is the check at the end doing its job.
 
-**"relation already exists"** — harmless, it means an earlier run
-already created that table.
+**"relation already exists"** — you're running an older SQL file.
+Only `supabase/nosca.sql` exists now, and it never says this.
+
+**Sign-up says "The database rejected the sign-up"** — `nosca.sql`
+hasn't been run on this project yet. Run it (Step 1, Part 1) and try
+again.
 
 ## Resetting the pilot
 
-If you want to wipe every account and lesson and start clean: in
-Supabase → **Authentication → Users**, select all, delete. Everything
-else (lessons, media, drills) cascades away automatically because of
-how the database is built.
+If you want to wipe every account and lesson and start clean: open
+`supabase/nosca.sql`, find the block at the very top titled
+**OPTIONAL — start again**, remove the two `--` in front of the two
+`delete` lines, and run the file. Everything else (lessons, media
+rows, drills) cascades away automatically because of how the database
+is built. Put the `--` back afterwards. Uploaded files are cleared
+separately, in **Storage → media** → select all → Delete.

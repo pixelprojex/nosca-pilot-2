@@ -31,6 +31,10 @@ export const supabase = createClient(url, anonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    /* implicit, not PKCE: a password-reset link is usually opened in a
+       different browser from the one that asked for it (the phone's
+       mail app), and PKCE needs the requesting browser's verifier. */
+    flowType: "implicit",
     storageKey: "nosca.auth",
   },
 });

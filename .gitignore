@@ -7,3 +7,7 @@ dist/
 # Not committed on purpose: package.json is edited by hand and uploaded,
 # and a lockfile that falls out of step with it makes Netlify's npm ci fail.
 package-lock.json
+
+# agent worktrees and local harness state
+.claude/
+.e2e-out/

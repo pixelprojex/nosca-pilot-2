@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useContext, createContext } from "react";
 import { useCapture } from "./lib/useCapture";
+import QRCode from "qrcode";
+import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home, Library,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
@@ -13,6 +15,9 @@ import {
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
 ================================================================== */
 export const BRAND = "NOSCA";
+/* Where "Email support" goes. Unset in a build, and the help rows are
+   not shown — nothing offers a route that leads nowhere. */
+const SUPPORT_EMAIL = (import.meta.env && import.meta.env.VITE_SUPPORT_EMAIL) || "";
 const VERSION = "1.2.0 (38)";
 
 export function Mark({ size = 34, color = "#16201A" }) {
@@ -65,14 +70,17 @@ const PLAYER_FILE = {
   "Tom Beckett":  { done: 1,  lastFocus: "Short game", lastOn: "20 Apr",
                     tip: null, goal: null, note: "Left-handed" },
 };
-/* Set once, at sign-in. While true, every seed generator below returns
-   nothing — so no screen, sheet or tab can surface invented history,
-   whether or not it remembered to ask for the live data. */
-let LIVE_ACCOUNT = false;
-export const setLiveAccount = (v) => { LIVE_ACCOUNT = !!v; };
+/* Whether this tree is a real, signed-in account. While true, every seed
+   generator below returns nothing — so no screen, sheet or tab can
+   surface invented history, whether or not it remembered to ask for the
+   live data. It travels by context rather than a module flag because the
+   walkthrough renders a second, seeded instance of the app inside a real
+   one, and each must keep its own answer. */
+const LiveCtx = createContext(false);
+const useLive = () => useContext(LiveCtx);
 
 const EMPTY_FILE = { done: 0, lastFocus: null, lastOn: null, tip: null, goal: null, note: "", lessons: [] };
-const fileFor = (n) => LIVE_ACCOUNT ? EMPTY_FILE : (PLAYER_FILE[n] || EMPTY_FILE);
+const fileFor = (n, live) => live ? EMPTY_FILE : (PLAYER_FILE[n] || EMPTY_FILE);
 
 /* Lessons per month, for the little bar chart on both sides. */
 /* The kit each sport actually uses. A photo of the screen is the
@@ -282,8 +290,8 @@ const FAMILY_CODE = "TR7M2K";
 /* A coach's full history, built from the sport's lesson shapes spread
    across the roster so it reads like a real archive rather than five
    repeated rows. */
-function buildArchive(cfg) {
-  if (LIVE_ACCOUNT) return [];        // a real account has no archive until it earns one
+function buildArchive(cfg, live) {
+  if (live) return [];        // a real account has no archive until it earns one
   const out = [];
   const months = [["JUL", 7], ["JUN", 6], ["MAY", 5], ["APR", 4]];
   let id = 1;
@@ -362,7 +370,7 @@ const meaning = {
 /* Lessons a person actually had. Empty for a real account — the sport
    config's own list is a catalogue of focus areas for suggestions, not
    a history, and must never be shown as one. */
-const hadLessons = (cfg) => (LIVE_ACCOUNT ? [] : (cfg?.lessons || []));
+const hadLessons = (cfg, live) => (live ? [] : (cfg?.lessons || []));
 
 export const SPORTS = {
   golf: {
@@ -1423,18 +1431,47 @@ const cal = () => CAL_I18N[LANG] || CAL_I18N.en;
 
 const DOW_FOR = () => cal().d.map((x) => x.slice(0, 1).toUpperCase());
 const DOW = ["M", "T", "W", "T", "F", "S", "S"];
-const DAY_NAMES = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().d[Number(k)] : cal().d[k] ?? Array.prototype[k]) });
+/* `has` matters: Array.prototype.map (and every other array method that
+   checks HasProperty before Get) skips indexes the proxy says it lacks,
+   so without it DAY_NAMES.map(...) returned seven holes and every day
+   picker built from it rendered empty. */
+const DAY_NAMES = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().d[Number(k)] : cal().d[k] ?? Array.prototype[k]),
+                                  has: (_, k) => k in cal().d });
 const MONTH_SHAPE = [
-  { idx: 6,  days: 30, start: 0 }, { idx: 7,  days: 31, start: 2 },
-  { idx: 8,  days: 31, start: 5 }, { idx: 9,  days: 30, start: 1 },
-  { idx: 10, days: 31, start: 3 },
+  { idx: 6,  year: 2026, days: 30, start: 0 }, { idx: 7,  year: 2026, days: 31, start: 2 },
+  { idx: 8,  year: 2026, days: 31, start: 5 }, { idx: 9,  year: 2026, days: 30, start: 1 },
+  { idx: 10, year: 2026, days: 31, start: 3 },
 ];
 /* name resolves against whichever language is live */
-const MONTHS = MONTH_SHAPE.map((m) => Object.defineProperty({ ...m }, "name", {
-  get() { return cal().m[this.idx - 1] + " 2026"; }, enumerable: true,
+const nameMonths = (shapes) => shapes.map((m) => Object.defineProperty({ ...m }, "name", {
+  get() { return `${cal().m[this.idx - 1]} ${this.year}`; }, enumerable: true,
 }));
+const MONTHS = nameMonths(MONTH_SHAPE);
 const MONTHS_FULL = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().m[Number(k)] : cal().m[k] ?? Array.prototype[k]) });
+/* a month's name on its own, for any month number — "July" */
+const monthName = (m) => cal().m[m - 1] || "";
 const TODAY = { m: 7, d: 24 };
+
+/* THE CALENDAR A TREE RUNS ON
+
+   The design harness lives in a fixed summer — June to October 2026,
+   today the 24th of July — so every seeded screen reads as designed. A
+   real account runs on the clock: six months from the current one,
+   each shaped from the real calendar. The helpers below take the
+   calendar as a parameter and default to the harness's; the app hands
+   the right one down through CalendarCtx, so a harness instance
+   rendered inside a live one (the walkthrough) keeps its own. */
+const HARNESS_CALENDAR = { months: MONTHS, today: TODAY, year: 2026 };
+const monthShape = (y, m) => ({ idx: m, year: y, days: new Date(y, m, 0).getDate(), start: (new Date(y, m - 1, 1).getDay() + 6) % 7 });
+function calendarFor(clock, span = 6) {
+  const months = nameMonths(Array.from({ length: span }, (_, i) => {
+    const d = new Date(clock.getFullYear(), clock.getMonth() + i, 1);
+    return monthShape(d.getFullYear(), d.getMonth() + 1);
+  }));
+  return { months, today: { m: clock.getMonth() + 1, d: clock.getDate() }, year: clock.getFullYear() };
+}
+const CalendarCtx = createContext(HARNESS_CALENDAR);
+const useCalendar = () => useContext(CalendarCtx);
 const DURATIONS = [30, 45, 60, 90];
 /* "9:00 am" + 45 -> "9:45 am". Booking without a finish time is how
    coaches end up double-booked. */
@@ -1537,22 +1574,43 @@ const UNLOGGED = [
 ];
 
 const key = (m, d) => `${m}-${String(d).padStart(2, "0")}`;
-const dowOf = (m, d) => { const mo = MONTHS.find((x) => x.idx === m); return (mo.start + d - 1) % 7; };
-const isPast = (m, d) => m < TODAY.m || (m === TODAY.m && d < TODAY.d);
+/* The year a month number belongs to on a calendar: the table's own
+   where the month is in it; otherwise this year, rolling forward for a
+   month already gone — the same rule the diary's ISO dates follow. */
+const yearOf = (m, c = HARNESS_CALENDAR) => {
+  const mo = c.months.find((x) => x.idx === m);
+  if (mo) return mo.year;
+  return m < c.today.m ? c.year + 1 : c.year;
+};
+/* Weekday, Monday = 0. A month outside the table — a lesson logged last
+   spring, a booking a year out — is worked out from the real calendar
+   rather than failing. */
+const dowOf = (m, d, c = HARNESS_CALENDAR) => {
+  const mo = c.months.find((x) => x.idx === m);
+  if (mo) return (mo.start + d - 1) % 7;
+  return (new Date(yearOf(m, c), m - 1, d).getDay() + 6) % 7;
+};
+/* Before today on this calendar. Compared by year first: on a rolling
+   calendar January can sit after November. */
+const isPast = (m, d, c = HARNESS_CALENDAR) => {
+  const a = yearOf(m, c) * 10000 + m * 100 + d;
+  const b = c.year * 10000 + c.today.m * 100 + c.today.d;
+  return a < b;
+};
 
-function openTimes(m, d, avail, blocked, mine, seedBooked) {
-  if (isPast(m, d)) return [];
-  const base = avail[dowOf(m, d)] || [];
+function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR) {
+  if (isPast(m, d, c)) return [];
+  const base = avail[dowOf(m, d, c)] || [];
   const taken = (seedBooked[key(m, d)] || []).map((b) => b.time);
   const off = blocked.filter((b) => b.m === m && b.d === d).map((b) => b.time);
   const own = mine.filter((b) => b.m === m && b.d === d).map((b) => b.time);
   return base.filter((t) => !taken.includes(t) && !off.includes(t) && !own.includes(t));
 }
-function earliestSlot(avail, blocked, mine, seedBooked) {
-  for (const mo of MONTHS) {
+function earliestSlot(avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR) {
+  for (const mo of c.months) {
     for (let d = 1; d <= mo.days; d++) {
-      if (isPast(mo.idx, d)) continue;
-      const times = openTimes(mo.idx, d, avail, blocked, mine, seedBooked);
+      if (isPast(mo.idx, d, c)) continue;
+      const times = openTimes(mo.idx, d, avail, blocked, mine, seedBooked, c);
       if (times.length) return { m: mo.idx, d, time: times[0], month: mo.name.split(" ")[0] };
     }
   }
@@ -1562,15 +1620,16 @@ function earliestSlot(avail, blocked, mine, seedBooked) {
    powers recurring-group scheduling, months out if the range allows it. */
 /* Walks forward from today collecting occurrences, honouring the gap
    between them: weekly, fortnightly or monthly. */
-function seriesOccurrences(dowTarget, count, freq, fromM, fromD) {
+function seriesOccurrences(dowTarget, count, freq, fromM, fromD, c = HARNESS_CALENDAR) {
   const stepWeeks = freq === "fortnightly" ? 2 : freq === "monthly" ? 4 : 1;
   const out = [];
-  let mi = MONTHS.findIndex((m) => m.idx === (fromM || TODAY.m));
+  const months = c.months;
+  let mi = months.findIndex((m) => m.idx === (fromM || c.today.m));
   if (mi < 0) mi = 0;
-  let d = (fromD || TODAY.d) + 1, m = MONTHS[mi], hits = 0;
-  while (out.length < count && mi < MONTHS.length) {
-    if (d > m.days) { d = 1; mi += 1; if (mi >= MONTHS.length) break; m = MONTHS[mi]; continue; }
-    if (dowOf(m.idx, d) === dowTarget) {
+  let d = (fromD || c.today.d) + 1, m = months[mi], hits = 0;
+  while (out.length < count && mi < months.length) {
+    if (d > m.days) { d = 1; mi += 1; if (mi >= months.length) break; m = months[mi]; continue; }
+    if (dowOf(m.idx, d, c) === dowTarget) {
       if (hits % stepWeeks === 0) out.push({ m: m.idx, d });
       hits += 1;
     }
@@ -1579,13 +1638,14 @@ function seriesOccurrences(dowTarget, count, freq, fromM, fromD) {
   return out;
 }
 
-function nextOccurrences(dowTarget, count) {
+function nextOccurrences(dowTarget, count, c = HARNESS_CALENDAR) {
   const out = [];
-  let mi = MONTHS.findIndex((m) => m.idx === TODAY.m);
-  let d = TODAY.d + 1, m = MONTHS[mi];
-  while (out.length < count && mi < MONTHS.length) {
-    if (d > m.days) { d = 1; mi += 1; if (mi >= MONTHS.length) break; m = MONTHS[mi]; continue; }
-    if (dowOf(m.idx, d) === dowTarget) out.push({ m: m.idx, d });
+  const months = c.months;
+  let mi = Math.max(0, months.findIndex((m) => m.idx === c.today.m));
+  let d = c.today.d + 1, m = months[mi];
+  while (out.length < count && mi < months.length) {
+    if (d > m.days) { d = 1; mi += 1; if (mi >= months.length) break; m = months[mi]; continue; }
+    if (dowOf(m.idx, d, c) === dowTarget) out.push({ m: m.idx, d });
     d += 1;
   }
   return out;
@@ -1783,6 +1843,7 @@ const ShimmerCSS = () => (
     @keyframes orbitB{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
     @keyframes hueCycle{0%{stroke:var(--c0)}20%{stroke:var(--c1)}40%{stroke:var(--c2)}60%{stroke:var(--c3)}80%{stroke:var(--c4)}100%{stroke:var(--c0)}}
     @keyframes chase{0%{stroke-dashoffset:0}100%{stroke-dashoffset:-170}}
+    @keyframes tourPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 var(--ring)}50%{opacity:.78;box-shadow:0 0 0 9px transparent}}
     @keyframes pulseDot{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
     /* Seamless loops only — every one ends exactly where it began, so
        nothing visibly restarts. */
@@ -2399,18 +2460,24 @@ function SeasonPanel({ role, monthly, priv, grp, hours, streak, arc }) {
    grid — so every day gets its own block with the lessons and the gaps
    between them, running as far forward as they want to look. */
 function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slotKinds,
-                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile }) {
+                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now }) {
   const t = useT();
+  /* the tree's own calendar — the real months for a real account, the
+     harness's fixed summer otherwise */
+  const calendar = useCalendar();
+  const cx = now ? { ...calendar, today: now } : calendar;
+  const T = cx.today;
   /* Names are stripped for anyone who is not the coach. A player has no
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
   const isCoach = role === "coach";
   const days = [];
-  MONTHS.forEach((mo) => {
-    if (mo.idx < monthIdx) return;
+  const from = Math.max(0, cx.months.findIndex((x) => x.idx === monthIdx));
+  cx.months.forEach((mo, mi) => {
+    if (mi < from) return;
     for (let d = 1; d <= mo.days; d++) {
-      if (mo.idx === TODAY.m && d < TODAY.d) continue;
-      const hours = avail[dowOf(mo.idx, d)] || [];
+      if (isPast(mo.idx, d, cx)) continue;
+      const hours = avail[dowOf(mo.idx, d, cx)] || [];
       if (!hours.length) continue;
       days.push({ m: mo.idx, d, mo, hours,
                   booked: isCoach ? (seedBooked[key(mo.idx, d)] || [])
@@ -2434,7 +2501,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
           const taken = day.booked.length;
           const total = day.hours.length;
           const on = focus && focus.m === day.m && focus.d === day.d;
-          const isToday = day.m === TODAY.m && day.d === TODAY.d;
+          const isToday = day.m === T.m && day.d === T.d;
           const full = total > 0 && taken >= total;
           return (
             <button key={key(day.m, day.d)}
@@ -2445,7 +2512,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                              border: `0.5px solid ${on ? t.accent : isToday ? "transparent" : HAIR(t.ink, 0.14)}`,
                              transition: "background 200ms, border-color 200ms" }}>
               <span style={{ ...TYPE.eyebrow, fontSize: 8.5,
-                             color: on ? t.onAccent : t.faint }}>{DAY_NAMES[dowOf(day.m, day.d)].slice(0, 2)}</span>
+                             color: on ? t.onAccent : t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 2)}</span>
               <span className="mt-0.5" style={{ ...TYPE.figure, fontSize: 17,
                              color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
               {/* load: one dot per slot, filled where booked */}
@@ -2475,7 +2542,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
 
       <div className="px-6">
       {shown.map((day, di) => {
-        const isToday = day.m === TODAY.m && day.d === TODAY.d;
+        const isToday = day.m === T.m && day.d === T.d;
         const free = day.hours.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h));
         /* A player is here to find a time, so only open slots are
            shown. A coach is here to see their day, so everything is. */
@@ -2489,14 +2556,14 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
             {/* one quiet line, not a header competing with the rows */}
             <div className="flex items-center gap-2.5 mb-2.5 px-1">
               <span style={{ ...TYPE.heading, fontSize: 16, color: isToday ? t.accent : t.ink }}>
-                {DAY_NAMES[dowOf(day.m, day.d)]} {day.d}
+                {DAY_NAMES[dowOf(day.m, day.d, cx)]} {day.d}
               </span>
               <span style={{ ...TYPE.caption, color: t.faint }}>
                 {role === "coach" ? `${day.booked.length}/${day.hours.length}` : `${free.length} ${tr("open")}`}
               </span>
               <span className="flex-1" />
               {role === "coach" && (
-                <button onClick={() => { haptic(9); soft(); onEditDay(day); }} className="p-1.5 active:opacity-50"
+                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="p-1.5 active:opacity-50"
                         aria-label={tr("Edit this day")}>
                   <Edit3 size={14} color={t.faint} strokeWidth={2} />
                 </button>
@@ -2515,7 +2582,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                 const line = { borderBottom: last ? "none" : `1px solid ${t.hair}` };
 
                 if (bk && isCoach) return (
-                  <button key={h} onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
+                  <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
                     <span className="shrink-0" style={{ width: 62, ...TYPE.small, color: t.ink, fontVariantNumeric: "tabular-nums" }}>{h.replace(/ (am|pm)/, "")}</span>
@@ -2548,7 +2615,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                     <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.faint }}>
                       {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : tr("Open")}
                     </span>
-                    <button onClick={() => { hapticCommit(); soft(); onBookInto(day, h, kind); }}
+                    <button data-tour="agenda-book" onClick={() => { hapticCommit(); soft(); onBookInto(day, h, kind); }}
                             onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                             onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                             onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -2818,15 +2885,20 @@ function EventCard({ event, sport, onPress, delay = 0 }) {
 
 /* Everything a coach and player are working towards, and what the
    weeks between now and then should hold. */
-function EventsScreen({ sport, cfg, role, pop, say }) {
+function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove, now }) {
   const t = useT();
-  const list = EVENTS[sport] || [];
+  /* a real account lists its own competitions; the seeds are the harness's */
+  const list = live ? (comps || []).map((c) => ({ ...c, where: c.venue || "" })) : (EVENTS[sport] || []);
+  const [removing, setRemoving] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [kind, setKind] = useState(tr("Competition"));
   const [where, setWhere] = useState("");
   const [dd, setDd] = useState("");
-  const [mm, setMm] = useState(TODAY.m);
+  const calendar = useCalendar();
+  const T = now || calendar.today;
+  const [mm, setMm] = useState(T.m);
   const [time, setTime] = useState("9:00 am");
   const [extra, setExtra] = useState([]);
   const all = [...extra, ...list].sort((a, b) => a.days - b.days);
@@ -2862,7 +2934,7 @@ function EventsScreen({ sport, cfg, role, pop, say }) {
                        style={{ width: 58, minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink }} />
                 <select value={mm} onChange={(e) => setMm(e.target.value)} className="flex-1 outline-none px-3"
                         style={{ minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink, border: "none" }}>
-                  {MONTHS.map((mo) => <option key={mo.idx} value={mo.idx}>{mo.name}</option>)}
+                  {(live ? Array.from({ length: 12 }, (_, i) => ({ idx: i + 1, name: MONTHS_FULL[i] })) : calendar.months).map((mo) => <option key={mo.idx} value={mo.idx}>{mo.name}</option>)}
                 </select>
               </div>
 
@@ -2879,23 +2951,51 @@ function EventsScreen({ sport, cfg, role, pop, say }) {
               <VoiceInput value={where} onChange={setWhere} ph={tr("Club or venue")} />
 
               <div className="mt-5">
-                <Button disabled={!name.trim() || !dd} onClick={() => {
+                <Button disabled={!name.trim() || !dd || busy} onClick={async () => {
                   const d = Number(dd), mo = Number(mm);
-                  const days = Math.max(1, (mo - TODAY.m) * 30 + (d - TODAY.d));
+                  if (live) {
+                    /* the real date, next year if that day has already passed */
+                    const y = new Date().getFullYear() + (mo < T.m || (mo === T.m && d < T.d) ? 1 : 0);
+                    const iso = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                    const chk = new Date(iso);
+                    if (isNaN(chk.getTime()) || chk.getDate() !== d) { hapticWarn(); say(tr("That date isn't right.")); return; }
+                    setBusy(true);
+                    const res = onAdd ? await onAdd({ name: name.trim(), kind, venue: where.trim(), date: iso }) : { error: { message: tr("Not available.") } };
+                    setBusy(false);
+                    if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't add that.")); return; }
+                    setName(""); setWhere(""); setDd(""); setAdding(false); hapticSuccess(); chime(); return;
+                  }
+                  const days = Math.max(1, (mo - T.m) * 30 + (d - T.d));
                   setExtra([{ name: name.trim(), kind, where: where.trim(), time,
-                              when: `${DAY_NAMES[dowOf(mo, d)].slice(0, 3)} ${d} ${MONTHS.find((x) => x.idx === mo)?.name.split(" ")[0]}`,
+                              when: `${DAY_NAMES[dowOf(mo, d, calendar)].slice(0, 3)} ${d} ${monthName(mo)}`,
                               days }, ...extra]);
                   setName(""); setWhere(""); setDd(""); setAdding(false); hapticSuccess(); chime(); }}>{tr("Add")}</Button>
               </div>
             </div>
           )}
 
+          {live && all.length === 0 && !adding && (
+            <p className="py-12 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing coming up. Add one with +.")}</p>
+          )}
+
           {all.map((e, i) => (
-            <EventCard key={e.name} event={e} sport={sport} delay={i * 70}
-                       onPress={() => say(role === "coach" ? tr("Plan the weeks into this") : tr("Your coach is planning for this"))} />
+            <React.Fragment key={e.id || e.name}>
+              <EventCard event={e} sport={sport} delay={i * 70}
+                         onPress={() => { if (live) { haptic(6); setRemoving(removing === e.id ? null : e.id); return; }
+                           say(role === "coach" ? tr("Plan the weeks into this") : tr("Your coach is planning for this")); }} />
+              {live && removing === e.id && (
+                <div className="flex gap-2.5 mb-4" style={{ animation: "liftIn 300ms cubic-bezier(.22,1,.36,1) both" }}>
+                  <button onClick={() => { haptic(6); setRemoving(null); }} className="px-4 active:opacity-60"
+                          style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{tr("Keep it")}</button>
+                  <button onClick={async () => { const r = onRemove ? await onRemove(e.id) : null; if (r && r.error) { say(r.error.message); return; } hapticWarn(); setRemoving(null); }}
+                          className="flex-1 active:opacity-75"
+                          style={{ minHeight: 44, borderRadius: R.control, background: DANGER, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{tr("Remove")}</button>
+                </div>
+              )}
+            </React.Fragment>
           ))}
 
-          {all.length > 0 && all[0].days <= 21 && (
+          {!live && all.length > 0 && all[0].days <= 21 && (
             <Tile className="px-5 py-[18px] mt-4" delay={200}>
               <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {tr("Between now and then")}
@@ -2982,18 +3082,29 @@ function Credentials({ pop, say }) {
 
 /* Social proof, asked for at the right moment and shown where it does
    work — on the profile a prospective player sees. */
-function Testimonials({ role, pop, say }) {
+function Testimonials({ role, pop, say, live, reviews: given, summary, code }) {
   const t = useT();
-  const reviews = [
+  const seeded = [
     { who: "Marcus T.", score: 5, when: "Jul", text: "Completely changed how I practise. The video breakdowns are worth it on their own.", tags: ["Clear", "Practical"] },
     { who: "Priya E.",  score: 5, when: "Jun", text: "Patient, and explains the why. My handicap is down four in a season.", tags: ["Encouraging"] },
     { who: "Dan O.",    score: 4, when: "Jun", text: "Good structure to every session. Would like a bit more on course management.", tags: ["Well paced"] },
   ];
-  const avg = (reviews.reduce((n, r) => n + r.score, 0) / reviews.length).toFixed(1);
+  /* a real coach's own reviews, as their players wrote them — or none */
+  const reviews = live
+    ? (given || []).map((r) => ({ who: r.who, score: r.rating, when: r.when, text: r.comment, tags: [] }))
+    : seeded;
+  const avg = reviews.length ? (reviews.reduce((n, r) => n + r.score, 0) / reviews.length).toFixed(1) : "–";
+  const share = async () => {
+    hapticCommit();
+    if (!live) { say(tr("Link copied — share it anywhere")); return; }
+    if (!code) return;
+    const r = await shareOrCopy({ title: `${tr("Join me on")} ${BRAND}`, text: `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${code}`, url: joinLink("coach", code) });
+    if (r === "shared") say(tr("Shared")); else if (r === "copied") say(tr("Link copied")); else if (r === "failed") say(tr("Couldn't share."));
+  };
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Reviews")} onBack={pop} meta={`${avg} · ${reviews.length} ${tr("reviews")}`}>
+      <Screen title={tr("Reviews")} onBack={pop} meta={reviews.length ? `${avg} · ${reviews.length} ${tr("reviews")}` : tr("None yet")}>
         <div className="px-6 pb-2">
           <Tile className="px-5 py-5 mb-4">
             <div className="flex items-center gap-4">
@@ -3014,6 +3125,10 @@ function Testimonials({ role, pop, say }) {
             </div>
           </Tile>
 
+          {live && reviews.length === 0 && (
+            <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.faint }}>{tr("No reviews yet. Players leave one from your profile.")}</p>
+          )}
+
           {reviews.map((r, i) => (
             <Tile key={i} className="px-5 py-4 mb-2.5" delay={i * 70}>
               <div className="flex items-center gap-3 mb-2.5">
@@ -3026,7 +3141,7 @@ function Testimonials({ role, pop, say }) {
                 </span>
                 <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{r.when}</span>
               </div>
-              <p style={{ fontFamily: display, fontSize: 14.5, lineHeight: 1.6, color: t.ink }}>{r.text}</p>
+              {r.text && <p style={{ fontFamily: display, fontSize: 14.5, lineHeight: 1.6, color: t.ink }}>{r.text}</p>}
               {r.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {r.tags.map((tg) => (
@@ -3038,13 +3153,13 @@ function Testimonials({ role, pop, say }) {
             </Tile>
           ))}
 
-          <button onClick={() => { hapticCommit(); say(tr("Link copied — share it anywhere")); }}
+          {(!live || code) && <button onClick={share}
                   className="w-full mt-4 flex items-center justify-center gap-2 active:opacity-70"
                   style={{ minHeight: 54, borderRadius: R.surface, background: t.accent,
                            fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.onAccent }}>
             <Share2 size={16} color={t.onAccent} />
             {tr("Share your profile")}
-          </button>
+          </button>}
           <div style={{ height: 26 }} />
         </div>
       </Screen>
@@ -3063,7 +3178,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
   const isVoice = item.kind === "voice";
   const isNote = item.kind === "note";
   const label = isVideo ? item.angle : isData ? cap.device
-    : isVoice ? tr("Voice note") : isNote ? (item.text || tr("Note")) : tr("Photo");
+    : isVoice ? (item.name || tr("Voice note")) : isNote ? (item.text || tr("Note")) : (item.name || tr("Photo"));
   const Icon = isVideo ? Play : isData ? Receipt : isVoice ? Mic : isNote ? Edit3 : Tag;
 
   return (
@@ -3076,14 +3191,14 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
         <span className="flex-1 min-w-0">
           <span className="block truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{label}</span>
           <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>
-            {isVideo || isVoice ? `0:${String(item.secs || 0).padStart(2, "0")}`
+            {isVideo || isVoice ? (item.secs ? `0:${String(item.secs).padStart(2, "0")}` : tr("Attached"))
               : isNote ? tr("Attached")
               : item.reading ? tr("Reading the numbers…")
               : item.values ? tr("Tap a number to correct it")
               : tr("Attached")}
           </span>
         </span>
-        {(isVideo || isVoice) && (
+        {(isVideo || isVoice) && onAnnotate && (
           <button onClick={onAnnotate} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60"
                   style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Mark it up")}>
             <Palette size={15} color={t.sub} />
@@ -3111,7 +3226,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
         </div>
       )}
 
-      {isVideo && !item.transcript && !item.working && (
+      {isVideo && onTranscribe && !item.transcript && !item.working && (
         <button onClick={onTranscribe} className="w-full mt-3 flex items-center justify-center gap-2 active:opacity-60"
                 style={{ minHeight: 38, borderRadius: R.field, border: `1px solid ${t.hair}` }}>
           <FileText size={12} color={t.sub} />
@@ -3264,11 +3379,12 @@ function NewLessonArrival({ lesson, coach, onOpen }) {
 function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
                       onProfile, onLog, onNoShow, onCancel, onWeather, onCapture, onHistory, onEditComp, close }) {
   const t = useT();
-  const f = fileFor(booking.who);
+  const live = useLive();
+  const f = fileFor(booking.who, live);
   const isGroup = booking.kind && booking.kind.startsWith("Group");
   const focus = agreed || f.tip;
 
-  const lessons = (past || f.recent || [
+  const lessons = (past || (live ? [] : null) || f.recent || [   /* a real account never falls through to the seeded list */
     { d: "14 Jun", focus: "Short game", note: "Cleaner contact off a tight lie." },
     { d: "31 May", focus: "Driving",    note: "Tempo over speed." },
     { d: "17 May", focus: "Putting",    note: "Same routine every putt." },
@@ -3333,7 +3449,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
       )}
 
       {/* one action, and the ways out */}
-      <button onClick={() => { hapticCommit(); onLog(); }}
+      <button data-tour="peek-log" onClick={() => { hapticCommit(); onLog(); }}
               onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
               onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -3379,7 +3495,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
    buried in a separate availability screen. */
 function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKinds, onWeather, close, say }) {
   const t = useT();
-  const dow = dowOf(day.m, day.d);
+  const calendar = useCalendar();
+  const dow = dowOf(day.m, day.d, calendar);
   const hours = avail[dow] || day.hours || [];
   const kindOf = (h) => slotKinds[`${day.m}-${day.d}-${h}`] || "either";
   const taken = (h) => (day.booked || []).find((b) => b.time === h);
@@ -3550,7 +3667,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
    of ten — they have someone on a Tuesday at four until one of them
    says otherwise. So a series runs until it is ended, and an end date
    is offered rather than required. */
-function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, onNew, pop, say }) {
+function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, onNew, pop, say, real }) {
   const t = useT();
   const [confirming, setConfirming] = useState(null);
   const live = series.filter((x) => !x.ended);
@@ -3560,7 +3677,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
     <SwipeBack onBack={pop}>
       <Screen title={tr("Recurring lessons")} onBack={pop}
               meta={live.length ? `${live.length} ${tr("running")}` : tr("None yet")}
-              action={<button onClick={() => { hapticCommit(); soft(); onNew(); }}
+              action={<button data-tour="recur-add" onClick={() => { hapticCommit(); soft(); onNew(); }}
                               className="rounded-full flex items-center justify-center active:opacity-70"
                               style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }}
                               aria-label={tr("Add")}>
@@ -3617,7 +3734,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {["Weekly", "Fortnightly", "Monthly"].map((f) => {
-                      const on = (x.freq || "Weekly") === f;
+                      const on = String(x.freq || "Weekly").toLowerCase() === f.toLowerCase();
                       return (<button key={f} onClick={() => { haptic(5); soft(); onEdit(x, { freq: f }); }}
                                       className="px-3 active:opacity-60"
                                       style={{ minHeight: 34, borderRadius: R.pill, background: on ? t.accent : t.wash,
@@ -3625,12 +3742,13 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                                                color: on ? "#fff" : t.sub, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{tr(f)}</button>);
                     })}
                     <span className="flex-1" />
-                    <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 active:opacity-60"
+                    {/* an end date is not kept for a real account yet, so the two are not offered */}
+                    {!real && <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
-                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>
-                    <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 active:opacity-60"
+                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>}
+                    {!real && <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
-                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>
+                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
                     <button onClick={() => { haptic(9); setConfirming(x); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
                                      fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
@@ -3669,222 +3787,334 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
    ring on the control in question — pointing at the thing beats
    describing it, and it survives translation better too.
 ================================================================== */
+/* ==================================================================
+   WALKTHROUGH — the real app, inert and scaled
+
+   The tour used to draw its own little pictures of the app, which
+   looked nothing like it. Now each step renders the product itself —
+   a second <Nosca> given a `showcase` state, seeded, made inert, and
+   scaled into a card — and rings the real control by finding its
+   data-tour attribute and measuring it. The ring is drawn inside the
+   scaled frame, in the frame's own units, so it cannot drift.
+
+   Steps are grouped by area so the whole thing reads as "where
+   everything is". One control per step; a path caption says how to
+   get there by hand.
+================================================================== */
+const FRAME_W = 390, FRAME_H = 780;
+
+/* The one wizard prefill every logging step shares. */
+const TOUR_PREFILL = { who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: "Private" };
+const TOUR_PEEK = { time: "3:00 pm", who: "Priya Ellis", kind: "Private", hoursUntil: 3.5 };
+
+/* { area, title, body, path, target, state } — `state` is merged into
+   the showcase prop: stack, sheet, logView, prefill, peek, wizardStep.
+   `skipLive` marks a step whose control only the design harness has;
+   a real account's tour leaves it out. */
 const TOUR = {
-  /* ring = { x, y, w, h } in the shot's own viewBox units (100 x 132),
-     matching exactly the rect drawn for that element. */
   coach: [
-    { title: "Your day",     body: "Today's lessons, in order.",     shot: "today",     ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Log a lesson", body: "What you covered.",              shot: "log",       ring: { x: 14, y: 75, w: 72, h: 17 } },
-    { title: "Film it",      body: "Video, photo or voice note.",    shot: "capture",   ring: { x: 6, y: 27, w: 88, h: 54 } },
-    { title: "Set drills",   body: "They tick them off at home.",    shot: "practice",  ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Your diary",   body: "Tap a slot to book.",            shot: "calendar",  ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Every week",   body: "Set a standing lesson once.",    shot: "recurring", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Attendance",   body: "Who turned up.",                 shot: "season",    ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Messages",     body: "Or call off for weather.",       shot: "family",    ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { area: "Today", title: "Your day", body: "Lessons, in order.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
+    { area: "Today", title: "Just finished", body: "One tap to log it.", path: "Today → Just finished", target: "today-justdone", state: { stack: ["today"] } },
+    { area: "Today", title: "Next lesson", body: "Tap for the brief.", path: "Today → Next lesson", target: "peek-log", state: { stack: ["today"], sheet: "peek", peek: TOUR_PEEK } },
+    { area: "Today", title: "Past lessons", body: "Unlogged, waiting.", path: "Today → Past lessons", target: "fold-past", state: { stack: ["today"] } },
+    { area: "Today", title: "Later today", body: "Still ahead.", path: "Today → Later today", target: "fold-next", state: { stack: ["today"] } },
+    { area: "Today", title: "Lesson requests", body: "Accept, or offer a time.", path: "Today → Lesson requests", target: "fold-asks", state: { stack: ["today"] } },
+    { area: "Today", title: "Competitions", body: "Dates they're building to.", path: "Today → Competitions", target: "fold-events", state: { stack: ["today"] } },
+    { area: "Today", title: "Your coaching", body: "Lifetime and season.", path: "Today → Your coaching", target: "fold-stats", state: { stack: ["today"] } },
+
+    { area: "Quick menu", title: "The plus", body: "Everything you do, here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
+    { area: "Quick menu", title: "Log a lesson", body: "Start here, after a lesson.", path: "Plus → Log a lesson", target: "quick-log", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Attendance", body: "Who turned up.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Live capture", body: "Film mid-lesson.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Set a tip", body: "One thing to work on.", path: "Plus → Set a tip", target: "quick-tip", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Set drills", body: "They tick them off.", path: "Plus → Set drills", target: "quick-drills", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Add player", body: "Share your code.", path: "Plus → Add player", target: "quick-player", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "New group", body: "Squads and clinics.", path: "Plus → New group", target: "quick-group", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Message", body: "Anyone you coach.", path: "Plus → Message", target: "quick-message", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Competition", body: "Add a date.", path: "Plus → Competition", target: "quick-comp", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Quick menu", title: "Rearrange", body: "Drag tiles; resize them.", path: "Plus → Edit", target: "quick-edit", state: { stack: ["today"], sheet: "quick" } },
+
+    { area: "Attendance", title: "The register", body: "Tap a lesson, mark them.", path: "Plus → Attendance", target: "attend-row", state: { stack: ["today"], sheet: "attend" } },
+    { area: "Live capture", title: "Film, photo, voice", body: "Kept until you log.", path: "Plus → Live capture", target: "capture-modes", state: { stack: ["today"], sheet: "capture" } },
+
+    { area: "Log a lesson", title: "Who", body: "One player, or a group.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
+    { area: "Log a lesson", title: "When", body: "Date and time.", path: "Log a lesson → When", target: "wiz-when", state: { stack: ["log"], prefill: { who: "Marcus Tran" }, wizardStep: 1 } },
+    { area: "Log a lesson", title: "Focus", body: "What you covered.", path: "Log a lesson → Focus", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
+    { area: "Log a lesson", title: "Notes", body: "Say it; it's typed for you.", path: "Log a lesson → Notes", target: "wiz-notes", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
+    { area: "Log a lesson", title: "Media", body: "Clips, photos, device data.", path: "Log a lesson → Media", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 4 } },
+    { area: "Log a lesson", title: "Drills", body: "What to practise.", path: "Log a lesson → Drills", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 5 } },
+    { area: "Log a lesson", title: "Takeaway", body: "One sentence they'll see.", path: "Log a lesson → Takeaway", target: "wiz-tip", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
+    { area: "Log a lesson", title: "Publish", body: "It lands on their phone.", path: "Log a lesson → Publish", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
+
+    { area: "Diary", title: "Diary", body: "Your week, as a list.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "List or month", body: "Switch the view.", path: "Diary → List / Calendar", target: "cal-view", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Book", body: "Tap a free slot.", path: "Diary → Book", target: "agenda-book", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "A booking", body: "Tap for the brief.", path: "Diary → name", target: "agenda-row", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Edit a day", body: "Change that day's hours.", path: "Diary → pencil", target: "agenda-edit", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Recurring", body: "Standing weekly slots.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "A series", body: "Add, extend or end one.", path: "Diary → Recurring lessons → +", target: "recur-add", state: { stack: ["calendar", "recurring"] } },
+    { area: "Diary", title: "Availability", body: "Days, hours, lesson length.", path: "Diary → Hours and lesson length", target: "avail-days", state: { stack: ["calendar", "availability"] } },
+
+    { area: "Roster", title: "Roster", body: "Your code, then everyone.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
+    { area: "Roster", title: "A player", body: "Tap for their file.", path: "Roster → name", target: "roster-row", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Per row", body: "Message, or their history.", path: "Roster → icons", target: "roster-message", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Groups", body: "Squads live here.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Player file", body: "Message, drills, more.", path: "Roster → name", target: "player-actions", state: { stack: ["roster", "player:Marcus Tran"] } },
+    { area: "Roster", title: "History", body: "Lessons, attendance, goals.", path: "Roster → history icon", target: "history-tabs", state: { stack: ["roster", "history:Marcus Tran"] } },
+
+    { area: "Chat", title: "Chat", body: "Threads with players.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
+    { area: "Chat", title: "New", body: "A person, or a group.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Everyone", body: "One message to all.", path: "Chat → Message everyone", target: "chat-broadcast", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Weather", body: "Call a day off.", path: "Chat → Call off for weather", target: "chat-weather", state: { stack: ["messages"] } },
+    { area: "Chat", title: "A thread", body: "Tap to open it.", path: "Chat → name", target: "chat-row", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Send", body: "Type, or hold the mic.", path: "Chat → name → Send", target: "thread-send", state: { stack: ["messages", "thread:Marcus Tran"] } },
+
+    { area: "Alerts", title: "Alerts", body: "What needs you.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
+    { area: "Search", title: "Search", body: "Players, lessons, drills.", path: "Header → search", target: "search", state: { stack: ["today"] } },
+
+    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["today"] } },
+    { area: "You", title: "Coaching", body: "Invite code & QR lives here.", path: "You → Coaching", target: "settings-coaching", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Drills", body: "Your reusable library.", path: "You → Drills", target: "settings-library", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Drill library", body: "Add, filter, assign.", path: "You → Drills → New", target: "library-new", state: { stack: ["today", "you", "library"] } },
+    { area: "You", title: "Availability", body: "Days and times you coach.", path: "You → Weekly availability", target: "settings-availability", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Reviews", body: "What players said.", path: "You → Reviews", target: "settings-reviews", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Paperwork", body: "Vetting, insurance, dates.", path: "You → Paperwork", target: "settings-credentials", state: { stack: ["today", "you"] }, skipLive: true },
+    { area: "You", title: "Requests", body: "People asking to join.", path: "You → Requests", target: "settings-requests", state: { stack: ["today", "you"] }, skipLive: true },
+    { area: "You", title: "Branding", body: "Logo, colour, club name.", path: "You → Branding", target: "settings-branding", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Appearance", body: "Dark mode, text size.", path: "You → Appearance", target: "settings-appearance", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["today", "you"] } },
+    { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["today", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Help", body: "Help centre, contact us.", path: "You → Help centre", target: "settings-help", state: { stack: ["today", "you"] }, skipLive: !SUPPORT_EMAIL },
+    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Delete account", body: "Everything, permanently.", path: "You → Delete account", target: "settings-delete", state: { stack: ["today", "you"] } },
   ],
   player: [
-    { title: "Your next lesson",   body: "When, and what you're on.", shot: "home",     ring: { x: 6, y: 25, w: 88, h: 28 } },
-    { title: "Watch it back",      body: "Your coach draws on it.",   shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
-    { title: "Your practice",      body: "Tick things off.",          shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Book a time",        body: "Ask; your coach confirms.", shot: "calendar", ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Your record",        body: "Lessons and attendance.",   shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Message your coach", body: "Questions between lessons.", shot: "family",  ring: { x: 6, y: 27, w: 88, h: 17 } },
-  ],
-  parent: [
-    { title: "Everyone here",  body: "Each child, one screen.",        shot: "family",   ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "You book",       body: "Under-18s are arranged by you.", shot: "calendar", ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "Watch it back",  body: "The same video they see.",       shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
-    { title: "Their practice", body: "What they're working on.",       shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Their record",   body: "Lessons and attendance.",        shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
+    { area: "Start", title: "Add your coach", body: "Their code gets you in.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
+
+    { area: "Home", title: "Home", body: "Your day at a glance.", path: "Tab bar → Home", target: "tab-home", state: { stack: ["home"] } },
+    { area: "Home", title: "Working on", body: "Your coach's one thing.", path: "Home → Working on", target: "home-tip", state: { stack: ["home"] } },
+    { area: "Home", title: "Next lesson", body: "When, and what for.", path: "Home → Next", target: "home-next", state: { stack: ["home"] } },
+    { area: "Home", title: "To practise", body: "Drills left.", path: "Home → To practise", target: "home-practice", state: { stack: ["home"] } },
+    { area: "Home", title: "Lessons", body: "Everything logged.", path: "Home → Lessons", target: "home-lessons", state: { stack: ["home"] } },
+    { area: "Home", title: "Coming up", body: "Competitions ahead.", path: "Home → Coming up", target: "home-events", state: { stack: ["home"] } },
+    { area: "Home", title: "Your coach", body: "Profile and review.", path: "Home → Your coach", target: "home-coach", state: { stack: ["home"] } },
+    { area: "Home", title: "Attendance", body: "Your record.", path: "Home → Attendance", target: "home-attendance", state: { stack: ["home"] } },
+    { area: "Home", title: "Request a lesson", body: "Ask; your coach confirms.", path: "Home → Request a lesson", target: "home-request", state: { stack: ["home"] } },
+
+    { area: "Lessons", title: "Lessons", body: "Newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Views", body: "Feed, cards or list.", path: "Lessons → switch", target: "log-view", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "A lesson", body: "Tap to open it.", path: "Lessons → row", target: "log-row", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Clips", body: "Every angle they filmed.", path: "Lessons → row → clip", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Lessons", title: "Download lesson log", body: "Keep a copy of any lesson.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Lessons", title: "From here", body: "Drills, or book again.", path: "Lesson → bottom", target: "lesson-next", state: { stack: ["log", "lesson"], logView: "list" } },
+
+    { area: "Drills", title: "Drills", body: "What to practise.", path: "Tab bar → Drills", target: "tab-practice", state: { stack: ["practice"] } },
+    { area: "Drills", title: "Tick it off", body: "Your coach sees it.", path: "Drills → row", target: "drill-row", state: { stack: ["practice"] } },
+
+    { area: "Diary", title: "Diary", body: "Open slots to request.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Request", body: "Tap; your coach confirms.", path: "Diary → Request", target: "agenda-book", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Month view", body: "Pick a day, then a time.", path: "Diary → Calendar", target: "cal-view", state: { stack: ["calendar"] } },
+
+    { area: "Chat", title: "Chat", body: "Your coach, any time.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Thread", body: "Tap to open.", path: "Chat → name", target: "chat-row", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Send", body: "Type, or hold the mic.", path: "Chat → name → Send", target: "thread-send", state: { stack: ["messages", "thread:Ray Doyle"] } },
+
+    { area: "Your coach", title: "Review", body: "Stars and a line.", path: "Home → Your coach", target: "coach-review", state: { stack: ["home", "coachProfile"] } },
+    { area: "Your coach", title: "Message", body: "Straight to chat.", path: "Home → Your coach → Message", target: "coach-message", state: { stack: ["home", "coachProfile"] } },
+
+    { area: "Family", title: "Profile pill", body: "Coaches, groups, family.", path: "Header → your name", target: "profile-pill", state: { stack: ["home"] } },
+    { area: "Family", title: "Your account", body: "Add a coach; see groups.", path: "Your name → sheet", target: "family-rows", state: { stack: ["home"], sheet: "family" } },
+    { area: "Family", title: "Family code", body: "Share it; they join you.", path: "Your name → Family", target: "family-share", state: { stack: ["home", "familyCode"] } },
+    { area: "Family", title: "Join a family", body: "Enter a parent's code.", path: "Your name → Family → Join", target: "family-join", state: { stack: ["home", "familyCode"] } },
+
+    { area: "Alerts", title: "Alerts", body: "What's new for you.", path: "Header → bell", target: "alerts", state: { stack: ["home"] } },
+    { area: "Search", title: "Search", body: "Find, or do, anything.", path: "Header → search", target: "search", state: { stack: ["home"] } },
+
+    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["home"] } },
+    { area: "You", title: "Attendance", body: "Your record.", path: "You → Attendance", target: "settings-attendance", state: { stack: ["home", "you"] } },
+    { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Sporting record", body: "Share it with a new coach.", path: "You → Your sporting record", target: "settings-transfer", state: { stack: ["home", "you"] }, skipLive: true },
+    { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["home", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Delete account", body: "Everything, permanently.", path: "You → Delete account", target: "settings-delete", state: { stack: ["home", "you"] } },
   ],
   juvenile: [
-    { title: "Your lessons",     body: "What you worked on.",       shot: "home",     ring: { x: 6, y: 25, w: 88, h: 28 } },
-    { title: "Watch it back",    body: "Your coach draws on it.",   shot: "lesson",   ring: { x: 6, y: 25, w: 88, h: 56 } },
-    { title: "Your practice",    body: "Tick things off.",          shot: "practice", ring: { x: 6, y: 27, w: 88, h: 17 } },
-    { title: "Your record",      body: "How you're getting on.",    shot: "season",   ring: { x: 6, y: 46, w: 88, h: 17 } },
-    { title: "A grown-up helps", body: "They book and message.",    shot: "family",   ring: { x: 6, y: 27, w: 88, h: 17 } },
+    { area: "Start", title: "Join your coach", body: "Ask a parent for the code.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
+    { area: "Home", title: "Home", body: "Your day at a glance.", path: "Tab bar → Home", target: "tab-home", state: { stack: ["home"] } },
+    { area: "Home", title: "Working on", body: "Your coach's one thing.", path: "Home → Working on", target: "home-tip", state: { stack: ["home"] } },
+    { area: "Home", title: "Next lesson", body: "When, and what for.", path: "Home → Next", target: "home-next", state: { stack: ["home"] } },
+    { area: "Home", title: "Attendance", body: "Your record.", path: "Home → Attendance", target: "home-attendance", state: { stack: ["home"] } },
+    { area: "Lessons", title: "Lessons", body: "Newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "A lesson", body: "Tap to open it.", path: "Lessons → row", target: "log-row", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Clips", body: "Every angle they filmed.", path: "Lessons → row → clip", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Drills", title: "Drills", body: "What to practise.", path: "Tab bar → Drills", target: "tab-practice", state: { stack: ["practice"] } },
+    { area: "Drills", title: "Tick it off", body: "Your coach sees it.", path: "Drills → row", target: "drill-row", state: { stack: ["practice"] } },
+    { area: "Diary", title: "Diary", body: "View only — a parent books.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Chat", title: "No chat", body: "A grown-up handles it.", path: "Tab bar", target: "tabbar", state: { stack: ["home"] } },
+    { area: "Search", title: "Search", body: "Lessons, drills, tips.", path: "Header → search", target: "search", state: { stack: ["home"] } },
+    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["home"] } },
+    { area: "You", title: "Coaches & profiles", body: "Add another coach.", path: "You → Coaches & profiles", target: "settings-family", state: { stack: ["home", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["home", "you"] } },
   ],
 };
+/* A parent has everything a player has, plus the family: the pill
+   switches person, the dashboard shows everyone, and the month digest
+   counts each child's lessons and drills. Booking is not theirs yet —
+   a child's coach books, or the child requests from their own account —
+   so the tour says exactly that and promises nothing else. */
+TOUR.parent = (() => {
+  const base = TOUR.player
+    .filter((s) => s.target !== "agenda-book" && s.target !== "cal-view" && s.target !== "home-request")
+    .map((s) => s.target === "profile-pill" ? { ...s, body: "Switch to your child." }
+      : s.target === "tab-calendar" ? { ...s, body: "Your own lessons. A child's coach books theirs." } : s);
+  const at = base.findIndex((s) => s.area === "Family");
+  const family = [
+    { area: "Family", title: "Family dashboard", body: "Everyone, one screen.", path: "You → Family dashboard", target: "family-person", state: { stack: ["family"] } },
+    { area: "Family", title: "Everyone's diary", body: "All lessons, one list.", path: "Family → Everyone's diary", target: "family-diary", state: { stack: ["family"] } },
+    { area: "Family", title: "This month", body: "How each child got on.", path: "Family → This month", target: "digest-tile", state: { stack: ["family", "digest"] } },
+  ];
+  return [...base.slice(0, at), ...family, ...base.slice(at)];
+})();
 
-/* A REAL LOOK AT THE SCREEN
-
-   Two things had to change here.
-
-   The highlight ring used to be an HTML overlay positioned in
-   percentages, centred with translate(-50%,-50%) — but the pulse
-   keyframes set `transform: scale()`, which replaces that translate
-   outright, so every ring jumped a half-width down and right. It now
-   lives inside the SVG in the same coordinate space as the thing it
-   points at, so it cannot drift.
-
-   And the bottom of each shot is now an actual tab bar with icons and
-   labels, not a row of dots that read as pagination. */
-function TourShot({ kind, ring, accent }) {
-  const t = useT();
-
-  const Row = ({ y, label, meta, on }) => (
-    <g>
-      <rect x="7" y={y} width="86" height="15" rx="5" fill={on ? accent : t.wash} opacity={on ? 1 : 0.85} />
-      <text x="12" y={y + 7.6} style={{ fontFamily: ui, fontSize: 6.2, fontWeight: 500 }}
-            fill={on ? "#fff" : t.ink} dominantBaseline="middle">{label}</text>
-      {meta && <text x="88" y={y + 7.6} textAnchor="end" style={{ fontFamily: ui, fontSize: 5.2 }}
-                     fill={on ? "rgba(255,255,255,0.78)" : t.faint} dominantBaseline="middle">{meta}</text>}
-    </g>
-  );
-
-  const Title = ({ children }) => (
-    <text x="8" y="20" style={{ fontFamily: display, fontSize: 9.5, letterSpacing: "-0.02em" }}
-          fill={t.ink} dominantBaseline="middle">{children}</text>
-  );
-
-  /* the app's own tab bar, drawn to scale */
-  const TabBar = ({ active }) => {
-    const tabs = kind === "today" || kind === "log" || kind === "calendar" || kind === "recurring" || kind === "capture"
-      ? ["Today", "Diary", "Roster", "Chat"]
-      : ["Home", "Lessons", "Drills", "Chat"];
-    return (
-      <g>
-        <line x1="0" y1="107" x2="100" y2="107" stroke={t.hair} strokeWidth="0.5" />
-        {tabs.map((label, i) => {
-          const cx = 12.5 + i * 25;
-          const on = i === active;
-          return (
-            <g key={label}>
-              <rect x={cx - 4} y={112} width="8" height="8" rx="2.4"
-                    fill="none" stroke={on ? accent : t.faint} strokeWidth="1.2" />
-              <text x={cx} y={126} textAnchor="middle"
-                    style={{ fontFamily: ui, fontSize: 4.6, fontWeight: on ? 600 : 400 }}
-                    fill={on ? accent : t.faint}>{label}</text>
-            </g>
-          );
-        })}
-      </g>
-    );
-  };
-
-  const screens = {
-    today: { tab: 0, el: (<>
-      <Title>Today</Title>
-      <Row y={28} label="9:00  Sarah M." meta="Log" on />
-      <Row y={47} label="11:30  Group" meta="4" />
-      <Row y={66} label="2:00  James K." />
-    </>) },
-
-    log: { tab: 0, el: (<>
-      <Title>What you covered</Title>
-      <rect x="7" y="28" width="41" height="16" rx="5" fill={accent} />
-      <text x="27.5" y="36.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6, fontWeight: 500 }} fill="#fff" dominantBaseline="middle">Serve</text>
-      <rect x="52" y="28" width="41" height="16" rx="5" fill={t.wash} />
-      <text x="72.5" y="36.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Volley</text>
-      <rect x="7" y="48" width="41" height="16" rx="5" fill={t.wash} />
-      <text x="27.5" y="56.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Footwork</text>
-      <rect x="52" y="48" width="41" height="16" rx="5" fill={t.wash} />
-      <text x="72.5" y="56.5" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6 }} fill={t.ink} dominantBaseline="middle">Return</text>
-      <rect x="15" y="76" width="70" height="15" rx="7.5" fill={accent} />
-      <text x="50" y="83.8" textAnchor="middle" style={{ fontFamily: ui, fontSize: 6, fontWeight: 600 }} fill="#fff" dominantBaseline="middle">Continue</text>
-    </>) },
-
-    capture: { tab: 0, el: (<>
-      <Title>Capture</Title>
-      <rect x="7" y="28" width="86" height="52" rx="6" fill="#14201C" />
-      <rect x="12" y="33" width="16" height="7" rx="3.5" fill="#C4342A" />
-      <text x="20" y="36.7" textAnchor="middle" style={{ fontFamily: ui, fontSize: 4.4, fontWeight: 700 }} fill="#fff" dominantBaseline="middle">REC</text>
-      <circle cx="50" cy="56" r="10" fill="none" stroke="#fff" strokeWidth="1.5" opacity="0.9" />
-      <circle cx="50" cy="56" r="6" fill="#fff" />
-      <text x="50" y="88" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5.4 }} fill={t.faint}>Film · Photo · Voice</text>
-    </>) },
-
-    calendar: { tab: 1, el: (<>
-      <Title>Diary</Title>
-      <Row y={28} label="Mon 9:00" meta="Booked" />
-      <Row y={47} label="Mon 10:30" meta="Open" on />
-      <Row y={66} label="Tue 2:00" meta="Booked" />
-    </>) },
-
-    recurring: { tab: 1, el: (<>
-      <Title>Every week</Title>
-      <Row y={28} label="Tue 4:00  Sarah" meta="Weekly" on />
-      <Row y={47} label="Thu 5:30  Group" meta="Weekly" />
-    </>) },
-
-    home: { tab: 0, el: (<>
-      <Title>Next lesson</Title>
-      <rect x="7" y="26" width="86" height="26" rx="6" fill={accent} />
-      <text x="12" y="36" style={{ fontFamily: ui, fontSize: 6.4, fontWeight: 500 }} fill="#fff">Thu 4:00 · Serve</text>
-      <text x="12" y="45" style={{ fontFamily: ui, fontSize: 5.2 }} fill="rgba(255,255,255,0.78)">with Ray Doyle</text>
-      <text x="8" y="62" style={{ fontFamily: ui, fontSize: 5.8, fontWeight: 500 }} fill={t.ink}>To practise</text>
-      <Row y={66} label="Shadow serve  ×20" />
-      <Row y={85} label="Wall rally  2 min" />
-    </>) },
-
-    lesson: { tab: 1, el: (<>
-      <Title>Your video</Title>
-      <rect x="7" y="26" width="86" height="54" rx="6" fill="#14201C" />
-      <path d="M45 46 L60 53.5 L45 61 Z" fill="#fff" opacity="0.95" />
-      <circle cx="28" cy="40" r="7" fill="none" stroke={accent} strokeWidth="1.8" />
-      <text x="50" y="90" textAnchor="middle" style={{ fontFamily: ui, fontSize: 5.4 }} fill={t.faint}>Your coach drew on this</text>
-    </>) },
-
-    practice: { tab: 2, el: (<>
-      <Title>Practice</Title>
-      <Row y={28} label="✓  Shadow serve" on />
-      <Row y={47} label="Wall rally" meta="2 min" />
-      <Row y={66} label="Split step ×10" />
-    </>) },
-
-    season: { tab: 0, el: (<>
-      <Title>Your record</Title>
-      <Row y={28} label="Lessons" meta="12" />
-      <Row y={47} label="Attended" meta="92%" on />
-      <Row y={66} label="Goals met" meta="3 of 5" />
-    </>) },
-
-    family: { tab: 0, el: (<>
-      <Title>Your family</Title>
-      <Row y={28} label="Emma · Thu 4:00" on />
-      <Row y={47} label="Jack · Sat 10:00" />
-    </>) },
-  };
-
-  const scr = screens[kind] || screens.today;
-
-  return (
-    <div className="mx-auto" style={{ width: 250, height: 330 }}>
-      <svg viewBox="0 0 100 132" width={250} height={330}
-           style={{ borderRadius: R.surface, background: t.surface, border: `1px solid ${t.hair}` }}>
-        {scr.el}
-        <TabBar active={scr.tab} />
-
-        {/* The ring lives in the same coordinate space as everything
-            above it, so what it points at is exactly what's drawn. The
-            pulse animates stroke and radius rather than transform,
-            which is what threw the old overlay off centre. */}
-        {ring && (
-          <>
-            <rect x={ring.x} y={ring.y} width={ring.w} height={ring.h} rx={ring.h / 2}
-                  fill="none" stroke={accent} strokeWidth="1.1" opacity="0.9">
-              <animate attributeName="opacity" values="0.9;0.25;0.9" dur="1.9s" repeatCount="indefinite" />
-            </rect>
-            <rect x={ring.x - 1.5} y={ring.y - 1.5} width={ring.w + 3} height={ring.h + 3} rx={(ring.h + 3) / 2}
-                  fill="none" stroke={accent} strokeWidth="0.7" opacity="0.35">
-              <animate attributeName="opacity" values="0.35;0;0.35" dur="1.9s" repeatCount="indefinite" />
-            </rect>
-          </>
-        )}
-      </svg>
-    </div>
-  );
+/* Which seeded person a showcase renders as. Player seeds exist for
+   golf (Marcus) and tennis (Ellie); a coach's seeds cover every sport. */
+function showcasePersona(sc) {
+  const coachOf = (s) => ({ sport: s, coach: COACHES[s][0].name, club: COACHES[s][0].club, seeded: true });
+  const me = { id: 1, name: "Marcus Tran", age: null };
+  const kid = { id: 2, name: "Ellie Tran", age: 14, turns18: "March 2030" };
+  const booking = (connId) => [{ m: 7, d: 31, time: "4:30 pm", connId }];
+  if (sc.role === "player" && sc.juvenile) {
+    const id = sc.sport === "tennis" ? 2 : 1;
+    return { profiles: sc.profiles || [{ ...kid, id }], activeProfileId: id,
+             conns: [{ id, profileId: id, ...coachOf(sc.sport) }], activeId: id, bookings: booking(id) };
+  }
+  if (sc.role === "player" && sc.parent) {
+    return { profiles: sc.profiles || [me, kid], activeProfileId: 1,
+             conns: [{ id: 1, profileId: 1, ...coachOf(sc.sport) }, { id: 2, profileId: 2, ...coachOf("tennis") }], activeId: 1, bookings: booking(1) };
+  }
+  return { profiles: sc.profiles || [me], activeProfileId: 1,
+           conns: [{ id: 1, profileId: 1, ...coachOf(sc.sport) }], activeId: 1, bookings: booking(1) };
 }
 
+/* Scroll the nearest scrollable ancestor inside the frame so `el` sits
+   in the middle. Not scrollIntoView: that would also nudge the scaled
+   card and the page around it. Rects are screen pixels; scrollTop is
+   the element's own, so the delta is divided by the frame's scale. */
+function centreInFrame(el, root, scale) {
+  let p = el.parentElement;
+  while (p && p !== root) {
+    const cs = window.getComputedStyle(p);
+    if (/(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight + 1) {
+      const pr = p.getBoundingClientRect(), er = el.getBoundingClientRect();
+      p.scrollTop += ((er.top + er.height / 2) - (pr.top + pr.height / 2)) / scale;
+      return true;
+    }
+    p = p.parentElement;
+  }
+  return false;
+}
 
+/* Something in the frame still moving? Finite CSS animations and
+   transitions on the element, on anything above it inside the frame, or
+   on anything inside it. Infinite ones (a breathing bar, a pulsing dot)
+   never end, so they don't count. */
+function frameSettled(el, root) {
+  if (typeof el.getAnimations !== "function") return true;
+  const running = (node, opts) => node.getAnimations(opts).some((a) => {
+    if (a.playState !== "running" && a.playState !== "pending") return false;
+    const timing = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+    return !timing || timing.iterations !== Infinity;
+  });
+  if (running(el, { subtree: true })) return false;
+  for (let p = el.parentElement; p && p !== root; p = p.parentElement) if (running(p)) return false;
+  return true;
+}
 
-function Walkthrough({ role, juvenile, isParent, onClose }) {
+/* The showcased app, insulated from the walkthrough's own re-renders:
+   a fresh element tree each time it re-rendered would restart every
+   entrance animation and move the very thing being measured. */
+const ShowcaseApp = React.memo(function ShowcaseApp({ showcase }) {
+  return <Nosca showcase={showcase} />;
+});
+
+function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
   const t = useT();
   const key = juvenile ? "juvenile" : isParent ? "parent" : role === "coach" ? "coach" : "player";
-  const cards = TOUR[key] || TOUR.player;
+  /* The HOST app's answer, not the showcase's: this component sits in
+     the real app, so useLive() says whether the person is on a real
+     account, and steps that ring a control they never have are left out. */
+  const hostLive = useLive();
+  const steps = useMemo(() => (TOUR[key] || TOUR.player).filter((s) => !(hostLive && s.skipLive)), [key, hostLive]);
   const [i, setI] = useState(0);
-  const last = i === cards.length - 1;
-  const card = cards[i];
+  const last = i === steps.length - 1;
+  const step = steps[i];
+
+  /* A coach's seeds exist for every sport; a player's for golf and tennis. */
+  const scSport = key === "coach" ? (sport || "golf") : sport === "tennis" ? "tennis" : "golf";
+  const showcase = useMemo(() => ({ role: key === "coach" ? "coach" : "player", juvenile: key === "juvenile", parent: key === "parent",
+                                    sport: scSport, ...step.state }), [key, scSport, step]);
+
+  const stageRef = useRef(null);   // the space the card may fill
+  const frameRef = useRef(null);   // the 390×780 logical frame, scaled
+  const [k, setK] = useState(0.5);
+  const [ring, setRing] = useState(null);
+  const [fits, setFits] = useState(0);
+
+  useEffect(() => {
+    const el = stageRef.current; if (!el) return;
+    const fit = () => {
+      const r = el.getBoundingClientRect();
+      setK(Math.max(0.2, Math.min((r.width - 12) / FRAME_W, (r.height - 12) / FRAME_H)));
+      setFits((n) => n + 1);
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(fit); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /* Measure the target once the screen has settled. Skeletons last
+     560ms, sheets slide for 340ms and rows settle in with delays, so
+     this polls by animation frame and asks the frame whether anything
+     that could move the target is still animating. A quiet box that
+     holds for two frames is drawn; if something later moves it, it is
+     redrawn, for up to ~2.6s. No target → no ring. */
+  useEffect(() => {
+    setRing(null);
+    const root = frameRef.current; if (!root) return;
+    let raf = 0, stop = false, scrolled = false, seen = null, still = 0, drawn = null;
+    const t0 = performance.now();
+    const same = (a, b) => a && b && Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5
+      && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5;
+    const look = () => {
+      if (stop) return;
+      const el = root.querySelector(`[data-tour="${step.target}"]`);
+      const fr = root.getBoundingClientRect();
+      const scale = fr.width / FRAME_W || 1;
+      const age = performance.now() - t0;
+      if (el) {
+        const er = el.getBoundingClientRect();
+        const box = { x: (er.left - fr.left) / scale, y: (er.top - fr.top) / scale, w: er.width / scale, h: er.height / scale };
+        const off = box.y < 0 || box.y + box.h > FRAME_H;
+        const quiet = frameSettled(el, root);
+        if (!quiet) { still = 0; seen = box; }
+        else if (off && !scrolled) { scrolled = true; centreInFrame(el, root, scale); seen = null; still = 0; }
+        else if (box.w > 0 && box.h > 0) {
+          still = same(box, seen) ? still + 1 : 0;
+          seen = box;
+          if (still >= 2 && !same(box, drawn)) { drawn = box; setRing(box); }
+        }
+      }
+      if (age < 2600) raf = requestAnimationFrame(look);
+      else if (!drawn && seen && seen.w > 0) setRing(seen);
+      else if (!drawn && import.meta.env.DEV) console.warn(`[walkthrough] no target "${step.target}" for ${key} step ${i + 1}`);
+    };
+    raf = requestAnimationFrame(look);
+    return () => { stop = true; cancelAnimationFrame(raf); };
+  }, [i, key, fits]);
 
   const next = () => { if (last) { hapticSuccess(); chime(); onClose(); } else { haptic(9); soft(); setI(i + 1); } };
 
@@ -3900,23 +4130,43 @@ function Walkthrough({ role, juvenile, isParent, onClose }) {
                          ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("Skip")}</button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
-        <div key={`s${i}`} style={{ animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) both" }}>
-          <TourShot kind={card.shot} ring={card.ring} accent={t.accent} />
-        </div>
-        <div key={`t${i}`} className="text-center mt-9" style={{ animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) 80ms both" }}>
-          <h2 style={{ fontFamily: display, fontSize: 25, lineHeight: 1.12, letterSpacing: "-0.032em", color: t.ink }}>{tr(card.title)}</h2>
-          <p className="mt-3.5" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.6, color: t.sub }}>{tr(card.body)}</p>
+      {/* the app itself, at whatever size is left */}
+      <div ref={stageRef} className="flex-1 min-h-0 flex items-center justify-center px-6 pb-3">
+        <div key={`s${i}`} className="relative overflow-hidden"
+             style={{ width: Math.round(FRAME_W * k), height: Math.round(FRAME_H * k), borderRadius: 26 * k + 8,
+                      border: `1px solid ${t.hair}`, boxShadow: ELEV.float, background: t.page,
+                      animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) both" }}>
+          <div ref={frameRef} style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${k})`, transformOrigin: "top left", position: "relative" }}>
+            <div inert="" aria-hidden="true" style={{ width: FRAME_W, height: FRAME_H, pointerEvents: "none" }}>
+              <ShowcaseApp showcase={showcase} />
+            </div>
+            {ring && (
+              <div data-tour-ring="" data-for={step.target} aria-hidden="true"
+                   style={{ position: "absolute", left: ring.x - 5, top: ring.y - 5, width: ring.w + 10, height: ring.h + 10,
+                            borderRadius: 16, border: `2.5px solid ${t.accent}`, ["--ring"]: `${t.accent}66`,
+                            boxSizing: "border-box", pointerEvents: "none", zIndex: 100,
+                            animation: "tourPulse 1.5s ease-in-out infinite" }} />
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="px-8 pb-9 shrink-0">
-        <div className="flex justify-center gap-1.5 mb-6">
-          {cards.map((_, k) => (
-            <span key={k} className="rounded-full" style={{ height: 6, width: k === i ? 20 : 6,
-                     background: k === i ? t.accent : t.hair,
-                     transition: "width 320ms cubic-bezier(.34,1.56,.64,1), background 320ms" }} />
-          ))}
+      <div key={`t${i}`} className="text-center px-8 shrink-0" style={{ animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) 80ms both" }}>
+        <span className="block uppercase" style={{ ...TYPE.eyebrow, color: t.accent }}>{tr(step.area)}</span>
+        <h2 className="mt-2" data-tour-title="" style={{ fontFamily: display, fontSize: 24, lineHeight: 1.12, letterSpacing: "-0.032em", color: t.ink }}>{tr(step.title)}</h2>
+        <p className="mt-2" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.5, color: t.sub }}>{tr(step.body)}</p>
+        <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{step.path}</p>
+      </div>
+
+      <div className="px-8 pb-9 pt-5 shrink-0">
+        {/* progress — a track rather than one dot per step, since a
+            complete tour runs long */}
+        <div className="flex items-center gap-3 mb-5">
+          <span className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: t.hair }}>
+            <span className="block h-full rounded-full" style={{ width: `${((i + 1) / steps.length) * 100}%`, background: t.accent,
+                     transition: "width 320ms cubic-bezier(.22,1,.36,1)" }} />
+          </span>
+          <span data-tour-counter="" style={{ ...TYPE.caption, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{i + 1} / {steps.length}</span>
         </div>
         <div className="flex gap-2.5">
           {i > 0 && (
@@ -4037,9 +4287,9 @@ function Sources({ sport, pop, say }) {
    coach: people don't announce that they're drifting away, they just
    stop booking. Surfacing that early is worth more than any new
    feature, because keeping someone costs less than finding someone. */
-function atRisk(roster, series) {
+function atRisk(roster, series, live) {
   return (roster || []).map((r) => {
-    const f = fileFor(r.name);
+    const f = fileFor(r.name, live);
     const booked = (series || []).some((x) => x.who === r.name && !x.ended);
     const gap = r.last || 0;
     let why = null, weight = 0;
@@ -4096,17 +4346,20 @@ function AtRisk({ list, onMessage, onBook, pop }) {
 
 /* What a parent actually wants: proof it is going somewhere, without
    having to go looking for it. */
-function ParentDigest({ profiles, cfg, pop }) {
+function ParentDigest({ profiles, cfg, pop, stats }) {
   const t = useT();
+  const live = useLive();
   const kids = (profiles || []).filter((p) => p.age);
+  /* a real account counts from the data; nothing is invented */
+  const st = (k) => (stats ? (stats[k.id] || { lessons: 0, drillsDone: 0, drillsTotal: 0, tip: null }) : null);
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("This month")} onBack={pop} meta={tr("How everyone's getting on")}>
         <div className="px-6 pb-2">
           {kids.map((k, i) => {
-            const f = fileFor(k.name);
+            const f = fileFor(k.name, live);
             return (
-              <Tile key={k.id} className="px-5 py-5 mb-3" delay={i * 80}>
+              <Tile key={k.id} tour="digest-tile" className="px-5 py-5 mb-3" delay={i * 80}>
                 <div className="flex items-center gap-3.5 mb-4">
                   <Avatar name={k.name} size={44} />
                   <span className="flex-1 min-w-0">
@@ -4114,16 +4367,26 @@ function ParentDigest({ profiles, cfg, pop }) {
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{cfg.label}</span>
                   </span>
                 </div>
-                <div className="flex mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
-                  <Stat value={4} label={tr("Lessons")} />
-                  <span style={{ width: 1, background: t.hair }} />
-                  <Stat value={"3h"} label={tr("On court")} />
-                  <span style={{ width: 1, background: t.hair }} />
-                  <Stat value={"9/12"} label={tr("Drills done")} />
-                </div>
-                <p style={{ ...TYPE.body, lineHeight: 1.65, color: t.ink }}>
-                  {tr("Working on")} {(f.tip || cfg.focus[0].label).toLowerCase()}. {tr("Their coach says they're sticking with it.")}
-                </p>
+                {st(k) ? (
+                  <div className="flex mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
+                    <Stat value={st(k).lessons} label={tr("Lessons")} />
+                    <span style={{ width: 1, background: t.hair }} />
+                    <Stat value={`${st(k).drillsDone}/${st(k).drillsTotal}`} label={tr("Drills done")} />
+                  </div>
+                ) : (
+                  <div className="flex mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
+                    <Stat value={4} label={tr("Lessons")} />
+                    <span style={{ width: 1, background: t.hair }} />
+                    <Stat value={"3h"} label={tr("On court")} />
+                    <span style={{ width: 1, background: t.hair }} />
+                    <Stat value={"9/12"} label={tr("Drills done")} />
+                  </div>
+                )}
+                {st(k)
+                  ? (st(k).tip && <p style={{ ...TYPE.body, lineHeight: 1.65, color: t.ink }}>{tr("Working on")} {st(k).tip}.</p>)
+                  : <p style={{ ...TYPE.body, lineHeight: 1.65, color: t.ink }}>
+                      {tr("Working on")} {(f.tip || cfg.focus[0].label).toLowerCase()}. {tr("Their coach says they're sticking with it.")}
+                    </p>}
               </Tile>
             );
           })}
@@ -4540,7 +4803,7 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
     const lifted = held === i;
 
     return (
-      <button data-tile={i}
+      <button data-tile={i} data-tour={"quick-" + it.id}
               onPointerDown={(e) => grab(e, i)}
               onPointerMove={drag}
               onPointerUp={drop}
@@ -4608,7 +4871,7 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
         <span className="flex-1" style={{ ...TYPE.eyebrow, color: edit ? t.accent : t.faint }}>
           {edit ? tr("Drag to move · tap the corner to resize") : tr("Quick actions")}
         </span>
-        <button onClick={() => { haptic(10); soft(); setEdit(!edit); setHeld(null); }}
+        <button data-tour="quick-edit" onClick={() => { haptic(10); soft(); setEdit(!edit); setHeld(null); }}
                 className="rounded-full flex items-center justify-center active:opacity-60"
                 style={{ width: 32, height: 32, background: edit ? t.accent : t.wash,
                          transition: "background 220ms" }}
@@ -4619,7 +4882,7 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
       </div>
 
       {!edit && (
-        <button onClick={() => { hapticCommit(); soft(); onLog(); }}
+        <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
                 onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
                 onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                 onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -4789,7 +5052,11 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
   const [picked, setPicked] = useState(soleLive.length === 1 ? soleLive[0] : null);
   const [marks, setMarks] = useState(soleLive.length === 1 ? (taken[soleLive[0].time + soleLive[0].who] || {}) : {});
 
-  const membersOf = (l) => (l && l.kind && l.kind.startsWith("Group"))
+  /* A real group booking names no members, so the whole roster is
+     offered and the coach marks who came. The head-count slice is the
+     design harness's seeded groups only. */
+  const membersOf = (l) => (l && l.members) ? l.members
+    : (l && l.kind && l.kind.startsWith("Group"))
     ? (roster || []).slice(0, Number((l.kind.match(/\d+/) || [6])[0])).map((r) => r.name)
     : l ? [l.who] : [];
 
@@ -4900,6 +5167,26 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Attendance")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Today")}</p>
 
+      {(lessons || []).length === 0 && (
+        <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>
+          {tr("Nothing booked today.")}{(roster || []).length ? ` ${tr("You can still mark someone.")}` : ""}
+        </p>
+      )}
+      {(lessons || []).length === 0 && (roster || []).length > 0 && (
+        <div className="mb-2" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          {(roster || []).map((r, i) => (
+            <button key={r.id || r.name} onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
+                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
+                             animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
+              <Avatar name={r.name} size={30} />
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
+              <ChevronRight size={14} color={t.faint} />
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
         {(lessons || []).map((l, i) => {
           const key = l.time + l.who;
@@ -4908,7 +5195,7 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
           const total = membersOf(l).length;
           const live = !l.done && (l.hoursUntil ?? 9) <= 0.5;
           return (
-            <button key={key} onClick={() => open(l)}
+            <button key={key} data-tour={i === 0 ? "attend-row" : undefined} onClick={() => open(l)}
                     className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                     style={{ minHeight: 66, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
@@ -5001,10 +5288,39 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
   const live = cap.state === "recording";
 
   return (
-    <Sheet onClose={close} title={tr("Capture")}>
-      <div className="px-6 pb-6">
+    <>
+      {/* This body already sits inside the app's one Sheet. Wrapping it
+          in a second <Sheet> with no `open` slid the whole thing 760px
+          off the bottom, so the plus menu's Live capture opened onto an
+          empty panel. */}
+      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Capture")}</h2>
+      <div className="pb-2">
+        {/* where it files: one of today's bookings, or the holding pile
+            that is offered when the next lesson is logged */}
+        {lessons && lessons.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Filing under")}</div>
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+              {[...lessons, null].map((l) => {
+                const on = l ? !!(chosen && chosen.who === l.who && chosen.time === l.time) : !chosen;
+                return (
+                  <button key={l ? l.time + l.who : "none"} disabled={live}
+                          onClick={() => { haptic(6); onChoose && onChoose(l); }}
+                          className="px-3.5 shrink-0 active:opacity-60"
+                          style={{ minHeight: 34, borderRadius: R.pill,
+                                   background: on ? t.accent : "transparent",
+                                   border: `0.5px solid ${on ? t.accent : HAIR(t.ink, 0.2)}`,
+                                   ...TYPE.caption, fontWeight: 500, color: on ? t.onAccent : t.sub }}>
+                    {l ? `${l.who} · ${l.time}` : tr("Nobody yet")}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* which kind */}
-        <div className="flex gap-1 p-1 mb-5 rounded-full w-fit" style={{ background: t.wash }}>
+        <div className="flex gap-1 p-1 mb-5 rounded-full w-fit" data-tour="capture-modes" style={{ background: t.wash }}>
           {[["video", tr("Film")], ["photo", tr("Photo")], ["audio", tr("Voice")]].map(([id, label]) => (
             <button key={id} disabled={live}
                     onClick={() => { haptic(6); cap.cancel(); setMode(id); }}
@@ -5109,7 +5425,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
           </div>
         )}
       </div>
-    </Sheet>
+    </>
   );
 }
 
@@ -5127,6 +5443,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
    usually wants to act rather than browse. */
 function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, close }) {
   const t = useT();
+  const live = useLive();
   const [q, setQ] = useState("");
   const term = q.trim().toLowerCase();
   const hit = (x) => (x || "").toLowerCase().includes(term);
@@ -5218,7 +5535,7 @@ function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, clos
           <Group title={cfg.nouns}>
             {people.slice(0, 4).map((r, i) => (
               <Line key={r.name} i={i} Ico={User} label={r.name}
-                    sub={`${fileFor(r.name).done} ${tr("lessons")}`}
+                    sub={`${r.lessons ?? fileFor(r.name, live).done} ${tr("lessons")}`}
                     act={() => { close(); push("player:" + r.name); }} />
             ))}
           </Group>
@@ -5228,7 +5545,7 @@ function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, clos
           <Group title={tr("Lessons")}>
             {found.map((l, i) => (
               <Line key={l.id} i={i} Ico={Library} label={l.focus} sub={`${l.d} ${l.m}`}
-                    act={() => { close(); push("lesson"); }} />
+                    act={() => { close(); push(role === "coach" ? `clesson:${l.who}:${l.id}` : `lesson:${l.id}`); }} />
             ))}
           </Group>
         )}
@@ -5369,6 +5686,16 @@ function Evidence({ item, live, mark }) {
              className="absolute inset-0 w-full h-full"
              style={{ objectFit: "cover", zIndex: 1 }} />
       </>
+    );
+  }
+
+  if (item.type === "audio") {
+    /* a voice note in the feed: the browser's own player, nothing drawn */
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8" style={{ background: "#0B0F10" }}>
+        <Mic size={40} color="rgba(255,255,255,0.85)" strokeWidth={1.4} />
+        <audio src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+      </div>
     );
   }
 
@@ -5581,7 +5908,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
 
 /* One control, used in the feed and on the list screen, so the three
    views read as equals wherever you meet them. */
-function ViewSwitch({ view, setView, onDark }) {
+function ViewSwitch({ view, setView, onDark, tour }) {
   const t = useT();
   const opts = [
     { id: "feed",  Ico: Play,       label: "Feed" },
@@ -5589,7 +5916,7 @@ function ViewSwitch({ view, setView, onDark }) {
     { id: "list",  Ico: ListChecks, label: "List" },
   ];
   return (
-    <div className="flex gap-1 p-1" style={{ borderRadius: R.pill,
+    <div data-tour={tour} className="flex gap-1 p-1" style={{ borderRadius: R.pill,
            background: onDark ? "rgba(255,255,255,0.14)" : t.wash,
            backdropFilter: onDark ? "blur(14px)" : "none", WebkitBackdropFilter: onDark ? "blur(14px)" : "none" }}>
       {opts.map((o) => {
@@ -5789,7 +6116,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
           </div>
 
           {!juvenile && (
-            <button onClick={() => { haptic(8); soft(); onMessage(); }}
+            <button data-tour="coach-message" onClick={() => { haptic(8); soft(); onMessage(); }}
                     className="w-full flex items-center justify-center gap-2 mb-8 active:opacity-80"
                     style={{ minHeight: 50, borderRadius: R.control, border: `1px solid ${HAIR(t.ink, 0.18)}`,
                              ...TYPE.subhead, fontSize: 15, color: t.ink }}>
@@ -5799,7 +6126,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
           )}
 
           {!juvenile && (
-            <div className="pt-2" style={{ borderTop: `1px solid ${HAIR(t.ink, 0.14)}` }}>
+            <div className="pt-2" data-tour="coach-review" style={{ borderTop: `1px solid ${HAIR(t.ink, 0.14)}` }}>
               <Eyebrow>{myReview ? tr("Your review") : tr("Leave a review")}</Eyebrow>
               <div className="flex items-center justify-center gap-2 py-5">
                 {[1, 2, 3, 4, 5].map((n) => (
@@ -5831,9 +6158,9 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
    the one action, because there is genuinely nothing else to do here
    yet — an empty lesson list and a disabled diary would just be
    furniture around a single button. */
-function NoCoach({ onJoin, juvenile }) {
+function NoCoach({ onJoin, juvenile, initialCode }) {
   const t = useT();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode || "");   // a join link arrives with it filled in
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -5866,7 +6193,7 @@ function NoCoach({ onJoin, juvenile }) {
             : tr("Your lessons, drills and video appear here once you do.")}
         </p>
 
-        <div className="w-full mt-9" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 190ms both" }}>
+        <div className="w-full mt-9" data-tour="nocoach-code" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 190ms both" }}>
           <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
           {err && <p className="mt-3 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
         </div>
@@ -5878,6 +6205,58 @@ function NoCoach({ onJoin, juvenile }) {
         </Button>
       </div>
     </div>
+  );
+}
+
+/* A JOIN LINK, OPENED BY SOMEONE ALREADY SIGNED IN
+
+   The link's code is looked up first, so the offer names the person —
+   "Join Niamh Byrne?" — and says plainly when it is already done or the
+   code matches nobody. Joining goes through the same calls as the code
+   boxes on Home and Family. Rendered inside the app's one Sheet. */
+function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGuardian, onJoinCoach, onJoinFamily, onDone, close }) {
+  const t = useT();
+  const family = invite.kind === "family";
+  const [found, setFound] = useState(undefined);   // undefined = checking · null = no match
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(lookup ? lookup(invite.kind, invite.code) : { found: null })
+      .then((r) => { if (alive) { setFound((r && r.found) || null); if (r && r.error) setErr(r.error.message); } })
+      .catch(() => { if (alive) setFound(null); });
+    return () => { alive = false; };
+  }, [invite.kind, invite.code]);
+
+  const already = !!found && (family ? found.id === currentGuardian : found.id === currentCoach);
+  const line = found === undefined ? tr("Checking the code…")
+    : !found ? (family ? tr("That code doesn't match a family.") : tr("That code doesn't match a coach."))
+    : already ? (family ? `${tr("You're already in")} ${found.name}${tr("'s family.")}` : `${tr("You're already with")} ${found.name}.`)
+    : family ? `${tr("Join")} ${found.name}${tr("'s family?")}`
+    : currentCoachName ? `${tr("Join")} ${found.name}? ${tr("You'd leave")} ${currentCoachName}.`
+    : `${tr("Join")} ${found.name}?`;
+  const join = async () => {
+    if (!found || already || busy) return;
+    setBusy(true); setErr("");
+    const res = family ? await onJoinFamily(invite.code) : await onJoinCoach(invite.code);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't join.")); return; }
+    hapticSuccess(); onDone(found, res);
+  };
+  return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("You've been invited")}</h2>
+      <p className="mb-1" style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{line}</p>
+      <p className="mb-5" style={{ ...TYPE.caption, color: t.faint, letterSpacing: "0.12em" }}>{invite.code}</p>
+      {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+      {found && !already && (
+        <div className="mb-3"><Button tone="ink" disabled={busy} onClick={join}>{busy ? "…" : tr("Join")}</Button></div>
+      )}
+      <button onClick={() => { haptic(6); close(); }} className="w-full active:opacity-60"
+              style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: t.sub }}>
+        {found && !already ? tr("Not now") : tr("OK")}
+      </button>
+    </>
   );
 }
 
@@ -5900,12 +6279,20 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
     const res = await onConfirm(pass);
     setBusy(false);
     if (res && res.error) { hapticWarn(); decline(); setErr(res.error); setPass(""); }
-    else { hapticCommit(); close(); }
+    else { hapticCommit(); if (!(res && res.next)) close(); }   // a confirm that opens the next sheet must not close it again
   };
 
+  /* Rendered INSIDE the app's one bottom sheet (see the sheet switch in
+     Nosca), so it must not open a second Sheet of its own: nested, the
+     inner one sat translated 760px off-screen with pointer events off,
+     and "Delete account" opened an empty white panel nobody could use. */
   return (
-    <Sheet onClose={close} title={title}>
-      <div className="px-6 pb-6">
+    <>
+      {/* Same as LiveCapture: a body inside the app's Sheet, not a Sheet
+          of its own — which is why Delete account and the weather
+          call-off confirmation opened onto an empty panel. */}
+      <h2 className="mb-2" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{title}</h2>
+      <div className="pb-2">
         <p style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{detail}</p>
 
         <div className="mt-6">
@@ -5931,7 +6318,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
           {tr("Cancel")}
         </button>
       </div>
-    </Sheet>
+    </>
   );
 }
 
@@ -5991,7 +6378,7 @@ function JoinedCoach({ coachName, sport, onDone }) {
    is starting lessons. The shape is deliberately identical to joining
    a coach, so the second time someone sees six boxes they already know
    what to do. */
-function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
+function FamilyScreen({ familyCode, family, hasGuardian, onJoin, onMessage, say, pop }) {
   const t = useT();
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
@@ -6030,7 +6417,7 @@ function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
             <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>
               {tr("Anyone who enters this joins your family.")}
             </p>
-            <button onClick={share} disabled={!familyCode}
+            <button data-tour="family-share" onClick={share} disabled={!familyCode}
                     className="mt-5 inline-flex items-center gap-2 px-5 active:opacity-70 disabled:opacity-30"
                     style={{ minHeight: 44, borderRadius: R.pill, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}>
               <Share2 size={14} strokeWidth={2} />
@@ -6045,7 +6432,13 @@ function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
               <Card className="mb-8">
                 {family.map((m, i) => (
                   <Row key={m.id} label={m.name} last={i === family.length - 1}
-                       icon={<Avatar name={m.name} size={34} />} />
+                       sub={m.coachName ? `${tr("Coached by")} ${m.coachName}` : m.coachId ? tr("Has a coach") : tr("No coach yet")}
+                       icon={<Avatar name={m.name} size={34} />}
+                       right={m.coachId && onMessage ? (
+                         /* a guardian writes to the junior's coach on their behalf */
+                         <button onClick={() => { haptic(6); onMessage(m); }} className="shrink-0 p-2 active:opacity-50" aria-label={`Message ${m.name}`}>
+                           <MessageCircle size={17} color={t.sub} strokeWidth={1.6} />
+                         </button>) : null} />
                 ))}
               </Card>
             </>
@@ -6055,7 +6448,7 @@ function FamilyScreen({ familyCode, family, hasGuardian, onJoin, say, pop }) {
           {!hasGuardian && (
             <>
               <Eyebrow>{tr("Join a family")}</Eyebrow>
-              <Card className="p-6">
+              <Card tour="family-join" className="p-6">
                 <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
                 {err && <p className="mt-3 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
                 <button onClick={join} disabled={busy || code.trim().length < 4}
@@ -6220,11 +6613,11 @@ function Preferences({ prefs, setPrefs, role, cfg, pop, say }) {
    These give each item its own surface — compartmentalised, with a
    quiet border and a lift on press — without becoming heavy.
 ================================================================== */
-function Tile({ children, onPress, accent, className = "", style = {}, delay = 0 }) {
+function Tile({ children, onPress, accent, className = "", style = {}, delay = 0, tour }) {
   const t = useT();
   const Comp = onPress ? "button" : "div";
   return (
-    <Comp onClick={onPress ? () => { haptic(7); soft(); onPress(); } : undefined}
+    <Comp data-tour={tour} onClick={onPress ? () => { haptic(7); soft(); onPress(); } : undefined}
           onPointerDown={onPress ? (e) => { e.currentTarget.style.transform = "scale(0.97)"; } : undefined}
           onPointerUp={onPress ? (e) => { e.currentTarget.style.transform = "scale(1)"; } : undefined}
           onPointerLeave={onPress ? (e) => { e.currentTarget.style.transform = "scale(1)"; } : undefined}
@@ -6443,11 +6836,14 @@ function GoalSheet({ name, cfg, onSave, close }) {
 /* Starting a conversation. A player can only reach a coach they are
    actually connected to, and a coach only their own roster — the list
    is the safeguard, not a search box over every user. */
-function NewThread({ role, roster, conns, onPick, close }) {
+function NewThread({ role, roster, conns, people: given, onPick, close }) {
   const t = useT();
   const [q, setQ] = useState("");
-  const people = role === "coach"
-    ? roster.map((r) => ({ name: r.name, sub: `${r.lessons} ${tr("lessons")}` }))
+  /* `people` is the real list when there is one — the coach, and any
+     family member with a coach of their own; the seeded connections
+     are the design harness's. */
+  const people = given ? given : role === "coach"
+    ? roster.map((r) => ({ id: r.id, name: r.name, sub: `${r.lessons} ${tr("lessons")}` }))
     : conns.map((c) => ({ name: c.coach, sub: `${SPORTS[c.sport].label} · ${c.club}` }));
   const term = q.trim().toLowerCase();
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
@@ -6465,7 +6861,7 @@ function NewThread({ role, roster, conns, onPick, close }) {
       ) : (
         <div className="flex flex-col gap-2.5">
           {shown.map((p, i) => (
-            <Tile key={p.name} className="px-4 py-3.5" delay={i * 45} onPress={() => { onPick(p.name); close(); }}>
+            <Tile key={p.id || p.name} className="px-4 py-3.5" delay={i * 45} onPress={() => { onPick(p.id || p.name); close(); }}>
               <div className="flex items-center gap-3.5">
                 <Avatar name={p.name} size={38} />
                 <span className="flex-1 min-w-0">
@@ -6686,7 +7082,8 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
 function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow, onCancel, push, delay = 0 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const f = fileFor(item.who);
+  const live = useLive();
+  const f = fileFor(item.who, live);
   const isGroup = item.kind && item.kind.startsWith("Group");
   const accent = isGroup ? GROUP : t.accent;
 
@@ -6934,7 +7331,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
 
   return (
     <div className="shrink-0 relative z-30" style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 24, paddingTop: 4 }}>
-      <div ref={(el) => { barRef.current = el; shellRef.current = el; }}
+      <div ref={(el) => { barRef.current = el; shellRef.current = el; }} data-tour="tabbar"
            onPointerDown={(e) => {
              measure();
              S.current.startX = e.clientX;
@@ -7004,7 +7401,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
              previous pass. It gets its own render now. */
           if (tb.raised) {
             return (
-              <button key={tb.id} aria-label={tb.label || tr("Add")}
+              <button key={tb.id} aria-label={tb.label || tr("Add")} data-tour="quick"
                       onClick={() => { if (S.current.suppress) return; haptic(12); soft(); onSelect(tb.id); }}
                       className="flex-1 flex items-center justify-center"
                       style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
@@ -7021,7 +7418,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
           }
 
           return (
-            <button key={tb.id} aria-label={tb.label} aria-current={on ? "page" : undefined}
+            <button key={tb.id} aria-label={tb.label} aria-current={on ? "page" : undefined} data-tour={"tab-" + tb.id}
                     onClick={() => { if (S.current.suppress) return; haptic(11); soft(); onSelect(tb.id); }}
                     className="flex-1 flex items-center justify-center"
                     style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
@@ -7147,7 +7544,10 @@ function Sheet({ open, onClose, children }) {
 function Toast({ msg }) {
   const t = useT();
   return (
-    <div className="absolute left-0 right-0 flex justify-center z-50 px-6" style={{ bottom: 98 }}>
+    /* pointer-events off: the wrapper is always mounted, and an invisible
+       strip that swallows taps 98px above the bottom of every screen is
+       exactly the kind of "button that does nothing" that gets reported. */
+    <div className="absolute left-0 right-0 flex justify-center z-50 px-6" style={{ bottom: 98, pointerEvents: "none" }}>
       <div className="rounded-full px-5 py-3" style={{ background: t.ink, opacity: msg ? 1 : 0,
                     transform: msg ? "translateY(0)" : "translateY(12px)", transition: "opacity 240ms, transform 240ms" }}>
         <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{msg || ""}</span>
@@ -7155,10 +7555,10 @@ function Toast({ msg }) {
     </div>
   );
 }
-function Segmented({ options, value, onChange }) {
+function Segmented({ options, value, onChange, tour }) {
   const t = useT();
   return (
-    <div className="flex rounded-xl p-0.5" style={{ background: t.wash }}>
+    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash }}>
       {options.map((o) => {
         const on = value === o;
         return (
@@ -7289,9 +7689,9 @@ function VoiceArea({ value, onChange, ph, rows = 3 }) {
 /* ==================================================================
    PRIMITIVES
 ================================================================== */
-const Card = ({ children, className = "", style = {}, delay = 0 }) => {
+const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
                   animation: `liftIn 440ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>{children}</div>);
 };
 const Eyebrow = ({ children }) => {
@@ -7299,7 +7699,7 @@ const Eyebrow = ({ children }) => {
   return (<div className="mb-3 px-6 mt-1" style={{ marginLeft: 1, fontFamily: ui, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: t.faint,
                   animation: "slideIn 460ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>);
 };
-export function Button({ children, onClick, tone = "accent", disabled }) {
+export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   const t = useT();
   const looks = {
     accent: { background: t.accent, color: t.onAccent, border: "none" },
@@ -7309,7 +7709,7 @@ export function Button({ children, onClick, tone = "accent", disabled }) {
     dangerQuiet: { background: "transparent", color: DANGER, border: `1px solid ${t.hair}` },
   }[tone];
   return (
-    <button onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
+    <button data-tour={tour} onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
             className="w-full disabled:opacity-20"
             onPointerDown={(e) => { if (!disabled) e.currentTarget.style.transform = "scale(0.97)"; }}
             onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -7318,15 +7718,15 @@ export function Button({ children, onClick, tone = "accent", disabled }) {
                      transition: "transform 140ms cubic-bezier(.22,1,.36,1), opacity 140ms", willChange: "transform", ...looks }}>{children}</button>
   );
 }
-const TextBtn = ({ children, onClick, color }) => {
+const TextBtn = ({ children, onClick, color, tour }) => {
   const t = useT();
-  return (<button onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
+  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
 };
-function Row({ label, sub, value, checked, onToggle, radio, last, chevron, dot, icon, danger, right }) {
+function Row({ label, sub, value, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
   const t = useT();
   const Tag = onToggle ? "button" : "div";
   return (
-    <Tag onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
+    <Tag data-tour={tour} onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
          className={`w-full flex items-center gap-3.5 px-5 text-left ${onToggle ? "active:opacity-50" : ""}`}
          onPointerDown={(e) => { if (onToggle) e.currentTarget.style.transform = "scale(0.97)"; }}
          onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -7442,10 +7842,10 @@ const Avatar = ({ name, size = 44, group, tint }) => {
     </span>
   );
 };
-const IconBtn = ({ C, onOpen, label, count }) => {
+const IconBtn = ({ C, onOpen, label, count, tour }) => {
   const t = useT();
   return (
-    <button onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="relative active:opacity-50 p-0.5">
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="relative active:opacity-50 p-0.5">
       <C size={21} color={t.ink} strokeWidth={1.6} />
       {count > 0 && (<span className="absolute rounded-full flex items-center justify-center" style={{ top: -3, right: -4, minWidth: 15, height: 15, padding: "0 4px", background: DANGER, border: `1.5px solid ${t.page}`, fontFamily: ui, fontSize: 9, fontWeight: 600, color: "#fff" }}>{count}</span>)}
     </button>
@@ -7485,6 +7885,22 @@ function QrSvg({ size = 150, accent, seed = 1234 }) {
       {[[0,0],[14,0],[0,14]].map(([x, y]) => (<g key={`${x}${y}`}><rect x={x*u} y={y*u} width={7*u} height={7*u} fill="none" stroke={t.ink} strokeWidth={u} /><rect x={(x+2)*u} y={(y+2)*u} width={3*u} height={3*u} fill={accent || t.accent} /></g>))}
     </svg>
   );
+}
+
+/* A real QR of a real link, drawn by the qrcode package. QrSvg above
+   is a picture of one for the design harness, where there is no code. */
+export function QrImage({ url, size = 148 }) {
+  const [src, setSrc] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    if (!url) { setSrc(null); return; }
+    QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#1A1815", light: "#ffffff" } })
+      .then((svg) => { if (alive) setSrc("data:image/svg+xml;utf8," + encodeURIComponent(svg)); })
+      .catch(() => { if (alive) setSrc(null); });
+    return () => { alive = false; };
+  }, [url]);
+  if (!src) return <span className="block" style={{ width: size, height: size, background: "#fff" }} />;
+  return <img src={src} width={size} height={size} alt={tr("QR code")} style={{ display: "block", width: size, height: size }} />;
 }
 
 /* ==================================================================
@@ -7566,7 +7982,7 @@ export const Sub = ({ children }) => { const t = useT(); return <p className="mt
 
 /* A field that lives outside the parent's render, so typing never
    remounts it and loses focus. */
-export function Field({ label, value, onChange, ph, type = "text", Icon, autoFocus, error, onBlur, reveal }) {
+export function Field({ label, value, onChange, ph, type = "text", Icon, autoFocus, error, onBlur, reveal, autoComplete, inputMode }) {
   const t = useT();
   const [shown, setShown] = useState(false);
   const bad = !!error;
@@ -7578,6 +7994,7 @@ export function Field({ label, value, onChange, ph, type = "text", Icon, autoFoc
         <span className="flex-1">
           {label && <span className="block" style={{ fontFamily: ui, fontSize: 11, color: bad ? DANGER : t.faint }}>{label}</span>}
           <input type={inputType} value={value} placeholder={ph} autoFocus={autoFocus} onBlur={onBlur}
+                 autoComplete={autoComplete} inputMode={inputMode}
                  onChange={(e) => onChange(e.target.value)} className="w-full outline-none"
                  style={{ fontFamily: ui, fontSize: 16.5, color: bad ? DANGER : t.ink, background: "transparent" }} />
         </span>
@@ -7667,7 +8084,7 @@ export function CodeBoxes({ value, onChange, onComplete, bad }) {
   );
 }
 
-const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, len, bad, onDone }, ref) {
+export const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, len, bad, onDone }, ref) {
   const t = useT();
   return (
     <input ref={ref} value={value} placeholder={ph} inputMode="numeric" maxLength={len}
@@ -8267,7 +8684,7 @@ const CARD_H = 292, CARD_STEP = CARD_H + 14;
    rule, then the first frame of whatever was filmed. Where there is no
    footage the space isn't wasted or apologetic: it carries the mark
    over a field of the sport's own colour. */
-function LessonCard({ lesson, onOpen, active, saved }) {
+function LessonCard({ lesson, onOpen, active, saved, media, live }) {
   const t = useT();
   const has = (lesson.videos || 0) > 0;
 
@@ -8305,7 +8722,13 @@ function LessonCard({ lesson, onOpen, active, saved }) {
 
       {/* the first frame, or the mark on the sport's colour */}
       <div className="relative" style={{ height: CARD_H - 118 }}>
-        {has ? (
+        {media && media.type === "video" ? (
+          <video src={media.url} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full"
+                 style={{ objectFit: "cover", background: "#0B0F10" }} />
+        ) : media && media.type === "photo" ? (
+          <img src={media.url} alt="" className="absolute inset-0 w-full h-full"
+               style={{ objectFit: "cover", background: "#0B0F10" }} />
+        ) : has && !live ? (
           <>
             {/* a still: horizon band, ground, and the sport's light */}
             <div className="absolute inset-0" style={{ background: "#121618" }} />
@@ -8346,7 +8769,7 @@ function LessonCard({ lesson, onOpen, active, saved }) {
   );
 }
 
-function VDeck({ lessons, go, push, saved }) {
+function VDeck({ lessons, go, push, saved, liveMedia }) {
   const t = useT(); const [a, setA] = useState(0);
   return (
     <>
@@ -8357,7 +8780,7 @@ function VDeck({ lessons, go, push, saved }) {
            }}
            style={{ scrollbarWidth: "none", scrollSnapType: "y mandatory", overscrollBehaviorY: "contain" }}>
         {lessons.map((l, i) => (<div key={l.id} className="snap-center" style={{ scrollSnapAlign: "center", scrollSnapStop: "always",
-                          paddingBottom: i === lessons.length - 1 ? 24 : 14 }}><LessonCard lesson={l} active={i === a} saved={saved.includes(l.id)} onOpen={() => push("lesson")} /></div>))}
+                          paddingBottom: i === lessons.length - 1 ? 24 : 14 }}><LessonCard lesson={l} active={i === a} saved={saved.includes(l.id)} live={!!liveMedia} media={liveMedia && liveMedia[l.id] ? liveMedia[l.id].find((m) => m.type !== "audio") : null} onOpen={() => push(`lesson:${l.id}`)} /></div>))}
       </div>
       <div className="shrink-0 flex items-center justify-center gap-1.5 py-2.5">{lessons.map((l, i) => (<span key={l.id} className="rounded-full" style={{ width: 5, height: i === a ? 15 : 5, background: i === a ? t.ink : t.hair, transition: "height 200ms" }} />))}</div>
     </>
@@ -8367,10 +8790,10 @@ function VDeck({ lessons, go, push, saved }) {
 /* ==================================================================
    FAMILY — profiles + coach connections in one switcher
 ================================================================== */
-function FamilyPill({ name, tint, onOpen }) {
+function FamilyPill({ name, tint, onOpen, tour }) {
   const t = useT();
   return (
-    <button onClick={() => { haptic(6); onOpen(); }} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
       <Avatar name={name} size={22} tint={tint} />
       <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink }}>{(name || "").split(" ")[0]}</span>
       <ChevronDown size={13} color={t.sub} />
@@ -8412,8 +8835,11 @@ function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin 
   );
 }
 
-function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, mySports = [], main, onSetMain, onPhoto, close, say }) {
+function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, mySports = [], main, onSetMain, onPhoto, close, say, live, hasCoach, onJoinCode }) {
   const t = useT();
+  /* a real account joins a coach through the database (join_coach); the
+     harness's pretend lookup below is never reached with `live` */
+  const [joinErr, setJoinErr] = useState(null); const [joining, setJoining] = useState(false);
   const [stage, setStage] = useState("root");   // root | child | childSport | childCode | sport | code
   const [childName, setChildName] = useState("");
   const [cd, setCd] = useState(""); const [cm, setCm] = useState(""); const [cy, setCy] = useState("");
@@ -8437,10 +8863,10 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   const kids = profiles.filter((p) => p.age);
 
   useEffect(() => {
-    if (code.length !== 6 || !newSport) { setFound(null); return; }
+    if (live || code.length !== 6 || !newSport) { setFound(null); return; }
     const x = setTimeout(() => { setFound(COACHES[newSport][0]); haptic(14); tone(720, 0.12, 0.04); }, 500);
     return () => clearTimeout(x);
-  }, [code, newSport]);
+  }, [code, newSport, live]);
 
 
   const SportList = ({ onPick, title, onBack }) => (
@@ -8523,6 +8949,32 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
   if (stage === "sport") return <SportListPick t={t} title={tr("Sport")} onBack={() => setStage("root")}
     onPick={(id) => { setNewSport(id); setCode(""); setFound(null); setStage("code"); }} />;
 
+  if (stage === "code" && live) return (
+    <>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+        <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{tr("Coach code")}</h2></div>
+      <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Six characters from the coach")}</p>
+      {/* typed, not tapped: a real code is six letters and digits */}
+      <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)); setJoinErr(null); }}
+             placeholder="ABC123" autoCapitalize="characters" autoCorrect="off" spellCheck={false} autoFocus aria-label={tr("Coach code")}
+             className="w-full outline-none text-center mb-2"
+             style={{ minHeight: 54, borderRadius: R.control, background: t.wash, fontFamily: display, fontSize: 24, letterSpacing: "0.18em", color: t.ink, border: "none" }} />
+      <div className="mb-4" style={{ minHeight: 44 }}>
+        {joinErr && <p className="text-center pt-3" style={{ ...TYPE.small, color: DANGER }}>{joinErr}</p>}
+      </div>
+      <Button disabled={code.length !== 6 || joining} onClick={async () => {
+        if (!onJoinCode) return;
+        setJoining(true);
+        const res = await onJoinCode(code);
+        setJoining(false);
+        if (res && res.error) { hapticWarn(); setJoinErr(res.error.message || tr("Couldn't join that coach.")); return; }
+        hapticSuccess(); chime();
+        say && say(`${(res && res.coach && res.coach.name) || tr("Coach")} ${tr("added")}`);
+        close();
+      }}>{joining ? tr("Joining…") : tr("Join")}</Button>
+    </>
+  );
+
   if (stage === "code") return (
     <CoachCodeStep t={t} newSport={newSport} code={code} setCode={setCode} found={found}
               who={`For ${profiles.find((p) => p.id === activeProfileId)?.name.split(" ")[0]}.`} onBack={() => setStage("sport")}
@@ -8538,9 +8990,9 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         <Card className="mb-4">
           {profiles.map((pf, i) => (
             <Row key={pf.id} label={pf.name}
-                 sub={!pf.age ? "You" : pf.turns18 ? `Age ${pf.age} · yours until ${pf.turns18}` : `Age ${pf.age} · managed by you`}
+                 sub={pf.kin ? [pf.age ? `Age ${pf.age}` : null, pf.coach ? `${tr("with")} ${pf.coach}` : tr("in your family")].filter(Boolean).join(" · ") : !pf.age ? "You" : pf.turns18 ? `Age ${pf.age} · yours until ${pf.turns18}` : `Age ${pf.age} · managed by you`}
                  checked={pf.id === activeProfileId} last={i === profiles.length - 1}
-                 icon={<Avatar name={pf.name} size={38} />} onToggle={() => { onSwitchProfile(pf.id); close(); }} />
+                 icon={<Avatar name={pf.name} size={38} />} onToggle={live ? undefined : () => { onSwitchProfile(pf.id); close(); }} />
           ))}
         </Card>
       )}
@@ -8550,9 +9002,9 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         {myConns.length === 0 ? (
           <div className="p-6 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No coach connected yet.")}</p></div>
         ) : myConns.map((c, i) => (
-          <Row key={c.id} label={c.coach} sub={`${SPORTS[c.sport].label} · ${c.club}`} checked={c.id === activeConnId} last={i === myConns.length - 1}
+          <Row key={c.id} label={c.coach} sub={c.club ? `${SPORTS[c.sport].label} · ${c.club}` : SPORTS[c.sport].label} checked={c.id === activeConnId} last={i === myConns.length - 1}
                icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: SPORTS[c.sport].theme.mark }} />}
-               onToggle={() => { onPickConn(c.id); close(); }} />
+               onToggle={live ? undefined : () => { onPickConn(c.id); close(); }} />
         ))}
       </Card>
 
@@ -8578,10 +9030,10 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         </>
       )}
 
-      <Card>
+      <Card tour="family-rows">
         <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<Users size={18} color={t.sub} strokeWidth={1.6} />}
              onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
-        <Row label={tr("Add a coach")} sub={tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage("sport")} />
+        {!(live && hasCoach) && <Row label={tr("Add a coach")} sub={live ? tr("Enter their code") : tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage(live ? "code" : "sport")} />}
         <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
         <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
       </Card>
@@ -8733,7 +9185,7 @@ function TipBody({ focusLabel, prompts, onSet, close }) {
       )}
       <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("Short headline")} /></div>
       <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={3} ph={tr("One or two sentences")} /></div>
-      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() || "Keep at what we worked on." }); close(); }}>{tr("Set as their focus")}</Button>
+      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() }); close(); }}>{tr("Set as their focus")}</Button>
     </>
   );
 }
@@ -8757,8 +9209,8 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
   const tipText = typeof tip === "string" ? tip : (tip && (tip.title || tip.text)) || "";
   const tipBody = tip && tip.body;
 
-  const Line = ({ label, value, meta, tone, onPress, delay = 0, last }) => (
-    <button onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+  const Line = ({ label, value, meta, tone, onPress, delay = 0, last, tour }) => (
+    <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className="w-full flex items-center gap-4 text-left active:opacity-50"
             style={{ minHeight: 66, borderBottom: last ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}`,
                      animation: `settle 400ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
@@ -8784,7 +9236,7 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
               in a filled disc at the bottom so there is no question
               that pressing it goes somewhere. */}
           {tipText && (
-            <button onClick={() => { hapticCommit(); soft(); push("tips"); }}
+            <button data-tour="home-tip" onClick={() => { hapticCommit(); soft(); push("tips"); }}
                     onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
                     onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                     onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -8843,32 +9295,33 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
           {/* the rest of the day, one line each */}
           <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
             {nextBooking && (
-              <Line label={tr("Next")} value={nextBooking.focus || tr("Lesson")}
+              <Line tour="home-next" label={tr("Next")} value={nextBooking.focus || tr("Lesson")}
                     meta={nextBooking.when} delay={60} onPress={() => go("calendar")} />
             )}
-            <Line label={tr("To practise")}
+            <Line tour="home-practice" label={tr("To practise")}
                   value={todo.length ? `${todo.length} ${todo.length === 1 ? tr("drill") : tr("drills")}` : tr("All done")}
                   tone={todo.length ? t.ink : STEADY}
                   delay={110} onPress={() => go("practice")} />
-            <Line label={tr("Lessons")} value={`${lessons.length} ${tr("logged")}`}
+            <Line tour="home-lessons" label={tr("Lessons")} value={`${lessons.length} ${tr("logged")}`}
                   meta={lessons[0] ? `${lessons[0].d} ${lessons[0].m}` : ""}
                   delay={160} onPress={() => go("log")} />
             {nextEvent && (
-              <Line label={tr("Coming up")} value={nextEvent.name}
+              <Line tour="home-events" label={tr("Coming up")} value={nextEvent.name}
                     meta={`${nextEvent.days}d`} tone={nextEvent.days <= 7 ? CAUTION : null}
                     delay={210} onPress={() => go("events")} />
             )}
             {!juvenile && (
-              <Line label={tr("Your coach")} value={conn?.coach || tr("Not connected")}
+              <Line tour="home-coach" label={tr("Your coach")} value={conn?.coach || tr("Not connected")}
                     delay={260} onPress={() => conn && push("coachProfile")} />
             )}
-            <Line label={tr("Attendance")} value={attendPct != null ? `${attendPct}%` : tr("None taken")}
+            <Line tour="home-attendance" label={tr("Attendance")} value={attendPct != null ? `${attendPct}%` : tr("None taken")}
                   tone={attendPct == null ? t.faint : attendPct >= 90 ? STEADY : attendPct >= 75 ? CAUTION : DANGER}
                   delay={310} last onPress={() => push("attendance")} />
           </div>
 
-          {!juvenile && (
-            <button onClick={() => { hapticCommit(); soft(); onRequest && onRequest(); }}
+          {/* not for a junior, nor for a parent — neither books for themselves */}
+          {!juvenile && onRequest && (
+            <button data-tour="home-request" onClick={() => { hapticCommit(); soft(); onRequest(); }}
                     className="w-full flex items-center justify-center gap-2 mt-8 active:opacity-90"
                     style={{ minHeight: 54, borderRadius: R.control,
                              border: `1px solid ${HAIR(t.ink, 0.18)}`,
@@ -8888,7 +9341,7 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
 
 
 
-function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, setPrefs, sport, ownMedia, onUpload, onOverture }) {
+function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, setPrefs, sport, ownMedia, onUpload, onOverture, liveMedia }) {
   const t = useT();
   const ready = useLoad();
   const view = (prefs && prefs.logView) === "list" ? "List" : "Cards";
@@ -8899,7 +9352,13 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
   /* Immersive is a different animal — it owns the screen, so it is not
      a segment inside this one. */
   if ((prefs && prefs.logView) === "feed" && lessons.length > 0) {
-    const mediaFor = (l, i) => {
+    /* A real account shows what was actually attached — the sport's
+       colour field while it loads or when there is nothing. The drawn
+       frames, the device readout and the test-media control are the
+       design harness's only. */
+    const mediaFor = liveMedia
+      ? (l) => liveMedia[l.id] || []
+      : (l, i) => {
       const own = (ownMedia && ownMedia[i]) || [];
       if (own.length) return own;
       const n = l.videos || 0;
@@ -8913,8 +9372,8 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
     };
     return <LessonFeed lessons={lessons} mediaFor={mediaFor}
                        view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
-                       onPickFiles={(files) => onUpload && onUpload(0, files)}
-                       loaded={Object.keys(ownMedia || {}).length}
+                       onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
+                       loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
                        onOpen={(l) => onOverture(l)} />;
   }
 
@@ -8923,7 +9382,7 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
       <div className="px-6 pt-1">
         {/* the view switch does the work a title was doing badly */}
         <div className="flex items-center gap-3 mb-4">
-          <ViewSwitch view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
+          <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
           <span className="flex-1" />
           <span style={{ ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>
             {lessons.length}
@@ -8953,11 +9412,11 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
           {lessons.length === 0 ? tr("No lessons yet.") : tr("Nothing under that.")}
         </p>
       ) : view === "Cards" ? (
-        <VDeck lessons={shown} go={go} push={push} saved={saved} />
+        <VDeck lessons={shown} go={go} push={push} saved={saved} liveMedia={liveMedia} />
       ) : (
         <div className="px-6 pb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
           {shown.map((l, i) => (
-            <button key={l.id} onClick={() => { haptic(8); soft(); push("lesson"); }}
+            <button key={l.id} data-tour={i === 0 ? "log-row" : undefined} onClick={() => { haptic(8); soft(); push(`lesson:${l.id}`); }}
                     className="w-full flex items-center gap-4 text-left active:opacity-50"
                     style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              animation: `settle 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 45}ms both` }}>
@@ -8985,6 +9444,133 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
   );
 }
 
+/* REAL MEDIA
+
+   What a coach attached is fetched by lesson id and played by the
+   browser's own <video>, <img> and <audio>; the data layer signs the
+   URLs and caches them for the session. `null` while loading, `[]`
+   when nothing is attached. The drawn stand-ins further down are the
+   design harness's — a real account never sees them. */
+function useLessonMedia(lessonId, loader, count) {
+  const [items, setItems] = useState(null);
+  const has = !!loader && !!lessonId;
+  useEffect(() => {
+    if (!has) { setItems(null); return; }
+    if (!count) { setItems([]); return; }
+    let alive = true;
+    setItems(null);
+    loader(lessonId).then((m) => { if (alive) setItems(m || []); })
+                    .catch(() => { if (alive) setItems([]); });
+    return () => { alive = false; };
+  }, [lessonId, count, has]);
+  return items;
+}
+
+const mediaLabel = (it, i, all) => {
+  const same = (all || []).filter((x) => x.type === it.type);
+  const n = same.length > 1 ? ` ${same.indexOf(it) + 1}` : "";
+  return it.type === "video" ? `${tr("Clip")}${n}` : it.type === "audio" ? `${tr("Voice note")}${n}` : `${tr("Photo")}${n}`;
+};
+
+function MediaView({ item, height = 220 }) {
+  const t = useT();
+  if (!item) return null;
+  if (item.type === "video") {
+    return (
+      <video key={item.url} src={item.url} playsInline controls preload="metadata" className="block w-full"
+             style={{ height, objectFit: "cover", background: "#0B0F10", borderRadius: 18 }} />
+    );
+  }
+  if (item.type === "photo") {
+    return (
+      <img key={item.url} src={item.url} alt="" className="block w-full"
+           style={{ height, objectFit: "cover", background: "#0B0F10", borderRadius: 18 }} />
+    );
+  }
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 px-6"
+         style={{ height: Math.min(height, 150), borderRadius: 18, background: t.wash }}>
+      <Mic size={22} color={t.sub} strokeWidth={1.6} />
+      <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+    </div>
+  );
+}
+
+/* A LESSON LOG, AS A FILE
+
+   One self-contained HTML page: the date, who, the focus, the notes,
+   and links to the media. It is the person's own record, so it leaves
+   through the share sheet where there is one (iOS puts it into Files,
+   Notes or Mail), otherwise as a plain download, otherwise in a new
+   tab. Nothing in it is invented — a section with nothing to say is
+   left out. */
+const escapeHtml = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const longDate = (iso, fallback) => {
+  if (!iso) return fallback || "";
+  const d = new Date(iso);
+  return isNaN(d) ? (fallback || "") : d.toLocaleDateString("en-IE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+};
+function lessonLogHtml({ lesson, coach, who, media = [], drills = [], tip }) {
+  const e = escapeHtml;
+  const when = longDate(lesson.iso, lesson.date);
+  const section = (label, inner) => (inner ? `<section><h2>${e(label)}</h2>${inner}</section>` : "");
+  const subs = (lesson.subs || []).filter(Boolean);
+  const drillList = (drills || []).map((d) => (typeof d === "string" ? d : d && d.t)).filter(Boolean);
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${e(lesson.focus)} · ${e(when)}</title>
+<style>
+  body{margin:0;background:#FAF7F0;color:#1A1815;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:640px;margin:0 auto;padding:40px 24px 64px}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8A857C}
+  h1{font-size:34px;line-height:1.05;letter-spacing:-.03em;font-weight:400;margin:10px 0 6px}
+  .meta{color:#6B6560;font-size:14px;margin:0 0 28px}
+  section{border-top:1px solid rgba(26,24,21,.13);padding:20px 0}
+  h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8A857C;font-weight:600;margin:0 0 10px}
+  p,li{font-size:16px;margin:0 0 8px}
+  ul{padding-left:18px;margin:0}
+  a{color:#1A1815}
+  .note{font-size:12.5px;color:#8A857C;margin-top:10px}
+  footer{margin-top:40px;font-size:12px;color:#8A857C}
+</style></head><body><main>
+  <div class="eyebrow">${e(BRAND)} · ${e(lesson.type === "Group" ? "Group lesson" : "Lesson")}</div>
+  <h1>${e(lesson.focus)}</h1>
+  <p class="meta">${e(when)}${coach ? ` · ${e(coach)}` : ""}${who ? ` · ${e(who)}` : ""}</p>
+  ${section("Sub-focus", subs.length ? `<p>${subs.map(e).join(" · ")}</p>` : "")}
+  ${section("Notes", lesson.note ? `<p>${e(lesson.note).replace(/\n/g, "<br>")}</p>` : "")}
+  ${section("Drills set", drillList.length ? `<ul>${drillList.map((d) => `<li>${e(d)}</li>`).join("")}</ul>` : "")}
+  ${section("Takeaway", tip ? `<p>${e(tip)}</p>` : "")}
+  ${section("Media", media.length
+    ? `<ul>${media.map((m, i) => `<li><a href="${e(m.url)}">${e(mediaLabel(m, i, media))}</a></li>`).join("")}</ul>`
+      + `<p class="note">These links open for about an hour after this file was made. The clips themselves stay in ${e(BRAND)}.</p>`
+    : "")}
+  <footer>Saved from ${e(BRAND)}</footer>
+</main></body></html>`;
+}
+async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }) {
+  if (!lesson) return;
+  const html = lessonLogHtml({ lesson, coach, who, media: media || [], drills, tip });
+  const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const name = `nosca-lesson-${lesson.iso || slug(lesson.date) || "log"}${lesson.focus ? "-" + slug(lesson.focus) : ""}.html`;
+  const file = new File([html], name, { type: "text/html" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: lesson.focus });
+      return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; /* anything else: fall through to a download */ }
+  const url = URL.createObjectURL(file);
+  if ("download" in HTMLAnchorElement.prototype) {
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    say && say(tr("Saved"));
+  } else {
+    window.open(url, "_blank");
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 /* A LESSON, OPENED
 
    Rebuilt as one continuous page rather than a stack of boxes. The
@@ -8992,18 +9578,27 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
    hairlines — the way a match report reads. Boxes were being used to
    group things that were already grouped by proximity, which just
    added edges to look at. */
-function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance }) {
+function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance, lessonId, mediaFor, onDownload, onRate }) {
   const t = useT();
-  const base = lessons[0];
+  const live = !!mediaFor;
+  /* the one that was tapped — by id, never "the newest" */
+  const base = lessonId != null
+    ? (lessons.find((x) => String(x.id) === String(lessonId)) || null)
+    : lessons[0];
   const id = fresh ? 999 : base?.id;
   const l = fresh
     ? { focus: fresh.focus, subs: fresh.subs, date: "Today", type: fresh.type === "group" ? "Group" : "Private",
         videos: fresh.videos.map((v) => v.angle || v), note: fresh.note, tip: fresh.nextTip, drills: fresh.nextDrills }
     : { focus: base?.focus || "Lesson", subs: base?.subs || [], date: base ? `${base.d} ${base.m}` : "",
-        type: base?.type || "Private", videos: cfg.angles.slice(0, base?.videos || 0),
+        type: base?.type || "Private", videos: live ? [] : cfg.angles.slice(0, base?.videos || 0),
         note: base?.note, tip: base?.tip, drills: base?.drills };
   const [a, setA] = useState(0);
   const isSaved = saved.includes(id);
+  /* what the coach actually attached, signed for this session */
+  const count = base ? (base.media ?? base.videos ?? 0) : 0;
+  const media = useLessonMedia(live && !fresh && base ? base.id : null, mediaFor, count);
+  const items = media || [];
+  const current = items[Math.min(a, Math.max(0, items.length - 1))];
 
   const Line = ({ label, children, delay = 0 }) => (
     <div className="py-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}`,
@@ -9013,15 +9608,48 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
     </div>
   );
 
+  if (!fresh && lessonId != null && !base) {
+    return (
+      <SwipeBack onBack={pop}>
+        <Screen bare onBack={pop}>
+          <p className="px-6 py-16 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That lesson isn't available.")}</p>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
   return (
     <SwipeBack onBack={pop}>
       <Screen bare onBack={pop}
-              right={<IconBtn C={Download} label={tr("Save offline")} onOpen={() => { haptic(9); toggleSave(id); }} />}>
+              right={live
+                ? <IconBtn tour="lesson-save" C={Download} label={tr("Download lesson log")} onOpen={() => { haptic(9); onDownload && base && onDownload(base, items); }} />
+                : <IconBtn tour="lesson-save" C={Download} label={tr("Save offline")} onOpen={() => { haptic(9); toggleSave(id); }} />}>
 
         {/* the clip, edge to edge — the reason you opened this */}
-        {l.videos.length > 0 ? (
-          <div className="mb-6">
-            <Clip angle={l.videos[a] || "Clip"} saved={isSaved} onMinimise={() => minimise(l.videos[a] || "Clip")} />
+        {live && !fresh ? (
+          media === null && count > 0 ? (
+            <div className="px-6 mb-6"><Bone h={220} r={18} /></div>
+          ) : items.length > 0 ? (
+            <div className="px-6 mb-6" data-tour="lesson-clip">
+              <MediaView item={current} />
+              {items.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
+                  {items.map((it, i) => (
+                    <button key={it.id || i} onClick={() => { haptic(7); soft(); setA(i); }}
+                            className="px-3.5 shrink-0 active:opacity-60"
+                            style={{ minHeight: 32, borderRadius: R.pill,
+                                     background: i === a ? t.accent : "transparent",
+                                     border: `0.5px solid ${i === a ? t.accent : HAIR(t.ink, 0.2)}`,
+                                     ...TYPE.caption, fontWeight: 500,
+                                     color: i === a ? t.onAccent : t.sub }}>{mediaLabel(it, i, items)}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null
+        ) : l.videos.length > 0 ? (
+          <div className="mb-6" data-tour="lesson-clip">
+            <Clip angle={l.videos[a] || "Clip"} saved={isSaved} onMinimise={() => minimise(l.videos[a] || "Clip", id)} />
             {l.videos.length > 1 && (
               <div className="flex gap-2 overflow-x-auto px-6 mt-3" style={{ scrollbarWidth: "none" }}>
                 {l.videos.map((v, i) => (
@@ -9093,10 +9721,21 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
                 </span>
               </Line>
             )}
+
+            {/* the coach asked for a rating on this one — once, and only
+                until a review exists */}
+            {onRate && base && base.ratingRequested && (
+              <Line label={tr("Your coach asked")} delay={260}>
+                <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="flex items-center gap-1.5 active:opacity-50"
+                        style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>
+                  {tr("Leave a rating")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
+                </button>
+              </Line>
+            )}
           </div>
 
           {/* two ways on, as text buttons rather than slabs */}
-          <div className="flex gap-6 py-6 mt-1" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}` }}>
+          <div className="flex gap-6 py-6 mt-1" data-tour="lesson-next" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}` }}>
             <button onClick={() => { hapticCommit(); soft(); go("practice"); }}
                     className="flex items-center gap-1.5 active:opacity-50"
                     style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>
@@ -9128,7 +9767,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
    So: anyone with something outstanding rises to the top, everyone else
    is a quiet row, and a child with no coach yet reads as an invitation
    rather than an error. */
-function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProfileId, onSwitch, go, push, right, photos = {}, say }) {
+function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProfileId, onSwitch, go, push, right, photos = {}, say, counts }) {
   const t = useT();
   const ready = useLoad();
 
@@ -9156,7 +9795,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
     const ev = f && f.event;
     const rained = p.name === "Fionn Breathnach";
     return (
-      <button onClick={() => { haptic(8); soft(); onSwitch(p.id); }}
+      <button data-tour="family-person" onClick={() => { haptic(8); soft(); onSwitch(p.id); }}
               onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
               onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9186,7 +9825,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               : !conn ? tr("No coach yet")
               : todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}`
               : ev ? `${ev.name} · ${ev.days}d`
-              : `${f ? f.done : 0} ${tr("lessons")}`}
+              : `${f ? f.done : (counts && counts[p.id]) || 0} ${tr("lessons")}`}
           </span>
         </span>
         <ChevronRight size={14} color={t.faint} />
@@ -9210,7 +9849,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
             {[[tr("Everyone's diary"), () => go("calendar")],
               [tr("Messages"), () => go("messages")],
               [tr("This month"), () => push("digest")]].map(([lbl, act], i) => (
-              <button key={lbl} onClick={() => { haptic(7); soft(); act(); }}
+              <button key={lbl} data-tour={["family-diary", "family-messages", "family-month"][i]} onClick={() => { haptic(7); soft(); act(); }}
                       className="w-full flex items-center text-left active:opacity-50"
                       style={{ minHeight: 54, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
@@ -9229,10 +9868,10 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
 /* A section that opens. Sits on a surface like the player's cards
    rather than floating on hairlines, so the day reads as a set of
    objects you can pick up. */
-function Fold({ label, count, open, onToggle, tone, cleared, children, delay = 0, last }) {
+function Fold({ label, count, open, onToggle, tone, cleared, children, delay = 0, last, tour }) {
   const t = useT();
   return (
-    <div className="mb-2.5" style={{ animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
+    <div data-tour={tour} className="mb-2.5" style={{ animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
       <div style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest, overflow: "hidden" }}>
         <button onClick={() => { haptic(8); soft(); onToggle(); }}
                 className="w-full flex items-center gap-3 px-5 text-left active:opacity-70"
@@ -9333,7 +9972,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
           <div className="mb-7" style={{ animation: "contentRise 500ms cubic-bezier(.22,1,.36,1) both" }}>
             {justDone && (
               <div className="relative mb-2">
-              <button onClick={() => { hapticCommit(); soft(); onLogFor && onLogFor(justDone); }}
+              <button data-tour="today-justdone" onClick={() => { hapticCommit(); soft(); onLogFor && onLogFor(justDone); }}
                       onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                       onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9353,7 +9992,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
             )}
 
             {next && (
-              <button onClick={() => { haptic(8); soft(); onPeek && onPeek(next); }}
+              <button data-tour="today-next" onClick={() => { haptic(8); soft(); onPeek && onPeek(next); }}
                       onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                       onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9377,7 +10016,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
         )}
 
         {/* ---- the folds. nothing lives outside them ---- */}
-        <Fold label={tr("Past lessons")} count={done.length} tone={done.length ? DANGER : null} cleared
+        <Fold tour="fold-past" label={tr("Past lessons")} count={done.length} tone={done.length ? DANGER : null} cleared
               open={open === "past"} onToggle={() => flip("past")} delay={60}>
           {done.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("All logged.")}</p>
@@ -9388,19 +10027,19 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
                     <Row l={l} cta={tr("Log")} onTap={() => onLogFor && onLogFor(l)} />
                   </SwipeRow>
                 ))}
-                <button onClick={() => { haptic(7); push("archive"); }} className="w-full px-5 py-4 text-left active:opacity-50"
+                <button data-tour="today-archive" onClick={() => { haptic(7); push("archive"); }} className="w-full px-5 py-4 text-left active:opacity-50"
                         style={{ ...TYPE.small, color: t.sub }}>{tr("Everything you've logged")}</button>
               </>}
         </Fold>
 
-        <Fold label={tr("Later today")} count={ahead.length} tone={null}
+        <Fold tour="fold-next" label={tr("Later today")} count={ahead.length} tone={null}
               open={open === "next"} onToggle={() => flip("next")} delay={100}>
           {ahead.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing else today.")}</p>
             : ahead.map((l, i) => <Row key={i} l={l} onTap={() => onPeek && onPeek(l)} />)}
         </Fold>
 
-        <Fold label={tr("Lesson requests")} count={asks.length} tone={asks.length ? DANGER : null} cleared
+        <Fold tour="fold-asks" label={tr("Lesson requests")} count={asks.length} tone={asks.length ? DANGER : null} cleared
               open={open === "asks"} onToggle={() => flip("asks")} delay={120}>
           {asks.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("None waiting.")}</p>
@@ -9413,7 +10052,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
                     <span className="flex-1 min-w-0">
                       <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
                       <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                        {r.d} {MONTHS.find((x) => x.idx === r.m)?.name.split(" ")[0]} · {r.time}
+                        {r.d} {monthName(r.m)} · {r.time}
                       </span>
                     </span>
                   </div>
@@ -9432,7 +10071,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
               ))}
         </Fold>
 
-        <Fold label={tr("Competitions")} count={events.length} tone={null}
+        <Fold tour="fold-events" label={tr("Competitions")} count={events.length} tone={null}
               open={open === "events"} onToggle={() => flip("events")} delay={140}>
           {events.length === 0
             ? <p className="px-5 py-6" style={{ ...TYPE.small, color: t.faint }}>{tr("None yet.")}</p>
@@ -9451,7 +10090,7 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
                   style={{ ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("Add a competition")}</button>
         </Fold>
 
-        <Fold label={tr("Your coaching")} open={open === "stats"} onToggle={() => flip("stats")} delay={180}>
+        <Fold tour="fold-stats" label={tr("Your coaching")} open={open === "stats"} onToggle={() => flip("stats")} delay={180}>
           <div className="px-5 py-5">
             <div className="flex mb-6">
               {[[lifetime, tr("lessons given")], [monthly.reduce((a, b) => a + b[1], 0), tr("this season")]].map(([v, k], i) => (
@@ -9482,8 +10121,9 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
 /* Three light pages: who, what, and anything to add. One question at a
    time, and a coach who arrives from an unlogged session skips straight
    past the first because we already know who it was with. */
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill }) {
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt }) {
   const t = useT(); const L = useL();
+  const live = useLive();
 
   const seedWho = prefill
     ? (prefill.kind && prefill.kind.startsWith("Group")
@@ -9499,7 +10139,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
      exactly the case this step exists for. */
   const needsDateTime = !prefill || !prefill.time;
   const startStep = known.length ? (needsDateTime ? 1 : 2) : 0;
-  const [step, setStep] = useState(startStep);
+  /* `startAt` is the walkthrough's: it shows one step of the wizard,
+     inert, without walking there. */
+  const [step, setStep] = useState(startAt ?? startStep);
   /* The demo's TODAY is a fixed date for the design harness. A real
      log, with nothing booked to anchor it, should default to the
      actual day it's being written on — not July the 24th, whenever
@@ -9522,6 +10164,45 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [showWaiting, setShowWaiting] = useState(false);
   const [wantRating, setWantRating] = useState(false);
 
+  /* A real voice note: the microphone, a file, and nothing invented.
+     It uploads with the lesson as audio; the typed note is separate.
+     Media comes from the camera or a real file picker the same way. */
+  const cap = useCapture();
+  const [voice, setVoice] = useState(null);            // { file, secs, url }
+  const fileInput = useRef(null);
+  const startVoice = async () => {
+    haptic(14);
+    const stream = await cap.start("audio");
+    if (!stream) return;
+    cap.record("audio"); setSecs(0); setRec("recording");
+  };
+  const stopVoice = async () => {
+    haptic(10);
+    const file = await cap.stop("audio");
+    cap.stopStream(); setRec("idle");
+    if (file) {
+      setVoice((v) => { if (v && v.url) URL.revokeObjectURL(v.url); return { file, secs, url: URL.createObjectURL(file) }; });
+      hapticSuccess();
+    }
+  };
+  useEffect(() => () => cap.cancel(), []);
+  const pickFiles = (accept, capture) => {
+    haptic(8);
+    const el = fileInput.current; if (!el) return;
+    el.accept = accept;
+    if (capture) el.setAttribute("capture", capture); else el.removeAttribute("capture");
+    el.click();
+  };
+  const addFiles = (files) => {
+    files.forEach((f, k) => {
+      const at = Date.now() + k;
+      if (f.type.startsWith("video")) setVideos((v) => [...v, { angle: f.name, secs: 0, file: f, name: f.name }]);
+      else if (f.type.startsWith("audio")) setPhotos((ps) => [...ps, { at, kind: "voice", file: f, name: f.name, values: null, reading: false }]);
+      else setPhotos((ps) => [...ps, { at, kind: "action", file: f, name: f.name, values: null, reading: false }]);
+    });
+    if (files.length) { hapticSuccess(); soft(); }
+  };
+
 
   /* Anything filmed or noted outside the wizard — via the plus menu's
      Live capture, or "Capture during the lesson" from the player's own
@@ -9538,8 +10219,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   /* Videos, photos and anything pulled in, held in one list so the
      slide renders one shape regardless of where it came from. */
   const items = [
-    ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working })),
-    ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading })),
+    ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name })),
+    ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
     ...pulled.map((it) => ({ ...it, id: `c${it.id}` })),
   ];
   const addPhoto = (kind) => {
@@ -9569,7 +10250,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const recommended = (cfg.drills || []).filter((d) => focus.includes(d.focus)).concat(cfg.drills.slice(0, 3)).slice(0, 6);
 
   useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
-  useEffect(() => { if (rec !== "working") return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg]);
+  /* the harness's pretend transcription — never on a real account */
+  useEffect(() => { if (rec !== "working" || live) return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg, live]);
 
   const chosen = cfg.focus.filter((f) => focus.includes(f.id)).map((f) => f.label).concat(custom);
   const group = who.length > 1 || !!pickedGroup;
@@ -9579,7 +10261,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 
   const suggestion = (() => {
     if (who.length !== 1) return null;
-    const last = hadLessons(cfg)[0];
+    const last = hadLessons(cfg, live)[0];
     return last ? { ids: [last.focusId], subs: last.subs, label: `Carry on from ${last.focus.toLowerCase()}` } : null;
   })();
 
@@ -9590,7 +10272,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const finish = () => onPublish({
     type: group ? "group" : "private", who, groupName: pickedGroup, focus: chosen.join(" · "),
     focusList: chosen, focusIds: focus, custom, subs: [], ctx,   // the wizard has no sub-focus picker
-    note: note || videos.map((v) => v.transcript).filter(Boolean).join(" ") || null, videos, photos, secs,
+    note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
     nextDrills, nextTip, wantRating, m: logM, d: logD, time: logTime, pulled,
   });
 
@@ -9663,10 +10345,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”.` : tr("No players yet.")}</p>
               ) : (
                 <div style={{ borderTop: `1px solid ${t.hair}` }}>
-                  {matches.map((pl) => {
+                  {matches.map((pl, pi) => {
                     const on = who.includes(pl);
                     return (
-                      <button key={pl} onClick={() => { haptic(6); setPickedGroup(null); tog(who, setWho, pl); }}
+                      <button key={pl} data-tour={pi === 0 ? "wiz-who" : undefined} onClick={() => { haptic(6); setPickedGroup(null); tog(who, setWho, pl); }}
                               className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                               style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
                         <Avatar name={pl} size={36} />
@@ -9702,7 +10384,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                        className="w-full outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
               </div>
 
-              <div style={{ borderRadius: R.surface, background: t.surface,
+              <div data-tour="wiz-when" style={{ borderRadius: R.surface, background: t.surface,
                              border: `1px solid ${t.hair}`, padding: "16px 18px" }}>
                 <span className="block mb-1.5" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{tr("Time")}</span>
                 <input type="time" value={logTime} onChange={(e) => { setLogTime(e.target.value); haptic(4); }}
@@ -9733,7 +10415,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             )}
 
-            <div className="px-6 flex flex-wrap gap-2 mb-3">
+            <div className="px-6 flex flex-wrap gap-2 mb-3" data-tour="wiz-focus">
               {cfg.focus.map((f) => {
                 const on = focus.includes(f.id);
                 return (
@@ -9763,24 +10445,42 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* ---------- 3 · voice ---------- */}
           {step === 3 && (<div className="px-6">
 
-            {rec === "idle" && !note && (
-              <button onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
-                      style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-                <span className="rounded-full flex items-center justify-center" style={{ width: 68, height: 68, background: t.accent }}>
-                  <Mic size={26} color={t.onAccent} strokeWidth={1.6} />
+            {/* a real account types or dictates the note, and may add a
+                voice note as a file; nothing is transcribed for them */}
+            {live && (
+              <div className="mb-4"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} /></div>
+            )}
+            {live && voice && (
+              <Card className="p-4 mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Mic size={16} color={t.accent} strokeWidth={1.8} />
+                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")}</span>
+                  <span className="flex-1" />
+                  <span style={{ ...TYPE.caption, color: t.faint }}>{Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
+                </div>
+                <audio src={voice.url} controls preload="metadata" className="w-full" />
+                <button onClick={() => { haptic(6); URL.revokeObjectURL(voice.url); setVoice(null); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Remove")}</button>
+              </Card>
+            )}
+            {rec === "idle" && !(live ? voice : note) && !(live && !cap.supported) && (
+              <button data-tour="wiz-notes" onClick={() => { if (live) { startVoice(); return; } haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
+                      style={{ minHeight: live ? 130 : 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
+                <span className="rounded-full flex items-center justify-center" style={{ width: live ? 52 : 68, height: live ? 52 : 68, background: t.accent }}>
+                  <Mic size={live ? 20 : 26} color={t.onAccent} strokeWidth={1.6} />
                 </span>
-                <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Tap to record")}</span>
+                <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{live ? tr("Record a voice note") : tr("Tap to record")}</span>
               </button>
             )}
+            {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
             {rec === "recording" && (
               <div className="flex flex-col items-center justify-center" style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
                 <div className="flex items-end gap-1 h-8 mb-4">{[8,20,13,28,17,30,11,24,15,28,19,22].map((v, i) => (<div key={i} className="rounded-full" style={{ width: 3, height: v, background: t.accent, opacity: 0.3 + (i % 4) * 0.17 }} />))}</div>
-                <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>0:{String(secs % 60).padStart(2, "0")}</div>
-                <button onClick={() => { haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-5" style={{ width: 58, height: 58, background: DANGER }} aria-label={tr("Stop")}><Square size={17} color="#fff" fill="#fff" /></button>
+                <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
+                <button onClick={() => { if (live) { stopVoice(); return; } haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-5" style={{ width: 58, height: 58, background: DANGER }} aria-label={tr("Stop")}><Square size={17} color="#fff" fill="#fff" /></button>
               </div>
             )}
-            {rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
-            {note && (
+            {!live && rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
+            {!live && note && (
               <Card className="p-5">
                 <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.65, color: t.ink }}>{note}</p>
                 <button onClick={() => { setRec("idle"); setNote(null); setSecs(0); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Record again")}</button>
@@ -9793,14 +10493,23 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {step === 4 && (<div className="px-6">
             {/* Five ways in. Everything captured lands below in the same
                 shape, so the screen never turns into competing sections. */}
-            <div className="grid grid-cols-5 gap-1.5 mb-5">
-              {[
+            <input ref={fileInput} type="file" multiple className="hidden"
+                   onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+            <div className="grid gap-1.5 mb-5" data-tour="wiz-media" style={{ gridTemplateColumns: `repeat(${live ? 4 : 5}, minmax(0, 1fr))` }}>
+              {(live ? [
+                /* the camera where there is one, a file picker where there
+                   isn't; no device readouts — nothing is read off a photo */
+                { id: "rec",   label: tr("Record"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") },
+                { id: "lib",   label: tr("Library"), Icon: ImageIcon, act: () => pickFiles("video/*,image/*,audio/*", null) },
+                { id: "shot",  label: tr("Photo"),   Icon: Tag,       act: () => pickFiles("image/*", "environment") },
+                { id: "live",  label: tr("Captured"), Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, badge: waiting.length },
+              ] : [
                 { id: "rec",   label: tr("Record"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
                 { id: "lib",   label: tr("Library"), Icon: ImageIcon, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
                 { id: "data",  label: CAPTURE[sport].device.split(" ")[0], Icon: Receipt, act: () => addPhoto("data") },
                 { id: "shot",  label: tr("Photo"),   Icon: Tag,       act: () => addPhoto("action") },
                 { id: "live",  label: tr("Captured"), Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, badge: waiting.length },
-              ].map((o, i) => (
+              ]).map((o, i) => (
                 <button key={o.id} onClick={o.act}
                         onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                         onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9864,8 +10573,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               <div className="flex flex-col gap-2.5">
                 {items.map((it, i) => (
                   <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
-                            onAnnotate={() => onAnnotate && onAnnotate(it.angle)}
-                            onTranscribe={() => transcribeClip(it.id)}
+                            onAnnotate={live ? null : () => onAnnotate && onAnnotate(it.angle)}
+                            onTranscribe={live ? null : () => transcribeClip(it.id)}
                             onRemove={() => removeItem(it.id)} />
                 ))}
               </div>
@@ -9879,7 +10588,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               that is how drills stop getting set at all. */}
           {/* ---------- 5 · drills ---------- */}
           {step === 5 && (<div className="px-6">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
               {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d, i) => {
                 const on = nextDrills.includes(d.t);
                 return (
@@ -9921,8 +10630,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 
           {/* ---------- 6 · the one thing ---------- */}
           {step === 6 && (<div className="px-6">
-            <VoiceInput value={nextTip} onChange={setNextTip}
-                        ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} autoFocus />
+            <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip}
+                        ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} autoFocus /></div>
             <div className="flex flex-wrap gap-2 mt-4">
               {(cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp, i) => (
                 <button key={tp} onClick={() => { haptic(6); soft(); setNextTip(tp); }} className="px-3.5 active:opacity-60"
@@ -9975,7 +10684,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                                  transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
                                  fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.sub }}>{L.publish}</button>
               )}
-              <div className="flex-1"><Button tone="ink" disabled={!canAdvance}
+              <div className="flex-1" data-tour="wiz-next"><Button tone="ink" disabled={!canAdvance}
                     onClick={() => { haptic(8); if (step === 6 && !showReviewAsk) finish(); else setStep(step + 1); }}>
                     {step === 6 && !showReviewAsk ? L.publish : L.continue}
                   </Button></div>
@@ -9996,13 +10705,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             </button>
           )}
         </div>
-        {cam && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
+        {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
       </div>
     </SwipeBack>
   );
 }
 
-function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say, right, coachName, noun, nouns }) {
+function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say, right, coachName, noun, nouns, code }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
   const [tab, setTab] = useState(nounTitle); const [q, setQ] = useState("");
@@ -10022,11 +10731,11 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
                            boxShadow: ELEV.raise, transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
                            animation: "liftIn 460ms cubic-bezier(.22,1,.36,1) both" }}>
             <span className="p-1.5 shrink-0" style={{ borderRadius: R.field, background: "rgba(255,255,255,0.1)" }}>
-              <QrSvg size={36} />
+              {code ? <QrImage url={joinLink("coach", code)} size={36} /> : <QrSvg size={36} />}
             </span>
             <span className="flex-1 min-w-0">
               <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8, color: "rgba(255,255,255,0.5)" }}>{tr("Invite")} {nouns}</span>
-              <span className="block mt-1.5" style={{ fontFamily: display, fontSize: 22, letterSpacing: "0.12em", color: "#fff" }}>RD4K9P</span>
+              <span className="block mt-1.5" style={{ fontFamily: display, fontSize: 22, letterSpacing: "0.12em", color: "#fff" }}>{code || "——————"}</span>
             </span>
             <Share2 size={18} color="rgba(255,255,255,0.7)" />
           </button>
@@ -10034,7 +10743,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
 
         {requests && requests.length > 0 && (
           <div className="px-6 mb-4">
-            <button onClick={() => { haptic(8); push("requests"); }} className="w-full px-5 flex items-center gap-3.5 active:opacity-60"
+            <button data-tour="roster-requests" onClick={() => { haptic(8); push("requests"); }} className="w-full px-5 flex items-center gap-3.5 active:opacity-60"
                     style={{ minHeight: 56, borderRadius: R.surface, background: `${t.accent}0F`, border: `1px solid ${t.accent}1C` }}>
               <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 30, height: 30, background: t.accent }}>
                 <UserPlus size={14} color={t.onAccent} />
@@ -10047,7 +10756,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
           </div>
         )}
 
-        <div className="px-6 mb-4"><Segmented options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
+        <div className="px-6 mb-4"><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
         {tab === nounTitle ? (<>
           <div className="px-6 mb-4"><div className="flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
             <Search size={16} color={t.faint} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${nouns || "players"}`} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
@@ -10059,7 +10768,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
               <div key={r.name} className="flex items-center gap-3 px-4"
                    style={{ minHeight: 66, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}`,
                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
-                <button onClick={() => { haptic(6); push("player:" + r.name); }} className="flex-1 flex items-center gap-3.5 text-left min-w-0 active:opacity-50">
+                <button data-tour={i === 0 ? "roster-row" : undefined} onClick={() => { haptic(6); push("player:" + r.name); }} className="flex-1 flex items-center gap-3.5 text-left min-w-0 active:opacity-50">
                   <Avatar name={r.name} size={38} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
@@ -10068,7 +10777,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
                     </span>
                   </span>
                 </button>
-                <button onClick={() => { haptic(6); push("thread:" + r.name); }} className="shrink-0 active:opacity-50 p-2" aria-label={`Message ${r.name}`}>
+                <button data-tour={i === 0 ? "roster-message" : undefined} onClick={() => { haptic(6); push("thread:" + r.name); }} className="shrink-0 active:opacity-50 p-2" aria-label={`Message ${r.name}`}>
                   <MessageCircle size={17} color={t.faint} strokeWidth={1.6} />
                 </button>
                 <button onClick={() => { haptic(6); push("history:" + r.name); }} className="shrink-0 active:opacity-50 p-2" aria-label={`${r.name} history`}>
@@ -10082,7 +10791,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
             <div className="px-6 pb-2"><Card>
               {invited.map((p, i) => (
                 <Row key={p.name} label={p.name} sub={tr("Sent a text with your invite link")} icon={<Avatar name={p.name} size={38} />}
-                     right={<TextBtn onClick={() => say(`Resent to ${p.name.split(" ")[0]}`)}>{tr("Resend")}</TextBtn>}
+                     right={<TextBtn onClick={() => sheet("import")}>{tr("Resend")}</TextBtn>}
                      last={i === invited.length - 1} />
               ))}
             </Card></div>
@@ -10094,7 +10803,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
                    icon={<span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 38, height: 38, background: t.wash }}><Users size={16} color={GROUP} /></span>}
                    onToggle={() => push("group:" + g.name)} />
             ))}</Card>
-            <Card><Row label={tr("Create a group")} last icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => sheet("group")} /></Card>
+            <Card><Row tour="roster-newgroup" label={tr("Create a group")} last icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => sheet("group")} /></Card>
           </div>
         )}
       </Screen>
@@ -10106,12 +10815,13 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
    session is the most common reason to open a player at all. */
 function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live }) {
   const t = useT();
+  const seeded = !useLive();
   /* `live` is the real roster. With it, an unknown player is genuinely
      unknown — no invented file, no borrowed history from a seeded
      person. */
   const r = live ? (live.find((x) => x.name === name) || { name, lessons: 0 })
                  : (ROSTER.find((x) => x.name === name) || ROSTER[0]);
-  const f = live ? { lessons: [], name } : fileFor(name);
+  const f = live ? { lessons: [], name } : fileFor(name, !seeded);
   const [more, setMore] = useState(false);
   const past = (f.lessons || [
     { d: "14 Jun", focus: f.lastFocus || "Short game", note: "Contact much cleaner off a tighter lie." },
@@ -10175,7 +10885,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
             </div>
           )}
 
-          <div className="flex gap-2.5 mb-6">
+          <div className="flex gap-2.5 mb-6" data-tour="player-actions">
             <button onClick={() => { haptic(8); push("thread:" + name); }} className="flex-1 active:opacity-60"
                     style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message")}</button>
@@ -10349,8 +11059,9 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
   const [time, setTime] = useState(existing?.time ?? slots[0]);
   const [freq, setFreq] = useState(existing?.freq ?? "weekly");
   const [total, setTotal] = useState(existing?.total ?? 10);
+  const calendar = useCalendar();
 
-  const preview = seriesOccurrences(day, Math.min(total, 3), freq);
+  const preview = seriesOccurrences(day, Math.min(total, 3), freq, undefined, undefined, calendar);
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.02em", color: t.ink }}>
@@ -10399,7 +11110,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       <div className="p-4 mb-5" style={{ borderRadius: R.surface, background: t.wash }}>
         <p style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.sub }}>
           {DAY_NAMES[day]}s at {time}, {freq}. First three:{" "}
-          {preview.map((o) => `${o.d} ${MONTHS.find((x) => x.idx === o.m)?.name.slice(0, 3)}`).join(", ")}.
+          {preview.map((o) => `${o.d} ${monthName(o.m).slice(0, 3)}`).join(", ")}.
         </p>
       </div>
 
@@ -10416,14 +11127,32 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
 
 /* What the coach sees when they open a lesson they gave: the same
    record the player has, plus what they set afterwards. */
-function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills }) {
+function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload }) {
   const t = useT();
   const [a, setA] = useState(0);
-  const angles = cfg.angles.slice(0, lesson.videos || 1);
+  const angles = live ? [] : cfg.angles.slice(0, lesson.videos || 1);
+  /* a real lesson shows what was attached; the drawn clips are the harness's */
+  const count = lesson.media ?? lesson.videos ?? 0;
+  const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
+  const items = media || [];
+  const current = items[Math.min(a, Math.max(0, items.length - 1))];
   return (
     <SwipeBack onBack={pop}>
       <Screen title={lesson.focus} onBack={pop} meta={`${name} · ${lesson.d} ${lesson.m}`}>
         <div className="px-6">
+          {live && (media === null && count > 0 ? <Bone h={220} r={18} /> : items.length > 0 ? (<>
+            <MediaView item={current} />
+            {items.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
+                {items.map((it, i) => (
+                  <button key={it.id || i} onClick={() => { haptic(6); setA(i); }} className="px-3.5 shrink-0 active:opacity-60"
+                          style={{ minHeight: 32, borderRadius: R.pill, background: i === a ? t.accent : "transparent",
+                                   border: `0.5px solid ${i === a ? t.accent : HAIR(t.ink, 0.2)}`, ...TYPE.caption, fontWeight: 500,
+                                   color: i === a ? t.onAccent : t.sub }}>{mediaLabel(it, i, items)}</button>
+                ))}
+              </div>
+            )}
+          </>) : null)}
           {angles.length > 0 && (<>
             <Clip angle={angles[a]} />
             {angles.length > 1 && (
@@ -10449,9 +11178,11 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills }) {
             ))}
           </div>
 
-          <Eyebrow>{tr("What you said")}</Eyebrow>
+          <Eyebrow>{tr(live ? "Your notes" : "What you said")}</Eyebrow>
           <Card className="p-5 mb-6">
-            <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.7, color: t.ink }}>{cfg.transcript}</p>
+            <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.7, color: live && !lesson.note ? t.faint : t.ink }}>
+              {live ? (lesson.note || tr("No notes on this one.")) : cfg.transcript}
+            </p>
           </Card>
 
           <div style={{ borderTop: `1px solid ${t.hair}` }}>
@@ -10463,10 +11194,16 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills }) {
                     style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
               <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>Message {(name || "").split(" ")[0]}</span><ChevronRight size={16} color={t.faint} />
             </button>
-            <button onClick={() => { haptic(8); say("Duplicated — edit and publish"); }} className="w-full flex items-center text-left active:opacity-50"
+            <button onClick={() => { haptic(8); if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }} className="w-full flex items-center text-left active:opacity-50"
                     style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
               <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Log another like this")}</span><ChevronRight size={16} color={t.faint} />
             </button>
+            {live && onDownload && (
+              <button onClick={() => { haptic(8); onDownload(lesson, items); }} className="w-full flex items-center text-left active:opacity-50"
+                      style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Download lesson log")}</span><Download size={16} color={t.faint} />
+              </button>
+            )}
           </div>
           <div style={{ height: 26 }} />
         </div>
@@ -10579,12 +11316,14 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    what the session covered. */
 function GroupHistory({ group, cfg, pop, say, onOpen }) {
   const t = useT();
-  const weeks = [
+  const live = useLive();
+  /* a real group's sessions are its lessons and registers, not a script */
+  const weeks = live ? [] : [
     { when: "Sat 19 Jul", covered: cfg.focus[2].label, subs: cfg.focus[2].subs.slice(0, 2), present: group.members.length, absent: 0 },
     { when: "Sat 12 Jul", covered: cfg.focus[0].label, subs: cfg.focus[0].subs.slice(0, 2), present: group.members.length - 1, absent: 1 },
     { when: "Sat 5 Jul",  covered: cfg.focus[3].label, subs: cfg.focus[3].subs.slice(0, 1), present: group.members.length - 2, absent: 2 },
   ];
-  const avg = Math.round(weeks.reduce((n, w) => n + w.present, 0) / weeks.length);
+  const avg = weeks.length ? Math.round(weeks.reduce((n, w) => n + w.present, 0) / weeks.length) : 0;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={group.name} onBack={pop} meta={`${group.members.length} ${cfg.nouns} · ${DAY_NAMES[group.day]}s ${group.time}`}>
@@ -10684,7 +11423,7 @@ function UnloggedLessons({ items, onLog, onDismiss, pop }) {
                 <span className="rounded-2xl flex flex-col items-center justify-center shrink-0" style={{ width: 46, height: 46, background: t.wash }}>
                   <span style={{ fontFamily: display, fontSize: 17, lineHeight: 1, color: t.ink }}>{u.d}</span>
                   <span className="uppercase" style={{ fontFamily: ui, fontSize: 8, letterSpacing: "0.1em", fontWeight: 600, color: t.faint }}>
-                    {MONTHS.find((x) => x.idx === u.m)?.name.slice(0, 3)}
+                    {monthName(u.m).slice(0, 3)}
                   </span>
                 </span>
                 <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{u.who}</span>
@@ -10911,6 +11650,7 @@ function FamilyGuide({ juvenile, name, onDone }) {
    left as decoration. */
 function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, pop, push, say, lessons }) {
   const t = useT();
+  const live = useLive();
   const [tab, setTab] = useState("Lessons");
   const [newGoal, setNewGoal] = useState(""); const [byWhen, setByWhen] = useState("");
 
@@ -10920,7 +11660,7 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
   const total = att ? att.showed + att.noShow + att.cancelled : 0;
   const rate = total ? Math.round((att.showed / total) * 100) : null;
   const myGoals = goals[name] || [];
-  const list = lessons || hadLessons(cfg);
+  const list = lessons || hadLessons(cfg, live);
 
   const Stat = ({ n, label, tone }) => (
     <span className="flex-1 text-center">
@@ -10934,7 +11674,7 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
       <Screen title={name} onBack={pop}
               meta={list.length ? `${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}` : tr("Nothing logged yet")}>
         <div className="px-6 mb-5">
-          <Segmented options={[tr("Lessons"), tr("Attendance"), tr("Goals")]} value={tab} onChange={setTab} />
+          <Segmented tour="history-tabs" options={[tr("Lessons"), tr("Attendance"), tr("Goals")]} value={tab} onChange={setTab} />
         </div>
 
         {tab === tr("Lessons") && (
@@ -11053,30 +11793,59 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
    already talks to people, and the person taps it on their own phone. */
 function ImportRoster({ existingNames, onSend, close, say, noun, nouns, code }) {
   const t = useT();
-  const joinCode = code || FAMILY_CODE;
-  const link = `nosca.app/j/${joinCode}`;
+  const live = useLive();
+  /* The invite is the join link with the real code. Each route hands
+     that link to the app in question; nothing is sent from here. */
+  const joinCode = code || (live ? null : FAMILY_CODE);
+  const link = joinCode ? joinLink("coach", joinCode) : "";
+  const shown = link.replace(/^https?:\/\//, "");
+  const text = joinCode ? `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${joinCode}` : "";
   const routes = [
     { id: "wa", label: "WhatsApp", Icon: MessageCircle },
     { id: "sms", label: tr("Messages"), Icon: Send },
     { id: "mail", label: tr("Email"), Icon: Mail },
     { id: "copy", label: tr("Copy link"), Icon: Paperclip },
   ];
+  const openRoute = async (id) => {
+    if (!joinCode) { say(tr("No code yet.")); return; }
+    hapticSuccess(); soft();
+    if (id === "copy") { const ok = await copyText(link); say(ok ? tr("Link copied") : tr("Couldn't copy")); close(); return; }
+    const body = `${text} ${link}`;
+    const href = id === "wa" ? `https://wa.me/?text=${encodeURIComponent(body)}`
+      : id === "sms" ? `sms:?&body=${encodeURIComponent(body)}`
+      : `mailto:?subject=${encodeURIComponent(`${tr("Join me on")} ${BRAND}`)}&body=${encodeURIComponent(body)}`;
+    if (id === "wa") window.open(href, "_blank", "noopener"); else window.location.href = href;
+  };
+  /* Only where the phone offers a contact picker; otherwise the row is
+     not there at all. */
+  const canPickContacts = typeof navigator !== "undefined" && !!navigator.contacts && typeof navigator.contacts.select === "function";
+  const pickContacts = async () => {
+    if (!joinCode) { say(tr("No code yet.")); return; }
+    try {
+      const picked = await navigator.contacts.select(["name", "tel"], { multiple: true });
+      const names = (picked || []).map((c) => (c.name && c.name[0]) || "").filter(Boolean);
+      const tels = (picked || []).flatMap((c) => c.tel || []);
+      if (!tels.length) { say(tr("No number on that contact.")); return; }
+      onSend && onSend(names);
+      window.location.href = `sms:${tels.join(",")}?&body=${encodeURIComponent(`${text} ${link}`)}`;
+    } catch (e) { /* they closed the picker */ }
+  };
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("Invite")} {nouns}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}></p>
 
       <div className="px-5 py-4 mb-5 flex items-center gap-3" style={{ borderRadius: R.surface, background: t.wash }}>
-        <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{link}</span>
+        <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{shown || "—"}</span>
         <span className="rounded-full px-2.5 py-1" style={{ background: t.surface, fontFamily: ui, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", color: t.sub }}>
-          {joinCode}
+          {joinCode || "——————"}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         {routes.map((r, i) => (
-          <button key={r.id} onClick={() => { hapticSuccess(); soft(); say(`${tr("Shared via")} ${r.label}`); if (r.id === "copy") close(); }}
-                  className="flex flex-col items-center justify-center gap-2.5 active:opacity-60"
+          <button key={r.id} onClick={() => openRoute(r.id)} disabled={!joinCode}
+                  className="flex flex-col items-center justify-center gap-2.5 active:opacity-60 disabled:opacity-30"
                   style={{ minHeight: 92, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                            animation: `liftIn 400ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
             <r.Icon size={20} color={t.accent} strokeWidth={1.6} />
@@ -11085,13 +11854,15 @@ function ImportRoster({ existingNames, onSend, close, say, noun, nouns, code }) 
         ))}
       </div>
 
-      <button onClick={() => { haptic(8); say(tr("Opens your phone's Contacts")); }}
-              className="w-full flex items-center gap-3.5 px-5 active:opacity-60"
-              style={{ minHeight: 56, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-        <Users size={17} color={t.sub} strokeWidth={1.6} />
-        <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
-        <ChevronRight size={15} color={t.faint} />
-      </button>
+      {canPickContacts && (
+        <button onClick={() => { haptic(8); pickContacts(); }}
+                className="w-full flex items-center gap-3.5 px-5 active:opacity-60"
+                style={{ minHeight: 56, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
+          <Users size={17} color={t.sub} strokeWidth={1.6} />
+          <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
+          <ChevronRight size={15} color={t.faint} />
+        </button>
+      )}
     </>
   );
 }
@@ -11234,6 +12005,7 @@ function Subscription({ pop, say, plan }) {
 ================================================================== */
 function PlayerPractice({ conn, items, toggle, right, say }) {
   const t = useT();
+  const live = useLive();
   const done = items.filter((x) => x.done).length;
   const pct = items.length ? (done / items.length) * 100 : 0;
   const allDone = items.length > 0 && done === items.length;
@@ -11293,7 +12065,7 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
           <div className="px-6 pb-2"><Card>
             {items.map((x, i) => (
               <div key={x.id}>
-              <button onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
+              <button data-tour={i === 0 ? "drill-row" : undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
                       className="w-full flex items-start gap-3.5 px-5 py-4 text-left active:opacity-50"
                       style={{ borderBottom: i === items.length - 1 ? "none" : `1px solid ${t.hair}`,
                                animation: `rowIn 420ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
@@ -11315,11 +12087,11 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
               </div>
             ))}
           </Card>
-          <button onClick={() => { haptic(8); tone(660, 0.12, 0.04); say && say(`${who} will see that`); }}
+          {!live && <button onClick={() => { haptic(8); tone(660, 0.12, 0.04); say && say(`${who} will see that`); }}
                   className="w-full mt-4 py-3.5 active:opacity-50"
                   style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>
             {tr("Leave optional feedback")}
-          </button>
+          </button>}
           </div>
         </>
       )}
@@ -11330,9 +12102,23 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
 /* ==================================================================
    COACH · practice + drill library + suggestion-aware assign
 ================================================================== */
-function CoachPractice({ items, sheet, push, right }) {
+function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemoveDrill, onRenameDrill, say }) {
   const t = useT(); const marcusDone = items.filter((x) => x.done).length;
-  const rows = ROSTER.map((r) => r.name === "Marcus Tran" ? { name: r.name, done: marcusDone, total: items.length } : { name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
+  const [open, setOpen] = useState(null);
+  const [draft, setDraft] = useState({});
+  /* A real coach's roster, with what each person has been set counted
+     from the drills themselves; a drill can be renamed or removed here.
+     The seeded fifteen are the harness's. */
+  const rename = async (d) => {
+    const v = (draft[d.id] ?? d.t).trim();
+    if (!v || v === d.t) { setDraft((x) => ({ ...x, [d.id]: undefined })); return; }
+    const r = onRenameDrill ? await onRenameDrill(d.id, v) : null;
+    if (r && r.error) { say && say(r.error.message); return; }
+    setDraft((x) => ({ ...x, [d.id]: undefined }));
+  };
+  const rows = live
+    ? (roster || []).map((r) => { const mine = (drills || []).filter((d) => d.playerId === r.id); return { id: r.id, name: r.name, done: mine.filter((d) => d.done).length, total: mine.length, list: mine }; })
+    : ROSTER.map((r) => r.name === "Marcus Tran" ? { name: r.name, done: marcusDone, total: items.length } : { name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
   return (
     <Screen title={tr("Practice")} meta={tr("What you've set, and who's doing it")} right={right}>
       <div className="px-6 mb-6">
@@ -11344,10 +12130,28 @@ function CoachPractice({ items, sheet, push, right }) {
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
-      <div className="px-6 pb-2"><Card>{rows.map((r, i) => { const none = r.total === 0; return (
-        <Row key={r.name} label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
-             right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: r.total }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
-             last={i === rows.length - 1} onToggle={() => sheet(r.name)} />
+      <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet.")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.name; return (
+        <div key={r.name}>
+        <Row label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
+             right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: Math.min(r.total, 12) }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
+             last={i === rows.length - 1 && !isOpen} onToggle={() => (live ? setOpen(isOpen ? null : r.name) : sheet(r.name))} />
+        {isOpen && (
+          <div className="px-5 pb-4" style={{ background: t.wash, borderBottom: i === rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>
+            {r.list.map((d) => (
+              <div key={d.id} className="flex items-center gap-2" style={{ minHeight: 48, borderBottom: `1px solid ${t.hair}` }}>
+                <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: d.done ? t.accent : t.hair }} />
+                <input value={draft[d.id] ?? d.t} onChange={(e) => setDraft((x) => ({ ...x, [d.id]: e.target.value }))} onBlur={() => rename(d)}
+                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="flex-1 min-w-0 outline-none"
+                       style={{ fontFamily: ui, fontSize: 14, color: t.ink, background: "transparent" }} aria-label={tr("Drill name")} />
+                <button onClick={async () => { const res = onRemoveDrill ? await onRemoveDrill(d.id) : null; if (res && res.error) { say && say(res.error.message); return; } hapticWarn(); }}
+                        className="p-2 active:opacity-50" aria-label={tr("Remove")}><Trash2 size={15} color={DANGER} /></button>
+              </div>
+            ))}
+            {r.list.length === 0 && <p className="pt-3" style={{ fontFamily: ui, fontSize: 13, color: t.faint }}>{tr("Nothing set.")}</p>}
+            <button onClick={() => { haptic(8); sheet(r.name); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Set drills")}</button>
+          </div>
+        )}
+        </div>
       ); })}</Card></div>
     </Screen>
   );
@@ -11367,7 +12171,7 @@ function DrillLibrary({ cfg, library, addDrill, removeDrill, pop, assign, say })
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Drills")} onBack={pop} meta={`${library.length} in your library`}
-              right={<TextBtn onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
+              right={<TextBtn tour="library-new" onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
         {adding && (
           <div className="px-6 mb-5"><Card className="p-5">
             <VoiceInput value={f.t} onChange={(v) => setF({ ...f, t: v })} ph={tr("Drill name")} autoFocus />
@@ -11559,7 +12363,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
             </Card>
           )}
         </div>
-        <div className="px-6 pb-2"><Card>{DAY_NAMES.map((name, day) => { const times = draft[day] || []; const on = times.length > 0; const expanded = openDay === day; return (
+        <div className="px-6 pb-2"><Card tour="avail-days">{DAY_NAMES.map((name, day) => { const times = draft[day] || []; const on = times.length > 0; const expanded = openDay === day; return (
           <div key={name} style={{ borderBottom: day === 6 ? "none" : `1px solid ${t.hair}` }}>
             <div className="flex items-center gap-3 px-5" style={{ minHeight: 62 }}>
               <button onClick={() => { haptic(6); setOpenDay(expanded ? -1 : day); }} className="flex-1 text-left active:opacity-50">
@@ -11588,23 +12392,33 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
    The grid stays quiet — only availability is signalled — and the times
    carry the weight, one per line, with the finish time always shown. */
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent }) {
   const t = useT();
-  const [mi, setMi] = useState(1);
-  const [sel, setSel] = useState(TODAY.d);
+  const live = useLive();
+  /* the tree's calendar: the real months for a real account, the
+     harness's fixed summer (today 24 July) otherwise */
+  const calendar = useCalendar();
+  const cx = now ? { ...calendar, today: now } : calendar;
+  const T = cx.today;
+  const months = cx.months;
+  const isGone = (m, d) => isPast(m, d, cx);
+  const [mi, setMi] = useState(() => Math.max(0, months.findIndex((x) => x.idx === T.m)));
+  const [sel, setSel] = useState(T.d);
   const [pick, setPick] = useState(null);
   const [famFilter, setFamFilter] = useState("Everyone");
   const [view, setView] = useState(tr("List"));
-  const mo = MONTHS[mi];
+  const mo = months[Math.min(mi, months.length - 1)];
   const mineOn = (m, d) => bookings.find((b) => b.m === m && b.d === d);
-  const open = openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked);
+  const open = isGone(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx);
   const booked = seedBooked[key(mo.idx, sel)] || [];
   const myDay = mineOn(mo.idx, sel);
-  const past = isPast(mo.idx, sel);
-  const dayHours = avail[dowOf(mo.idx, sel)] || [];
-  const move = (dir) => { const n = Math.max(0, Math.min(MONTHS.length - 1, mi + dir)); if (n === mi) return; haptic(8); setMi(n); setSel(1); setPick(null); };
+  const past = isGone(mo.idx, sel);
+  /* a player whose coach has set no hours at all is told so, rather than shown an empty week */
+  const noHours = role === "player" && live && !Object.values(avail || {}).some((x) => x && x.length);
+  const dayHours = avail[dowOf(mo.idx, sel, cx)] || [];
+  const move = (dir) => { const n = Math.max(0, Math.min(months.length - 1, mi + dir)); if (n === mi) return; haptic(8); setMi(n); setSel(1); setPick(null); };
   const cells = []; for (let i = 0; i < mo.start; i++) cells.push(null); for (let d = 1; d <= mo.days; d++) cells.push(d);
-  const dayLabel = `${DAY_NAMES[dowOf(mo.idx, sel)]} ${sel} ${mo.name.split(" ")[0]}`;
+  const dayLabel = `${DAY_NAMES[dowOf(mo.idx, sel, cx)]} ${sel} ${mo.name.split(" ")[0]}`;
 
   return (
     <Screen title={L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "Your week" : conn ? `with ${conn.coach}` : ""}>
@@ -11616,7 +12430,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         family.forEach((f) => {
           if (!f.next) return;
           upcoming.push({ ...f.next, name: f.name, sport: f.sport, coach: f.coach, id: f.id });
-          seriesOccurrences(dowOf(f.next.m, f.next.d), 2, "weekly", f.next.m, f.next.d)
+          seriesOccurrences(dowOf(f.next.m, f.next.d, cx), 2, "weekly", f.next.m, f.next.d, cx)
             .forEach((o) => upcoming.push({ ...o, time: f.next.time, name: f.name, sport: f.sport, coach: f.coach, id: f.id }));
         });
         const filtered = famFilter === "Everyone" ? upcoming : upcoming.filter((u) => u.name.split(" ")[0] === famFilter);
@@ -11633,7 +12447,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               <span style={{ ...TYPE.heading, color: t.ink }}>{tr("Everyone")}</span>
               <span style={{ ...TYPE.caption, color: t.faint }}>next {sorted.length}</span>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-4" style={{ scrollbarWidth: "none" }}>
+            <div className="flex gap-2 overflow-x-auto pb-4" data-tour="cal-family" style={{ scrollbarWidth: "none" }}>
               {["Everyone", ...family.map((f) => f.name.split(" ")[0])].map((n) => {
                 const on = famFilter === n;
                 return (
@@ -11653,7 +12467,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     <span className="shrink-0 text-center" style={{ width: 38 }}>
                       <span className="block" style={{ fontFamily: display, fontSize: 19, lineHeight: 1, color: t.ink }}>{g.d}</span>
                       <span className="block mt-1 uppercase" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.14em", color: t.faint }}>
-                        {DAY_NAMES[dowOf(g.m, g.d)].slice(0, 3)}
+                        {DAY_NAMES[dowOf(g.m, g.d, cx)].slice(0, 3)}
                       </span>
                     </span>
                     <span className="flex-1 min-w-0">
@@ -11675,7 +12489,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
       {role === "coach" && (
         <div className="px-6 mb-4">
-          <button onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
+          <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
                   onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                   onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                   onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -11697,17 +12511,26 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         </div>
       )}
 
+      {noHours && (
+        <div className="px-6 mb-4">
+          {/* a parent has no coach of their own to book with; their children's coaches book */}
+          <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
+            {parent ? tr("Your child's coach books their lessons, or they request one from their own account.") : tr("Your coach hasn't set times yet.")}
+          </p>
+        </div>
+      )}
+
       <div className="px-6 mb-5">
-        <Segmented options={[tr("List"), tr("Calendar")]} value={view} onChange={(v) => { haptic(7); soft(); setView(v); }} />
+        <Segmented tour="cal-view" options={[tr("List"), tr("Calendar")]} value={view} onChange={(v) => { haptic(7); soft(); setView(v); }} />
       </div>
 
       {view === tr("List") ? (
         <AgendaList role={role} avail={avail} blocked={blocked} seedBooked={seedBooked} duration={duration}
                     monthIdx={mo.idx} slotKinds={slotKinds || {}} juvenile={juvenile}
-                    onOpen={(day, bk) => onPeek && onPeek(bk)}
+                    onOpen={(day, bk) => onPeek && onPeek(day && day.m ? { ...bk, m: day.m, d: day.d } : bk)}
                     onEditDay={(day) => onEditDay && onEditDay(day)}
                     onBookInto={(day, h, k) => onBookInto && onBookInto(day, h, k)}
-                    onRecurring={() => onRecurring && onRecurring()} push={push} />
+                    onRecurring={() => onRecurring && onRecurring()} push={push} now={T} />
       ) : (<>
 
       {/* ---- month grid: quiet, availability-led ---- */}
@@ -11716,7 +12539,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <span style={{ ...TYPE.heading, color: t.ink }}>{mo.name}</span>
           <span className="flex items-center gap-1">
             <button onClick={() => move(-1)} disabled={mi === 0} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Previous month")}><ChevronLeft size={18} color={t.ink} /></button>
-            <button onClick={() => move(1)} disabled={mi === MONTHS.length - 1} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><ChevronRight size={18} color={t.ink} /></button>
+            <button onClick={() => move(1)} disabled={mi >= months.length - 1} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><ChevronRight size={18} color={t.ink} /></button>
           </span>
         </div>
         <div className={`grid mb-2`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
@@ -11725,11 +12548,11 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         <div className="gap-y-1.5" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
           {cells.map((d, i) => {
             if (d === null) return <span key={`b${i}`} />;
-            if (!prefs.weekends && dowOf(mo.idx, d) > 4) return null;
-            const gone = isPast(mo.idx, d);
+            if (!prefs.weekends && dowOf(mo.idx, d, cx) > 4) return null;
+            const gone = isGone(mo.idx, d);
             const on = sel === d;
-            const today = mo.idx === TODAY.m && d === TODAY.d;
-            const nOpen = openTimes(mo.idx, d, avail, blocked, bookings, seedBooked).length;
+            const today = mo.idx === T.m && d === T.d;
+            const nOpen = gone ? 0 : openTimes(mo.idx, d, avail, blocked, bookings, seedBooked, cx).length;
             const dayBooked = (seedBooked[key(mo.idx, d)] || []).length;
             const mine = !!mineOn(mo.idx, d);
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
@@ -11776,7 +12599,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
         {myDay && (
           <div className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="uppercase block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Your lesson")}</span>
+            <span className="uppercase block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, duration)}</span>
               {readOnly
@@ -11804,14 +12627,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                 {booked.map((b, i) => (
                   <ScheduleBlock key={b.time + i} item={b} duration={duration} delay={i * 70}
                                  hoursUntil={Math.max(0, (parseTime(b.time) - 11 * 60) / 60)}
-                                 onOpenLast={(n) => push("history:" + n)} onLog={() => onLogFor && onLogFor(b)}
+                                 onOpenLast={(n) => push("history:" + n)} onLog={() => onLogFor && onLogFor({ ...b, m: mo.idx, d: sel })}
                                  onCancel={(l) => onCancelWithReason && onCancelWithReason(l)} push={push} />
                 ))}
               </>
             ) : <FreeDay onSetHours={() => push("availability")} />}
 
             {booked.length > 0 && (
-              <button onClick={() => { haptic(9); onWeatherDay && onWeatherDay(); }}
+              <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay(); }}
                       className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
                       style={{ minHeight: 54, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 <Radio size={16} color={t.sub} strokeWidth={1.6} />
@@ -11864,6 +12687,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         {/* booking confirmation, with recurrence for private lessons */}
         {pick && role === "player" && !readOnly && (
           <div className="mt-6">
+            {/* a real player asks for one lesson at a time; standing slots are the coach's to set */}
+            {!live && (<>
             <span className="uppercase block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Repeat")}</span>
             <div className="flex gap-2 mb-5">
               {[["once", "Just once"], ["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]].map(([id, lbl]) => {
@@ -11873,8 +12698,9 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                                          fontFamily: ui, fontSize: 12, fontWeight: 600, color: onR ? "#fff" : t.sub }}>{lbl}</button>);
               })}
             </div>
+            </>)}
             <Button onClick={() => { onBook({ m: mo.idx, d: sel, time: pick }); setPick(null); }}>
-              Book {span(pick, duration)}{recurrence !== "once" ? `, ${recurrence}` : ""}
+              {live ? tr("Request") : "Book"} {span(pick, duration)}{!live && recurrence !== "once" ? `, ${recurrence}` : ""}
             </Button>
           </div>
         )}
@@ -11894,7 +12720,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                      {DAY_NAMES[r.day]}s {r.time} · {r.freq} · {r.total - r.used} of {r.total} left
+                      {DAY_NAMES[r.day]}s {r.time} · {r.every || r.freq}{r.total ? ` · ${r.total - r.used} of ${r.total} left` : ""}
                     </span>
                   </span>
                   <ChevronRight size={15} color={t.faint} />
@@ -11937,7 +12763,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           </div>
         )}
         {role === "coach" && (
-          <button onClick={() => push("availability")} className="w-full flex items-center text-left active:opacity-50 mt-6"
+          <button data-tour="cal-hours" onClick={() => push("availability")} className="w-full flex items-center text-left active:opacity-50 mt-6"
                   style={{ minHeight: 58, borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
             <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Hours and lesson length")}</span><ChevronRight size={16} color={t.faint} />
           </button>
@@ -11965,11 +12791,11 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
   const t = useT(); const L = useL();
   const preview = (id) => { const r = id ? readMsg(id, lang) : null; return r ? r.text : ""; };
   const list = threads
-    ? threads.map((th) => ({ name: th.who, unread: th.unread, when: "", lastId: null, last: th.last }))
+    ? threads.map((th) => ({ id: th.playerId, name: th.who, sub: th.sub, unread: th.unread, when: "", lastId: null, last: th.last }))
     : empty ? [] : THREADS[role];
 
-  const Action = ({ Icon, label, onPress, delay, danger }) => (
-    <button onClick={() => { danger ? hapticWarn() : haptic(8); soft(); onPress(); }}
+  const Action = ({ Icon, label, onPress, delay, danger, tour }) => (
+    <button data-tour={tour} onClick={() => { danger ? hapticWarn() : haptic(8); soft(); onPress(); }}
             className="flex-1 flex flex-col items-center justify-center gap-2 active:opacity-70"
             style={{ minHeight: 78, borderRadius: R.surface,
                      border: `1px solid ${danger ? `${DANGER}44` : t.hair}`,
@@ -11983,7 +12809,7 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
 
   return (
     <Screen title={tr("Messages")} right={right}
-            action={<button onClick={() => { hapticCommit(); soft(); role === "coach" ? sheet("newChoice") : onNew && onNew(); }}
+            action={<button data-tour="chat-new" onClick={() => { hapticCommit(); soft(); role === "coach" ? sheet("newChoice") : onNew && onNew(); }}
                             className="rounded-full flex items-center justify-center active:opacity-70"
                             style={{ width: 40, height: 40, background: t.accent,
                                      boxShadow: `0 4px 14px ${t.accent}22`,
@@ -11996,8 +12822,8 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
           the conversations below them. */}
       {role === "coach" && (
         <div className="px-6 mb-5 flex gap-2.5">
-          <Action Icon={Radio}     label={tr("Message everyone")} onPress={() => sheet("broadcast")} delay={0} />
-          <Action Icon={CloudRain} label={tr("Call off for weather")} onPress={() => onWeather && onWeather()} delay={60} danger />
+          <Action tour="chat-broadcast" Icon={Radio}     label={tr("Message everyone")} onPress={() => sheet("broadcast")} delay={0} />
+          <Action tour="chat-weather" Icon={CloudRain} label={tr("Call off for weather")} onPress={() => onWeather && onWeather()} delay={60} danger />
         </div>
       )}
 
@@ -12008,11 +12834,11 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
           <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Conversations appear here.")}</p>
         </div>
       ) : list.map((c, i) => (
-        <button key={c.name} onClick={() => { haptic(6); push("thread:" + c.name); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
+        <button key={c.id || c.name} data-tour={i === 0 ? "chat-row" : undefined} onClick={() => { haptic(6); push("thread:" + (c.id || c.name)); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
           <Avatar name={c.name} size={44} group={c.group} />
           <span className="flex-1 min-w-0">
             <span className="flex items-baseline justify-between gap-2"><span className="truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: c.unread ? 700 : 600, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span><span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span></span>
-            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{c.last ?? preview(c.lastId)}</span>
+            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{c.last || c.sub || preview(c.lastId)}</span>
               {c.unread > 0 && (<span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 19, height: 19, padding: "0 5px", background: t.accent, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.onAccent }}>{c.unread}</span>)}</span>
           </span>
         </button>
@@ -12021,32 +12847,59 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
   );
 }
 
-function BroadcastBody({ nouns, say, close }) {
+function BroadcastBody({ nouns, say, close, onSend }) {
   const t = useT();
   const allLabel = `All ${nouns || "players"}`;
-  const [aud, setAud] = useState(allLabel); const [text, setText] = useState("");
+  const [aud, setAud] = useState(allLabel); const [text, setText] = useState(""); const [busy, setBusy] = useState(false);
+  /* With a real account this writes one message into every player's
+     thread through the data layer; the seeded count is the harness's. */
+  const send = async () => {
+    if (onSend) {
+      setBusy(true);
+      const res = await onSend(text.trim());
+      setBusy(false);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send")); return; }
+      say(`${tr("Sent to")} ${res && res.count != null ? res.count : ""} ${nouns || "players"}`.replace(/\s+/g, " "));
+      close(); return;
+    }
+    say(`Sent to ${aud === allLabel ? ROSTER.length + " " + (nouns || "players") : "your groups"}`); close();
+  };
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Message everyone")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("One message, sent to every thread at once.")}</p>
-      <div className="mb-5"><Segmented options={[allLabel, "Groups only"]} value={aud} onChange={setAud} /></div>
+      {!onSend && <div className="mb-5"><Segmented options={[allLabel, "Groups only"]} value={aud} onChange={setAud} /></div>}
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Write or say your message")} /></div>
-      <Button disabled={!text.trim()} onClick={() => { say(`Sent to ${aud === allLabel ? ROSTER.length + " " + (nouns || "players") : "your groups"}`); close(); }}>{tr("Send")}</Button>
+      <Button disabled={!text.trim() || busy} onClick={send}>{busy ? "…" : tr("Send")}</Button>
     </>
   );
 }
-function Thread({ role, name, isGroup, lang, pop, say }) {
+function Thread({ role, name, isGroup, lang, pop, say, live }) {
   const t = useT(); const L = useL(); const other = role === "coach" ? "player" : "coach";
   const [originals, setOriginals] = useState({});
-  const [msgs, setMsgs] = useState(SEEDS[name] || []); const [draft, setDraft] = useState(""); const [typing, setTyping] = useState(false);
-  const feed = useRef(null); const group = isGroup || THREADS.coach.find((c) => c.name === name)?.group;
-  useEffect(() => { if (feed.current) feed.current.scrollTop = feed.current.scrollHeight; }, [msgs, typing]);
-  const send = () => {
-    const text = draft.trim(); if (!text) return; haptic(10);
-    setMsgs((m) => [...m, { from: role, text, at: "now" }]); setDraft("");
+  /* A real thread is the database's rows, sent through the data layer.
+     The seeded conversation and the canned reply belong to the design
+     harness only. */
+  const [local, setLocal] = useState(live ? [] : (SEEDS[name] || []));
+  const msgs = live ? live.messages.map((m) => ({ from: m.mine ? role : other, text: m.body, at: m.at, key: m.id })) : local;
+  const [draft, setDraft] = useState(""); const [typing, setTyping] = useState(false); const [sending, setSending] = useState(false);
+  const feed = useRef(null); const group = !live && (isGroup || THREADS.coach.find((c) => c.name === name)?.group);
+  useEffect(() => { if (feed.current) feed.current.scrollTop = feed.current.scrollHeight; }, [msgs.length, typing]);
+  /* opening the thread is reading it */
+  useEffect(() => { if (live && live.unread > 0 && live.markRead) live.markRead(); }, [live && live.playerId, live && live.unread]);
+  const send = async () => {
+    const text = draft.trim(); if (!text || sending) return; haptic(10);
+    if (live) {
+      setSending(true); setDraft("");
+      const res = await live.send(text);
+      setSending(false);
+      if (res && res.error) { setDraft(text); hapticWarn(); say && say(res.error.message || tr("Couldn't send")); }
+      return;
+    }
+    setLocal((m) => [...m, { from: role, text, at: "now" }]); setDraft("");
     if (group) return;
     setTyping(true);
-    setTimeout(() => { setTyping(false); const pool = REPLIES[other]; setMsgs((m) => [...m, { from: other, text: pool[m.length % pool.length], at: "now" }]); haptic(8); }, 1700);
+    setTimeout(() => { setTyping(false); const pool = REPLIES[other]; setLocal((m) => [...m, { from: other, text: pool[m.length % pool.length], at: "now" }]); haptic(8); }, 1700);
   };
   /* A message is shown in your language when we have it, with the
      original one tap away. Nothing is hidden — you can always read
@@ -12082,8 +12935,10 @@ function Thread({ role, name, isGroup, lang, pop, say }) {
         <div className="shrink-0 flex items-center px-1.5 relative z-20" style={{ height: 52, background: `${t.page}E6`, backdropFilter: "saturate(180%) blur(18px)", borderBottom: `1px solid ${t.hair}` }}>
           <button onClick={() => { haptic(); pop(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={25} color={t.accent} strokeWidth={2.1} /></button>
           <Avatar name={name} size={32} group={group} />
-          <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : role === "coach" ? "Player" : "Your coach"}</span></span>
-          <button onClick={() => { haptic(6); say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.faint} /></button>
+          <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : live && live.sub ? live.sub : role === "coach" ? "Player" : "Your coach"}</span></span>
+          {(!live || live.onDetails) && (
+            <button onClick={() => { haptic(6); if (live) live.onDetails(); else say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.faint} /></button>
+          )}
         </div>
         <div ref={feed} className="flex-1 overflow-y-auto px-4 pt-5 pb-3">
           {lang !== "en" && (
@@ -12093,18 +12948,20 @@ function Thread({ role, name, isGroup, lang, pop, say }) {
             </div>
           )}
           <p className="text-center mb-5" style={{ ...TYPE.caption, color: t.faint }}>{L.today}</p>
-          {msgs.length === 0 ? (<p className="text-center mt-8" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Say hello to get the group started.")}</p>) : msgs.map((m, i) => <Bubble key={i} m={m} idx={i} />)}
+          {msgs.length === 0 ? (<p className="text-center mt-8" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{live ? tr("No messages yet.") : tr("Say hello to get the group started.")}</p>) : msgs.map((m, i) => <Bubble key={m.key || i} m={m} idx={i} />)}
           {typing && (<div className="flex justify-start mb-2.5"><div className="rounded-3xl px-4 py-3.5 flex gap-1.5" style={{ background: t.surface, border: `1px solid ${t.hair}`, borderBottomLeftRadius: 8 }}>
             {[0, 1, 2].map((i) => (<span key={i} className="rounded-full" style={{ width: 6, height: 6, background: t.faint, animation: `bl 1.2s ${i * 0.16}s infinite` }} />))}</div></div>)}
         </div>
         <div className="shrink-0 px-3 pt-2 pb-3" style={{ background: `${t.surface}F2`, backdropFilter: "blur(18px)", borderTop: `1px solid ${t.hair}` }}>
           <div className="flex items-end gap-2">
-            <button onClick={() => { haptic(6); say("Attach a photo"); }} className="rounded-full flex items-center justify-center shrink-0 active:opacity-50" style={{ width: 40, height: 40, background: t.wash }} aria-label={tr("Attach")}><Paperclip size={18} color={t.sub} /></button>
+            {!live && (
+              <button onClick={() => { haptic(6); say("Attach a photo"); }} className="rounded-full flex items-center justify-center shrink-0 active:opacity-50" style={{ width: 40, height: 40, background: t.wash }} aria-label={tr("Attach")}><Paperclip size={18} color={t.sub} /></button>
+            )}
             <div className="flex-1 rounded-3xl px-4 py-2.5 flex items-center gap-2" style={{ background: t.wash }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
-            <button onClick={send} disabled={!draft.trim()} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-25" style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
+            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-25" style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
           </div>
         </div>
       </div>
@@ -12115,24 +12972,40 @@ function Thread({ role, name, isGroup, lang, pop, say }) {
 /* ==================================================================
    BRANDING — expanded swatches + clearer preview
 ================================================================== */
-function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say }) {
+function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, live, onSave }) {
   const t = useT();
+  const [busy, setBusy] = useState(false);
+  /* A real account keeps the club name, on the profile. A logo and an
+     accent colour are not stored anywhere yet, so they are not offered. */
+  const save = async () => {
+    if (onSave) {
+      setBusy(true);
+      const res = await onSave(clubName);
+      setBusy(false);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
+    }
+    say(live ? tr("Saved") : "Branding saved"); pop();
+  };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Branding")} onBack={pop} meta={tr("How they see the app")} right={<TextBtn onClick={() => { say("Branding saved"); pop(); }}>{tr("Save")}</TextBtn>}>
-        <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
-          <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.faint} /></div>
-          <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>{tr("Upload your logo")}</span>
-          <span className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>Square PNG, 512px or larger</span>
-        </Card></div>
+      <Screen title={tr("Branding")} onBack={pop} meta={tr("How they see the app")} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
+        {!live && (
+          <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
+            <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.faint} /></div>
+            <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>{tr("Upload your logo")}</span>
+            <span className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>Square PNG, 512px or larger</span>
+          </Card></div>
+        )}
         <Eyebrow>{tr("Club or academy name")}</Eyebrow>
-        <div className="px-6 mb-6"><Card><div className="px-5 py-4"><input value={clubName} onChange={(e) => setClubName(e.target.value)} className="w-full outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} /></div></Card></div>
-        <Eyebrow>{tr("Accent colour")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>{SWATCHES.map((s, i) => (
-          <Row key={s.id} label={s.name} checked={swatch.id === s.id} last={i === SWATCHES.length - 1}
-               icon={<span className="rounded-full shrink-0" style={{ width: 22, height: 22, background: s.accent || t.accent, border: s.accent ? "none" : `2px dashed ${t.hair}` }} />}
-               onToggle={() => { haptic(8); setSwatch(s); }} />
-        ))}</Card></div>
+        <div className="px-6 mb-6"><Card><div className="px-5 py-4"><input value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder={tr("Your club")} className="w-full outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} /></div></Card></div>
+        {!live && (<>
+          <Eyebrow>{tr("Accent colour")}</Eyebrow>
+          <div className="px-6 mb-6"><Card>{SWATCHES.map((s, i) => (
+            <Row key={s.id} label={s.name} checked={swatch.id === s.id} last={i === SWATCHES.length - 1}
+                 icon={<span className="rounded-full shrink-0" style={{ width: 22, height: 22, background: s.accent || t.accent, border: s.accent ? "none" : `2px dashed ${t.hair}` }} />}
+                 onToggle={() => { haptic(8); setSwatch(s); }} />
+          ))}</Card></div>
+        </>)}
         <div className="px-6 pb-2"><Card className="p-5">
           <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 10.5, letterSpacing: "0.13em", fontWeight: 600, color: t.faint }}>{tr("Preview — this is exactly what players see")}</div>
           <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
@@ -12145,12 +13018,52 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say })
   );
 }
 
+/* LESSON LOGS
+
+   Every lesson this person can see, each with a Download — the same
+   file the download icon on an open lesson makes. */
+function LessonLogs({ role, lessons, onDownload, pop }) {
+  const t = useT();
+  const list = lessons || [];
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Lesson logs")} onBack={pop}
+              meta={list.length ? `${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}` : tr("Nothing logged yet")}>
+        <div className="px-6 pb-2">
+          {list.length === 0 ? (
+            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
+              {tr("Each lesson can be saved as a file once it's logged.")}
+            </p>
+          ) : (
+            <Card>
+              {list.map((l, i) => (
+                <Row key={l.id} label={l.focus}
+                     sub={`${l.d} ${l.m}${role === "coach" && l.who ? ` · ${l.who}` : ""}${l.subs && l.subs.length ? ` · ${l.subs.join(", ")}` : ""}`}
+                     last={i === list.length - 1}
+                     icon={<span className="rounded-xl flex items-center justify-center shrink-0" style={{ width: 38, height: 38, background: t.wash }}>
+                             <span style={{ fontFamily: display, fontSize: 15, color: t.ink }}>{l.d}</span></span>}
+                     right={<button onClick={() => { haptic(8); onDownload(l); }} className="shrink-0 flex items-center gap-1.5 px-3 active:opacity-60"
+                                    aria-label={`${tr("Download")} ${l.focus}`}
+                                    style={{ minHeight: 34, borderRadius: R.pill, border: `0.5px solid ${HAIR(t.ink, 0.2)}`,
+                                             ...TYPE.caption, fontWeight: 600, color: t.ink }}>
+                              <Download size={13} strokeWidth={2} />{tr("Download")}
+                            </button>} />
+              ))}
+            </Card>
+          )}
+          <div style={{ height: 26 }} />
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 /* ==================================================================
    SETTINGS
 ================================================================== */
-function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
+function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
   const t = useT(); const L = useL();
-  const sub = role === "coach" ? `${cfg.label} coach · ${brandName}` : `${cfg.label} · ${conn?.coach || ""}`;
+  const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
   return (
     <SwipeBack onBack={pop}>
@@ -12174,29 +13087,30 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, o
           )}
         </Card></div>
 
-        {role === "coach" ? (<><Eyebrow>{tr("Coaching")}</Eyebrow><div className="px-6 mb-6"><Card>
-          <Row label={tr("Reviews")}  chevron icon={<I C={Sparkles} />} onToggle={() => push("reviews")} />
-          <Row label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />
-          <Row label={tr("Requests")}  chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
+        {role === "coach" ? (<><Eyebrow>{tr("Coaching")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-coaching">
+          <Row tour="settings-reviews" label={tr("Reviews")}  chevron icon={<I C={Sparkles} />} onToggle={() => push("reviews")} />
+          {!live && <Row tour="settings-credentials" label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />}
+          <Row tour="settings-requests" label={tr("Requests")}  chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
           {demo && <Row label={tr("Subscription")} sub={`${BRAND} ${plan?.name || "Coach"}`} chevron icon={<I C={ShieldCheck} />} onToggle={() => push("subscription")} />}
-          <Row label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
-          <Row label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
-          <Row label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
-          <Row label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
-          <Row label={tr("Invite code & QR")} value="RD4K9P" chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
-        </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card>
-          <Row label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
-          <Row label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
-          <Row label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />
-          <Row label={tr("Downloads")} sub={tr("Videos saved for offline")} chevron icon={<I C={Download} />} onToggle={() => say("Manage saved videos")} />
-          <Row label={tr("Subscription")} sub={tr("Free — your coach's plan covers you")} last icon={<I C={ShieldCheck} />} />
+          <Row tour="settings-availability" label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
+          <Row tour="settings-roster" label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
+          <Row tour="settings-library" label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
+          <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
+          <Row tour="settings-branding" label={tr("Branding")} sub={live ? tr("Club name") : tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
+          <Row tour="settings-invite" label={tr("Invite code & QR")} value={inviteCode || "——————"} chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
+        </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-playing">
+          <Row tour="settings-digest" label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
+          <Row tour="settings-dashboard" label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
+          <Row tour="settings-family" label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />
+          <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron last={live} icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
+          {!live && <Row label={tr("Subscription")} sub={tr("Free — your coach's plan covers you")} last icon={<I C={ShieldCheck} />} />}
         </Card></div></>)}
 
         <Eyebrow>{L.appearance}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={L.region || "Region"} value={REGIONS.find((x) => x.id === region)?.name} chevron icon={<I C={Building2} />} onToggle={() => push("region")} />
-          <Row label={L.language} value={LANGS.find((x) => x.id === lang)?.native} chevron icon={<I C={ExternalLink} />} onToggle={() => push("language")} />
-          <Row label={L.darkMode} right={<Toggle on={dark} onChange={setDark} />} />
+        <div className="px-6 mb-6"><Card tour="settings-appearance">
+          <Row tour="settings-region" label={L.region || "Region"} value={REGIONS.find((x) => x.id === region)?.name} chevron icon={<I C={Building2} />} onToggle={() => push("region")} />
+          <Row tour="settings-language" label={L.language} value={LANGS.find((x) => x.id === lang)?.native} chevron icon={<I C={ExternalLink} />} onToggle={() => push("language")} />
+          <Row tour="settings-dark" label={L.darkMode} right={<Toggle on={dark} onChange={setDark} />} />
           <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.hair}` }}>
             <div className="flex items-center justify-between mb-3">
               <span style={{ fontFamily: ui, fontSize: 15.5, color: t.ink }}>{L.textSize}</span>
@@ -12218,42 +13132,42 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, o
         </Card></div>
 
         <Eyebrow>{tr("Account")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={tr("Photo")}  chevron icon={<I C={Camera} />} onToggle={() => onPhoto && onPhoto()} />
+        <div className="px-6 mb-6"><Card tour="settings-account">
+          <Row tour="settings-photo" label={tr("Photo")}  chevron icon={<I C={Camera} />} onToggle={() => onPhoto && onPhoto()} />
           {multiSport && <Row label={tr("Main sport")} sub={mainLabel} chevron icon={<I C={Tag} />} onToggle={() => onMainSport && onMainSport()} />}
-          <Row label={tr("Personal details")} chevron icon={<I C={User} />} onToggle={() => push("details")} />
-          <Row label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={() => push("notifications")} />
-          {role === "player" && <Row label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
-          <Row label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />
-          <Row label={tr("Data & permissions")} chevron last icon={<I C={ShieldCheck} />} onToggle={() => push("legal:data")} />
+          <Row tour="settings-details" label={tr("Personal details")} chevron icon={<I C={User} />} onToggle={() => push("details")} />
+          <Row tour="settings-notifications" label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={() => push("notifications")} />
+          {role === "player" && !live && <Row tour="settings-transfer" label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
+          {!live && <Row tour="settings-sources" label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />}
+          <Row tour="settings-data" label={tr("Data & permissions")} chevron last icon={<I C={ShieldCheck} />} onToggle={() => push("legal:data")} />
         </Card></div>
 
         <Eyebrow>{tr("Support")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={tr("Attendance")} sub={tr("Your record")} chevron icon={<I C={Check} />} onToggle={() => push("attendance")} />
-          <Row label={tr("How it works")} sub={tr("Views, alerts, what others see")} chevron icon={<I C={Palette} />} onToggle={() => push("prefs")} />
-          <Row label={tr("How Nosca works")}  chevron icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
-          <Row label={tr("Help centre")} chevron icon={<I C={HelpCircle} />} onToggle={() => push("support")} />
-          <Row label={tr("Contact us")} chevron last icon={<I C={Mail} />} onToggle={() => push("support")} />
+        <div className="px-6 mb-6"><Card tour="settings-support">
+          <Row tour="settings-attendance" label={tr("Attendance")} sub={tr("Your record")} chevron icon={<I C={Check} />} onToggle={() => push("attendance")} />
+          <Row tour="settings-prefs" label={tr("How it works")} sub={tr("Views, alerts, what others see")} chevron icon={<I C={Palette} />} onToggle={() => push("prefs")} />
+          <Row tour="settings-tour" label={tr("How Nosca works")}  chevron last={live && !SUPPORT_EMAIL} icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
+          {(!live || SUPPORT_EMAIL) && <Row tour="settings-help" label={tr("Help centre")} chevron icon={<I C={HelpCircle} />} onToggle={() => push("support")} />}
+          {(!live || SUPPORT_EMAIL) && <Row tour="settings-contact" label={tr("Contact us")} chevron last icon={<I C={Mail} />} onToggle={() => push("support")} />}
         </Card></div>
 
         <Eyebrow>{tr("Legal")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>
-          <Row label={tr("Terms of Service")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:terms")} />
-          <Row label={tr("Privacy Policy")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:privacy")} />
-          <Row label={tr("Licences")} chevron last icon={<I C={FileText} />} onToggle={() => push("legal:licences")} />
+        <div className="px-6 mb-6"><Card tour="settings-legal">
+          <Row tour="settings-terms" label={tr("Terms of Service")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:terms")} />
+          <Row tour="settings-privacy" label={tr("Privacy Policy")} chevron icon={<I C={FileText} />} onToggle={() => push("legal:privacy")} />
+          <Row tour="settings-licences" label={tr("Licences")} chevron last icon={<I C={FileText} />} onToggle={() => push("legal:licences")} />
         </Card></div>
 
         <div className="px-6 mb-6"><Card>
-          <Row label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={restart} />
-          {onDeleteAccount && (
-            <Row label={tr("Delete account")}
-                 sub={tr("Everything, permanently")}
-                 icon={<Trash2 size={18} color={DANGER} strokeWidth={2} />}
-                 danger last
-                 onToggle={() => sheet("deleteAccount")} />
-          )}
-          <Row label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />
+          <Row tour="settings-signout" label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={restart} />
+          {onDeleteAccount
+            ? <Row tour="settings-delete" label={tr("Delete account")}
+                   sub={tr("Everything, permanently")}
+                   icon={<Trash2 size={18} color={DANGER} strokeWidth={2} />}
+                   danger last
+                   onToggle={() => sheet("deleteAccount")} />
+            /* the design harness has no account behind it; this row only shows the sheet */
+            : <Row tour="settings-delete" label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />}
         </Card></div>
 
         <div className="flex flex-col items-center pb-6"><Mark size={30} color={t.faint} /><p className="mt-2.5" style={{ ...TYPE.caption, color: t.faint }}>{BRAND} {VERSION}</p><p className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>{tr("Made in Ireland")}</p></div>
@@ -12299,40 +13213,66 @@ function LanguageScreen({ lang, setLang, pop, say }) {
     </SwipeBack>
   );
 }
-function Details({ role, pop, say, me }) {
+function Details({ role, pop, say, me, onSave, onChangePassword }) {
   const t = useT();
-  /* A real account shows its own details. The seeded pair below are
-     for the design harness only — showing someone else's name, email
-     and phone on a person's own settings screen is the worst possible
-     place for invented data. */
+  /* A real account shows and saves its own details — name, phone and,
+     for a coach, the club, which is what the profile row keeps. The
+     seeded pair below are for the design harness only. */
   const [f, setF] = useState(me
     ? (role === "coach"
-        ? { Name: me.name || "", Email: me.email || "", Phone: me.phone || "",
-            Qualifications: "", Bio: "" }
-        : { Name: me.name || "", Email: me.email || "", Phone: me.phone || "" })
+        ? { Name: me.name || "", Phone: me.phone || "", Club: me.club || "" }
+        : { Name: me.name || "", Phone: me.phone || "" })
     : role === "coach"
     ? { Name: "Ray Doyle", Email: "ray@hollowbrook.ie", Phone: "+353 87 123 4567", Qualifications: "PGA Professional, Level 3", Bio: "Twelve years coaching, mostly short game." }
     : { Name: "Marcus Tran", Email: "marcus.tran@gmail.com", Phone: "+353 86 998 2211" });
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (onSave) {
+      setBusy(true);
+      const res = await onSave({ name: f.Name, phone: f.Phone, ...(role === "coach" ? { club: f.Club } : {}) });
+      setBusy(false);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
+    }
+    say(tr("Saved")); pop();
+  };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn onClick={() => { say("Saved"); pop(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 pb-2">
           <Card className="mb-5">{Object.keys(f).map((k, i, arr) => (
             <div key={k} className="px-5 py-3.5" style={{ borderBottom: i === arr.length - 1 ? "none" : `1px solid ${t.hair}` }}>
-              <div style={{ ...TYPE.caption, color: t.faint }}>{k}</div>
+              <div style={{ ...TYPE.caption, color: t.faint }}>{tr(k)}</div>
               {k === "Bio" ? (<textarea value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} rows={3} className="w-full outline-none resize-none mt-1" style={{ fontFamily: ui, fontSize: 15.5, lineHeight: 1.5, color: t.ink, background: "transparent" }} />)
-                          : (<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="w-full outline-none mt-1" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />)}
+                          : (<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} aria-label={tr(k)} className="w-full outline-none mt-1" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />)}
             </div>
           ))}</Card>
+          {me && me.email && (
+            <p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Signed in as")} {me.email}</p>
+          )}
           {role === "player" && (<p className="px-2 mb-5" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.6, color: t.faint }}>Handicap and WTN now live under your stats — tap "Edit stats" on your home screen.</p>)}
-          <Card><Row label={tr("Change password")} chevron last icon={<Lock size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => {}} /></Card>
+          {onChangePassword && <Card><Row label={tr("Change password")} chevron last icon={<Lock size={17} color={t.sub} strokeWidth={1.6} />} onToggle={onChangePassword} /></Card>}
         </div>
       </Screen>
     </SwipeBack>
   );
 }
-function Notifications({ role, pop, pushOn, setPushOn }) {
+function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify }) {
   const t = useT(); const cats = NOTIF_CATS[role]; const [state, setState] = useState(cats.map((c, i) => i < cats.length - 1)); const [mode, setMode] = useState("Instant"); const [quiet, setQuiet] = useState(true);
+  /* A real account keeps one thing here — how it likes to be told —
+     and that is what is shown. There is no push yet, so nothing says
+     there is. */
+  const CHOICES = [["instant", tr("As they happen")], ["digest", tr("Once a day")], ["quiet", tr("Only urgent")]];
+  if (live) return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Notifications")} onBack={pop} meta={tr("How you like to be told")}>
+        <Eyebrow>{tr("When to tell you")}</Eyebrow>
+        <div className="px-6 mb-6"><Card>{CHOICES.map(([id, lbl], i) => (
+          <Row key={id} label={lbl} radio checked={(notify || "instant") === id} last={i === CHOICES.length - 1} onToggle={() => { haptic(6); setNotify && setNotify(id); }} />
+        ))}</Card></div>
+        <p className="px-8 pb-4" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Bookings, messages and lessons show in the app when you open it.")}</p>
+      </Screen>
+    </SwipeBack>
+  );
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Notifications")} onBack={pop} meta={tr("Choose what reaches you, and when")}>
@@ -12384,32 +13324,89 @@ function Legal({ docKey, pop }) {
     </SwipeBack>
   );
 }
-function Support({ pop, say }) {
+function Support({ pop, say, live }) {
   const t = useT(); const faqs = ["How do I connect to my coach?", "How do family profiles work?", "Where do my videos go?", "How do drills and tips work?", "How do I cancel my subscription?"];
+  /* A real account gets the one thing that works: a mail to the support
+     address, with a subject for a problem. The questions and the seeded
+     address are the harness's. */
+  const mail = (subject) => { window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`\n\n—\n${BRAND} ${VERSION}`)}`; };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Help")} onBack={pop} meta={tr("We usually reply within a day")}>
+      <Screen title={tr("Help")} onBack={pop} meta={live ? "" : tr("We usually reply within a day")}>
         <div className="px-6 pb-2">
-          <Eyebrow>{tr("Common questions")}</Eyebrow><Card className="mb-6">{faqs.map((f, i) => <Row key={f} label={f} chevron last={i === faqs.length - 1} onToggle={() => {}} />)}</Card>
+          {!live && (<><Eyebrow>{tr("Common questions")}</Eyebrow><Card className="mb-6">{faqs.map((f, i) => <Row key={f} label={f} chevron last={i === faqs.length - 1} onToggle={() => {}} />)}</Card></>)}
           <Eyebrow>{tr("Get in touch")}</Eyebrow><Card>
-            <Row label={tr("Email support")} sub="help@nosca.app" chevron icon={<Mail size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => say("Opens your mail app")} />
-            <Row label={tr("Report a problem")} chevron last icon={<HelpCircle size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => say("Thanks — we'll look into it")} />
+            <Row label={tr("Email support")} sub={live ? SUPPORT_EMAIL : "help@nosca.app"} chevron icon={<Mail size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a question")}`) : say("Opens your mail app"))} />
+            <Row label={tr("Report a problem")} chevron last icon={<HelpCircle size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => (live ? mail(`${BRAND}: ${tr("a problem")}`) : say("Thanks — we'll look into it"))} />
           </Card>
         </div>
       </Screen>
     </SwipeBack>
   );
 }
-function InviteBody({ say }) {
+function InviteBody({ code, say }) {
   const t = useT();
+  /* The QR is the join link, so scanning it opens the sign-up with the
+     code already filled in. Share hands the same link to the OS share
+     sheet; without one it goes to the clipboard, and the toast says
+     which happened. */
+  const url = code ? joinLink("coach", code) : null;
+  const share = async () => {
+    if (!code) { say(tr("Invite shared")); return; }
+    const r = await shareOrCopy({ title: `${tr("Join me on")} ${BRAND}`, text: `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${code}`, url });
+    if (r === "shared") say(tr("Invite shared"));
+    else if (r === "copied") say(tr("Link copied"));
+    else if (r === "failed") say(tr("Couldn't share. Copy the code instead."));
+  };
+  const copy = async () => {
+    if (!code) return;
+    haptic(8);
+    const ok = await copyText(code);
+    say(ok ? tr("Code copied") : tr("Couldn't copy"));
+  };
   return (
     <div className="flex flex-col items-center">
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, color: t.ink }}>{tr("Invite a player")}</h2>
       <p className="mb-6 text-center" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("They enter the code or scan this.")}</p>
-      <div className="rounded-3xl p-4 mb-5" style={{ border: `1px solid ${t.hair}` }}><QrSvg size={148} /></div>
-      <div className="mb-6" style={{ fontFamily: display, fontSize: 36, letterSpacing: "0.16em", color: t.ink }}>RD4K9P</div>
-      <Button onClick={() => say("Invite shared")}><span className="flex items-center justify-center gap-2"><Share2 size={17} /> Share invite</span></Button>
+      <div className="rounded-3xl p-4 mb-5" style={{ border: `1px solid ${t.hair}`, background: "#fff" }}>
+        {url ? <QrImage url={url} size={148} /> : <QrSvg size={148} />}
+      </div>
+      <div className="mb-6" style={{ fontFamily: display, fontSize: 36, letterSpacing: "0.16em", paddingLeft: "0.16em", color: t.ink }}>{code || "——————"}</div>
+      <Button onClick={share}><span className="flex items-center justify-center gap-2"><Share2 size={17} /> {tr("Share invite")}</span></Button>
+      <button onClick={copy} disabled={!code} className="mt-3 w-full active:opacity-50 disabled:opacity-30"
+              style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Copy code")}</button>
     </div>
+  );
+}
+/* A new password, twice, from inside the app. The sign-in session is
+   what authorises it; the rule on length is the sign-up screen's. */
+function ChangePasswordBody({ onSubmit, say, close }) {
+  const t = useT();
+  const [pw, setPw] = useState(""); const [again, setAgain] = useState("");
+  const [err, setErr] = useState(null); const [busy, setBusy] = useState(false);
+  const ok = pw.length >= 8 && pw === again;
+  const field = { minHeight: 50, borderRadius: R.field, background: t.wash, fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
+  return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Change password")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("At least 8 characters.")}</p>
+      <input type="password" value={pw} onChange={(e) => { setPw(e.target.value); setErr(null); }} placeholder={tr("New password")} autoComplete="new-password"
+             aria-label={tr("New password")} className="w-full outline-none px-4 mb-2.5" style={field} />
+      <input type="password" value={again} onChange={(e) => { setAgain(e.target.value); setErr(null); }} placeholder={tr("Again")} autoComplete="new-password"
+             aria-label={tr("New password again")} className="w-full outline-none px-4 mb-2" style={field} />
+      <div className="mb-4" style={{ minHeight: 22 }}>
+        {err ? <p style={{ ...TYPE.small, color: DANGER }}>{err}</p>
+             : again && pw !== again ? <p style={{ ...TYPE.small, color: t.faint }}>{tr("Those don't match yet.")}</p> : null}
+      </div>
+      <Button disabled={!ok || busy} onClick={async () => {
+        if (!onSubmit) { close(); return; }
+        setBusy(true);
+        const res = await onSubmit(pw);
+        setBusy(false);
+        if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't change your password.")); return; }
+        hapticSuccess(); chime(); say && say(tr("Password changed")); close();
+      }}>{busy ? tr("Changing…") : tr("Change password")}</Button>
+    </>
   );
 }
 function DeleteBody({ onCancel, say }) {
@@ -12427,19 +13424,20 @@ function DeleteBody({ onCancel, say }) {
 /* ==================================================================
    SEARCH + NOTIFICATION CENTRE
 ================================================================== */
-function SearchScreen({ role, cfg, library, tips, pop, go, push }) {
-  const t = useT(); const [q, setQ] = useState(""); const term = q.trim().toLowerCase(); const hit = (s) => s.toLowerCase().includes(term);
-  const lessons = term ? hadLessons(cfg).filter((l) => hit(l.focus) || l.subs.some(hit)) : [];
+function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given }) {
+  const t = useT(); const live = useLive(); const [q, setQ] = useState(""); const term = q.trim().toLowerCase(); const hit = (s) => (s || "").toLowerCase().includes(term);
+  /* a real account searches its own lessons; the catalogue is the harness's */
+  const lessons = term ? (given || hadLessons(cfg, live)).filter((l) => hit(l.focus) || (l.subs || []).some(hit) || hit(l.who)) : [];
   const drills = term ? library.filter((d) => hit(d.t) || hit(d.d)) : [];
   const tipHits = term ? tips.filter((x) => hit(x.title) || hit(x.body)) : [];
   /* Seeded people and threads belong to the design harness only. A real
      account searches its own data; until messages are wired in here it
      finds none, rather than somebody invented. */
   const preview = (id) => (readMsg(id, LANG) || {}).text || "";
-  const people = term && role === "coach" && !LIVE_ACCOUNT ? ROSTER.filter((r) => hit(r.name)) : [];
-  const msgs = term && !LIVE_ACCOUNT ? THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))) : [];
+  const people = term && role === "coach" && !live ? ROSTER.filter((r) => hit(r.name)) : [];
+  const msgs = term && !live ? THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))) : [];
   const total = lessons.length + drills.length + tipHits.length + people.length + msgs.length;
-  const suggestions = role === "coach" ? ["Bunker", "Marcus", "Putting", "Payment"] : ["Bunker", "Putting", "Drills", "Ray"];
+  const suggestions = [...(cfg.focus || []).slice(0, 3).map((f) => f.label), tr("Drills")];
   return (
     <SwipeBack onBack={pop}>
       <div className="flex flex-col h-full" style={{ background: t.page }}>
@@ -12459,7 +13457,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push }) {
             ))}</div>
           </div>) : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
           ) : (<>
-            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push("lesson")} />))}</Card></div></>)}
+            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.who}:${l.id}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
             {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
             {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.name} label={r.name} sub={`${r.lessons} lessons · since ${r.since}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
@@ -12566,10 +13564,19 @@ function useTypefaces() {
   }, []);
 }
 
-export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach } = {}) {
-  /* Flip the seed switch before any child renders, so nothing can draw
-     invented history even on the very first paint. */
-  setLiveAccount(!!account);
+export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoinCoach, onProfileChanged, showcase, invite, onInviteUsed } = {}) {
+  /* A real account gates every seed generator. The answer travels by
+     context (LiveCtx, below) so nothing can draw invented history even
+     on the first paint, and so a nested showcase instance keeps its own
+     answer rather than flipping its host's. */
+  const live = !!account;
+  /* `showcase` renders one state of the product — inert, seeded, at
+     390×780 — for the walkthrough. Everything it names arrives as lazy
+     initial state, so the frame paints the right screen on its first
+     frame with no flash and no effects. Nothing else changes for a real
+     account or for the ?demo harness. */
+  const sc = showcase || null;
+  const persona = sc ? showcasePersona(sc) : null;
   /* `account` is the real, signed-in person — passed down once real
      auth succeeds. When present, the app must land directly on their
      home screen, not run its own onboarding on top of a login that
@@ -12578,20 +13585,31 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Design-harness mode. A real user gets the product full-screen; the
      preview toolbar, persona switcher and phone frame appear only when
      explicitly asked for via ?demo in the URL. */
-  const demo = demoProp !== undefined ? demoProp
+  const demo = sc ? false : demoProp !== undefined ? demoProp
     : (typeof window !== "undefined" && window.location.search.includes("demo"));
 
   useTypefaces();
-  const [flow, setFlow] = useState("role");
+  const [flow, setFlow] = useState(sc ? "app" : "role");
   const [region, setRegion] = useState(null);
   const [signupSport, setSignupSport] = useState("golf");
-  const [coachSport, setCoachSport] = useState(account?.sport || "golf");
-  const [role, setRole] = useState("coach");
-  const [stack, setStack] = useState(["today"]);
+  const [coachSport, setCoachSport] = useState(sc ? sc.sport : (account?.sport || "golf"));
+  const [role, setRole] = useState(sc ? sc.role : "coach");
+  const [stack, setStack] = useState(sc ? sc.stack : ["today"]);
   const [published, setPublished] = useState(null);
   const lessonKey = (l) => l.time + l.who;
+  /* The real clock, for a real account. The design harness keeps its
+     fixed 24 July so the seeded day still reads as designed. */
+  const clock = new Date();
+  /* Six real months from this one for a real account; the harness's
+     fixed summer otherwise. Handed to every screen through CalendarCtx
+     (see calendarFor), rebuilt only when the day changes. */
+  const calendar = useMemo(() => (account ? calendarFor(clock) : HARNESS_CALENDAR),
+    [!!account, clock.getFullYear(), clock.getMonth(), clock.getDate()]);
+  const todayMD = calendar.today;
+  const dowToday = account ? (clock.getDay() + 6) % 7 : dowOf(TODAY.m, TODAY.d);
+  const nowMins = clock.getHours() * 60 + clock.getMinutes();
   const [loggedKeys, setLoggedKeys] = useState(() => new Set());
-  const [sheet, setSheet] = useState(null);
+  const [sheet, setSheet] = useState(sc ? (sc.sheet || null) : null);
   const [assignTo, setAssignTo] = useState(null);
   const [assignFocus, setAssignFocus] = useState(null);
   const [tipFor, setTipFor] = useState(null);
@@ -12602,9 +13620,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [signupRole, setSignupRole] = useState("coach");
   const [playFor, setPlayFor] = useState("me");
   const signupPath = signupRole === "coach" ? "coach" : "player";
-  const [juvenile, setJuvenile] = useState(false);
+  const [juvenile, setJuvenile] = useState(sc ? !!sc.juvenile : false);
   const [familyGuide, setFamilyGuide] = useState(false);
-  const [splash, setSplash] = useState(true);
+  const [splash, setSplash] = useState(!sc);
   useEffect(() => {
     if (!account) return;               // demo/harness path — untouched
     if (account.sport) setCoachSport(account.sport);
@@ -12615,7 +13633,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setRole(account.role);
     setFlow("app");
     setStack([account.role === "coach" ? "today" : "home"]);
-  }, [account]);
+  /* Keyed on who the account is, not its every field: saving a name or
+     a club refreshes the profile, and that must not reset the screen. */
+  }, [account && account.id, account && account.role]);
   const [celeb, setCeleb] = useState(null);
   const [joined, setJoined] = useState(null);   // { coachName, sport } while the join screen plays
   const [goalFor, setGoalFor] = useState(null);
@@ -12649,7 +13669,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }, [data && data.registers]);
   const [captureFor, setCaptureFor] = useState(null);
   const [captureItems, setCaptureItems] = useState([]);
-  const [prefs, setPrefsLocal] = useState(PREF_DEFAULTS);
+  const [prefs, setPrefsLocal] = useState(sc && sc.logView ? { ...PREF_DEFAULTS, logView: sc.logView } : PREF_DEFAULTS);
   /* With a real account, preferences live in the database. The setter
      keeps the same signature the screens already call, so nothing
      downstream needs to know the difference. */
@@ -12694,6 +13714,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      actual footage rather than a stand-in. Object URLs are revoked
      when replaced. */
   const [ownMedia, setOwnMedia] = useState({});
+  /* Signed media for a player's own lessons, loaded while the log is
+     open so the feed and the cards show what was actually attached. */
+  const [liveMedia, setLiveMedia] = useState({});
+  useEffect(() => {
+    if (!data || !account || account.role === "coach" || stack[stack.length - 1] !== "log") return;
+    const want = (data.lessons || []).filter((l) => (l.media ?? l.videos) > 0 && !(l.id in liveMedia)).slice(0, 12);
+    if (!want.length) return;
+    let alive = true;
+    want.forEach((l) => data.lessonMedia(l.id)
+      .then((items) => { if (alive) setLiveMedia((m) => ({ ...m, [l.id]: items })); })
+      .catch(() => {}));
+    return () => { alive = false; };
+  }, [data && data.lessons, stack]);
   const addOwnMedia = (idx, files) => {
     if (!files.length) return;
 
@@ -12729,6 +13762,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Real competitions, grouped by whose they are, so the lesson sheet
      and the player's own screen both read the same source. */
   const liveComps = data ? data.competitions : null;
+  const liveEvents = data ? (liveComps || []).map((c) => ({ ...c, when: c.date })).sort((a, b) => a.days - b.days) : [];
   const [askRating, setAskRating] = useState(null);   // off unless the coach asks
   const [lessonReqs, setLessonReqs] = useState(account ? [] : LESSON_REQUESTS);
   const [avatars, setAvatars] = useState({});     // profileId -> tint
@@ -12738,7 +13772,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Someone who plays two sports shouldn't be asked which one every
      time they open the app. Set once, per person. */
 
-  const acceptAsk = (r) => {
+  const acceptAsk = async (r) => {
+    if (data) {
+      const res = await data.confirmBooking(r.id);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't confirm that.")); return; }
+      hapticSuccess(); chime();
+      setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${MONTHS_FULL[r.m - 1]}` });
+      return;
+    }
     hapticSuccess(); chime();
     setSeedBooked((prev) => {
       const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
@@ -12747,7 +13788,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       return nx;
     });
     setAskedFor((v) => v.filter((x) => x !== r));
-    setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${MONTHS.find((x) => x.idx === r.m)?.name.split(" ")[0]}` });
+    setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${monthName(r.m)}` });
   };
 
   /* Loads the Breathnach household. Everything it touches is state the
@@ -12770,20 +13811,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [rescheduleFor, setRescheduleFor] = useState(null);
   const [calledOff, setCalledOff] = useState(null);
   const [cancelling, setCancelling] = useState(null);
+  const [cancelBk, setCancelBk] = useState(null);    // the booking behind `cancelling`, for a real account
   const [cancelNotice, setCancelNotice] = useState(null);
   const [transferTo, setTransferTo] = useState(null);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [burst, setBurst] = useState(null);
   const [logged, setLogged] = useState(0);
   const [slotKinds, setSlotKinds] = useState({});
-  const [peek, setPeek] = useState(null);
+  const [peek, setPeek] = useState(sc ? (sc.peek || null) : null);
   const [editDay, setEditDay] = useState(null);
   const [bookSlot, setBookSlot] = useState(null);
   const [captured, setCaptured] = useState({});
   const [checkIns, setCheckIns] = useState(CHECKIN_SEED);
   const [tour, setTour] = useState(false);
   useEffect(() => {
-    if (!account) return;
+    if (!account || sc) return;
     const key = `nosca.seen.${account.id}`;
     try {
       if (!window.localStorage.getItem(key)) {
@@ -12792,6 +13834,30 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       }
     } catch (e) { /* private browsing — skip rather than fail */ }
   }, [account]);
+  /* The arrival screen can ask for the walkthrough on the next mount;
+     the request is consumed so a refresh doesn't replay it. */
+  useEffect(() => {
+    if (sc) return;
+    try {
+      if (window.sessionStorage.getItem("nosca.tour.now") === "1") {
+        window.sessionStorage.removeItem("nosca.tour.now");
+        setTour(true);
+      }
+    } catch (e) { /* storage unavailable — nothing to consume */ }
+  }, []);
+  /* A join link opened by someone already signed in. Taken from the app
+     once (onInviteUsed) and kept here until it is dealt with: a player
+     with no coach gets it filled into the code boxes; anyone else is
+     offered it by name; a coach hands codes out and is not offered one. */
+  const [pendingInvite, setPendingInvite] = useState(() => (account && invite && !sc ? invite : null));
+  useEffect(() => { if (invite && onInviteUsed && !sc) onInviteUsed(); }, []);
+  useEffect(() => {
+    if (!pendingInvite || !data || !account || sc) return;
+    if (account.role === "coach") { setPendingInvite(null); return; }
+    const coachless = !data.hasCoach && account.accountType !== "parent";
+    if (pendingInvite.kind === "coach" && coachless) return;   // the code boxes on the first screen have it
+    setSheet("inviteOffer");
+  }, [pendingInvite, !!data]);
 
   /* A no-show is recorded and the lesson still counts against the
      package — that is the whole point of recording it. A cancellation
@@ -12804,7 +13870,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (data && bk.id) data.cancelBooking(bk.id, "cancelled");
     setSeedBooked((prev) => {
       const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
-      const k = key(TODAY.m, TODAY.d);
+      const k = key(todayMD.m, todayMD.d);
       nx[coachSport][k] = (nx[coachSport][k] || []).filter((b) => b.time !== bk.time);
       if (!nx[coachSport][k].length) delete nx[coachSport][k];
       return nx;
@@ -12823,13 +13889,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (data) (affected || []).forEach((b) => { if (b.id) data.cancelBooking(b.id, "weather"); });
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
-      const k = key(TODAY.m, TODAY.d);
+      const k = key(todayMD.m, todayMD.d);
       next[coachSport][k] = (next[coachSport][k] || []).filter((b) => !affected.includes(b));
       if (!next[coachSport][k].length) delete next[coachSport][k];
       return next;
     });
     setSeries((list) => list.map((x) => (affected.some((a) => a.who === x.who) ? { ...x, total: x.total + 1 } : x)));
-    setCalledOff(`${DAY_NAMES[dowOf(TODAY.m, TODAY.d)]} ${affected[0] ? affected[0].time : ""}`);
+    setCalledOff(`${DAY_NAMES[dowToday]} ${affected[0] ? affected[0].time : ""}`);
     setCeleb({ label: tr("Called off"), sub: `${affected.length} ${tr("told, packages extended")}`, tone: DANGER });
   };
   /* Focus suggestions in flight, and what has been agreed per person. */
@@ -12859,9 +13925,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [unlogged, setUnlogged] = useState(UNLOGGED);
   const [goals, setGoals] = useState({ "Marcus Tran": [{ id: 1, t: "Break 90 at the club champs", by: "End of season", done: false }] });
   const [attendance, setAttendance] = useState({});
-  const [prefill, setPrefill] = useState(null);
-  const [slots, setSlots] = useState(ALL_TIMES);
-  const [duration, setDuration] = useState(45);
+  const [prefill, setPrefill] = useState(sc ? (sc.prefill || null) : null);
+  /* A real coach's saved slots and lesson length; a real player gets
+     their coach's. The harness keeps the designed defaults. */
+  const savedHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
+  const [slots, setSlots] = useState(savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots : ALL_TIMES);
+  const [duration, setDuration] = useState((savedHours && Number(savedHours.duration)) || 45);
   const [recurrence, setRecurrence] = useState("once");
   /* A real day: several behind you and unlogged, several still ahead. */
   /* A full day, so the folds carry a realistic load. */
@@ -12903,7 +13972,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      day looks like, this session's own log actions say what's actually
      left, and the two are combined every time either is read. */
   const TODAY_SCHEDULE = rawSchedule.map((l) => loggedKeys.has(lessonKey(l)) ? { ...l, done: false } : l);
-  const liveNow = (TODAY_SCHEDULE || []).find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5) || null;
+  /* A real account's day is its confirmed bookings for the real date,
+     in the shape the register and live capture already read: `done`
+     once the slot has passed and nothing has been logged for it,
+     `members` for a group so the whole roster can be marked. */
+  const realToday = data ? (((data.bookings || {})[key(todayMD.m, todayMD.d)] || [])
+    .filter((b) => !b.status || b.status === "confirmed")
+    .map((b) => {
+      const start = parseTime(b.time);
+      const hoursUntil = start == null ? 9 : (start - nowMins) / 60;
+      const over = start != null && start + (b.duration || 45) <= nowMins;
+      return { ...b, m: todayMD.m, d: todayMD.d, hoursUntil,
+               done: over && !loggedKeys.has(lessonKey(b)),
+               members: b.group ? (data.roster || []).map((r) => r.name) : undefined };
+    })
+    .sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0))) : null;
+  const todayList = realToday || TODAY_SCHEDULE;
+  const liveNow = (todayList || []).find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5) || null;
 
   const [toolRows, setToolRows] = useState(Object.fromEntries(Object.entries(TOOLS).map(([k, v]) => [k, v.rows])));
   const [waitlist, setWaitlist] = useState([
@@ -12920,10 +14005,30 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [playerNotes, setPlayerNotes] = useState({ "Marcus Tran": "Prefers video over verbal. Club champs in September." });
   const [mini, setMini] = useState(null);
 
-  const [profiles, setProfiles] = useState([{ id: 1, name: "Marcus Tran", age: null }]);
-  const [activeProfileId, setActiveProfileId] = useState(1);
+  const [seedProfiles, setProfiles] = useState(persona ? persona.profiles : [{ id: 1, name: "Marcus Tran", age: null }]);
+  /* A real account is the person themselves plus everyone who names
+     them as guardian, read from the data on every render — never the
+     seeded household. Whole years, the same sum as everywhere else. */
+  const yearsOld = (dob) => {
+    if (!dob) return null;
+    const b = new Date(dob), n = new Date();
+    let a = n.getFullYear() - b.getFullYear();
+    if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a -= 1;
+    return a;
+  };
+  const profiles = account
+    ? [{ id: account.id, name: account.name, age: null },
+       ...((data && data.family) || []).map((f) => {
+         const a = yearsOld(f.dateOfBirth);
+         return { id: f.id, name: f.name, age: a != null && a < ADULT_AGE ? a : null, kin: true, coach: f.coachName, sport: f.sport };
+       })]
+    : seedProfiles;
+  const [activeProfileId, setActiveProfileId] = useState(persona ? persona.activeProfileId : account ? account.id : 1);
   const clubName = "";   /* only ever what the account carries */
   const inviteCode = data ? data.inviteCode : FAMILY_CODE;
+  /* what the code surfaces show: the real code for a real account (a
+     player has none), the seed for the harness */
+  const inviteShown = data ? (data.inviteCode || null) : "RD4K9P";
   /* Months, from real logged lessons. An account with nothing logged
      shows zeroes — which is the truth — rather than someone else's
      season. */
@@ -12943,15 +14048,28 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return out;
   }, [data && data.lessons]);
   const seasonMonthly = realMonthly || MONTHLY;
-  const [conns, setConns] = useState([
+  const [seedConns, setConns] = useState(persona ? persona.conns : [
     { id: 1, profileId: 1, sport: "golf", coach: "Ray Doyle", club: "", seeded: true },
   ]);
-  const [activeId, setActiveId] = useState(1);
+  /* A real account's connections are its own coach link and its
+     family's — from the data, so joining or leaving a coach shows the
+     moment it is written. A coach has none. */
+  const conns = account
+    ? [
+        ...(role === "player" && data && data.hasCoach
+          ? [{ id: 1, profileId: account.id, sport: account.sport, coach: data.coachName || "Your coach", club: "", seeded: false }] : []),
+        ...((data && data.family) || []).filter((f) => f.coachId).map((f, i) => (
+          { id: 100 + i, profileId: f.id, sport: f.sport || account.sport, coach: f.coachName || "Their coach", club: "", seeded: false })),
+      ]
+    : seedConns;
+  const [activeId, setActiveId] = useState(persona ? persona.activeId : 1);
 
-  const [avail, setAvail] = useState(DEFAULT_AVAIL);
+  /* A real coach starts with an empty week and sets their own hours;
+     the seeded patterns are for the harness only. */
+  const [avail, setAvail] = useState(account ? Object.fromEntries(Object.keys(SPORTS).map((id) => [id, {}])) : DEFAULT_AVAIL);
   const [blocked, setBlocked] = useState(Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])));
   const [seedBooked, setSeedBooked] = useState(account ? Object.fromEntries(Object.keys(SPORTS).map((id) => [id, {}])) : SEED_BOOKINGS);
-  const [bookings, setBookings] = useState([{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
+  const [bookings, setBookings] = useState(persona ? persona.bookings : account ? [] : [{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
   const [groups, setGroups] = useState({
     ...Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])),
     golf: [{ id: 1, name: "Summer clinic", members: ["Marcus Tran","Priya Ellis","Dan Okafor","Sofia Reyes","Tom Beckett"], day: 5, time: "2:00 pm", weeks: 6 }],
@@ -12978,19 +14096,38 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [manualStats, setManualStats] = useState({});
   const [saved, setSaved] = useState({});
   const [swatch, setSwatch] = useState(SWATCHES[0]);
-  const [brandName, setBrandName] = useState(clubName);
+  const [brandName, setBrandName] = useState(account && account.club ? account.club : clubName);
+  /* the club is the profile's: a save from Personal details or Branding
+     refreshes the profile, and this follows it */
+  useEffect(() => { if (account) setBrandName(account.club || ""); }, [account && account.club]);
   const [library, setLibrary] = useState(Object.fromEntries(Object.entries(SPORTS).map(([id, cf]) => [id, cf.drills])));
 
   const roster = data ? data.roster : freshAccount ? [] : ROSTER;
   const mySeries = data ? data.recurring : freshAccount ? [] : series.filter((x) => x.sport === coachSport);
 
   /* Saving an arrangement books every slot out on the calendar. */
-  const saveSeries = (v) => {
+  const saveSeries = async (v) => {
+    if (data) {
+      const who = (data.roster || []).find((r) => r.name === v.who);
+      if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
+      const old = (data.recurring || []).find((x) => x.who === v.who);
+      if (old) { const r0 = await data.removeRecurring(old.id); if (r0 && r0.error) { say(r0.error.message); return; } }
+      const r1 = await data.addRecurring({ playerId: who.id, weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq });
+      if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save that.")); return; }
+      if (!old) {
+        /* the arrangement books its run out in the diary, as the button says */
+        const occ = occurrencesFrom(v.day, v.total, v.freq);
+        const r2 = await data.addBookings(occ.map((iso) => ({ playerId: who.id, date: iso, time: v.time, duration })));
+        if (r2 && r2.error) { say(r2.error.message); return; }
+        hapticSuccess(); chime(); say(`${occ.length} ${tr("lessons booked for")} ${v.who.split(" ")[0]}`); return;
+      }
+      hapticSuccess(); chime(); say(tr("Updated")); return;
+    }
     const existing = series.find((x) => x.who === v.who && x.sport === coachSport);
     const id = existing ? existing.id : Date.now();
     const rec = { id, sport: coachSport, used: existing?.used || 0, ...v };
     setSeries((list) => (existing ? list.map((x) => (x.id === id ? rec : x)) : [...list, rec]));
-    const occ = seriesOccurrences(v.day, v.total, v.freq);
+    const occ = seriesOccurrences(v.day, v.total, v.freq, undefined, undefined, calendar);
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
       occ.forEach(({ m, d }) => {
@@ -13004,7 +14141,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     say(`${v.total} lessons booked for ${v.who.split(" ")[0]}`);
   };
 
-  const endSeries = (rec) => {
+  const endSeries = async (rec) => {
+    if (data) {
+      const r = await data.removeRecurring(rec.id);
+      if (r && r.error) { hapticWarn(); say(r.error.message || tr("Couldn't end that.")); return; }
+      say(`${rec.who.split(" ")[0]}'s arrangement ended`); return;
+    }
     setSeries((list) => list.filter((x) => x.id !== rec.id));
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: {} };
@@ -13031,7 +14173,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         const all = Object.entries(next[coachSport]).flatMap(([kk, day]) =>
           day.filter((b) => b.seriesId === rec.id).map(() => ({ m: Number(kk.split("-")[0]), d: Number(kk.split("-")[1]) })));
         const lastOne = all.sort((a, b) => a.m - b.m || a.d - b.d).pop() || { m, d };
-        const extra = seriesOccurrences(rec.day, 1, rec.freq, lastOne.m, lastOne.d)[0];
+        const extra = seriesOccurrences(rec.day, 1, rec.freq, lastOne.m, lastOne.d, calendar)[0];
         if (extra) {
           const ek = key(extra.m, extra.d);
           next[coachSport][ek] = [...(next[coachSport][ek] || []), { time: rec.time, who: rec.who, kind: "Private", seriesId: rec.id, addedBack: true }];
@@ -13083,7 +14225,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const inApp = flow === "app";
   const sport = account ? account.sport : role === "coach" ? coachSport : (conn?.sport || "golf");
   const cfg = SPORTS[sport];
-  const archive = freshAccount ? [] : buildArchive(cfg);
+  const archive = data ? (data.lessons || []).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
   const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
@@ -13099,10 +14241,49 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mySelected = selectedStats[pKey] || cfg.defaultStats;
   const myManual = manualStats[pKey] || {};
   const mySaved = saved[pKey] || [];
-  const myBookings = bookings.filter((b) => b.connId === conn?.id);
-  const myAvail = avail[coachSport]; const myBlocked = blocked[coachSport];
-  const mySeedBooked = data ? data.bookings : seedBooked[coachSport];
-  const myGroups = data ? [] : freshAccount ? [] : (groups[coachSport] || []);
+  /* Real dates for a real account: the year is the clock's, rolling
+     forward when a month has already passed. */
+  const isoOf = (m, d) => `${yearOf(m, calendar)}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  /* The next N dates on a weekday (Monday = 0), from tomorrow, a week,
+     a fortnight or four weeks apart. */
+  const occurrencesFrom = (dayIdx, count, freq) => {
+    const step = freq === "fortnightly" ? 14 : freq === "monthly" ? 28 : 7;
+    const out = [];
+    const cur = new Date(clock.getFullYear(), clock.getMonth(), clock.getDate() + 1);
+    while ((cur.getDay() + 6) % 7 !== dayIdx) cur.setDate(cur.getDate() + 1);
+    for (let i = 0; i < count; i++) {
+      out.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`);
+      cur.setDate(cur.getDate() + step);
+    }
+    return out;
+  };
+  /* Every booking row a real account can see, flat. */
+  const liveBookingRows = data ? Object.values(data.bookings || {}).flat() : null;
+  /* The player's own — asked for or confirmed; nothing cancelled. */
+  const myBookings = data
+    ? (liveBookingRows || []).filter((b) => b.playerId === account.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
+    : bookings.filter((b) => b.connId === conn?.id);
+  /* A player's requests, waiting on the coach. */
+  const liveAsks = data
+    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date }))
+    : null;
+  /* The coach's own saved hours; for a player, their coach's. Nothing
+     invented — a coach who has set nothing has an empty week. */
+  const liveHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
+  const myAvail = data ? (liveHours.days || {}) : avail[coachSport];
+  const myBlocked = data
+    ? (liveHours.blocked || []).map((x) => { const [iso, time] = String(x).split("|"); const dt = new Date(iso); return { m: dt.getMonth() + 1, d: dt.getDate(), time }; })
+    : blocked[coachSport];
+  const writeAvail = (week) => {
+    if (data) { data.saveAvailability({ ...(liveHours || {}), days: week, duration, slots }); return; }
+    setAvail((p) => ({ ...p, [coachSport]: week }));
+  };
+  /* The diary shows what is confirmed; requests wait in Today's fold. */
+  const mySeedBooked = data
+    ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed")]).filter(([, rows]) => rows.length))
+    : seedBooked[coachSport];
+  const mySeriesLive = data ? mySeries : series;
+  const myGroups = data ? ((data.prefs && data.prefs.groups) || []) : freshAccount ? [] : (groups[coachSport] || []);
   const myLibrary = library[coachSport] || [];
 
   const say = (m) => { setToast(m); setTimeout(() => setToast(""), 1900); };
@@ -13147,6 +14328,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Publishing is the end of the flow. The burst plays over whatever
      is on screen, then drops the coach back on Today with the lesson
      counted. There is no separate screen to land on. */
+  /* the lesson just written, so the burst's "Ask for a rating" can mark
+     it after the fact — or note the ask if the button beat the insert */
+  const lastLogged = useRef(null);
+  const askForRating = async () => {
+    const cur = lastLogged.current;
+    if (cur && cur.id) {
+      const res = await data.requestRating(cur.id);
+      say(res && res.error ? (res.error.message || tr("Couldn't ask")) : tr("They'll be asked once"));
+    } else {
+      lastLogged.current = { id: null, pending: true };
+      say(tr("They'll be asked once"));
+    }
+  };
   const publish = async (l) => {
     const lesson = { ...l, when: "just now" };
     setLogged((n) => n + 1);
@@ -13171,16 +14365,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const lessonDate = l.m && l.d
         ? `${year}-${String(l.m).padStart(2, "0")}-${String(l.d).padStart(2, "0")}`
         : undefined;
-      await data.logLesson({
+      lastLogged.current = { id: null, pending: false };
+      const res = await data.logLesson({
         playerId: isGroup ? null : match?.id,
         groupName: isGroup ? (l.groupName || named) : null,
         focus: l.focus || (l.focusList || []).join(" · ") || "Lesson",
         subs: l.subs || [],
         note: l.note,
-        files: [...(l.videos || []), ...(l.photos || []), ...(l.pulled || [])]
+        files: [...(l.videos || []), ...(l.photos || []), ...(l.pulled || []), ...(l.voice ? [l.voice] : [])]
           .map((v) => v.file).filter(Boolean),
         date: lessonDate,
+        ratingRequested: !!l.wantRating,
       });
+      if (res && res.lesson) {
+        const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
+        lastLogged.current = { id: res.lesson.id, pending: false };
+        if (askedMeanwhile) data.requestRating(res.lesson.id);
+      }
       /* anything the coach set alongside the lesson */
       for (const d of l.nextDrills || []) {
         if (match?.id) await data.setDrill(match.id, typeof d === "string" ? d : d.t);
@@ -13205,9 +14406,35 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setRole("player"); setFlow("app"); setStack([landOnFamily ? "family" : "home"]); haptic(16);
   };
 
-  const book = (b) => { setBookings((x) => [...x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id)), { ...b, connId: conn?.id }]); haptic(18); say("Booked"); };
-  const cancel = (b) => { setBookings((x) => x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id))); haptic(10); say("Cancelled"); };
-  const nextBooking = [...myBookings].sort((a, b) => a.m - b.m || a.d - b.d)[0];
+  const book = async (b) => {
+    if (data) {
+      /* a player may only ask; the coach confirms it from Today */
+      const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
+      hapticSuccess(); setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); return;
+    }
+    setBookings((x) => [...x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id)), { ...b, connId: conn?.id }]); haptic(18); say("Booked");
+  };
+  const cancel = async (b) => {
+    if (data) {
+      if (!b || !b.id) return;
+      const res = await data.cancelBooking(b.id, "cancelled");
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't cancel that.")); return; }
+      haptic(10); return;
+    }
+    setBookings((x) => x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id))); haptic(10); say("Cancelled");
+  };
+  const nextBooking = data
+    ? (() => {
+        const todayIso = isoOf(todayMD.m, todayMD.d);
+        const up = myBookings.filter((b) => b.date >= todayIso)
+          .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
+        if (!up) return null;
+        const dt = new Date(up.date);
+        return { ...up, when: `${DAY_NAMES[(dt.getDay() + 6) % 7].slice(0, 3)} ${up.d} ${MONTHS_FULL[up.m - 1]} · ${up.time}`,
+                 focus: up.status === "requested" ? tr("Requested") : null };
+      })()
+    : [...myBookings].sort((a, b) => a.m - b.m || a.d - b.d)[0];
 
   const switchProfile = (id) => {
     setActiveProfileId(id);
@@ -13256,13 +14483,27 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const bumpUses = (names) => setLibrary((l) => ({
     ...l, [coachSport]: (l[coachSport] || []).map((d) => (names.includes(d.t) ? { ...d, uses: (d.uses || 0) + 1 } : d)),
   }));
-  const doAssignDrills = (name, drills) => {
+  const doAssignDrills = async (name, drills) => {
     bumpUses(drills.map((d) => d.t));
+    if (data) {
+      const who = (data.roster || []).find((r) => r.name === name);
+      if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
+      const res = await data.setDrills(who.id, drills.map((d) => d.t));
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set those drills.")); return; }
+      say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${name.split(" ")[0]}`); haptic(18); return;
+    }
     if (name === "Marcus Tran" && coachSport === "golf") setPractice((p) => ({ ...p, "1:golf": drills.map((d, i) => ({ id: `golf-${Date.now()}-${i}`, t: d.t, d: d.d, done: false })) }));
     say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${(name || "").split(" ")[0]}`); haptic(18);
   };
   const openAssignTip = (name, focusLabel) => { setAssignTo(name); setAssignFocus(focusLabel); setSheet("tip"); haptic(8); };
-  const doSetTip = (tip) => {
+  const doSetTip = async (tip) => {
+    if (data) {
+      const who = (data.roster || []).find((r) => r.name === assignTo);
+      if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
+      const res = await data.setTip(who.id, tip.title, tip.body);
+      if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set that.")); return; }
+      chime(); say(`${tr("Focus set for")} ${(assignTo || "").split(" ")[0]}`); haptic(18); return;
+    }
     if (assignTo === "Marcus Tran" && coachSport === "golf") {
       setTips((p) => ({ ...p, "1:golf": [{ id: Date.now(), title: tip.title, body: tip.body, focus: assignFocus || "General", date: "Today", weeksAgo: 0 }, ...(p["1:golf"] || [])] }));
     }
@@ -13293,10 +14534,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setActiveId(id); go("home"); say(`Connected with ${coachInfo.name}`);
   };
 
-  const createGroup = (g) => {
+  const createGroup = async (g) => {
+    if (data) {
+      const byName = Object.fromEntries((data.roster || []).map((r) => [r.name, r.id]));
+      const rec = { id: `g-${Date.now()}`, name: g.name, members: g.members, memberIds: g.members.map((n) => byName[n]).filter(Boolean),
+                    day: g.day, time: g.time, weeks: g.weeks, createdAt: new Date().toISOString() };
+      const cur = (data.prefs && data.prefs.groups) || [];
+      if (cur.some((x) => (x.name || "").toLowerCase() === rec.name.toLowerCase())) { hapticWarn(); say(tr("You already have a group with that name.")); return; }
+      const r1 = await data.saveGroups([...cur, rec]);
+      if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save the group.")); return; }
+      await data.addRecurring({ groupName: g.name, weekday: (g.day + 1) % 7, time: g.time, cadence: "weekly" });
+      const occ = occurrencesFrom(g.day, g.weeks, "weekly");
+      if (occ.length) await data.addBookings(occ.map((iso) => ({ groupName: g.name, date: iso, time: g.time, duration })));
+      say(`${g.name} ${tr("created")} · ${occ.length} ${tr("lessons scheduled")}`); haptic(20); return;
+    }
     const id = Date.now();
     setGroups((prev) => ({ ...prev, [coachSport]: [...(prev[coachSport] || []), { id, ...g }] }));
-    const occ = nextOccurrences(g.day, g.weeks);
+    const occ = nextOccurrences(g.day, g.weeks, calendar);
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
       occ.forEach(({ m, d }) => { const k = key(m, d); next[coachSport][k] = [...(next[coachSport][k] || []), { time: g.time, who: g.name, kind: `Group · ${g.members.length}`, group: true }]; });
@@ -13316,18 +14570,29 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return seed;
   })();
 
-  const unread = data ? 0 : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
+  /* Real threads: one per roster player for the coach; for a player,
+     their coach, plus anyone in their family who has one. */
+  const liveThreads = data ? (() => {
+    const byId = Object.fromEntries((data.threads || []).map((th) => [th.playerId, th]));
+    const row = (playerId, who, sub) => { const th = byId[playerId]; return { playerId, who, sub, unread: th ? th.unread : 0, last: th ? th.last : "" }; };
+    if (role === "coach") return (data.roster || []).map((r) => row(r.id, r.name, tr("Player")));
+    const rows = [];
+    if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach")));
+    (data.family || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.name, `${tr("with")} ${f.coachName || tr("their coach")}`)));
+    return rows;
+  })() : null;
+  const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
-      + atRisk(roster, series).length + focusReqs.length;
+      + atRisk(roster, mySeriesLive, live).length + focusReqs.length;
   const alerts = (freshAccount ? 0 : NOTIFS[role].filter((n) => n.fresh).length) + waiting;
-  const navRight = (<>{role === "player" && !juvenile && <FamilyPill name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}<IconBtn C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} /><YouAvatarBtn name={coachName} onOpen={() => push("you")} /></>);
-  const slimRight = (<>{role === "player" && !juvenile && <FamilyPill name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}
-    <IconBtn C={Search} label={L.search} onOpen={() => push("search")} />
-    {role === "coach" && <IconBtn C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}
-    <YouAvatarBtn name={coachName} onOpen={() => push("you")} />
+  const navRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} /><YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} /></>);
+  const slimRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}
+    <IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} />
+    {role === "coach" && <IconBtn tour="alerts" C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}
+    <YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} />
   </>);
-  const juvRight = (<><IconBtn C={Search} label={L.search} onOpen={() => push("search")} /><YouAvatarBtn name={coachName} onOpen={() => push("you")} /></>);
+  const juvRight = (<><IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} /><YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} /></>);
 
   /* One row per person the account manages, with their next session. */
   const familyCalendar = (role === "player" && profiles.filter((pf) => pf.age).length > 0)
@@ -13344,9 +14609,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      a small thing, but it removes most of the scanning. */
   const aiPick = (() => {
     if (role !== "player" || freshAccount) return null;
-    const soonest = earliestSlot(myAvail, myBlocked, myBookings, mySeedBooked);
+    const soonest = earliestSlot(myAvail, myBlocked, myBookings, mySeedBooked, calendar);
     if (!soonest) return null;
-    return { ...soonest, reason: `${DAY_NAMES[dowOf(soonest.m, soonest.d)].slice(0, 3)} ${soonest.d} at ${soonest.time} — like your usual` };
+    return { ...soonest, reason: `${DAY_NAMES[dowOf(soonest.m, soonest.d, calendar)].slice(0, 3)} ${soonest.d} at ${soonest.time} — like your usual` };
   })();
   const practiceTodo = myPractice.filter((x) => !x.done).length;
   const hasFamily = profiles.some((pf) => pf.age);
@@ -13380,11 +14645,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* A player with no coach has an account and nothing in it. Rather
      than show empty lessons, an empty diary and a disabled chat, the
      whole screen becomes the one thing worth doing. */
-  const needsCoach = !!account && role === "player" && data && !data.hasCoach;
+  /* A parent has no coach of their own — their children do — so they
+     are never held here; Home, Family and the family code are theirs
+     from the start. */
+  const parentAccount = !!account && account.accountType === "parent";
+  const needsCoach = !!account && role === "player" && data && !data.hasCoach && !parentAccount;
   if (needsCoach) {
-    body = <NoCoach juvenile={juvenile} onJoin={async (c) => {
+    /* a join link opened by this person arrives with the code filled in */
+    body = <NoCoach juvenile={juvenile} initialCode={pendingInvite && pendingInvite.kind === "coach" ? pendingInvite.code : ""} onJoin={async (c) => {
       const res = await (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c));
-      if (res && !res.error) setJoined({ coachName: res.coach?.name || data.coachName, sport: res.coach?.sport });
+      if (res && !res.error) { setPendingInvite(null); setJoined({ coachName: res.coach?.name || data.coachName, sport: res.coach?.sport }); }
       return res;
     }} />;
     bare = true;
@@ -13439,6 +14709,24 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         </div>
       </Screen>
     );
+  } else if (screen.startsWith("thread:") && data) {
+    /* the key is a player id, or a name from an older entry point —
+       either way the thread is the real one, or honestly unavailable */
+    const threadKey = screen.slice(7);
+    const row = (liveThreads || []).find((c) => c.playerId === threadKey || c.who === threadKey);
+    const th = row ? (data.threads || []).find((x) => x.playerId === row.playerId) : null;
+    const liveThread = row ? {
+      playerId: row.playerId, sub: row.sub, unread: th ? th.unread : 0, messages: th ? th.messages : [],
+      send: (text) => data.sendMessage(row.playerId, text),
+      markRead: () => data.markRead(row.playerId),
+      onDetails: role === "coach" ? () => push("player:" + row.who)
+               : row.playerId === account.id ? () => push("coachProfile") : null,
+    } : {
+      playerId: null, sub: "", unread: 0, messages: [],
+      send: async () => ({ error: { message: tr("This conversation isn't available.") } }),
+      markRead: () => {}, onDetails: null,
+    };
+    body = <Thread role={role} name={row ? row.who : threadKey} lang={lang} pop={pop} say={say} live={liveThread} />;
   } else if (screen.startsWith("thread:")) {
     const threadName = screen.split(":")[1];
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
@@ -13446,9 +14734,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pname = screen.split(":")[1];
-    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} seriesFor={series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
+    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
-  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} pop={pop} go={go} push={push} />;
+  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? data.lessons : null} pop={pop} go={go} push={push} />;
+  } else if (screen === "lessonLogs") {
+    body = <LessonLogs role={role} lessons={data ? data.lessons : playerLessons} pop={pop}
+                       onDownload={async (l) => {
+                         const media = data ? await data.lessonMedia(l.id) : [];
+                         downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName), who: role === "coach" || l.type === "Group" ? l.who : null, media, say });
+                       }} />;
   } else if (screen === "alerts") {
     const isParent = role !== "coach" && profiles.some((pf) => pf.age);
     /* Coach: everything blocking someone else's week. */
@@ -13456,9 +14750,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       openRequests.length && { id: "j1", what: tr("asking to join"), count: openRequests.length, tone: CAUTION, go: () => push("requests") },
       checkIns.filter((x) => x.state === "waiting").length && { id: "j2", what: tr("clips to look at"), count: checkIns.filter((x) => x.state === "waiting").length, tone: CAUTION, go: () => push("checkins") },
       lessonReqs.length && { id: "j3", what: tr("lesson requests"), count: lessonReqs.length, tone: CAUTION, go: () => go("today") },
-      atRisk(roster, series).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, series).length, tone: DANGER, go: () => push("atrisk") },
+      atRisk(roster, mySeriesLive, live).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, mySeriesLive, live).length, tone: DANGER, go: () => push("atrisk") },
       focusReqs.length && { id: "j5", what: tr("focus to agree"), count: focusReqs.length, tone: CAUTION, go: () => go("today") },
-      (TODAY_SCHEDULE || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (TODAY_SCHEDULE || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
+      (todayList || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (todayList || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
     ].filter(Boolean);
 
     /* Player or parent: what happened to them. */
@@ -13473,34 +14767,57 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
     body = <NotifCentre role={role} isParent={isParent} jobs={jobs} mine={mine} family={family}
                         pop={pop} push={push} go={go} empty={freshAccount} />;
-  } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} />;
-  } else if (screen === "library") { body = <DrillLibrary cfg={cfg} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }))} pop={pop} assign={openAssignDrills} say={say} />;
-  } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={(v) => setAvail((p) => ({ ...p, [coachSport]: v }))} slots={slots} setSlots={setSlots} duration={duration} setDuration={setDuration} pop={pop} say={say} />;
-  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} />;
+  } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} live={!!data}
+                                                   onSave={data ? async (club) => { const res = await data.updateProfile({ club }); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null} />;
+  } else if (screen === "library") { body = <DrillLibrary cfg={cfg} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => { setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }));
+                                              /* a real account's own drills live on its preferences; the removal goes there too */
+                                              if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
+  } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
+  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} />;
   } else if (screen.startsWith("history:")) {
     const hname = screen.split(":")[1];
     body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={attendance} goals={goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("clesson:")) {
     const [, cname, lid] = screen.split(":");
-    const les = cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0];
-    body = <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills} />;
+    /* the tapped lesson, by id — a real account never falls back to the catalogue */
+    const les = data
+      ? ((data.lessons || []).find((x) => String(x.id) === lid) || null)
+      : (cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0]);
+    body = les
+      ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
+                         live={!!data} mediaFor={data ? data.lessonMedia : null}
+                         onDuplicate={(l) => { setPrefill({ who: l.who, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
+                         onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: coachName, who: l.who, media: items, say })} />
+      : <SwipeBack onBack={pop}><Screen title={tr("Lesson")} onBack={pop}>
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available.")}</p>
+        </Screen></SwipeBack>;
   } else if (screen.startsWith("capture:")) {
     const who = screen.slice(8);
     body = <CaptureNow booking={{ who }} sport={sport} cfg={cfg} captured={captured} setCaptured={setCaptured} pop={pop} say={say} />;
   } else if (screen === "recurring") {
-    body = <RecurringManager series={series} roster={roster} duration={duration}
-             onEnd={(x) => { setSeries((v) => v.map((y) => (y === x ? { ...y, ended: true } : y)));
+    body = <RecurringManager series={data ? mySeries : series} roster={roster} duration={duration} real={!!data}
+             onEnd={async (x) => { if (data) { const r = await data.removeRecurring(x.id); if (r && r.error) { say(r.error.message); return; } setCeleb({ label: tr("Ended"), sub: x.who, tone: DANGER }); return; }
+               setSeries((v) => v.map((y) => (y === x ? { ...y, ended: true } : y)));
                setCeleb({ label: tr("Ended"), sub: x.who, tone: DANGER }); }}
              onExtend={(x, how) => { setSeries((v) => v.map((y) => (y === x ? { ...y, until: how === "open" ? null : "30 Sep" } : y)));
                say(how === "open" ? tr("Runs until you end it") : tr("Extended by a month")); }}
-             onEdit={(x, patch) => setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y)))}
+             onEdit={async (x, patch) => { if (data) {
+                 /* a standing slot is replaced, not edited in place — the row is small and the diary reads it fresh */
+                 const nx = { ...x, ...patch }; const r0 = await data.removeRecurring(x.id); if (r0 && r0.error) { say(r0.error.message); return; }
+                 await data.addRecurring({ playerId: x.playerId, groupName: x.groupName, weekday: (nx.day + 1) % 7, time: nx.time, cadence: String(nx.freq || "weekly").toLowerCase() }); return; }
+               setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, series)} pop={pop}
+    body = <AtRisk list={atRisk(roster, mySeriesLive, live)} pop={pop}
              onMessage={(n) => push("thread:" + n)}
              onBook={(n) => { setRecurFor(n); push("calendar"); }} />;
   } else if (screen === "digest") {
-    body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop} />;
+    body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop}
+             stats={data ? Object.fromEntries(profiles.map((pf) => [pf.id, {
+               lessons: (data.lessons || []).filter((l) => l.playerId === pf.id).length,
+               drillsDone: (data.drills || []).filter((d) => d.playerId === pf.id && d.done).length,
+               drillsTotal: (data.drills || []).filter((d) => d.playerId === pf.id).length,
+               tip: ((data.tips || []).find((tp) => tp.playerId === pf.id) || {}).title || null }])) : null} />;
   } else if (screen === "checkins") {
     body = <CheckIns role={role} list={freshAccount ? [] : checkIns} pop={pop} say={say}
              onAnswer={(c) => { setCheckIns((v) => v.map((x) => (x === c ? { ...x, state: "answered", reply: tr("Looks better — keep the turn going through it.") } : x)));
@@ -13508,7 +14825,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
              onSend={() => { setCheckIns((v) => [{ id: Date.now(), who: (activeProfile || {}).name || "", when: tr("Just now"), note: "", state: "waiting", secs: 9 }, ...v]);
                setCeleb({ label: tr("Sent"), sub: tr("Your coach will look at it.") }); }} />;
   } else if (screen === "familyCode") {
-    body = <FamilyScreen familyCode={data ? data.familyCode : null} family={data ? data.family : []}
+    body = <FamilyScreen familyCode={data ? data.familyCode : null} family={data ? data.family : []} onMessage={juvenile ? null : (m) => push("thread:" + m.id)}
                          hasGuardian={data ? data.hasGuardian : false}
                          onJoin={(c) => data && data.joinFamily(c)} say={say} pop={pop} />;
   } else if (screen === "coachProfile") {
@@ -13540,9 +14857,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "credentials") {
     body = <Credentials pop={pop} say={say} />;
   } else if (screen === "reviews") {
-    body = <Testimonials role={role} pop={pop} say={say} />;
+    body = <Testimonials role={role} pop={pop} say={say} live={!!data} reviews={data ? data.reviews : null} summary={data ? data.reviewSummary : null} code={data ? data.inviteCode : null} />;
   } else if (screen === "events") {
-    body = <EventsScreen sport={sport} cfg={cfg} role={role} pop={pop} say={say} />;
+    body = <EventsScreen sport={sport} cfg={cfg} role={role} pop={pop} say={say} live={!!data} comps={liveEvents} now={todayMD}
+             onAdd={data ? (c) => data.addCompetition(c) : null} onRemove={data ? (id) => data.removeCompetition(id) : null} />;
   } else if (screen === "season") {
     /* Read the arc off the actual log: the focus that recurred most is
        the theme; the one least revisited is where to go next. Nothing
@@ -13599,38 +14917,43 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "region") {
     body = <RegionScreen region={region} setRegion={setRegion} lang={lang} setLang={setLang} pop={pop} />;
   } else if (screen === "language") { body = <LanguageScreen lang={lang} setLang={setLang} pop={pop} say={say} />;
-  } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} me={account ? { name: account.name, email: account.email, phone: account.phone } : null} />;
-  } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} />;
-  } else if (screen === "support") { body = <Support pop={pop} say={say} />;
+  } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} me={account ? { name: account.name, email: account.email, phone: account.phone, club: account.club } : null}
+                                                   onSave={data ? async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null}
+                                                   onChangePassword={data ? () => setSheet("password") : null} />;
+  } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} live={!!data} notify={prefs.notify} setNotify={(v) => setPrefs((p) => ({ ...p, notify: v }))} />;
+  } else if (screen === "support") { body = <Support pop={pop} say={say} live={!!data} />;
   } else if (screen === "subscription") { body = <Subscription pop={pop} say={say} plan={plan} />;
   } else if (screen === "family") {
     body = <FamilyDashboard profiles={profiles} conns={conns} practice={practice} tips={tips} bookings={bookings}
+                            counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
-  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} setBlocked={(fn) => setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn }))}
-                                                            bookings={role === "player" ? myBookings : []} seedBooked={mySeedBooked} onBook={book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={aiPick} readOnly={juvenile}
+  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount}
+                                                            setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
+                                                              setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
+                                                            bookings={role === "player" ? myBookings : []} seedBooked={mySeedBooked} onBook={book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={aiPick} readOnly={juvenile}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
-                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(l); setSheet("cancel"); }}
+                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h, k) => { setBookSlot({ day, time: h, kind: k }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")} />;
-  } else if (screen === "messages") { body = <MessageList role={role} threads={data ? data.threads : null} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
-  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
+  } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
+  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
-      log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} />,
-    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ ...b, m: 7, d: 24 }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
+    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>
@@ -13645,21 +14968,28 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
   } else {
     const shared = { cfg, conn, lessons: playerLessons, go, fresh: published, saved: mySaved, juvenile };
-    body = {
-      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
-      log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} />,
-      lesson: <PlayerLesson {...shared} toggleSave={toggleSave} minimise={(clip) => { setMini(clip); go("log"); say("Playing in the corner"); }} />,
-    }[screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={() => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+    /* The walkthrough shows the no-coach screen as a state of its own;
+       a real account reaches it through the gate above. */
+    if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
+    else body = {
+      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
+      log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} />,
+      lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
+                            lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
+                            mediaFor={data ? data.lessonMedia : null}
+                            onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
+                            onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
   }
 
   return (
-    <ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <LiveCtx.Provider value={live}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={demo ? { background: "#0B0F0C" } : { background: theme.page }}>
+           style={demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
           <Mark size={30} color="#E7EBE4" />
@@ -13784,7 +15114,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
         <div className="overflow-hidden w-full flex flex-col relative"
              style={{ maxWidth: demo ? 384 : "none",
-                      height: demo ? 768 : "100dvh",
+                      height: demo ? 768 : sc ? 780 : "100dvh",
                       borderRadius: demo ? 34 : 0, background: theme.page,
                    ...(reduceMotion ? { ["--motion"]: "none" } : {}), border: demo ? "6px solid #05070A" : "none", boxShadow: demo ? "0 2px 8px rgba(0,0,0,0.4), 0 40px 100px rgba(0,0,0,0.62)" : "none", fontSize: `${textScale * 100}%` }}>
           {/* A drawn clock and battery belong to a mockup, not to a real
@@ -13827,19 +15157,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           )}
           {loader && <Loader onTap={() => { haptic(8); setLoader(false); }} />}
           {overture && <LessonOverture lesson={overture} mark={theme.mark}
-                          onDone={() => { setOverture(null); push("lesson"); }} />}
+                          onDone={() => { const id = overture.id; setOverture(null); push(id != null ? "lesson:" + id : "lesson"); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
           {joined && <JoinedCoach coachName={joined.coachName} sport={joined.sport} onDone={() => setJoined(null)} />}
-          {tour && <Walkthrough role={role} juvenile={juvenile}
+          {tour && <Walkthrough role={role} juvenile={juvenile} sport={sport}
                        isParent={account ? account.accountType === "parent" : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
           {arrival && <NewLessonArrival lesson={arrival} coach={(conn || {}).coach || ""}
-                        onOpen={() => { setArrival(null); setStack(["lesson"]); setTimeout(() => setSheet("rate"), 900); }} />}
+                        onOpen={() => { const id = arrival.id; setArrival(null); setStack([id != null ? "lesson:" + id : "lesson"]); setTimeout(() => setSheet("rate"), 900); }} />}
           {burst && <PublishedBurst lesson={burst} tally={logged}
-                        onAskRating={() => { setAskRating(burst); say(tr("They'll be asked after this lesson")); }}
-                        remaining={(TODAY_SCHEDULE || []).filter((l) => l.done).length}
-                        onLogNext={(TODAY_SCHEDULE || []).filter((l) => l.done).length > 0
-                          ? () => { const nx = (TODAY_SCHEDULE || []).filter((l) => l.done)[0]; setBurst(null); setPublished(null);
+                        onAskRating={data
+                          ? (burst.wantRating ? null : askForRating)
+                          : () => { setAskRating(burst); say(tr("They'll be asked after this lesson")); }}
+                        remaining={(todayList || []).filter((l) => l.done).length}
+                        onLogNext={(todayList || []).filter((l) => l.done).length > 0
+                          ? () => { const nx = (todayList || []).filter((l) => l.done)[0]; setBurst(null); setPublished(null);
                                     setPrefill(nx); setStack(["today"]); setTimeout(() => go("log"), 40); }
                           : null}
                         onDone={() => { setBurst(null); setPublished(null); setStack(["today"]); }} />}
@@ -13849,7 +15181,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              roleLabel={juvenile ? "Under 18" : role === "coach" ? "Coach" : hasFamily ? "Parent" : (cfg.noun === "player" ? "Player" : cfg.noun)}
                              onDone={() => setSplash(false)} />}
 
-          {mini && !bare && !familyGuide && (<MiniPlayer clip={mini} onClose={() => { haptic(8); setMini(null); }} onExpand={() => { setMini(null); go("lesson"); }} />)}
+          {mini && !bare && !familyGuide && (<MiniPlayer clip={mini.label} onClose={() => { haptic(8); setMini(null); }} onExpand={() => { setMini(null); go(mini.id != null ? "lesson:" + mini.id : "lesson"); }} />)}
 
           {!bare && !familyGuide && (
             <TabBar tabs={tabs} theme={theme} dark={dark}
@@ -13867,14 +15199,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
             {sheet === "cmd" ? <CommandBar role={role} cfg={cfg} roster={roster}
-                                            lessons={cfg.lessons} library={myLibrary}
+                                            lessons={data ? data.lessons : cfg.lessons} library={myLibrary}
                                             go={go} push={push}
                                             close={() => setSheet(null)}
                                             onAct={(id, who) => {
                                               const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
                                               if (id === "log")     { setSheet(null); setPrefill(null); return go("log"); }
                                               if (id === "attend")  return later(() => setSheet("attend"));
-                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || TODAY_SCHEDULE[0]); setSheet("capture"); });
+                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
                                               if (id === "comp")    { setSheet(null); return push("events"); }
                                               if (id === "tip")     { setGoalFor(who); setAssignTo(who); return later(() => setSheet("tip")); }
                                               if (id === "drills")  return later(() => openAssignDrills(who));
@@ -13899,7 +15231,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onRun={(id) => {
                                               const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
                                               if (id === "attend")  return later(() => setSheet("attend"));
-                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || TODAY_SCHEDULE[0]); setSheet("capture"); });
+                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
                                               if (id === "tip")     { setPickFor("tip");    return later(() => setSheet("pickWho")); }
                                               if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
                                               if (id === "player")  return later(() => setSheet("invite"));
@@ -13908,7 +15240,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               if (id === "comp")    { setSheet(null); push("events"); }
                                             }}
                                             close={() => setSheet(null)} />
-            : sheet === "attend" ? <Attendance lessons={TODAY_SCHEDULE || []} roster={roster} taken={registers}
+            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers}
                                             onSubmit={(l, marks) => {
                                               if (data) {
                                                 /* map display names back to real ids before saving */
@@ -13922,7 +15254,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               setCeleb({ label: tr("Register taken"), sub: `${n} ${tr("present")}` });
                                             }}
                                             close={() => setSheet(null)} say={say} />
-            : sheet === "capture" ? <LiveCapture lessons={TODAY_SCHEDULE || []} chosen={captureFor}
+            : sheet === "capture" ? <LiveCapture lessons={todayList || []} chosen={captureFor}
                                             onChoose={setCaptureFor}
                                             items={(captured[captureFor ? captureFor.who : "__unassigned"] || [])}
                                             onAdd={(item) => {
@@ -13961,11 +15293,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               if (c) { setActiveId(c.id); setCoachSport(sp); } }}
                                             close={() => setSheet(null)} />
             : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onFamily={() => push("familyCode")} onPhoto={() => setSheet("photo")}
+                                            live={!!data} hasCoach={data ? !!data.hasCoach : false} onJoinCode={onJoinCoach}
                                             mySports={[...new Set(conns.filter((c) => c.profileId === activeProfileId).map((c) => c.sport))]}
                                             main={mainSport[activeProfileId]}
                                             onSetMain={(sp) => { setMainSport((v) => ({ ...v, [activeProfileId]: sp })); setCoachSport(sp); }}
                                             close={() => setSheet(null)} say={say} />
-              : sheet === "invite" ? <InviteBody say={(m) => { setSheet(null); say(m); }} />
+              : sheet === "invite" ? <InviteBody code={inviteShown} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
               : sheet === "tip" ? <TipBody focusLabel={assignFocus || (cfg.focus[0] || {}).label} prompts={TIP_PROMPTS[coachSport]} onSet={doSetTip} close={() => setSheet(null)} />
@@ -13973,7 +15306,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} existingNames={[...PLAYERS, ...invited.map((p) => p.name)]}
                                                     onSend={(names) => setInvited((v) => [...v, ...names.map((n) => ({ name: n, sentAt: "just now" }))])}
                                                     close={() => setSheet(null)} say={say} />
+              : sheet === "password" ? <ChangePasswordBody onSubmit={data ? (pw) => data.changePassword(pw) : null} say={say} close={() => setSheet(null)} />
+              : sheet === "inviteOffer" && pendingInvite && data ? <InviteOffer invite={pendingInvite} lookup={data.lookupCode}
+                                            currentCoach={data.coachId} currentCoachName={data.coachName} currentGuardian={data.guardianId}
+                                            onJoinCoach={(c) => (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c))}
+                                            onJoinFamily={(c) => data.joinFamily(c)}
+                                            onDone={(found, res) => {
+                                              const kind = pendingInvite.kind;
+                                              setPendingInvite(null); setSheet(null);
+                                              if (kind === "coach") setJoined({ coachName: (res && res.coach && res.coach.name) || (found && found.name), sport: res && res.coach && res.coach.sport });
+                                              else { chime(); setCeleb({ label: tr("Joined"), sub: `${(found && found.name) || ""}${tr("'s family")}` }); }
+                                            }}
+                                            close={() => { setPendingInvite(null); setSheet(null); }} />
               : sheet === "peek" && peek ? <LessonPeek booking={peek} duration={duration} sport={coachSport} agreed={agreedFocus[peek.who]}
+                                            past={data ? (data.lessons || []).filter((l) => l.who === peek.who).slice(0, 2) : undefined}
                                             onHistory={() => { setSheet(null); push("history:" + peek.who); }}
                                             cfg={cfg} onWeather={() => setSheet("weather")}
                                             comps={liveComps
@@ -13981,25 +15327,35 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               : [...(playerComps[peek.who] || []), ...(freshAccount ? [] : (EVENTS[coachSport] || []).slice(0, 1).map((e) => ({ ...e, mine: true })))]}
                                             onEditComp={() => { setSheet(null); push("events"); }}
                                             onProfile={() => { setSheet(null); push("player:" + peek.who); }}
-                                            onLog={() => { setSheet(null); setPrefill({ ...peek, m: TODAY.m, d: TODAY.d }); go("log"); }}
+                                            onLog={() => { setSheet(null); setPrefill({ m: todayMD.m, d: todayMD.d, ...peek }); go("log"); }}
                                             onNoShow={() => { markNoShow(peek); setSheet(null); }}
-                                            onCapture={() => { setSheet(null); push("capture:" + peek.who); }}
-                                            onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setSheet("cancel"); }}
+                                            onCapture={() => { setSheet(null);
+                                              /* a real account films into the real capture sheet, filed under this
+                                                 booking; the older capture screen with its invented readings is the harness's */
+                                              if (data) { const bk = peek; setTimeout(() => { setCaptureFor(bk); setSheet("capture"); }, 180); }
+                                              else push("capture:" + peek.who); }}
+                                            onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setCancelBk(peek); setSheet("cancel"); }}
                                             close={() => setSheet(null)} />
               : sheet === "editDay" && editDay ? <EditDay day={editDay} slots={ALL_TIMES} duration={duration}
-                                            avail={avail[coachSport] || {}} setAvail={(nx) => setAvail({ ...avail, [coachSport]: nx })}
+                                            avail={myAvail || {}} setAvail={writeAvail}
                                             slotKinds={slotKinds} setSlotKinds={setSlotKinds}
                                             onWeather={() => setSheet("weather")} close={() => setSheet(null)} say={say} />
               : sheet === "bookWho" && bookSlot ? (
                   <>
                     <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Book someone in")}</h2>
                     <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
                     </p>
                     <div className="flex flex-col gap-2">
                       {roster.map((r, i) => (
                         <Tile key={r.name} className="px-4 py-3.5" delay={i * 45}
-                              onPress={() => { setSeedBooked((prev) => {
+                              onPress={async () => {
+                                if (data) {
+                                  const res = await data.addBooking({ playerId: r.id, date: isoOf(bookSlot.day.m, bookSlot.day.d), time: bookSlot.time, duration });
+                                  if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't book that.")); return; }
+                                  setSheet(null); setCeleb({ label: tr("Booked"), sub: `${r.name} · ${bookSlot.time}` }); return;
+                                }
+                                setSeedBooked((prev) => {
                                   const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
                                   const k = key(bookSlot.day.m, bookSlot.day.d);
                                   nx[coachSport][k] = [...(nx[coachSport][k] || []), { time: bookSlot.time, who: r.name, kind: "Private" }];
@@ -14019,16 +15375,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   <>
                     <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Confirm")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
                     </p>
-                    <Button onClick={() => { setSheet(null); setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); }}>{tr("Request it")}</Button>
+                    <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); }}>{tr("Request it")}</Button>
                   </>
                 )
               : sheet === "rebookAfter" ? (
                   <>
                     <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Book the next one")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>{(conn || {}).coach}</p>
-                    <Button onClick={() => { setSheet(null); setCeleb({ label: tr("Booked"), sub: tr("Same time next week") }); }}>{tr("Book it")}</Button>
+                    <Button onClick={() => { setSheet(null); if (data) { go("calendar"); return; } setCeleb({ label: tr("Booked"), sub: tr("Same time next week") }); }}>{tr("Book it")}</Button>
                     <button onClick={() => { setSheet(null); go("calendar"); }} className="w-full mt-3 py-3 active:opacity-50"
                             style={{ fontFamily: ui, fontSize: 13.5, color: theme.sub }}>{tr("Pick another time")}</button>
                   </>
@@ -14038,7 +15394,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onDone={(parts) => setCeleb({ label: tr("Record shared"), sub: `${parts.length} ${tr("parts")}` })}
                                             close={() => setSheet(null)} />
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
-                                            onDone={({ reason, offer }) => {
+                                            onDone={async ({ reason, offer }) => {
+                                              if (data) {
+                                                /* the booking is marked cancelled; an offered time is booked in its place */
+                                                const bk = cancelBk;
+                                                if (!bk || !bk.id) { say(tr("Couldn't find that booking.")); return; }
+                                                const r1 = await data.cancelBooking(bk.id, "cancelled");
+                                                if (r1 && r1.error) { hapticWarn(); say(r1.error.message); return; }
+                                                if (offer && role === "coach") {
+                                                  const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration }]);
+                                                  if (r2 && r2.error) { say(r2.error.message); return; }
+                                                }
+                                                setCeleb({ label: tr("Cancelled"), sub: offer ? `${tr("Rebooked")} ${offer}` : tr("Their diary is updated."), tone: DANGER });
+                                                return;
+                                              }
                                               setCancelNotice({ from: role === "coach" ? coachName : (activeProfile || {}).name, lesson: cancelling, reason, offer });
                                               /* comes back to the package, unlike a no show */
                                               setSeries((list) => list.map((x) => (cancelling && cancelling.includes(x.who) ? { ...x, total: x.total + 1 } : x)));
@@ -14071,11 +15440,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               const res = await data.verifyPassword(pw);
                                               if (res.error) return res;
                                               setSheet("weather");
-                                              return {};
+                                              return { next: "weather" };
                                             }}
                                             close={() => setSheet(null)} />
-              : sheet === "weather" ? <WeatherCallOff day={weatherDay || `${DAY_NAMES[dowOf(TODAY.m, TODAY.d)]} ${TODAY.d}`}
-                                            bookings={(mySeedBooked[key(TODAY.m, TODAY.d)] || [])} duration={duration}
+              : sheet === "weather" ? <WeatherCallOff day={weatherDay || `${DAY_NAMES[dowToday]} ${todayMD.d}`}
+                                            bookings={((mySeedBooked || {})[key(todayMD.m, todayMD.d)] || [])} duration={duration}
                                             onConfirm={callOff} close={() => setSheet(null)} />
               : sheet === "reschedule" ? <RescheduleOffer lesson={rescheduleFor || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
                                             onPick={(sl) => { setCalledOff(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} close={() => setSheet(null)} />
@@ -14109,10 +15478,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   </>
                 )
               : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
-                                            onCreate={(g) => { setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
+                                            onCreate={(g) => { if (data) { createGroup(g); return; }
+                                              setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
                                               setCeleb({ label: tr("Group created"), sub: `${g.name} · ${g.members.length}` }); }}
                                             close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
+                                            people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             onPick={(n) => push("thread:" + n)} close={() => setSheet(null)} />
               : sheet === "rate" ? <RateLesson focus={(playerLessons[0] || {}).focus || ""} coach={conn?.coach || ""}
                                             onDone={() => { setCeleb({ label: tr("Thanks"), sub: tr("Your coach will see it.") }); setTimeout(() => setSheet("rebookAfter"), 1900); }}
@@ -14123,7 +15494,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
                     <div className="flex flex-wrap gap-2 mb-6">
                       {slots.slice(0, 6).map((sl) => (
-                        <button key={sl} onClick={() => { hapticSuccess(); soft();
+                        <button key={sl} onClick={async () => { hapticSuccess(); soft();
+                                  if (data) {
+                                    /* the request is declined and the offered time booked in its place */
+                                    const r1 = await data.cancelBooking(declining.id, "cancelled");
+                                    const r2 = (r1 && r1.error) ? r1 : await data.addBookings([{ playerId: declining.playerId, date: declining.date || isoOf(declining.m, declining.d), time: sl, duration }]);
+                                    if (r2 && r2.error) { say(r2.error.message || tr("Couldn't offer that time.")); return; }
+                                    setSheet(null); setCeleb({ label: tr("Booked"), sub: `${declining.who} · ${sl}` }); return;
+                                  }
                                   setAskedFor((v) => v.filter((x) => x !== declining));
                                   setSheet(null); setCeleb({ label: tr("Offered"), sub: `${declining.who} · ${sl}` }); }}
                                 className="px-3.5 active:opacity-60"
@@ -14131,7 +15509,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                          ...TYPE.small, fontWeight: 500, color: theme.ink }}>{sl}</button>
                       ))}
                     </div>
-                    <Button tone="dangerQuiet" onClick={() => { setAskedFor((v) => v.filter((x) => x !== declining));
+                    <Button tone="dangerQuiet" onClick={async () => {
+                              if (data) { const r = await data.cancelBooking(declining.id, "cancelled"); if (r && r.error) { say(r.error.message); return; } }
+                              setAskedFor((v) => v.filter((x) => x !== declining));
                               setSheet(null); say(tr("Declined")); }}>{tr("Just decline")}</Button>
                   </>
                 )
@@ -14140,7 +15520,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who's it for")}</h2>
                     <div className="flex flex-col gap-2">
                       {roster.map((r, i) => {
-                        const has = series.some((x) => x.who === r.name && !x.ended);
+                        const has = mySeriesLive.some((x) => x.who === r.name && !x.ended);
                         return (
                           <Tile key={r.name} className="px-4 py-3.5" delay={i * 45}
                                 onPress={has ? null : () => { setRecurFor(r.name); setSheet("recurring"); }}>
@@ -14158,23 +15538,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     </div>
                   </>
                 )
-              : sheet === "recurring" ? <RecurringSetup name={recurFor || (roster[0] || ROSTER[0]).name} existing={series.find((x) => x.who === recurFor && x.sport === coachSport)}
+              : sheet === "recurring" ? <RecurringSetup name={recurFor || (roster[0] || (data ? {} : ROSTER[0])).name || ""} existing={data ? mySeries.find((x) => x.who === recurFor) : series.find((x) => x.who === recurFor && x.sport === coachSport)}
                                           slots={slots} duration={duration} onSave={saveSeries} onEnd={endSeries}
                                           close={() => setSheet(null)} say={say} />
-              : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} />
+              : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} onSend={data ? (text) => data.broadcast(text) : null} />
               : null}
           </Sheet>
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></LiveCtx.Provider>
   );
 }
 
 /* Small helpers kept at the bottom to avoid hoisting issues */
-function YouAvatarBtn({ name, onOpen }) {
+function YouAvatarBtn({ name, onOpen, tour }) {
   return (
-    <button onClick={() => { haptic(6); onOpen(); }} aria-label={tr("Your profile")} className="active:opacity-50">
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={tr("Your profile")} className="active:opacity-50">
       <Avatar name={name} size={30} />
     </button>
   );
