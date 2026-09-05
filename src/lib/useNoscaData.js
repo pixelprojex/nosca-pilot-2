@@ -18,6 +18,31 @@ import { supabase } from "./supabase";
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
+/* Whole years since a date of birth — the same sum the database's
+   is_junior_of() does, so the two never disagree about who is a junior. */
+export const yearsOld = (dob) => {
+  if (!dob) return null;
+  const b = new Date(dob), n = new Date();
+  if (isNaN(b.getTime())) return null;
+  let a = n.getFullYear() - b.getFullYear();
+  if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a -= 1;
+  return a;
+};
+const juniorRow = (p) => p.role === "player" && (p.account_type === "junior" || (yearsOld(p.date_of_birth) != null && yearsOld(p.date_of_birth) < 18));
+
+/* Files bigger than this are refused before an upload is even tried,
+   with a message that says so. Supabase's default per-file limit is
+   50 MB (Project settings → Storage); set VITE_MAX_UPLOAD_MB to match
+   if that limit is raised. */
+export const MAX_UPLOAD_MB = Number(import.meta.env.VITE_MAX_UPLOAD_MB) > 0 ? Number(import.meta.env.VITE_MAX_UPLOAD_MB) : 50;
+const mb = (bytes) => `${Math.max(1, Math.round((bytes || 0) / 1048576))} MB`;
+const safeName = (name) => (name || "file").normalize("NFKD").replace(/[^\w.\-]+/g, "_").replace(/_+/g, "_").slice(-80);
+
+/* The public address of a profile picture. The bucket is public and
+   the path carries the time it was set, so the URL changes when the
+   picture does and nothing caches a stale one. */
+export const avatarUrl = (path) => path ? supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl : null;
+
 /* database row -> the shape the interface already speaks */
 const toLesson = (r) => {
   const dt = new Date(r.lesson_date);
@@ -44,6 +69,19 @@ const toLesson = (r) => {
   };
 };
 
+const toNotification = (n) => ({
+  id: n.id, kind: n.kind, title: n.title, body: n.body || "", data: n.data || {},
+  readAt: n.read_at || null, createdAt: n.created_at,
+  when: (() => {
+    const d = new Date(n.created_at), now = new Date();
+    const mins = Math.round((now - d) / 60000);
+    if (mins < 1) return "now";
+    if (mins < 60) return `${mins}m`;
+    if (mins < 60 * 24 && d.getDate() === now.getDate()) return d.toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" });
+    return d.toLocaleDateString("en-IE", { day: "numeric", month: "short" });
+  })(),
+});
+
 /* A signed URL lasts an hour; anything younger than fifty minutes is
    reused rather than signed again, so opening the same lesson twice
    in a session costs one round trip, not two. */
@@ -63,9 +101,22 @@ export function useNoscaData(profile) {
   const [prefs, setPrefs] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [coachName, setCoachName] = useState(null);
-  const [guardianName, setGuardianName] = useState(null);
-  const [familyCode, setFamilyCode] = useState(null);
-  const [family, setFamily] = useState([]);
+  const [coachSport, setCoachSport] = useState(null);
+  /* the family this person is in — { id, code, name, members } — or null */
+  const [family, setFamily] = useState(null);
+  /* the juniors an adult in the family looks after (empty for a junior,
+     or for anyone not in a family) — the people they may book and
+     message for */
+  const [dependants, setDependants] = useState([]);
+  /* their coaches' hours, by junior id, for booking on their behalf */
+  const [hoursByPlayer, setHoursByPlayer] = useState({});
+  /* people asking to join this coach; and, for a player, the one
+     request they have out */
+  const [requests, setRequests] = useState([]);
+  const [myRequest, setMyRequest] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [me, setMe] = useState(null);           // this person's own row, read fresh
+  const [declinedBy, setDeclinedBy] = useState(null);
   const [threads, setThreads] = useState([]);
   const [reviewSummary, setReviewSummary] = useState(null);
   const [myReview, setMyReview] = useState(null);
@@ -94,8 +145,8 @@ export function useNoscaData(profile) {
     try {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
-      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes] = await Promise.all([
-        supabase.from("profiles").select("id, name, role, sport, invite_code, family_code, guardian_id, coach_id, date_of_birth, created_at"),
+      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes] = await Promise.all([
+        supabase.from("profiles").select("id, name, role, sport, invite_code, family_id, coach_id, account_type, date_of_birth, avatar_path, bio, club, created_at"),
         supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
         supabase.from("tips").select("*").order("created_at", { ascending: false }),
@@ -106,58 +157,102 @@ export function useNoscaData(profile) {
         supabase.from("preferences").select("*").eq("id", profile.id).maybeSingle(),
         supabase.from("messages").select("*").order("created_at"),
         supabase.from("reviews").select("*"),
+        supabase.from("families").select("*"),
+        supabase.from("coach_requests").select("*").order("created_at", { ascending: false }),
+        supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(200),
       ]);
 
       const people = pRes.data || [];
+      const personOf = (id) => people.find((x) => x.id === id) || null;
 
       /* Fetch our own row directly — the general people list only
          contains rows RLS lets us see (our players, our coach), and
          our own row may not be in it when we have no connections yet.
          A direct .eq("id", profile.id) always works. */
-      const { data: me } = await supabase.from("profiles")
-        .select("invite_code, family_code, coach_id, guardian_id")
+      const { data: mine } = await supabase.from("profiles")
+        .select("id, name, role, sport, invite_code, coach_id, family_id, account_type, date_of_birth, avatar_path, bio, club, phone")
         .eq("id", profile.id)
         .maybeSingle();
-      setInviteCode(me?.invite_code || null);
-      setFamilyCode(me?.family_code || null);
-      if (me) setLinks({ coach: me.coach_id || null, guardian: me.guardian_id || null });
-      /* everyone who points at me as their guardian — with who coaches
-         them, because a guardian writes to that coach on their behalf */
-      setFamily(people.filter((x) => x.guardian_id === profile.id).map((x) => ({
-        id: x.id, name: x.name,
-        sport: x.sport || null,
-        dateOfBirth: x.date_of_birth || null,
-        coachId: x.coach_id || null,
-        coachName: (people.find((p) => p.id === x.coach_id) || {}).name || null,
-      })));
+      setMe(mine || null);
+      setInviteCode(mine?.invite_code || null);
+      if (mine) setLinks({ coach: mine.coach_id || null, family: mine.family_id || null });
+      const iAmJunior = mine ? juniorRow(mine) : false;
+
+      /* The family: its row (security lets only members read it) and
+         everyone in it, each marked adult or junior by their own row.
+         An adult's dependants are the juniors; a junior has none. */
+      const famRow = (fRes.data || []).find((f) => f.id === mine?.family_id) || null;
+      const members = famRow ? people.filter((x) => x.family_id === famRow.id).map((x) => ({
+        id: x.id, name: x.name, sport: x.sport || null, dateOfBirth: x.date_of_birth || null,
+        junior: juniorRow(x), me: x.id === profile.id, avatarPath: x.avatar_path || null,
+        coachId: x.coach_id || null, coachName: (personOf(x.coach_id) || {}).name || null, role: x.role,
+      })) : [];
+      const creator = famRow ? personOf(famRow.created_by) : null;
+      setFamily(famRow ? {
+        id: famRow.id, code: famRow.code, name: famRow.name || null,
+        displayName: famRow.name || (creator ? `${creator.name.split(" ")[0]}'s family` : "Your family"),
+        members: members.sort((a, b) => (a.junior === b.junior ? a.name.localeCompare(b.name) : a.junior ? 1 : -1)),
+      } : null);
+      const kids = !iAmJunior ? members.filter((m) => m.junior && !m.me) : [];
+      setDependants(kids);
 
       /* The hours a player can book into are their coach's, and the
          coach's preferences row is otherwise theirs alone — so this
-         comes through a function that returns just that. A project
-         whose nosca.sql predates it answers with an error; that reads
-         as "nothing set yet", which is the honest answer either way. */
+         comes through a function that returns just that. An adult in a
+         family asks the same for each junior they look after. */
       if (!isCoach) {
         const { data: hours, error: hoursErr } = await supabase.rpc("coach_availability");
         setCoachAvailability(hoursErr ? {} : (hours || {}));
+      }
+      const withCoach = kids.filter((k) => k.coachId);
+      if (withCoach.length) {
+        const got = await Promise.all(withCoach.map((k) => supabase.rpc("coach_availability", { p_player: k.id })));
+        setHoursByPlayer(Object.fromEntries(withCoach.map((k, i) => [k.id, (got[i] && !got[i].error && got[i].data) || {}])));
+      } else {
+        setHoursByPlayer({});
       }
 
       /* A player needs their coach's real name. Row-level security means
          the coach's own row is visible to them, so it comes back here.
          Looked up by the id on their own row, not "any coach in the
-         list" — a guardian or a family member's coach can be visible
-         too, and neither of those is this person's coach. */
-      const theCoach = me?.coach_id ? people.find((x) => x.id === me.coach_id) : null;
+         list" — a family member's coach can be visible too. */
+      const theCoach = mine?.coach_id ? personOf(mine.coach_id) : null;
       setCoachName(theCoach?.name || null);
-      /* likewise the guardian's — their row is visible for the same reason */
-      const theGuardian = me?.guardian_id ? people.find((x) => x.id === me.guardian_id) : null;
-      setGuardianName(theGuardian?.name || null);
+      setCoachSport(theCoach?.sport || null);
+
+      /* Requests: the ones waiting on this coach, with who is asking;
+         or, for a player, the one they have out, with who they asked. */
+      const allReq = qRes.data || [];
+      setRequests(allReq.filter((r) => r.coach_id === profile.id && r.status === "pending").map((r) => {
+        const who = personOf(r.player_id) || {};
+        return { id: r.id, playerId: r.player_id, name: who.name || "Someone", sport: who.sport || null,
+                 junior: who.id ? juniorRow(who) : false, dateOfBirth: who.date_of_birth || null, createdAt: r.created_at,
+                 when: new Date(r.created_at).toLocaleDateString("en-IE", { day: "numeric", month: "short" }) };
+      }));
+      const out = allReq.find((r) => r.player_id === profile.id && r.status === "pending") || null;
+      const asked = out ? personOf(out.coach_id) : null;
+      setMyRequest(out ? { id: out.id, coachId: out.coach_id, coachName: asked?.name || "your coach", sport: asked?.sport || null, createdAt: out.created_at } : null);
+      /* the last answer, so the home screen can say "declined" once */
+      const lastAnswer = allReq.find((r) => r.player_id === profile.id && r.status === "declined") || null;
+      setDeclinedBy(lastAnswer && !out ? ((personOf(lastAnswer.coach_id) || {}).name || null) : null);
+
+      setNotifications((nRes.data || []).map(toNotification));
 
       /* the coach sees their players; a player sees only themselves */
-      const players = people.filter((x) => x.role === "player");
+      const players = people.filter((x) => x.role === "player" && (isCoach ? x.coach_id === profile.id : true));
       setRoster(players.map((p) => ({
         id: p.id,
         name: p.name,
+        sport: p.sport || null,
+        junior: juniorRow(p),
+        dateOfBirth: p.date_of_birth || null,
+        avatarPath: p.avatar_path || null,
+        /* the adults in a junior's family, so the coach knows who to speak to */
+        guardians: juniorRow(p) && p.family_id
+          ? people.filter((a) => a.family_id === p.family_id && a.id !== p.id && !juniorRow(a)).map((a) => a.name)
+          : [],
         lessons: (lRes.data || []).filter((l) => l.player_id === p.id).length,
+        lastLesson: (lRes.data || []).filter((l) => l.player_id === p.id).map((l) => l.lesson_date).sort().pop() || null,
         since: new Date(p.created_at).toLocaleDateString("en-IE", { month: "short", year: "numeric" }),
       })));
 
@@ -306,6 +401,70 @@ export function useNoscaData(profile) {
 
   /* ---------------- writes ---------------- */
 
+  /* What happened to each file attached to the last lesson logged —
+     shown on the burst and on Today until every one is in or given up
+     on. { lessonId, items: [{ name, size, status: uploading|done|failed, error }] } */
+  const [uploads, setUploads] = useState(null);
+  const pendingFiles = useRef(new Map());        // name -> File, for Retry
+
+  const uploadOne = async (lessonId, f) => {
+    const name = safeName(f.name);
+    const path = `${profile.id}/${lessonId}/${Date.now()}-${name}`;
+    if (f.size > MAX_UPLOAD_MB * 1048576) {
+      return { error: `${mb(f.size)} — the limit is ${MAX_UPLOAD_MB} MB. Trim the clip and try again.` };
+    }
+    const { error: upErr } = await supabase.storage.from("media").upload(path, f, {
+      contentType: f.type || undefined, cacheControl: "3600", upsert: false,
+    });
+    if (upErr) {
+      const m = String(upErr.message || upErr.error || "");
+      const why = /exceeded|too large|413|maximum/i.test(m) ? `Too big for the storage limit (${MAX_UPLOAD_MB} MB).`
+        : /network|fetch|load failed/i.test(m) ? "The connection dropped."
+        : /not allowed|policy|row-level|403/i.test(m) ? "Storage refused it — run supabase/nosca.sql again."
+        : m || "The upload failed.";
+      return { error: why };
+    }
+    const { error: rowErr } = await supabase.from("lesson_media").insert({
+      lesson_id: lessonId,
+      kind: f.type.startsWith("video") ? "video" : f.type.startsWith("audio") ? "audio" : "photo",
+      storage_path: path,
+    });
+    if (rowErr) return { error: rowErr.message || "Uploaded, but couldn't be attached." };
+    return {};
+  };
+
+  /* Every file at once, each reporting for itself; the lesson exists
+     before the first byte moves, so a failed clip never loses the
+     write-up. Anything that fails stays listed with a reason and a
+     Retry, rather than quietly vanishing. */
+  const uploadFiles = async (lessonId, files) => {
+    const list = (files || []).filter(Boolean);
+    if (!list.length) return { failed: 0 };
+    list.forEach((f) => pendingFiles.current.set(`${lessonId}:${f.name}:${f.size}`, f));
+    const key = (f) => `${lessonId}:${f.name}:${f.size}`;
+    setUploads({ lessonId, items: list.map((f) => ({ key: key(f), name: f.name, size: f.size, kind: f.type.split("/")[0], status: "uploading", error: null })) });
+    const results = await Promise.all(list.map((f) => uploadOne(lessonId, f).catch((e) => ({ error: (e && e.message) || "The upload failed." }))));
+    list.forEach((f, i) => { if (!results[i].error) pendingFiles.current.delete(key(f)); });
+    setUploads((u) => u && u.lessonId === lessonId ? { ...u, items: u.items.map((it) => {
+      const i = list.findIndex((f) => key(f) === it.key);
+      if (i < 0) return it;
+      const r = results[i];
+      return r.error ? { ...it, status: "failed", error: r.error } : { ...it, status: "done", error: null };
+    }) } : u);
+    const failed = results.filter((r) => r.error).length;
+    mediaCache.current.delete(lessonId);
+    await load();
+    return { failed };
+  };
+
+  const retryUploads = async () => {
+    const u = uploads; if (!u) return { failed: 0 };
+    const again = u.items.filter((it) => it.status === "failed").map((it) => pendingFiles.current.get(it.key)).filter(Boolean);
+    if (!again.length) return { failed: 0 };
+    return uploadFiles(u.lessonId, again);
+  };
+  const dismissUploads = () => { setUploads(null); pendingFiles.current.clear(); };
+
   const logLesson = async ({ who, playerId, groupName, focus, subs, note, files, date, ratingRequested }) => {
     const row = {
       coach_id: profile.id,
@@ -327,19 +486,9 @@ export function useNoscaData(profile) {
     const { data: lesson, error } = res;
     if (error) return { error };
 
-    for (const f of files || []) {
-      const path = `${profile.id}/${lesson.id}/${Date.now()}-${f.name}`;
-      const { error: upErr } = await supabase.storage.from("media").upload(path, f);
-      if (!upErr) {
-        await supabase.from("lesson_media").insert({
-          lesson_id: lesson.id,
-          kind: f.type.startsWith("video") ? "video" : f.type.startsWith("audio") ? "audio" : "photo",
-          storage_path: path,
-        });
-      }
-    }
-    await load();
-    return { lesson };
+    const { failed } = await uploadFiles(lesson.id, files);
+    if (!(files || []).length) await load();
+    return { lesson, failed };
   };
 
   const setDrill = async (playerId, title) => {
@@ -426,8 +575,11 @@ export function useNoscaData(profile) {
          line, in supabase/nosca.sql. */
       return { error: { message: "Booking is arranged by your coach." } };
     }
+    const kin = !isCoach && playerId && playerId !== profile.id ? dependants.find((k) => k.id === playerId) : null;
+    if (!isCoach && playerId && playerId !== profile.id && !kin) return { error: { message: "You can only book for someone in your family." } };
+    if (kin && !kin.coachId) return { error: { message: `${kin.name.split(" ")[0]} has no coach yet.` } };
     const { error } = await supabase.from("bookings").insert({
-      coach_id: isCoach ? profile.id : profile.coach_id,
+      coach_id: isCoach ? profile.id : kin ? kin.coachId : ((links && links.coach) || profile.coach_id),
       player_id: groupName ? null : (playerId || (isCoach ? null : profile.id)),
       group_name: groupName || null,
       booking_date: date,
@@ -532,7 +684,7 @@ export function useNoscaData(profile) {
      proves the row changed — an update the policy refuses comes back
      as success with no rows. The cached sign-in profile is refreshed
      by the caller (App.jsx) so the header follows. */
-  const updateProfile = async ({ name, phone, club } = {}) => {
+  const updateProfile = async ({ name, phone, club, bio, sport, dateOfBirth } = {}) => {
     const patch = {};
     if (name !== undefined) {
       const clean = (name || "").trim();
@@ -541,10 +693,60 @@ export function useNoscaData(profile) {
     }
     if (phone !== undefined) patch.phone = (phone || "").trim() || null;
     if (club !== undefined) patch.club = (club || "").trim() || null;
+    if (bio !== undefined) patch.bio = (bio || "").trim().slice(0, 280) || null;
+    if (sport !== undefined && sport) patch.sport = sport;
+    if (dateOfBirth !== undefined) {
+      if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) return { error: { message: "That date isn't right." } };
+      patch.date_of_birth = dateOfBirth || null;
+    }
     if (!Object.keys(patch).length) return {};
     const { data: rows, error } = await supabase.from("profiles").update(patch).eq("id", profile.id).select("id");
     if (error) return { error: { message: rpcMessage(error, "Couldn't save your details.") } };
     if (!rows || !rows.length) return { error: { message: "Couldn't save your details." } };
+    await load();
+    return {};
+  };
+
+  /* A profile picture: squared and shrunk on the device, so a phone
+     photo of several megabytes lands as a small JPEG; put in the
+     public avatars bucket under this account's own id, with the time
+     in the name so the address changes when the picture does. */
+  const shrinkImage = (file, size = 512) => new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const sx = (img.naturalWidth - side) / 2, sy = (img.naturalHeight - side) / 2;
+        const c = document.createElement("canvas"); c.width = size; c.height = size;
+        c.getContext("2d").drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        c.toBlob((blob) => { URL.revokeObjectURL(url); blob ? resolve(blob) : reject(new Error("Couldn't read that picture.")); }, "image/jpeg", 0.86);
+      } catch (e) { URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Couldn't read that picture.")); };
+    img.src = url;
+  });
+
+  const uploadAvatar = async (file) => {
+    if (!file || !file.type.startsWith("image/")) return { error: { message: "Choose a photo." } };
+    let blob;
+    try { blob = await shrinkImage(file); } catch (e) { return { error: { message: e.message || "Couldn't read that picture." } }; }
+    const path = `${profile.id}/avatar-${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000", upsert: true });
+    if (upErr) return { error: { message: /not found|bucket/i.test(upErr.message || "") ? "The avatars bucket is missing — run supabase/nosca.sql again." : (upErr.message || "Couldn't save the picture.") } };
+    const old = me?.avatar_path || null;
+    const { data: rows, error } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", profile.id).select("id");
+    if (error || !rows || !rows.length) return { error: { message: (error && error.message) || "Couldn't save the picture." } };
+    if (old && old !== path) supabase.storage.from("avatars").remove([old]).catch(() => {});
+    await load();
+    return { url: avatarUrl(path) };
+  };
+
+  const removeAvatar = async () => {
+    const old = me?.avatar_path || null;
+    const { error } = await supabase.from("profiles").update({ avatar_path: null }).eq("id", profile.id).select("id");
+    if (error) return { error: { message: error.message } };
+    if (old) supabase.storage.from("avatars").remove([old]).catch(() => {});
     await load();
     return {};
   };
@@ -563,7 +765,7 @@ export function useNoscaData(profile) {
      in their family and writes to that person's coach. */
   const threadFor = (playerId) => {
     if (isCoach) return { coach_id: profile.id, player_id: playerId };
-    const kin = playerId && playerId !== profile.id ? family.find((f) => f.id === playerId) : null;
+    const kin = playerId && playerId !== profile.id ? dependants.find((f) => f.id === playerId) : null;
     if (kin) return { coach_id: kin.coachId, player_id: kin.id };
     return { coach_id: (links && links.coach) || profile.coach_id, player_id: profile.id };
   };
@@ -652,7 +854,7 @@ export function useNoscaData(profile) {
   const lookupCode = async (kind, rawCode) => {
     const clean = (rawCode || "").trim().toUpperCase();
     if (!clean) return { found: null };
-    const { data: rows, error } = await supabase.rpc(kind === "family" ? "find_guardian_by_code" : "find_coach_by_code", { p_code: clean });
+    const { data: rows, error } = await supabase.rpc(kind === "family" ? "find_family_by_code" : "find_coach_by_code", { p_code: clean });
     if (error) return { found: null, error: { message: rpcMessage(error, "Couldn't check that code.") } };
     return { found: (rows && rows[0]) || null };
   };
@@ -668,21 +870,97 @@ export function useNoscaData(profile) {
     const clean = (rawCode || "").trim().toUpperCase();
     if (clean.length < 4) return { error: { message: "Enter the full code." } };
     const { data: coach, error } = await supabase.rpc("join_coach", { p_code: clean });
-    if (error) return { error: { message: rpcMessage(error, "Couldn't join that coach. Please try again.") } };
+    if (error) return { error: { message: rpcMessage(error, "Couldn't ask that coach. Please try again.") } };
     await load();
-    return { coach };
+    /* status is 'pending': the coach has to accept before anything is shared */
+    return { coach, pending: true };
   };
 
-  /* Joining a family — identical in shape. Any player can hand out
-     their family code; anyone who enters it joins that person's family. */
+  /* The coach's answer to a request. Accepting is what links the player. */
+  const respondToRequest = async (id, accept) => {
+    const { error } = await supabase.rpc("respond_to_request", { p_id: id, p_accept: !!accept });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't answer that request.") } };
+    await load();
+    return {};
+  };
+
+  /* A player withdraws the request they have out. */
+  const cancelRequest = async (id) => {
+    const { error } = await supabase.rpc("cancel_request", { p_id: id || (myRequest && myRequest.id) });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't withdraw that.") } };
+    await load();
+    return {};
+  };
+
+  /* Families are made on purpose. create_family returns the code to
+     hand out; join_family takes one. Both raise sentences meant to be
+     shown as they are. */
+  const createFamily = async (name) => {
+    const { data: fam, error } = await supabase.rpc("create_family", { p_name: (name || "").trim() || null });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't start a family. Please try again.") } };
+    await load();
+    return { family: fam };
+  };
+
   const joinFamily = async (rawCode) => {
     const clean = (rawCode || "").trim().toUpperCase();
     if (clean.length < 4) return { error: { message: "Enter the full code." } };
-    const { data: guardian, error } = await supabase.rpc("join_family", { p_code: clean });
+    const { data: fam, error } = await supabase.rpc("join_family", { p_code: clean });
     if (error) return { error: { message: rpcMessage(error, "Couldn't join that family. Please try again.") } };
     await load();
-    return { guardian };
+    return { family: fam };
   };
+
+  const renameFamily = async (name) => {
+    const { error } = await supabase.rpc("rename_family", { p_name: (name || "").trim() || null });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't rename it.") } };
+    await load();
+    return {};
+  };
+
+  /* Notifications are written only by the database. Here they are
+     read, marked read (all at once, when the list is opened, or one by
+     one), cleared, and — while the app is open — received the moment
+     they land, through the realtime channel. A new one also refreshes
+     the data, since it always means something changed. */
+  const markNotificationsRead = async (ids) => {
+    const target = ids && ids.length ? ids : notifications.filter((n) => !n.readAt).map((n) => n.id);
+    if (!target.length) return {};
+    const at = new Date().toISOString();
+    setNotifications((v) => v.map((n) => (target.includes(n.id) ? { ...n, readAt: at } : n)));
+    const { error } = await supabase.from("notifications").update({ read_at: at }).in("id", target).is("read_at", null);
+    return { error };
+  };
+
+  const clearNotification = async (id) => {
+    setNotifications((v) => v.filter((n) => n.id !== id));
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    return { error };
+  };
+
+  const clearNotifications = async () => {
+    setNotifications([]);
+    const { error } = await supabase.from("notifications").delete().eq("user_id", profile.id);
+    return { error };
+  };
+
+  const reloadTimer = useRef(null);
+  useEffect(() => {
+    if (!profile?.id || typeof supabase.channel !== "function") return;
+    let channel;
+    try {
+      channel = supabase.channel(`notifications:${profile.id}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile.id}` }, (payload) => {
+          const n = payload && payload.new; if (!n) return;
+          setNotifications((v) => (v.some((x) => x.id === n.id) ? v : [toNotification(n), ...v]));
+          /* whatever it announces has already been written; pick it up once things settle */
+          if (reloadTimer.current) clearTimeout(reloadTimer.current);
+          reloadTimer.current = setTimeout(() => { reloadTimer.current = null; load(); }, 800);
+        })
+        .subscribe();
+    } catch (e) { channel = null; }
+    return () => { if (channel) { try { supabase.removeChannel(channel); } catch (e) { /* already gone */ } } if (reloadTimer.current) clearTimeout(reloadTimer.current); };
+  }, [profile?.id, load]);
 
   const leaveCoach = async () => {
     const { error } = await supabase.rpc("leave_coach");
@@ -718,6 +996,10 @@ export function useNoscaData(profile) {
         for (const f of inner || []) if (f.id) paths.push(`${profile.id}/${entry.name}/${f.name}`);
       }
       if (paths.length) await bucket.remove(paths);
+      const pics = supabase.storage.from("avatars");
+      const { data: mine } = await pics.list(profile.id);
+      const picPaths = (mine || []).filter((f) => f.id).map((f) => `${profile.id}/${f.name}`);
+      if (picPaths.length) await pics.remove(picPaths);
     } catch (e) { /* nothing uploaded, or already gone */ }
 
     const { error } = await supabase.rpc("delete_my_account");
@@ -766,7 +1048,17 @@ export function useNoscaData(profile) {
   const mediaFor = lessonMedia;
 
   return {
-    loading, loadError, isCoach, inviteCode, coachName, guardianName, familyCode, family,
+    loading, loadError, isCoach, inviteCode, coachName, coachSport,
+    /* the family: { id, code, name, displayName, members } or null; the
+       juniors an adult looks after; each one's coach's hours */
+    family, dependants, hoursByPlayer,
+    /* who is asking to join this coach; the request a player has out;
+       who last declined them */
+    requests, myRequest, declinedBy,
+    notifications, unreadCount: notifications.filter((n) => !n.readAt).length,
+    markNotificationsRead, clearNotification, clearNotifications,
+    me, avatarUrl: avatarUrl(me?.avatar_path || null), uploadAvatar, removeAvatar,
+    uploads, retryUploads, dismissUploads,
     roster, lessons, drills, tips, registers,
     bookings, competitions, recurring, prefs, threads,
     reviewSummary, myReview, reviews, coachAvailability,
@@ -775,11 +1067,14 @@ export function useNoscaData(profile) {
     addBooking, addBookings, cancelBooking, confirmBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview, joinCoach, joinFamily, leaveCoach, leaveFamily, verifyPassword, deleteAccount, lookupCode,
-    hasGuardian: links ? !!links.guardian : !!profile?.guardian_id,
+    savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview,
+    joinCoach, respondToRequest, cancelRequest, leaveCoach,
+    createFamily, joinFamily, renameFamily, leaveFamily,
+    verifyPassword, deleteAccount, lookupCode,
+    hasFamily: links ? !!links.family : !!profile?.family_id,
     hasCoach: links ? !!links.coach : !!profile?.coach_id,
     /* the ids behind those, so a join link can tell "already with them" apart */
     coachId: links ? links.coach : (profile?.coach_id || null),
-    guardianId: links ? links.guardian : (profile?.guardian_id || null),
+    familyId: links ? links.family : (profile?.family_id || null),
   };
 }

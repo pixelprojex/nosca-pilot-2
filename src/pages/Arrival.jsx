@@ -17,7 +17,7 @@ export default function Arrival({ role, profile, data, onDone }) {
   const timer = useRef(null);
   const isCoach = role === "coach";
   const isParent = role === "parent";
-  const code = isCoach ? data.inviteCode : isParent ? data.familyCode : null;
+  const code = isCoach ? data.inviteCode : isParent ? (data.family && data.family.code) || null : null;
   const url = code ? joinLink(isCoach ? "coach" : "family", code) : null;
 
   const flash = (m, bad) => {
@@ -55,14 +55,17 @@ export default function Arrival({ role, profile, data, onDone }) {
 
   /* what to say */
   let title, sub;
-  if (isCoach) { title = tr("You're set up"); sub = tr("Players enter this code to join you."); }
-  else if (isParent) { title = tr("You're set up"); sub = tr("Your children enter this when they sign up."); }
+  if (isCoach) { title = tr("You're set up"); sub = tr("Players enter this code to ask to join you. You accept them from Roster."); }
+  else if (isParent && code) {
+    title = data.family && data.family.members && data.family.members.length > 1 ? `${tr("You're in")} ${data.family.displayName}` : tr("Your family is set up");
+    sub = tr("Your children enter this code when they sign up. Anyone else in the household can join with it too.");
+  }
   else {
-    const coach = data.coachName, guardian = data.guardianName;
-    if (coach && guardian) { title = `${tr("You're with")} ${coach}`; sub = `${tr("And in")} ${guardian}${tr("'s family.")}`; }
-    else if (coach) { title = `${tr("You're with")} ${coach}`; sub = tr("Lessons, drills and video from them land here."); }
-    else if (guardian) { title = `${tr("You're in")} ${guardian}${tr("'s family")}`; sub = tr("No coach yet — add one from Home any time."); }
-    else { title = tr("You're set up"); sub = tr("No coach yet — add one from Home any time."); }
+    const asked = data.myRequest && data.myRequest.coachName, fam = data.family && data.family.displayName;
+    if (asked && fam) { title = `${tr("You've asked")} ${asked}`; sub = `${tr("They'll accept you from their app. And you're in")} ${fam}.`; }
+    else if (asked) { title = `${tr("You've asked")} ${asked}`; sub = tr("They'll accept you from their app — you'll be told the moment they do."); }
+    else if (fam) { title = `${tr("You're in")} ${fam}`; sub = tr("No coach yet — add one from Home with their code."); }
+    else { title = tr("You're set up"); sub = tr("No coach yet — add one from Home with their code."); }
   }
 
   const pill = (Icon, label, onClick) => (
