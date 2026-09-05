@@ -3828,171 +3828,69 @@ const TOUR_PEEK = { time: "3:00 pm", who: "Priya Ellis", kind: "Private", hoursU
    a real account's tour leaves it out. */
 const TOUR = {
   coach: [
-    { area: "Today", title: "Your day", body: "Lessons, in order.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
-    { area: "Today", title: "Just finished", body: "One tap to log it.", path: "Today → Just finished", target: "today-justdone", state: { stack: ["today"] } },
-    { area: "Today", title: "Next lesson", body: "Tap for the brief.", path: "Today → Next lesson", target: "peek-log", state: { stack: ["today"], sheet: "peek", peek: TOUR_PEEK } },
-    { area: "Today", title: "Past lessons", body: "Unlogged, waiting.", path: "Today → Past lessons", target: "fold-past", state: { stack: ["today"] } },
-    { area: "Today", title: "Later today", body: "Still ahead.", path: "Today → Later today", target: "fold-next", state: { stack: ["today"] } },
-    { area: "Today", title: "Lesson requests", body: "Accept, or offer a time.", path: "Today → Lesson requests", target: "fold-asks", state: { stack: ["today"] } },
-    { area: "Today", title: "Competitions", body: "Dates they're building to.", path: "Today → Competitions", target: "fold-events", state: { stack: ["today"] } },
-    { area: "Today", title: "Your coaching", body: "Lifetime and season.", path: "Today → Your coaching", target: "fold-stats", state: { stack: ["today"] } },
-
-    { area: "Quick menu", title: "The plus", body: "Everything you do, here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
-    { area: "Quick menu", title: "Log a lesson", body: "Start here, after a lesson.", path: "Plus → Log a lesson", target: "quick-log", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Attendance", body: "Who turned up.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Live capture", body: "Film mid-lesson.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Set a tip", body: "One thing to work on.", path: "Plus → Set a tip", target: "quick-tip", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Set drills", body: "They tick them off.", path: "Plus → Set drills", target: "quick-drills", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Add player", body: "Share your code.", path: "Plus → Add player", target: "quick-player", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "New group", body: "Squads and clinics.", path: "Plus → New group", target: "quick-group", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Message", body: "Anyone you coach.", path: "Plus → Message", target: "quick-message", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Competition", body: "Add a date.", path: "Plus → Competition", target: "quick-comp", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Quick menu", title: "Rearrange", body: "Drag tiles; resize them.", path: "Plus → Edit", target: "quick-edit", state: { stack: ["today"], sheet: "quick" } },
-
-    { area: "Attendance", title: "The register", body: "Tap a lesson, mark them.", path: "Plus → Attendance", target: "attend-row", state: { stack: ["today"], sheet: "attend" } },
-    { area: "Live capture", title: "Film, photo, voice", body: "Kept until you log.", path: "Plus → Live capture", target: "capture-modes", state: { stack: ["today"], sheet: "capture" } },
-
-    { area: "Log a lesson", title: "Who", body: "One player, or a group.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
-    { area: "Log a lesson", title: "When", body: "Date and time.", path: "Log a lesson → When", target: "wiz-when", state: { stack: ["log"], prefill: { who: "Marcus Tran" }, wizardStep: 1 } },
-    { area: "Log a lesson", title: "Focus", body: "What you covered.", path: "Log a lesson → Focus", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
-    { area: "Log a lesson", title: "Notes", body: "Say it; it's typed for you.", path: "Log a lesson → Notes", target: "wiz-notes", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
-    { area: "Log a lesson", title: "Media", body: "Clips, photos, device data.", path: "Log a lesson → Media", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 4 } },
-    { area: "Log a lesson", title: "Drills", body: "What to practise.", path: "Log a lesson → Drills", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 5 } },
-    { area: "Log a lesson", title: "Takeaway", body: "One sentence they'll see.", path: "Log a lesson → Takeaway", target: "wiz-tip", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
-    { area: "Log a lesson", title: "Publish", body: "It lands on their phone.", path: "Log a lesson → Publish", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
-
-    { area: "Diary", title: "Diary", body: "Your week, as a list.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "List or month", body: "Switch the view.", path: "Diary → List / Calendar", target: "cal-view", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "Book", body: "Tap a free slot.", path: "Diary → Book", target: "agenda-book", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "A booking", body: "Tap for the brief.", path: "Diary → name", target: "agenda-row", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "Edit a day", body: "Change that day's hours.", path: "Diary → pencil", target: "agenda-edit", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "Recurring", body: "Standing weekly slots.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "A series", body: "Add, extend or end one.", path: "Diary → Recurring lessons → +", target: "recur-add", state: { stack: ["calendar", "recurring"] } },
-    { area: "Diary", title: "Availability", body: "Days, hours, lesson length.", path: "Diary → Hours and lesson length", target: "avail-days", state: { stack: ["calendar", "availability"] } },
-
-    { area: "Roster", title: "Roster", body: "Your code, then everyone.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
-    { area: "Roster", title: "A player", body: "Tap for their file.", path: "Roster → name", target: "roster-row", state: { stack: ["roster"] } },
-    { area: "Roster", title: "Per row", body: "Message, or their history.", path: "Roster → icons", target: "roster-message", state: { stack: ["roster"] } },
-    { area: "Roster", title: "Groups", body: "Squads live here.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
-    { area: "Roster", title: "Player file", body: "Message, drills, more.", path: "Roster → name", target: "player-actions", state: { stack: ["roster", "player:Marcus Tran"] } },
-    { area: "Roster", title: "History", body: "Lessons, attendance, goals.", path: "Roster → history icon", target: "history-tabs", state: { stack: ["roster", "history:Marcus Tran"] } },
-
-    { area: "Chat", title: "Chat", body: "Threads with players.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
-    { area: "Chat", title: "New", body: "A person, or a group.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
-    { area: "Chat", title: "Everyone", body: "One message to all.", path: "Chat → Message everyone", target: "chat-broadcast", state: { stack: ["messages"] } },
-    { area: "Chat", title: "Weather", body: "Call a day off.", path: "Chat → Call off for weather", target: "chat-weather", state: { stack: ["messages"] } },
-    { area: "Chat", title: "A thread", body: "Tap to open it.", path: "Chat → name", target: "chat-row", state: { stack: ["messages"] } },
-    { area: "Chat", title: "Send", body: "Type, or hold the mic.", path: "Chat → name → Send", target: "thread-send", state: { stack: ["messages", "thread:Marcus Tran"] } },
-
-    { area: "Alerts", title: "Alerts", body: "What needs you.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
-    { area: "Search", title: "Search", body: "Players, lessons, drills.", path: "Header → search", target: "search", state: { stack: ["today"] } },
-
-    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["today"] } },
-    { area: "You", title: "Coaching", body: "Invite code & QR lives here.", path: "You → Coaching", target: "settings-coaching", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Drills", body: "Your reusable library.", path: "You → Drills", target: "settings-library", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Drill library", body: "Add, filter, assign.", path: "You → Drills → New", target: "library-new", state: { stack: ["today", "you", "library"] } },
-    { area: "You", title: "Availability", body: "Days and times you coach.", path: "You → Weekly availability", target: "settings-availability", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Reviews", body: "What players said.", path: "You → Reviews", target: "settings-reviews", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Paperwork", body: "Vetting, insurance, dates.", path: "You → Paperwork", target: "settings-credentials", state: { stack: ["today", "you"] }, skipLive: true },
-    { area: "You", title: "Requests", body: "People asking to join.", path: "You → Requests", target: "settings-requests", state: { stack: ["today", "you"] }, skipLive: true },
-    { area: "You", title: "Branding", body: "Logo, colour, club name.", path: "You → Branding", target: "settings-branding", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Appearance", body: "Dark mode, text size.", path: "You → Appearance", target: "settings-appearance", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["today", "you"] } },
-    { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["today", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Help", body: "Help centre, contact us.", path: "You → Help centre", target: "settings-help", state: { stack: ["today", "you"] }, skipLive: !SUPPORT_EMAIL },
-    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Delete account", body: "Everything, permanently.", path: "You → Delete account", target: "settings-delete", state: { stack: ["today", "you"] } },
+    { area: "Today", title: "Your day", body: "Lessons in order. Tap one for the brief.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
+    { area: "Today", title: "Just finished", body: "One tap logs it while it's fresh.", path: "Today → Just finished", target: "today-justdone", state: { stack: ["today"] } },
+    { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
+    { area: "Log a lesson", title: "The plus", body: "Logging, attendance, live capture, drills — all start here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
+    { area: "Log a lesson", title: "Who and what", body: "A player or a group, then the focus. Say the notes; they're typed.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
+    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → Media", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 4 } },
+    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → Drills", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 5 } },
+    { area: "Log a lesson", title: "Publish", body: "The lesson, clips, drills and takeaway arrive together.", path: "Log a lesson → Publish", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
+    { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
+    { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Diary", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "Diary → Your hours", target: "cal-hours", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Recurring lessons", body: "Standing weekly slots, booked out for the whole run.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
+    { area: "Diary", title: "Book in the diary", body: "Tap a free slot to book someone; tap a booking to log or cancel it.", path: "Diary → free slot", target: "agenda-book", state: { stack: ["calendar"] } },
+    { area: "Roster", title: "Roster", body: "Your code and QR to invite, then everyone you coach.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
+    { area: "Roster", title: "A player's file", body: "Their lessons, newest first, the moment you open them. Message or set drills below.", path: "Roster → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
+    { area: "Roster", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
+    { area: "Chat", title: "Chat", body: "A thread with every player. A junior's parent reads theirs.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Everyone at once", body: "One message to all, or call a day off for weather.", path: "Chat → Message everyone", target: "chat-broadcast", state: { stack: ["messages"] } },
+    { area: "Alerts", title: "Alerts", body: "Requests, bookings, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
+    { area: "You", title: "Your profile", body: "Photo, details, club, password, family — all in one place.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Roster.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["today", "you"] } },
   ],
   player: [
-    { area: "Start", title: "Add your coach", body: "Their code gets you in.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
-
-    { area: "Home", title: "Home", body: "Your day at a glance.", path: "Tab bar → Home", target: "tab-home", state: { stack: ["home"] } },
-    { area: "Home", title: "Working on", body: "Your coach's one thing.", path: "Home → Working on", target: "home-tip", state: { stack: ["home"] } },
-    { area: "Home", title: "Next lesson", body: "When, and what for.", path: "Home → Next", target: "home-next", state: { stack: ["home"] } },
-    { area: "Home", title: "To practise", body: "Drills left.", path: "Home → To practise", target: "home-practice", state: { stack: ["home"] } },
-    { area: "Home", title: "Lessons", body: "Everything logged.", path: "Home → Lessons", target: "home-lessons", state: { stack: ["home"] } },
-    { area: "Home", title: "Coming up", body: "Competitions ahead.", path: "Home → Coming up", target: "home-events", state: { stack: ["home"] } },
-    { area: "Home", title: "Your coach", body: "Profile and review.", path: "Home → Your coach", target: "home-coach", state: { stack: ["home"] } },
-    { area: "Home", title: "Attendance", body: "Your record.", path: "Home → Attendance", target: "home-attendance", state: { stack: ["home"] } },
-    { area: "Home", title: "Request a lesson", body: "Ask; your coach confirms.", path: "Home → Request a lesson", target: "home-request", state: { stack: ["home"] } },
-
-    { area: "Lessons", title: "Lessons", body: "Newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "Views", body: "Feed, cards or list.", path: "Lessons → switch", target: "log-view", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "A lesson", body: "Tap to open it.", path: "Lessons → row", target: "log-row", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "Clips", body: "Every angle they filmed.", path: "Lessons → row → clip", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Lessons", title: "Download lesson log", body: "Keep a copy of any lesson.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Lessons", title: "From here", body: "Drills, or book again.", path: "Lesson → bottom", target: "lesson-next", state: { stack: ["log", "lesson"], logView: "list" } },
-
-    { area: "Drills", title: "Drills", body: "What to practise.", path: "Tab bar → Drills", target: "tab-practice", state: { stack: ["practice"] } },
-    { area: "Drills", title: "Tick it off", body: "Your coach sees it.", path: "Drills → row", target: "drill-row", state: { stack: ["practice"] } },
-
-    { area: "Diary", title: "Diary", body: "Open slots to request.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "Request", body: "Tap; your coach confirms.", path: "Diary → Request", target: "agenda-book", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "Month view", body: "Pick a day, then a time.", path: "Diary → Calendar", target: "cal-view", state: { stack: ["calendar"] } },
-
+    { area: "Start", title: "Your coach", body: "Enter their code to ask. They accept from their app, and you're told.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
+    { area: "Home", title: "Home", body: "The one thing you're working on, your next lesson, what's left to practise.", path: "Tab bar → Home", target: "home-tip", state: { stack: ["home"] } },
+    { area: "Home", title: "Request a lesson", body: "Pick from your coach's hours; they confirm.", path: "Home → Request a lesson", target: "home-request", state: { stack: ["home"] } },
+    { area: "Lessons", title: "Lessons", body: "Everything your coach logged, newest first. Feed, cards or list.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Clips", body: "Every clip, photo and voice note they attached.", path: "Lessons → a lesson", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Lessons", title: "Download lesson log", body: "Keep a copy of any lesson as a file.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Drills", title: "Drills", body: "Tick them off; your coach sees it.", path: "Tab bar → Drills", target: "drill-row", state: { stack: ["practice"] } },
+    { area: "Diary", title: "Diary", body: "Your coach's free times. Tap one to ask.", path: "Tab bar → Diary", target: "agenda-book", state: { stack: ["calendar"] } },
     { area: "Chat", title: "Chat", body: "Your coach, any time.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
-    { area: "Chat", title: "Thread", body: "Tap to open.", path: "Chat → name", target: "chat-row", state: { stack: ["messages"] } },
-    { area: "Chat", title: "Send", body: "Type, or hold the mic.", path: "Chat → name → Send", target: "thread-send", state: { stack: ["messages", "thread:Ray Doyle"] } },
-
-    { area: "Your coach", title: "Review", body: "Stars and a line.", path: "Home → Your coach", target: "coach-review", state: { stack: ["home", "coachProfile"] } },
-    { area: "Your coach", title: "Message", body: "Straight to chat.", path: "Home → Your coach → Message", target: "coach-message", state: { stack: ["home", "coachProfile"] } },
-
-    { area: "Family", title: "Profile pill", body: "Coaches, groups, family.", path: "Header → your name", target: "profile-pill", state: { stack: ["home"] } },
-    { area: "Family", title: "Your account", body: "Add a coach; see groups.", path: "Your name → sheet", target: "family-rows", state: { stack: ["home"], sheet: "family" } },
-    { area: "Family", title: "Family code", body: "Share it; they join you.", path: "Your name → Family", target: "family-share", state: { stack: ["home", "familyCode"] } },
-    { area: "Family", title: "Join a family", body: "Enter a parent's code.", path: "Your name → Family → Join", target: "family-join", state: { stack: ["home", "familyCode"] } },
-
-    { area: "Alerts", title: "Alerts", body: "What's new for you.", path: "Header → bell", target: "alerts", state: { stack: ["home"] } },
-    { area: "Search", title: "Search", body: "Find, or do, anything.", path: "Header → search", target: "search", state: { stack: ["home"] } },
-
-    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["home"] } },
-    { area: "You", title: "Attendance", body: "Your record.", path: "You → Attendance", target: "settings-attendance", state: { stack: ["home", "you"] } },
-    { area: "You", title: "How it works", body: "Views, alerts, sharing.", path: "You → How it works", target: "settings-prefs", state: { stack: ["home", "you"] } },
-    { area: "You", title: "Sporting record", body: "Share it with a new coach.", path: "You → Your sporting record", target: "settings-transfer", state: { stack: ["home", "you"] }, skipLive: true },
-    { area: "You", title: "Account", body: "Photo, details, alerts.", path: "You → Account", target: "settings-account", state: { stack: ["home", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
-    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["home", "you"] } },
-    { area: "You", title: "Delete account", body: "Everything, permanently.", path: "You → Delete account", target: "settings-delete", state: { stack: ["home", "you"] } },
+    { area: "Family", title: "Family", body: "Optional. Start or join one so a parent can follow a young player.", path: "Header → Family", target: "profile-pill", state: { stack: ["home"] } },
+    { area: "Family", title: "One code", body: "Create a code and share it, or join with the one you were given.", path: "Family → Set up", target: "family-create", state: { stack: ["home", "familyCode"] } },
+    { area: "Alerts", title: "Alerts", body: "New lessons, confirmations, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["home"] } },
+    { area: "You", title: "Your profile", body: "Photo, details, password, family — all in one place.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["home", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
+  ],
+  parent: [
+    { area: "Family", title: "Your family", body: "Every young player at a glance: next lesson, last lesson, drills left.", path: "Tab bar → Family", target: "family-kid", state: { stack: ["family"] } },
+    { area: "Family", title: "Book and message", body: "Book into their coach's hours, or write to the coach, from their card.", path: "Family → Book a lesson", target: "family-kid", state: { stack: ["family"] } },
+    { area: "Family", title: "Everyone's week", body: "All bookings, one list.", path: "Family → Coming up", target: "family-upcoming", state: { stack: ["family"] } },
+    { area: "Family", title: "Your family code", body: "A child enters it when they sign up. Share it from here.", path: "Family → settings", target: "family-code", state: { stack: ["family", "familyCode"] } },
+    { area: "Lessons", title: "Lessons", body: "Every child's lessons, with the clips their coach attached.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Clips", body: "Open one to watch, read the notes, and download a copy.", path: "Lessons → a lesson", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Diary", title: "Diary", body: "Confirmed lessons for everyone. Requests come from a child's card.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Chat", title: "Chat", body: "You write to your children's coaches; they read what a coach sends them.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
+    { area: "Alerts", title: "Alerts", body: "A lesson logged, a booking confirmed, a message — for each child.", path: "Header → bell", target: "alerts", state: { stack: ["family"] } },
+    { area: "You", title: "Your profile", body: "Photo, details, password, family — all in one place.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["family", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["family", "you"] } },
   ],
   juvenile: [
-    { area: "Start", title: "Join your coach", body: "Ask a parent for the code.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
-    { area: "Home", title: "Home", body: "Your day at a glance.", path: "Tab bar → Home", target: "tab-home", state: { stack: ["home"] } },
-    { area: "Home", title: "Working on", body: "Your coach's one thing.", path: "Home → Working on", target: "home-tip", state: { stack: ["home"] } },
-    { area: "Home", title: "Next lesson", body: "When, and what for.", path: "Home → Next", target: "home-next", state: { stack: ["home"] } },
-    { area: "Home", title: "Attendance", body: "Your record.", path: "Home → Attendance", target: "home-attendance", state: { stack: ["home"] } },
-    { area: "Lessons", title: "Lessons", body: "Newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "A lesson", body: "Tap to open it.", path: "Lessons → row", target: "log-row", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "Clips", body: "Every angle they filmed.", path: "Lessons → row → clip", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Drills", title: "Drills", body: "What to practise.", path: "Tab bar → Drills", target: "tab-practice", state: { stack: ["practice"] } },
-    { area: "Drills", title: "Tick it off", body: "Your coach sees it.", path: "Drills → row", target: "drill-row", state: { stack: ["practice"] } },
-    { area: "Diary", title: "Diary", body: "View only — a parent books.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
-    { area: "Chat", title: "No chat", body: "A grown-up handles it.", path: "Tab bar", target: "tabbar", state: { stack: ["home"] } },
-    { area: "Search", title: "Search", body: "Lessons, drills, tips.", path: "Header → search", target: "search", state: { stack: ["home"] } },
-    { area: "You", title: "You", body: "Settings live here.", path: "Header → avatar", target: "you", state: { stack: ["home"] } },
-    { area: "You", title: "Coaches & profiles", body: "Add another coach.", path: "You → Coaches & profiles", target: "settings-family", state: { stack: ["home", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back any time.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
-    { area: "You", title: "Sign out", body: "Ends the session.", path: "You → Sign out", target: "settings-signout", state: { stack: ["home", "you"] } },
+    { area: "Start", title: "Your coach", body: "Enter the code your coach gave. They accept you from their app.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
+    { area: "Home", title: "Home", body: "The one thing you're working on, your next lesson, what's left to practise.", path: "Tab bar → Home", target: "home-tip", state: { stack: ["home"] } },
+    { area: "Lessons", title: "Lessons", body: "Everything your coach logged, newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Clips", body: "Every clip, photo and voice note they attached.", path: "Lessons → a lesson", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
+    { area: "Drills", title: "Drills", body: "Tick them off; your coach sees it.", path: "Tab bar → Drills", target: "drill-row", state: { stack: ["practice"] } },
+    { area: "Diary", title: "Diary", body: "Your lessons. A parent books them for you.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
+    { area: "Family", title: "Family", body: "Who's in your family. They book and message your coach for you.", path: "Header → Family", target: "profile-pill", state: { stack: ["home"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
   ],
 };
-/* A parent has everything a player has, plus the family: the pill
-   switches person, the dashboard shows everyone, and the month digest
-   counts each child's lessons and drills. Booking is not theirs yet —
-   a child's coach books, or the child requests from their own account —
-   so the tour says exactly that and promises nothing else. */
-TOUR.parent = (() => {
-  const base = TOUR.player
-    .filter((s) => s.target !== "agenda-book" && s.target !== "cal-view" && s.target !== "home-request")
-    .map((s) => s.target === "profile-pill" ? { ...s, body: "Switch to your child." }
-      : s.target === "tab-calendar" ? { ...s, body: "Your own lessons. A child's coach books theirs." } : s);
-  const at = base.findIndex((s) => s.area === "Family");
-  const family = [
-    { area: "Family", title: "Family dashboard", body: "Everyone, one screen.", path: "You → Family dashboard", target: "family-person", state: { stack: ["family"] } },
-    { area: "Family", title: "Everyone's diary", body: "All lessons, one list.", path: "Family → Everyone's diary", target: "family-diary", state: { stack: ["family"] } },
-    { area: "Family", title: "This month", body: "How each child got on.", path: "Family → This month", target: "digest-tile", state: { stack: ["family", "digest"] } },
-  ];
-  return [...base.slice(0, at), ...family, ...base.slice(at)];
-})();
 
 /* Which seeded person a showcase renders as. Player seeds exist for
    golf (Marcus) and tennis (Ellie); a coach's seeds cover every sport. */
@@ -5749,7 +5647,6 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   const [frame, setFrame] = useState(0);
   const rail = useRef(null);
   const items = media && media.length ? media : [];
-  const many = items.length > 1;
 
   const tick = useRef(0);
   const onRailScroll = (e) => {
@@ -5766,7 +5663,9 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
     <div data-feed-card={index} className="relative"
          style={{ height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always", overflow: "hidden" }}>
 
-      {items.length === 0 || !near ? (
+      {media === null ? (
+        <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />
+      ) : items.length === 0 || !near ? (
         <GeneratedField lesson={lesson} mark={t.mark} />
       ) : (
         <div ref={rail} onScroll={onRailScroll}
@@ -9627,7 +9526,8 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
        frames, the device readout and the test-media control are the
        design harness's only. */
     const mediaFor = liveMedia
-      ? (l) => liveMedia[l.id] || []
+      /* null while a lesson's files are still being signed, [] when it has none */
+      ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? null : []))
       : (l, i) => {
       const own = (ownMedia && ownMedia[i]) || [];
       if (own.length) return own;
@@ -12000,7 +11900,7 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
       <Screen title={name} onBack={pop}
               meta={list.length ? `${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}` : tr("Nothing logged yet")}>
         <div className="px-6 mb-5">
-          <Segmented tour="history-tabs" options={[tr("Lessons"), tr("Attendance"), tr("Goals")]} value={tab} onChange={setTab} />
+          <Segmented tour="history-tabs" options={live ? [tr("Lessons"), tr("Attendance")] : [tr("Lessons"), tr("Attendance"), tr("Goals")]} value={tab} onChange={setTab} />
         </div>
 
         {tab === tr("Lessons") && (
@@ -15312,6 +15212,28 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
       + atRisk(roster, mySeriesLive, live).length + focusReqs.length;
+  /* A real coach's own numbers, from their real lessons: this week's
+     count, the hours they add up to at the coach's lesson length, and
+     everything since 1 January. */
+  const liveStats = data ? (() => {
+    const now = new Date();
+    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    const jan1 = new Date(now.getFullYear(), 0, 1);
+    const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const week = (data.lessons || []).filter((l) => l.iso && l.iso >= ymd(weekAgo) && l.iso <= ymd(now)).length;
+    const season = (data.lessons || []).filter((l) => l.iso && l.iso >= ymd(jan1)).length;
+    return { weekDone: week, weekHours: Math.round((week * (duration || 45)) / 60), seasonDone: season };
+  })() : null;
+  /* the seeded household as a family object, for the walkthrough only */
+  const showcaseFamily = sc && sc.role === "player" ? (() => {
+    const kids = profiles.filter((p) => p.age), adults = profiles.filter((p) => !p.age);
+    const members = [
+      ...adults.map((p) => ({ id: p.id, name: p.name, junior: false, me: p.id === activeProfileId, role: "player", coachId: null, coachName: null, sport: null, avatarPath: null })),
+      ...kids.map((p) => { const c = conns.find((x) => x.profileId === p.id); return { id: p.id, name: p.name, junior: true, me: p.id === activeProfileId, role: "player", coachId: c ? 99 : null, coachName: c ? c.coach : null, sport: c ? c.sport : null, avatarPath: null }; }),
+    ];
+    if (!adults.length) members.unshift({ id: 900, name: "Marcus Tran", junior: false, me: false, role: "player", coachId: null, coachName: null, sport: null, avatarPath: null });
+    return { id: "demo", code: "K7M2PQ", name: null, displayName: "Tran family", members };
+  })() : null;
   const bookKid = async (kid, b) => {
     const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration });
     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
@@ -15562,7 +15484,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} />;
   } else if (screen.startsWith("history:")) {
     const hname = screen.split(":")[1];
-    body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={attendance} goals={goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
+    /* a real record: what the coach actually marked for this person */
+    const realAtt = data ? (() => {
+      let showed = 0, noShow = 0;
+      Object.values(registers || {}).forEach((reg) => { const v = reg[hname]; if (v === "in") showed++; else if (v === "out") noShow++; });
+      return showed + noShow ? { [hname]: { showed, noShow, cancelled: 0, late: 0 } } : {};
+    })() : null;
+    body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={realAtt || attendance} goals={data ? {} : goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("clesson:")) {
     const [, cname, lid] = screen.split(":");
     /* the tapped lesson, by id — a real account never falls back to the catalogue */
@@ -15611,7 +15539,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
              onSend={() => { setCheckIns((v) => [{ id: Date.now(), who: (activeProfile || {}).name || "", when: tr("Just now"), note: "", state: "waiting", secs: 9 }, ...v]);
                setCeleb({ label: tr("Sent"), sub: tr("Your coach will look at it.") }); }} />;
   } else if (screen === "familyCode") {
-    body = <FamilyScreen family={data ? data.family : null} isJunior={juvenile} live={!!data}
+    body = <FamilyScreen family={data ? data.family : (sc && sc.parent ? showcaseFamily : null)} isJunior={juvenile} live={!!data}
                          onCreate={data ? (n) => data.createFamily(n) : async () => ({})} onJoin={data ? (c) => data.joinFamily(c) : async () => ({})}
                          onLeave={data ? () => data.leaveFamily() : async () => ({})} onRename={data ? (n) => data.renameFamily(n) : async () => ({})}
                          lookup={data ? data.lookupCode : null} say={say} pop={pop} onOpenHome={() => go("family")} />;
@@ -15717,9 +15645,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} live={!!data} notify={prefs.notify} setNotify={(v) => setPrefs((p) => ({ ...p, notify: v }))} userId={account ? account.id : null} say={say} />;
   } else if (screen === "support") { body = <Support pop={pop} say={say} live={!!data} />;
   } else if (screen === "subscription") { body = <Subscription pop={pop} say={say} plan={plan} />;
-  } else if (screen === "family" && data) {
-    body = <FamilyHome family={data.family} isJunior={juvenile} dependants={data.dependants || []} lessons={data.lessons || []} drills={data.drills || []}
-                       bookings={liveBookingRows || []} hoursByPlayer={data.hoursByPlayer || {}} todayIso={isoOf(todayMD.m, todayMD.d)}
+  } else if (screen === "family" && (data || sc)) {
+    /* the walkthrough shows the real family screens with the seeded household */
+    const fam = data ? data.family : showcaseFamily;
+    const kids = data ? (data.dependants || []) : (showcaseFamily ? showcaseFamily.members.filter((m) => m.junior && !m.me) : []);
+    const kid = kids[0];
+    body = <FamilyHome family={fam} isJunior={juvenile} dependants={juvenile ? [] : kids}
+                       lessons={data ? (data.lessons || []) : (kid ? (playerLessons || []).slice(0, 3).map((l) => ({ ...l, playerId: kid.id })) : [])}
+                       drills={data ? (data.drills || []) : (kid ? (practice["2:tennis"] || []).map((d) => ({ ...d, playerId: kid.id })) : [])}
+                       bookings={data ? (liveBookingRows || []) : (kid ? [{ id: 1, playerId: kid.id, date: isoOf(7, 31), time: "4:30 pm", status: "confirmed" }] : [])}
+                       hoursByPlayer={data ? (data.hoursByPlayer || {}) : (kid ? { [kid.id]: { days: DEFAULT_AVAIL.tennis } } : {})} todayIso={isoOf(todayMD.m, todayMD.d)}
                        onBook={(k) => { setBookFor(k); go("calendar"); }} onMessage={(k) => push("thread:" + k.name)}
                        onOpenLesson={(l) => push("lesson:" + l.id)} onSettings={() => push("familyCode")} onSetUp={() => push("familyCode")}
                        right={navRight} go={go} push={push} />;
@@ -15735,7 +15670,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           avatar={account ? account.avatarUrl : null} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
-                          weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
+                          weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
   } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount && !bookFor}
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
@@ -15753,9 +15688,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      today:     <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
       log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
-    }[screen] || <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+    }[screen] || <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>
@@ -15967,7 +15902,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                      onDone={() => { data && data.markNotificationsRead(); setCatchUp(null); }} />
           )}
           {tour && <Walkthrough role={role} juvenile={juvenile} sport={sport}
-                       isParent={account ? account.accountType === "parent" : (!juvenile && profiles.some((p) => p.age))}
+                       isParent={account ? (account.accountType === "parent" || hasFamily) : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
           {arrival && <NewLessonArrival lesson={arrival} coach={(conn || {}).coach || ""}
                         onOpen={() => { const id = arrival.id; setArrival(null); setStack([id != null ? "lesson:" + id : "lesson"]); setTimeout(() => setSheet("rate"), 900); }} />}
@@ -15984,7 +15919,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           {celeb && <Celebration label={celeb.label} sub={celeb.sub} tone={celeb.tone} onDone={() => setCeleb(null)} />}
           {splash && <Splash key={splashKey} replayKey={splashKey}
                              sport={inApp ? sport : null}
-                             roleLabel={juvenile ? "Under 18" : role === "coach" ? "Coach" : hasFamily ? "Parent" : (cfg.noun === "player" ? "Player" : cfg.noun)}
+                             roleLabel={juvenile ? "Under 18" : role === "coach" ? "Coach" : (hasFamily || (account && account.accountType === "parent")) ? "Parent" : (cfg.noun === "player" ? "Player" : cfg.noun)}
                              onDone={() => setSplash(false)} />}
 
           {mini && !bare && !familyGuide && (<MiniPlayer clip={mini.label} onClose={() => { haptic(8); setMini(null); }} onExpand={() => { setMini(null); go(mini.id != null ? "lesson:" + mini.id : "lesson"); }} />)}

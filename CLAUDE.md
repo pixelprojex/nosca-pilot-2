@@ -16,7 +16,8 @@ never floods.
 2. `npm run build` — the deploy runs this. A failed build leaves Netlify
    serving the last good one, so fixes appear to do nothing.
 3. `supabase/test/run.sh` whenever `supabase/nosca.sql` changed — runs
-   it on a throwaway Postgres, twice, plus 22 behavioural checks.
+   it on a throwaway Postgres, twice, plus 50 behavioural checks and
+   two upgrade paths.
 4. Render it. The Playwright scripts under `scripts/e2e/` drive the
    built app against a mocked Supabase: sign-up for every role, codes
    both ways, deletion, the walkthrough's ring alignment, and a seed
@@ -45,7 +46,25 @@ seeded data and no account.
 
 - **RLS: no policy on table X may query table X.** It recurses and
   every read fails with 42P17. Lookups go in `security definer`
-  functions (`my_coach_id()`, `my_guardian_id()`).
+  functions (`my_coach_id()`, `my_family_id()`, `my_family_ids()`).
+- **Links move only through functions.** `coach_id` is set by
+  `respond_to_request()` when a coach accepts; `family_id` by
+  `create_family()` / `join_family()` / `leave_family()`. The profiles
+  update policy refuses a row that changes either. A coach's code makes
+  a `coach_requests` row, never a link; a family code joins at once.
+- **Nobody is given a family.** A family is a row someone created. An
+  adult in it looks after its juniors (`my_family_ids()`); a junior sees
+  the family and nothing they cannot do. `data.family` is the family,
+  `data.dependants` the juniors an adult looks after.
+- **Notifications are written by triggers only** (section 10 of
+  nosca.sql), in the same transaction as the thing they describe. The
+  app reads, marks read and clears; it never inserts. New kinds go in
+  the trigger, and the mock in `scripts/e2e/` must produce them too.
+- **Uploads never fail silently.** Every attached file uploads in
+  parallel with a status per file (`data.uploads`), shown on Today
+  with the reason and a Retry. The per-file limit is `MAX_UPLOAD_MB`
+  (50, Supabase's default; `VITE_MAX_UPLOAD_MB` if the project's limit
+  is raised).
 - **Sign-up is a database trigger** (`on_auth_user_created` →
   `handle_new_user()`). The browser sends everything as metadata in one
   `signUp` call and never touches `profiles` during sign-up. Nothing on

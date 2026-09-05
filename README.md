@@ -14,15 +14,25 @@ account is yours to click through; it's about 10 minutes total, once.
 ## What's real in this build
 
 - Coach sign-up, with an invite code to hand to players
-- Player sign-up — with the coach's code, or without one and added later
+- Player sign-up — with the coach's code, or without one and added later.
+  A code sends a request; the coach accepts or declines it from Today,
+  Roster or You → Requests, and the player is told
 - **The full designed interface**, behind that real sign-in
 - Log a lesson — private or group, notes, and real video/photo upload
 - Lesson history — the coach sees everyone's; a player sees only theirs
 - Attendance — the coach takes a real register; a player sees their own %
 - Drills and tips — the coach sets them; a player ticks drills done
-- Families — anyone can hand out a family code; whoever enters it
-  joins that person's family, and the database lets a guardian see
-  their family's lessons and book or message for them
+- Families — optional, and made on purpose: You → Family creates a
+  code or joins with one. The adults in a family see a young player's
+  lessons, drills and bookings, book into their coach's hours and
+  write to the coach; the young player sees who is in it. A parent
+  signing up gets a family made; an under-18 must join one
+- Notifications — a lesson logged, a request answered, a booking asked
+  for or confirmed, a message, drills, a tip: written by the database,
+  listed under the bell, shown once on opening when they landed while
+  the app was closed, and pushed to the phone once push is set up
+- Your profile — photo, name, sport, date of birth, phone, club, a
+  line about you, password, family, sign out, delete: one screen
 
 ## Where the work stands
 
@@ -50,8 +60,9 @@ The plain pilot screens built first are preserved in `src/pages` and
    creates every table, the sign-up trigger, the security rules and the
    storage bucket, and checks its own work.
 4. Read the one row that comes back under the query. `tables` should
-   say `13 of 13`, `signup_trigger` `true`, `profiles_policy` should
-   begin `OK`, and so should `tables_as_user` and `tables_as_anon`. If
+   say `17 of 17`, `signup_trigger` `true`, `notify_triggers` `7`,
+   `profiles_policy` should begin `OK`, and so should `tables_as_user`
+   and `tables_as_anon`. `storage_bucket` should name both buckets. If
    instead you see red text, nothing was changed — see
    **Troubleshooting** at the bottom.
 
