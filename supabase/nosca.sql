@@ -23,10 +23,10 @@
 -- belongs to one. Every table hangs off auth.users, so the two deletes
 -- clear the lot. It cannot be undone.
 --
--- Uploaded files are not rows: clear them by hand first, in
--- Supabase → Storage → media → select all → Delete.
+-- Uploaded files are not rows: scripts/wipe.mjs removes them and the
+-- accounts properly; supabase/wipe.sql is the SQL-editor version.
 -- ============================================================
--- delete from public.lesson_media;
+-- delete from public.families;
 -- delete from auth.users;
 
 
@@ -41,10 +41,10 @@
 
 -- ---------- profiles ----------
 -- One row per person, created by the sign-up trigger in section 5.
--- A coach has an invite_code that players enter to join them. Everyone
--- has a family_code; whoever enters it points their guardian_id at
--- this person. There is no separate "family" table: a family is
--- simply everyone who names the same guardian.
+-- A coach has an invite_code that players enter to ask to join them
+-- (the coach accepts — see coach_requests). Nobody has a family until
+-- they create or join one: family_id points at a row in families,
+-- and a family is everyone who shares that row.
 create table if not exists public.profiles (
   id            uuid primary key references auth.users (id) on delete cascade,
   role          text not null check (role in ('coach', 'player')),
@@ -52,22 +52,51 @@ create table if not exists public.profiles (
   sport         text not null default 'golf',
   account_type  text,                                  -- coach · adult · junior · parent
   coach_id      uuid references public.profiles (id) on delete set null,
-  guardian_id   uuid references public.profiles (id) on delete set null,
   invite_code   text,                                  -- coaches only
-  family_code   text,                                  -- everyone
   date_of_birth date,
   phone         text,
   club          text,
+  avatar_path   text,                                  -- <id>/avatar.jpg in the avatars bucket
+  bio           text,                                  -- a line about them, shown on their profile
   created_at    timestamptz not null default now()
 );
 alter table public.profiles add column if not exists account_type  text;
 alter table public.profiles add column if not exists coach_id      uuid references public.profiles (id) on delete set null;
-alter table public.profiles add column if not exists guardian_id   uuid references public.profiles (id) on delete set null;
 alter table public.profiles add column if not exists invite_code   text;
-alter table public.profiles add column if not exists family_code   text;
 alter table public.profiles add column if not exists date_of_birth date;
 alter table public.profiles add column if not exists phone         text;
 alter table public.profiles add column if not exists club          text;
+alter table public.profiles add column if not exists avatar_path   text;
+alter table public.profiles add column if not exists bio           text;
+
+-- ---------- families ----------
+-- Created on purpose, by whoever wants one, from You → Family. The
+-- code is what the rest of the household enters to join. An under-18
+-- must join one at sign-up; anyone else may or may not. Whether a
+-- member counts as an adult or a junior is their own row's business
+-- (is_junior_of, section 7), not a column here.
+create table if not exists public.families (
+  id         uuid primary key default gen_random_uuid(),
+  code       text not null unique,
+  name       text,                                     -- optional; "Your family" when null
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+alter table public.profiles add column if not exists family_id uuid references public.families (id) on delete set null;
+
+-- ---------- coach_requests ----------
+-- A player entering a coach's code asks; the coach accepts or declines.
+-- Only an accepted request sets profiles.coach_id, and only through
+-- respond_to_request() in section 8.
+create table if not exists public.coach_requests (
+  id         uuid primary key default gen_random_uuid(),
+  player_id  uuid not null references public.profiles (id) on delete cascade,
+  coach_id   uuid not null references public.profiles (id) on delete cascade,
+  status     text not null default 'pending'
+             check (status in ('pending', 'accepted', 'declined', 'cancelled')),
+  created_at timestamptz not null default now(),
+  decided_at timestamptz
+);
 
 -- ---------- lessons ----------
 -- A group lesson has no player_id and a group_name instead.
@@ -232,6 +261,37 @@ create table if not exists public.reviews (
   unique (coach_id, player_id)
 );
 
+-- ---------- notifications ----------
+-- One row per thing a person should be told about, written by the
+-- triggers in section 10 — never by the app. The app reads them for
+-- the bell and the "since you were away" list, marks them read, and
+-- the push function (netlify/functions/push.mjs) forwards new ones to
+-- any phone that asked for them.
+create table if not exists public.notifications (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  kind       text not null,                            -- lesson · request · accepted · booking · message · drill · tip · weather · family
+  title      text not null,
+  body       text,
+  data       jsonb not null default '{}'::jsonb,       -- { screen, id } — where a tap should land
+  read_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- ---------- push_subscriptions ----------
+-- A browser that agreed to receive push: its endpoint and keys. One
+-- row per device; the push function removes a row when the endpoint
+-- has gone.
+create table if not exists public.push_subscriptions (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  endpoint   text not null unique,
+  p256dh     text not null,
+  auth       text not null,
+  ua         text,
+  created_at timestamptz not null default now()
+);
+
 
 -- ============================================================
 -- 2 · CONSTRAINTS, KEYS AND INDEXES
@@ -262,7 +322,12 @@ begin
     select * from (values
       ('profiles',            'id',          'auth.users',                 'c'),
       ('profiles',            'coach_id',    'public.profiles',            'n'),
-      ('profiles',            'guardian_id', 'public.profiles',            'n'),
+      ('profiles',            'family_id',   'public.families',            'n'),
+      ('families',            'created_by',  'public.profiles',            'n'),
+      ('coach_requests',      'player_id',   'public.profiles',            'c'),
+      ('coach_requests',      'coach_id',    'public.profiles',            'c'),
+      ('notifications',       'user_id',     'public.profiles',            'c'),
+      ('push_subscriptions',  'user_id',     'public.profiles',            'c'),
       ('lessons',             'coach_id',    'public.profiles',            'c'),
       ('lessons',             'player_id',   'public.profiles',            'c'),
       ('lesson_media',        'lesson_id',   'public.lessons',             'c'),
@@ -365,8 +430,12 @@ $type$;
 -- names; "if not exists" leaves those alone.
 create unique index if not exists profiles_invite_code_key
   on public.profiles (invite_code) where invite_code is not null;
-create unique index if not exists profiles_family_code_key
-  on public.profiles (family_code) where family_code is not null;
+
+-- One open request per player per coach; a decided one stays as history.
+create unique index if not exists coach_requests_open_key
+  on public.coach_requests (player_id, coach_id) where status = 'pending';
+create index if not exists notifications_user_idx
+  on public.notifications (user_id, created_at desc);
 
 -- The app upserts a review on (coach_id, player_id) and a register
 -- mark on (session_id, player_id); both need a unique key to land on.
@@ -395,7 +464,14 @@ drop function if exists public.enforce_pilot_limits() cascade;
 -- and "create or replace" cannot change a return type. Nothing else
 -- depends on them, so they can go and come back.
 drop function if exists public.find_coach_by_code(text);
-drop function if exists public.find_guardian_by_code(text);
+drop function if exists public.find_guardian_by_code(text) cascade;
+
+-- The guardian link and the per-person family code are replaced by
+-- the families table (section 4 carries anyone who had one across).
+-- The helpers built on them go here; anything that referenced them —
+-- old policies included — is rebuilt further down.
+drop function if exists public.my_guardian_id() cascade;
+drop function if exists public.coach_availability() cascade;   -- now takes a player, section 7
 
 
 -- ============================================================
@@ -423,10 +499,8 @@ begin
     end loop;
     -- a collision is vanishingly unlikely, but it would fail a sign-up,
     -- so check rather than hope
-    exit when not exists (
-      select 1 from public.profiles
-      where invite_code = candidate or family_code = candidate
-    );
+    exit when not exists (select 1 from public.profiles where invite_code = candidate)
+         and not exists (select 1 from public.families where code = candidate);
   end loop;
   return candidate;
 end;
@@ -441,14 +515,35 @@ update public.profiles
 set invite_code = upper(btrim(invite_code))
 where invite_code is distinct from upper(btrim(invite_code));
 update public.profiles
-set family_code = upper(btrim(family_code))
-where family_code is distinct from upper(btrim(family_code));
-update public.profiles
 set invite_code = public.new_code()
 where role = 'coach' and (invite_code is null or invite_code = '');
-update public.profiles
-set family_code = public.new_code()
-where family_code is null or family_code = '';
+
+-- ---------- families, carried over ----------
+-- An older project linked people with profiles.guardian_id. Each
+-- guardian who had anyone becomes a family, with everyone who named
+-- them in it; then the old columns go. Nobody is unlinked by this.
+do $fam$
+declare
+  g   record;
+  fid uuid;
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'profiles' and column_name = 'guardian_id') then
+    for g in
+      execute 'select distinct guardian_id as id from public.profiles where guardian_id is not null'
+    loop
+      select family_id into fid from public.profiles where id = g.id;
+      if fid is null then
+        insert into public.families (code, created_by) values (public.new_code(), g.id) returning id into fid;
+        update public.profiles set family_id = fid where id = g.id;
+      end if;
+      execute 'update public.profiles set family_id = $1 where guardian_id = $2 and family_id is null' using fid, g.id;
+    end loop;
+  end if;
+end
+$fam$;
+alter table public.profiles drop column if exists guardian_id cascade;
+alter table public.profiles drop column if exists family_code cascade;
 
 
 -- ============================================================
@@ -466,6 +561,11 @@ where family_code is null or family_code = '';
 --
 -- Metadata keys read: role, name, sport, account_type, date_of_birth,
 -- phone, coach_code, family_code.
+--
+-- A coach code becomes a request the coach sees and accepts; a family
+-- code joins the family at once (it is shared within a household). A
+-- parent who enters no family code has one created for them — that
+-- is what they came for — and its code is shown on arrival.
 -- ============================================================
 create or replace function public.handle_new_user()
 returns trigger
@@ -484,7 +584,7 @@ declare
   v_fcode  text  := upper(btrim(coalesce(meta->>'family_code', '')));
   v_dob    date;
   v_coach  uuid;
-  v_guard  uuid;
+  v_fam    uuid;
 begin
   -- role has a check constraint; anything unexpected is a player
   if v_role not in ('coach', 'player') then
@@ -515,30 +615,22 @@ begin
     v_dob := null;
   end;
 
-  -- A code that matches links the account at once. One that doesn't is
-  -- not an error: the account is created unlinked and the person adds
-  -- their coach or family from the app. Coaches are not linked to
-  -- anyone — they hand out codes, they don't enter them.
-  if v_role = 'player' then
-    if v_ccode <> '' then
-      select p.id into v_coach
-      from public.profiles p
-      where p.role = 'coach' and upper(btrim(p.invite_code)) = v_ccode
-      limit 1;
-    end if;
-    if v_fcode <> '' then
-      select p.id into v_guard
-      from public.profiles p
-      where p.family_code is not null
-        and upper(btrim(p.family_code)) = v_fcode
-        and p.id <> new.id
-      limit 1;
-    end if;
+  -- A code that matches is used at once. One that doesn't is not an
+  -- error: the account is created unlinked and the person adds their
+  -- coach or family from the app. Coaches enter no coach code — they
+  -- hand theirs out — but may join a family like anyone else.
+  if v_role = 'player' and v_ccode <> '' then
+    select p.id into v_coach
+    from public.profiles p
+    where p.role = 'coach' and upper(btrim(p.invite_code)) = v_ccode
+    limit 1;
+  end if;
+  if v_fcode <> '' then
+    select f.id into v_fam from public.families f where f.code = v_fcode limit 1;
   end if;
 
   insert into public.profiles (
-    id, role, name, sport, account_type, date_of_birth, phone,
-    coach_id, guardian_id, invite_code, family_code
+    id, role, name, sport, account_type, date_of_birth, phone, invite_code, family_id
   ) values (
     new.id,
     v_role,
@@ -547,12 +639,22 @@ begin
     v_type,
     v_dob,
     v_phone,
-    v_coach,
-    v_guard,
     case when v_role = 'coach' then public.new_code() else null end,   -- only a coach invites
-    public.new_code()                                                  -- everyone can run a family
+    v_fam
   )
   on conflict (id) do nothing;
+
+  -- a parent with nowhere to join starts a family of their own
+  if v_fam is null and v_type = 'parent' then
+    insert into public.families (code, created_by) values (public.new_code(), new.id) returning id into v_fam;
+    update public.profiles set family_id = v_fam where id = new.id;
+  end if;
+
+  -- the coach code asks; the coach answers from the app
+  if v_coach is not null then
+    insert into public.coach_requests (player_id, coach_id) values (new.id, v_coach)
+    on conflict do nothing;
+  end if;
 
   return new;
 
@@ -560,8 +662,8 @@ exception when others then
   -- Last resort: a plain profile rather than no account. Whatever went
   -- wrong above can be fixed in the app; a failed sign-up cannot.
   begin
-    insert into public.profiles (id, role, name, sport, family_code)
-    values (new.id, 'player', split_part(coalesce(new.email, 'Player'), '@', 1), 'golf', public.new_code())
+    insert into public.profiles (id, role, name, sport)
+    values (new.id, 'player', split_part(coalesce(new.email, 'Player'), '@', 1), 'golf')
     on conflict (id) do nothing;
   exception when others then
     null;
@@ -598,22 +700,26 @@ as $fn$
   limit 1;
 $fn$;
 
-create or replace function public.find_guardian_by_code(p_code text)
-returns table (id uuid, name text)
+-- A family: its id, its name (the creator's when it has none), and how
+-- many people are in it — enough to confirm "join the Kellys?", no more.
+drop function if exists public.find_family_by_code(text);
+create or replace function public.find_family_by_code(p_code text)
+returns table (id uuid, name text, members int)
 language sql
 stable
 security definer
 set search_path = ''
 as $fn$
-  select p.id, p.name
-  from public.profiles p
-  where p.family_code is not null
-    and upper(btrim(p.family_code)) = upper(btrim(p_code))
+  select f.id,
+         coalesce(f.name, (select split_part(c.name, ' ', 1) || '''s family' from public.profiles c where c.id = f.created_by), 'A family') as name,
+         (select count(*)::int from public.profiles m where m.family_id = f.id) as members
+  from public.families f
+  where f.code = upper(btrim(p_code))
   limit 1;
 $fn$;
 
-grant execute on function public.find_coach_by_code(text)    to anon, authenticated;
-grant execute on function public.find_guardian_by_code(text) to anon, authenticated;
+grant execute on function public.find_coach_by_code(text)  to anon, authenticated;
+grant execute on function public.find_family_by_code(text) to anon, authenticated;
 
 
 -- ============================================================
@@ -626,6 +732,11 @@ grant execute on function public.find_guardian_by_code(text) to anon, authentica
 -- the table's owner, outside the policies, so it can read profiles
 -- from inside a profiles policy without starting the loop. That is
 -- all these are for.
+--
+-- Family words, used throughout: a member is a "junior" if they chose
+-- so at sign-up or their date of birth says under 18; everyone else
+-- in the family is an "adult". Adults see and act for the juniors;
+-- juniors see themselves and who is in the family.
 -- ============================================================
 
 -- your coach (null for a coach, or a player who has none yet)
@@ -633,30 +744,67 @@ create or replace function public.my_coach_id()
 returns uuid language sql stable security definer set search_path = ''
 as $fn$ select p.coach_id from public.profiles p where p.id = auth.uid(); $fn$;
 
--- your guardian
-create or replace function public.my_guardian_id()
-returns uuid language sql stable security definer set search_path = ''
-as $fn$ select p.guardian_id from public.profiles p where p.id = auth.uid(); $fn$;
+-- is this person a junior? Either answer marks them as one — what they
+-- chose at sign-up, or their date of birth — the same rule the app uses.
+create or replace function public.is_junior_of(p_id uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $fn$
+  select coalesce((select p.role = 'player'
+                      and (p.account_type = 'junior'
+                           or (p.date_of_birth is not null
+                               and p.date_of_birth > (current_date - interval '18 years')))
+                   from public.profiles p where p.id = p_id), false);
+$fn$;
 
--- everyone who names you as their guardian
+-- A junior cannot request a booking or message a coach themselves;
+-- an adult in their family does it for them.
+create or replace function public.is_junior()
+returns boolean language sql stable security definer set search_path = ''
+as $fn$ select public.is_junior_of(auth.uid()); $fn$;
+
+-- your family (null until you create or join one)
+create or replace function public.my_family_id()
+returns uuid language sql stable security definer set search_path = ''
+as $fn$ select p.family_id from public.profiles p where p.id = auth.uid(); $fn$;
+
+-- everyone else in your family
+create or replace function public.my_family_member_ids()
+returns setof uuid language sql stable security definer set search_path = ''
+as $fn$
+  select p.id from public.profiles p
+  where p.family_id is not null and p.family_id = public.my_family_id() and p.id <> auth.uid();
+$fn$;
+
+-- the people you look after: the juniors in your family, if you are an
+-- adult in it. Every policy that says "your family's" means this.
 create or replace function public.my_family_ids()
 returns setof uuid language sql stable security definer set search_path = ''
-as $fn$ select p.id from public.profiles p where p.guardian_id = auth.uid(); $fn$;
+as $fn$
+  select p.id from public.profiles p
+  where p.family_id is not null and p.family_id = public.my_family_id()
+    and p.id <> auth.uid()
+    and not public.is_junior()
+    and public.is_junior_of(p.id);
+$fn$;
 
--- the coaches of your family, so a guardian can see who coaches them
+-- the coaches of the people you look after, so you can see who they are
 create or replace function public.my_family_coach_ids()
 returns setof uuid language sql stable security definer set search_path = ''
 as $fn$
   select p.coach_id from public.profiles p
-  where p.guardian_id = auth.uid() and p.coach_id is not null;
+  where p.id in (select public.my_family_ids()) and p.coach_id is not null;
 $fn$;
 
--- the guardians of your players, so a coach can see who handles a junior
+-- the adults who look after your junior players, so a coach can see who
+-- handles a junior (and who is writing in that junior's thread)
 create or replace function public.my_players_guardian_ids()
 returns setof uuid language sql stable security definer set search_path = ''
 as $fn$
-  select p.guardian_id from public.profiles p
-  where p.coach_id = auth.uid() and p.guardian_id is not null;
+  select a.id
+  from public.profiles j
+  join public.profiles a on a.family_id = j.family_id and a.id <> j.id
+  where j.coach_id = auth.uid() and j.family_id is not null
+    and public.is_junior_of(j.id) and not public.is_junior_of(a.id);
 $fn$;
 
 -- the coach of a given player
@@ -664,19 +812,45 @@ create or replace function public.coach_of(p_player uuid)
 returns uuid language sql stable security definer set search_path = ''
 as $fn$ select p.coach_id from public.profiles p where p.id = p_player; $fn$;
 
--- your coach's weekly hours. Preferences are otherwise yours alone, and
--- a player needs exactly one thing from their coach's row — the hours
--- they can book into — so this returns that and nothing else. A player
--- with no coach, or a coach who has set nothing, gets an empty object.
-create or replace function public.coach_availability()
-returns jsonb language sql stable security definer set search_path = ''
+-- coaches you have asked to join, while they decide — so their name
+-- can be shown next to "request sent"
+create or replace function public.my_pending_coach_ids()
+returns setof uuid language sql stable security definer set search_path = ''
 as $fn$
-  select coalesce((select pr.availability from public.preferences pr
-                   where pr.id = (select p.coach_id from public.profiles p where p.id = auth.uid())),
-                  '{}'::jsonb);
+  select r.coach_id from public.coach_requests r
+  where r.player_id = auth.uid() and r.status = 'pending';
 $fn$;
 
--- registers you, or someone in your family, were marked in. The
+-- players asking to join you, so their name shows on the request
+create or replace function public.my_requesting_player_ids()
+returns setof uuid language sql stable security definer set search_path = ''
+as $fn$
+  select r.player_id from public.coach_requests r
+  where r.coach_id = auth.uid() and r.status = 'pending';
+$fn$;
+
+-- A coach's weekly hours, for booking into. Preferences are otherwise
+-- theirs alone, and a player needs exactly one thing from their
+-- coach's row — the hours — so this returns that and nothing else.
+-- With no argument: your own coach's. With a player's id: that
+-- player's coach's, allowed when the player is you or someone you look
+-- after (an adult booking for a junior). Nothing set, or no right to
+-- ask, reads as an empty object.
+create or replace function public.coach_availability(p_player uuid default null)
+returns jsonb language sql stable security definer set search_path = ''
+as $fn$
+  select case
+    when p_player is null or p_player = auth.uid()
+      then coalesce((select pr.availability from public.preferences pr
+                     where pr.id = public.my_coach_id()), '{}'::jsonb)
+    when p_player in (select public.my_family_ids())
+      then coalesce((select pr.availability from public.preferences pr
+                     where pr.id = public.coach_of(p_player)), '{}'::jsonb)
+    else '{}'::jsonb
+  end;
+$fn$;
+
+-- registers you, or someone you look after, were marked in. The
 -- sessions policy needs this because it may not read the marks table
 -- directly: the marks policy reads sessions, and two tables reading
 -- each other recurse just as one reading itself does.
@@ -685,48 +859,30 @@ returns setof uuid language sql stable security definer set search_path = ''
 as $fn$
   select m.session_id from public.attendance_marks m
   where m.player_id = auth.uid()
-     or m.player_id in (select p.id from public.profiles p where p.guardian_id = auth.uid());
-$fn$;
-
--- A junior cannot request a booking or message a coach themselves;
--- their guardian does it for them. Either answer marks someone as a
--- junior — what they chose at sign-up, or their date of birth — the
--- same rule the app applies.
-create or replace function public.is_junior()
-returns boolean language sql stable security definer set search_path = ''
-as $fn$
-  select p.role = 'player'
-     and (p.account_type = 'junior'
-          or (p.date_of_birth is not null
-              and p.date_of_birth > (current_date - interval '18 years')))
-  from public.profiles p
-  where p.id = auth.uid();
+     or m.player_id in (select public.my_family_ids());
 $fn$;
 
 -- Policies run as the signed-in person, so that role must be allowed
 -- to call these. Nobody else needs to.
-revoke all on function public.my_coach_id()                 from public, anon;
-revoke all on function public.my_guardian_id()              from public, anon;
-revoke all on function public.my_family_ids()               from public, anon;
-revoke all on function public.my_family_coach_ids()         from public, anon;
-revoke all on function public.my_players_guardian_ids()     from public, anon;
-revoke all on function public.coach_of(uuid)                from public, anon;
-revoke all on function public.my_attendance_session_ids()   from public, anon;
-revoke all on function public.is_junior()                   from public, anon;
-revoke all on function public.coach_availability()          from public, anon;
-grant execute on function public.my_coach_id()               to authenticated;
-grant execute on function public.my_guardian_id()            to authenticated;
-grant execute on function public.my_family_ids()             to authenticated;
-grant execute on function public.my_family_coach_ids()       to authenticated;
-grant execute on function public.my_players_guardian_ids()   to authenticated;
-grant execute on function public.coach_of(uuid)              to authenticated;
-grant execute on function public.my_attendance_session_ids() to authenticated;
-grant execute on function public.is_junior()                 to authenticated;
-grant execute on function public.coach_availability()        to authenticated;
+do $grants$
+declare
+  fn text;
+begin
+  foreach fn in array array[
+    'my_coach_id()', 'is_junior_of(uuid)', 'is_junior()', 'my_family_id()', 'my_family_member_ids()',
+    'my_family_ids()', 'my_family_coach_ids()', 'my_players_guardian_ids()', 'coach_of(uuid)',
+    'my_pending_coach_ids()', 'my_requesting_player_ids()', 'coach_availability(uuid)',
+    'my_attendance_session_ids()'
+  ] loop
+    execute format('revoke all on function public.%s from public, anon', fn);
+    execute format('grant execute on function public.%s to authenticated', fn);
+  end loop;
+end
+$grants$;
 
 
 -- ============================================================
--- 8 · JOINING AND LEAVING
+-- 8 · JOINING, LEAVING, ASKING AND ANSWERING
 --
 -- One call each, for a signed-in person. The checks and the write
 -- happen together in the database, so the app cannot show "joined"
@@ -734,7 +890,8 @@ grant execute on function public.coach_availability()        to authenticated;
 -- to people word for word.
 -- ============================================================
 
--- Returns {id, name, sport} of the coach.
+-- A player asks to join a coach. Returns {id, name, sport, status} of
+-- the coach: status 'pending' for a new or existing request.
 create or replace function public.join_coach(p_code text)
 returns jsonb
 language plpgsql
@@ -745,8 +902,8 @@ declare
   me      uuid := auth.uid();
   code    text := upper(btrim(coalesce(p_code, '')));
   my_role text;
+  my_coach uuid;
   c       record;
-  n       int;
 begin
   if me is null then
     raise exception 'You need to be signed in to do that.';
@@ -766,78 +923,68 @@ begin
     raise exception 'That''s your own code.';
   end if;
 
-  select p.role into my_role from public.profiles p where p.id = me;
+  select p.role, p.coach_id into my_role, my_coach from public.profiles p where p.id = me;
   if my_role is null then
     raise exception 'Your account isn''t finished. Sign out, sign back in, and try again.';
   end if;
   if my_role = 'coach' then
     raise exception 'A coach account can''t join another coach as a player.';
   end if;
-
-  -- Switching coach is allowed: the new code simply replaces the old link.
-  update public.profiles set coach_id = c.id where id = me;
-  get diagnostics n = row_count;
-  if n = 0 then
-    raise exception 'Couldn''t join that coach. Please try again.';
+  if my_coach = c.id then
+    raise exception 'You''re with % already.', c.name;
+  end if;
+  if my_coach is not null then
+    raise exception 'Leave your current coach first — open their profile from Home.';
   end if;
 
-  return jsonb_build_object('id', c.id, 'name', c.name, 'sport', c.sport);
+  insert into public.coach_requests (player_id, coach_id) values (me, c.id)
+  on conflict do nothing;
+
+  return jsonb_build_object('id', c.id, 'name', c.name, 'sport', c.sport, 'status', 'pending');
 end;
 $fn$;
 
--- Returns {id, name, sport} of the guardian.
-create or replace function public.join_family(p_code text)
-returns jsonb
+-- The coach answers. Accepting links the player; either way the
+-- request is kept as history and the player is told (section 10).
+create or replace function public.respond_to_request(p_id uuid, p_accept boolean)
+returns void
 language plpgsql
 security definer
 set search_path = ''
 as $fn$
 declare
-  me      uuid := auth.uid();
-  code    text := upper(btrim(coalesce(p_code, '')));
-  my_role text;
-  g       record;
-  n       int;
+  me uuid := auth.uid();
+  r  record;
 begin
   if me is null then
     raise exception 'You need to be signed in to do that.';
   end if;
-  if code = '' then
-    raise exception 'Enter the family code.';
-  end if;
-
-  select p.id, p.name, p.sport, p.guardian_id into g
-  from public.profiles p
-  where p.family_code is not null and upper(btrim(p.family_code)) = code
-  limit 1;
+  select * into r from public.coach_requests where id = p_id and coach_id = me and status = 'pending';
   if not found then
-    raise exception 'That code doesn''t match a family.';
+    raise exception 'That request isn''t waiting any more.';
   end if;
-  if g.id = me then
-    raise exception 'That''s your own code.';
+  update public.coach_requests
+  set status = case when p_accept then 'accepted' else 'declined' end, decided_at = now()
+  where id = p_id;
+  if p_accept then
+    update public.profiles set coach_id = me where id = r.player_id;
   end if;
-  -- they already look to you; the link cannot run both ways
-  if g.guardian_id = me then
-    raise exception 'They''re in your family already, so you can''t join theirs.';
-  end if;
+end;
+$fn$;
 
-  select p.role into my_role from public.profiles p where p.id = me;
-  if my_role is null then
-    raise exception 'Your account isn''t finished. Sign out, sign back in, and try again.';
+-- The player withdraws a request they made.
+create or replace function public.cancel_request(p_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+begin
+  if auth.uid() is null then
+    raise exception 'You need to be signed in to do that.';
   end if;
-  -- A family looks after a player's account. A coach has no player side
-  -- to look after, so there is nothing for the link to do.
-  if my_role = 'coach' then
-    raise exception 'A coach account can''t join a family.';
-  end if;
-
-  update public.profiles set guardian_id = g.id where id = me;
-  get diagnostics n = row_count;
-  if n = 0 then
-    raise exception 'Couldn''t join that family. Please try again.';
-  end if;
-
-  return jsonb_build_object('id', g.id, 'name', g.name, 'sport', g.sport);
+  update public.coach_requests set status = 'cancelled', decided_at = now()
+  where id = p_id and player_id = auth.uid() and status = 'pending';
 end;
 $fn$;
 
@@ -855,7 +1002,73 @@ begin
 end;
 $fn$;
 
-create or replace function public.leave_family()
+-- Start a family. Returns {id, code, name}.
+create or replace function public.create_family(p_name text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  me     uuid := auth.uid();
+  fid    uuid;
+  v_code text;
+  v_name text := nullif(btrim(coalesce(p_name, '')), '');
+begin
+  if me is null then
+    raise exception 'You need to be signed in to do that.';
+  end if;
+  if public.my_family_id() is not null then
+    raise exception 'You''re in a family already. Leave it first to start another.';
+  end if;
+  v_code := public.new_code();
+  insert into public.families (code, name, created_by) values (v_code, v_name, me) returning id into fid;
+  update public.profiles set family_id = fid where id = me;
+  return jsonb_build_object('id', fid, 'code', v_code, 'name', v_name);
+end;
+$fn$;
+
+-- Join a family by its code. Returns {id, code, name, members}.
+create or replace function public.join_family(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  me     uuid := auth.uid();
+  v_code text := upper(btrim(coalesce(p_code, '')));
+  f      record;
+  n      int;
+begin
+  if me is null then
+    raise exception 'You need to be signed in to do that.';
+  end if;
+  if v_code = '' then
+    raise exception 'Enter the family code.';
+  end if;
+  select * into f from public.families fam where fam.code = v_code limit 1;
+  if not found then
+    raise exception 'That code doesn''t match a family.';
+  end if;
+  if public.my_family_id() = f.id then
+    raise exception 'You''re in this family already.';
+  end if;
+  if public.my_family_id() is not null then
+    raise exception 'You''re in a family already. Leave it first to join another.';
+  end if;
+  update public.profiles set family_id = f.id where id = me;
+  get diagnostics n = row_count;
+  if n = 0 then
+    raise exception 'Couldn''t join that family. Please try again.';
+  end if;
+  select count(*) into n from public.profiles where family_id = f.id;
+  return jsonb_build_object('id', f.id, 'code', f.code, 'name', f.name, 'members', n);
+end;
+$fn$;
+
+-- Any adult in the family may name it.
+create or replace function public.rename_family(p_name text)
 returns void
 language plpgsql
 security definer
@@ -865,18 +1078,49 @@ begin
   if auth.uid() is null then
     raise exception 'You need to be signed in to do that.';
   end if;
-  update public.profiles set guardian_id = null where id = auth.uid();
+  if public.my_family_id() is null then
+    raise exception 'You''re not in a family.';
+  end if;
+  if public.is_junior() then
+    raise exception 'An adult in the family names it.';
+  end if;
+  update public.families set name = nullif(btrim(coalesce(p_name, '')), '') where id = public.my_family_id();
 end;
 $fn$;
 
-revoke all on function public.join_coach(text)  from public, anon;
-revoke all on function public.join_family(text) from public, anon;
-revoke all on function public.leave_coach()     from public, anon;
-revoke all on function public.leave_family()    from public, anon;
-grant execute on function public.join_coach(text)  to authenticated;
-grant execute on function public.join_family(text) to authenticated;
-grant execute on function public.leave_coach()     to authenticated;
-grant execute on function public.leave_family()    to authenticated;
+-- Leave; an empty family is removed with you.
+create or replace function public.leave_family()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  fid uuid := public.my_family_id();
+begin
+  if auth.uid() is null then
+    raise exception 'You need to be signed in to do that.';
+  end if;
+  update public.profiles set family_id = null where id = auth.uid();
+  if fid is not null and not exists (select 1 from public.profiles where family_id = fid) then
+    delete from public.families where id = fid;
+  end if;
+end;
+$fn$;
+
+do $grants$
+declare
+  fn text;
+begin
+  foreach fn in array array[
+    'join_coach(text)', 'respond_to_request(uuid, boolean)', 'cancel_request(uuid)', 'leave_coach()',
+    'create_family(text)', 'join_family(text)', 'rename_family(text)', 'leave_family()'
+  ] loop
+    execute format('revoke all on function public.%s from public, anon', fn);
+    execute format('grant execute on function public.%s to authenticated', fn);
+  end loop;
+end
+$grants$;
 
 
 -- ============================================================
@@ -903,9 +1147,9 @@ begin
 
   -- People linked to this account keep their own, minus the link. The
   -- foreign keys would do this anyway; saying it here keeps the intent
-  -- where it can be read.
-  update public.profiles set guardian_id = null where guardian_id = me;
-  update public.profiles set coach_id    = null where coach_id    = me;
+  -- where it can be read. A family left empty goes too.
+  update public.profiles set coach_id = null where coach_id = me;
+  perform public.leave_family();
 
   -- A coach's own competitions have nobody left to belong to.
   delete from public.competitions where coach_id = me and player_id is null;
@@ -935,7 +1179,265 @@ grant execute on function public.delete_my_account() to authenticated;
 
 
 -- ============================================================
--- 10 · THE LESSONS VIEW
+-- 10 · TELLING PEOPLE
+--
+-- Every notification is written here, by a trigger, in the same
+-- transaction as the thing it is about — a lesson logged, a request
+-- made or answered, a booking asked for, confirmed or called off, a
+-- message, a drill, a tip. The app never inserts one. Each trigger
+-- runs as the owner so it can write the row whoever caused it, and
+-- each is wrapped so that a notification failing can never fail the
+-- thing it describes.
+-- ============================================================
+
+-- One row for one person. Internal: nothing but the triggers call it.
+create or replace function public.notify(p_user uuid, p_kind text, p_title text, p_body text, p_data jsonb default '{}'::jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+begin
+  if p_user is null then return; end if;
+  insert into public.notifications (user_id, kind, title, body, data)
+  values (p_user, p_kind, p_title, p_body, coalesce(p_data, '{}'::jsonb));
+exception when others then
+  null;
+end;
+$fn$;
+revoke all on function public.notify(uuid, text, text, text, jsonb) from public, anon, authenticated;
+
+-- The adults who look after a junior — told the same things the junior
+-- is. An adult player's own family is not told about their lessons.
+create or replace function public.adults_for(p_player uuid)
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $fn$
+  select a.id
+  from public.profiles j
+  join public.profiles a on a.family_id = j.family_id and a.id <> j.id
+  where j.id = p_player and j.family_id is not null
+    and public.is_junior_of(j.id) and not public.is_junior_of(a.id);
+$fn$;
+revoke all on function public.adults_for(uuid) from public, anon, authenticated;
+
+create or replace function public.name_of(p_id uuid)
+returns text language sql stable security definer set search_path = ''
+as $fn$ select coalesce((select p.name from public.profiles p where p.id = p_id), 'Someone'); $fn$;
+revoke all on function public.name_of(uuid) from public, anon, authenticated;
+
+create or replace function public.first_name_of(p_id uuid)
+returns text language sql stable security definer set search_path = ''
+as $fn$ select split_part(public.name_of(p_id), ' ', 1); $fn$;
+revoke all on function public.first_name_of(uuid) from public, anon, authenticated;
+
+create or replace function public.nice_date(p_date date)
+returns text language sql immutable set search_path = ''
+as $fn$ select trim(to_char(p_date, 'Dy DD Mon')); $fn$;
+
+-- ---------- a lesson is logged ----------
+create or replace function public.trg_lessons_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare a uuid;
+begin
+  if new.player_id is not null then
+    perform public.notify(new.player_id, 'lesson', 'New lesson logged',
+      new.focus || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'lesson', 'id', new.id));
+    for a in select public.adults_for(new.player_id) loop
+      perform public.notify(a, 'lesson', public.first_name_of(new.player_id) || '''s lesson was logged',
+        new.focus || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'family', 'id', new.id));
+    end loop;
+  end if;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists lessons_notify on public.lessons;
+create trigger lessons_notify after insert on public.lessons
+  for each row execute function public.trg_lessons_notify();
+
+-- ---------- a player asks to join; the coach answers ----------
+create or replace function public.trg_requests_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+begin
+  if tg_op = 'INSERT' then
+    perform public.notify(new.coach_id, 'request', public.name_of(new.player_id) || ' asked to join you',
+      'Accept or decline from Roster.', jsonb_build_object('screen', 'requests', 'id', new.id));
+  elsif tg_op = 'UPDATE' and new.status <> old.status then
+    if new.status = 'accepted' then
+      perform public.notify(new.player_id, 'accepted', public.name_of(new.coach_id) || ' accepted you',
+        'Your lessons, drills and messages start here.', jsonb_build_object('screen', 'home', 'id', new.id));
+    elsif new.status = 'declined' then
+      perform public.notify(new.player_id, 'declined', public.name_of(new.coach_id) || ' couldn''t take you on',
+        'You can ask another coach with their code.', jsonb_build_object('screen', 'home', 'id', new.id));
+    end if;
+  end if;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists requests_notify on public.coach_requests;
+create trigger requests_notify after insert or update on public.coach_requests
+  for each row execute function public.trg_requests_notify();
+
+-- ---------- bookings: asked for, confirmed, cancelled, weather ----------
+create or replace function public.trg_bookings_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare
+  a     uuid;
+  whn   text := public.nice_date(new.booking_date) || ' ' || new.start_time;
+  actor uuid := auth.uid();
+begin
+  if new.player_id is null then return new; end if;   -- a group slot tells nobody
+  if tg_op = 'INSERT' then
+    if new.status = 'requested' then
+      perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' asked for a lesson',
+        whn, jsonb_build_object('screen', 'today', 'id', new.id));
+    elsif new.status = 'confirmed' then
+      perform public.notify(new.player_id, 'booking', 'Lesson booked', whn || ' · ' || public.name_of(new.coach_id),
+        jsonb_build_object('screen', 'calendar', 'id', new.id));
+      for a in select public.adults_for(new.player_id) loop
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || ' has a lesson booked', whn,
+          jsonb_build_object('screen', 'family', 'id', new.id));
+      end loop;
+    end if;
+  elsif tg_op = 'UPDATE' and new.status <> old.status then
+    if new.status = 'confirmed' then
+      perform public.notify(new.player_id, 'booking', 'Lesson confirmed', whn || ' · ' || public.name_of(new.coach_id),
+        jsonb_build_object('screen', 'calendar', 'id', new.id));
+      for a in select public.adults_for(new.player_id) loop
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson is confirmed', whn,
+          jsonb_build_object('screen', 'family', 'id', new.id));
+      end loop;
+    elsif new.status = 'weather' then
+      perform public.notify(new.player_id, 'weather', 'Called off for weather', whn || ' · ' || public.name_of(new.coach_id),
+        jsonb_build_object('screen', 'calendar', 'id', new.id));
+      for a in select public.adults_for(new.player_id) loop
+        perform public.notify(a, 'weather', public.first_name_of(new.player_id) || '''s lesson is called off', whn || ' · weather',
+          jsonb_build_object('screen', 'family', 'id', new.id));
+      end loop;
+    elsif new.status = 'cancelled' then
+      if actor is not null and actor = new.coach_id then
+        perform public.notify(new.player_id, 'booking', 'Lesson cancelled', whn || ' · ' || public.name_of(new.coach_id),
+          jsonb_build_object('screen', 'calendar', 'id', new.id));
+        for a in select public.adults_for(new.player_id) loop
+          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson is cancelled', whn,
+            jsonb_build_object('screen', 'family', 'id', new.id));
+        end loop;
+      else
+        perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' cancelled', whn,
+          jsonb_build_object('screen', 'calendar', 'id', new.id));
+      end if;
+    end if;
+  end if;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists bookings_notify on public.bookings;
+create trigger bookings_notify after insert or update on public.bookings
+  for each row execute function public.trg_bookings_notify();
+
+-- ---------- a message ----------
+create or replace function public.trg_messages_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare
+  a    uuid;
+  snip text := left(new.body, 90);
+begin
+  if new.sender_id = new.coach_id then
+    perform public.notify(new.player_id, 'message', public.name_of(new.coach_id), snip,
+      jsonb_build_object('screen', 'thread', 'id', new.player_id));
+    for a in select public.adults_for(new.player_id) loop
+      perform public.notify(a, 'message', public.name_of(new.coach_id) || ' → ' || public.first_name_of(new.player_id), snip,
+        jsonb_build_object('screen', 'thread', 'id', new.player_id));
+    end loop;
+  else
+    perform public.notify(new.coach_id, 'message', public.name_of(new.sender_id), snip,
+      jsonb_build_object('screen', 'thread', 'id', new.player_id));
+  end if;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists messages_notify on public.messages;
+create trigger messages_notify after insert on public.messages
+  for each row execute function public.trg_messages_notify();
+
+-- ---------- drills, once per player per save ----------
+create or replace function public.trg_drills_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare r record; a uuid;
+begin
+  for r in select player_id, coach_id, count(*) as n, min(title) as one from new_rows group by player_id, coach_id loop
+    perform public.notify(r.player_id, 'drill',
+      case when r.n = 1 then 'New drill: ' || r.one else r.n || ' new drills' end,
+      public.name_of(r.coach_id), jsonb_build_object('screen', 'practice'));
+    for a in select public.adults_for(r.player_id) loop
+      perform public.notify(a, 'drill', public.first_name_of(r.player_id) || ' has ' || case when r.n = 1 then 'a new drill' else r.n || ' new drills' end,
+        public.name_of(r.coach_id), jsonb_build_object('screen', 'family'));
+    end loop;
+  end loop;
+  return null;
+exception when others then return null;
+end $fn$;
+drop trigger if exists drills_notify on public.drills;
+create trigger drills_notify after insert on public.drills
+  referencing new table as new_rows
+  for each statement execute function public.trg_drills_notify();
+
+-- ---------- a tip ----------
+create or replace function public.trg_tips_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare a uuid;
+begin
+  perform public.notify(new.player_id, 'tip', 'Something to work on', new.title || ' · ' || public.name_of(new.coach_id),
+    jsonb_build_object('screen', 'tips'));
+  for a in select public.adults_for(new.player_id) loop
+    perform public.notify(a, 'tip', public.first_name_of(new.player_id) || ' has something to work on', new.title,
+      jsonb_build_object('screen', 'family'));
+  end loop;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists tips_notify on public.tips;
+create trigger tips_notify after insert on public.tips
+  for each row execute function public.trg_tips_notify();
+
+-- ---------- someone joins your family ----------
+create or replace function public.trg_family_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare m uuid;
+begin
+  if new.family_id is not null and (tg_op = 'INSERT' or new.family_id is distinct from old.family_id) then
+    for m in select id from public.profiles where family_id = new.family_id and id <> new.id loop
+      perform public.notify(m, 'family', new.name || ' joined your family', null, jsonb_build_object('screen', 'family'));
+    end loop;
+  end if;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists family_notify on public.profiles;
+create trigger family_notify after insert or update of family_id on public.profiles
+  for each row execute function public.trg_family_notify();
+
+-- New rows reach an open app the moment they are written, when the
+-- project's realtime publication exists (it does on Supabase; the
+-- local test cluster has none, so this is allowed to do nothing).
+do $rt$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables
+                     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notifications') then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+exception when others then
+  null;
+end
+$rt$;
+
+
+-- ============================================================
+-- 11 · THE LESSONS VIEW
 --
 -- What the app reads instead of the lessons table: each lesson with
 -- the day and month already formatted, how many files it carries,
@@ -991,15 +1493,16 @@ left join (
 
 
 -- ============================================================
--- 11 · WHO CAN SEE AND CHANGE WHAT
+-- 12 · WHO CAN SEE AND CHANGE WHAT
 --
 -- In short:
---   a coach     reads and writes their own rows, and sees their players
---   a player    sees their own rows, their coach, their guardian and
---               the rest of their family; may request a booking, tick
---               a drill, add a competition, message, and review
---   a guardian  sees everything of the people who name them guardian,
---               and may request a booking or message on their behalf
+--   a coach     reads and writes their own rows, sees their players and
+--               the people asking to join them
+--   a player    sees their own rows, their coach and their family; may
+--               request a booking, tick a drill, add a competition,
+--               message, and review
+--   an adult in a family sees everything of the juniors in it, and may
+--               request a booking or message on their behalf
 --   a junior    may not request or message themselves
 --   anyone else nothing
 --
@@ -1022,9 +1525,10 @@ begin
     select policyname, tablename
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('profiles', 'lessons', 'lesson_media', 'drills', 'tips',
-                        'attendance_sessions', 'attendance_marks', 'bookings',
-                        'competitions', 'recurring', 'preferences', 'messages', 'reviews')
+      and tablename in ('profiles', 'families', 'coach_requests', 'lessons', 'lesson_media',
+                        'drills', 'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
+                        'competitions', 'recurring', 'preferences', 'messages', 'reviews',
+                        'notifications', 'push_subscriptions')
   loop
     execute format('drop policy if exists %I on public.%I', p.policyname, p.tablename);
   end loop;
@@ -1032,6 +1536,10 @@ end
 $drop$;
 
 alter table public.profiles            enable row level security;
+alter table public.families            enable row level security;
+alter table public.coach_requests      enable row level security;
+alter table public.notifications       enable row level security;
+alter table public.push_subscriptions  enable row level security;
 alter table public.lessons             enable row level security;
 alter table public.lesson_media        enable row level security;
 alter table public.drills              enable row level security;
@@ -1053,7 +1561,8 @@ alter table public.reviews             enable row level security;
 -- the app directly.
 grant usage on schema public to anon, authenticated;
 
-revoke all on public.profiles, public.lessons, public.lesson_media, public.drills,
+revoke all on public.profiles, public.families, public.coach_requests, public.notifications,
+              public.push_subscriptions, public.lessons, public.lesson_media, public.drills,
               public.tips, public.attendance_sessions, public.attendance_marks,
               public.bookings, public.competitions, public.recurring,
               public.preferences, public.messages, public.reviews, public.lessons_view
@@ -1061,6 +1570,12 @@ revoke all on public.profiles, public.lessons, public.lesson_media, public.drill
 
 revoke all on public.profiles from authenticated;
 grant select, update on public.profiles to authenticated;
+-- families and requests change only through the functions in section 8;
+-- notifications are written only by the triggers in section 10
+revoke all on public.families, public.coach_requests, public.notifications from authenticated;
+grant select on public.families, public.coach_requests to authenticated;
+grant select, update, delete on public.notifications to authenticated;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
 
 grant select, insert, update, delete on
   public.lessons, public.lesson_media, public.drills, public.tips,
@@ -1076,18 +1591,45 @@ create policy "profiles: the people you are linked to" on public.profiles
   for select to authenticated using (
     id = auth.uid()                                          -- yourself
     or coach_id = auth.uid()                                 -- your players
-    or guardian_id = auth.uid()                              -- your family
     or id = public.my_coach_id()                             -- your coach
-    or id = public.my_guardian_id()                          -- your guardian
-    or (guardian_id is not null
-        and guardian_id = public.my_guardian_id())           -- the rest of your family
-    or id in (select public.my_family_coach_ids())           -- who coaches your family
-    or id in (select public.my_players_guardian_ids())       -- who looks after your juniors
+    or (family_id is not null
+        and family_id = public.my_family_id())               -- your family
+    or id in (select public.my_family_coach_ids())           -- who coaches the juniors you look after
+    or id in (select public.my_players_guardian_ids())       -- who looks after your junior players
+    or id in (select public.my_pending_coach_ids())          -- a coach you have asked to join
+    or id in (select public.my_requesting_player_ids())      -- players asking to join you
   );
 
+-- Your own row, and only the columns that are yours to change: the
+-- links (coach_id, family_id) move only through the functions.
 create policy "profiles: change your own row" on public.profiles
   for update to authenticated
-  using (id = auth.uid()) with check (id = auth.uid());
+  using (id = auth.uid())
+  with check (id = auth.uid()
+              and coach_id is not distinct from public.my_coach_id()
+              and family_id is not distinct from public.my_family_id());
+
+-- ---------- families ----------
+create policy "families: yours" on public.families
+  for select to authenticated using (id = public.my_family_id());
+
+-- ---------- coach_requests ----------
+create policy "coach_requests: ones you made or received" on public.coach_requests
+  for select to authenticated using (player_id = auth.uid() or coach_id = auth.uid());
+
+-- ---------- notifications ----------
+create policy "notifications: yours" on public.notifications
+  for select to authenticated using (user_id = auth.uid());
+create policy "notifications: mark your own read" on public.notifications
+  for update to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "notifications: clear your own" on public.notifications
+  for delete to authenticated using (user_id = auth.uid());
+
+-- ---------- push_subscriptions ----------
+create policy "push_subscriptions: your own devices" on public.push_subscriptions
+  for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- ---------- lessons ----------
 create policy "lessons: yours, your family's, and your coach's group lessons" on public.lessons
@@ -1301,7 +1843,7 @@ create policy "reviews: a player changes their own review" on public.reviews
 
 
 -- ============================================================
--- 12 · STORAGE
+-- 13 · STORAGE
 --
 -- Files live in a private bucket called "media", under a folder named
 -- for the coach who uploaded them. Supabase does not always let the
@@ -1321,10 +1863,17 @@ begin
   insert into storage.buckets (id, name, public)
   values ('media', 'media', false)
   on conflict (id) do nothing;
-  insert into nosca_check values ('storage_bucket', 'OK — media, private');
+  -- profile pictures: public, because a picture is shown to everyone
+  -- the person is linked to and a signed link per avatar would be
+  -- churn for nothing; the path is the account's own id, so it is
+  -- not guessable and not listed anywhere
+  insert into storage.buckets (id, name, public)
+  values ('avatars', 'avatars', true)
+  on conflict (id) do nothing;
+  insert into nosca_check values ('storage_bucket', 'OK — media (private), avatars (public)');
 exception when others then
   insert into nosca_check values
-    ('storage_bucket', format('create in the dashboard — Storage → New bucket → "media", Public off (%s)', sqlerrm));
+    ('storage_bucket', format('create in the dashboard — Storage → New bucket → "media" (Public off) and "avatars" (Public on) (%s)', sqlerrm));
 end
 $bucket$;
 
@@ -1340,7 +1889,11 @@ begin
     'read media files for lessons that are yours',
     'media: your own folder, or a file from a lesson you can see',
     'media: upload into your own folder',
-    'media: delete from your own folder'
+    'media: delete from your own folder',
+    'avatars: anyone can see a picture',
+    'avatars: put your own picture in your own folder',
+    'avatars: replace your own picture',
+    'avatars: remove your own picture'
   ] loop
     execute format('drop policy if exists %I on storage.objects', legacy);
   end loop;
@@ -1370,7 +1923,30 @@ begin
       )
   $p$;
 
-  insert into nosca_check values ('storage_policies', 'OK — 3 policies on the media bucket');
+  execute $p$
+    create policy "avatars: anyone can see a picture" on storage.objects
+      for select to anon, authenticated using (bucket_id = 'avatars')
+  $p$;
+  execute $p$
+    create policy "avatars: put your own picture in your own folder" on storage.objects
+      for insert to authenticated with check (
+        bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+      )
+  $p$;
+  execute $p$
+    create policy "avatars: replace your own picture" on storage.objects
+      for update to authenticated
+      using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
+      with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
+  $p$;
+  execute $p$
+    create policy "avatars: remove your own picture" on storage.objects
+      for delete to authenticated using (
+        bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+      )
+  $p$;
+
+  insert into nosca_check values ('storage_policies', 'OK — 3 policies on media, 4 on avatars');
 exception when others then
   insert into nosca_check values
     ('storage_policies', format('create in the dashboard — see README, "Storage" (%s, %s)', sqlerrm, sqlstate));
@@ -1379,7 +1955,7 @@ $storage$;
 
 
 -- ============================================================
--- 13 · CHECK IT WORKED
+-- 14 · CHECK IT WORKED
 --
 -- The SQL editor runs as the owner of every table, and row-level
 -- security never applies to the owner — so a plain "select" here says
@@ -1393,7 +1969,8 @@ $storage$;
 do $check$
 declare
   fake  constant text := '00000000-0000-0000-0000-000000000000';
-  every constant text[] := array['profiles', 'lessons', 'lessons_view', 'lesson_media', 'drills',
+  every constant text[] := array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
+                                 'lessons', 'lessons_view', 'lesson_media', 'drills',
                                  'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
                                  'competitions', 'recurring', 'preferences', 'messages', 'reviews'];
   tbl        text;
@@ -1475,15 +2052,21 @@ $check$;
 -- The one row the editor shows. Everything meaningful is in it.
 with
   want_tables as (
-    select unnest(array['profiles', 'lessons', 'lesson_media', 'drills', 'tips',
+    select unnest(array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
+                        'lessons', 'lesson_media', 'drills', 'tips',
                         'attendance_sessions', 'attendance_marks', 'bookings', 'competitions',
                         'recurring', 'preferences', 'messages', 'reviews']) as t
   ),
   want_functions as (
-    select unnest(array['new_code', 'handle_new_user', 'find_coach_by_code', 'find_guardian_by_code',
-                        'my_coach_id', 'my_guardian_id', 'my_family_ids', 'my_family_coach_ids', 'my_players_guardian_ids',
-                        'coach_of', 'my_attendance_session_ids', 'is_junior', 'coach_availability',
-                        'join_coach', 'join_family', 'leave_coach', 'leave_family',
+    select unnest(array['new_code', 'handle_new_user', 'find_coach_by_code', 'find_family_by_code',
+                        'my_coach_id', 'is_junior_of', 'is_junior', 'my_family_id', 'my_family_member_ids',
+                        'my_family_ids', 'my_family_coach_ids', 'my_players_guardian_ids', 'coach_of',
+                        'my_pending_coach_ids', 'my_requesting_player_ids', 'coach_availability',
+                        'my_attendance_session_ids',
+                        'join_coach', 'respond_to_request', 'cancel_request', 'leave_coach',
+                        'create_family', 'join_family', 'rename_family', 'leave_family',
+                        'notify', 'adults_for', 'trg_lessons_notify', 'trg_requests_notify', 'trg_bookings_notify',
+                        'trg_messages_notify', 'trg_drills_notify', 'trg_tips_notify', 'trg_family_notify',
                         'delete_my_account']) as f
   ),
   have_functions as (
@@ -1522,5 +2105,9 @@ select
   (select result from nosca_check where item = 'storage_bucket')                    as storage_bucket,
   (select result from nosca_check where item = 'storage_policies')                  as storage_policies,
 
+  (select count(*) from pg_trigger where tgname in ('lessons_notify', 'requests_notify', 'bookings_notify',
+                                                    'messages_notify', 'drills_notify', 'tips_notify', 'family_notify'))
+                                                                                    as notify_triggers,
   (select count(*) from auth.users)                                                 as accounts,
-  (select count(*) from public.profiles)                                            as profiles;
+  (select count(*) from public.profiles)                                            as profiles,
+  (select count(*) from public.families)                                            as families;
