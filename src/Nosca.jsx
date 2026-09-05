@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef, useMemo, useContext, createContext 
 import { useCapture } from "./lib/useCapture";
 import QRCode from "qrcode";
 import { joinLink, shareOrCopy, copyText } from "./lib/share";
+import { MAX_UPLOAD_MB, avatarUrl } from "./lib/useNoscaData";
+import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
+import { supabase } from "./lib/supabase";
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home, Library,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
   Delete, Lock, Mail, Apple, Camera, Image as ImageIcon, ChevronDown, Search, Wallet,
   Receipt, Banknote, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck,
   ExternalLink, Tag, Phone, Paperclip, Clock, ListChecks, Download, Palette, Zap,
-  TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Building2, Edit3, Trophy, Award, Star, CloudRain
+  TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Building2, Edit3, Trophy, Award, Star, CloudRain,
+  Copy, Settings2, BellOff
 } from "lucide-react";
 
 /* ==================================================================
@@ -3180,18 +3184,29 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
   const label = isVideo ? item.angle : isData ? cap.device
     : isVoice ? (item.name || tr("Voice note")) : isNote ? (item.text || tr("Note")) : (item.name || tr("Photo"));
   const Icon = isVideo ? Play : isData ? Receipt : isVoice ? Mic : isNote ? Edit3 : Tag;
+  /* a real file shows its own first frame or the photo itself; the
+     object URL lives exactly as long as this row does */
+  const file = item.file || null;
+  const thumb = useMemo(() => (file && (isVideo || item.kind === "action" || (file.type || "").startsWith("image")) ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => () => { if (thumb) URL.revokeObjectURL(thumb); }, [thumb]);
+  const size = file && file.size ? (file.size > 1048576 ? `${(file.size / 1048576).toFixed(file.size > 10485760 ? 0 : 1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`) : null;
+  const tooBig = !!(file && file.size > MAX_UPLOAD_MB * 1048576);
 
   return (
     <Tile className="px-4 py-3.5" delay={delay}>
       <div className="flex items-center gap-3.5">
-        <span className="rounded-xl flex items-center justify-center shrink-0"
+        <span className="rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative"
               style={{ width: 46, height: 46, background: "#191D1B" }}>
-          <Icon size={17} color="rgba(255,255,255,0.85)" strokeWidth={1.6} />
+          {thumb && isVideo ? <video src={thumb} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />
+            : thumb ? <img src={thumb} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} /> : null}
+          <Icon size={17} color="rgba(255,255,255,0.85)" strokeWidth={1.6} style={{ position: "relative", filter: thumb ? "drop-shadow(0 1px 2px rgba(0,0,0,0.6))" : "none" }} />
         </span>
         <span className="flex-1 min-w-0">
           <span className="block truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{label}</span>
-          <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>
-            {isVideo || isVoice ? (item.secs ? `0:${String(item.secs).padStart(2, "0")}` : tr("Attached"))
+          <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: tooBig ? DANGER : t.faint }}>
+            {tooBig ? `${size} — ${tr("over the")} ${MAX_UPLOAD_MB} MB ${tr("limit; it won't upload")}`
+              : size ? `${size}${item.secs ? ` · 0:${String(item.secs).padStart(2, "0")}` : ""}`
+              : isVideo || isVoice ? (item.secs ? `0:${String(item.secs).padStart(2, "0")}` : tr("Attached"))
               : isNote ? tr("Attached")
               : item.reading ? tr("Reading the numbers…")
               : item.values ? tr("Tap a number to correct it")
@@ -6158,8 +6173,14 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
    the one action, because there is genuinely nothing else to do here
    yet — an empty lesson list and a disabled diary would just be
    furniture around a single button. */
-function NoCoach({ onJoin, juvenile, initialCode }) {
+function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedBy, onOpenFamily, familyName, onYou, onAlerts, alerts = 0 }) {
   const t = useT();
+  const top = (onYou || onAlerts) ? (
+    <div className="shrink-0 flex items-center justify-end gap-3 px-5" style={{ height: 52 }}>
+      {onAlerts && <IconBtn C={Bell} label={tr("Alerts")} count={alerts} onOpen={onAlerts} />}
+      {onYou && <button onClick={() => { haptic(6); onYou(); }} className="active:opacity-50" aria-label={tr("You")}><User size={21} color={t.ink} strokeWidth={1.6} /></button>}
+    </div>
+  ) : null;
   const [code, setCode] = useState(initialCode || "");   // a join link arrives with it filled in
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -6170,12 +6191,50 @@ function NoCoach({ onJoin, juvenile, initialCode }) {
     const res = await onJoin(code);
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message); }
-    else { hapticSuccess(); soft(); }
+    else { hapticSuccess(); soft(); setCode(""); }
   };
+
+  /* asked, and waiting: the screen says so, and offers only to withdraw */
+  if (pending) {
+    return (
+      <div className="flex flex-col h-full" style={{ background: t.page }}>
+        {top}
+        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+          <span className="rounded-full flex items-center justify-center mb-7"
+                style={{ width: 74, height: 74, background: `${t.accent}14`, animation: "breathe 3.2s ease-in-out infinite" }}>
+            <Clock size={28} color={t.accent} strokeWidth={1.5} />
+          </span>
+          <h1 data-tour="nocoach-pending" style={{ ...TYPE.hero, fontSize: 27, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 70ms both" }}>
+            {tr("Request sent")}
+          </h1>
+          <p className="mt-3" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.55, color: t.sub, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 130ms both" }}>
+            {pending.coachName} {tr("will accept you from their app. You'll be told the moment they do.")}
+          </p>
+          {familyName && (
+            <button onClick={() => { haptic(6); onOpenFamily && onOpenFamily(); }} className="mt-6 active:opacity-50"
+                    style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Meanwhile, your family")} · {familyName}</button>
+          )}
+        </div>
+        <div className="px-7 shrink-0" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))" }}>
+          <button onClick={async () => { haptic(8); setBusy(true); const r = onWithdraw && await onWithdraw(); setBusy(false); if (r && r.error) setErr(r.error.message); }}
+                  disabled={busy} className="w-full active:opacity-60 disabled:opacity-30" style={{ minHeight: 44, ...TYPE.small, color: t.sub }}>
+            {busy ? "…" : tr("Withdraw the request")}
+          </button>
+          {err && <p className="mt-2 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full" style={{ background: t.page }}>
+      {top}
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+        {declinedBy && (
+          <p className="mb-6 px-4 py-3" style={{ borderRadius: R.control, background: t.wash, ...TYPE.small, color: t.sub }}>
+            {declinedBy} {tr("couldn't take you on. Another coach's code works the same way.")}
+          </p>
+        )}
         <span className="rounded-full flex items-center justify-center mb-7"
               style={{ width: 74, height: 74, background: t.wash,
                        animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) both" }}>
@@ -6189,8 +6248,8 @@ function NoCoach({ onJoin, juvenile, initialCode }) {
         <p className="mt-3" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.55, color: t.sub,
                      animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 130ms both" }}>
           {juvenile
-            ? tr("Ask a parent for the code your coach gave them.")
-            : tr("Your lessons, drills and video appear here once you do.")}
+            ? tr("Ask a parent for the code your coach gave them. The coach accepts you from their app.")
+            : tr("Enter their code to ask. Once they accept, your lessons, drills and video appear here.")}
         </p>
 
         <div className="w-full mt-9" data-tour="nocoach-code" style={{ animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 190ms both" }}>
@@ -6201,7 +6260,7 @@ function NoCoach({ onJoin, juvenile, initialCode }) {
 
       <div className="px-7 shrink-0" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))" }}>
         <Button tone="ink" disabled={busy || code.trim().length < 4} onClick={submit}>
-          {busy ? "…" : tr("Add coach")}
+          {busy ? "…" : tr("Ask to join")}
         </Button>
       </div>
     </div>
@@ -6231,10 +6290,10 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
   const already = !!found && (family ? found.id === currentGuardian : found.id === currentCoach);
   const line = found === undefined ? tr("Checking the code…")
     : !found ? (family ? tr("That code doesn't match a family.") : tr("That code doesn't match a coach."))
-    : already ? (family ? `${tr("You're already in")} ${found.name}${tr("'s family.")}` : `${tr("You're already with")} ${found.name}.`)
-    : family ? `${tr("Join")} ${found.name}${tr("'s family?")}`
-    : currentCoachName ? `${tr("Join")} ${found.name}? ${tr("You'd leave")} ${currentCoachName}.`
-    : `${tr("Join")} ${found.name}?`;
+    : already ? (family ? `${tr("You're already in")} ${found.name}.` : `${tr("You're already with")} ${found.name}.`)
+    : family ? `${tr("Join")} ${found.name}?${found.members ? ` ${found.members} ${found.members === 1 ? tr("person") : tr("people")} ${tr("in it.")}` : ""}`
+    : currentCoachName ? `${tr("Ask to join")} ${found.name}? ${tr("Leave")} ${currentCoachName} ${tr("first, from their profile.")}`
+    : `${tr("Ask to join")} ${found.name}? ${tr("They accept from their app.")}`;
   const join = async () => {
     if (!found || already || busy) return;
     setBusy(true); setErr("");
@@ -6249,8 +6308,8 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
       <p className="mb-1" style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{line}</p>
       <p className="mb-5" style={{ ...TYPE.caption, color: t.faint, letterSpacing: "0.12em" }}>{invite.code}</p>
       {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
-      {found && !already && (
-        <div className="mb-3"><Button tone="ink" disabled={busy} onClick={join}>{busy ? "…" : tr("Join")}</Button></div>
+      {found && !already && !(!family && currentCoachName) && (
+        <div className="mb-3"><Button tone="ink" disabled={busy} onClick={join}>{busy ? "…" : family ? tr("Join") : tr("Ask to join")}</Button></div>
       )}
       <button onClick={() => { haptic(6); close(); }} className="w-full active:opacity-60"
               style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: t.sub }}>
@@ -6378,96 +6437,306 @@ function JoinedCoach({ coachName, sport, onDone }) {
    is starting lessons. The shape is deliberately identical to joining
    a coach, so the second time someone sees six boxes they already know
    what to do. */
-function FamilyScreen({ familyCode, family, hasGuardian, onJoin, onMessage, say, pop }) {
+/* Six boxes, one code, with the live lookup: the same control the
+   sign-up uses, so the second time someone meets it they know it. */
+function FamilyCodeEntry({ lookup, onJoin, busy, tour }) {
   const t = useT();
   const [code, setCode] = useState("");
+  const [found, setFound] = useState(undefined);
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const share = async () => {
-    if (!familyCode) return;
-    haptic(8); soft();
-    const text = `${tr("Join my family on")} ${BRAND}: ${familyCode}`;
-    try {
-      if (navigator.share) await navigator.share({ text });
-      else { await navigator.clipboard.writeText(familyCode); say && say(tr("Copied")); }
-    } catch (e) { /* the person closed the share sheet — nothing to do */ }
-  };
-
+  const clean = code.trim().toUpperCase();
+  useEffect(() => {
+    if (clean.length !== 6 || !lookup) { setFound(undefined); return; }
+    let alive = true;
+    const x = setTimeout(async () => {
+      const r = await lookup("family", clean);
+      if (!alive) return;
+      setFound((r && r.found) || null);
+    }, 300);
+    return () => { alive = false; clearTimeout(x); };
+  }, [clean]);
   const join = async () => {
-    if (code.trim().length < 4) return;
-    setBusy(true); setErr("");
-    const res = await onJoin(code);
-    setBusy(false);
-    if (res && res.error) { hapticWarn(); setErr(res.error.message); }
-    else { hapticSuccess(); soft(); setCode(""); say && say(tr("Joined")); }
+    setErr("");
+    const res = await onJoin(clean);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
+    hapticSuccess(); soft(); setCode("");
   };
+  return (
+    <div data-tour={tour}>
+      <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err || found === null} />
+      <p className="mt-3 text-center" style={{ ...TYPE.caption, color: found === null || err ? DANGER : t.faint, minHeight: 18 }}>
+        {err ? err : clean.length === 6 && found === undefined ? tr("Checking…")
+          : found === null ? tr("That code doesn't match a family.")
+          : found ? `${found.name} · ${found.members} ${found.members === 1 ? tr("person") : tr("people")}`
+          : tr("Six characters, from someone already in it.")}
+      </p>
+      <button onClick={join} disabled={busy || clean.length !== 6 || !found}
+              className="w-full mt-3 active:opacity-80 disabled:opacity-30"
+              style={{ minHeight: 50, borderRadius: R.control, background: t.ink, color: "#fff", ...TYPE.subhead, fontSize: 15 }}>
+        {busy ? "…" : found ? `${tr("Join")} ${found.name}` : tr("Join")}
+      </button>
+    </div>
+  );
+}
+
+/* FAMILY — the settings side.
+
+   Nobody has a family until they make or join one. Without one this
+   screen offers exactly those two things. With one it shows the code
+   to hand out, who is in it, and lets an adult name it or leave. The
+   dashboard (FamilyHome) is where a family is *used*; this is where it
+   is set up. */
+function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, lookup, say, pop, onOpenHome, live }) {
+  const t = useT();
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [leaving, setLeaving] = useState(false);
+  const code = family ? family.code : null;
+  const url = code ? joinLink("family", code) : null;
+
+  const create = async () => {
+    setBusy(true); setErr("");
+    const res = await onCreate(name);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
+    hapticSuccess(); chime();
+  };
+  const join = async (c) => { setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
+  const share = async () => {
+    if (!code) return;
+    haptic(8); soft();
+    const r = await shareOrCopy({ title: `${tr("Join our family on")} ${BRAND}`, text: `${tr("Join our family on")} ${BRAND}. ${tr("Code")} ${code}`, url });
+    if (r === "shared") say && say(tr("Shared"));
+    else if (r === "copied") say && say(tr("Link copied"));
+    else if (r === "failed") say && say(tr("Couldn't share. Copy the code instead."));
+  };
+  const copy = async () => { if (!code) return; haptic(8); const ok = await copyText(code); say && say(ok ? tr("Code copied") : tr("Couldn't copy")); };
+
+  if (!family) {
+    return (
+      <SwipeBack onBack={pop}>
+        <Screen title={tr("Family")} onBack={pop} meta={tr("Optional. One code links a household.")}>
+          <div className="px-6">
+            <p className="mb-6" style={{ ...TYPE.body, lineHeight: 1.55, color: t.sub }}>
+              {tr("A family lets the adults in it see a young player's lessons and drills, book for them and speak to their coach. Start one and share its code, or join one with the code someone gave you.")}
+            </p>
+            <Eyebrow>{tr("Start a family")}</Eyebrow>
+            <Card tour="family-create" className="p-5 mb-8">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("A name, if you like — “The Kellys”")} maxLength={40}
+                     className="w-full outline-none mb-4 px-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
+              {err && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+              <Button tone="ink" disabled={busy} onClick={create}>{busy ? "…" : tr("Create a family code")}</Button>
+            </Card>
+            <Eyebrow>{tr("Join a family")}</Eyebrow>
+            <Card className="p-5 mb-8"><FamilyCodeEntry tour="family-join" lookup={lookup} onJoin={join} busy={busy} /></Card>
+            <div style={{ height: 26 }} />
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
+
+  const adults = family.members.filter((m) => !m.junior), kids = family.members.filter((m) => m.junior);
+  const member = (m, i, last) => (
+    <Row key={m.id} label={m.me ? `${m.name} (${tr("you")})` : m.name} last={last}
+         sub={[m.junior ? tr("Under 18") : tr("Adult"), m.coachName ? `${tr("with")} ${m.coachName}` : m.role === "coach" ? tr("Coach") : m.junior ? tr("no coach yet") : null].filter(Boolean).join(" · ")}
+         icon={<Avatar name={m.name} size={36} src={avatarUrl(m.avatarPath)} />} />
+  );
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Family")} onBack={pop}>
+      <Screen title={family.displayName} onBack={pop} meta={`${family.members.length} ${family.members.length === 1 ? tr("person") : tr("people")}`}
+              right={onOpenHome ? <TextBtn onClick={onOpenHome}>{tr("Dashboard")}</TextBtn> : null}>
         <div className="px-6">
+          {!isJunior && (<>
+            <Eyebrow>{tr("Family code")}</Eyebrow>
+            <Card className="p-6 mb-8 text-center" tour="family-code">
+              <span className="block" style={{ fontFamily: display, fontSize: 34, letterSpacing: "0.28em", paddingLeft: "0.28em", color: t.ink }}>{code}</span>
+              <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("A child enters it when they sign up. An adult joins with it from You → Family.")}</p>
+              <div className="mt-5 flex items-center justify-center gap-2.5">
+                <button onClick={copy} className="inline-flex items-center gap-2 px-5 active:opacity-70"
+                        style={{ minHeight: 44, borderRadius: R.pill, border: `1px solid ${t.hair}`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
+                <button data-tour="family-share" onClick={share} className="inline-flex items-center gap-2 px-5 active:opacity-70"
+                        style={{ minHeight: 44, borderRadius: R.pill, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}><Share2 size={14} strokeWidth={2} />{tr("Share")}</button>
+              </div>
+            </Card>
+          </>)}
 
-          {/* your code */}
-          <Eyebrow>{tr("Your family code")}</Eyebrow>
-          <Card className="p-6 mb-8 text-center">
-            <span className="block" style={{ fontFamily: display, fontSize: 34, letterSpacing: "0.28em", paddingLeft: "0.28em", color: t.ink }}>
-              {familyCode || "——————"}
-            </span>
-            <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>
-              {tr("Anyone who enters this joins your family.")}
-            </p>
-            <button data-tour="family-share" onClick={share} disabled={!familyCode}
-                    className="mt-5 inline-flex items-center gap-2 px-5 active:opacity-70 disabled:opacity-30"
-                    style={{ minHeight: 44, borderRadius: R.pill, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}>
-              <Share2 size={14} strokeWidth={2} />
-              {tr("Share")}
-            </button>
+          <Eyebrow>{tr("Who's in it")}</Eyebrow>
+          <Card className="mb-8" tour="family-members">
+            {adults.map((m, i) => member(m, i, i === adults.length - 1 && kids.length === 0))}
+            {kids.map((m, i) => member(m, i, i === kids.length - 1))}
           </Card>
 
-          {/* who's in it */}
-          {family.length > 0 && (
-            <>
-              <Eyebrow>{tr("In your family")}</Eyebrow>
-              <Card className="mb-8">
-                {family.map((m, i) => (
-                  <Row key={m.id} label={m.name} last={i === family.length - 1}
-                       sub={m.coachName ? `${tr("Coached by")} ${m.coachName}` : m.coachId ? tr("Has a coach") : tr("No coach yet")}
-                       icon={<Avatar name={m.name} size={34} />}
-                       right={m.coachId && onMessage ? (
-                         /* a guardian writes to the junior's coach on their behalf */
-                         <button onClick={() => { haptic(6); onMessage(m); }} className="shrink-0 p-2 active:opacity-50" aria-label={`Message ${m.name}`}>
-                           <MessageCircle size={17} color={t.sub} strokeWidth={1.6} />
-                         </button>) : null} />
-                ))}
-              </Card>
-            </>
+          {!isJunior && (
+            <Card className="mb-8">
+              {renaming ? (
+                <div className="px-5 py-4">
+                  <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={tr("Family name")} maxLength={40}
+                         className="w-full outline-none mb-3 px-4" style={{ minHeight: 46, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
+                  <div className="flex gap-2">
+                    <button onClick={() => setRenaming(false)} className="flex-1 active:opacity-60" style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Cancel")}</button>
+                    <button onClick={async () => { haptic(8); setBusy(true); const r = await onRename(newName); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } setRenaming(false); say && say(tr("Saved")); }}
+                            className="flex-1 active:opacity-80" style={{ minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Save")}</button>
+                  </div>
+                </div>
+              ) : <Row label={tr("Name the family")} sub={family.name || tr("Shown to everyone in it")} chevron icon={<Edit3 size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { setNewName(family.name || ""); setRenaming(true); }} />}
+              {leaving ? (
+                <div className="px-5 py-4" style={{ borderTop: `1px solid ${t.hair}` }}>
+                  <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{tr("You'll stop seeing the family's lessons and bookings. You can join again with the code.")}</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setLeaving(false)} className="flex-1 active:opacity-60" style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
+                    <button onClick={async () => { hapticWarn(); setBusy(true); const r = await onLeave(); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } say && say(tr("You've left the family")); }}
+                            className="flex-1 active:opacity-80" style={{ minHeight: 44, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Leave")}</button>
+                  </div>
+                </div>
+              ) : <Row label={tr("Leave the family")} danger last icon={<LogOut size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => setLeaving(true)} />}
+            </Card>
           )}
-
-          {/* join someone else's */}
-          {!hasGuardian && (
-            <>
-              <Eyebrow>{tr("Join a family")}</Eyebrow>
-              <Card tour="family-join" className="p-6">
-                <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err} />
-                {err && <p className="mt-3 text-center" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
-                <button onClick={join} disabled={busy || code.trim().length < 4}
-                        className="w-full mt-5 active:opacity-80 disabled:opacity-30"
-                        style={{ minHeight: 50, borderRadius: R.control, background: t.ink, color: "#fff", ...TYPE.subhead, fontSize: 15 }}>
-                  {busy ? "…" : tr("Join")}
-                </button>
-              </Card>
-            </>
-          )}
-          {hasGuardian && (
-            <p className="text-center pb-4" style={{ ...TYPE.caption, color: t.faint }}>
-              {tr("You're part of a family already.")}
+          {isJunior && (
+            <p className="px-2 pb-4" style={{ ...TYPE.caption, lineHeight: 1.6, color: t.faint }}>
+              {tr("The adults in your family can see your lessons and drills, book for you and speak to your coach. Ask one of them to change anything here.")}
             </p>
           )}
           <div style={{ height: 26 }} />
         </div>
       </Screen>
     </SwipeBack>
+  );
+}
+
+/* FAMILY — the dashboard.
+
+   Two screens in one, decided by who is looking. An adult sees every
+   junior at a glance — last lesson, what is left to practise, the next
+   booking — and can book for them, open their lessons and write to
+   their coach from here. A junior sees who is in the family and what
+   is coming up, and nothing they cannot do. */
+function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = [], bookings = [], hoursByPlayer = {}, onBook, onMessage, onOpenLesson, onSettings, onSetUp, right, go, push, todayIso }) {
+  const t = useT();
+  const ready = useLoad();
+  const fmtDay = (iso) => { const d = new Date(iso); return `${DAY_NAMES[d.getDay()].slice(0, 3)} ${d.getDate()} ${MONTHS_FULL[d.getMonth()].slice(0, 3)}`; };
+
+  if (!family) {
+    return (
+      <Screen title={tr("Family")} right={right}>
+        <div className="px-6 flex flex-col items-center text-center pt-6">
+          <span className="rounded-full flex items-center justify-center mb-6" style={{ width: 70, height: 70, background: t.wash }}><Users size={26} color={t.sub} strokeWidth={1.5} /></span>
+          <p style={{ ...TYPE.title, color: t.ink }}>{tr("No family yet")}</p>
+          <p className="mt-2 mb-7" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub, maxWidth: 300 }}>{tr("Start one and share its code, or join one with the code someone in your household gave you.")}</p>
+          <div className="w-full"><Button tone="ink" tour="family-setup" onClick={onSetUp}>{tr("Set up a family")}</Button></div>
+        </div>
+      </Screen>
+    );
+  }
+
+  const upcoming = bookings.filter((b) => b.date >= todayIso && (b.status === "confirmed" || b.status === "requested"))
+    .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time)).slice(0, 8);
+  const nameOf = (id) => (family.members.find((m) => m.id === id) || {}).name || "";
+
+  const KidCard = ({ k, i }) => {
+    const mine = lessons.filter((l) => l.playerId === k.id);
+    const last = mine[0];
+    const todo = drills.filter((d) => d.playerId === k.id && !d.done).length;
+    const next = bookings.filter((b) => b.playerId === k.id && b.date >= todayIso && b.status !== "cancelled" && b.status !== "weather")
+      .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time))[0];
+    const canBook = !!k.coachId && Object.values(((hoursByPlayer[k.id] || {}).days) || {}).some((x) => x && x.length);
+    return (
+      <Card className="mb-3 overflow-hidden" delay={i * 60} tour={i === 0 ? "family-kid" : undefined}>
+        <div className="flex items-center gap-3.5 px-5 pt-5 pb-3">
+          <Avatar name={k.name} size={44} src={avatarUrl(k.avatarPath)} />
+          <span className="flex-1 min-w-0">
+            <span className="block truncate" style={{ fontFamily: display, fontSize: 20, letterSpacing: "-0.02em", color: t.ink }}>{k.name.split(" ")[0]}</span>
+            <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>
+              {k.coachName ? `${tr("with")} ${k.coachName}${k.sport && SPORTS[k.sport] ? ` · ${SPORTS[k.sport].label}` : ""}` : tr("No coach yet — they enter a coach's code from their own account")}
+            </span>
+          </span>
+        </div>
+        <div className="px-5 pb-2">
+          {[[tr("Next"), next ? `${fmtDay(next.date)} · ${next.time}${next.status === "requested" ? ` · ${tr("waiting on the coach")}` : ""}` : tr("Nothing booked"), next ? null : t.faint],
+            [tr("Last lesson"), last ? `${last.focus} · ${last.d} ${last.m}` : tr("None yet"), last ? null : t.faint],
+            [tr("To practise"), todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), todo ? null : STEADY]].map(([lbl, val, tone]) => (
+            <div key={lbl} className="flex items-baseline gap-3 py-2" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+              <span className="shrink-0" style={{ width: 84, ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{lbl}</span>
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: tone || t.ink }}>{val}</span>
+            </div>
+          ))}
+        </div>
+        {mine.length > 0 && (
+          <div className="px-5 pb-3">
+            <div className="mb-1" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{tr("Lessons")}</div>
+            {mine.slice(0, 3).map((l) => (
+              <button key={l.id} onClick={() => { haptic(7); soft(); onOpenLesson && onOpenLesson(l); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
+                      style={{ minHeight: 44, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.d} {l.m}</span>
+                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{l.focus}</span>
+                {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
+                <ChevronRight size={13} color={t.faint} />
+              </button>
+            ))}
+            {mine.length > 3 && <button onClick={() => { haptic(6); go && go("log"); }} className="w-full py-2.5 text-left active:opacity-50" style={{ ...TYPE.caption, fontWeight: 600, color: t.accent }}>{tr("All")} {mine.length} {tr("in Lessons")}</button>}
+          </div>
+        )}
+        <div className="flex gap-2 px-5 pb-5 pt-1">
+          <button onClick={() => { hapticCommit(); onBook && onBook(k); }} disabled={!canBook} className="flex-1 active:opacity-75 disabled:opacity-35"
+                  style={{ minHeight: 44, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>
+            {k.coachId ? (canBook ? tr("Book a lesson") : tr("Coach has set no hours")) : tr("Book a lesson")}
+          </button>
+          <button onClick={() => { haptic(8); onMessage && onMessage(k); }} disabled={!k.coachId} className="flex-1 active:opacity-60 disabled:opacity-35"
+                  style={{ minHeight: 44, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
+        </div>
+      </Card>
+    );
+  };
+
+  return (
+    <Screen title={family.displayName} meta={`${family.members.length} ${family.members.length === 1 ? tr("person") : tr("people")}`} right={right}
+            action={<button data-tour="family-settings" onClick={() => { haptic(6); onSettings && onSettings(); }} className="shrink-0 rounded-full flex items-center justify-center active:opacity-50" style={{ width: 38, height: 38, background: t.wash }} aria-label={tr("Family settings")}><Settings2 size={16} color={t.sub} strokeWidth={1.8} /></button>}>
+      {!ready ? <HomeSkeleton /> : (
+        <div className="px-6">
+          {/* the adults' view: each junior, ready to act on */}
+          {!isJunior && dependants.length > 0 && dependants.map((k, i) => <KidCard key={k.id} k={k} i={i} />)}
+          {!isJunior && dependants.length === 0 && (
+            <div className="mb-7 px-5 py-5" style={{ borderRadius: R.surface, background: t.wash }}>
+              <p style={{ ...TYPE.body, color: t.ink }}>{tr("No young players yet")}</p>
+              <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tr("When a child signs up with your family code, their lessons, drills and bookings appear here for you.")}</p>
+            </div>
+          )}
+
+          {/* everyone's week */}
+          <div className="mb-2 mt-4" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Coming up")}</div>
+          <div className="mb-7" data-tour="family-upcoming" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+            {upcoming.length === 0 ? <p className="py-6 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing booked.")}</p>
+              : upcoming.map((b) => (
+                <div key={b.id} className="flex items-center gap-3 py-3" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                  <span className="shrink-0" style={{ width: 84, ...TYPE.caption, color: t.faint }}>{fmtDay(b.date)}</span>
+                  <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nameOf(b.playerId).split(" ")[0] || b.who}</span>
+                  <span className="shrink-0" style={{ ...TYPE.small, color: b.status === "requested" ? CAUTION : t.sub }}>{b.time}{b.status === "requested" ? ` · ${tr("asked")}` : ""}</span>
+                </div>
+              ))}
+          </div>
+
+          {/* who is in it */}
+          <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("In the family")}</div>
+          <div className="mb-7" data-tour="family-people" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+            {family.members.map((m) => (
+              <div key={m.id} className="flex items-center gap-3 py-3" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                <Avatar name={m.name} size={32} src={avatarUrl(m.avatarPath)} />
+                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{m.name}{m.me ? ` (${tr("you")})` : ""}</span>
+                <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{m.junior ? tr("Under 18") : m.role === "coach" ? tr("Coach") : tr("Adult")}</span>
+              </div>
+            ))}
+          </div>
+          {isJunior && (
+            <p className="px-1 pb-4" style={{ ...TYPE.caption, lineHeight: 1.6, color: t.faint }}>{tr("The adults here can see your lessons, book for you and talk to your coach.")}</p>
+          )}
+          <div style={{ height: 26 }} />
+        </div>
+      )}
+    </Screen>
   );
 }
 
@@ -7830,15 +8099,16 @@ function Spark({ chart, color }) {
     </div>
   );
 }
-const Avatar = ({ name, size = 44, group, tint }) => {
+const Avatar = ({ name, size = 44, group, tint, src }) => {
   const t = useT();
   const initials = (name || "").split(" ").map((x) => x[0]).filter(Boolean).slice(0, 2).join("");
   return (
-    <span className="rounded-full flex items-center justify-center shrink-0"
+    <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
           style={{ width: size, height: size, background: tint || t.wash,
                    fontFamily: display, fontSize: size * 0.36, fontWeight: 500,
                    letterSpacing: "-0.02em", color: tint ? "#fff" : t.sub }}>
-      {group ? <Users size={size * 0.42} color={tint ? "#fff" : t.sub} /> : initials}
+      {src ? <img src={src} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} />
+        : group ? <Users size={size * 0.42} color={tint ? "#fff" : t.sub} /> : initials}
     </span>
   );
 };
@@ -8790,12 +9060,12 @@ function VDeck({ lessons, go, push, saved, liveMedia }) {
 /* ==================================================================
    FAMILY — profiles + coach connections in one switcher
 ================================================================== */
-function FamilyPill({ name, tint, onOpen, tour }) {
+function FamilyPill({ name, tint, onOpen, tour, group }) {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
-      <Avatar name={name} size={22} tint={tint} />
-      <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink }}>{(name || "").split(" ")[0]}</span>
+      <Avatar name={name} size={22} tint={tint} group={group} />
+      <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
       <ChevronDown size={13} color={t.sub} />
     </button>
   );
@@ -8969,9 +9239,9 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         setJoining(false);
         if (res && res.error) { hapticWarn(); setJoinErr(res.error.message || tr("Couldn't join that coach.")); return; }
         hapticSuccess(); chime();
-        say && say(`${(res && res.coach && res.coach.name) || tr("Coach")} ${tr("added")}`);
+        say && say(`${tr("Asked")} ${(res && res.coach && res.coach.name) || tr("the coach")} — ${tr("they accept from their app")}`);
         close();
-      }}>{joining ? tr("Joining…") : tr("Join")}</Button>
+      }}>{joining ? tr("Asking…") : tr("Ask to join")}</Button>
     </>
   );
 
@@ -9928,7 +10198,7 @@ function MonthBars({ data, accent }) {
 function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster, requests, unlogged, today,
                       duration, onLogFor, onCancelLesson, onNoShow, onPeek, focusReqs = [], onSettleFocus,
                       nextEvent, events = [], sport, asks = [], onAccept, onDecline, drifting = 0, checkWaiting = 0,
-                      lifetime = 0, monthly = [], push2, say }) {
+                      lifetime = 0, monthly = [], push2, say, banner }) {
   const t = useT();
   const done = (today || []).filter((l) => l.done);
   const ahead = (today || []).filter((l) => !l.done);
@@ -9963,7 +10233,27 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
 
   return (
     <Screen bare right={right}>
+      {banner}
       <div className="px-6">
+
+        {/* people asking to join: one line, straight to the answer */}
+        {requests && requests.length > 0 && (
+          <button data-tour="today-requests" onClick={() => { haptic(8); soft(); push("requests"); }}
+                  className="w-full flex items-center gap-3.5 px-5 mb-4 text-left active:opacity-70"
+                  style={{ minHeight: 58, borderRadius: R.surface, background: `${CAUTION}14`, border: `1px solid ${CAUTION}40`,
+                           animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
+            <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 30, height: 30, background: CAUTION }}>
+              <UserPlus size={14} color="#fff" strokeWidth={2.1} />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block truncate" style={{ ...TYPE.body, fontWeight: 500, color: t.ink }}>
+                {requests.length === 1 ? `${requests[0].name} ${tr("asked to join you")}` : `${requests.length} ${tr("asking to join you")}`}
+              </span>
+              <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Accept or decline")}</span>
+            </span>
+            <ChevronRight size={15} color={t.faint} />
+          </button>
+        )}
 
         {/* ---- two notices. Less text than the folds below, and set
                 apart from them: the first is filled, the second carries
@@ -10813,26 +11103,44 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live }) {
+function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson }) {
   const t = useT();
   const seeded = !useLive();
-  /* `live` is the real roster. With it, an unknown player is genuinely
-     unknown — no invented file, no borrowed history from a seeded
-     person. */
-  const r = live ? (live.find((x) => x.name === name) || { name, lessons: 0 })
+  /* `live` is the real roster. With it, everything on this screen is
+     the player's own record — their lessons, newest first, and the
+     count in the header — never a seeded person's. */
+  const r = live ? (player || live.find((x) => x.name === name) || { name, lessons: 0 })
                  : (ROSTER.find((x) => x.name === name) || ROSTER[0]);
-  const f = live ? { lessons: [], name } : fileFor(name, !seeded);
+  const f = live ? { lessons: null, name, done: r.lessons || 0 } : fileFor(name, !seeded);
   const [more, setMore] = useState(false);
-  const past = (f.lessons || [
+  const [showAll, setShowAll] = useState(false);
+  const real = live ? (lessons || []).filter((l) => player ? l.playerId === player.id : l.who === name) : null;
+  const past = real ? real : (f.lessons || [
     { d: "14 Jun", focus: f.lastFocus || "Short game", note: "Contact much cleaner off a tighter lie." },
     { d: "31 May", focus: "Driving", note: "Tempo over speed. Held the finish." },
     { d: "17 May", focus: "Putting", note: "Same routine every putt." },
   ]);
+  const shown = showAll ? past : past.slice(0, 6);
+  const daysSince = live && r.lastLesson ? Math.max(0, Math.round((new Date() - new Date(r.lastLesson)) / 86400000)) : null;
+  const meta = live
+    ? [`${f.done} ${f.done === 1 ? tr("lesson") : tr("lessons")}`,
+       daysSince != null ? (daysSince === 0 ? tr("last today") : `${tr("last")} ${daysSince}d ${tr("ago")}`) : tr("none yet"),
+       r.junior ? tr("Under 18") : null].filter(Boolean).join(" · ")
+    : `${f.done} ${tr("lessons")} · ${tr("last")} ${r.last}d`;
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={name} onBack={pop} meta={`${f.done} ${tr("lessons")} · ${tr("last")} ${r.last}d`}>
+      <Screen title={name} onBack={pop} meta={meta}>
         <div className="px-6 pb-2">
+
+          {/* who looks after a junior — the adult the coach writes to */}
+          {live && r.junior && (
+            <p className="mb-6 px-4 py-3" style={{ borderRadius: R.control, background: t.wash, ...TYPE.small, color: t.sub }}>
+              {r.guardians && r.guardians.length
+                ? `${tr("Messages go to")} ${r.guardians.join(", ")}.`
+                : tr("No adult in their family yet — messages wait until there is one.")}
+            </p>
+          )}
 
           {/* your own note, first, because it is the thing you wrote to
               remember and it is useless anywhere else */}
@@ -10843,22 +11151,36 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
           )}
 
           {/* past lessons: the reason you opened this */}
-          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Lessons")}</div>
-          <div className="mb-7" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-            {past.map((l, i) => (
-              <button key={i} onClick={() => { haptic(7); soft(); push("history:" + name); }}
+          <div className="mb-3 flex items-baseline justify-between">
+            <span style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Lessons")}</span>
+            {live && past.length > 0 && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Tap one to open it")}</span>}
+          </div>
+          <div className="mb-7" data-tour="player-lessons" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+            {live && past.length === 0 && (
+              <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing logged for")} {name.split(" ")[0]} {tr("yet.")}</p>
+            )}
+            {shown.map((l, i) => (
+              <button key={l.id || i} onClick={() => { haptic(7); soft(); if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + name); }}
                       className="w-full flex items-start gap-4 text-left active:opacity-50"
                       style={{ minHeight: 76, paddingTop: 14, paddingBottom: 14,
                                borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                               animation: `fadeUp 320ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
-                <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint, paddingTop: 3 }}>{l.d}</span>
+                               animation: `fadeUp 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 55}ms both` }}>
+                <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint, paddingTop: 3 }}>{live ? `${l.d} ${l.m}` : l.d}</span>
                 <span className="flex-1 min-w-0">
                   <span className="block" style={{ ...TYPE.subhead, color: t.ink }}>{l.focus}</span>
-                  {l.note && <span className="block mt-1 truncate" style={{ ...TYPE.small, color: t.faint }}>{l.note}</span>}
+                  {(l.note || (live && (l.media || l.videos))) && (
+                    <span className="block mt-1 truncate" style={{ ...TYPE.small, color: t.faint }}>
+                      {[live && (l.media || l.videos) ? `${l.media || l.videos} ${(l.media || l.videos) === 1 ? tr("file") : tr("files")}` : null, l.note].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
                 </span>
                 <ChevronRight size={15} color={t.faint} style={{ marginTop: 4 }} />
               </button>
             ))}
+            {past.length > 6 && !showAll && (
+              <button onClick={() => { haptic(6); setShowAll(true); }} className="w-full py-3.5 text-left active:opacity-50"
+                      style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("All")} {past.length}</button>
+            )}
           </div>
 
           {/* what is live right now — three lines, no cards */}
@@ -10906,18 +11228,20 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
             <div style={{ animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               {[[tr("Recurring lessons"), () => onRecurring(name)],
                 [tr("Progress"), () => push("history:" + name)],
-                [sportTool ? sportTool.label : tr("Sport record"), () => push("tool")],
-                [tr("What they're working on"), () => assignTip(name, null)]].map(([lbl, act], i) => (
+                ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]]),
+                [tr("What they're working on"), () => assignTip(name, null)]].map(([lbl, act]) => (
                 <button key={lbl} onClick={act} className="w-full flex items-center text-left active:opacity-50"
                         style={{ minHeight: 52, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                   <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
                   <ChevronRight size={14} color={t.faint} />
                 </button>
               ))}
-              <div className="mt-5">
-                <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Your note")}</div>
-                <VoiceArea value={note} onChange={setNote} rows={3} ph={tr("Only you see this")} />
-              </div>
+              {!live && (
+                <div className="mt-5">
+                  <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Your note")}</div>
+                  <VoiceArea value={note} onChange={setNote} rows={3} ph={tr("Only you see this")} />
+                </div>
+              )}
             </div>
           )}
           <div style={{ height: 26 }} />
@@ -11386,11 +11710,13 @@ function JoinRequests({ requests, onAccept, onDecline, pop, nouns }) {
               <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>New {nouns} using your code will appear here first.</p>
             </Card>
           ) : requests.map((r) => (
-            <Card key={r.name} className="p-5 mb-3">
+            <Card key={r.id || r.name} className="p-5 mb-3" tour="request-card">
               <div className="flex items-center gap-3.5 mb-4">
                 <Avatar name={r.name} size={46} />
                 <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{r.name}</span>
-                  <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{r.note} · {r.when}</span></span>
+                  <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>
+                    {[r.note, r.sport && SPORTS[r.sport] ? SPORTS[r.sport].label : null, r.junior ? tr("Under 18") : null, r.when].filter(Boolean).join(" · ")}
+                  </span></span>
               </div>
               <div className="flex gap-2.5">
                 <button onClick={() => onDecline(r)} className="flex-1 rounded-2xl active:opacity-60" style={{ minHeight: 48, border: `1px solid ${t.hair}`, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Decline")}</button>
@@ -12392,7 +12718,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
    The grid stays quiet — only availability is signalled — and the times
    carry the weight, one per line, with the finish time always shown. */
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -12421,7 +12747,15 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const dayLabel = `${DAY_NAMES[dowOf(mo.idx, sel, cx)]} ${sel} ${mo.name.split(" ")[0]}`;
 
   return (
-    <Screen title={L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "Your week" : conn ? `with ${conn.coach}` : ""}>
+    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "Your week" : conn ? `with ${conn.coach}` : ""}>
+      {forName && (
+        <div className="px-6 mb-4">
+          <div className="flex items-center gap-3 px-4" style={{ minHeight: 48, borderRadius: R.control, background: `${t.accent}12`, border: `1px solid ${t.accent}30` }}>
+            <span className="flex-1" style={{ ...TYPE.small, color: t.ink }}>{tr("Pick a free time. The coach confirms it.")}</span>
+            <button onClick={() => { haptic(6); onClearFor && onClearFor(); }} className="active:opacity-50" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Done")}</button>
+          </div>
+        </div>
+      )}
       {/* family strip stays, it answers a different question */}
       {/* A parent needs the next fortnight across everyone, not one line
           each. Grouped by day, and filterable to one person. */}
@@ -12483,6 +12817,48 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                 ))}
               </div>
             )}
+          </div>
+        );
+      })()}
+
+      {role === "coach" && (() => {
+        /* the week at a glance, and the one way to change it — set here,
+           on the diary, because this is where a coach looks for it */
+        const days = [0, 1, 2, 3, 4, 5, 6];
+        const total = days.reduce((n, d) => n + ((avail[d] || []).length), 0);
+        return (
+          <div className="px-6 mb-4">
+            <button data-tour="cal-hours" onClick={() => { haptic(9); soft(); push("availability"); }}
+                    onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
+                    onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                    className="w-full text-left active:opacity-90"
+                    style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest, willChange: "transform",
+                             transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
+                             animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
+              <span className="flex items-center gap-3.5 px-5 pt-4">
+                <span className="flex-1 min-w-0">
+                  <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{tr("Your hours")}</span>
+                  <span className="block mt-1" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>
+                    {total === 0 ? tr("Not set yet — tap to set the days and times you coach") : `${total} ${tr("slots a week")} · ${duration} ${tr("min lessons")}`}
+                  </span>
+                </span>
+                <span className="rounded-full px-3.5 flex items-center shrink-0" style={{ minHeight: 34, background: t.accent, ...TYPE.caption, fontWeight: 600, color: t.onAccent }}>
+                  {total === 0 ? tr("Set hours") : tr("Edit")}
+                </span>
+              </span>
+              <span className="flex gap-1 px-5 pb-4 pt-3">
+                {days.map((d) => {
+                  const n = (avail[d] || []).length;
+                  return (
+                    <span key={d} className="flex-1 flex flex-col items-center gap-1.5">
+                      <span className="w-full rounded-full" style={{ height: 4, background: n ? t.accent : t.hair, opacity: n ? Math.min(1, 0.35 + n / 12) : 1 }} />
+                      <span style={{ fontFamily: ui, fontSize: 9.5, letterSpacing: "0.08em", color: n ? t.ink : t.faint }}>{DAY_NAMES[d].slice(0, 1)}</span>
+                    </span>
+                  );
+                })}
+              </span>
+            </button>
           </div>
         );
       })()}
@@ -12761,12 +13137,6 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               </div>
             </div>
           </div>
-        )}
-        {role === "coach" && (
-          <button data-tour="cal-hours" onClick={() => push("availability")} className="w-full flex items-center text-left active:opacity-50 mt-6"
-                  style={{ minHeight: 58, borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
-            <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Hours and lesson length")}</span><ChevronRight size={16} color={t.faint} />
-          </button>
         )}
         <div style={{ height: 26 }} />
       </div>
@@ -13061,7 +13431,122 @@ function LessonLogs({ role, lessons, onDownload, pop }) {
 /* ==================================================================
    SETTINGS
 ================================================================== */
-function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart }) {
+/* YOUR PROFILE
+
+   Everything about the person, on one screen, all of it editable:
+   the picture, the name, the sport, the date of birth, the phone, a
+   coach's club and a line about themselves. The account's own controls
+   sit underneath — email, password, notifications, data, sign out,
+   delete — so nothing about "you" is anywhere else. */
+function ProfileScreen({ account, me, role, avatar, family, onSave, onUploadAvatar, onRemoveAvatar, onChangePassword, onNotifications, onData, onFamily, onSignOut, onDelete, pop, push, say }) {
+  const t = useT();
+  const fileRef = useRef(null);
+  const [f, setF] = useState({
+    name: (me && me.name) || (account && account.name) || "",
+    sport: (me && me.sport) || (account && account.sport) || "golf",
+    dob: (me && me.date_of_birth) || (account && account.dateOfBirth) || "",
+    phone: (me && me.phone) || (account && account.phone) || "",
+    club: (me && me.club) || (account && account.club) || "",
+    bio: (me && me.bio) || (account && account.bio) || "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [picBusy, setPicBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const dirty = !!me && (f.name !== (me.name || "") || f.sport !== (me.sport || "") || (f.dob || "") !== (me.date_of_birth || "")
+    || (f.phone || "") !== (me.phone || "") || (f.club || "") !== (me.club || "") || (f.bio || "") !== (me.bio || ""));
+  const save = async () => {
+    if (busy) return;
+    setBusy(true); setErr("");
+    const res = await onSave({ name: f.name, sport: f.sport, dateOfBirth: f.dob || null, phone: f.phone, bio: f.bio, ...(role === "coach" ? { club: f.club } : {}) });
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't save that.")); return; }
+    hapticSuccess(); say(tr("Saved"));
+  };
+  const pick = async (e) => {
+    const file = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    setPicBusy(true);
+    const res = await onUploadAvatar(file);
+    setPicBusy(false);
+    if (res && res.error) { hapticWarn(); say(res.error.message); return; }
+    hapticSuccess(); chime();
+  };
+  const field = (label, key, extra = {}) => (
+    <div key={key} className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
+      <div style={{ ...TYPE.caption, color: t.faint }}>{label}</div>
+      <input value={f[key]} onChange={(e) => setF({ ...f, [key]: e.target.value })} aria-label={label} className="w-full outline-none mt-1"
+             style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} {...extra} />
+    </div>
+  );
+  const age = f.dob ? (() => { const b = new Date(f.dob), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return isNaN(a) ? null : a; })() : null;
+  const I = ({ C, danger }) => <C size={17} color={danger ? DANGER : t.sub} strokeWidth={1.6} />;
+
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Your profile")} onBack={pop} right={<TextBtn tour="profile-save" onClick={save}>{busy ? "…" : tr("Save")}</TextBtn>}>
+        <div className="px-6 pb-2">
+          <div className="flex flex-col items-center mb-7" data-tour="profile-photo">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pick} />
+            <button onClick={() => { haptic(8); fileRef.current && fileRef.current.click(); }} disabled={picBusy} className="relative active:opacity-70 disabled:opacity-50" aria-label={tr("Change photo")}>
+              <Avatar name={f.name} size={96} src={avatar} />
+              <span className="absolute rounded-full flex items-center justify-center" style={{ right: -2, bottom: -2, width: 32, height: 32, background: t.accent, border: `2px solid ${t.page}` }}>
+                <Camera size={14} color={t.onAccent} strokeWidth={2} />
+              </span>
+            </button>
+            <button onClick={() => { haptic(6); fileRef.current && fileRef.current.click(); }} className="mt-3 active:opacity-50" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>
+              {picBusy ? tr("Saving…") : avatar ? tr("Change photo") : tr("Add a photo")}
+            </button>
+            {avatar && <button onClick={async () => { haptic(6); const r = await onRemoveAvatar(); if (r && r.error) say(r.error.message); }} className="mt-1 active:opacity-50" style={{ ...TYPE.caption, color: t.faint }}>{tr("Remove")}</button>}
+          </div>
+
+          <Card className="mb-5">
+            {field(tr("Name"), "name", { autoComplete: "name" })}
+            <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
+              <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{role === "coach" ? tr("Main sport you coach") : tr("Main sport")}</div>
+              <div className="flex flex-wrap gap-2" data-tour="profile-sport">
+                {Object.entries(SPORTS).map(([id, sp]) => {
+                  const on = f.sport === id;
+                  return (
+                    <button key={id} onClick={() => { haptic(6); setF({ ...f, sport: id }); }} className="px-3.5 active:opacity-60"
+                            style={{ minHeight: 36, borderRadius: R.pill, background: on ? sp.theme.accent : t.wash, ...TYPE.caption, fontWeight: 600, color: on ? sp.theme.onAccent : t.sub }}>{sp.label}</button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
+              <div style={{ ...TYPE.caption, color: t.faint }}>{tr("Date of birth")}{age != null ? ` · ${age}` : ""}</div>
+              <input type="date" value={f.dob || ""} onChange={(e) => setF({ ...f, dob: e.target.value })} aria-label={tr("Date of birth")} className="w-full outline-none mt-1"
+                     style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            </div>
+            {field(tr("Phone"), "phone", { type: "tel", autoComplete: "tel", placeholder: "+353" })}
+            {role === "coach" && field(tr("Club or academy"), "club", { placeholder: tr("Shown to your players") })}
+            <div className="px-5 py-3.5">
+              <div style={{ ...TYPE.caption, color: t.faint }}>{role === "coach" ? tr("About you — players see this") : tr("About you — your coach sees this")}</div>
+              <textarea value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value.slice(0, 280) })} rows={3} className="w-full outline-none resize-none mt-1"
+                        style={{ fontFamily: ui, fontSize: 15.5, lineHeight: 1.5, color: t.ink, background: "transparent" }} placeholder={role === "coach" ? tr("Twelve years coaching, mostly short game.") : tr("Left-hander, playing since 2021.")} />
+            </div>
+          </Card>
+          {err && <p className="px-2 mb-4" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+          {dirty && <div className="mb-6"><Button tone="ink" disabled={busy} onClick={save}>{busy ? "…" : tr("Save changes")}</Button></div>}
+
+          <Eyebrow>{tr("Account")}</Eyebrow>
+          <Card className="mb-6" tour="profile-account">
+            {account && account.email && <Row label={tr("Email")} value={account.email} icon={<I C={Mail} />} />}
+            <Row label={tr("Change password")} chevron icon={<I C={Lock} />} onToggle={onChangePassword} />
+            <Row tour="profile-notifications" label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={onNotifications} />
+            <Row tour="profile-family" label={tr("Family")} sub={family ? family.displayName : tr("None yet — start or join one")} chevron icon={<I C={Users} />} onToggle={onFamily} />
+            <Row label={tr("Data & permissions")} chevron icon={<I C={ShieldCheck} />} onToggle={onData} />
+            <Row label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={onSignOut} />
+            <Row tour="profile-delete" label={tr("Delete account")} sub={tr("Everything, permanently")} danger last icon={<I C={Trash2} danger />} onToggle={onDelete} />
+          </Card>
+          <div style={{ height: 26 }} />
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
+function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
   const t = useT(); const L = useL();
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -13069,8 +13554,8 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, l
     <SwipeBack onBack={pop}>
       <Screen title={tr("You")} onBack={pop}>
         <div className="px-6"><Card className="p-5 mb-6">
-          <button onClick={() => { haptic(6); push("details"); }} className="w-full flex items-center gap-4 text-left active:opacity-50">
-            <Avatar name={coachName} size={58} /><span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{coachName}</span><span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{sub}</span></span>
+          <button data-tour="settings-profile" onClick={() => { haptic(6); push(live ? "profile" : "details"); }} className="w-full flex items-center gap-4 text-left active:opacity-50">
+            <Avatar name={coachName} size={58} src={avatar} /><span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{coachName}</span><span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{live ? tr("Photo, details, account") : sub}</span></span>
             <ChevronRight size={18} color={t.faint} />
           </button>
 
@@ -13090,18 +13575,19 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, l
         {role === "coach" ? (<><Eyebrow>{tr("Coaching")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-coaching">
           <Row tour="settings-reviews" label={tr("Reviews")}  chevron icon={<I C={Sparkles} />} onToggle={() => push("reviews")} />
           {!live && <Row tour="settings-credentials" label={tr("Paperwork")}  chevron icon={<I C={ShieldCheck} />} onToggle={() => push("credentials")} />}
-          <Row tour="settings-requests" label={tr("Requests")}  chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
+          <Row tour="settings-requests" label={tr("Requests")} sub={live ? (requestCount ? `${requestCount} ${tr("asking to join")}` : tr("Players asking to join you")) : null} value={live && requestCount ? String(requestCount) : null} chevron icon={<I C={UserPlus} />} onToggle={() => push("requests")} />
           {demo && <Row label={tr("Subscription")} sub={`${BRAND} ${plan?.name || "Coach"}`} chevron icon={<I C={ShieldCheck} />} onToggle={() => push("subscription")} />}
           <Row tour="settings-availability" label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />
           <Row tour="settings-roster" label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />
           <Row tour="settings-library" label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
           <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
-          <Row tour="settings-branding" label={tr("Branding")} sub={live ? tr("Club name") : tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />
+          {!live && <Row tour="settings-branding" label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />}
           <Row tour="settings-invite" label={tr("Invite code & QR")} value={inviteCode || "——————"} chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
         </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-playing">
           <Row tour="settings-digest" label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
-          <Row tour="settings-dashboard" label={tr("Family dashboard")} sub={tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
-          <Row tour="settings-family" label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />
+          <Row tour="settings-dashboard" label={tr("Family")} sub={live ? (familyName || tr("Start or join one")) : tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
+          {live ? <Row tour="settings-family" label={tr("Your coach")} sub={hasCoach ? (conn?.coach || "") : tr("Ask to join one with their code")} chevron icon={<I C={UserPlus} />} onToggle={() => hasCoach ? push("coachProfile") : sheet("family")} />
+                : <Row tour="settings-family" label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />}
           <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron last={live} icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
           {!live && <Row label={tr("Subscription")} sub={tr("Free — your coach's plan covers you")} last icon={<I C={ShieldCheck} />} />}
         </Card></div></>)}
@@ -13131,16 +13617,16 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, l
           <Row label={tr("Reduce motion")} sub={tr("Fewer animations")} last right={<Toggle on={reduceMotion} onChange={setReduceMotion} />} />
         </Card></div>
 
-        <Eyebrow>{tr("Account")}</Eyebrow>
+        {!live && (<><Eyebrow>{tr("Account")}</Eyebrow>
         <div className="px-6 mb-6"><Card tour="settings-account">
           <Row tour="settings-photo" label={tr("Photo")}  chevron icon={<I C={Camera} />} onToggle={() => onPhoto && onPhoto()} />
           {multiSport && <Row label={tr("Main sport")} sub={mainLabel} chevron icon={<I C={Tag} />} onToggle={() => onMainSport && onMainSport()} />}
           <Row tour="settings-details" label={tr("Personal details")} chevron icon={<I C={User} />} onToggle={() => push("details")} />
           <Row tour="settings-notifications" label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={() => push("notifications")} />
-          {role === "player" && !live && <Row tour="settings-transfer" label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
-          {!live && <Row tour="settings-sources" label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />}
+          {role === "player" && <Row tour="settings-transfer" label={tr("Your sporting record")} sub={tr("What each coach can see")} chevron icon={<I C={Library} />} onToggle={() => sheet("transfer")} />}
+          <Row tour="settings-sources" label={tr("Connections")}  chevron icon={<I C={Radio} />} onToggle={() => push("sources")} />
           <Row tour="settings-data" label={tr("Data & permissions")} chevron last icon={<I C={ShieldCheck} />} onToggle={() => push("legal:data")} />
-        </Card></div>
+        </Card></div></>)}
 
         <Eyebrow>{tr("Support")}</Eyebrow>
         <div className="px-6 mb-6"><Card tour="settings-support">
@@ -13158,17 +13644,14 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, l
           <Row tour="settings-licences" label={tr("Licences")} chevron last icon={<I C={FileText} />} onToggle={() => push("legal:licences")} />
         </Card></div>
 
-        <div className="px-6 mb-6"><Card>
+        {/* a real account signs out and deletes from its profile screen, with everything else about it */}
+        {!live && <div className="px-6 mb-6"><Card>
           <Row tour="settings-signout" label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={restart} />
-          {onDeleteAccount
-            ? <Row tour="settings-delete" label={tr("Delete account")}
-                   sub={tr("Everything, permanently")}
-                   icon={<Trash2 size={18} color={DANGER} strokeWidth={2} />}
-                   danger last
-                   onToggle={() => sheet("deleteAccount")} />
-            /* the design harness has no account behind it; this row only shows the sheet */
-            : <Row tour="settings-delete" label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />}
-        </Card></div>
+          <Row tour="settings-delete" label={tr("Delete account")} danger last icon={<Trash2 size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => sheet("delete")} />
+        </Card></div>}
+        {live && <div className="px-6 mb-6"><Card>
+          <Row tour="settings-signout" label={tr("Sign out")} last icon={<I C={LogOut} />} onToggle={restart} />
+        </Card></div>}
 
         <div className="flex flex-col items-center pb-6"><Mark size={30} color={t.faint} /><p className="mt-2.5" style={{ ...TYPE.caption, color: t.faint }}>{BRAND} {VERSION}</p><p className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>{tr("Made in Ireland")}</p></div>
       </Screen>
@@ -13256,20 +13739,54 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
     </SwipeBack>
   );
 }
-function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify }) {
+function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, userId, say }) {
   const t = useT(); const cats = NOTIF_CATS[role]; const [state, setState] = useState(cats.map((c, i) => i < cats.length - 1)); const [mode, setMode] = useState("Instant"); const [quiet, setQuiet] = useState(true);
-  /* A real account keeps one thing here — how it likes to be told —
-     and that is what is shown. There is no push yet, so nothing says
-     there is. */
+  /* A real account: the in-app list always works; the switch here is
+     for the phone hearing about things while Nosca is closed. What the
+     switch can say depends on the browser, and it says exactly that. */
+  const [support, setSupport] = useState(() => (live ? pushSupport() : "unsupported"));
+  const [subscribed, setSubscribed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!live) return;
+    let alive = true;
+    setSupport(pushSupport());
+    currentSubscription().then((sub) => { if (alive) setSubscribed(!!sub); }).catch(() => {});
+    return () => { alive = false; };
+  }, [live]);
+  const flip = async (on) => {
+    if (busy) return;
+    setBusy(true);
+    if (on) {
+      const r = await subscribePush(supabase, userId);
+      if (r && r.ok) { setSubscribed(true); hapticSuccess(); chime(); say && say(tr("This device will be told")); }
+      else { hapticWarn(); say && say((r && r.reason) || tr("Couldn't turn that on")); setSupport(pushSupport()); }
+    } else {
+      await unsubscribePush(supabase);
+      setSubscribed(false); haptic(8);
+    }
+    setBusy(false);
+  };
   const CHOICES = [["instant", tr("As they happen")], ["digest", tr("Once a day")], ["quiet", tr("Only urgent")]];
+  const why = support === "ios-home-screen" ? tr("On an iPhone, add Nosca to your Home Screen first (Share → Add to Home Screen) and open it from there.")
+    : support === "denied" ? tr("Notifications are blocked for this site in your browser's settings. Allow them there, then come back.")
+    : support === "unsupported" ? tr("This browser can't receive notifications while the app is closed.")
+    : null;
   if (live) return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Notifications")} onBack={pop} meta={tr("How you like to be told")}>
+      <Screen title={tr("Notifications")} onBack={pop} meta={tr("Lessons, bookings, requests and messages")}>
+        <Eyebrow>{tr("On this device")}</Eyebrow>
+        <div className="px-6 mb-2"><Card tour="notif-push">
+          <Row label={tr("Tell me even when Nosca is closed")} sub={subscribed ? tr("On for this device") : why ? null : tr("Push notifications")}
+               last right={<Toggle on={subscribed} onChange={(v) => { if (!why || subscribed) flip(v); else { hapticWarn(); say && say(why); } }} />}
+               icon={subscribed ? <Bell size={17} color={t.accent} strokeWidth={1.8} /> : <BellOff size={17} color={t.sub} strokeWidth={1.6} />} />
+        </Card></div>
+        {why && !subscribed && <p className="px-8 mb-6" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{why}</p>}
+        {!why && <p className="px-8 mb-6" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Everything also lands under the bell, and the app shows what happened while you were away when you open it.")}</p>}
         <Eyebrow>{tr("When to tell you")}</Eyebrow>
         <div className="px-6 mb-6"><Card>{CHOICES.map(([id, lbl], i) => (
           <Row key={id} label={lbl} radio checked={(notify || "instant") === id} last={i === CHOICES.length - 1} onToggle={() => { haptic(6); setNotify && setNotify(id); }} />
         ))}</Card></div>
-        <p className="px-8 pb-4" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{tr("Bookings, messages and lessons show in the app when you open it.")}</p>
       </Screen>
     </SwipeBack>
   );
@@ -13478,10 +13995,61 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given 
 
    Anything settled leaves the list. A bell that keeps showing done
    things stops being read. */
-function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family = [], onDo, pop, push, go, empty }) {
+function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family = [], onDo, pop, push, go, empty, items = null, onOpen, onClear, onClearAll }) {
   const t = useT();
   const [cleared, setCleared] = useState([]);
   const live = (list) => list.filter((n) => !cleared.includes(n.id));
+
+  /* a real account: the notifications table, newest first, each a door */
+  if (items) {
+    const tone = (k) => k === "weather" || k === "declined" ? DANGER : k === "accepted" ? STEADY : k === "request" || k === "booking" ? CAUTION : k === "message" ? t.accent : null;
+    return (
+      <SwipeBack onBack={pop}>
+        <Screen title={tr("Alerts")} onBack={pop} meta={items.length ? `${items.length}` : tr("All clear")}
+                right={items.length ? <TextBtn onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn> : null}>
+          <div className="px-6 pb-2">
+            {jobs.length > 0 && (
+              <div className="mb-7" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                {jobs.map((n, i) => (
+                  <button key={n.id} onClick={() => { haptic(8); soft(); n.go && n.go(); }} className="w-full flex items-center gap-3.5 px-1 py-4 text-left active:opacity-60"
+                          style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`, animation: `settle 360ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>
+                    <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: n.tone || t.hair }} />
+                    <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{n.what}</span>
+                    <span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 22, height: 22, padding: "0 7px", background: n.tone || t.wash, ...TYPE.caption, fontWeight: 500, color: n.tone ? "#fff" : t.sub }}>{n.count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {items.length === 0 ? (
+              <div className="py-16 text-center">
+                <span className="rounded-full inline-flex items-center justify-center mb-5" style={{ width: 58, height: 58, background: t.wash, animation: "breathe 4s ease-in-out infinite" }}>
+                  <Check size={23} color={STEADY} strokeWidth={2.1} />
+                </span>
+                <p style={{ ...TYPE.title, color: t.ink }}>{tr("All clear")}</p>
+                <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{tr("Lessons, bookings, requests and messages land here.")}</p>
+              </div>
+            ) : (
+              <div data-tour="alerts-list" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                {items.map((n, i) => (
+                  <SwipeRow key={n.id} deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
+                    <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }} className="w-full flex items-start gap-3.5 px-1 py-4 text-left active:opacity-60"
+                            style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`, animation: `settle 360ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 10) * 40}ms both` }}>
+                      <span className="rounded-full shrink-0" style={{ width: 7, height: 7, marginTop: 7, background: n.readAt ? t.hair : (tone(n.kind) || t.accent) }} />
+                      <span className="flex-1 min-w-0">
+                        <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 500, color: t.ink }}>{n.title}</span>
+                        {n.body && <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{n.body}</span>}
+                      </span>
+                      <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint, marginTop: 3 }}>{n.when}</span>
+                    </button>
+                  </SwipeRow>
+                ))}
+              </div>
+            )}
+          </div>
+        </Screen>
+      </SwipeBack>
+    );
+  }
 
   const Item = ({ n, i }) => (
     <SwipeRow deleteLabel={tr("Clear")} onDelete={() => setCleared((v) => [...v, n.id])}>
@@ -13544,6 +14112,108 @@ function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family =
   );
 }
 
+
+/* WHAT HAPPENED TO THE FILES
+
+   Uploads run after the lesson is written, so this rides on Today
+   until every file is in or given up on: a count while they move, a
+   line per failure with the reason, and Retry. Nothing about a clip is
+   ever lost quietly. */
+function UploadStatus({ uploads, onRetry, onDismiss }) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  if (!uploads || !uploads.items || !uploads.items.length) return null;
+  const items = uploads.items;
+  const moving = items.filter((it) => it.status === "uploading");
+  const failed = items.filter((it) => it.status === "failed");
+  const done = items.filter((it) => it.status === "done");
+  useEffect(() => {
+    if (moving.length || failed.length) return;
+    const x = setTimeout(() => onDismiss && onDismiss(), 2600);
+    return () => clearTimeout(x);
+  }, [moving.length, failed.length]);
+  const noun = (n) => (n === 1 ? tr("file") : tr("files"));
+  return (
+    <div className="px-6 pt-2 pb-1" data-tour="upload-status" style={{ animation: "contentRise 320ms cubic-bezier(.22,1,.36,1) both" }}>
+      <div className="px-4 py-3" style={{ borderRadius: R.control, background: failed.length ? `${DANGER}10` : t.wash,
+                                        border: `0.5px solid ${failed.length ? `${DANGER}55` : "transparent"}` }}>
+        <div className="flex items-center gap-3">
+          {moving.length > 0
+            ? <span className="rounded-full shrink-0" style={{ width: 8, height: 8, background: t.accent, animation: "breathe 1.4s ease-in-out infinite" }} />
+            : failed.length > 0 ? <X size={14} color={DANGER} strokeWidth={2.2} /> : <Check size={14} color={STEADY} strokeWidth={2.4} />}
+          <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
+            {moving.length > 0 ? `${tr("Uploading")} ${moving.length} ${noun(moving.length)}${done.length ? ` · ${done.length} ${tr("in")}` : ""}`
+              : failed.length > 0 ? `${failed.length} ${noun(failed.length)} ${failed.length === 1 ? tr("didn't upload") : tr("didn't upload")}${done.length ? ` · ${done.length} ${tr("in")}` : ""}`
+              : `${done.length} ${noun(done.length)} ${tr("attached")}`}
+          </span>
+          {failed.length > 0 && !moving.length && (
+            <button onClick={async () => { haptic(8); setBusy(true); await onRetry(); setBusy(false); }} disabled={busy}
+                    className="shrink-0 px-3 active:opacity-60 disabled:opacity-40"
+                    style={{ minHeight: 30, borderRadius: R.pill, background: t.ink, ...TYPE.caption, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Retry")}</button>
+          )}
+          {!moving.length && (
+            <button onClick={() => { haptic(5); onDismiss && onDismiss(); }} className="shrink-0 p-1 active:opacity-50" aria-label={tr("Dismiss")}>
+              <X size={13} color={t.faint} />
+            </button>
+          )}
+        </div>
+        {failed.map((it) => (
+          <p key={it.key} className="mt-2 truncate" style={{ ...TYPE.caption, color: DANGER }}>{it.name}: {it.error}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* SINCE YOU WERE AWAY
+
+   What landed while the app was closed, shown once on opening, over
+   everything: a lesson logged, a request answered, a booking
+   confirmed. Tap one to go there, or clear the lot. */
+function CatchUp({ items, onOpen, onDone }) {
+  const t = useT();
+  useEffect(() => { hapticCommit(); swell(); }, []);
+  const tone = (k) => k === "weather" || k === "declined" ? DANGER : k === "accepted" || k === "lesson" ? STEADY : k === "request" || k === "booking" ? CAUTION : t.accent;
+  const shown = items.slice(0, 6);
+  return (
+    <div className="absolute inset-0 flex flex-col" style={{ zIndex: 70, background: t.ink, animation: "fadeIn 320ms ease-out both" }}>
+      <div className="flex-1 min-h-0 flex flex-col justify-center px-7">
+        <span style={{ fontFamily: ui, fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: t.accent,
+                       animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 120ms both" }}>
+          {tr("While you were away")}
+        </span>
+        <h2 className="mt-3" style={{ fontFamily: display, fontSize: 30, letterSpacing: "-0.035em", lineHeight: 1.08, color: "#F4F6F3",
+                                       animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 220ms both" }}>
+          {items.length === 1 ? tr("One thing happened") : `${items.length} ${tr("things happened")}`}
+        </h2>
+        <div className="mt-7" data-tour="catchup-list" style={{ borderTop: "0.5px solid rgba(244,246,243,0.18)" }}>
+          {shown.map((n, i) => (
+            <button key={n.id} onClick={() => { haptic(8); soft(); onOpen(n); }}
+                    className="w-full flex items-start gap-3.5 py-3.5 text-left active:opacity-60"
+                    style={{ borderBottom: "0.5px solid rgba(244,246,243,0.18)",
+                             animation: `settle 420ms cubic-bezier(.22,1,.36,1) ${320 + i * 70}ms both` }}>
+              <span className="rounded-full shrink-0" style={{ width: 8, height: 8, marginTop: 7, background: tone(n.kind) }} />
+              <span className="flex-1 min-w-0">
+                <span className="block truncate" style={{ ...TYPE.body, color: "#F4F6F3" }}>{n.title}</span>
+                {n.body && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: "rgba(244,246,243,0.55)" }}>{n.body}</span>}
+              </span>
+              <span className="shrink-0" style={{ ...TYPE.caption, color: "rgba(244,246,243,0.4)", marginTop: 3 }}>{n.when}</span>
+            </button>
+          ))}
+          {items.length > shown.length && (
+            <p className="pt-3" style={{ ...TYPE.caption, color: "rgba(244,246,243,0.5)" }}>{tr("and")} {items.length - shown.length} {tr("more under the bell")}</p>
+          )}
+        </div>
+      </div>
+      <div className="px-7 shrink-0" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))", animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 700ms both" }}>
+        <button onClick={() => { haptic(10); onDone(); }} className="w-full active:opacity-80"
+                style={{ minHeight: 54, borderRadius: R.surface, background: t.accent, fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.onAccent }}>
+          {tr("Carry on")}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /* ==================================================================
    SHELL
@@ -13632,12 +14302,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        being cancelled the instant an account appears. */
     setRole(account.role);
     setFlow("app");
-    setStack([account.role === "coach" ? "today" : "home"]);
+    setStack([account.role === "coach" ? "today" : account.accountType === "parent" ? "family" : "home"]);
   /* Keyed on who the account is, not its every field: saving a name or
      a club refreshes the profile, and that must not reset the screen. */
   }, [account && account.id, account && account.role]);
   const [celeb, setCeleb] = useState(null);
   const [joined, setJoined] = useState(null);   // { coachName, sport } while the join screen plays
+  /* a coach accepting while the app is open: the moment hasCoach turns on */
+  const hadCoach = useRef(null);
+  useEffect(() => {
+    if (!data || sc) return;
+    const now = !!data.hasCoach;
+    if (hadCoach.current === false && now && role === "player") setJoined({ coachName: data.coachName, sport: data.coachSport });
+    hadCoach.current = now;
+  }, [data && data.hasCoach]);
   const [goalFor, setGoalFor] = useState(null);
   const [scenarios, setScenarios] = useState(false);
   const [famLoaded, setFamLoaded] = useState(false);
@@ -13845,6 +14523,41 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       }
     } catch (e) { /* storage unavailable — nothing to consume */ }
   }, []);
+  /* Booking on a junior's behalf: set from the family dashboard, read
+     by the diary, cleared the moment the diary is left. */
+  const [bookFor, setBookFor] = useState(null);
+  const screenNow = stack[stack.length - 1];
+  useEffect(() => { if (screenNow !== "calendar" && bookFor) setBookFor(null); }, [screenNow]);
+
+  /* What landed while the app was closed, shown once per open; and
+     where a notification leads when tapped, here or under the bell. */
+  const [catchUp, setCatchUp] = useState(null);
+  const caughtUp = useRef(false);
+  useEffect(() => {
+    if (!data || sc || caughtUp.current) return;
+    caughtUp.current = true;
+    const unread = (data.notifications || []).filter((n) => !n.readAt);
+    if (unread.length) setCatchUp(unread);
+  }, [!!data]);
+  const openNotificationRef = useRef(null);
+  useEffect(() => {
+    if (!data || sc) return;
+    /* the service worker opens the app at ?open=<screen>, or tells an open app */
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const open = params.get("open");
+      if (open) {
+        params.delete("open");
+        window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}${window.location.hash}`);
+        setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open } }), 300);
+      }
+    } catch (e) { /* no history API */ }
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    const onMsg = (e) => { const m = e && e.data; if (m && m.type === "nosca:open" && openNotificationRef.current) openNotificationRef.current({ data: { screen: m.screen, ...(m.data || {}) } }); };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+  }, [!!data]);
+
   /* A join link opened by someone already signed in. Taken from the app
      once (onInviteUsed) and kept here until it is dealt with: a player
      with no coach gets it filled into the code boxes; anyone else is
@@ -14018,7 +14731,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   const profiles = account
     ? [{ id: account.id, name: account.name, age: null },
-       ...((data && data.family) || []).map((f) => {
+       ...((data && data.dependants) || []).map((f) => {
          const a = yearsOld(f.dateOfBirth);
          return { id: f.id, name: f.name, age: a != null && a < ADULT_AGE ? a : null, kin: true, coach: f.coachName, sport: f.sport };
        })]
@@ -14058,7 +14771,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     ? [
         ...(role === "player" && data && data.hasCoach
           ? [{ id: 1, profileId: account.id, sport: account.sport, coach: data.coachName || "Your coach", club: "", seeded: false }] : []),
-        ...((data && data.family) || []).filter((f) => f.coachId).map((f, i) => (
+        ...((data && data.dependants) || []).filter((f) => f.coachId).map((f, i) => (
           { id: 100 + i, profileId: f.id, sport: f.sport || account.sport, coach: f.coachName || "Their coach", club: "", seeded: false })),
       ]
     : seedConns;
@@ -14184,13 +14897,27 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     hapticWarn(); decline();
     say(rec ? `Called off — added back at the end, ${booking.who.split(" ")[0]} notified` : `Called off — ${booking.who.split(" ")[0]} notified`);
   };
-  const openRequests = freshAccount ? [] : requests;
+  const openRequests = data ? (data.requests || []) : freshAccount ? [] : requests;
   const openUnlogged = freshAccount ? [] : unlogged;
   const openWaitlist = freshAccount ? [] : waitlist;
   const addGoal = (who, text, by) => setGoals((g) => ({ ...g, [who]: [...(g[who] || []), { id: Date.now(), t: text, by, done: false }] }));
   const toggleGoal = (who, id) => setGoals((g) => ({ ...g, [who]: (g[who] || []).map((x) => (x.id === id ? { ...x, done: !x.done } : x)) }));
-  const acceptRequest = (r) => { setRequests((v) => v.filter((x) => x.name !== r.name)); setAccepted((v) => [...v, r.name]); hapticSuccess(); chime(); say(`${r.name.split(" ")[0]} added to your roster`); };
-  const declineRequest = (r) => { setRequests((v) => v.filter((x) => x.name !== r.name)); hapticWarn(); decline(); say("Request declined"); };
+  const acceptRequest = async (r) => {
+    if (data && r.id) {
+      const res = await data.respondToRequest(r.id, true);
+      if (res && res.error) { hapticWarn(); say(res.error.message); return; }
+      hapticSuccess(); chime(); say(`${r.name.split(" ")[0]} ${tr("added to your roster")}`); return;
+    }
+    setRequests((v) => v.filter((x) => x.name !== r.name)); setAccepted((v) => [...v, r.name]); hapticSuccess(); chime(); say(`${r.name.split(" ")[0]} added to your roster`);
+  };
+  const declineRequest = async (r) => {
+    if (data && r.id) {
+      const res = await data.respondToRequest(r.id, false);
+      if (res && res.error) { hapticWarn(); say(res.error.message); return; }
+      hapticWarn(); decline(); say(tr("Declined")); return;
+    }
+    setRequests((v) => v.filter((x) => x.name !== r.name)); hapticWarn(); decline(); say("Request declined");
+  };
   const markAttendance = (who, status) => { setAttendance((a) => ({ ...a, [who]: { ...(a[who] || { showed: 0, late: 0, noShow: 0, cancelled: 0 }), [status]: ((a[who] || {})[status] || 0) + 1 } })); hapticSuccess(); };
   const L = STRINGS[lang] || STRINGS.en;
   /* Synchronous on purpose: an effect runs after the first paint, so
@@ -14578,21 +15305,54 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (role === "coach") return (data.roster || []).map((r) => row(r.id, r.name, tr("Player")));
     const rows = [];
     if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach")));
-    (data.family || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.name, `${tr("with")} ${f.coachName || tr("their coach")}`)));
+    (data.dependants || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.name, `${tr("with")} ${f.coachName || tr("their coach")}`)));
     return rows;
   })() : null;
   const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
       + atRisk(roster, mySeriesLive, live).length + focusReqs.length;
-  const alerts = (freshAccount ? 0 : NOTIFS[role].filter((n) => n.fresh).length) + waiting;
-  const navRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} /><YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} /></>);
-  const slimRight = (<>{role === "player" && !juvenile && <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} />}
+  const bookKid = async (kid, b) => {
+    const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration });
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
+    hapticSuccess(); setCeleb({ label: tr("Asked"), sub: `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}` });
+  };
+  const openNotification = (n) => {
+    if (!data) return;
+    if (n && n.id && !n.readAt) data.markNotificationsRead([n.id]);
+    const d = (n && n.data) || {};
+    const scr = d.screen;
+    const home = role === "coach" ? "today" : (account && account.accountType === "parent") ? "family" : "home";
+    const nameOfPlayer = (pid) => (((data.roster || []).find((r) => r.id === pid) || {}).name)
+      || (((liveThreads || []).find((c) => c.playerId === pid) || {}).who) || null;
+    setCatchUp(null);
+    if (scr === "lesson" && d.id) { setStack([home, `lesson:${d.id}`]); return; }
+    if (scr === "requests") { setStack(["roster", "requests"]); return; }
+    if (scr === "thread" && d.id && !juvenile) { const nm = nameOfPlayer(d.id); if (nm) { setStack(["messages", `thread:${nm}`]); return; } }
+    if (scr === "tips") { setStack([home, "tips"]); return; }
+    if (scr === "family" || scr === "home" || scr === "today" || scr === "calendar" || scr === "practice" || scr === "messages") {
+      const target = scr === "home" ? home : scr;
+      if (tabs.some((tb) => tb.id === target) || target === "family") { go(target); return; }
+    }
+    if (scr === "alerts" || !scr) { push("alerts"); return; }
+    go(home);
+  };
+  openNotificationRef.current = openNotification;
+  /* a real account's bell counts the notifications table; the harness counts its seeds */
+  const alerts = data ? (data.unreadCount || 0) : (freshAccount ? 0 : NOTIFS[role].filter((n) => n.fresh).length) + waiting;
+  /* the pill: for a real player it opens the family dashboard (or the
+     place to start one); for the harness it switches profiles */
+  const pill = data
+    ? (role === "player" ? <FamilyPill tour="profile-pill" group name={data.family ? data.family.displayName : tr("Family")} onOpen={() => go("family")} /> : null)
+    : (role === "player" && !juvenile ? <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} /> : null);
+  const youBtn = <YouAvatarBtn tour="you" name={coachName} src={account ? account.avatarUrl : null} onOpen={() => push("you")} />;
+  const navRight = (<>{pill}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} />{youBtn}</>);
+  const slimRight = (<>{pill}
     <IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} />
-    {role === "coach" && <IconBtn tour="alerts" C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}
-    <YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} />
+    {(role === "coach" || data) && <IconBtn tour="alerts" C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}
+    {youBtn}
   </>);
-  const juvRight = (<><IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} /><YouAvatarBtn tour="you" name={coachName} onOpen={() => push("you")} /></>);
+  const juvRight = (<>{pill}<IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} />{data && <IconBtn tour="alerts" C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}{youBtn}</>);
 
   /* One row per person the account manages, with their next session. */
   const familyCalendar = (role === "player" && profiles.filter((pf) => pf.age).length > 0)
@@ -14614,13 +15374,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return { ...soonest, reason: `${DAY_NAMES[dowOf(soonest.m, soonest.d, calendar)].slice(0, 3)} ${soonest.d} at ${soonest.time} — like your usual` };
   })();
   const practiceTodo = myPractice.filter((x) => !x.done).length;
-  const hasFamily = profiles.some((pf) => pf.age);
+  const hasFamily = data ? (data.dependants || []).length > 0 : profiles.some((pf) => pf.age);
   /* Safeguarding: messaging is withheld for anyone under 18, whether
      they signed in themselves or a parent switched to them. */
   const viewingChild = !!(activeProfile && activeProfile.age);
   const noChat = juvenile || viewingChild;
   const tabs = role === "coach"
     ? [{ id: "today", icon: Home, label: tr("Today") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Roster") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+    : (data && account && account.accountType === "parent")
+      /* a parent's home is the family: their children's lessons are
+         the lessons, the diary is the children's, chat is with the
+         children's coaches */
+      ? [{ id: "family", icon: Users, label: tr("Family") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
     : juvenile
       /* No messaging for an under-18 account. Deliberate: a child's
          contact with an adult coach runs through their parent. */
@@ -14637,7 +15402,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
       : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
-  const pushedScreens = ["you", "details", "notifications", "support", "subscription", "availability", "branding", "library", "search", "alerts", "tips", "stats", "language", "requests", "unlogged", "tool", "groups", "archive", "region", "season", "events", "credentials", "reviews", "recurring", "sources", "atrisk", "digest", "checkins", "lesson", "prefs", "attendance", "coachProfile", "familyCode"].concat(Object.keys(LEGAL).map((k) => "legal:" + k));
+  const pushedScreens = ["you", "profile", "details", "notifications", "support", "subscription", "availability", "branding", "library", "search", "alerts", "tips", "stats", "language", "requests", "unlogged", "tool", "groups", "archive", "region", "season", "events", "credentials", "reviews", "recurring", "sources", "atrisk", "digest", "checkins", "lesson", "prefs", "attendance", "coachProfile", "familyCode"].concat(Object.keys(LEGAL).map((k) => "legal:" + k));
 
   /* the feed runs edge to edge, under the status bar */
   const bleed = inApp && screen === "log" && prefs.logView === "feed" && role !== "coach";
@@ -14649,12 +15414,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      are never held here; Home, Family and the family code are theirs
      from the start. */
   const parentAccount = !!account && account.accountType === "parent";
-  const needsCoach = !!account && role === "player" && data && !data.hasCoach && !parentAccount;
+  /* Only the tabs are replaced: You, Family, Alerts and the profile stay
+     reachable, so a player waiting on a coach can still set themselves
+     up, join their family and read what has happened. */
+  const needsCoach = !!account && role === "player" && data && !data.hasCoach && !parentAccount
+    && ["home", "log", "practice", "calendar", "messages"].includes(screen);
   if (needsCoach) {
     /* a join link opened by this person arrives with the code filled in */
-    body = <NoCoach juvenile={juvenile} initialCode={pendingInvite && pendingInvite.kind === "coach" ? pendingInvite.code : ""} onJoin={async (c) => {
+    body = <NoCoach juvenile={juvenile} initialCode={pendingInvite && pendingInvite.kind === "coach" ? pendingInvite.code : ""}
+                    pending={data.myRequest} declinedBy={data.declinedBy}
+                    familyName={data.family ? data.family.displayName : null} onOpenFamily={() => go("family")}
+                    onYou={() => push("you")} onAlerts={() => push("alerts")} alerts={alerts}
+                    onWithdraw={() => data.cancelRequest()}
+                    onJoin={async (c) => {
       const res = await (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c));
-      if (res && !res.error) { setPendingInvite(null); setJoined({ coachName: res.coach?.name || data.coachName, sport: res.coach?.sport }); }
+      if (res && !res.error) { setPendingInvite(null); hapticSuccess(); chime(); }
       return res;
     }} />;
     bare = true;
@@ -14734,7 +15508,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pname = screen.split(":")[1];
-    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
+    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? data.lessons : null}
+                        player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
+                        onOpenLesson={(l) => push(`clesson:${pname}:${l.id}`)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
   } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? data.lessons : null} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
@@ -14743,6 +15519,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          const media = data ? await data.lessonMedia(l.id) : [];
                          downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName), who: role === "coach" || l.type === "Group" ? l.who : null, media, say });
                        }} />;
+  } else if (screen === "alerts" && data) {
+    /* a real account: the notifications table, plus what is waiting on a coach */
+    const jobs = role === "coach" ? [
+      openRequests.length && { id: "j1", what: tr("asking to join you"), count: openRequests.length, tone: CAUTION, go: () => push("requests") },
+      (liveAsks || []).length && { id: "j3", what: tr("lesson requests"), count: (liveAsks || []).length, tone: CAUTION, go: () => go("today") },
+      (todayList || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (todayList || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
+    ].filter(Boolean) : [];
+    body = <NotifCentre role={role} jobs={jobs} items={data.notifications || []} pop={pop} push={push} go={go}
+                        onOpen={openNotification} onClear={(id) => data.clearNotification(id)}
+                        onClearAll={() => { data.clearNotifications(); say(tr("Cleared")); }} />;
   } else if (screen === "alerts") {
     const isParent = role !== "coach" && profiles.some((pf) => pf.age);
     /* Coach: everything blocking someone else's week. */
@@ -14825,9 +15611,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
              onSend={() => { setCheckIns((v) => [{ id: Date.now(), who: (activeProfile || {}).name || "", when: tr("Just now"), note: "", state: "waiting", secs: 9 }, ...v]);
                setCeleb({ label: tr("Sent"), sub: tr("Your coach will look at it.") }); }} />;
   } else if (screen === "familyCode") {
-    body = <FamilyScreen familyCode={data ? data.familyCode : null} family={data ? data.family : []} onMessage={juvenile ? null : (m) => push("thread:" + m.id)}
-                         hasGuardian={data ? data.hasGuardian : false}
-                         onJoin={(c) => data && data.joinFamily(c)} say={say} pop={pop} />;
+    body = <FamilyScreen family={data ? data.family : null} isJunior={juvenile} live={!!data}
+                         onCreate={data ? (n) => data.createFamily(n) : async () => ({})} onJoin={data ? (c) => data.joinFamily(c) : async () => ({})}
+                         onLeave={data ? () => data.leaveFamily() : async () => ({})} onRename={data ? (n) => data.renameFamily(n) : async () => ({})}
+                         lookup={data ? data.lookupCode : null} say={say} pop={pop} onOpenHome={() => go("family")} />;
   } else if (screen === "coachProfile") {
     body = <CoachProfile coachName={coachName} sport={sport}
                           reviewSummary={data ? data.reviewSummary : null}
@@ -14917,12 +15704,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "region") {
     body = <RegionScreen region={region} setRegion={setRegion} lang={lang} setLang={setLang} pop={pop} />;
   } else if (screen === "language") { body = <LanguageScreen lang={lang} setLang={setLang} pop={pop} say={say} />;
+  } else if (screen === "profile" && data) {
+    body = <ProfileScreen account={account} me={data.me} role={role} avatar={account.avatarUrl} family={data.family}
+                          onSave={async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
+                          onUploadAvatar={async (file) => { const res = await data.uploadAvatar(file); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
+                          onRemoveAvatar={async () => { const res = await data.removeAvatar(); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
+                          onChangePassword={() => setSheet("password")} onNotifications={() => push("notifications")} onData={() => push("legal:data")}
+                          onFamily={() => push("familyCode")} onSignOut={restart} onDelete={() => setSheet("deleteAccount")} pop={pop} push={push} say={say} />;
   } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} me={account ? { name: account.name, email: account.email, phone: account.phone, club: account.club } : null}
                                                    onSave={data ? async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null}
                                                    onChangePassword={data ? () => setSheet("password") : null} />;
-  } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} live={!!data} notify={prefs.notify} setNotify={(v) => setPrefs((p) => ({ ...p, notify: v }))} />;
+  } else if (screen === "notifications") { body = <Notifications role={role} pop={pop} pushOn={pushOn} setPushOn={setPushOn} live={!!data} notify={prefs.notify} setNotify={(v) => setPrefs((p) => ({ ...p, notify: v }))} userId={account ? account.id : null} say={say} />;
   } else if (screen === "support") { body = <Support pop={pop} say={say} live={!!data} />;
   } else if (screen === "subscription") { body = <Subscription pop={pop} say={say} plan={plan} />;
+  } else if (screen === "family" && data) {
+    body = <FamilyHome family={data.family} isJunior={juvenile} dependants={data.dependants || []} lessons={data.lessons || []} drills={data.drills || []}
+                       bookings={liveBookingRows || []} hoursByPlayer={data.hoursByPlayer || {}} todayIso={isoOf(todayMD.m, todayMD.d)}
+                       onBook={(k) => { setBookFor(k); go("calendar"); }} onMessage={(k) => push("thread:" + k.name)}
+                       onOpenLesson={(l) => push("lesson:" + l.id)} onSettings={() => push("familyCode")} onSetUp={() => push("familyCode")}
+                       right={navRight} go={go} push={push} />;
   } else if (screen === "family") {
     body = <FamilyDashboard profiles={profiles} conns={conns} practice={practice} tips={tips} bookings={bookings}
                             counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
@@ -14932,13 +15732,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
   } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+                          avatar={account ? account.avatarUrl : null} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} seasonDone={freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
-  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={conn} juvenile={juvenile} avail={myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount}
+  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount && !bookFor}
+                                                            forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
-                                                            bookings={role === "player" ? myBookings : []} seedBooked={mySeedBooked} onBook={book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={aiPick} readOnly={juvenile}
+                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={mySeedBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={bookFor ? null : aiPick} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
@@ -14951,9 +15753,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      today:     <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
       log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
-    }[screen] || <CoachToday cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+    }[screen] || <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={freshAccount ? 0 : 11} weekHours={freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>
@@ -15160,6 +15962,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           onDone={() => { const id = overture.id; setOverture(null); push(id != null ? "lesson:" + id : "lesson"); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
           {joined && <JoinedCoach coachName={joined.coachName} sport={joined.sport} onDone={() => setJoined(null)} />}
+          {catchUp && !tour && !splash && (
+            <CatchUp items={catchUp} onOpen={openNotification}
+                     onDone={() => { data && data.markNotificationsRead(); setCatchUp(null); }} />
+          )}
           {tour && <Walkthrough role={role} juvenile={juvenile} sport={sport}
                        isParent={account ? account.accountType === "parent" : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
@@ -15308,14 +16114,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                     close={() => setSheet(null)} say={say} />
               : sheet === "password" ? <ChangePasswordBody onSubmit={data ? (pw) => data.changePassword(pw) : null} say={say} close={() => setSheet(null)} />
               : sheet === "inviteOffer" && pendingInvite && data ? <InviteOffer invite={pendingInvite} lookup={data.lookupCode}
-                                            currentCoach={data.coachId} currentCoachName={data.coachName} currentGuardian={data.guardianId}
+                                            currentCoach={data.coachId} currentCoachName={data.coachName} currentGuardian={data.familyId}
                                             onJoinCoach={(c) => (onJoinCoach ? onJoinCoach(c) : data.joinCoach(c))}
                                             onJoinFamily={(c) => data.joinFamily(c)}
                                             onDone={(found, res) => {
                                               const kind = pendingInvite.kind;
                                               setPendingInvite(null); setSheet(null);
-                                              if (kind === "coach") setJoined({ coachName: (res && res.coach && res.coach.name) || (found && found.name), sport: res && res.coach && res.coach.sport });
-                                              else { chime(); setCeleb({ label: tr("Joined"), sub: `${(found && found.name) || ""}${tr("'s family")}` }); }
+                                              if (kind === "coach") { chime(); setCeleb({ label: tr("Request sent"), sub: `${(res && res.coach && res.coach.name) || (found && found.name) || ""} · ${tr("they accept from their app")}` }); }
+                                              else { chime(); setCeleb({ label: tr("Joined"), sub: (found && found.name) || tr("your family") }); }
                                             }}
                                             close={() => { setPendingInvite(null); setSheet(null); }} />
               : sheet === "peek" && peek ? <LessonPeek booking={peek} duration={duration} sport={coachSport} agreed={agreedFocus[peek.who]}
@@ -15552,10 +16358,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 }
 
 /* Small helpers kept at the bottom to avoid hoisting issues */
-function YouAvatarBtn({ name, onOpen, tour }) {
+function YouAvatarBtn({ name, src, onOpen, tour }) {
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={tr("Your profile")} className="active:opacity-50">
-      <Avatar name={name} size={30} />
+      <Avatar name={name} size={30} src={src} />
     </button>
   );
 }
