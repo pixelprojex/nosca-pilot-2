@@ -4045,8 +4045,10 @@ function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
 
       {/* the app itself, at whatever size is left */}
       <div ref={stageRef} className="flex-1 min-h-0 flex items-center justify-center px-6 pb-3">
+        {/* content-box, unrounded: the scaled frame fits the card exactly, so a
+            full-width control is never clipped by a fraction of a pixel */}
         <div key={`s${i}`} className="relative overflow-hidden"
-             style={{ width: Math.round(FRAME_W * k), height: Math.round(FRAME_H * k), borderRadius: 26 * k + 8,
+             style={{ width: FRAME_W * k, height: FRAME_H * k, boxSizing: "content-box", borderRadius: 26 * k + 8,
                       border: `1px solid ${t.hair}`, boxShadow: ELEV.float, background: t.page,
                       animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) both" }}>
           <div ref={frameRef} style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${k})`, transformOrigin: "top left", position: "relative" }}>
@@ -9818,10 +9820,11 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
             </div>
           ) : null
         ) : l.videos.length > 0 ? (
-          <div className="mb-6" data-tour="lesson-clip">
+          /* the harness's drawn clip sits inside the same margins as a real one */
+          <div className="px-6 mb-6" data-tour="lesson-clip">
             <Clip angle={l.videos[a] || "Clip"} saved={isSaved} onMinimise={() => minimise(l.videos[a] || "Clip", id)} />
             {l.videos.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto px-6 mt-3" style={{ scrollbarWidth: "none" }}>
+              <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
                 {l.videos.map((v, i) => (
                   <button key={v + i} onClick={() => { haptic(7); soft(); setA(i); }}
                           className="px-3.5 shrink-0 active:opacity-60"
@@ -15266,7 +15269,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      place to start one); for the harness it switches profiles */
   const pill = data
     ? (role === "player" ? <FamilyPill tour="profile-pill" group name={data.family ? data.family.displayName : tr("Family")} onOpen={() => go("family")} /> : null)
-    : (role === "player" && !juvenile ? <FamilyPill tour="profile-pill" name={activeProfile.name} tint={avatars[activeProfileId]} onOpen={() => setSheet("family")} /> : null);
+    : (role === "player" ? <FamilyPill tour="profile-pill" name={juvenile ? tr("Family") : activeProfile.name} group={juvenile} tint={avatars[activeProfileId]} onOpen={() => (juvenile ? go("family") : setSheet("family"))} /> : null);
   const youBtn = <YouAvatarBtn tour="you" name={coachName} src={account ? account.avatarUrl : null} onOpen={() => push("you")} />;
   const navRight = (<>{pill}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} />{youBtn}</>);
   const slimRight = (<>{pill}
