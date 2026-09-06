@@ -198,7 +198,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
            footer={<>
              <ErrLine>{err}</ErrLine>
              {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={() => onSignInInstead(email.trim().toLowerCase())}>{tr("Sign in")}</Button></div>}
-             <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr(role === "player" ? "Continue" : "Create account")}</Button>
+             <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr(role === "coach" ? "Create account" : "Continue")}</Button>
            </>}>
       <div className="pt-6">
         <Headline>{tr("Your details")}</Headline>

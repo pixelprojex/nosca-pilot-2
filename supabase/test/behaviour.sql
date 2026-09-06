@@ -285,6 +285,17 @@ commit;
 select ((select count(*) from public.families where code = :'afam') = 0 and (select family_id from public.profiles where id = :'a1') is null) as ok \gset
 \if :ok \echo PASS leave_family; the last one out removes the empty family \else \echo FAIL leave_family \endif
 
+-- a refusal: the player is told, and can still see who it was for a while
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'t1'), true);
+select public.join_coach(:'ccode'); commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+select public.respond_to_request((select id from public.coach_requests where player_id = :'t1' and status = 'pending'), false); commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'t1'), true);
+select (select count(*) from public.profiles where id = :'c1') as sees, (select count(*) from public.notifications where user_id = :'t1' and kind = 'declined') as told \gset
+rollback;
+select (:sees = 1 and :told = 1 and (select coach_id from public.profiles where id = :'t1') is null) as ok \gset
+\if :ok \echo PASS a declined player is told, stays unlinked, and can still see the coach s name \else \echo FAIL decline sees=:sees told=:told \endif
+
 \echo === 9. delete_my_account cascades, and links held by others are released
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 select public.delete_my_account();

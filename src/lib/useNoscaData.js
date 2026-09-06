@@ -66,6 +66,7 @@ const toLesson = (r) => {
     date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
     iso: r.lesson_date,
     ratingRequested: !!r.rating_requested,
+    createdAt: r.created_at,
   };
 };
 
@@ -257,9 +258,9 @@ export function useNoscaData(profile) {
       })));
 
       setLessons((lRes.data || []).map(toLesson));
-      setDrills((dRes.data || []).map((d) => ({ id: d.id, t: d.title, done: d.done, playerId: d.player_id })));
+      setDrills((dRes.data || []).map((d) => ({ id: d.id, t: d.title, done: d.done, playerId: d.player_id, createdAt: d.created_at })));
       setTips((tRes.data || []).map((t) => ({
-        id: t.id, title: t.title, body: t.body, focus: null, playerId: t.player_id,
+        id: t.id, title: t.title, body: t.body, focus: null, playerId: t.player_id, createdAt: t.created_at,
       })));
 
       /* attendance: keyed the way the interface expects */
@@ -442,7 +443,9 @@ export function useNoscaData(profile) {
     if (!list.length) return { failed: 0 };
     list.forEach((f) => pendingFiles.current.set(`${lessonId}:${f.name}:${f.size}`, f));
     const key = (f) => `${lessonId}:${f.name}:${f.size}`;
-    setUploads({ lessonId, items: list.map((f) => ({ key: key(f), name: f.name, size: f.size, kind: f.type.split("/")[0], status: "uploading", error: null })) });
+    /* a retry re-lists only the files it retries; what already landed stays counted */
+    const fresh = list.map((f) => ({ key: key(f), name: f.name, size: f.size, kind: f.type.split("/")[0], status: "uploading", error: null }));
+    setUploads((u) => ({ lessonId, items: [...((u && u.lessonId === lessonId ? u.items : []).filter((it) => !fresh.some((f) => f.key === it.key))), ...fresh] }));
     const results = await Promise.all(list.map((f) => uploadOne(lessonId, f).catch((e) => ({ error: (e && e.message) || "The upload failed." }))));
     list.forEach((f, i) => { if (!results[i].error) pendingFiles.current.delete(key(f)); });
     setUploads((u) => u && u.lessonId === lessonId ? { ...u, items: u.items.map((it) => {

@@ -9750,36 +9750,235 @@ async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }
    hairlines — the way a match report reads. Boxes were being used to
    group things that were already grouped by proximity, which just
    added edges to look at. */
-function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance, lessonId, mediaFor, onDownload, onRate }) {
+/* THE LESSON, OPENED — one screen for both sides.
+
+   What was filmed, large and first, with a strip of real thumbnails to
+   move between clips, photos and voice notes. Then the facts in the
+   order they matter: what the coach said, the one thing to work on,
+   the drills that were set with it (ticked as they are done), what was
+   marked on the day. Then the ways on, as buttons rather than links.
+   The coach sees the same record with their own actions underneath;
+   the design harness draws its clips where a real account plays them. */
+function MediaThumb({ item, on, onPick, index }) {
   const t = useT();
+  const label = item.type === "video" ? tr("Clip") : item.type === "audio" ? tr("Voice note") : item.type === "photo" ? tr("Photo") : item.angle || tr("Clip");
+  return (
+    <button onClick={() => { haptic(6); onPick(index); }} aria-label={label} className="relative shrink-0 overflow-hidden active:opacity-70"
+            style={{ width: 64, height: 64, borderRadius: 14, background: "#191D1B",
+                     boxShadow: on ? `0 0 0 2.5px ${t.accent}` : "none", opacity: on ? 1 : 0.72, transition: "opacity 160ms, box-shadow 160ms" }}>
+      {item.type === "video" && item.url && <video src={item.url} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />}
+      {item.type === "photo" && item.url && <img src={item.url} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />}
+      {item.type === "sim" && <span className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${t.mark}55, #0C0F10)` }} />}
+      <span className="absolute inset-0 flex items-center justify-center">
+        {item.type === "audio" ? <Mic size={18} color="#fff" strokeWidth={1.8} />
+          : item.type === "photo" ? null
+          : <span className="rounded-full flex items-center justify-center" style={{ width: 24, height: 24, background: "rgba(0,0,0,0.45)" }}><Play size={11} color="#fff" fill="#fff" /></span>}
+      </span>
+    </button>
+  );
+}
+
+function LessonStage({ item, onAnnotate }) {
+  const t = useT();
+  if (!item) return null;
+  const frame = { borderRadius: 22, overflow: "hidden", background: "#0B0F10" };
+  if (item.type === "video") {
+    return (
+      <div style={frame}>
+        <video key={item.url} src={item.url} playsInline controls preload="metadata" className="block w-full"
+               style={{ height: 262, objectFit: "contain", background: "#0B0F10" }} />
+      </div>
+    );
+  }
+  if (item.type === "photo") {
+    return (
+      <div style={frame}>
+        <img key={item.url} src={item.url} alt="" className="block w-full" style={{ height: 262, objectFit: "contain", background: "#0B0F10" }} />
+      </div>
+    );
+  }
+  if (item.type === "audio") {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ ...frame, height: 150, background: t.wash }}>
+        <span className="flex items-center gap-2" style={{ ...TYPE.eyebrow, color: t.sub }}><Mic size={13} color={t.sub} strokeWidth={2} />{tr("Voice note")}</span>
+        <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+      </div>
+    );
+  }
+  /* the harness's drawn clip */
+  return (
+    <div style={frame}>
+      <Clip angle={item.angle || tr("Clip")} />
+      {onAnnotate && (
+        <button onClick={() => { haptic(8); onAnnotate(item.angle); }} className="w-full flex items-center justify-center gap-2 active:opacity-60"
+                style={{ minHeight: 44, background: "#191D1B", borderTop: "0.5px solid rgba(255,255,255,0.12)" }}>
+          <Palette size={14} color="#fff" /><span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: "#fff" }}>{tr("Mark it up")}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson,
+                        onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, pop, extraTitleRight }) {
+  const t = useT();
+  const [a, setA] = useState(0);
+  const list = items || [];
+  const current = list[Math.min(a, Math.max(0, list.length - 1))];
+  /* things set alongside this lesson: within half an hour of it being logged */
+  const near = (x) => !!(lesson.createdAt && x.createdAt && Math.abs(new Date(x.createdAt) - new Date(lesson.createdAt)) < 30 * 60 * 1000);
+  const drillsHere = live
+    ? drills.filter((d) => d.playerId && d.playerId === lesson.playerId && near(d))
+    : (lesson.drills || []).map((d, i) => ({ id: `s${i}`, t: typeof d === "string" ? d : d.t, done: false }));
+  const tipHere = live
+    ? tips.find((x) => x.playerId && x.playerId === lesson.playerId && near(x)) || null
+    : (lesson.tip ? { title: lesson.tip } : null);
+  const when = lesson.iso ? new Date(lesson.iso).toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" }) : (lesson.date || `${lesson.d} ${lesson.m}`);
+  const withWhom = role === "coach" ? playerName : coachName;
+  const first = (n) => (n || "").split(" ")[0];
+  const doneCount = drillsHere.filter((d) => d.done).length;
+
+  const Section = ({ label, children, tour, accent }) => (
+    <div data-tour={tour} className="mb-3 px-5 py-4" style={{ borderRadius: R.surface, background: accent ? `${t.accent}12` : t.surface,
+                                                             boxShadow: accent ? "none" : ELEV.rest, border: accent ? `1px solid ${t.accent}2A` : "none" }}>
+      <div className="mb-2" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: accent ? t.accent : t.faint }}>{label}</div>
+      {children}
+    </div>
+  );
+  const Action = ({ label, onPress, primary, Icon, tour }) => (
+    <button data-tour={tour} onClick={() => { hapticCommit(); soft(); onPress(); }} className="w-full flex items-center justify-center gap-2 active:opacity-75"
+            style={{ minHeight: 50, borderRadius: R.control, background: primary ? t.accent : t.surface,
+                     border: primary ? "none" : `0.5px solid ${HAIR(t.ink, 0.16)}`, boxShadow: primary ? `0 8px 22px ${t.accent}26` : "none",
+                     ...TYPE.small, fontWeight: 600, color: primary ? t.onAccent : t.ink }}>
+      {Icon && <Icon size={15} strokeWidth={2} color={primary ? t.onAccent : t.sub} />}{label}
+    </button>
+  );
+
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen bare onBack={pop} right={extraTitleRight}>
+        <div className="px-6">
+          {/* the media, first and large */}
+          {loading ? (
+            <div className="mb-5"><Bone h={262} r={22} /></div>
+          ) : list.length > 0 ? (
+            <div className="mb-5" data-tour="lesson-clip" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+              <LessonStage item={current} onAnnotate={onAnnotate} />
+              {list.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto mt-3 pb-1" style={{ scrollbarWidth: "none" }}>
+                  {list.map((it, i) => <MediaThumb key={it.id || i} item={it} index={i} on={i === a} onPick={setA} />)}
+                </div>
+              )}
+              {list.length > 1 && <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{a + 1} / {list.length} · {current.type === "audio" ? tr("Voice note") : current.type === "photo" ? tr("Photo") : tr("Clip")}</p>}
+            </div>
+          ) : null}
+
+          {/* the facts */}
+          <div className="mb-6" style={{ animation: "fadeUp 480ms cubic-bezier(.22,1,.36,1) 60ms both" }}>
+            <span className="flex items-center gap-2 flex-wrap" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>
+              <span>{when}</span>
+              <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: t.hair }} />
+              <span>{groupLesson ? `${tr("Group")} · ${lesson.who || ""}` : tr("Private")}</span>
+              {withWhom && (<>
+                <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: t.hair }} />
+                <span>{withWhom}</span>
+              </>)}
+            </span>
+            <h1 className="mt-2.5" style={{ ...TYPE.hero, fontSize: 32, lineHeight: 1.02, letterSpacing: "-0.03em", color: t.ink }}>{lesson.focus}</h1>
+            {lesson.subs && lesson.subs.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {lesson.subs.map((sb) => <span key={sb} className="px-2.5 py-1" style={{ borderRadius: R.pill, background: t.wash, ...TYPE.caption, color: t.sub }}>{sb}</span>)}
+              </div>
+            )}
+          </div>
+
+          <Section label={role === "coach" ? tr("Your notes") : `${tr("Notes from")} ${first(coachName) || tr("your coach")}`} tour="lesson-notes">
+            {lesson.note
+              ? <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{lesson.note}</p>
+              : <p style={{ ...TYPE.small, color: t.faint }}>{tr("No notes on this one.")}</p>}
+          </Section>
+
+          {tipHere && (
+            <Section label={tr("Work on next")} accent tour="lesson-tip">
+              <p style={{ fontFamily: display, fontSize: 19, letterSpacing: "-0.015em", lineHeight: 1.3, color: t.ink }}>{tipHere.title}</p>
+              {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
+            </Section>
+          )}
+
+          {drillsHere.length > 0 && (
+            <Section label={`${tr("Drills set")}${live ? ` · ${doneCount} ${tr("of")} ${drillsHere.length} ${tr("done")}` : ""}`} tour="lesson-drills">
+              {drillsHere.map((d, i) => (
+                <button key={d.id} onClick={() => { haptic(6); onGoDrills && onGoDrills(); }} className="w-full flex items-center gap-3 text-left active:opacity-60"
+                        style={{ minHeight: 44, borderTop: i ? `0.5px solid ${HAIR(t.ink, 0.1)}` : "none" }}>
+                  <span className="rounded-full flex items-center justify-center shrink-0"
+                        style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : HAIR(t.ink, 0.3)}`, background: d.done ? STEADY : "transparent" }}>
+                    {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
+                  </span>
+                  <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
+                  {onGoDrills && <ChevronRight size={14} color={t.faint} />}
+                </button>
+              ))}
+            </Section>
+          )}
+
+          {attendance && (
+            <Section label={tr("On the day")}>
+              <span className="flex items-center gap-2">
+                {attendance === "in"
+                  ? <><Check size={15} color={STEADY} strokeWidth={2.4} /><span style={{ ...TYPE.body, color: t.ink }}>{tr("Marked present")}</span></>
+                  : <><X size={15} color={DANGER} strokeWidth={2.4} /><span style={{ ...TYPE.body, color: t.ink }}>{tr("Marked absent")}</span></>}
+              </span>
+            </Section>
+          )}
+
+          {onRate && lesson.ratingRequested && (
+            <Section label={`${first(coachName) || tr("Your coach")} ${tr("asked")}`} accent>
+              <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="flex items-center gap-1.5 active:opacity-50" style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>
+                {tr("Leave a rating")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
+              </button>
+            </Section>
+          )}
+
+          {/* the ways on */}
+          <div className="flex flex-col gap-2 mt-6" data-tour="lesson-next">
+            {role === "coach" ? (<>
+              {onSetDrills && <Action primary label={tr("Set drills from this lesson")} Icon={ListChecks} onPress={onSetDrills} />}
+              {onMessage && <Action label={`${tr("Message")} ${first(playerName) || tr("them")}`} Icon={MessageCircle} onPress={onMessage} />}
+              {onLogAnother && <Action label={tr("Log another like this")} Icon={Plus} onPress={onLogAnother} />}
+            </>) : (<>
+              {onMessage && !juvenile && <Action primary label={`${tr("Message")} ${first(coachName) || tr("your coach")}`} Icon={MessageCircle} onPress={onMessage} />}
+              {onBook && !juvenile && <Action label={tr("Book again")} Icon={CalendarDays} onPress={onBook} />}
+              {onGoDrills && !drillsHere.length && <Action label={tr("Your drills")} Icon={ListChecks} onPress={onGoDrills} />}
+            </>)}
+            {onDownload && (
+              <button data-tour="lesson-save" onClick={() => { haptic(8); onDownload(list); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
+                      style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: t.sub }}>
+                <Download size={14} color={t.sub} strokeWidth={2} />{tr("Download lesson log")}
+              </button>
+            )}
+          </div>
+          <div style={{ height: 26 }} />
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
+function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance, attendanceFor, lessonId, mediaFor, onDownload, onRate, juvenile, drills, tips, onMessage, onBook }) {
   const live = !!mediaFor;
   /* the one that was tapped — by id, never "the newest" */
   const base = lessonId != null
     ? (lessons.find((x) => String(x.id) === String(lessonId)) || null)
     : lessons[0];
-  const id = fresh ? 999 : base?.id;
   const l = fresh
-    ? { focus: fresh.focus, subs: fresh.subs, date: "Today", type: fresh.type === "group" ? "Group" : "Private",
-        videos: fresh.videos.map((v) => v.angle || v), note: fresh.note, tip: fresh.nextTip, drills: fresh.nextDrills }
-    : { focus: base?.focus || "Lesson", subs: base?.subs || [], date: base ? `${base.d} ${base.m}` : "",
-        type: base?.type || "Private", videos: live ? [] : cfg.angles.slice(0, base?.videos || 0),
-        note: base?.note, tip: base?.tip, drills: base?.drills };
-  const [a, setA] = useState(0);
-  const isSaved = saved.includes(id);
-  /* what the coach actually attached, signed for this session */
-  const count = base ? (base.media ?? base.videos ?? 0) : 0;
-  const media = useLessonMedia(live && !fresh && base ? base.id : null, mediaFor, count);
-  const items = media || [];
-  const current = items[Math.min(a, Math.max(0, items.length - 1))];
-
-  const Line = ({ label, children, delay = 0 }) => (
-    <div className="py-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}`,
-                 animation: `settle 380ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
-      <div className="mb-2" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{label}</div>
-      {children}
-    </div>
-  );
-
+    ? { id: 999, focus: fresh.focus, subs: fresh.subs, date: tr("Today"), type: fresh.type === "group" ? "Group" : "Private",
+        videos: (fresh.videos || []).length, note: fresh.note, tip: fresh.nextTip, drills: fresh.nextDrills }
+    : base;
+  const count = l && !fresh ? (l.media ?? l.videos ?? 0) : 0;
+  const media = useLessonMedia(live && !fresh && l ? l.id : null, mediaFor, count);
+  /* a real account plays what was attached; the harness draws its clips */
+  const items = live ? (media || []) : (l ? cfg.angles.slice(0, typeof l.videos === "number" ? l.videos : (l.videos || []).length || 0).map((angle) => ({ type: "sim", angle })) : []);
+  const t = useT();
   if (!fresh && lessonId != null && !base) {
     return (
       <SwipeBack onBack={pop}>
@@ -9789,141 +9988,30 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
       </SwipeBack>
     );
   }
-
+  if (!l) return null;
   return (
-    <SwipeBack onBack={pop}>
-      <Screen bare onBack={pop}
-              right={live
-                ? <IconBtn tour="lesson-save" C={Download} label={tr("Download lesson log")} onOpen={() => { haptic(9); onDownload && base && onDownload(base, items); }} />
-                : <IconBtn tour="lesson-save" C={Download} label={tr("Save offline")} onOpen={() => { haptic(9); toggleSave(id); }} />}>
+    <LessonDetail lesson={l} role="player" live={live} coachName={l.coach || conn?.coach || ""} items={items} loading={live && media === null && count > 0}
+                  drills={drills || []} tips={tips || []} attendance={attendanceFor && !fresh ? attendanceFor(l) : attendance} juvenile={juvenile} groupLesson={l.type === "Group"}
+                  /* the harness keeps the control so the walkthrough can point at it; it saves offline there */
+                  onDownload={live ? (its) => onDownload && onDownload(l, its) : () => toggleSave && toggleSave(l.id)}
+                  onMessage={onMessage ? () => onMessage(l) : null} onBook={onBook ? () => onBook(l) : null} onGoDrills={() => go("practice")}
+                  onRate={onRate} pop={pop} />
+  );
+}
 
-        {/* the clip, edge to edge — the reason you opened this */}
-        {live && !fresh ? (
-          media === null && count > 0 ? (
-            <div className="px-6 mb-6"><Bone h={220} r={18} /></div>
-          ) : items.length > 0 ? (
-            <div className="px-6 mb-6" data-tour="lesson-clip">
-              <MediaView item={current} />
-              {items.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
-                  {items.map((it, i) => (
-                    <button key={it.id || i} onClick={() => { haptic(7); soft(); setA(i); }}
-                            className="px-3.5 shrink-0 active:opacity-60"
-                            style={{ minHeight: 32, borderRadius: R.pill,
-                                     background: i === a ? t.accent : "transparent",
-                                     border: `0.5px solid ${i === a ? t.accent : HAIR(t.ink, 0.2)}`,
-                                     ...TYPE.caption, fontWeight: 500,
-                                     color: i === a ? t.onAccent : t.sub }}>{mediaLabel(it, i, items)}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : null
-        ) : l.videos.length > 0 ? (
-          /* the harness's drawn clip sits inside the same margins as a real one */
-          <div className="px-6 mb-6" data-tour="lesson-clip">
-            <Clip angle={l.videos[a] || "Clip"} saved={isSaved} onMinimise={() => minimise(l.videos[a] || "Clip", id)} />
-            {l.videos.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
-                {l.videos.map((v, i) => (
-                  <button key={v + i} onClick={() => { haptic(7); soft(); setA(i); }}
-                          className="px-3.5 shrink-0 active:opacity-60"
-                          style={{ minHeight: 32, borderRadius: R.pill,
-                                   background: i === a ? t.accent : "transparent",
-                                   border: `0.5px solid ${i === a ? t.accent : HAIR(t.ink, 0.2)}`,
-                                   ...TYPE.caption, fontWeight: 500,
-                                   color: i === a ? t.onAccent : t.sub }}>{v}</button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        <div className="px-6">
-          {/* the heading, set as type rather than in a box */}
-          <div style={{ animation: "fadeUp 480ms cubic-bezier(.22,1,.36,1) both" }}>
-            <span className="flex items-center gap-2.5" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>
-              <span>{l.date}</span>
-              <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: t.hair }} />
-              <span>{l.type === "Group" ? tr("Group") : tr("Private")}</span>
-              {conn?.coach && (<>
-                <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: t.hair }} />
-                <span>{conn.coach}</span>
-              </>)}
-            </span>
-            <h1 className="mt-2.5" style={{ ...TYPE.hero, fontSize: 34, lineHeight: 1.0,
-                          letterSpacing: "-0.03em", color: t.ink }}>{l.focus}</h1>
-            {l.subs && l.subs.length > 0 && (
-              <p className="mt-2" style={{ ...TYPE.small, color: t.sub }}>{l.subs.join(" · ")}</p>
-            )}
-          </div>
-
-          <div className="mt-7">
-            {l.note && (
-              <Line label={tr("What happened")} delay={60}>
-                <p style={{ ...TYPE.body, fontSize: 15.5, lineHeight: 1.6, color: t.ink }}>{l.note}</p>
-              </Line>
-            )}
-
-            {l.tip && (
-              <Line label={tr("Hold onto this")} delay={120}>
-                <p style={{ ...TYPE.body, fontSize: 15.5, lineHeight: 1.6, color: t.ink }}>{l.tip}</p>
-              </Line>
-            )}
-
-            {l.drills && l.drills.length > 0 && (
-              <Line label={tr("To practise")} delay={180}>
-                {l.drills.map((d, i) => (
-                  <div key={i} className="flex items-baseline gap-3 py-1.5">
-                    <span style={{ ...TYPE.caption, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
-                    <span style={{ ...TYPE.body, color: t.ink }}>{typeof d === "string" ? d : d.t}</span>
-                  </div>
-                ))}
-              </Line>
-            )}
-
-            {/* what the coach marked on the day */}
-            {attendance && (
-              <Line label={tr("Attendance")} delay={220}>
-                <span className="flex items-center gap-2">
-                  {attendance === "in"
-                    ? <><Check size={15} color={STEADY} strokeWidth={2.4} />
-                        <span style={{ ...TYPE.body, color: t.ink }}>{tr("Marked present")}</span></>
-                    : <><X size={15} color={DANGER} strokeWidth={2.4} />
-                        <span style={{ ...TYPE.body, color: t.ink }}>{tr("Marked absent")}</span></>}
-                </span>
-              </Line>
-            )}
-
-            {/* the coach asked for a rating on this one — once, and only
-                until a review exists */}
-            {onRate && base && base.ratingRequested && (
-              <Line label={tr("Your coach asked")} delay={260}>
-                <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="flex items-center gap-1.5 active:opacity-50"
-                        style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>
-                  {tr("Leave a rating")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
-                </button>
-              </Line>
-            )}
-          </div>
-
-          {/* two ways on, as text buttons rather than slabs */}
-          <div className="flex gap-6 py-6 mt-1" data-tour="lesson-next" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.13)}` }}>
-            <button onClick={() => { hapticCommit(); soft(); go("practice"); }}
-                    className="flex items-center gap-1.5 active:opacity-50"
-                    style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>
-              {tr("Your drills")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
-            </button>
-            <button onClick={() => { hapticCommit(); soft(); go("calendar"); }}
-                    className="flex items-center gap-1.5 active:opacity-50"
-                    style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>
-              {tr("Book again")} <ArrowRight size={13} color={t.sub} strokeWidth={2.2} />
-            </button>
-          </div>
-          <div style={{ height: 26 }} />
-        </div>
-      </Screen>
-    </SwipeBack>
+/* What the coach sees when they open a lesson they gave: the same
+   record the player has, plus what they set afterwards. */
+function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload, drills, tips, attendance }) {
+  const count = lesson.media ?? lesson.videos ?? 0;
+  const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
+  const items = live ? (media || []) : cfg.angles.slice(0, lesson.videos || 1).map((angle) => ({ type: "sim", angle }));
+  return (
+    <LessonDetail lesson={live ? lesson : { ...lesson, note: lesson.note || cfg.transcript }} role="coach" live={live} playerName={name} items={items}
+                  loading={live && media === null && count > 0} drills={drills || []} tips={tips || []} attendance={attendance} groupLesson={lesson.type === "Group"}
+                  onSetDrills={() => assignDrills(name, lesson.focusId)} onMessage={() => push("thread:" + (lesson.playerId || name))}
+                  onLogAnother={() => { if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }}
+                  onDownload={live && onDownload ? (its) => onDownload(lesson, its) : null}
+                  onAnnotate={live ? null : (angle) => push("annotate:" + angle)} pop={pop} />
   );
 }
 
@@ -11349,93 +11437,6 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
                 style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("End this arrangement")}</button>
       )}
     </>
-  );
-}
-
-/* What the coach sees when they open a lesson they gave: the same
-   record the player has, plus what they set afterwards. */
-function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload }) {
-  const t = useT();
-  const [a, setA] = useState(0);
-  const angles = live ? [] : cfg.angles.slice(0, lesson.videos || 1);
-  /* a real lesson shows what was attached; the drawn clips are the harness's */
-  const count = lesson.media ?? lesson.videos ?? 0;
-  const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
-  const items = media || [];
-  const current = items[Math.min(a, Math.max(0, items.length - 1))];
-  return (
-    <SwipeBack onBack={pop}>
-      <Screen title={lesson.focus} onBack={pop} meta={`${name} · ${lesson.d} ${lesson.m}`}>
-        <div className="px-6">
-          {live && (media === null && count > 0 ? <Bone h={220} r={18} /> : items.length > 0 ? (<>
-            <MediaView item={current} />
-            {items.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
-                {items.map((it, i) => (
-                  <button key={it.id || i} onClick={() => { haptic(6); setA(i); }} className="px-3.5 shrink-0 active:opacity-60"
-                          style={{ minHeight: 32, borderRadius: R.pill, background: i === a ? t.accent : "transparent",
-                                   border: `0.5px solid ${i === a ? t.accent : HAIR(t.ink, 0.2)}`, ...TYPE.caption, fontWeight: 500,
-                                   color: i === a ? t.onAccent : t.sub }}>{mediaLabel(it, i, items)}</button>
-                ))}
-              </div>
-            )}
-          </>) : null)}
-          {angles.length > 0 && (<>
-            <Clip angle={angles[a]} />
-            {angles.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto mt-3" style={{ scrollbarWidth: "none" }}>
-                {angles.map((v, i) => (
-                  <button key={v + i} onClick={() => { haptic(6); setA(i); }} className="shrink-0 overflow-hidden"
-                          style={{ borderRadius: R.field, opacity: i === a ? 1 : 0.45, border: i === a ? `2px solid ${t.accent}` : "2px solid transparent" }}>
-                    <Clip angle={v} size="sm" dur="" />
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={() => { haptic(8); push("annotate:" + angles[a]); }} className="w-full mt-3 flex items-center justify-center gap-2 active:opacity-60"
-                    style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}` }}>
-              <Palette size={14} color={t.sub} /><span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{tr("Mark it up")}</span>
-            </button>
-          </>)}
-
-          <div className="flex flex-wrap gap-1.5 mt-5 mb-6">
-            <span className="px-3 py-1.5" style={{ borderRadius: R.surface, background: t.wash, fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{lesson.type}</span>
-            {(lesson.subs || []).map((sb) => (
-              <span key={sb} className="px-3 py-1.5" style={{ borderRadius: R.surface, background: t.wash, fontFamily: ui, fontSize: 11.5, color: t.sub }}>{sb}</span>
-            ))}
-          </div>
-
-          <Eyebrow>{tr(live ? "Your notes" : "What you said")}</Eyebrow>
-          <Card className="p-5 mb-6">
-            <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.7, color: live && !lesson.note ? t.faint : t.ink }}>
-              {live ? (lesson.note || tr("No notes on this one.")) : cfg.transcript}
-            </p>
-          </Card>
-
-          <div style={{ borderTop: `1px solid ${t.hair}` }}>
-            <button onClick={() => { haptic(8); assignDrills(name, lesson.focusId); }} className="w-full flex items-center text-left active:opacity-50"
-                    style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Set drills from this lesson")}</span><ChevronRight size={16} color={t.faint} />
-            </button>
-            <button onClick={() => { haptic(8); push("thread:" + name); }} className="w-full flex items-center text-left active:opacity-50"
-                    style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>Message {(name || "").split(" ")[0]}</span><ChevronRight size={16} color={t.faint} />
-            </button>
-            <button onClick={() => { haptic(8); if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }} className="w-full flex items-center text-left active:opacity-50"
-                    style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Log another like this")}</span><ChevronRight size={16} color={t.faint} />
-            </button>
-            {live && onDownload && (
-              <button onClick={() => { haptic(8); onDownload(lesson, items); }} className="w-full flex items-center text-left active:opacity-50"
-                      style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
-                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Download lesson log")}</span><Download size={16} color={t.faint} />
-              </button>
-            )}
-          </div>
-          <div style={{ height: 26 }} />
-        </div>
-      </Screen>
-    </SwipeBack>
   );
 }
 
@@ -15038,7 +15039,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   const book = async (b) => {
     if (data) {
-      /* a player may only ask; the coach confirms it from Today */
+      /* a player may only ask; the coach confirms it from Today. With
+         a junior chosen on the family screen, the ask is theirs, into
+         their coach's hours — whichever view of the diary it came from. */
+      if (bookFor) return bookKid(bookFor, b);
       const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
       hapticSuccess(); setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); return;
@@ -15248,12 +15252,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const d = (n && n.data) || {};
     const scr = d.screen;
     const home = role === "coach" ? "today" : (account && account.accountType === "parent") ? "family" : "home";
-    const nameOfPlayer = (pid) => (((data.roster || []).find((r) => r.id === pid) || {}).name)
-      || (((liveThreads || []).find((c) => c.playerId === pid) || {}).who) || null;
     setCatchUp(null);
     if (scr === "lesson" && d.id) { setStack([home, `lesson:${d.id}`]); return; }
     if (scr === "requests") { setStack(["roster", "requests"]); return; }
-    if (scr === "thread" && d.id && !juvenile) { const nm = nameOfPlayer(d.id); if (nm) { setStack(["messages", `thread:${nm}`]); return; } }
+    /* the thread route takes the player's id — the same key for a coach,
+       the player themselves, or an adult reading a junior's thread */
+    if (scr === "thread" && d.id && !juvenile) { setStack(["messages", `thread:${d.id}`]); return; }
     if (scr === "tips") { setStack([home, "tips"]); return; }
     if (scr === "family" || scr === "home" || scr === "today" || scr === "calendar" || scr === "practice" || scr === "messages") {
       const target = scr === "home" ? home : scr;
@@ -15502,7 +15506,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       : (cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0]);
     body = les
       ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
-                         live={!!data} mediaFor={data ? data.lessonMedia : null}
+                         live={!!data} mediaFor={data ? data.lessonMedia : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
+                         attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); return k ? (registers[k][cname] || null) : null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
                          onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: coachName, who: l.who, media: items, say })} />
       : <SwipeBack onBack={pop}><Screen title={tr("Lesson")} onBack={pop}>
@@ -15717,6 +15722,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
+                            drills={data ? data.drills : null} tips={data ? data.tips : null}
+                            /* what the coach marked that day, for the person the lesson belongs to */
+                            attendanceFor={(l) => { const who = data ? ((l.playerId === account.id ? account.name : ((data.dependants || []).find((k) => k.id === l.playerId) || {}).name) || null) : activeProfile?.name;
+                              if (!who) return null; const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
+                            onMessage={data ? ((l) => (l.playerId && (l.playerId === account.id || (data.dependants || []).some((k) => k.id === l.playerId)) ? push("thread:" + l.playerId) : push("thread:" + account.id))) : () => push("thread:" + (conn?.coach || ""))}
+                            onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
     }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;

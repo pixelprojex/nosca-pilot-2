@@ -812,13 +812,16 @@ create or replace function public.coach_of(p_player uuid)
 returns uuid language sql stable security definer set search_path = ''
 as $fn$ select p.coach_id from public.profiles p where p.id = p_player; $fn$;
 
--- coaches you have asked to join, while they decide — so their name
--- can be shown next to "request sent"
+-- coaches you have asked to join: while they decide, so their name can
+-- be shown next to "request sent" — and for a month after a refusal,
+-- so the screen can say who it was
 create or replace function public.my_pending_coach_ids()
 returns setof uuid language sql stable security definer set search_path = ''
 as $fn$
   select r.coach_id from public.coach_requests r
-  where r.player_id = auth.uid() and r.status = 'pending';
+  where r.player_id = auth.uid()
+    and (r.status = 'pending'
+         or (r.status = 'declined' and r.decided_at > now() - interval '30 days'));
 $fn$;
 
 -- players asking to join you, so their name shows on the request
