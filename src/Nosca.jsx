@@ -14006,7 +14006,14 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
     }
     setBusy(false);
   };
-  const CHOICES = [["instant", tr("As they happen")], ["digest", tr("Once a day")], ["quiet", tr("Only urgent")]];
+  /* All three are real, and all three are about the phone: the bell
+     inside Nosca always carries everything, unfiltered. "Only urgent"
+     is a lesson called off, a booking, a request, an answer to one, a
+     message — netlify/functions/lib/push-shared.mjs holds the list, and
+     the relay reads this preference before it sends anything. */
+  const CHOICES = [["instant", tr("As they happen"), null],
+                   ["digest",  tr("Once a day"),     tr("One summary each morning")],
+                   ["quiet",   tr("Only urgent"),    tr("Cancellations, bookings, requests and messages")]];
   const why = support === "ios-home-screen" ? tr("On an iPhone, add Nosca to your Home Screen first (Share → Add to Home Screen) and open it from there.")
     : support === "denied" ? tr("Notifications are blocked for this site in your browser's settings. Allow them there, then come back.")
     : support === "unsupported" ? tr("This browser can't receive notifications while the app is closed.")
@@ -14021,10 +14028,13 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
         </Card></div>
         {why && !subscribed && <p className="px-8 mb-6" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>{why}</p>}
         {!why && <div style={{ height: 22 }} />}
-        <Eyebrow>{tr("When to tell you")}</Eyebrow>
-        <div className="px-6 mb-6"><Card>{CHOICES.map(([id, lbl], i) => (
-          <Row key={id} label={lbl} radio checked={(notify || "instant") === id} last={i === CHOICES.length - 1} onToggle={() => { haptic(6); setNotify && setNotify(id); }} />
+        <Eyebrow>{tr("When to tell your phone")}</Eyebrow>
+        <div className="px-6 mb-3"><Card>{CHOICES.map(([id, lbl, sub], i) => (
+          <Row key={id} label={lbl} sub={sub} radio checked={(notify || "instant") === id} last={i === CHOICES.length - 1} onToggle={() => { haptic(6); setNotify && setNotify(id); }} />
         ))}</Card></div>
+        <p className="px-8 mb-6" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>
+          {tr("Alerts inside Nosca always show everything.")}
+        </p>
       </Screen>
     </SwipeBack>
   );

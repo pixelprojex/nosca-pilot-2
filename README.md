@@ -243,19 +243,41 @@ Setting it up is done once and takes about ten minutes.
    - `PUSH_WEBHOOK_SECRET` — any long random string you make up
 3. Redeploy (Deploys → Trigger deploy) so the public key goes into the
    build and the function picks up the rest.
-4. In Supabase → **Database → Webhooks** → **Create a new hook**:
-   - Table: `notifications`
-   - Events: **Insert** only
-   - Type: **HTTP request**, method **POST**
-   - URL: `https://<your site>/.netlify/functions/push`
-   - HTTP headers: add one, name `x-nosca-secret`, value the secret
-     from step 2
-   - Save.
+4. In Supabase → **SQL Editor**, tell the database where to send them
+   (`nosca.sql` created the table this goes in; the trigger that reads
+   it is already there and does nothing until both rows exist):
+   ```sql
+   insert into public.app_settings (key, value) values
+     ('push_url',    'https://<your site>/.netlify/functions/push'),
+     ('push_secret', '<the same string as PUSH_WEBHOOK_SECRET above>')
+   on conflict (key) do update set value = excluded.value;
+   ```
+   Run `nosca.sql` again afterwards if you like — its last line will
+   now say push is configured.
 
 That is all. Each new row in `notifications` now reaches every device
 its person has turned notifications on from.
 
+> Older instructions had you create a **Database → Webhook** pointing
+> at the same URL. That still works, but do **one or the other** — with
+> both, every notification arrives twice.
+
 Worth knowing:
+
+- **"When to tell you"** on the Notifications screen is real, and it is
+  about the phone only: the bell inside Nosca always shows everything.
+  *As they happen* sends each one; *Only urgent* sends a lesson called
+  off, a booking, a request, an answer to one and a message, and holds
+  the rest; *Once a day* holds everything for a single summary sent by
+  `netlify/functions/digest.mjs` at 06:00 UTC — 7am in Ireland for most
+  of the year. Netlify runs that one on its own; there is nothing to
+  set up.
+- A phone whose subscription rotates tells us its new address itself
+  (`pushsubscriptionchange` in `public/sw.js` →
+  `netlify/functions/resub.mjs`), so it keeps hearing things without
+  waiting for the app to be opened. That request proves itself with the
+  old subscription's own secret, so knowing somebody's endpoint is not
+  enough to redirect it.
 
 - On iPhone and iPad (iOS 16.4 or later) push only works once Nosca has
   been added to the Home Screen — Share → **Add to Home Screen** — and
@@ -266,8 +288,15 @@ Worth knowing:
   starts with `VITE_`, because those are built into the app anyone can
   download.
 - The pieces: `src/lib/push.js` (the browser subscribes),
-  `public/sw.js` (the service worker shows the notification),
-  `netlify/functions/push.mjs` (the relay the webhook calls).
+  `public/sw.js` (the service worker shows the notification and repairs
+  a rotated subscription), `netlify/functions/push.mjs` (the relay the
+  database calls), `netlify/functions/digest.mjs` (the daily summary),
+  `netlify/functions/resub.mjs` (the repair), and
+  `netlify/functions/lib/push-shared.mjs` (what they share — a
+  subdirectory, so Netlify does not make a URL of it).
+- `node scripts/e2e/push-relay.mjs` runs the relay against a stubbed
+  network: which payloads it accepts, and what each preference holds
+  back. No keys or connection needed.
 
 ## Starting again
 

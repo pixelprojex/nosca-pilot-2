@@ -1,58 +1,51 @@
 /* Push relay — Netlify Function.
  *
- * A Supabase Database Webhook POSTs here on every INSERT into
- * public.notifications. This looks up the person's push subscriptions
- * and sends the notification to each device with web-push. It never
- * writes a notification itself — the database triggers do that — so
- * in-app notifications keep working with or without this function.
+ * Something worth telling someone about happens, a trigger in
+ * nosca.sql writes a `notifications` row, and that row is POSTed here.
+ * This looks up the person's devices and sends the notification to
+ * each one with web-push. It never writes a notification itself — the
+ * database triggers do that — so the bell inside the app works with or
+ * without this function.
+ *
+ * TWO CALLERS, TWO SHAPES. Section 10b of nosca.sql posts the fields
+ * flat, from an after-insert trigger via pg_net. A Supabase Database
+ * Webhook set up by hand in the dashboard wraps the same row in
+ * { type, table, record }. Both are accepted: reading only the second
+ * meant the trigger's own posts were answered "ignored" and no phone
+ * ever heard anything.
+ *
+ * WHEN TO TELL YOU. The person's `preferences.notify` decides:
+ *   instant  every notification goes out now  (the default)
+ *   quiet    only the ones that change their day or want an answer
+ *   digest   nothing now; digest.mjs sends one summary in the morning
+ * A preference that cannot be read is treated as `instant` — a
+ * notification sent when it might have been held is a smaller failure
+ * than one silently dropped.
  *
  * Environment (set on Netlify, never in a VITE_ variable):
- *   PUSH_WEBHOOK_SECRET        shared with the webhook's x-nosca-secret header
+ *   PUSH_WEBHOOK_SECRET        shared with the caller's x-nosca-secret header
  *   SUPABASE_URL               https://<ref>.supabase.co
- *   SUPABASE_SERVICE_ROLE_KEY  reads and prunes push_subscriptions
+ *   SUPABASE_SERVICE_ROLE_KEY  reads preferences and prunes push_subscriptions
  *   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:…)
  */
 
-import { timingSafeEqual } from "node:crypto";
 import webpush from "web-push";
+import {
+  json, secretMatches, loadSubscriptions, sendTo,
+  notifyPreference, isUrgent, REQUIRED,
+} from "./lib/push-shared.mjs";
 
-const REQUIRED = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"];
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-function secretMatches(given, expected) {
-  if (typeof given !== "string" || typeof expected !== "string" || !expected) return false;
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
-function restHeaders(serviceKey) {
-  return {
-    apikey: serviceKey,
-    authorization: `Bearer ${serviceKey}`,
-    "content-type": "application/json",
-  };
-}
-
-async function loadSubscriptions(env, userId) {
-  const url = `${env.SUPABASE_URL}/rest/v1/push_subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=endpoint,p256dh,auth`;
-  const res = await fetch(url, { headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
-  if (!res.ok) throw new Error(`push_subscriptions read failed: ${res.status} ${await res.text()}`);
-  const rows = await res.json();
-  return Array.isArray(rows) ? rows : [];
-}
-
-async function removeSubscription(env, endpoint) {
-  const url = `${env.SUPABASE_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`;
-  const res = await fetch(url, { method: "DELETE", headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
-  return res.ok;
+/* The dashboard webhook wraps the row; the trigger in nosca.sql posts
+   it flat. Anything else — an UPDATE, another table, a body with no
+   user_id — is not ours. */
+export function recordFrom(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.record && typeof payload.record === "object") {
+    if (payload.type && payload.type !== "INSERT") return null;
+    if (payload.table && payload.table !== "notifications") return null;
+    return payload.record.user_id ? payload.record : null;
+  }
+  return payload.user_id ? payload : null;
 }
 
 export default async (req) => {
@@ -68,14 +61,17 @@ export default async (req) => {
     return json({ error: "body is not JSON" }, 400);
   }
 
-  const { type, table, record } = payload || {};
-  if (type !== "INSERT" || table !== "notifications" || !record || !record.user_id) {
-    return json({ status: "ignored" }, 200);
-  }
+  const record = recordFrom(payload);
+  if (!record) return json({ status: "ignored" }, 200);
 
   const env = process.env;
   const missing = REQUIRED.filter((name) => !env[name]);
   if (missing.length) return json({ error: `missing environment: ${missing.join(", ")}` }, 500);
+
+  /* Ask before doing any work: a held notification costs one read. */
+  const when = await notifyPreference(env, record.user_id);
+  if (when === "digest") return json({ status: "held", until: "the daily summary" }, 200);
+  if (when === "quiet" && !isUrgent(record.kind)) return json({ status: "held", until: "they open Nosca" }, 200);
 
   try {
     webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
@@ -101,31 +97,11 @@ export default async (req) => {
   let failed = 0;
   let removed = 0;
 
-  const results = await Promise.allSettled(
-    subscriptions.map((sub) =>
-      webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        message,
-        { TTL: 3600 },
-      ),
-    ),
-  );
-
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i];
-    if (result.status === "fulfilled") {
-      sent++;
-      continue;
-    }
-    const status = result.reason && result.reason.statusCode;
-    if (status === 404 || status === 410) {
-      // The browser dropped the subscription; forget the row.
-      if (await removeSubscription(env, subscriptions[i].endpoint)) removed++;
-      else failed++;
-    } else {
-      failed++;
-      console.error("push failed", status, result.reason && result.reason.body);
-    }
+  const outcomes = await Promise.all(subscriptions.map((sub) => sendTo(webpush, env, sub, message)));
+  for (const outcome of outcomes) {
+    if (outcome === "sent") sent++;
+    else if (outcome === "gone") removed++;
+    else failed++;
   }
 
   return json({ sent, failed, removed }, 200);

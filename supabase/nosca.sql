@@ -256,6 +256,12 @@ alter table public.preferences add column if not exists custom_drills  jsonb not
 alter table public.preferences add column if not exists availability   jsonb not null default '{}'::jsonb;
 -- [ { id, name, members: [player ids], names: [player names], day, time, weeks } ]
 alter table public.preferences add column if not exists groups         jsonb not null default '[]'::jsonb;
+-- When the daily summary last went out to this person. Only used when
+-- notify = 'digest': netlify/functions/digest.mjs sends everything
+-- unread since this moment and then moves it on, so nothing is
+-- summarised twice and nothing that arrived while the job was down is
+-- skipped. Null means they have never had one.
+alter table public.preferences add column if not exists digest_at      timestamptz;
 
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the

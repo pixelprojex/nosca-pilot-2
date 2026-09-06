@@ -1,0 +1,151 @@
+/* The push relay, without a network.
+ *
+ * Nothing here talks to Supabase or to a push service: global fetch is
+ * replaced with a small stub that answers the two REST reads the relay
+ * makes, and web-push is never reached because the stub returns no
+ * devices. What this proves is the part that has actually gone wrong —
+ * which payloads the relay recognises, and which notifications it
+ * holds back.
+ *
+ *   node scripts/e2e/push-relay.mjs
+ */
+
+const ENV = {
+  PUSH_WEBHOOK_SECRET: "s3cret",
+  SUPABASE_URL: "https://mock.supabase.co",
+  SUPABASE_SERVICE_ROLE_KEY: "service-role",
+  VAPID_PUBLIC_KEY: "BJ2mVQxTn0Vd7bB8jVAI1XcMEZLQfhX4Rl9Nqj-9lPJcm6jS3T3v1MP-oJ7lZKk8sN0Vq1WcOxwq1mYvY3lQ4kE",
+  VAPID_PRIVATE_KEY: "Hs8s0FZzq3Yy0iVQhV_JXWJnPPqYQ7QpV4z8xg2WwJo",
+  VAPID_SUBJECT: "mailto:help@nosca.ie",
+};
+Object.assign(process.env, ENV);
+
+let pref = "instant";
+let subs = [];
+const seen = [];
+
+globalThis.fetch = async (url, init = {}) => {
+  const href = String(url);
+  seen.push(`${init.method || "GET"} ${href}`);
+  if (href.includes("/preferences?")) return Response.json(pref === null ? [] : [{ notify: pref }]);
+  if (href.includes("/push_subscriptions?")) return Response.json(subs);
+  return Response.json([]);
+};
+
+const { default: relay, recordFrom } = await import("../../netlify/functions/push.mjs");
+const { isUrgent } = await import("../../netlify/functions/lib/push-shared.mjs");
+const { summarise } = await import("../../netlify/functions/digest.mjs");
+
+let pass = 0, fail = 0;
+const check = (name, ok, got) => {
+  if (ok) { pass++; console.log("PASS ", name); }
+  else { fail++; console.log("FAIL ", name, got === undefined ? "" : ` — ${JSON.stringify(got)}`); }
+};
+
+const post = (body, secret = "s3cret") =>
+  relay(new Request("https://nosca.ie/.netlify/functions/push", {
+    method: "POST",
+    headers: { "content-type": "application/json", ...(secret === null ? {} : { "x-nosca-secret": secret }) },
+    body: JSON.stringify(body),
+  }));
+
+const answer = async (res) => ({ status: res.status, body: await res.json() });
+
+const ROW = { user_id: "11111111-1111-4111-8111-111111111111", kind: "lesson", title: "New lesson logged", body: "Putting", data: { screen: "lesson", id: "l1" } };
+
+/* ---------- who is allowed to call it ---------- */
+{
+  const r = await answer(await post(ROW, "wrong"));
+  check("a wrong secret is refused", r.status === 401, r);
+}
+{
+  const r = await answer(await post(ROW, null));
+  check("no secret at all is refused", r.status === 401, r);
+}
+{
+  const res = await relay(new Request("https://nosca.ie/.netlify/functions/push", { method: "GET" }));
+  check("GET is refused", res.status === 405, res.status);
+}
+
+/* ---------- the two payload shapes ----------
+   nosca.sql's notify_push() trigger posts the fields flat; a Supabase
+   Database Webhook wraps them. Reading only the second is what left
+   every trigger-sent push answered "ignored". */
+check("the flat body from the database trigger is a notification", !!recordFrom(ROW));
+check("the dashboard webhook's envelope is one too", !!recordFrom({ type: "INSERT", table: "notifications", record: ROW }));
+check("an UPDATE is not", recordFrom({ type: "UPDATE", table: "notifications", record: ROW }) === null);
+check("another table is not", recordFrom({ type: "INSERT", table: "lessons", record: ROW }) === null);
+check("a body with no user_id is not", recordFrom({ title: "hello" }) === null);
+check("an empty body is not", recordFrom({}) === null);
+
+{
+  const r = await answer(await post(ROW));
+  check("a flat body is accepted end to end", r.status === 200 && r.body.sent === 0 && r.body.failed === 0, r);
+}
+{
+  const r = await answer(await post({ type: "INSERT", table: "notifications", record: ROW }));
+  check("a wrapped body is accepted end to end", r.status === 200 && "sent" in r.body, r);
+}
+{
+  const r = await answer(await post({ type: "UPDATE", table: "notifications", record: ROW }));
+  check("an UPDATE is ignored, not sent", r.body.status === "ignored", r);
+}
+
+/* ---------- when to tell you ---------- */
+{
+  pref = "digest";
+  const r = await answer(await post(ROW));
+  check("'Once a day' holds it for the morning", r.body.status === "held", r);
+}
+{
+  pref = "quiet";
+  const r = await answer(await post({ ...ROW, kind: "lesson" }));
+  check("'Only urgent' holds a lesson write-up", r.body.status === "held", r);
+}
+{
+  pref = "quiet";
+  const r = await answer(await post({ ...ROW, kind: "weather" }));
+  check("'Only urgent' still sends a lesson called off", "sent" in r.body, r);
+}
+{
+  pref = "quiet";
+  const r = await answer(await post({ ...ROW, kind: "message" }));
+  check("'Only urgent' still sends a message", "sent" in r.body, r);
+}
+{
+  pref = "instant";
+  const r = await answer(await post({ ...ROW, kind: "drill" }));
+  check("'As they happen' sends everything", "sent" in r.body, r);
+}
+{
+  pref = null;   // nobody has saved a preference yet
+  const r = await answer(await post({ ...ROW, kind: "tip" }));
+  check("no preference row means everything is sent", "sent" in r.body, r);
+}
+{
+  const before = seen.length;
+  pref = "digest";
+  await post({ ...ROW, kind: "lesson" });
+  const after = seen.slice(before);
+  check("a held notification never asks for the person's devices",
+        !after.some((s) => s.includes("push_subscriptions")), after);
+}
+
+check("every urgent kind is one the database actually writes",
+      ["booking", "weather", "request", "accepted", "declined", "message"].every(isUrgent)
+      && !isUrgent("lesson") && !isUrgent("drill") && !isUrgent("tip") && !isUrgent("family") && !isUrgent(""));
+
+/* ---------- the daily summary ---------- */
+{
+  const one = summarise([{ title: "Lesson booked", body: "Thu 9:00 am", data: { screen: "diary" } }]);
+  check("a summary of one thing is that one thing", one.title === "Lesson booked" && one.data.screen === "diary", one);
+}
+{
+  const many = summarise([{ title: "A" }, { title: "B" }, { title: "C" }, { title: "D" }, { title: "E" }]);
+  check("a summary of five counts them", many.title === "5 things since yesterday", many);
+  check("…and names three, then says how many more", many.body === "A · B · C · and 2 more", many.body);
+  check("…and lands on the alerts screen", many.data.screen === "alerts", many);
+}
+
+console.log(`\npush-relay: ${pass}/${pass + fail} passed`);
+process.exit(fail ? 1 : 0);

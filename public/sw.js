@@ -56,6 +56,50 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+/* THE BROWSER CHANGES ITS MIND. A push service may retire a
+   subscription without anyone asking — a key rotation, a long silence,
+   a reinstall — and the row in push_subscriptions becomes a dead
+   address. The app repairs this the next time Nosca is opened, but the
+   whole point of push is the times it is closed, so re-subscribe here
+   and post the new address to the relay.
+
+   The old subscription's `auth` secret goes with it: that is what
+   proves the request came from this device, since there is no session
+   in a service worker. Everything is best effort — a browser that
+   gives us no `oldSubscription` simply waits for the app to be opened,
+   which is where it started. */
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil((async () => {
+    const was = event.oldSubscription || null;
+    if (!was || !was.endpoint) return;
+
+    let fresh = event.newSubscription || null;
+    if (!fresh) {
+      let key = null;
+      try { key = was.options && was.options.applicationServerKey; } catch { key = null; }
+      if (!key || !self.registration || !self.registration.pushManager) return;
+      try {
+        fresh = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      } catch { return; }
+    }
+
+    const before = typeof was.toJSON === "function" ? was.toJSON() : null;
+    const after = fresh && typeof fresh.toJSON === "function" ? fresh.toJSON() : null;
+    if (!before || !after || !before.keys || !after.keys || !before.keys.auth) return;
+
+    try {
+      await fetch("/.netlify/functions/resub", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          old: { endpoint: was.endpoint, auth: before.keys.auth },
+          new: { endpoint: fresh.endpoint, p256dh: after.keys.p256dh, auth: after.keys.auth },
+        }),
+      });
+    } catch { /* the app will put it right when it is next opened */ }
+  })());
+});
+
 /* Tap: bring an open Nosca to the front, or open one. When the
    notification names a screen, a fresh window opens with ?open=<screen>
    so the app can go straight there; an already-open window is told the

@@ -2,9 +2,16 @@
   command = "npm run build"
   publish = "dist"
 
-# The push relay (netlify/functions/push.mjs) — a Supabase Database
-# Webhook POSTs new notifications rows to it. See README, "Push
-# notifications".
+# Three functions, all about push. See README, "Push notifications".
+#   push    the relay: nosca.sql's notifications trigger POSTs each new
+#           row here and it reaches that person's devices
+#   digest  the daily summary, on Netlify's schedule (the cron lives in
+#           the file, as `export const config`), for anyone who chose
+#           "Once a day"
+#   resub   a device whose subscription rotated, telling us its new
+#           address before the app is next opened
+# netlify/functions/lib/ is shared code, not an endpoint: Netlify only
+# makes a URL of a subdirectory holding a file of its own name.
 [functions]
   # web-push is CommonJS and requires('crypto'); shipping it unbundled
   # keeps the ESM bundler from breaking that resolution at deploy time.
