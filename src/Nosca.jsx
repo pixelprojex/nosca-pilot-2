@@ -1794,6 +1794,26 @@ const LEGAL = {
 /* ==================================================================
    LOADING
 ================================================================== */
+/* HOW IT LOOKS IS PER DEVICE, AND IT STICKS
+
+   Dark mode, text size, haptics, sound and reduced motion were session
+   state: set them, reload, and they were gone. They are also the wrong
+   thing to keep on the account — a person may want the text bigger on
+   their phone and not on the tablet they coach from — so they live in
+   this browser, and survive it being closed. */
+function useDeviceSetting(key, initial) {
+  const [v, setV] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem(`nosca.ui.${key}`);
+      return raw == null ? initial : JSON.parse(raw);
+    } catch (e) { return initial; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(`nosca.ui.${key}`, JSON.stringify(v)); } catch (e) { /* private mode */ }
+  }, [key, v]);
+  return [v, setV];
+}
+
 function useLoad(ms = 560) {
   const [done, setDone] = useState(false);
   useEffect(() => { const x = setTimeout(() => setDone(true), ms); return () => clearTimeout(x); }, [ms]);
@@ -14010,7 +14030,71 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
 
    Anything settled leaves the list. A bell that keeps showing done
    things stops being read. */
-function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family = [], onDo, pop, push, go, empty, items = null, onOpen, onClear, onClearAll }) {
+/* ASKING FOR NOTIFICATIONS, ONCE
+
+   A browser only lets the question be asked from something the person
+   tapped, so it cannot be asked at sign-up on their behalf. It is asked
+   here, at the top of the very screen they came to for news, and only
+   until they answer it either way. The switch under You → Notifications
+   is the place to change their mind later. */
+function PushPrompt({ userId, say }) {
+  const t = useT();
+  const KEY = "nosca.push.asked";
+  const [state, setState] = useState("checking");   // checking | ask | ios | hidden
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      let dismissed = false;
+      try { dismissed = window.localStorage.getItem(KEY) === "1"; } catch (e) { /* private mode */ }
+      const sup = pushSupport();
+      const sub = await currentSubscription().catch(() => null);
+      if (!alive) return;
+      if (sub || dismissed || sup === "denied" || sup === "unsupported" || sup === "granted") { setState("hidden"); return; }
+      setState(sup === "ios-home-screen" ? "ios" : "ask");
+    })();
+    return () => { alive = false; };
+  }, []);
+  const remember = () => { try { window.localStorage.setItem(KEY, "1"); } catch (e) { /* private mode */ } };
+  if (state === "checking" || state === "hidden") return null;
+  return (
+    <div className="mb-6 px-5 py-4" data-tour="push-prompt"
+         style={{ borderRadius: R.surface, background: `${t.accent}0F`, border: `1px solid ${t.accent}26`,
+                  animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
+      <div className="flex items-center gap-3 mb-2">
+        <Bell size={16} color={t.accent} strokeWidth={2} />
+        <span className="flex-1" style={{ ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Hear about this on your phone")}</span>
+      </div>
+      <p className="mb-4" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>
+        {state === "ios"
+          ? tr("On an iPhone, add Nosca to your Home Screen first — Share, then Add to Home Screen — and open it from there.")
+          : tr("New lessons, bookings and messages reach you while Nosca is closed.")}
+      </p>
+      <div className="flex gap-2">
+        {state === "ask" && (
+          <button onClick={async () => {
+                    if (busy) return; setBusy(true);
+                    const r = await subscribePush(supabase, userId);
+                    setBusy(false); remember();
+                    if (r && r.ok) { hapticSuccess(); chime(); say && say(tr("This device will be told")); setState("hidden"); }
+                    else { hapticWarn(); say && say((r && r.reason) || tr("Couldn't turn that on")); setState("hidden"); }
+                  }} disabled={busy}
+                  className="flex-1 active:opacity-80 disabled:opacity-40"
+                  style={{ minHeight: 44, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>
+            {busy ? "…" : tr("Turn them on")}
+          </button>
+        )}
+        <button onClick={() => { haptic(6); remember(); setState("hidden"); }}
+                className={state === "ask" ? "px-5 active:opacity-60" : "flex-1 active:opacity-60"}
+                style={{ minHeight: 44, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>
+          {state === "ask" ? tr("Not now") : tr("Got it")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family = [], onDo, pop, push, go, empty, items = null, onOpen, onClear, onClearAll, userId, say }) {
   const t = useT();
   const [cleared, setCleared] = useState([]);
   const live = (list) => list.filter((n) => !cleared.includes(n.id));
@@ -14023,6 +14107,7 @@ function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family =
         <Screen title={tr("Alerts")} onBack={pop} meta={items.length ? `${items.length}` : tr("All clear")}
                 right={items.length ? <TextBtn onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn> : null}>
           <div className="px-6 pb-2">
+            {userId && <PushPrompt userId={userId} say={say} />}
             {jobs.length > 0 && (
               <div className="mb-7" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 {jobs.map((n, i) => (
@@ -14405,7 +14490,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [assignFocus, setAssignFocus] = useState(null);
   const [tipFor, setTipFor] = useState(null);
   const [toast, setToast] = useState("");
-  const [soundState, setSoundState] = useState(true);
+  const [soundState, setSoundState] = useDeviceSetting("sound", true);
   const [signupName, setSignupName] = useState("");
   const [signupCoach, setSignupCoach] = useState(null);
   const [signupRole, setSignupRole] = useState("coach");
@@ -14613,7 +14698,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [cancelBk, setCancelBk] = useState(null);    // the booking behind `cancelling`, for a real account
   const [cancelNotice, setCancelNotice] = useState(null);
   const [transferTo, setTransferTo] = useState(null);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const [reduceMotion, setReduceMotion] = useDeviceSetting("reduceMotion", false);
   const [burst, setBurst] = useState(null);
   const [logged, setLogged] = useState(0);
   const [slotKinds, setSlotKinds] = useState({});
@@ -14849,9 +14934,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [firstRun, setFirstRun] = useState(true);
   const [annotations, setAnnotations] = useState({});
   const [lang, setLang] = useState("en");
-  const [dark, setDark] = useState(false);
-  const [textScale, setTextScale] = useState(1);
-  const [hapticsOn, setHapticsOn] = useState(true);
+  const [dark, setDark] = useDeviceSetting("dark", false);
+  const [textScale, setTextScale] = useDeviceSetting("textScale", 1);
+  const [hapticsOn, setHapticsOn] = useDeviceSetting("haptics", true);
+  /* the two that reach outside React — kept in step with what was
+     restored, not only with what is tapped */
+  useEffect(() => { setHapticsEnabled(hapticsOn); }, [hapticsOn]);
+  useEffect(() => { setSoundOn(soundState); }, [soundState]);
   const [playerNotes, setPlayerNotes] = useState({ "Marcus Tran": "Prefers video over verbal. Club champs in September." });
   const [mini, setMini] = useState(null);
 
@@ -15706,6 +15795,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       (todayList || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (todayList || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
     ].filter(Boolean) : [];
     body = <NotifCentre role={role} jobs={jobs} items={data.notifications || []} pop={pop} push={push} go={go}
+                        userId={account ? account.id : null} say={say}
                         onOpen={openNotification} onClear={(id) => data.clearNotification(id)}
                         onClearAll={() => { data.clearNotifications(); say(tr("Cleared")); }} />;
   } else if (screen === "alerts") {
