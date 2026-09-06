@@ -316,6 +316,43 @@ const leaks = [];
       check("(f) junior opens their own lesson by id", t.includes("Grip") && t.includes("Left hand a touch stronger."), t.slice(0, 200));
       await ctx.close();
     }
+    /* ---------- (i) a group lesson counts for everyone who was at it ---------- */
+    {
+      const gdb = freshDb();
+      const squad = M.addLesson(gdb, { coachId: IDS.coach, groupName: "Tuesday squad", date: "2026-09-03", focus: "Serve", notes: "Toss out in front." });
+      M.addAttendee(gdb, { lessonId: squad.id, playerId: IDS.adult });
+      M.addAttendee(gdb, { lessonId: squad.id, playerId: IDS.junior });
+
+      {
+        const { ctx, page, leak } = await boot("coach", gdb);
+        await tap(page, '[aria-label="Roster"]', 900);
+        const row = page.locator('[data-tour="roster-row"]').filter({ hasText: "Cian Murphy" }).first();
+        const rowText = (await row.count()) ? M.norm(await row.innerText()) : "";
+        /* two private in the fixture, plus the squad they were marked at */
+        check("(i) the coach's roster counts a group session for the players who were at it", /3 lessons/.test(rowText), rowText);
+        await row.click(); await page.waitForTimeout(1200);
+        const t = await leak("coach player file with a group");
+        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && t.includes("3 lessons") && !t.includes("private"), t.slice(0, 240));
+        await ctx.close();
+      }
+      {
+        /* the same session, from the other side: the player's own log */
+        const { ctx, page, leak } = await boot("adult", gdb);
+        await tap(page, '[aria-label="Lessons"]', 900);
+        if (await page.locator('[aria-label="list"]').count()) await tap(page, '[aria-label="list"]', 800);
+        const t = await leak("player log with a group");
+        check("(i) the player's own log carries the group session they attended", t.includes("Serve"), t.slice(0, 240));
+        await ctx.close();
+      }
+      {
+        /* and somebody who was NOT at it does not get it */
+        const { ctx, page, leak } = await boot("parent", gdb);
+        const t = await leak("parent, not at the squad");
+        check("(i) a person who was not marked at it never sees it", !t.includes("Toss out in front."), t.slice(0, 200));
+        await ctx.close();
+      }
+    }
+
   } catch (e) {
     console.log("RUN ERROR", e && e.stack || e);
     results.push({ name: "run completed", ok: false, detail: String(e && e.message || e) });

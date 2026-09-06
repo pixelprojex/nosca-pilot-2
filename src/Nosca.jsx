@@ -4997,13 +4997,19 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
   const [picked, setPicked] = useState(soleLive.length === 1 ? soleLive[0] : null);
   const [marks, setMarks] = useState(soleLive.length === 1 ? (taken[soleLive[0].time + soleLive[0].who] || {}) : {});
 
-  /* A real group booking names no members, so the whole roster is
+  /* ROWS, NOT NAMES. A register keyed by display name put two players
+     called the same thing into one mark and lost the other's record
+     entirely. Every row carries the id the mark is written against; the
+     name is only what the coach reads.
+
+     A real group booking names no members, so the whole roster is
      offered and the coach marks who came. The head-count slice is the
      design harness's seeded groups only. */
-  const membersOf = (l) => (l && l.members) ? l.members
+  const rowFor = (n) => (roster || []).find((r) => r.name === n) || { id: n, name: n };
+  const membersOf = (l) => (l && l.members) ? l.members.map(rowFor)
     : (l && l.kind && l.kind.startsWith("Group"))
-    ? (roster || []).slice(0, Number((l.kind.match(/\d+/) || [6])[0])).map((r) => r.name)
-    : l ? [l.who] : [];
+    ? (roster || []).slice(0, Number((l.kind.match(/\d+/) || [6])[0]))
+    : l ? [l.playerId ? { id: l.playerId, name: l.who } : rowFor(l.who)] : [];
 
   const open = (l) => {
     haptic(8); soft();
@@ -5011,19 +5017,19 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
     setMarks(taken[l.time + l.who] || {});   // reopen a register already taken
   };
 
-  const mark = (name, v) => {
+  const mark = (id, v) => {
     v === "in" ? hapticSuccess() : hapticWarn();
     soft();
-    setMarks((m) => ({ ...m, [name]: v }));
+    setMarks((m) => ({ ...m, [id]: v }));
   };
 
-  const all = (v) => { haptic(10); soft(); const m = {}; membersOf(picked).forEach((n) => (m[n] = v)); setMarks(m); };
+  const all = (v) => { haptic(10); soft(); const m = {}; membersOf(picked).forEach((r) => (m[r.id] = v)); setMarks(m); };
 
   /* ---------- the register ---------- */
   if (picked) {
     const who = membersOf(picked);
-    const done = who.filter((n) => marks[n]).length;
-    const present = who.filter((n) => marks[n] === "in").length;
+    const done = who.filter((r) => marks[r.id]).length;
+    const present = who.filter((r) => marks[r.id] === "in").length;
     const ready = done === who.length;
 
     return (
@@ -5051,20 +5057,20 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
 
         {/* the register itself */}
         <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-          {who.map((name, i) => {
-            const m = marks[name];
+          {who.map((r, i) => {
+            const m = marks[r.id];
             return (
-              <div key={name} className="flex items-center gap-3"
+              <div key={r.id} className="flex items-center gap-3"
                    style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                             animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
-                <Avatar name={name} size={32} />
+                <Avatar name={r.name} size={32} />
                 <span className="flex-1 min-w-0 truncate"
-                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink }}>{name}</span>
+                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink }}>{r.name}</span>
 
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
                   return (
-                    <button key={v} onClick={() => mark(name, v)}
+                    <button key={v} onClick={() => mark(r.id, v)}
                             className="flex items-center justify-center active:opacity-70"
                             style={{ minWidth: 74, minHeight: 38, borderRadius: R.control,
                                      background: on ? tone : "transparent",
@@ -5492,7 +5498,7 @@ function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, clos
           <Group title={tr("Lessons")}>
             {found.map((l, i) => (
               <Line key={l.id} i={i} Ico={Library} label={l.focus} sub={`${l.d} ${l.m}`}
-                    act={() => { close(); push(role === "coach" ? `clesson:${l.who}:${l.id}` : `lesson:${l.id}`); }} />
+                    act={() => { close(); push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`); }} />
             ))}
           </Group>
         )}
@@ -11327,7 +11333,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons, groupsToo }) {
+function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -11337,7 +11343,8 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
                  : (ROSTER.find((x) => x.name === name) || ROSTER[0]);
   const f = live ? { lessons: null, name, done: r.lessons || 0 } : fileFor(name, !seeded);
   const [more, setMore] = useState(false);
-  const real = live ? (lessons || []).filter((l) => player ? l.playerId === player.id : l.who === name) : null;
+  /* their private lessons and the group sessions they were marked at */
+  const real = live ? (lessons || []).filter((l) => (player ? (l.playerId === player.id || (l.attendeeIds || []).includes(player.id)) : l.who === name)) : null;
   const past = real ? real : (f.lessons || [
     { d: "14 Jun", focus: f.lastFocus || "Short game", note: "Contact much cleaner off a tighter lie." },
     { d: "31 May", focus: "Driving", note: "Tempo over speed. Held the finish." },
@@ -11347,11 +11354,11 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
      away rather than a scroll through a season. */
   const shown = past.slice(0, 5);
   const daysSince = live && r.lastLesson ? Math.max(0, Math.round((new Date() - new Date(r.lastLesson)) / 86400000)) : null;
-  /* A group session records no attendee list, so a per-player count is
-     of private lessons only. Where a coach runs groups as well, the
-     word says so rather than reading as a total. */
+  /* Private lessons and the group sessions this player was marked at —
+     lesson_attendees records who was there, so the coach's count and
+     the player's own agree. */
   const meta = live
-    ? [groupsToo ? `${f.done} ${tr("private")}` : `${f.done} ${f.done === 1 ? tr("lesson") : tr("lessons")}`,
+    ? [`${f.done} ${f.done === 1 ? tr("lesson") : tr("lessons")}`,
        daysSince != null ? (daysSince === 0 ? tr("last today") : `${tr("last")} ${daysSince}d ${tr("ago")}`) : tr("none yet"),
        r.junior ? tr("Under 18") : null].filter(Boolean).join(" · ")
     : `${f.done} ${tr("lessons")} · ${tr("last")} ${r.last}d`;
@@ -11552,7 +11559,7 @@ function Chips({ options, value, onChange, label }) {
   );
 }
 
-function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, onClearPlayer }) {
+function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer }) {
   const t = useT();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState("All");
@@ -11564,7 +11571,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, onClearP
   const years = ["All", ...[...new Set(lessons.map(yearOf).filter(Boolean))].sort().reverse()];
   const term = q.trim().toLowerCase();
   const shown = lessons.filter((l) =>
-    (!forPlayer || l.who === forPlayer)
+    (!forPlayer || l.who === forPlayer || (forPlayerId && (l.attendeeIds || []).includes(forPlayerId)))
     && (!term || (l.who || "").toLowerCase().includes(term) || (l.focus || "").toLowerCase().includes(term)
         || (l.subs || []).some((x) => x.toLowerCase().includes(term))
         || (l.note || "").toLowerCase().includes(term))
@@ -11630,7 +11637,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, onClearP
               </div>
               <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 {g.items.map((l) => (
-                  <button key={l.id} onClick={() => { haptic(6); push(`clesson:${l.who}:${l.id}`); }}
+                  <button key={l.id} onClick={() => { haptic(6); push(`clesson:${l.id}:${l.who}`); }}
                           className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                           style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                     <span className="shrink-0 text-center" style={{ width: 26, fontFamily: display, fontSize: 16, color: t.faint }}>{l.d}</span>
@@ -12218,7 +12225,7 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
                        icon={<span className="rounded-xl flex items-center justify-center shrink-0"
                                    style={{ width: 38, height: 38, background: t.wash }}>
                                <span style={{ fontFamily: display, fontSize: 15, color: t.ink }}>{l.d}</span></span>}
-                       onToggle={() => push(`clesson:${name}:${l.id}`)} />
+                       onToggle={() => push(`clesson:${l.id}:${name}`)} />
                 ))}
               </Card>
             )}
@@ -14208,7 +14215,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
             ))}</div>
           </div>) : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
           ) : (<>
-            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.who}:${l.id}` : `lesson:${l.id}`)} />))}</Card></div></>)}
+            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
             {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
             {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
@@ -15409,7 +15416,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* what the coach marked for this player, if a register was taken */
   /* the player's own percentage, for the line on their day */
   const attendPct = (() => {
-    const me = activeProfile?.name;
+    /* a real register is keyed by player id; the harness's by name */
+    const me = account ? account.id : activeProfile?.name;
     let seen = 0, here = 0;
     Object.keys(registers || {}).forEach((k) => {
       const v = registers[k][me];
@@ -15419,7 +15427,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return seen ? Math.round((here / seen) * 100) : null;
   })();
   const myAttendance = (() => {
-    const me = activeProfile?.name;
+    const me = account ? account.id : activeProfile?.name;
     for (const k of Object.keys(registers || {})) { const v = registers[k][me]; if (v) return v; }
     return null;
   })();
@@ -15432,8 +15440,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const inApp = flow === "app";
   const sport = account ? account.sport : role === "coach" ? coachSport : (conn?.sport || "golf");
   const cfg = SPORTS[sport];
+  /* EVERY LESSON THIS PERSON WAS AT: their own, and the group sessions
+     their coach marked them at. One rule, used by the log, the archive
+     and the season count, so the three can never disagree — and so a
+     player who only ever attends a squad is not shown an empty log. */
+  const mineOnly = (list) => (list || []).filter((l) => !account || l.playerId === account.id || (l.attendeeIds || []).includes(account.id));
   /* the coach's archive is everything they gave; anyone else's is their own */
-  const archive = data ? (role === "coach" ? (data.lessons || []) : (data.lessons || []).filter((l) => !account || l.playerId === account.id)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
+  const archive = data ? (role === "coach" ? (data.lessons || []) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
   const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
@@ -15575,8 +15588,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        (the design harness) nothing is persisted, exactly as before. */
     if (data && account) {
       const isGroup = l.type === "group";
-      const named = Array.isArray(l.who) ? l.who[0] : l.who;
+      const names = Array.isArray(l.who) ? l.who : (l.who ? [l.who] : []);
+      const named = names[0];
       const match = (data.roster || []).find((r) => r.name === named);
+      /* WHO WAS THERE. A group lesson carries a name and no player, so
+         without this list the session counts for nobody — not on the
+         coach's view of each player, and not in the players' own logs.
+         A saved group knows its members; an ad-hoc handful is exactly
+         the people the coach just ticked. */
+      const saved = isGroup ? (myGroups || []).find((g) => g.name === (l.groupName || named)) : null;
+      const attendeeNames = saved && saved.members && saved.members.length ? saved.members : names;
+      const attendeeIds = isGroup
+        ? attendeeNames.map((n) => ((data.roster || []).find((r) => r.name === n) || {}).id).filter(Boolean)
+        : [];
       /* The lesson was actually logged for whichever day the coach
          picked in the wizard's own date step — not necessarily today. */
       const year = new Date().getFullYear();
@@ -15594,6 +15618,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           .map((v) => v.file).filter(Boolean),
         date: lessonDate,
         ratingRequested: !!l.wantRating,
+        attendeeIds,
       });
       if (res && res.lesson) {
         const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
@@ -15788,7 +15813,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        as their own so the Family screens can show them. Everywhere a
        person is looking at their OWN log, that is too much: filter to
        the signed-in person and leave the whole list to FamilyHome. */
-    if (data) return role === "coach" ? data.lessons : (data.lessons || []).filter((l) => !account || l.playerId === account.id);
+    if (data) return role === "coach" ? data.lessons : mineOnly(data.lessons);
     if (!conn || freshAccount) return [];
     const seed = conn.seeded ? SPORTS[conn.sport].lessons : [];
     if (published && role === "player") return [{ id: 999, focus: published.focus, subs: published.subs, d: "24", m: "JUL", type: published.type === "group" ? "Group" : "Private", videos: published.videos.length, unread: true }, ...seed];
@@ -15818,7 +15843,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
     const jan1 = new Date(now.getFullYear(), 0, 1);
     const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const mine = role === "coach" ? (data.lessons || []) : (data.lessons || []).filter((l) => !account || l.playerId === account.id);
+    const mine = role === "coach" ? (data.lessons || []) : mineOnly(data.lessons);
     const week = mine.filter((l) => l.iso && l.iso >= ymd(weekAgo) && l.iso <= ymd(now)).length;
     const season = mine.filter((l) => l.iso && l.iso >= ymd(jan1)).length;
     return { weekDone: week, weekHours: Math.round((week * (duration || 45)) / 60), seasonDone: season };
@@ -16044,8 +16069,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pname = screen.split(":")[1];
     body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? data.lessons : null}
                         player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
-                        onOpenLesson={(l) => push(`clesson:${pname}:${l.id}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
-                        groupsToo={data ? (data.lessons || []).some((l) => !l.playerId) : false}
+                        onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
   } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? (role === "coach" ? data.lessons : playerLessons) : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
@@ -16104,7 +16128,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     })() : null;
     body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={realAtt || attendance} goals={data ? {} : goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("clesson:")) {
-    const [, cname, lid] = screen.split(":");
+    /* THE ID COMES FIRST and the name is whatever is left, taken with
+       indexOf rather than split. It used to be `clesson:<who>:<id>`
+       split on every colon — so a group the coach called "Sat 9:00
+       clinic" put "00" where the lesson id belonged and every one of
+       its lessons refused to open. */
+    const rest0 = screen.slice("clesson:".length);
+    const cut0 = rest0.indexOf(":");
+    const lid = cut0 < 0 ? rest0 : rest0.slice(0, cut0);
+    const cname = cut0 < 0 ? "" : rest0.slice(cut0 + 1);
     /* the tapped lesson, by id — a real account never falls back to the catalogue */
     const les = data
       ? ((data.lessons || []).find((x) => String(x.id) === lid) || null)
@@ -16112,7 +16144,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = les
       ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
                          live={!!data} mediaFor={data ? data.lessonMedia : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
-                         attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); return k ? (registers[k][cname] || null) : null; })()}
+                         attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][cname]) || null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
                          onEdit={data ? (l) => { setEditLesson(l); setSheet("lessonEdit"); } : null}
                          onDelete={data ? (l) => { setEditLesson(l); setSheet("lessonDelete"); } : null}
@@ -16148,7 +16180,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "digest") {
     body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop}
              stats={data ? Object.fromEntries(profiles.map((pf) => [pf.id, {
-               lessons: (data.lessons || []).filter((l) => l.playerId === pf.id).length,
+               lessons: (data.lessons || []).filter((l) => l.playerId === pf.id || (l.attendeeIds || []).includes(pf.id)).length,
                drillsDone: (data.drills || []).filter((d) => d.playerId === pf.id && d.done).length,
                drillsTotal: (data.drills || []).filter((d) => d.playerId === pf.id).length,
                tip: ((data.tips || []).find((tp) => tp.playerId === pf.id) || {}).title || null }])) : null} />;
@@ -16172,17 +16204,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           onLeaveCoach={data ? async () => { const r = await data.leaveCoach(); if (r && r.error) return r; pop(); setCeleb({ label: tr("Left"), sub: coachName, tone: DANGER }); if (onProfileChanged) await onProfileChanged(); return {}; } : null}
                           juvenile={juvenile} pop={pop} />;
   } else if (screen === "attendance") {
-    const me = activeProfile?.name;
+    /* the register is keyed by player id for a real account, by name in
+       the harness; the name is looked up only to show it */
+    const me = account ? account.id : activeProfile?.name;
+    const nameOfId = (id) => (data ? (((data.roster || []).find((r) => r.id === id) || {}).name
+                                      || (id === (account && account.id) ? account.name : null)
+                                      || ((data.dependants || []).find((k) => k.id === id) || {}).name
+                                      || "—") : id);
     const rows = [];
     Object.keys(registers || {}).forEach((k) => {
-      Object.keys(registers[k]).forEach((name) => {
-        if (role !== "coach" && name !== me) return;
+      Object.keys(registers[k]).forEach((who) => {
+        if (role !== "coach" && who !== me) return;
         const parts = k.split(" ");
         const date = `${parts[0]} ${parts[1]}`;          // "14 JUN"
         const what = parts.slice(2).join(" ");            // "Summer clinic"
-        rows.push({ date, who: role === "coach" ? name : what,
+        rows.push({ date, who: role === "coach" ? nameOfId(who) : what,
                     kind: role === "coach" ? what : (what.includes("clinic") || what.includes("squad") || what.includes("group") ? tr("Group") : tr("Private")),
-                    state: registers[k][name] });
+                    state: registers[k][who] });
       });
     });
     body = <AttendanceScreen role={role} cfg={cfg} records={rows} rule={prefs.attendance} pop={pop} />;
@@ -16227,12 +16265,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "archive" || screen.startsWith("archive:")) {
     const only = screen.startsWith("archive:") ? screen.slice(8) : null;
     body = <CoachArchive cfg={cfg} lessons={archive} nouns={cfg.nouns} forPlayer={only}
+                         forPlayerId={only && data ? (((data.roster || []).find((r) => r.name === only) || {}).id || null) : null}
                          onClearPlayer={only ? () => { pop(); push("archive"); } : null}
                          pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {
     body = <MyGroups groups={myGroupsForMe} cfg={cfg} nouns={cfg.nouns} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("mygroup:")) {
-    const gname = screen.split(":")[1];
+    const gname = screen.slice("mygroup:".length);
     const g = myGroupsForMe.find((x) => x.name === gname);
     body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} shared /> : <div />;
   } else if (screen === "tool") {
@@ -16241,8 +16280,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                       onRemove={(i) => setToolRows((v) => ({ ...v, [sport]: (v[sport] || []).filter((_, j) => j !== i) }))}
                       pop={pop} say={say} />;
   } else if (screen.startsWith("group:")) {
-    const gname = screen.split(":")[1];
-    const g = myGroups.find((x) => x.name === gname) || myGroups[0];
+    /* the whole remainder, not the first colon-free piece: a group named
+       "Sat 9:00 clinic" used to fall through to myGroups[0] and open
+       somebody else's group without a word */
+    const gname = screen.slice("group:".length);
+    const g = myGroups.find((x) => x.name === gname) || null;
     body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} onOpen={(n) => push("player:" + n)} /> : <div />;
   } else if (screen.startsWith("annotate:")) {
     const ang = screen.split(":")[1];
@@ -16357,7 +16399,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             mediaFor={data ? data.lessonMedia : null}
                             drills={data ? data.drills : null} tips={data ? data.tips : null}
                             /* what the coach marked that day, for the person the lesson belongs to */
-                            attendanceFor={(l) => { const who = data ? ((l.playerId === account.id ? account.name : ((data.dependants || []).find((k) => k.id === l.playerId) || {}).name) || null) : activeProfile?.name;
+                            attendanceFor={(l) => { const who = data ? (l.playerId || null) : activeProfile?.name;
                               if (!who) return null; const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
                             onMessage={data ? ((l) => (l.playerId && (l.playerId === account.id || (data.dependants || []).some((k) => k.id === l.playerId)) ? push("thread:" + l.playerId) : push("thread:" + account.id))) : () => push("thread:" + (conn?.coach || ""))}
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
@@ -16632,11 +16674,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
-                                                /* map display names back to real ids before saving */
-                                                const byName = Object.fromEntries((data.roster || []).map((r) => [r.name, r.id]));
-                                                const real = {};
-                                                Object.entries(marks).forEach(([nm, st]) => { if (byName[nm]) real[byName[nm]] = st; });
-                                                const res = await data.takeRegister(l.who, real);
+                                                /* the marks already carry real ids — the sheet
+                                                   keys them by row, not by display name, so two
+                                                   players called the same thing no longer share
+                                                   one mark */
+                                                const res = await data.takeRegister(l.who, marks);
                                                 /* the register is what was written, not what was ticked */
                                                 if (res && res.error) { hapticWarn(); say(res.error.message); return; }
                                                 setCeleb({ label: tr("Register taken"), sub: `${n} ${tr("present")}` });

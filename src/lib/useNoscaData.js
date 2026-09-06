@@ -55,10 +55,13 @@ const token = () => {
 export const avatarUrl = (path) => path ? supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl : null;
 
 /* database row -> the shape the interface already speaks */
-const toLesson = (r) => {
+const toLesson = (r, attendeeIds = []) => {
   const dt = new Date(r.lesson_date);
   return {
     id: r.id,
+    /* who was marked at this group lesson; empty for a private one,
+       which carries its single person in playerId */
+    attendeeIds,
     focus: r.focus,
     focusId: (r.focus || "").toLowerCase().replace(/\s+/g, ""),
     subs: r.subs || [],
@@ -158,7 +161,7 @@ export function useNoscaData(profile) {
     try {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
-      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes] = await Promise.all([
+      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes, aRes] = await Promise.all([
         supabase.from("profiles").select("id, name, role, sport, invite_code, family_id, coach_id, account_type, date_of_birth, avatar_path, bio, club, created_at"),
         supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
@@ -173,10 +176,26 @@ export function useNoscaData(profile) {
         supabase.from("families").select("*"),
         supabase.from("coach_requests").select("*").order("created_at", { ascending: false }),
         supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(200),
+        /* Who was at each group lesson. Security hands a coach every row
+           of their own lessons and a player only the ones they were at,
+           so both sides count the same lesson the same way. */
+        supabase.from("lesson_attendees").select("lesson_id, player_id"),
       ]);
 
       const people = pRes.data || [];
       const personOf = (id) => people.find((x) => x.id === id) || null;
+
+      /* A group lesson carries a name, not a player, so who was there is
+         a table of its own. A project whose nosca.sql predates it simply
+         answers with an error, and every lesson keeps an empty list —
+         the app then behaves exactly as it did before. */
+      const attendeesBy = {};
+      if (!aRes.error) {
+        (aRes.data || []).forEach((a) => {
+          (attendeesBy[a.lesson_id] = attendeesBy[a.lesson_id] || []).push(a.player_id);
+        });
+      }
+      const wasAt = (l, pid) => l.player_id === pid || (attendeesBy[l.id] || []).includes(pid);
 
       /* Fetch our own row directly — the general people list only
          contains rows RLS lets us see (our players, our coach), and
@@ -264,12 +283,14 @@ export function useNoscaData(profile) {
         guardians: juniorRow(p) && p.family_id
           ? people.filter((a) => a.family_id === p.family_id && a.id !== p.id && !juniorRow(a)).map((a) => a.name)
           : [],
-        lessons: (lRes.data || []).filter((l) => l.player_id === p.id).length,
-        lastLesson: (lRes.data || []).filter((l) => l.player_id === p.id).map((l) => l.lesson_date).sort().pop() || null,
+        /* their private lessons AND the group sessions they were marked
+           at — the coach's count and the player's own must agree */
+        lessons: (lRes.data || []).filter((l) => wasAt(l, p.id)).length,
+        lastLesson: (lRes.data || []).filter((l) => wasAt(l, p.id)).map((l) => l.lesson_date).sort().pop() || null,
         since: new Date(p.created_at).toLocaleDateString("en-IE", { month: "short", year: "numeric" }),
       })));
 
-      setLessons((lRes.data || []).map(toLesson));
+      setLessons((lRes.data || []).map((r) => toLesson(r, attendeesBy[r.id] || [])));
       setDrills((dRes.data || []).map((d) => ({ id: d.id, t: d.title, done: d.done, playerId: d.player_id, createdAt: d.created_at })));
       setTips((tRes.data || []).map((t) => ({
         id: t.id, title: t.title, body: t.body, focus: null, playerId: t.player_id, createdAt: t.created_at,
@@ -282,7 +303,6 @@ export function useNoscaData(profile) {
           .from("attendance_marks")
           .select("session_id, player_id, state");
         const byId = Object.fromEntries(sessions.map((s) => [s.id, s]));
-        const nameById = Object.fromEntries(people.map((p) => [p.id, p.name]));
         const out = {};
         (marks || []).forEach((mk) => {
           const s = byId[mk.session_id];
@@ -290,7 +310,10 @@ export function useNoscaData(profile) {
           const dt = new Date(s.session_date);
           const key = `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]} ${s.label}`;
           out[key] = out[key] || {};
-          out[key][nameById[mk.player_id] || "—"] = mk.state;
+          /* KEYED BY PLAYER ID. Keyed by display name, two players called
+             the same thing wrote into one entry and the second one had
+             no record at all. */
+          out[key][mk.player_id] = mk.state;
         });
         setRegisters(out);
       } else {
@@ -538,7 +561,7 @@ export function useNoscaData(profile) {
   };
   const dismissUploads = () => { setUploads(null); pendingFiles.current.clear(); };
 
-  const logLesson = async ({ who, playerId, groupName, focus, subs, note, files, date, ratingRequested }) => {
+  const logLesson = async ({ who, playerId, groupName, focus, subs, note, files, date, ratingRequested, attendeeIds }) => {
     const row = {
       coach_id: profile.id,
       player_id: groupName ? null : playerId,
@@ -558,6 +581,17 @@ export function useNoscaData(profile) {
     }
     const { data: lesson, error } = res;
     if (error) return { error };
+
+    /* WHO WAS THERE. A group lesson has no player_id, so without this
+       the session counts for nobody: not on the coach's view of each
+       player, and not in the players' own logs. Written from the same
+       people the coach just picked. A project whose nosca.sql predates
+       the table simply fails this insert and everything else stands. */
+    const attendees = (attendeeIds || []).filter(Boolean);
+    if (groupName && attendees.length) {
+      await supabase.from("lesson_attendees")
+        .insert(attendees.map((pid) => ({ lesson_id: lesson.id, player_id: pid })));
+    }
 
     const { failed } = await uploadFiles(lesson.id, files);
     if (!(files || []).length) await load();

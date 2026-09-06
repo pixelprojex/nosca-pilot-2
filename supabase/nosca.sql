@@ -129,6 +129,27 @@ create table if not exists public.lesson_media (
   created_at   timestamptz not null default now()
 );
 
+-- ---------- lesson_attendees ----------
+-- Who was actually at a group lesson. A private lesson carries its one
+-- person in lessons.player_id; a group lesson carries a name and, until
+-- now, nobody — so every per-player count and per-player list was of
+-- private lessons only. A player in a weekly squad read as "1 lesson"
+-- on their coach's screen, and their own log was empty.
+-- One row per player per lesson, written when the lesson is logged.
+-- Nothing is filled in for lessons logged before this table existed:
+-- who is in a group today is not who was there in March, and a number
+-- that is missing is honest where an invented one is not.
+create table if not exists public.lesson_attendees (
+  lesson_id  uuid not null references public.lessons  (id) on delete cascade,
+  player_id  uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (lesson_id, player_id)
+);
+-- the primary key answers "who was at this lesson"; this answers
+-- "which lessons was this person at", which is the one the app asks
+create index if not exists lesson_attendees_player_idx
+  on public.lesson_attendees (player_id);
+
 -- ---------- drills & tips ----------
 create table if not exists public.drills (
   id         uuid primary key default gen_random_uuid(),
@@ -868,6 +889,21 @@ as $fn$
      or m.player_id in (select public.my_family_ids());
 $fn$;
 
+-- Group lessons you, or someone you look after, were at. The lessons
+-- policy needs this because it may not read lesson_attendees directly:
+-- the lesson_attendees policy reads lessons, and two tables reading
+-- each other recurse just as one reading itself does. Being security
+-- definer, this reads the attendee list outside the policies, which is
+-- what stops the loop — the same reason my_attendance_session_ids()
+-- exists.
+create or replace function public.my_lesson_ids()
+returns setof uuid language sql stable security definer set search_path = ''
+as $fn$
+  select a.lesson_id from public.lesson_attendees a
+  where a.player_id = auth.uid()
+     or a.player_id in (select public.my_family_ids());
+$fn$;
+
 -- Policies run as the signed-in person, so that role must be allowed
 -- to call these. Nobody else needs to.
 do $grants$
@@ -878,7 +914,7 @@ begin
     'my_coach_id()', 'is_junior_of(uuid)', 'is_junior()', 'my_family_id()', 'my_family_member_ids()',
     'my_family_ids()', 'my_family_coach_ids()', 'my_players_guardian_ids()', 'coach_of(uuid)',
     'my_pending_coach_ids()', 'my_requesting_player_ids()', 'coach_availability(uuid)',
-    'my_attendance_session_ids()'
+    'my_attendance_session_ids()', 'my_lesson_ids()'
   ] loop
     execute format('revoke all on function public.%s from public, anon', fn);
     execute format('grant execute on function public.%s to authenticated', fn);
@@ -1165,6 +1201,13 @@ begin
   delete from public.lesson_media
   where lesson_id in (select l.id from public.lessons l
                       where l.coach_id = me or l.player_id = me);
+
+  -- And their place on any group lesson. The row cascades when their
+  -- profile goes, but a coach deleting their account takes the lessons
+  -- with them, so clear both directions explicitly.
+  delete from public.lesson_attendees
+  where player_id = me
+     or lesson_id in (select l.id from public.lessons l where l.coach_id = me);
 
   -- Some projects record who uploaded each file with a key to
   -- auth.users; a file left behind would then hold the account open.
@@ -1629,7 +1672,7 @@ begin
     select policyname, tablename
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('profiles', 'families', 'coach_requests', 'lessons', 'lesson_media',
+      and tablename in ('profiles', 'families', 'coach_requests', 'lessons', 'lesson_media', 'lesson_attendees',
                         'drills', 'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
                         'competitions', 'recurring', 'preferences', 'messages', 'reviews',
                         'notifications', 'push_subscriptions')
@@ -1646,6 +1689,7 @@ alter table public.notifications       enable row level security;
 alter table public.push_subscriptions  enable row level security;
 alter table public.lessons             enable row level security;
 alter table public.lesson_media        enable row level security;
+alter table public.lesson_attendees    enable row level security;
 alter table public.drills              enable row level security;
 alter table public.tips                enable row level security;
 alter table public.attendance_sessions enable row level security;
@@ -1666,7 +1710,7 @@ alter table public.reviews             enable row level security;
 grant usage on schema public to anon, authenticated;
 
 revoke all on public.profiles, public.families, public.coach_requests, public.notifications,
-              public.push_subscriptions, public.lessons, public.lesson_media, public.drills,
+              public.push_subscriptions, public.lessons, public.lesson_media, public.lesson_attendees, public.drills,
               public.tips, public.attendance_sessions, public.attendance_marks,
               public.bookings, public.competitions, public.recurring,
               public.preferences, public.messages, public.reviews, public.lessons_view
@@ -1682,7 +1726,7 @@ grant select, update, delete on public.notifications to authenticated;
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
 
 grant select, insert, update, delete on
-  public.lessons, public.lesson_media, public.drills, public.tips,
+  public.lessons, public.lesson_media, public.lesson_attendees, public.drills, public.tips,
   public.attendance_sessions, public.attendance_marks, public.bookings,
   public.competitions, public.recurring, public.preferences,
   public.messages, public.reviews
@@ -1744,6 +1788,9 @@ create policy "lessons: yours, your family's, and your coach's group lessons" on
     or (kind = 'group'
         and (coach_id = public.my_coach_id()
              or coach_id in (select public.my_family_coach_ids())))
+    -- a group lesson you were actually marked at stays yours even after
+    -- you leave that coach
+    or id in (select public.my_lesson_ids())
   );
 
 create policy "lessons: the coach writes them" on public.lessons
@@ -1759,6 +1806,22 @@ create policy "lesson_media: files of lessons you can see" on public.lesson_medi
   );
 
 create policy "lesson_media: the lesson's coach writes them" on public.lesson_media
+  for all to authenticated
+  using      (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()))
+  with check (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()));
+
+-- ---------- lesson_attendees ----------
+-- Same shape as lesson_media: whether you may see who was at a lesson
+-- follows from whether you may see the lesson, and the lessons policy
+-- is applied inside the subquery. This table never reads itself, and
+-- the lessons policy reaches it only through my_lesson_ids(), which is
+-- security definer — so neither recurses into the other.
+create policy "lesson_attendees: of lessons you can see" on public.lesson_attendees
+  for select to authenticated using (
+    exists (select 1 from public.lessons l where l.id = lesson_id)
+  );
+
+create policy "lesson_attendees: the lesson's coach writes them" on public.lesson_attendees
   for all to authenticated
   using      (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()))
   with check (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()));
@@ -2074,7 +2137,7 @@ do $check$
 declare
   fake  constant text := '00000000-0000-0000-0000-000000000000';
   every constant text[] := array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
-                                 'lessons', 'lessons_view', 'lesson_media', 'drills',
+                                 'lessons', 'lessons_view', 'lesson_media', 'lesson_attendees', 'drills',
                                  'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
                                  'competitions', 'recurring', 'preferences', 'messages', 'reviews'];
   tbl        text;
@@ -2157,7 +2220,7 @@ $check$;
 with
   want_tables as (
     select unnest(array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
-                        'lessons', 'lesson_media', 'drills', 'tips',
+                        'lessons', 'lesson_media', 'lesson_attendees', 'drills', 'tips',
                         'attendance_sessions', 'attendance_marks', 'bookings', 'competitions',
                         'recurring', 'preferences', 'messages', 'reviews']) as t
   ),
