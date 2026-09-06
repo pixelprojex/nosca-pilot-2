@@ -9838,7 +9838,7 @@ function LessonStage({ item, onAnnotate }) {
 }
 
 function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson,
-                        onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, pop, extraTitleRight }) {
+                        onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight }) {
   const t = useT();
   const [a, setA] = useState(0);
   const list = items || [];
@@ -9886,6 +9886,13 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                 <div className="flex gap-2 overflow-x-auto mt-3 pb-1" style={{ scrollbarWidth: "none" }}>
                   {list.map((it, i) => <MediaThumb key={it.id || i} item={it} index={i} on={i === a} onPick={setA} />)}
                 </div>
+              )}
+              {onRemoveMedia && current && current.id && (
+                <button onClick={() => { haptic(8); onRemoveMedia(current); if (a > 0) setA(a - 1); }}
+                        className="mt-2 inline-flex items-center gap-1.5 active:opacity-50"
+                        style={{ ...TYPE.caption, fontWeight: 600, color: t.faint }}>
+                  <X size={11} strokeWidth={2.4} />{tr("Remove this")} {current.type === "audio" ? tr("voice note") : current.type === "photo" ? tr("photo") : tr("clip")}
+                </button>
               )}
               {list.length > 1 && <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{a + 1} / {list.length} · {current.type === "audio" ? tr("Voice note") : current.type === "photo" ? tr("Photo") : tr("Clip")}</p>}
             </div>
@@ -9963,6 +9970,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               {onSetDrills && <Action primary label={tr("Set drills from this lesson")} Icon={ListChecks} onPress={onSetDrills} />}
               {onMessage && <Action label={`${tr("Message")} ${first(playerName) || tr("them")}`} Icon={MessageCircle} onPress={onMessage} />}
               {onLogAnother && <Action label={tr("Log another like this")} Icon={Plus} onPress={onLogAnother} />}
+              {onEdit && <Action label={tr("Edit this lesson")} Icon={Edit3} onPress={onEdit} tour="lesson-edit" />}
             </>) : (<>
               {onMessage && !juvenile && <Action primary label={`${tr("Message")} ${first(coachName) || tr("your coach")}`} Icon={MessageCircle} onPress={onMessage} />}
               {onBook && !juvenile && <Action label={tr("Book again")} Icon={CalendarDays} onPress={onBook} />}
@@ -9972,6 +9980,12 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               <button data-tour="lesson-save" onClick={() => { haptic(8); onDownload(list); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
                       style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: t.sub }}>
                 <Download size={14} color={t.sub} strokeWidth={2} />{tr("Download lesson log")}
+              </button>
+            )}
+            {onDelete && (
+              <button onClick={() => { haptic(8); onDelete(); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
+                      style={{ minHeight: 44, ...TYPE.caption, fontWeight: 600, color: DANGER }}>
+                <Trash2 size={13} color={DANGER} strokeWidth={2} />{tr("Delete this lesson")}
               </button>
             )}
           </div>
@@ -10019,7 +10033,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
 
 /* What the coach sees when they open a lesson they gave: the same
    record the player has, plus what they set afterwards. */
-function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload, drills, tips, attendance }) {
+function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload, drills, tips, attendance, onEdit, onDelete, onRemoveMedia }) {
   const count = lesson.media ?? lesson.videos ?? 0;
   const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
   const items = live ? (media || []) : cfg.angles.slice(0, lesson.videos || 1).map((angle) => ({ type: "sim", angle }));
@@ -10029,6 +10043,9 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
                   onSetDrills={() => assignDrills(name, lesson.focusId)} onMessage={() => push("thread:" + (lesson.playerId || name))}
                   onLogAnother={() => { if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }}
                   onDownload={live && onDownload ? (its) => onDownload(lesson, its) : null}
+                  onEdit={live && onEdit ? () => onEdit(lesson) : null}
+                  onDelete={live && onDelete ? () => onDelete(lesson) : null}
+                  onRemoveMedia={live && onRemoveMedia ? (item) => onRemoveMedia(lesson, item) : null}
                   onAnnotate={live ? null : (angle) => push("annotate:" + angle)} pop={pop} />
   );
 }
@@ -14213,6 +14230,112 @@ function CatchUp({ items, onOpen, onDone }) {
   );
 }
 
+/* CHANGING A LESSON ALREADY WRITTEN UP
+
+   The focus typed in a hurry, the wrong day, a note that reads badly
+   the morning after. All three are the same small form, and it saves
+   onto the lesson that is already there rather than logging a second
+   one. Files are added and taken away from the lesson itself. */
+function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
+  const t = useT();
+  const fileRef = useRef(null);
+  const [focus, setFocus] = useState(lesson.focus || "");
+  const [subs, setSubs] = useState(lesson.subs || []);
+  const [note, setNote] = useState(lesson.note || "");
+  const [date, setDate] = useState(lesson.iso || "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const options = (cfg.focus || []).map((f) => f.label);
+  const dirty = focus !== (lesson.focus || "") || note !== (lesson.note || "") || date !== (lesson.iso || "")
+    || subs.join("|") !== (lesson.subs || []).join("|");
+
+  const save = async () => {
+    if (busy) return;
+    if (!focus.trim()) { setErr(tr("A lesson needs a focus.")); return; }
+    setBusy(true); setErr("");
+    const res = await onSave({ focus, subs, note, date });
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't save that.")); return; }
+    hapticSuccess(); say(tr("Saved")); close();
+  };
+
+  return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Edit lesson")}</h2>
+      <p className="mb-5" style={{ ...TYPE.caption, color: t.faint }}>{lesson.who} · {lesson.d} {lesson.m}</p>
+
+      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Focus")}</div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {options.map((o) => {
+          const on = focus === o;
+          return (
+            <button key={o} onClick={() => { haptic(6); setFocus(o); }} className="px-3.5 active:opacity-60"
+                    style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.accent : t.wash,
+                             ...TYPE.small, fontWeight: 600, color: on ? t.onAccent : t.sub }}>{o}</button>
+          );
+        })}
+      </div>
+      <input value={focus} onChange={(e) => { setFocus(e.target.value); setErr(""); }} aria-label={tr("Focus")}
+             className="w-full outline-none px-4 mb-4" placeholder={tr("Or type it")}
+             style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15.5, color: t.ink }} />
+
+      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("The day it happened")}</div>
+      <input type="date" value={date || ""} onChange={(e) => setDate(e.target.value)} aria-label={tr("Lesson date")}
+             className="w-full outline-none px-4 mb-4"
+             style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15.5, color: t.ink }} />
+
+      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Notes")}</div>
+      <div className="mb-4"><VoiceArea value={note} onChange={setNote} rows={4} ph={tr("What happened, in your words")} /></div>
+
+      {onAddFiles && (<>
+        <input ref={fileRef} type="file" accept="video/*,image/*,audio/*" multiple className="hidden"
+               onChange={(e) => { const f = Array.from(e.target.files || []); e.target.value = ""; if (f.length) { onAddFiles(f); close(); } }} />
+        <button onClick={() => { haptic(8); fileRef.current && fileRef.current.click(); }}
+                className="w-full flex items-center justify-center gap-2 mb-4 active:opacity-60"
+                style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+          <Plus size={15} color={t.sub} strokeWidth={2.2} />{tr("Add a clip, photo or voice note")}
+        </button>
+      </>)}
+
+      {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+      <Button tone="ink" disabled={busy || !dirty} onClick={save}>{busy ? "…" : tr("Save changes")}</Button>
+    </>
+  );
+}
+
+/* Removing a lesson is not a tap away from something else — it says
+   what goes with it, and nothing about it can be undone. */
+function LessonDeleteBody({ lesson, mediaCount = 0, onConfirm, say, close }) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-4">
+        <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: `${DANGER}14` }}>
+          <Trash2 size={18} color={DANGER} strokeWidth={2} />
+        </span>
+        <h2 style={{ ...TYPE.title, color: t.ink }}>{tr("Delete this lesson")}</h2>
+      </div>
+      <p className="mb-5" style={{ ...TYPE.body, lineHeight: 1.6, color: t.sub }}>
+        {lesson.focus} · {lesson.who} · {lesson.d} {lesson.m}.
+        {mediaCount > 0 ? ` ${mediaCount} ${mediaCount === 1 ? tr("file goes with it") : tr("files go with it")}.` : ""}
+        {" "}{tr("It disappears from their lessons too, and it cannot be undone.")}
+      </p>
+      {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+      <Button tone="danger" disabled={busy} onClick={async () => {
+        setBusy(true); setErr("");
+        const res = await onConfirm();
+        setBusy(false);
+        if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't remove it.")); return; }
+        hapticWarn(); say(tr("Lesson removed")); close();
+      }}>{busy ? "…" : tr("Delete it")}</Button>
+      <button onClick={() => { haptic(6); close(); }} className="w-full mt-3 py-3 active:opacity-50"
+              style={{ ...TYPE.small, color: t.sub }}>{tr("Keep it")}</button>
+    </>
+  );
+}
+
 /* ==================================================================
    SHELL
 ================================================================== */
@@ -14595,6 +14718,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      both sides. The player is then offered a new time. */
   /* Which day the call-off sheet is about. Null means today. */
   const [callOffFor, setCallOffFor] = useState(null);
+  /* the lesson being edited or removed, while its sheet is open */
+  const [editLesson, setEditLesson] = useState(null);
   const callOff = async (affected, scope) => {
     /* Call-offs are recorded against each booking, so the players
        affected see it on their own devices rather than only in the
@@ -15634,6 +15759,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          live={!!data} mediaFor={data ? data.lessonMedia : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
                          attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); return k ? (registers[k][cname] || null) : null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
+                         onEdit={data ? (l) => { setEditLesson(l); setSheet("lessonEdit"); } : null}
+                         onDelete={data ? (l) => { setEditLesson(l); setSheet("lessonDelete"); } : null}
+                         onRemoveMedia={data ? async (l, item) => {
+                           const res = await data.removeLessonMedia(l.id, item.id);
+                           say(res && res.error ? res.error.message : tr("Removed"));
+                         } : null}
                          onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: coachName, who: l.who, media: items, say })} />
       : <SwipeBack onBack={pop}><Screen title={tr("Lesson")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available.")}</p>
@@ -16428,6 +16559,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "recurring" ? <RecurringSetup name={recurFor || (roster[0] || (data ? {} : ROSTER[0])).name || ""} existing={data ? mySeries.find((x) => x.who === recurFor) : series.find((x) => x.who === recurFor && x.sport === coachSport)}
                                           slots={slots} duration={duration} onSave={saveSeries} onEnd={endSeries}
                                           close={() => setSheet(null)} say={say} />
+              : sheet === "lessonEdit" && editLesson && data ? <LessonEditBody lesson={editLesson} cfg={cfg} say={say}
+                                          onSave={(v) => data.updateLesson(editLesson.id, v)}
+                                          onAddFiles={(files) => { data.addLessonMedia(editLesson.id, files); say(`${tr("Adding")} ${files.length}…`); }}
+                                          close={() => { setEditLesson(null); setSheet(null); }} />
+              : sheet === "lessonDelete" && editLesson && data ? <LessonDeleteBody lesson={editLesson} say={say}
+                                          mediaCount={editLesson.media ?? editLesson.videos ?? 0}
+                                          onConfirm={async () => { const r = await data.deleteLesson(editLesson.id); if (!(r && r.error)) { setEditLesson(null); pop(); } return r; }}
+                                          close={() => { setEditLesson(null); setSheet(null); }} />
               : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} onSend={data ? (text) => data.broadcast(text) : null} />
               : null}
           </Sheet>
