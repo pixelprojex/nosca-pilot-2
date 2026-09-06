@@ -7411,8 +7411,8 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
     const sync = () => {
       setW(el.offsetWidth || 358);
       /* re-measure so the pill's cell width tracks the real bar */
-      S.current.box = el.getBoundingClientRect();
-      paint(S.current.idx * (S.current.box.width / tabs.length), false);
+      measure();
+      paint(S.current.idx * cell(), false);
     };
     const ro = new ResizeObserver(sync);
     ro.observe(el); sync();
@@ -7425,8 +7425,24 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
   const iconRefs = useRef([]);
   const S = useRef({ box: null, dragging: false, idx: activeIdx, raf: 0, x: 0, suppress: false, startX: 0, id: null });
 
-  const cell = () => (S.current.box ? S.current.box.width / tabs.length : 0);
-  const measure = () => { const el = barRef.current; if (el) S.current.box = el.getBoundingClientRect(); };
+  /* THE PILL IS PLACED IN LAYOUT PIXELS, NOT SCREEN PIXELS.
+     getBoundingClientRect() returns the width AFTER any transform above
+     it — and the walkthrough renders the whole app inside
+     transform: scale(k). A pill offset taken from that rect and applied
+     as translate3d is scaled a second time, so it sat short of its tab,
+     further out with every tab along. offsetWidth is the untransformed
+     layout width, which is the space translate3d actually moves in;
+     the scale is kept only to turn a finger's screen movement back into
+     layout pixels while dragging. */
+  const measure = () => {
+    const el = barRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    S.current.box = rect;
+    S.current.layoutW = el.offsetWidth || rect.width;
+    S.current.scale = S.current.layoutW ? (rect.width / S.current.layoutW) || 1 : 1;
+  };
+  const cell = () => ((S.current.layoutW || 0) / tabs.length);
 
   const lit = (i) => iconRefs.current.forEach((el, k) => {
     if (!el) return;
@@ -7450,7 +7466,9 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
     S.current.raf = 0;
     if (!S.current.dragging || !S.current.box) return;
     const c = cell();
-    const px = Math.max(0, Math.min(S.current.box.width - c, S.current.x - S.current.box.left - c / 2));
+    const k = S.current.scale || 1;
+    /* the finger moves in screen pixels; the pill moves in layout ones */
+    const px = Math.max(0, Math.min((S.current.layoutW || 0) - c, (S.current.x - S.current.box.left) / k - c / 2));
     paint(px, false);
     const i = Math.max(0, Math.min(tabs.length - 1, Math.round(px / c)));
     if (i !== S.current.idx) { S.current.idx = i; haptic(6); lit(i); }
@@ -8961,11 +8979,11 @@ function VDeck({ lessons, go, push, saved, liveMedia }) {
 /* ==================================================================
    FAMILY — profiles + coach connections in one switcher
 ================================================================== */
-function FamilyPill({ name, tint, onOpen, tour, group }) {
+function FamilyPill({ name, tint, src, onOpen, tour, group }) {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
-      <Avatar name={name} size={22} tint={tint} group={group} />
+      <Avatar name={name} size={22} tint={tint} src={src} group={group} />
       <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
       <ChevronDown size={13} color={t.sub} />
     </button>
@@ -13450,7 +13468,7 @@ function ProfileScreen({ account, me, role, avatar, family, onSave, onUploadAvat
   );
 }
 
-function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, region, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
   const t = useT(); const L = useL();
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -13459,7 +13477,7 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, l
       <Screen title={tr("You")} onBack={pop}>
         <div className="px-6"><Card className="p-5 mb-6">
           <button data-tour="settings-profile" onClick={() => { haptic(6); push(live ? "profile" : "details"); }} className="w-full flex items-center gap-4 text-left active:opacity-50">
-            <Avatar name={coachName} size={58} src={avatar} /><span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{coachName}</span><span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{live ? tr("Photo, details, account") : sub}</span></span>
+            <Avatar name={myName} size={58} src={avatar} /><span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{myName}</span><span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{sub}</span></span>
             <ChevronRight size={18} color={t.faint} />
           </button>
 
@@ -13489,7 +13507,11 @@ function Settings({ role, cfg, conn, brandName, coachName, plan, region, demo, l
           <Row tour="settings-invite" label={tr("Invite code & QR")} value={inviteCode || "——————"} chevron last icon={<I C={QrCode} />} onToggle={() => sheet("invite")} />
         </Card></div></>) : (<><Eyebrow>{tr("Playing")}</Eyebrow><div className="px-6 mb-6"><Card tour="settings-playing">
           <Row tour="settings-digest" label={tr("This month")}  chevron icon={<I C={TrendingUp} />} onToggle={() => push("digest")} />
-          <Row tour="settings-dashboard" label={tr("Family")} sub={live ? (familyName || tr("Start or join one")) : tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />} onToggle={() => { pop(); go("family"); }} />
+          {/* in a family: the tab is the way in, and this jumps to it.
+              Not in one: straight to the screen that starts or joins one,
+              since a dashboard of nobody helps no one. */}
+          <Row tour="settings-dashboard" label={tr("Family")} sub={live ? (familyName || tr("Start or join one")) : tr("Everyone you manage, in one place")} chevron icon={<I C={Users} />}
+               onToggle={() => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }} />
           {live ? <Row tour="settings-family" label={tr("Your coach")} sub={hasCoach ? (conn?.coach || "") : tr("Ask to join one with their code")} chevron icon={<I C={UserPlus} />} onToggle={() => hasCoach ? push("coachProfile") : sheet("family")} />
                 : <Row tour="settings-family" label={tr("Coaches & profiles")} sub={tr("Add a young person or another coach")} chevron icon={<I C={UserPlus} />} onToggle={() => sheet("family")} />}
           <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron last={live} icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
@@ -13845,18 +13867,21 @@ function DeleteBody({ onCancel, say }) {
 /* ==================================================================
    SEARCH + NOTIFICATION CENTRE
 ================================================================== */
-function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given }) {
+function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given, people: livePeople, threads: liveThreads }) {
   const t = useT(); const live = useLive(); const [q, setQ] = useState(""); const term = q.trim().toLowerCase(); const hit = (s) => (s || "").toLowerCase().includes(term);
   /* a real account searches its own lessons; the catalogue is the harness's */
   const lessons = term ? (given || hadLessons(cfg, live)).filter((l) => hit(l.focus) || (l.subs || []).some(hit) || hit(l.who)) : [];
   const drills = term ? library.filter((d) => hit(d.t) || hit(d.d)) : [];
   const tipHits = term ? tips.filter((x) => hit(x.title) || hit(x.body)) : [];
-  /* Seeded people and threads belong to the design harness only. A real
-     account searches its own data; until messages are wired in here it
-     finds none, rather than somebody invented. */
+  /* A real account searches its own roster and its own threads; the
+     seeded pair below belong to the design harness. */
   const preview = (id) => (readMsg(id, LANG) || {}).text || "";
-  const people = term && role === "coach" && !live ? ROSTER.filter((r) => hit(r.name)) : [];
-  const msgs = term && !live ? THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))) : [];
+  const people = !term ? []
+    : live ? (livePeople || []).filter((r) => hit(r.name)).map((r) => ({ name: r.name, lessons: r.lessons, since: r.since }))
+    : role === "coach" ? ROSTER.filter((r) => hit(r.name)) : [];
+  const msgs = !term ? []
+    : live ? (liveThreads || []).filter((c) => hit(c.who) || hit(c.last)).map((c) => ({ id: c.playerId, name: c.who, text: c.last }))
+    : THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))).map((c) => ({ id: c.name, name: c.name, text: preview(c.lastId) }));
   const total = lessons.length + drills.length + tipHits.length + people.length + msgs.length;
   const suggestions = [...(cfg.focus || []).slice(0, 3).map((f) => f.label), tr("Drills")];
   return (
@@ -13881,8 +13906,8 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given 
             {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.who}:${l.id}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
             {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
-            {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.name} label={r.name} sub={`${r.lessons} lessons · since ${r.since}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
-            {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.name} label={c.name} sub={preview(c.lastId)} chevron icon={<MessageCircle size={17} color={t.sub} strokeWidth={1.6} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + c.name)} />))}</Card></div></>)}
+            {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
+            {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<MessageCircle size={17} color={t.sub} strokeWidth={1.6} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
           </>)}
         </div>
       </div>
@@ -14861,9 +14886,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
   const screen = stack[stack.length - 1];
+  /* THE COACH'S name — for a coach that is themselves, for a player the
+     person coaching them. Never use this for "who is signed in": that is
+     myName below. Passing coachName to the header avatar is what made
+     every player's account show their coach's name and initials. */
   const coachName = account
     ? (role === "coach" ? account.name : (data && data.coachName) || "Your coach")
     : role === "coach" ? (coachSport === "tennis" ? "Luca Ferri" : "Ray Doyle") : (activeProfile?.name || "Marcus Tran");
+  /* WHO IS SIGNED IN. Their own name, their own picture, their own
+     settings — whatever their role, and whoever coaches them. */
+  const myName = account ? account.name : (role === "coach" ? coachName : (activeProfile?.name || "Marcus Tran"));
+  const myAvatar = account ? account.avatarUrl : (avatars[activeProfileId] || null);
 
   const pKey = `${activeProfileId}:${sport}`;
   const myPractice = data ? data.drills.filter((d) => !account || d.playerId === account.id || role === "coach") : freshAccount ? [] : (practice[pKey] || []);
@@ -15269,12 +15302,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   openNotificationRef.current = openNotification;
   /* a real account's bell counts the notifications table; the harness counts its seeds */
   const alerts = data ? (data.unreadCount || 0) : (freshAccount ? 0 : NOTIFS[role].filter((n) => n.fresh).length) + waiting;
-  /* the pill: for a real player it opens the family dashboard (or the
-     place to start one); for the harness it switches profiles */
+  /* THE HEADER IS YOURS. Your name, your picture, your settings —
+     whoever else is in your family. The family had taken this spot and
+     with it the only way into a person's own account; it is a tab of
+     its own now, and only once there is a family to open. */
   const pill = data
-    ? (role === "player" ? <FamilyPill tour="profile-pill" group name={data.family ? data.family.displayName : tr("Family")} onOpen={() => go("family")} /> : null)
+    ? (role === "player" ? <FamilyPill tour="profile-pill" name={myName} src={myAvatar} onOpen={() => push("you")} /> : null)
     : (role === "player" ? <FamilyPill tour="profile-pill" name={juvenile ? tr("Family") : activeProfile.name} group={juvenile} tint={avatars[activeProfileId]} onOpen={() => (juvenile ? go("family") : setSheet("family"))} /> : null);
-  const youBtn = <YouAvatarBtn tour="you" name={coachName} src={account ? account.avatarUrl : null} onOpen={() => push("you")} />;
+  const youBtn = <YouAvatarBtn tour="you" name={myName} src={account ? myAvatar : null} tint={account ? null : myAvatar} onOpen={() => push("you")} />;
   const navRight = (<>{pill}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} />{youBtn}</>);
   const slimRight = (<>{pill}
     <IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} />
@@ -15304,11 +15339,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   })();
   const practiceTodo = myPractice.filter((x) => !x.done).length;
   const hasFamily = data ? (data.dependants || []).length > 0 : profiles.some((pf) => pf.age);
+  /* In a family at all — which is what earns the tab. Having someone to
+     look after (hasFamily) is a different question, and the parent's
+     landing screen turns on that one. */
+  const inFamily = data ? !!data.family : profiles.some((pf) => pf.age);
+  const familyTab = { id: "family", icon: Users, label: tr("Family") };
   /* Safeguarding: messaging is withheld for anyone under 18, whether
      they signed in themselves or a parent switched to them. */
   const viewingChild = !!(activeProfile && activeProfile.age);
   const noChat = juvenile || viewingChild;
   const tabs = role === "coach"
+    /* a coach's family, if they have one, lives under You — the bar is
+       already five wide and the roster is the thing they open all day */
     ? [{ id: "today", icon: Home, label: tr("Today") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Roster") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
     : (data && account && account.accountType === "parent")
       /* a parent's home is the family: their children's lessons are
@@ -15318,7 +15360,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     : juvenile
       /* No messaging for an under-18 account. Deliberate: a child's
          contact with an adult coach runs through their parent. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }]
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : [])]
     : hasFamily
       /* Family stands in for Home — a parent's home IS the family view —
          so Lessons keeps its place rather than being pushed out. */
@@ -15328,8 +15370,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* Identical to a player's tabs — a parent has their own coaching
          and needs their own log. Family lives on the profile pill, which
          is already where you switch between people. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
-      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
   const pushedScreens = ["you", "profile", "details", "notifications", "support", "subscription", "availability", "branding", "library", "search", "alerts", "tips", "stats", "language", "requests", "unlogged", "tool", "groups", "archive", "region", "season", "events", "credentials", "reviews", "recurring", "sources", "atrisk", "digest", "checkins", "lesson", "prefs", "attendance", "coachProfile", "familyCode"].concat(Object.keys(LEGAL).map((k) => "legal:" + k));
 
@@ -15441,7 +15483,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
                         onOpenLesson={(l) => push(`clesson:${pname}:${l.id}`)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
-  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? data.lessons : null} pop={pop} go={go} push={push} />;
+  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? data.lessons : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
     body = <LessonLogs role={role} lessons={data ? data.lessons : playerLessons} pop={pop}
                        onDownload={async (l) => {
@@ -15641,7 +15683,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <RegionScreen region={region} setRegion={setRegion} lang={lang} setLang={setLang} pop={pop} />;
   } else if (screen === "language") { body = <LanguageScreen lang={lang} setLang={setLang} pop={pop} say={say} />;
   } else if (screen === "profile" && data) {
-    body = <ProfileScreen account={account} me={data.me} role={role} avatar={account.avatarUrl} family={data.family}
+    body = <ProfileScreen account={account} me={data.me} role={role} avatar={myAvatar} family={data.family}
                           onSave={async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
                           onUploadAvatar={async (file) => { const res = await data.uploadAvatar(file); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
                           onRemoveAvatar={async () => { const res = await data.removeAvatar(); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
@@ -15674,8 +15716,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} coachName={coachName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
-                          avatar={account ? account.avatarUrl : null} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true}
+  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+                          avatar={myAvatar} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn} pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
@@ -16307,10 +16349,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 }
 
 /* Small helpers kept at the bottom to avoid hoisting issues */
-function YouAvatarBtn({ name, src, onOpen, tour }) {
+function YouAvatarBtn({ name, src, tint, onOpen, tour }) {
   return (
-    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={tr("Your profile")} className="active:opacity-50">
-      <Avatar name={name} size={30} src={src} />
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={`${tr("You")} — ${name || tr("your profile")}`} className="active:opacity-50">
+      <Avatar name={name} size={30} src={src} tint={tint} />
     </button>
   );
 }
