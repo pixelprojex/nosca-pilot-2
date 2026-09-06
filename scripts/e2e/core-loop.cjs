@@ -170,22 +170,20 @@ const leaks = [];
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[aria-label="Add"]');
       await page.getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
-      await leak("wizard who"); await byText(page, "Cian Murphy").click(); await page.waitForTimeout(300);
+      const tw0 = await leak("wizard who"); await shot("coach-wizard-who");
+      check("(e) the first page asks who and when, and never for a time nothing stores", tw0.includes("Date") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0, tw0.slice(0, 200));
+      await byText(page, "Cian Murphy").click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await leak("wizard when");
-      await page.fill('input[type="time"]', "10:00"); await page.waitForTimeout(200);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await leak("wizard focus");
-      await page.getByRole("button", { name: "Short game", exact: true }).click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      const t6 = await leak("wizard notes"); await shot("coach-wizard-notes");
+      /* three pages now — who and when, what happened, what's next. The
+         focus, the clips and the note used to be a page each. */
+      const t6 = await leak("wizard what happened"); await shot("coach-wizard-what");
       check("(e) notes step offers a typed note and a real voice note, no transcript", t6.includes("Record a voice note") && (await page.locator('textarea[placeholder="What happened, in a line or two"]').count()) === 1 && !t6.includes("Tap to record"), t6.slice(0, 200));
+      check("(e) media step: Record / Library / Photo / Captured, no device readout", t6.includes("Record") && t6.includes("Library") && t6.includes("Photo") && t6.includes("Captured") && !/TrackMan|Serve radar|Launch/i.test(t6) && (await page.locator('input[type="file"]').count()) >= 1, t6.slice(0, 200));
+      check("(e) the focus, the clips and the note are one page", t6.includes("Short game") && t6.includes("Clips and photos") && t6.includes("The note") && t6.includes("2 / 3"), t6.slice(0, 300));
+      await page.getByRole("button", { name: "Short game", exact: true }).click(); await page.waitForTimeout(300);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Worked on tempo from a hundred yards.");
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      const t7 = await leak("wizard media"); await shot("coach-wizard-media");
-      check("(e) media step: Record / Library / Photo / Captured, no device readout", t7.includes("Record") && t7.includes("Library") && t7.includes("Photo") && t7.includes("Captured") && !/TrackMan|Serve radar|Launch/i.test(t7) && (await page.locator('input[type="file"]').count()) >= 1, t7.slice(0, 200));
-      /* one way forward per step now: Continue until the last one, which
-         is the Publish. The second, outlined Publish is gone. */
+      /* one way forward per page: Continue until the last one, which is
+         the Publish. */
       for (let i = 0; i < 4; i++) {
         const pub = page.getByRole("button", { name: "Publish", exact: true });
         if (await pub.count()) { await pub.first().click(); break; }
@@ -225,10 +223,8 @@ const leaks = [];
       await page.getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
       await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await page.fill('input[type="time"]', "10:30"); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Two clips attached.");
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "swing.mp4", mimeType: "video/mp4", buffer: M.MP4 },
         { name: "big-clip.mp4", mimeType: "video/mp4", buffer: M.MP4 },
@@ -276,10 +272,8 @@ const leaks = [];
       await M.tap(page, '[data-tour="quick-log"]', 900);
       await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await page.fill('input[type="time"]', "14:00"); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Three captures, all called the same thing.");
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },

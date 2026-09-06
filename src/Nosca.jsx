@@ -1865,7 +1865,6 @@ const ShimmerCSS = () => (
     @keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
     @keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
-    @keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}50%{box-shadow:0 0 0 6px rgba(0,0,0,0.04)}}
     @keyframes ringPop{0%{transform:scale(.3);opacity:0}55%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
     @keyframes tickDraw{to{stroke-dashoffset:0}}
     @keyframes haloOut{0%{transform:scale(.6);opacity:.55}100%{transform:scale(2.4);opacity:0}}
@@ -3862,10 +3861,10 @@ const TOUR = {
     { area: "Today", title: "Just finished", body: "One tap logs it while it's fresh.", path: "Today → Just finished", target: "today-justdone", state: { stack: ["today"] } },
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
     { area: "Log a lesson", title: "The plus", body: "Logging, attendance, live capture, drills — all start here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "Who and what", body: "A player or a group, then the focus. Say the notes; they're typed.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
-    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → Media", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 4 } },
-    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → Drills", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 5 } },
-    { area: "Log a lesson", title: "Publish", body: "The lesson, clips, drills and takeaway arrive together.", path: "Log a lesson → Publish", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 6 } },
+    { area: "Log a lesson", title: "Who and when", body: "A player or a group, and the day it happened.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
+    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → What happened", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 1 } },
+    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → What's next", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
+    { area: "Log a lesson", title: "Publish", body: "The lesson, clips, drills and takeaway arrive together.", path: "Log a lesson → Publish", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
     { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
     { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
     { area: "Diary", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "Diary → Your hours", target: "cal-hours", state: { stack: ["calendar"] } },
@@ -10644,9 +10643,12 @@ function CoachToday({ cfg, coachName, go, push, published, right, fresh, roster,
 
 
 
-/* Three light pages: who, what, and anything to add. One question at a
-   time, and a coach who arrives from an unlogged session skips straight
-   past the first because we already know who it was with. */
+/* Three pages: who it was with and when, what happened, what's next.
+   It was eight — a page each for the date, the focus, the note, the
+   media, the drills, the takeaway and a single toggle — which is seven
+   Continues to write up a lesson that takes a coach ninety seconds to
+   remember. A coach arriving from a booking already tells us who and
+   when, so they land on the second page. */
 function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt }) {
   const t = useT(); const L = useL();
   const live = useLive();
@@ -10659,15 +10661,18 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const POOL_W = livePlayers ?? PLAYERS;
   const known = seedWho.filter((n) => POOL_W.includes(n));
 
-  /* A lesson logged from a real booking already carries a date and
-     time; asking again would be pointless. One logged ad hoc — the
-     plus button, no player picked yet — has neither, and that is
-     exactly the case this step exists for. */
-  const needsDateTime = !prefill || !prefill.time;
-  const startStep = known.length ? (needsDateTime ? 1 : 2) : 0;
+  /* A lesson logged from a real booking already carries its day, so
+     the date sits on the first page only when nothing anchors it —
+     the plus button, or "log another" from a lesson already written. */
+  const needsDate = !prefill || prefill.m == null;
+  const startStep = known.length && !needsDate ? 1 : 0;
+  const titles = [needsDate ? tr("Who and when") : tr("Who"), tr("What happened"), tr("What's next")];
+  const STEPS = titles.length;
   /* `startAt` is the walkthrough's: it shows one step of the wizard,
-     inert, without walking there. */
-  const [step, setStep] = useState(startAt ?? startStep);
+     inert, without walking there. Clamped, so a tour entry left
+     pointing at a page that no longer exists shows the last one
+     rather than a blank heading over nothing. */
+  const [step, setStep] = useState(Math.min(startAt ?? startStep, STEPS - 1));
   /* The demo's TODAY is a fixed date for the design harness. A real
      log, with nothing booked to anchor it, should default to the
      actual day it's being written on — not July the 24th, whenever
@@ -10675,7 +10680,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const realToday = new Date();
   const [logM, setLogM] = useState(prefill?.m ?? (realToday.getMonth() + 1));
   const [logD, setLogD] = useState(prefill?.d ?? realToday.getDate());
-  const [logTime, setLogTime] = useState(prefill?.time ?? "");
   const [who, setWho] = useState(known);
   const [pickedGroup, setPickedGroup] = useState(prefill && prefill.kind && prefill.kind.startsWith("Group") ? prefill.who : null);
   const [q, setQ] = useState("");
@@ -10792,23 +10796,16 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   })();
 
   const matches = POOL_W.filter((n) => n.toLowerCase().includes(q.trim().toLowerCase()));
-  const canAdvance = [who.length > 0, !!logTime, chosen.length > 0, true, true, true, true][step];
+  const canAdvance = [who.length > 0, chosen.length > 0, true][step];
   const showReviewAsk = askReview && who.length === 1 && !pickedGroup
     && (lessonCounts ? (lessonCounts[who[0]] || 0) === 0 : false);
   const finish = () => onPublish({
     type: group ? "group" : "private", who, groupName: pickedGroup, focus: chosen.join(" · "),
     focusList: chosen, focusIds: focus, custom, subs: [], ctx,   // the wizard has no sub-focus picker
     note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
-    nextDrills, nextTip, wantRating, m: logM, d: logD, time: logTime, pulled,
+    nextDrills, nextTip, wantRating, m: logM, d: logD, pulled,
   });
 
-  /* One source for the count, the bar and the heading — they used to
-     disagree, so the last page read "8 / 7" under a blank title. */
-  const titles = [tr("Who"), tr("When"), tr("Focus"), tr("Notes"), tr("Media"), tr("Drills"), tr("Takeaway"), tr("Rating")];
-  const STEPS = showReviewAsk ? titles.length : titles.length - 1;
-  /* A single-answer page moves on by itself. Anything multi-select
-     waits, because auto-advancing on the first tap would be wrong. */
-  const advance = () => { setTimeout(() => setStep((v) => Math.min(v + 1, 5)), 260); };
   const back = () => (step === 0 || (step === startStep && known.length) ? onCancel() : setStep(step - 1));
 
   return (
@@ -10821,7 +10818,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <span className="flex items-center gap-3 pr-4">
               {/* every optional step, not just three of them: one escape
                   hatch in one place beats a second footer button */}
-              {step >= 2 && step < STEPS - 1 && <TextBtn onClick={() => { haptic(6); setStep(step + 1); }}>{tr("Skip")}</TextBtn>}
+              {step > 0 && step < STEPS - 1 && <TextBtn onClick={() => { haptic(6); setStep(step + 1); }}>{tr("Skip")}</TextBtn>}
               <span style={{ fontFamily: ui, fontSize: 11.5, letterSpacing: "0.06em", color: t.faint }}>{Math.min(step + 1, STEPS)} / {STEPS}</span>
             </span>
           </div>
@@ -10848,6 +10845,27 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                    : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
               </div>
             </div>
+
+            {/* Nothing booked anchors this one, so ask when it was. The
+                time is not asked: nothing stores it — lessons carry a
+                date — and a field that records nothing is a field that
+                pretends. */}
+            {needsDate && (
+              <div className="px-6 mb-5">
+                <div data-tour="wiz-when" style={{ borderRadius: R.surface, background: t.surface,
+                              border: `1px solid ${t.hair}`, padding: "14px 18px" }}>
+                  <span className="block mb-1.5" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{tr("Date")}</span>
+                  <input type="date"
+                         value={`${realToday.getFullYear()}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`}
+                         max={`${realToday.getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, "0")}-${String(realToday.getDate()).padStart(2, "0")}`}
+                         onChange={(e) => {
+                           const parts = e.target.value.split("-");
+                           if (parts.length === 3) { setLogM(Number(parts[1])); setLogD(Number(parts[2])); }
+                         }}
+                         className="w-full outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
+                </div>
+              </div>
+            )}
 
             {!q && groups.length > 0 && (<>
               <Eyebrow>{tr("Groups")}</Eyebrow>
@@ -10896,40 +10914,16 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             </div>
           </>)}
 
-          {step === 1 && (
-            <div className="px-6" style={{ animation: "contentRise 380ms cubic-bezier(.22,1,.36,1) both" }}>
-              <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>
-                {tr("When did this happen?")}
-              </p>
+          {/* ---------- 2 · what happened ----------
+              The focus, what was filmed and the note, together. They
+              were three pages, and a coach writing up a lesson holds
+              all three in mind at once.
 
-              <div className="mb-4" style={{ borderRadius: R.surface, background: t.surface,
-                                              border: `1px solid ${t.hair}`, padding: "16px 18px" }}>
-                <span className="block mb-1.5" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{tr("Date")}</span>
-                <input type="date"
-                       value={`${new Date().getFullYear()}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`}
-                       max={`${new Date().getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, "0")}-${String(realToday.getDate()).padStart(2, "0")}`}
-                       onChange={(e) => {
-                         const parts = e.target.value.split("-");
-                         if (parts.length === 3) { setLogM(Number(parts[1])); setLogD(Number(parts[2])); }
-                       }}
-                       className="w-full outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
-              </div>
-
-              <div data-tour="wiz-when" style={{ borderRadius: R.surface, background: t.surface,
-                             border: `1px solid ${t.hair}`, padding: "16px 18px" }}>
-                <span className="block mb-1.5" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{tr("Time")}</span>
-                <input type="time" value={logTime} onChange={(e) => { setLogTime(e.target.value); haptic(4); }}
-                       className="w-full outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
-              </div>
-
-              <p className="mt-5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.5, color: t.faint }}>
-                {tr("Logging something that wasn't on the diary — pick when it actually happened.")}
-              </p>
-            </div>
-          )}
-
-          {/* ---------- 3 · what ---------- */}
-          {step === 2 && (<>
+              Media sits above the note on purpose: the note's record
+              button is 190px tall in the design harness, and with the
+              note first it pushed the capture grid under the footer —
+              where the walkthrough's ring cannot reach it. */}
+          {step === 1 && (<>
             <p className="px-6 mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>
               {pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : who.join(", ")}
             </p>
@@ -10970,58 +10964,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                       style={{ width: 48, height: 48, borderRadius: R.surface, background: t.accent }} aria-label={tr("Add")}><Plus size={17} color={t.onAccent} strokeWidth={2.1} /></button>
             </div>
 
-          </>)}
-
-          {/* ---------- 3 · anything to add ---------- */}
-          {/* ---------- 3 · voice ---------- */}
-          {step === 3 && (<div className="px-6">
-
-            {/* a real account types or dictates the note, and may add a
-                voice note as a file; nothing is transcribed for them */}
-            {live && (
-              <div className="mb-4"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} /></div>
-            )}
-            {live && voice && (
-              <Card className="p-4 mb-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <Mic size={16} color={t.accent} strokeWidth={1.8} />
-                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")}</span>
-                  <span className="flex-1" />
-                  <span style={{ ...TYPE.caption, color: t.faint }}>{Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
-                </div>
-                <audio src={voice.url} controls preload="metadata" className="w-full" />
-                <button onClick={() => { haptic(6); URL.revokeObjectURL(voice.url); setVoice(null); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Remove")}</button>
-              </Card>
-            )}
-            {rec === "idle" && !(live ? voice : note) && !(live && !cap.supported) && (
-              <button data-tour="wiz-notes" onClick={() => { if (live) { startVoice(); return; } haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
-                      style={{ minHeight: live ? 130 : 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-                <span className="rounded-full flex items-center justify-center" style={{ width: live ? 52 : 68, height: live ? 52 : 68, background: t.accent }}>
-                  <Mic size={live ? 20 : 26} color={t.onAccent} strokeWidth={1.6} />
-                </span>
-                <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{live ? tr("Record a voice note") : tr("Tap to record")}</span>
-              </button>
-            )}
-            {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
-            {rec === "recording" && (
-              <div className="flex flex-col items-center justify-center" style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-                <div className="flex items-end gap-1 h-8 mb-4">{[8,20,13,28,17,30,11,24,15,28,19,22].map((v, i) => (<div key={i} className="rounded-full" style={{ width: 3, height: v, background: t.accent, opacity: 0.3 + (i % 4) * 0.17 }} />))}</div>
-                <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
-                <button onClick={() => { if (live) { stopVoice(); return; } haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-5" style={{ width: 58, height: 58, background: DANGER }} aria-label={tr("Stop")}><Square size={17} color="#fff" fill="#fff" /></button>
-              </div>
-            )}
-            {!live && rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
-            {!live && note && (
-              <Card className="p-5">
-                <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.65, color: t.ink }}>{note}</p>
-                <button onClick={() => { setRec("idle"); setNote(null); setSecs(0); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Record again")}</button>
-              </Card>
-            )}
-            <div style={{ height: 26 }} />
-          </div>)}
-
-          {/* ---------- 4 · photos and video ---------- */}
-          {step === 4 && (<div className="px-6">
+            <Eyebrow>{tr("Clips and photos")}</Eyebrow>
+            <div className="px-6">
             {/* Five ways in. Everything captured lands below in the same
                 shape, so the screen never turns into competing sections. */}
             <input ref={fileInput} type="file" multiple className="hidden"
@@ -11096,11 +11040,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             )}
 
-            {items.length === 0 ? (
-              <div className="py-12 text-center">
-                <p style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Nothing attached yet")}</p>
-              </div>
-            ) : (
+            {/* Nothing attached is the normal state and the four
+                buttons above already say what to do about it; a line
+                of grey text saying so was just height on a page that
+                now carries the note as well. */}
+            {items.length > 0 && (
               <div className="flex flex-col gap-2.5">
                 {items.map((it, i) => (
                   <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
@@ -11111,14 +11055,64 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             )}
             <div style={{ height: 26 }} />
-          </div>)}
+            </div>
 
-          {/* ---------- 6 · what happens next ----------
-              Drills, a focus and a goal, chosen inline. A coach should
-              not have to publish and then hunt three separate buttons —
-              that is how drills stop getting set at all. */}
-          {/* ---------- 5 · drills ---------- */}
-          {step === 5 && (<div className="px-6">
+            <Eyebrow>{tr("The note")}</Eyebrow>
+            <div className="px-6">
+
+            {/* a real account types or dictates the note, and may add a
+                voice note as a file; nothing is transcribed for them */}
+            {live && (
+              <div className="mb-4"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} /></div>
+            )}
+            {live && voice && (
+              <Card className="p-4 mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Mic size={16} color={t.accent} strokeWidth={1.8} />
+                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")}</span>
+                  <span className="flex-1" />
+                  <span style={{ ...TYPE.caption, color: t.faint }}>{Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
+                </div>
+                <audio src={voice.url} controls preload="metadata" className="w-full" />
+                <button onClick={() => { haptic(6); URL.revokeObjectURL(voice.url); setVoice(null); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Remove")}</button>
+              </Card>
+            )}
+            {rec === "idle" && !(live ? voice : note) && !(live && !cap.supported) && (
+              <button data-tour="wiz-notes" onClick={() => { if (live) { startVoice(); return; } haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
+                      style={{ minHeight: live ? 130 : 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
+                <span className="rounded-full flex items-center justify-center" style={{ width: live ? 52 : 68, height: live ? 52 : 68, background: t.accent }}>
+                  <Mic size={live ? 20 : 26} color={t.onAccent} strokeWidth={1.6} />
+                </span>
+                <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{live ? tr("Record a voice note") : tr("Tap to record")}</span>
+              </button>
+            )}
+            {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
+            {rec === "recording" && (
+              <div className="flex flex-col items-center justify-center" style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
+                <div className="flex items-end gap-1 h-8 mb-4">{[8,20,13,28,17,30,11,24,15,28,19,22].map((v, i) => (<div key={i} className="rounded-full" style={{ width: 3, height: v, background: t.accent, opacity: 0.3 + (i % 4) * 0.17 }} />))}</div>
+                <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
+                <button onClick={() => { if (live) { stopVoice(); return; } haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-5" style={{ width: 58, height: 58, background: DANGER }} aria-label={tr("Stop")}><Square size={17} color="#fff" fill="#fff" /></button>
+              </div>
+            )}
+            {!live && rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
+            {!live && note && (
+              <Card className="p-5">
+                <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.65, color: t.ink }}>{note}</p>
+                <button onClick={() => { setRec("idle"); setNote(null); setSecs(0); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Record again")}</button>
+              </Card>
+            )}
+            <div style={{ height: 26 }} />
+            </div>
+          </>)}
+
+          {/* ---------- 3 · what's next ----------
+              Drills, the one thing to remember, and — for a player
+              never logged before — whether to ask them for a rating.
+              A coach who scrolls past that last one is asked again by
+              the burst after publishing. */}
+          {step === 2 && (<>
+            <Eyebrow>{tr("Drills to set")}</Eyebrow>
+            <div className="px-6">
             <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
               {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d, i) => {
                 const on = nextDrills.includes(d.t);
@@ -11157,12 +11151,12 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </p>
             )}
             <div style={{ height: 26 }} />
-          </div>)}
+            </div>
 
-          {/* ---------- 6 · the one thing ---------- */}
-          {step === 6 && (<div className="px-6">
+            <Eyebrow>{tr("The one thing")}</Eyebrow>
+            <div className="px-6">
             <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip}
-                        ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} autoFocus /></div>
+                        ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} /></div>
             <div className="flex flex-wrap gap-2 mt-4">
               {(cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp, i) => (
                 <button key={tp} onClick={() => { haptic(6); soft(); setNextTip(tp); }} className="px-3.5 active:opacity-60"
@@ -11171,10 +11165,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               ))}
             </div>
             <div style={{ height: 26 }} />
-          </div>)}
+            </div>
 
-          {/* ---------- 7 · ask for a rating ---------- */}
-          {step === 7 && (
+            {showReviewAsk && (<>
+              <Eyebrow>{tr("Rating")}</Eyebrow>
             <div className="px-6" style={{ animation: "contentRise 380ms cubic-bezier(.22,1,.36,1) both" }}>
               <button onClick={() => { haptic(9); soft(); setWantRating(!wantRating); }}
                       onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
@@ -11199,33 +11193,22 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 </span>
               </button>
             </div>
-          )}
+              <div style={{ height: 26 }} />
+            </>)}
+          </>)}
 
         </div>
 
         <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: `1px solid ${t.hair}` }}>
-          {step < 7 ? (
-            <div className="flex gap-2.5">
-              <div className="flex-1" data-tour="wiz-next"><Button tone="ink" disabled={!canAdvance}
-                    onClick={() => { haptic(8); if (step === 6 && !showReviewAsk) finish(); else setStep(step + 1); }}>
-                    {step === 6 && !showReviewAsk ? L.publish : L.continue}
-                  </Button></div>
-            </div>
-          ) : (
-            <button onClick={() => { hapticCommit(); finish(); }}
-                    onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                    onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                    className="w-full flex items-center justify-center gap-3 active:opacity-90"
-                    style={{ minHeight: 66, borderRadius: R.surface, background: t.accent,
-                             boxShadow: `0 10px 32px ${t.accent}59`, willChange: "transform",
-                             fontFamily: display, fontSize: 21, letterSpacing: "-0.022em", color: t.onAccent,
-                             transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
-                             animation: "liftIn 460ms cubic-bezier(.34,1.56,.64,1) both, glowPulse 3s ease-in-out 1.2s infinite" }}>
-              {L.publish}
-              <ArrowRight size={20} color={t.onAccent} strokeWidth={2.1} />
-            </button>
-          )}
+          {/* One control. There used to be two: a Continue and, on a
+              page reached only when the player had never been logged
+              before, a taller pulsing Publish — so for every other
+              coach the last page said Continue and published anyway,
+              and the accent button was unreachable. */}
+          <div className="flex-1" data-tour="wiz-next"><Button tone="ink" disabled={!canAdvance}
+                onClick={() => { haptic(8); if (step === STEPS - 1) { hapticCommit(); finish(); } else setStep(step + 1); }}>
+                {step === STEPS - 1 ? L.publish : L.continue}
+              </Button></div>
         </div>
         {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
       </div>
