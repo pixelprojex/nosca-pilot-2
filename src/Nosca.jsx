@@ -7122,7 +7122,7 @@ function FocusRequest({ req, cfg, onAccept, onChange }) {
    accidental cancellation costs a coach their day and their players
    their evening. Whole day or a single lesson, and everyone affected
    is offered a new time straight away. */
-function WeatherCallOff({ day, bookings, duration, onConfirm, close }) {
+function WeatherCallOff({ day, bookings, duration, onConfirm, close, ahead }) {
   const t = useT();
   const [scope, setScope] = useState(null);     // day | one
   const [pick, setPick] = useState(null);
@@ -7160,7 +7160,7 @@ function WeatherCallOff({ day, bookings, duration, onConfirm, close }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Weather call-off")}</h2>
+      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{ahead ? tr("Call off ahead") : tr("Weather call-off")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{day}</p>
 
       <Tile accent={scope === "day" ? DANGER : null} className="px-5 py-4 mb-2.5" onPress={() => { setScope("day"); setPick(null); }}>
@@ -11010,7 +11010,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   );
 }
 
-function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say, right, coachName, noun, nouns, code }) {
+function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say, right, coachName, noun, nouns, code, lessonCount = 0 }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
   const [tab, setTab] = useState(nounTitle); const [q, setQ] = useState("");
@@ -11056,6 +11056,18 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
         )}
 
         <div className="px-6 mb-4"><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
+        {tab === nounTitle && lessonCount > 0 && (
+          <div className="px-6 mb-4">
+            <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
+                    className="w-full flex items-center gap-3 px-5 text-left active:opacity-60"
+                    style={{ minHeight: 52, borderRadius: R.control, background: t.wash }}>
+              <Library size={16} color={t.sub} strokeWidth={1.7} />
+              <span className="flex-1" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Every lesson you've logged")}</span>
+              <span style={{ ...TYPE.caption, color: t.faint }}>{lessonCount}</span>
+              <ChevronRight size={15} color={t.faint} />
+            </button>
+          </div>
+        )}
         {tab === nounTitle ? (<>
           <div className="px-6 mb-4"><div className="flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
             <Search size={16} color={t.faint} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${nouns || "players"}`} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
@@ -11112,7 +11124,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson }) {
+function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -11122,14 +11134,15 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
                  : (ROSTER.find((x) => x.name === name) || ROSTER[0]);
   const f = live ? { lessons: null, name, done: r.lessons || 0 } : fileFor(name, !seeded);
   const [more, setMore] = useState(false);
-  const [showAll, setShowAll] = useState(false);
   const real = live ? (lessons || []).filter((l) => player ? l.playerId === player.id : l.who === name) : null;
   const past = real ? real : (f.lessons || [
     { d: "14 Jun", focus: f.lastFocus || "Short game", note: "Contact much cleaner off a tighter lie." },
     { d: "31 May", focus: "Driving", note: "Tempo over speed. Held the finish." },
     { d: "17 May", focus: "Putting", note: "Same routine every putt." },
   ]);
-  const shown = showAll ? past : past.slice(0, 6);
+  /* Five is what a coach reads before a lesson; the rest are a tap
+     away rather than a scroll through a season. */
+  const shown = past.slice(0, 5);
   const daysSince = live && r.lastLesson ? Math.max(0, Math.round((new Date() - new Date(r.lastLesson)) / 86400000)) : null;
   const meta = live
     ? [`${f.done} ${f.done === 1 ? tr("lesson") : tr("lessons")}`,
@@ -11186,9 +11199,13 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
                 <ChevronRight size={15} color={t.faint} style={{ marginTop: 4 }} />
               </button>
             ))}
-            {past.length > 6 && !showAll && (
-              <button onClick={() => { haptic(6); setShowAll(true); }} className="w-full py-3.5 text-left active:opacity-50"
-                      style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("All")} {past.length}</button>
+            {past.length > shown.length && (
+              <button data-tour="player-all-lessons" onClick={() => { haptic(7); soft(); onAllLessons ? onAllLessons() : push("history:" + name); }}
+                      className="w-full flex items-center justify-center gap-2 mt-3 active:opacity-70"
+                      style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
+                               ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                {tr("View all")} {past.length} {tr("lessons")}<ChevronRight size={14} color={t.faint} />
+              </button>
             )}
           </div>
 
@@ -11299,85 +11316,135 @@ function JuvenileJoin({ sport, onDone, onBack }) {
 
 /* Everything a coach has ever logged, searchable. Fifty players over a
    season is a lot of lessons to scroll, so search and filters carry it. */
-function CoachArchive({ cfg, lessons, nouns, pop, push, say }) {
+/* EVERY LESSON EVER LOGGED
+
+   A season is hundreds of lessons, so this is built for that number
+   rather than for a demo's dozen: filter by year and by focus, search a
+   name or what was covered, grouped by month with the year on the
+   heading, and only a screenful rendered at a time. Opened from a
+   player's file it arrives already narrowed to that player, with the
+   narrowing shown as something you can take off. */
+const ARCHIVE_PAGE = 40;
+
+function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, onClearPlayer }) {
   const t = useT();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState("All");
   const [kind, setKind] = useState("All");
-  const [month, setMonth] = useState("All");
+  const [year, setYear] = useState("All");
+  const [shownCount, setShownCount] = useState(ARCHIVE_PAGE);
 
-  const months = ["All", ...[...new Set(lessons.map((l) => l.m))]];
+  const yearOf = (l) => (l.iso ? String(l.iso).slice(0, 4) : "");
+  const years = ["All", ...[...new Set(lessons.map(yearOf).filter(Boolean))].sort().reverse()];
   const term = q.trim().toLowerCase();
   const shown = lessons.filter((l) =>
-    (!term || l.who.toLowerCase().includes(term) || l.focus.toLowerCase().includes(term) || l.subs.some((x) => x.toLowerCase().includes(term)))
+    (!forPlayer || l.who === forPlayer)
+    && (!term || (l.who || "").toLowerCase().includes(term) || (l.focus || "").toLowerCase().includes(term)
+        || (l.subs || []).some((x) => x.toLowerCase().includes(term))
+        || (l.note || "").toLowerCase().includes(term))
     && (focus === "All" || l.focus === focus)
     && (kind === "All" || l.type === kind)
-    && (month === "All" || l.m === month));
+    && (year === "All" || yearOf(l) === year));
 
-  /* Grouped by month so the list has some shape to it. */
+  /* Only what is on screen is built. Everything else waits behind one
+     button, so a coach with six hundred lessons opens this as fast as
+     one with six. */
+  const page = shown.slice(0, shownCount);
+  useEffect(() => { setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, forPlayer]);
+
+  /* Grouped by month AND year — two Julys a year apart are two headings,
+     not one pile. */
   const groups = [];
-  shown.forEach((l) => {
-    const g = groups.find((x) => x.m === l.m);
-    if (g) g.items.push(l); else groups.push({ m: l.m, items: [l] });
+  page.forEach((l) => {
+    const key = `${l.m} ${yearOf(l)}`.trim();
+    const g = groups.find((x) => x.key === key);
+    if (g) g.items.push(l); else groups.push({ key, m: l.m, y: yearOf(l), items: [l] });
   });
 
-  const Chips = ({ options, value, onChange }) => (
-    <div className="flex gap-2 overflow-x-auto px-6 pb-3" style={{ scrollbarWidth: "none" }}>
-      {options.map((o) => {
-        const on = value === o;
-        return (
-          <button key={o} onClick={() => { haptic(5); onChange(o); }} className="px-3.5 shrink-0 active:opacity-60"
-                  style={{ minHeight: 32, borderRadius: R.surface, background: on ? t.ink : "transparent",
-                           border: `1px solid ${on ? t.ink : t.hair}`, fontFamily: ui, fontSize: 12, fontWeight: 600,
-                           color: on ? "#fff" : t.sub }}>{o}</button>
-        );
-      })}
-    </div>
+  const Chips = ({ options, value, onChange, label }) => (
+    options.length <= 1 ? null : (
+      <div className="flex gap-2 overflow-x-auto px-6 pb-2.5" style={{ scrollbarWidth: "none" }} aria-label={label}>
+        {options.map((o) => {
+          const on = value === o;
+          return (
+            <button key={o} onClick={() => { haptic(5); onChange(o); }} className="px-3.5 shrink-0 active:opacity-60"
+                    style={{ minHeight: 32, borderRadius: R.pill, background: on ? t.ink : "transparent",
+                             border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.18)}`, ...TYPE.caption, fontWeight: 600,
+                             color: on ? "#fff" : t.sub }}>{o}</button>
+          );
+        })}
+      </div>
+    )
   );
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("All lessons")} onBack={pop} meta={`${shown.length} of ${lessons.length}`}>
-        <div className="px-6 mb-4">
+      <Screen title={forPlayer || tr("All lessons")} onBack={pop}
+              meta={shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
+                                                    : `${shown.length} ${tr("of")} ${lessons.length}`}>
+        <div className="px-6 mb-3">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
             <Search size={16} color={t.faint} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${nouns} or what you covered`}
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={forPlayer ? tr("Search what you covered") : `Search ${nouns} or what you covered`}
                    className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
             {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
           </div>
         </div>
 
-        <Chips options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
-        <Chips options={["All", "Private", "Group"]} value={kind} onChange={setKind} />
-        <Chips options={months} value={month} onChange={setMonth} />
+        {forPlayer && onClearPlayer && (
+          <div className="px-6 mb-3">
+            <button onClick={() => { haptic(6); onClearPlayer(); }} className="inline-flex items-center gap-2 px-3.5 active:opacity-60"
+                    style={{ minHeight: 32, borderRadius: R.pill, background: `${t.accent}14`, border: `1px solid ${t.accent}33`,
+                             ...TYPE.caption, fontWeight: 600, color: t.accent }}>
+              {forPlayer}<X size={12} strokeWidth={2.4} />
+            </button>
+          </div>
+        )}
+
+        <Chips label={tr("Year")} options={years} value={year} onChange={setYear} />
+        <Chips label={tr("Focus")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
+        {!forPlayer && <Chips label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />}
 
         <div className="px-6 pb-2 mt-2">
           {shown.length === 0 ? (
-            <p className="py-12 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing matches those filters.")}</p>
+            <p className="py-12 text-center" style={{ ...TYPE.small, color: t.faint }}>
+              {lessons.length === 0 ? tr("Nothing logged yet.") : tr("Nothing matches those filters.")}
+            </p>
           ) : groups.map((g) => (
-            <div key={g.m} className="mb-6">
-              <div className="uppercase mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{g.m}</div>
-              <div style={{ borderTop: `1px solid ${t.hair}` }}>
+            <div key={g.key} className="mb-6">
+              <div className="uppercase mb-2 flex items-baseline justify-between" style={{ ...TYPE.eyebrow, color: t.faint }}>
+                <span>{g.m} {g.y}</span>
+                <span>{g.items.length}</span>
+              </div>
+              <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 {g.items.map((l) => (
                   <button key={l.id} onClick={() => { haptic(6); push(`clesson:${l.who}:${l.id}`); }}
                           className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                          style={{ minHeight: 66, borderBottom: `1px solid ${t.hair}` }}>
-                    <span className="shrink-0" style={{ width: 26, fontFamily: display, fontSize: 16, color: t.faint }}>{l.d}</span>
+                          style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                    <span className="shrink-0 text-center" style={{ width: 26, fontFamily: display, fontSize: 16, color: t.faint }}>{l.d}</span>
                     <span className="flex-1 min-w-0">
-                      <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{l.who}</span>
+                      <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{forPlayer ? l.focus : l.who}</span>
                       <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>
-                        {l.focus}{l.subs.length ? ` · ${l.subs[0]}` : ""}
+                        {forPlayer ? ((l.subs || []).join(" · ") || l.note || "") : l.focus}
                       </span>
                     </span>
                     {l.type === "Group" && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: GROUP }} />}
-                    {l.videos > 0 && <span className="shrink-0" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{l.videos} clip{l.videos > 1 ? "s" : ""}</span>}
+                    {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
                     <ChevronRight size={15} color={t.faint} />
                   </button>
                 ))}
               </div>
             </div>
           ))}
+          {shown.length > page.length && (
+            <button onClick={() => { haptic(7); setShownCount((n) => n + ARCHIVE_PAGE); }}
+                    className="w-full mb-6 active:opacity-70"
+                    style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
+                             ...TYPE.small, fontWeight: 600, color: t.ink }}>
+              {tr("Show")} {Math.min(ARCHIVE_PAGE, shown.length - page.length)} {tr("more")} · {shown.length - page.length} {tr("left")}
+            </button>
+          )}
         </div>
       </Screen>
     </SwipeBack>
@@ -12932,11 +12999,13 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             ) : <FreeDay onSetHours={() => push("availability")} />}
 
             {booked.length > 0 && (
-              <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay(); }}
+              <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
                       className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
                       style={{ minHeight: 54, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                 <Radio size={16} color={t.sub} strokeWidth={1.6} />
-                <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Weather call-off")}</span>
+                <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>
+                  {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
+                </span>
                 <ChevronRight size={15} color={t.faint} />
               </button>
             )}
@@ -14524,11 +14593,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   /* Called off: drop the lessons, extend each package by one, and tell
      both sides. The player is then offered a new time. */
-  const callOff = (affected, scope) => {
-    /* Weather call-offs are recorded against each booking, so the
-       players affected see it on their own devices rather than only in
-       the coach's session. */
-    if (data) (affected || []).forEach((b) => { if (b.id) data.cancelBooking(b.id, "weather"); });
+  /* Which day the call-off sheet is about. Null means today. */
+  const [callOffFor, setCallOffFor] = useState(null);
+  const callOff = async (affected, scope) => {
+    /* Call-offs are recorded against each booking, so the players
+       affected see it on their own devices rather than only in the
+       coach's session, and the database tells them itself. A whole day
+       goes in one write; a single lesson goes on its own. */
+    if (data) {
+      const day = callOffFor || todayMD;
+      const res = scope === "day"
+        ? await data.callOffDay(isoOf(day.m, day.d), "weather")
+        : await data.callOffBookings((affected || []).map((b) => b.id).filter(Boolean), "weather");
+      setCallOffFor(null);
+      if (res && res.error) { hapticWarn(); say(res.error.message); return; }
+      const n = (res && res.count) || (affected || []).length;
+      hapticWarn(); decline();
+      setCeleb({ label: tr("Called off"), sub: `${n} ${n === 1 ? tr("lesson") : tr("lessons")} · ${tr("everyone told")}`, tone: DANGER });
+      return;
+    }
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
       const k = key(todayMD.m, todayMD.d);
@@ -15481,7 +15564,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pname = screen.split(":")[1];
     body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? data.lessons : null}
                         player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
-                        onOpenLesson={(l) => push(`clesson:${pname}:${l.id}`)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
+                        onOpenLesson={(l) => push(`clesson:${pname}:${l.id}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
   } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? data.lessons : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
@@ -15530,7 +15613,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               /* a real account's own drills live on its preferences; the removal goes there too */
                                               if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
-  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} />;
+  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} lessonCount={archive.length} />;
   } else if (screen.startsWith("history:")) {
     const hname = screen.split(":")[1];
     /* a real record: what the coach actually marked for this person */
@@ -15653,8 +15736,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         </Screen>
       </SwipeBack>
     );
-  } else if (screen === "archive") {
-    body = <CoachArchive cfg={cfg} lessons={archive} nouns={cfg.nouns} pop={pop} push={push} say={say} />;
+  } else if (screen === "archive" || screen.startsWith("archive:")) {
+    const only = screen.startsWith("archive:") ? screen.slice(8) : null;
+    body = <CoachArchive cfg={cfg} lessons={archive} nouns={cfg.nouns} forPlayer={only}
+                         onClearPlayer={only ? () => { pop(); push("archive"); } : null}
+                         pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {
     body = <MyGroups groups={myGroupsForMe} cfg={cfg} nouns={cfg.nouns} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("mygroup:")) {
@@ -15727,7 +15813,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
                                                             bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={mySeedBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={bookFor ? null : aiPick} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
-                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={() => setSheet("weather")} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
+                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
@@ -16240,9 +16326,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               return { next: "weather" };
                                             }}
                                             close={() => setSheet(null)} />
-              : sheet === "weather" ? <WeatherCallOff day={weatherDay || `${DAY_NAMES[dowToday]} ${todayMD.d}`}
-                                            bookings={((mySeedBooked || {})[key(todayMD.m, todayMD.d)] || [])} duration={duration}
-                                            onConfirm={callOff} close={() => setSheet(null)} />
+              /* the day the coach picked in the diary, not whichever day it
+                 happens to be — calling Thursday off on Monday is the whole
+                 point of it */
+              : sheet === "weather" ? <WeatherCallOff day={callOffFor ? `${DAY_NAMES[dowOf(callOffFor.m, callOffFor.d, calendar)]} ${callOffFor.d} ${monthName(callOffFor.m)}` : (weatherDay || `${DAY_NAMES[dowToday]} ${todayMD.d}`)}
+                                            ahead={!!callOffFor && !(callOffFor.m === todayMD.m && callOffFor.d === todayMD.d)}
+                                            bookings={((mySeedBooked || {})[key((callOffFor || todayMD).m, (callOffFor || todayMD).d)] || [])} duration={duration}
+                                            onConfirm={callOff} close={() => { setCallOffFor(null); setSheet(null); }} />
               : sheet === "reschedule" ? <RescheduleOffer lesson={rescheduleFor || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
                                             onPick={(sl) => { setCalledOff(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} close={() => setSheet(null)} />
               : sheet === "suggest" ? <SuggestFocus cfg={cfg}
