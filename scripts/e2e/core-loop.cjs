@@ -184,7 +184,15 @@ const leaks = [];
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       const t7 = await leak("wizard media"); await shot("coach-wizard-media");
       check("(e) media step: Record / Library / Photo / Captured, no device readout", t7.includes("Record") && t7.includes("Library") && t7.includes("Photo") && t7.includes("Captured") && !/TrackMan|Serve radar|Launch/i.test(t7) && (await page.locator('input[type="file"]').count()) >= 1, t7.slice(0, 200));
-      await page.getByRole("button", { name: "Publish", exact: true }).first().click(); await page.waitForTimeout(1500);
+      /* one way forward per step now: Continue until the last one, which
+         is the Publish. The second, outlined Publish is gone. */
+      for (let i = 0; i < 4; i++) {
+        const pub = page.getByRole("button", { name: "Publish", exact: true });
+        if (await pub.count()) { await pub.first().click(); break; }
+        await page.getByRole("button", { name: "Continue" }).first().click();
+        await page.waitForTimeout(400);
+      }
+      await page.waitForTimeout(1500);
       const lp = db.posts.find((x) => x.table === "lessons"); const lrow = lp && lp.rows[0];
       check("(e) the lessons insert carries today's date and the typed note only", !!lrow && lrow.lesson_date === TODAY && lrow.notes === "Worked on tempo from a hundred yards." && lrow.focus === "Short game" && lrow.player_id === IDS.adult && lrow.coach_id === IDS.coach, JSON.stringify(lrow));
       check("(e) the lesson trigger told the player (kind lesson, screen lesson, the new id)", db.notifications.some((n) => n.user_id === IDS.adult && n.kind === "lesson" && n.data.screen === "lesson" && lrow && n.data.id === lrow.id), JSON.stringify(db.notifications.filter((n) => n.kind === "lesson")));
@@ -228,7 +236,12 @@ const leaks = [];
       await page.waitForTimeout(600);
       const th0 = await text(); await shot("coach-wizard-two-files");
       check("(h) both files are listed on the media step", th0.includes("swing.mp4") && th0.includes("big-clip.mp4"), th0.slice(0, 200));
-      await page.getByRole("button", { name: "Publish", exact: true }).first().click();
+      for (let i = 0; i < 4; i++) {
+        const pub = page.getByRole("button", { name: "Publish", exact: true });
+        if (await pub.count()) { await pub.first().click(); break; }
+        await page.getByRole("button", { name: "Continue" }).first().click();
+        await page.waitForTimeout(400);
+      }
       /* the burst plays 2.6 s; the uploads have long finished by then */
       await page.waitForTimeout(4200);
       const strip = page.locator('[data-tour="upload-status"]');

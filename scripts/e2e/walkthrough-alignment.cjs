@@ -7,7 +7,7 @@ const path = require("path");
 
 const ROOT = require("path").resolve(__dirname, "../..");
 const SHOTS = process.env.SHOTS || require("path").join(__dirname, "../../.e2e-out/tour-shots");
-const PORT = 4190;
+const PORT = Number(process.env.TOUR_PORT || 4190);
 const ONLY = process.argv[2] ? process.argv[2].split(",") : null;
 
 fs.mkdirSync(SHOTS, { recursive: true });
@@ -76,7 +76,37 @@ async function main() {
           visible = er.width > 0 && er.height > 0 && cs.visibility !== "hidden" && cs.display !== "none"
             && er.top >= card.top - 1 && er.bottom <= card.bottom + 1 && er.left >= card.left - 1 && er.right <= card.right + 1;
         }
-        return { ring: { x: r.left, y: r.top, w: r.width, h: r.height }, id, el: e, visible, k, tourText, counter,
+        /* THE TINTED BOX BEHIND THE ACTIVE TAB. The founder's report was
+           about this, not the ring: measure it against the tab it is
+           meant to sit on, in frame pixels, every step. */
+        let pill = null;
+        const bar = frame.querySelector('[data-tour="tabbar"]');
+        if (bar) {
+          const pl = bar.querySelector("[data-tour-pill]");
+          const act = bar.querySelector('[aria-current="page"]');
+          if (pl && act) {
+            const pr = pl.getBoundingClientRect(), ar = act.getBoundingClientRect(), br = bar.getBoundingClientRect();
+            const cells = [...bar.querySelectorAll("button")].map((b) => b.getBoundingClientRect().width);
+            pill = {
+              dLeft: (pr.left - (ar.left + 4 * k)) / k,
+              dRight: (pr.right - (ar.right - 4 * k)) / k,
+              dTop: (pr.top - (br.top + 5 * k)) / k,
+              dBottom: (pr.bottom - (br.bottom - 5 * k)) / k,
+              dCentre: ((pr.left + pr.right) / 2 - (ar.left + ar.right) / 2) / k,
+              cellSpread: (Math.max(...cells) - Math.min(...cells)) / k,
+            };
+          }
+        }
+        /* a ring clipped by the card's overflow, or covered by something
+           on top of the target, is not a ring anyone can follow */
+        let occluded = false, ringInside = true;
+        if (el) {
+          const er = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(er.left + er.width / 2, er.top + er.height / 2);
+          occluded = !!hit && hit !== el && !el.contains(hit) && !hit.contains(el);
+        }
+        ringInside = r.top >= card.top - 1 && r.bottom <= card.bottom + 1 && r.left >= card.left - 1 && r.right <= card.right + 1;
+        return { ring: { x: r.left, y: r.top, w: r.width, h: r.height }, id, el: e, visible, k, tourText, counter, pill, occluded, ringInside,
                  card: { x: card.left, y: card.top, w: card.width, h: card.height } };
       });
       const [cur, total] = (info.counter || "0 / 0").split(" / ").map(Number);
@@ -98,10 +128,17 @@ async function main() {
         dev = Math.max(dx1, dy1, dx2, dy2);
         const encloses = info.ring.x <= info.el.x + 0.5 && info.ring.y <= info.el.y + 0.5
           && info.ring.x + info.ring.w >= info.el.x + info.el.w - 0.5 && info.ring.y + info.ring.h >= info.el.y + info.el.h - 0.5;
-        ok = dev <= 6 && encloses && info.visible;
+        ok = dev / (info.k || 1) <= 0.5 && encloses && info.visible && !info.occluded && info.ringInside;
       }
-      rows.push({ step: cur || n, total, title: info.tourText, target: info.id || "(no ring)", dev: dev == null ? null : +dev.toFixed(2), visible: info.visible, ok });
-      process.stdout.write(`${role} ${cur}/${total} ${info.tourText} → ${info.id || "NO RING"} dev=${dev == null ? "-" : dev.toFixed(2)} ${ok ? "ok" : "FAIL"}\n`);
+      /* the pill is checked on every step, ring or no ring */
+      const P = info.pill;
+      const pillOff = P ? Math.max(Math.abs(P.dLeft), Math.abs(P.dRight), Math.abs(P.dTop), Math.abs(P.dBottom), Math.abs(P.dCentre)) : null;
+      const pillOk = P == null ? true : pillOff <= 0.5 && P.cellSpread <= 0.5;
+      if (!info.ring) ok = false;               // a step with no ring is a failed step
+      rows.push({ step: cur || n, total, title: info.tourText, target: info.id || "(no ring)", dev: dev == null ? null : +dev.toFixed(2),
+                  visible: info.visible, occluded: info.occluded, ringInside: info.ringInside,
+                  pill: P ? { off: +pillOff.toFixed(2), spread: +P.cellSpread.toFixed(2) } : null, pillOk, ok: ok && pillOk });
+      process.stdout.write(`${role} ${cur}/${total} ${info.tourText} → ${info.id || "NO RING"} dev=${dev == null ? "-" : dev.toFixed(2)} pill=${pillOff == null ? "-" : pillOff.toFixed(2)} ${ok && pillOk ? "ok" : "FAIL"}\n`);
 
       const isLast = cur === total;
       if (isLast) {
@@ -122,9 +159,10 @@ async function main() {
   }
 
   fs.writeFileSync(path.join(SHOTS, `results-${(ONLY || ["all"]).join("-")}.json`), JSON.stringify({ results, consoleLog }, null, 2));
-  const bad = Object.entries(results).flatMap(([r, v]) => v.rows.filter((x) => !x.ok).map((x) => `${r} ${x.step} ${x.target} dev=${x.dev} vis=${x.visible}`));
+  const bad = Object.entries(results).flatMap(([r, v]) => v.rows.filter((x) => !x.ok).map((x) => `${r} ${x.step} ${x.target} dev=${x.dev} vis=${x.visible} occluded=${x.occluded} inCard=${x.ringInside} pill=${x.pill ? x.pill.off + "/" + x.pill.spread : "-"}`));
   console.log("\nFAILURES:", bad.length ? bad.join("\n") : "none");
   console.log("CONSOLE:", consoleLog.filter((l) => !/fontshare|Failed to load resource|net::ERR/.test(l)).slice(0, 40).join("\n") || "clean");
   await browser.close();
+  process.exit(bad.length ? 1 : 0);
 }
 main().catch((e) => { console.error(e); process.exit(1); });

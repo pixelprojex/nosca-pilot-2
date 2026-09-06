@@ -288,11 +288,24 @@ export function useNoscaData(profile) {
       /* ---- diary, competitions, recurring, preferences ---- */
       const nameOf = Object.fromEntries(people.map((p) => [p.id, p.name]));
 
-      /* the diary is keyed "month-day" to match how the agenda looks it up */
+      /* The diary is keyed "month-day" to match how the agenda looks it
+         up, which carries no year — so only the rolling window the diary
+         can actually show goes in. Without that, last March's lesson
+         made next March's date read as booked and hid a free slot. */
       const byDay = {};
-      (bRes.data || []).forEach((b) => {
-        const dt = new Date(b.booking_date);
-        const key = `${dt.getMonth() + 1}-${String(dt.getDate()).padStart(2, "0")}`;
+      const dayMs = 86400000;
+      /* 320 days wide, so no two dates in it can share a month and day */
+      const from = new Date(Date.now() - 120 * dayMs), to = new Date(Date.now() + 200 * dayMs);
+      const inWindow = (iso) => {
+        const [y, m, d] = String(iso || "").split("-").map(Number);
+        if (!y) return false;
+        const dt = new Date(y, m - 1, d);
+        return dt >= from && dt <= to;
+      };
+      (bRes.data || []).filter((b) => inWindow(b.booking_date)).forEach((b) => {
+        const [by, bm, bd] = String(b.booking_date).split("-").map(Number);
+        const dt = new Date(by, bm - 1, bd);
+        const key = `${bm}-${String(bd).padStart(2, "0")}`;
         (byDay[key] = byDay[key] || []).push({
           id: b.id,
           time: b.start_time,
@@ -310,15 +323,22 @@ export function useNoscaData(profile) {
       });
       setBookings(byDay);
 
-      const today = new Date();
+      /* whole days from local midnight, so "tomorrow" is 1 all evening
+         and something that has been and gone reads negative rather than
+         sitting at zero forever */
+      const now0 = new Date();
+      const midnight = new Date(now0.getFullYear(), now0.getMonth(), now0.getDate());
       setCompetitions((cRes.data || []).map((c) => {
-        const dt = new Date(c.event_date);
+        const [cy, cm, cd] = String(c.event_date || "").split("-").map(Number);
+        const dt = cy ? new Date(cy, cm - 1, cd) : new Date(c.event_date);
+        const days = Math.round((dt - midnight) / 86400000);
         return {
           id: c.id,
           name: c.name,
           kind: c.kind,
           venue: c.venue,
-          days: Math.max(0, Math.round((dt - today) / 86400000)),
+          days,
+          past: days < 0,
           date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
           mine: !c.player_id,                       // the coach's own
           playerId: c.player_id,
@@ -526,17 +546,20 @@ export function useNoscaData(profile) {
     return {};
   };
 
-  /* Removing a lesson takes its files with it. The rows cascade when
-     the lesson goes; the stored files do not, so they are removed
-     first — the other way round leaves files nothing can reach. */
+  /* Removing a lesson takes its files with it. The paths are read
+     first, but nothing is deleted from storage until the row is
+     actually gone: a failed delete that had already wiped the files
+     would leave the lesson on both people's screens with its clips
+     destroyed. An orphaned file can be swept up later; footage cannot
+     be brought back. */
   const deleteLesson = async (id) => {
     if (!id) return { error: { message: "No lesson to remove." } };
     const { data: media } = await supabase.from("lesson_media").select("storage_path").eq("lesson_id", id);
     const paths = (media || []).map((m) => m.storage_path).filter(Boolean);
-    if (paths.length) { try { await supabase.storage.from("media").remove(paths); } catch (e) { /* already gone */ } }
     const { data: rows, error } = await supabase.from("lessons").delete().eq("id", id).select("id");
     if (error) return { error: { message: rpcMessage(error, "Couldn't remove that lesson.") } };
     if (!rows || !rows.length) return { error: { message: "Couldn't remove that lesson." } };
+    if (paths.length) { try { await supabase.storage.from("media").remove(paths); } catch (e) { /* already gone */ } }
     mediaCache.current.delete(id);
     await load();
     return {};
@@ -616,7 +639,14 @@ export function useNoscaData(profile) {
     const rows = Object.entries(marks).map(([playerId, state]) => ({
       session_id: session.id, player_id: playerId, state,
     }));
-    if (rows.length) await supabase.from("attendance_marks").insert(rows);
+    if (rows.length) {
+      const { error: markErr } = await supabase.from("attendance_marks").insert(rows);
+      if (markErr) {
+        /* an empty session helps nobody: take it back out and say so */
+        await supabase.from("attendance_sessions").delete().eq("id", session.id);
+        return { error: { message: "Couldn't save the register. Try again." } };
+      }
+    }
     await load();
     return { session };
   };
@@ -751,7 +781,9 @@ export function useNoscaData(profile) {
      Which it is follows from who is signed in. */
   const addCompetition = async ({ name, kind, venue, date, playerId }) => {
     const { error } = await supabase.from("competitions").insert({
-      coach_id: isCoach ? profile.id : profile.coach_id,
+      /* the fresh link, not the cached profile: a player who joined a
+         coach this session still has coach_id null on the sign-in row */
+      coach_id: isCoach ? profile.id : ((links && links.coach) || profile.coach_id || null),
       player_id: isCoach ? (playerId || null) : profile.id,
       name, kind: kind || null, venue: venue || null, event_date: date,
     });
@@ -760,9 +792,11 @@ export function useNoscaData(profile) {
   };
 
   const removeCompetition = async (id) => {
-    const { error } = await supabase.from("competitions").delete().eq("id", id);
-    if (!error) await load();
-    return { error };
+    const { data: rows, error } = await supabase.from("competitions").delete().eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't remove that." } };
+    await load();
+    return {};
   };
 
   const addRecurring = async ({ playerId, groupName, weekday, time, cadence = "weekly" }) => {
@@ -777,18 +811,24 @@ export function useNoscaData(profile) {
   };
 
   const removeRecurring = async (id) => {
-    const { error } = await supabase.from("recurring").delete().eq("id", id);
-    if (!error) await load();
-    return { error };
+    const { data: rows, error } = await supabase.from("recurring").delete().eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't end that arrangement." } };
+    await load();
+    return {};
   };
 
   /* Preferences are per-person and upserted, so the first save creates
      the row and every later one updates it. */
   const savePrefs = async (patch) => {
+    /* The first save creates the row, so until it is read back the
+       optimistic object holds only the fields just written — read the
+       whole row once so nothing downstream sees a half-filled one. */
+    const first = !prefs;
     setPrefs((p) => ({ ...(p || {}), ...patch }));          // optimistic
     const { error } = await supabase.from("preferences")
       .upsert({ id: profile.id, ...patch, updated_at: new Date().toISOString() });
-    if (error) await load();
+    if (error || first) await load();
     return { error };
   };
 
@@ -948,11 +988,15 @@ export function useNoscaData(profile) {
      lesson, when the coach has that switched on. Upserting means
      submitting again simply replaces what was there. */
   const submitReview = async (rating, comment) => {
-    const { error } = await supabase.from("reviews")
-      .upsert({ coach_id: profile.coach_id, player_id: profile.id, rating, comment: comment || null },
-              { onConflict: "coach_id,player_id" });
-    if (!error) await load();
-    return { error };
+    const coachId = (links && links.coach) || profile.coach_id;
+    if (!coachId) return { error: { message: "You're not with a coach yet." } };
+    const { data: rows, error } = await supabase.from("reviews")
+      .upsert({ coach_id: coachId, player_id: profile.id, rating, comment: comment || null },
+              { onConflict: "coach_id,player_id" }).select("coach_id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't save that review." } };
+    await load();
+    return {};
   };
 
   /* The database's own words for what went wrong. join_coach and

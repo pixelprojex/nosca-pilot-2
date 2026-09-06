@@ -122,11 +122,13 @@ const { check, results, summary } = M.checker("notifications");
       await M.back(page);
       await tap(page, '[aria-label="Alerts"]', 900);
       const t2 = await text(); await shot("10-coach-alerts");
-      const job = page.locator("button", { hasText: "asking to join you" }).first();
-      check("(c) the alerts list shows the pending request as a job with its count", (await job.count()) === 1 && /1/.test(await job.innerText()) && t2.includes("Eoin Walsh asked to join you"), t2.slice(0, 240));
+      /* the notification row IS the door — a strip above it counting the
+         same rows was the screen saying it twice */
+      const job = page.locator("button", { hasText: "Eoin Walsh asked to join you" }).first();
+      check("(c) the alerts list names the person asking to join, once", (await job.count()) === 1 && !/asking to join you/.test(t2) && t2.includes("Eoin Walsh asked to join you"), t2.slice(0, 240));
       await job.click(); await page.waitForTimeout(900);
       const t3 = await text();
-      check("(c) the job opens Requests", t3.includes("Requests") && t3.includes("Eoin Walsh"), t3.slice(0, 160));
+      check("(c) the row opens Requests", t3.includes("Requests") && t3.includes("Eoin Walsh"), t3.slice(0, 160));
       await ctx.close();
     }
 
