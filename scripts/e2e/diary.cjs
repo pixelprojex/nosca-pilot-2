@@ -170,7 +170,9 @@ const leaks = [];
       await click(page, "Set drills");
       const t4 = await text(); await shot("18-coach-assign");
       check("(c) the drill sheet is for that player", t4.includes("Drills for Cian"), t4.slice(0, 200));
-      await page.locator("button", { hasText: "Ladder drill" }).first().click(); await page.waitForTimeout(200);
+      /* a real coach's library starts empty — the sports' starter drills are
+         the harness's — so a drill is written, which also saves it */
+      await page.locator('input[placeholder="Drill name"]').first().fill("Ladder drill"); await page.waitForTimeout(300);
       await page.locator("button", { hasText: /^Set \d drill/ }).first().click(); await page.waitForTimeout(1500);
       const d1 = last(db.posts, "drills");
       check("(c) Set drills POSTs a drill row per drill for the player", !!d1 && d1.rows.length >= 1 && d1.rows.every((r) => r.player_id === IDS.adult && r.coach_id === IDS.coach && r.title), JSON.stringify(d1 && d1.rows));
@@ -184,8 +186,10 @@ const leaks = [];
       /* (c) the Practice screen: real roster, real completion, rename + remove */
       await back(page);
       await tap(page, '[aria-label="Search"]');
-      await page.fill('input[placeholder="Lessons, drills, tips, people"]', "gate"); await page.waitForTimeout(600);
-      await page.locator("button", { hasText: "Alignment stick gate" }).first().click(); await page.waitForTimeout(1000);
+      /* the drill this coach actually wrote a moment ago — their library
+         starts empty, so there is nothing else to find */
+      await page.fill('input[placeholder="Lessons, drills, tips, people"]', "ladder"); await page.waitForTimeout(600);
+      await page.locator("button", { hasText: "Ladder drill" }).first().click(); await page.waitForTimeout(1000);
       let t5 = await leak("coach practice"); await shot("20-coach-practice");
       check("(c) coach Practice lists the real roster with counts from real drills", t5.includes("Cian Murphy") && /1 of 1 done|0 of 1 done/.test(t5) && !t5.includes("Marcus Tran"), t5.slice(0, 240));
       if (t5.includes("This week")) {
@@ -203,9 +207,11 @@ const leaks = [];
       await shot("21-coach-practice-edited");
 
       /* (d) competitions */
+      /* Today only draws a fold that has something in it, so a coach with
+         no competitions reaches Ahead from the plus menu */
       await tap(page, '[aria-label="Today"]');
-      await click(page, "Competitions");
-      await click(page, "Add a competition");
+      await tap(page, '[data-tour="quick"]', 700);
+      await click(page, "Competition");
       const t6 = await leak("coach events"); await shot("22-coach-events-empty");
       check("(d) Ahead lists no seeded events for a real coach", !t6.includes("Club Championship") && !t6.includes("Captain's Prize") && t6.includes("Nothing coming up"), t6.slice(0, 200));
       await tap(page, '[aria-label="Add"]');
@@ -334,18 +340,23 @@ const leaks = [];
     /* ---------- (j) the pill for an adult and a parent ---------- */
     {
       const { ctx, page, leak, shot } = await boot("adult");
-      await tap(page, '[data-tour="profile-pill"]');
-      const t1 = await leak("adult family"); await shot("39-adult-family");
-      check("(j) an adult's pill opens Family, honest about there being none, never the seeded household", t1.includes("No family yet") && (await page.locator('[data-tour="family-setup"]').count()) === 1 && !t1.includes("Ray Doyle") && !t1.includes("Marcus Tran") && !t1.includes("Ellie Tran"), t1.slice(0, 200));
+      await tap(page, '[data-tour="profile-pill"]', 900);
+      const t1 = await leak("adult you"); await shot("39-adult-you");
+      check("(j) an adult's pill opens their own account, with Family honest about there being none", t1.includes("Cian Murphy") && /Start or join one/.test(await page.locator('[data-tour="settings-dashboard"]').innerText()) && !t1.includes("Ray Doyle") && !t1.includes("Marcus Tran") && !t1.includes("Ellie Tran"), t1.slice(0, 200));
       await ctx.close();
     }
     {
       const { ctx, page, leak, shot } = await boot("parent");
       const t0 = await leak("parent home"); await shot("40-parent-family");
-      check("(j) a parent opens on the family: the child, her real coach, nothing seeded", t0.includes("Orla's family") && (await page.locator('[data-tour="family-kid"]').count()) === 1 && t0.includes("Saoirse") && t0.includes("with Niamh Byrne-Walsh") && !t0.includes("Marcus Tran") && !t0.includes("Ellie Tran"), t0.slice(0, 240));
-      await tap(page, '[data-tour="profile-pill"]');
+      check("(j) a parent opens on the family: the child at a glance, nothing seeded", t0.includes("Orla's family") && (await page.locator('[data-tour="family-kid"]').count()) === 1 && t0.includes("Saoirse") && !t0.includes("Marcus Tran") && !t0.includes("Ellie Tran"), t0.slice(0, 240));
+      /* the coach, and everything else about her, is on her own screen */
+      await page.locator('[data-tour="family-kid"]').first().click(); await page.waitForTimeout(900);
+      const tk = await leak("parent kid screen");
+      check("(j) …and her own screen names her real coach", tk.includes("with Niamh Byrne-Walsh") && !tk.includes("Marcus Tran"), tk.slice(0, 200));
+      await back(page);
+      await tap(page, '[data-tour="profile-pill"]', 900);
       const t1 = await leak("parent pill"); await shot("41-parent-pill");
-      check("(j) the parent's pill is the same dashboard", t1.includes("Orla's family") && (await page.locator('[data-tour="family-people"]').count()) === 1, t1.slice(0, 200));
+      check("(j) the parent's pill opens their own account, never the family", t1.includes("Orla Kelly") && t1.includes("Sign out") && /Orla's family/.test(await page.locator('[data-tour="settings-dashboard"]').innerText()), t1.slice(0, 200));
       await ctx.close();
     }
   } catch (e) {

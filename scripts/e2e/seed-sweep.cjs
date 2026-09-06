@@ -33,7 +33,11 @@ const allowedFor = { coach: ["Niamh Byrne", "Cian Murphy", "Saoirse Kelly", "Orl
 const TARGETS = {
   coach: [["requests", ['[data-tour="today-requests"]'], /Requests/], ["alerts", ['[aria-label="Alerts"]'], /Alerts/], ["you", ['[aria-label="Your profile"]'], /Sign out/], ["profile", ['[aria-label="Your profile"]', '[data-tour="settings-profile"]'], /Your profile/],
           ["player", ['[aria-label="Roster"]', '[data-tour="roster-row"]'], /lessons/i], ["notifications", ['[aria-label="Your profile"]', '[data-tour="settings-profile"]', '[data-tour="profile-notifications"]'], /Notifications/]],
-  player: [["family", ['[data-tour="profile-pill"]'], /Family|family/], ["familyCode", ['[data-tour="profile-pill"]', '[data-tour="family-settings"], [data-tour="family-setup"]'], /Start a family|Who's in it/],
+  /* the header is the person's own account now; Family is a tab, and the
+     family's own settings are the gear on it (or You → Family when there
+     is no family yet) */
+  player: [["family", ['[aria-label="Your profile"]', '[data-tour="settings-dashboard"]'], /Family|family/],
+           ["familyCode", ['[aria-label="Your profile"]', '[data-tour="settings-dashboard"]', '[data-tour="family-settings"], [data-tour="family-create"]'], /Start a family|Who's in it/],
            ["alerts", ['[aria-label="Alerts"]'], /Alerts/], ["you", ['[aria-label="Your profile"]'], /Sign out/], ["profile", ['[aria-label="Your profile"]', '[data-tour="settings-profile"]'], /Your profile/],
            ["notifications", ['[aria-label="Your profile"]', '[data-tour="settings-profile"]', '[data-tour="profile-notifications"]'], /Notifications/]],
 };

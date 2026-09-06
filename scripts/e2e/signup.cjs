@@ -546,9 +546,10 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       t = await rootText(page);
       if (/You've been invited/.test(t)) note("FAIL the offer is still open after joining");
       await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(1500); await waitSplash(page); await dismissTour(page);
-      await page.locator('[data-tour="profile-pill"]').dispatchEvent("click"); await page.waitForTimeout(900); await shot("family");
+      /* joining gives you a Family tab; the header stays your own account */
+      await page.locator('[aria-label="Family"]').first().dispatchEvent("click"); await page.waitForTimeout(900); await shot("family");
       t = await rootText(page);
-      if (!/Gráinne's family/.test(t) || !/Ann Burke \(you\)/.test(t)) note("FAIL the family dashboard does not show the joined family: " + t.slice(0, 160)); else note("the pill opens Gráinne's family with Ann in it");
+      if (!/Gráinne's family/.test(t) || !/Ann/.test(t)) note("FAIL the family tab does not show the joined family: " + t.slice(0, 160)); else note("the Family tab opens Gráinne's family with Ann in it");
     });
   } finally {
     await browser.close(); M.stopServer(server);

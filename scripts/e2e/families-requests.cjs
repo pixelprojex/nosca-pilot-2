@@ -156,10 +156,12 @@ const leaks = [];
     let famCode = null;
     {
       const { ctx, page, leak, shot } = await boot("adult");
-      await tap(page, '[data-tour="profile-pill"]');
-      const t0 = await leak("cian family empty"); await shot("14-cian-family-empty");
-      check("(d) the header pill opens Family, which offers to set one up", t0.includes("No family yet") && (await page.locator('[data-tour="family-setup"]').count()) === 1, t0.slice(0, 200));
-      await tap(page, '[data-tour="family-setup"]', 900);
+      /* the header is the person's own now: the pill opens You, and Family
+         is a row there until there is one, when it becomes its own tab */
+      await tap(page, '[data-tour="profile-pill"]', 900);
+      const t0 = await leak("cian you"); await shot("14-cian-you");
+      check("(d) the header pill opens the person's own account, not a family", t0.includes("Cian Murphy") && (await page.locator('[data-tour="settings-dashboard"]').count()) === 1 && t0.includes("Sign out"), t0.slice(0, 200));
+      await tap(page, '[data-tour="settings-dashboard"]', 900);
       const t1 = await leak("cian family screen"); await shot("15-cian-family-screen");
       check("(d) the Family screen offers Start a family and Join a family", t1.includes("Start a family") && t1.includes("Join a family") && (await page.locator('[data-tour="family-join"] input').count()) >= 6, t1.slice(0, 200));
       await page.locator('[data-tour="family-create"] input').fill("The Murphys");
@@ -184,8 +186,9 @@ const leaks = [];
       await tap(page, '[aria-label="You"]', 900);
       const youRow = page.locator('[data-tour="settings-dashboard"]');
       check("(e) You carries a Family row that says none yet", (await youRow.count()) === 1 && /Family/.test(await youRow.innerText()) && /Start or join one/.test(await youRow.innerText()), (await youRow.count()) ? await youRow.innerText() : "no row");
+      /* with no family yet the row goes straight to the screen that starts or
+         joins one — a dashboard of nobody helps no one */
       await youRow.click(); await page.waitForTimeout(900);
-      await tap(page, '[data-tour="family-setup"]', 900);
       await page.locator('[data-tour="family-join"] input').first().fill(famCode); await page.waitForTimeout(1000);
       const t0 = await leak("dara code checked"); await shot("17-dara-code-checked");
       check("(e) the code is looked up live and shows the family's name and size", t0.includes("The Murphys · 1 person") && rpc("find_family_by_code").some((x) => x.args.p_code === famCode), t0.slice(0, 200));
@@ -198,7 +201,7 @@ const leaks = [];
       await click(page, "Dashboard", 900);
       const people = page.locator('[data-tour="family-people"]');
       const t2 = await leak("dara dashboard"); await shot("19-dara-dashboard");
-      check("(e) the dashboard lists both under In the family and has no young players", (await people.count()) === 1 && /Cian Murphy/.test(await people.innerText()) && /Dara Kelly \(you\)/.test(await people.innerText()) && t2.includes("No young players yet"), t2.slice(0, 240));
+      check("(e) the dashboard shows both faces under In the family and has no young players", (await people.count()) === 1 && /Cian/.test(await people.innerText()) && /You/.test(await people.innerText()) && t2.includes("No young players yet"), t2.slice(0, 240));
       await tap(page, '[data-tour="family-settings"]', 900);
       await click(page, "Leave the family", 500);
       await page.getByRole("button", { name: "Leave", exact: true }).click(); await page.waitForTimeout(1800);
@@ -215,11 +218,16 @@ const leaks = [];
       const has = async (sel) => (await page.locator(sel).count()) > 0;
       check("(f) a parent lands on the Family tab", (await page.locator('[data-tour="tab-family"][aria-current="page"]').count()) === 1 && t0.includes("Orla's family"), t0.slice(0, 200));
       check("(f) the parent's tabs are Family / Lessons / Diary / Chat", (await has('[data-tour="tab-family"]')) && (await has('[data-tour="tab-log"]')) && (await has('[data-tour="tab-calendar"]')) && (await has('[data-tour="tab-messages"]')) && !(await has('[data-tour="tab-home"]')) && !(await has('[data-tour="tab-practice"]')));
+      /* the dashboard is a glance — one line each, with everything about a
+         child (and every action for them) one tap in on their own screen */
       const kid = page.locator('[data-tour="family-kid"]');
       const kt = (await kid.count()) ? M.norm(await kid.innerText()) : "";
-      check("(f) the junior's card shows her coach, Next, Last lesson and To practise from the database", kt.includes("Saoirse") && kt.includes("with Niamh Byrne") && /next .*10:00 am/i.test(kt) && kt.includes("Grip · 28 AUG") && kt.includes("1 drill"), kt);
-      check("(f) Book a lesson is live because her coach has hours", (await kid.getByRole("button", { name: "Book a lesson", exact: true }).isEnabled()), kt);
-      await kid.getByRole("button", { name: "Book a lesson", exact: true }).click(); await page.waitForTimeout(900);
+      check("(f) the junior's row shows her name and her next lesson from the database", kt.includes("Saoirse") && /10:00 am/.test(kt), kt);
+      await kid.click(); await page.waitForTimeout(900);
+      const kidScreen = M.norm(await M.rootText(page));
+      check("(f) her own screen carries the coach, Next, Last lesson and To practise", kidScreen.includes("with Niamh Byrne") && /NEXT .*10:00 am/i.test(kidScreen) && kidScreen.includes("Grip · 28 AUG") && kidScreen.includes("1 drill"), kidScreen.slice(0, 260));
+      check("(f) Book a lesson is live because her coach has hours", await page.getByRole("button", { name: "Book a lesson", exact: true }).isEnabled(), kidScreen.slice(0, 160));
+      await page.getByRole("button", { name: "Book a lesson", exact: true }).click(); await page.waitForTimeout(900);
       const t1 = await leak("parent book for"); await shot("22-parent-book-for");
       check("(f) the diary opens as Book for <first name>", t1.startsWith("Book for Saoirse") || t1.includes("Book for Saoirse"), t1.slice(0, 200));
       check("(f) the open slots are the child's coach's hours", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && rpc("coach_availability").some((x) => x.args && x.args.p_player === IDS.junior), t1.slice(0, 200));
@@ -235,7 +243,8 @@ const leaks = [];
       const t2 = await leak("parent family after booking"); await shot("23-parent-family-after");
       const upcoming = M.norm(await page.locator('[data-tour="family-upcoming"]').innerText());
       check("(f) Coming up lists the child's confirmed lesson", upcoming.includes("Saoirse") && upcoming.includes("10:00 am"), upcoming);
-      await page.locator('[data-tour="family-kid"]').getByRole("button", { name: "Message coach", exact: true }).click(); await page.waitForTimeout(900);
+      await page.locator('[data-tour="family-kid"]').click(); await page.waitForTimeout(900);
+      await page.getByRole("button", { name: "Message coach", exact: true }).click(); await page.waitForTimeout(900);
       const t3 = await leak("parent thread"); await shot("24-parent-thread");
       check("(f) Message coach opens the child's thread with her coach", t3.includes("Saoirse Kelly") && (await page.locator('input[placeholder="Message"]').count()) === 1, t3.slice(0, 200));
       await page.fill('input[placeholder="Message"]', "Can Saoirse move to Thursday?");
@@ -252,15 +261,15 @@ const leaks = [];
     {
       const { ctx, page, leak, shot } = await boot("junior");
       const t0 = await leak("junior home"); await shot("25-junior-home");
-      check("(g) the junior opens on Home, with Family on the pill", t0.includes("Orla's family") || (await page.locator('[data-tour="profile-pill"]').count()) === 1, t0.slice(0, 160));
-      await tap(page, '[data-tour="profile-pill"]');
+      check("(g) the junior opens on Home, with Family as its own tab", (await page.locator('[data-tour="tab-family"]').count()) === 1 && (await page.locator('[data-tour="profile-pill"]').count()) === 1, t0.slice(0, 160));
+      await tap(page, '[data-tour="tab-family"]', 900);
       const t1 = await leak("junior family"); await shot("26-junior-family");
       const people = page.locator('[data-tour="family-people"]');
-      check("(g) the junior's dashboard lists who is in it and nothing to book", (await people.count()) === 1 && /Orla Kelly/.test(await people.innerText()) && /Saoirse Kelly \(you\)/.test(await people.innerText()) && (await page.locator('[data-tour="family-kid"]').count()) === 0 && (await byText(page, "Book a lesson").count()) === 0 && !t1.includes("Message coach"), t1.slice(0, 240));
+      check("(g) the junior's dashboard shows who is in it and nothing to book", (await people.count()) === 1 && /Orla/.test(await people.innerText()) && /You/.test(await people.innerText()) && (await page.locator('[data-tour="family-kid"]').count()) === 0 && (await byText(page, "Book a lesson").count()) === 0 && !t1.includes("Message coach"), t1.slice(0, 240));
       check("(g) …and says what the adults can do", t1.includes("The adults here can see your lessons"), t1.slice(0, 240));
       await tap(page, '[data-tour="family-settings"]', 900);
       const t2 = await leak("junior family screen"); await shot("27-junior-family-screen");
-      check("(g) the junior's Family screen has no code, no rename and no Leave", !t2.includes("Family code") && !t2.includes("KEL7Y2") && !t2.includes("Leave the family") && !t2.includes("Name the family") && t2.includes("Who's in it") && t2.includes("Ask one of them to change anything here"), t2.slice(0, 240));
+      check("(g) the junior's Family screen has no code, no rename and no Leave", !t2.includes("Family code") && !t2.includes("KEL7Y2") && !t2.includes("Leave the family") && !t2.includes("Name the family") && t2.includes("Who's in it") && t2.includes("Ask an adult in your family to change anything here"), t2.slice(0, 240));
       await ctx.close();
     }
   } catch (e) {

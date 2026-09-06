@@ -1267,7 +1267,7 @@ returns trigger language plpgsql security definer set search_path = '' as $fn$
 begin
   if tg_op = 'INSERT' then
     perform public.notify(new.coach_id, 'request', public.name_of(new.player_id) || ' asked to join you',
-      'Accept or decline from Roster.', jsonb_build_object('screen', 'requests', 'id', new.id));
+      'Tap to accept or decline.', jsonb_build_object('screen', 'requests', 'id', new.id));
   elsif tg_op = 'UPDATE' and new.status <> old.status then
     if new.status = 'accepted' then
       perform public.notify(new.player_id, 'accepted', public.name_of(new.coach_id) || ' accepted you',

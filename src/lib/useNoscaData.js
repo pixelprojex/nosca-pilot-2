@@ -288,11 +288,24 @@ export function useNoscaData(profile) {
       /* ---- diary, competitions, recurring, preferences ---- */
       const nameOf = Object.fromEntries(people.map((p) => [p.id, p.name]));
 
-      /* the diary is keyed "month-day" to match how the agenda looks it up */
+      /* The diary is keyed "month-day" to match how the agenda looks it
+         up, which carries no year — so only the rolling window the diary
+         can actually show goes in. Without that, last March's lesson
+         made next March's date read as booked and hid a free slot. */
       const byDay = {};
-      (bRes.data || []).forEach((b) => {
-        const dt = new Date(b.booking_date);
-        const key = `${dt.getMonth() + 1}-${String(dt.getDate()).padStart(2, "0")}`;
+      const dayMs = 86400000;
+      /* 320 days wide, so no two dates in it can share a month and day */
+      const from = new Date(Date.now() - 120 * dayMs), to = new Date(Date.now() + 200 * dayMs);
+      const inWindow = (iso) => {
+        const [y, m, d] = String(iso || "").split("-").map(Number);
+        if (!y) return false;
+        const dt = new Date(y, m - 1, d);
+        return dt >= from && dt <= to;
+      };
+      (bRes.data || []).filter((b) => inWindow(b.booking_date)).forEach((b) => {
+        const [by, bm, bd] = String(b.booking_date).split("-").map(Number);
+        const dt = new Date(by, bm - 1, bd);
+        const key = `${bm}-${String(bd).padStart(2, "0")}`;
         (byDay[key] = byDay[key] || []).push({
           id: b.id,
           time: b.start_time,
@@ -310,15 +323,22 @@ export function useNoscaData(profile) {
       });
       setBookings(byDay);
 
-      const today = new Date();
+      /* whole days from local midnight, so "tomorrow" is 1 all evening
+         and something that has been and gone reads negative rather than
+         sitting at zero forever */
+      const now0 = new Date();
+      const midnight = new Date(now0.getFullYear(), now0.getMonth(), now0.getDate());
       setCompetitions((cRes.data || []).map((c) => {
-        const dt = new Date(c.event_date);
+        const [cy, cm, cd] = String(c.event_date || "").split("-").map(Number);
+        const dt = cy ? new Date(cy, cm - 1, cd) : new Date(c.event_date);
+        const days = Math.round((dt - midnight) / 86400000);
         return {
           id: c.id,
           name: c.name,
           kind: c.kind,
           venue: c.venue,
-          days: Math.max(0, Math.round((dt - today) / 86400000)),
+          days,
+          past: days < 0,
           date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
           mine: !c.player_id,                       // the coach's own
           playerId: c.player_id,
@@ -494,6 +514,73 @@ export function useNoscaData(profile) {
     return { lesson, failed };
   };
 
+  /* CHANGING A LESSON ALREADY LOGGED
+
+     A coach mistypes a focus, or writes up the wrong day. The policies
+     let the lesson's coach change and remove it, so this is the same
+     call the write-up makes, on a row that already exists. .select()
+     proves a row was really touched — an update the policy refuses
+     comes back as success with nothing changed. */
+  const updateLesson = async (id, { focus, subs, note, date, playerId, groupName } = {}) => {
+    if (!id) return { error: { message: "No lesson to change." } };
+    const patch = {};
+    if (focus !== undefined) {
+      const clean = (focus || "").trim();
+      if (!clean) return { error: { message: "A lesson needs a focus." } };
+      patch.focus = clean;
+    }
+    if (subs !== undefined) patch.subs = subs || [];
+    if (note !== undefined) patch.notes = (note || "").trim() || null;
+    if (date !== undefined && date) patch.lesson_date = date;
+    if (playerId !== undefined || groupName !== undefined) {
+      patch.player_id = groupName ? null : (playerId || null);
+      patch.group_name = groupName || null;
+      patch.kind = groupName ? "group" : "private";
+    }
+    if (!Object.keys(patch).length) return {};
+    const { data: rows, error } = await supabase.from("lessons").update(patch).eq("id", id).select("id");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't save that lesson.") } };
+    if (!rows || !rows.length) return { error: { message: "Couldn't change that lesson." } };
+    mediaCache.current.delete(id);
+    await load();
+    return {};
+  };
+
+  /* Removing a lesson takes its files with it. The paths are read
+     first, but nothing is deleted from storage until the row is
+     actually gone: a failed delete that had already wiped the files
+     would leave the lesson on both people's screens with its clips
+     destroyed. An orphaned file can be swept up later; footage cannot
+     be brought back. */
+  const deleteLesson = async (id) => {
+    if (!id) return { error: { message: "No lesson to remove." } };
+    const { data: media } = await supabase.from("lesson_media").select("storage_path").eq("lesson_id", id);
+    const paths = (media || []).map((m) => m.storage_path).filter(Boolean);
+    const { data: rows, error } = await supabase.from("lessons").delete().eq("id", id).select("id");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't remove that lesson.") } };
+    if (!rows || !rows.length) return { error: { message: "Couldn't remove that lesson." } };
+    if (paths.length) { try { await supabase.storage.from("media").remove(paths); } catch (e) { /* already gone */ } }
+    mediaCache.current.delete(id);
+    await load();
+    return {};
+  };
+
+  /* One file off a lesson: the row and the file behind it. */
+  const removeLessonMedia = async (lessonId, mediaId) => {
+    const { data: row } = await supabase.from("lesson_media").select("storage_path").eq("id", mediaId).maybeSingle();
+    const { data: rows, error } = await supabase.from("lesson_media").delete().eq("id", mediaId).select("id");
+    if (error) return { error: { message: error.message } };
+    if (!rows || !rows.length) return { error: { message: "Couldn't remove that file." } };
+    if (row && row.storage_path) { try { await supabase.storage.from("media").remove([row.storage_path]); } catch (e) { /* already gone */ } }
+    mediaCache.current.delete(lessonId);
+    await load();
+    return {};
+  };
+
+  /* More files onto a lesson already logged — the same upload path the
+     write-up uses, with the same per-file status and Retry. */
+  const addLessonMedia = async (lessonId, files) => uploadFiles(lessonId, files);
+
   const setDrill = async (playerId, title) => {
     const { error } = await supabase.from("drills")
       .insert({ coach_id: profile.id, player_id: playerId, title });
@@ -552,7 +639,14 @@ export function useNoscaData(profile) {
     const rows = Object.entries(marks).map(([playerId, state]) => ({
       session_id: session.id, player_id: playerId, state,
     }));
-    if (rows.length) await supabase.from("attendance_marks").insert(rows);
+    if (rows.length) {
+      const { error: markErr } = await supabase.from("attendance_marks").insert(rows);
+      if (markErr) {
+        /* an empty session helps nobody: take it back out and say so */
+        await supabase.from("attendance_sessions").delete().eq("id", session.id);
+        return { error: { message: "Couldn't save the register. Try again." } };
+      }
+    }
     await load();
     return { session };
   };
@@ -623,6 +717,57 @@ export function useNoscaData(profile) {
     return {};
   };
 
+  /* CALLING OFF AHEAD
+
+     A coach can see Thursday's forecast on Monday. Everything booked on
+     that day is called off in one write, with the reason on each row —
+     'weather' or a plain cancellation — and the database's own trigger
+     tells each player and the adults who look after them. Returns how
+     many were called off, so the app can say it rather than guess.
+
+     A day with nothing booked is not an error: it comes back as 0. */
+  const callOffDay = async (date, reason = "weather") => {
+    if (!date) return { error: { message: "Which day?" } };
+    if (!isCoach) return { error: { message: "Only a coach can call a day off." } };
+    const { data: rows, error } = await supabase.from("bookings")
+      .update({ status: reason })
+      .eq("coach_id", profile.id)
+      .eq("booking_date", date)
+      .in("status", ["confirmed", "requested"])
+      .select("id, player_id");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't call that day off.") } };
+    await load();
+    return { count: (rows || []).length };
+  };
+
+  /* Several named bookings at once — the pick-and-choose version of
+     the above, for a coach calling off one group but not the rest. */
+  const callOffBookings = async (ids, reason = "weather") => {
+    const list = (ids || []).filter(Boolean);
+    if (!list.length) return { count: 0 };
+    const { data: rows, error } = await supabase.from("bookings")
+      .update({ status: reason }).in("id", list).select("id");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't call those off.") } };
+    await load();
+    return { count: (rows || []).length };
+  };
+
+  /* Moving a booking rather than losing it: same row, new day or time.
+     Coach only — the policies refuse a player anything but a request
+     and a cancellation. */
+  const moveBooking = async (id, { date, time, duration } = {}) => {
+    const patch = {};
+    if (date) patch.booking_date = date;
+    if (time) patch.start_time = time;
+    if (duration) patch.duration = duration;
+    if (!Object.keys(patch).length) return {};
+    const { data: rows, error } = await supabase.from("bookings").update(patch).eq("id", id).select("id");
+    if (error) return { error: { message: rpcMessage(error, "Couldn't move that lesson.") } };
+    if (!rows || !rows.length) return { error: { message: "Couldn't move that lesson." } };
+    await load();
+    return {};
+  };
+
   /* The coach accepts a player's request. */
   const confirmBooking = async (id) => {
     const { data: rows, error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id).select("id");
@@ -636,7 +781,9 @@ export function useNoscaData(profile) {
      Which it is follows from who is signed in. */
   const addCompetition = async ({ name, kind, venue, date, playerId }) => {
     const { error } = await supabase.from("competitions").insert({
-      coach_id: isCoach ? profile.id : profile.coach_id,
+      /* the fresh link, not the cached profile: a player who joined a
+         coach this session still has coach_id null on the sign-in row */
+      coach_id: isCoach ? profile.id : ((links && links.coach) || profile.coach_id || null),
       player_id: isCoach ? (playerId || null) : profile.id,
       name, kind: kind || null, venue: venue || null, event_date: date,
     });
@@ -645,9 +792,11 @@ export function useNoscaData(profile) {
   };
 
   const removeCompetition = async (id) => {
-    const { error } = await supabase.from("competitions").delete().eq("id", id);
-    if (!error) await load();
-    return { error };
+    const { data: rows, error } = await supabase.from("competitions").delete().eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't remove that." } };
+    await load();
+    return {};
   };
 
   const addRecurring = async ({ playerId, groupName, weekday, time, cadence = "weekly" }) => {
@@ -662,18 +811,24 @@ export function useNoscaData(profile) {
   };
 
   const removeRecurring = async (id) => {
-    const { error } = await supabase.from("recurring").delete().eq("id", id);
-    if (!error) await load();
-    return { error };
+    const { data: rows, error } = await supabase.from("recurring").delete().eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't end that arrangement." } };
+    await load();
+    return {};
   };
 
   /* Preferences are per-person and upserted, so the first save creates
      the row and every later one updates it. */
   const savePrefs = async (patch) => {
+    /* The first save creates the row, so until it is read back the
+       optimistic object holds only the fields just written — read the
+       whole row once so nothing downstream sees a half-filled one. */
+    const first = !prefs;
     setPrefs((p) => ({ ...(p || {}), ...patch }));          // optimistic
     const { error } = await supabase.from("preferences")
       .upsert({ id: profile.id, ...patch, updated_at: new Date().toISOString() });
-    if (error) await load();
+    if (error || first) await load();
     return { error };
   };
 
@@ -833,11 +988,15 @@ export function useNoscaData(profile) {
      lesson, when the coach has that switched on. Upserting means
      submitting again simply replaces what was there. */
   const submitReview = async (rating, comment) => {
-    const { error } = await supabase.from("reviews")
-      .upsert({ coach_id: profile.coach_id, player_id: profile.id, rating, comment: comment || null },
-              { onConflict: "coach_id,player_id" });
-    if (!error) await load();
-    return { error };
+    const coachId = (links && links.coach) || profile.coach_id;
+    if (!coachId) return { error: { message: "You're not with a coach yet." } };
+    const { data: rows, error } = await supabase.from("reviews")
+      .upsert({ coach_id: coachId, player_id: profile.id, rating, comment: comment || null },
+              { onConflict: "coach_id,player_id" }).select("coach_id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't save that review." } };
+    await load();
+    return {};
   };
 
   /* The database's own words for what went wrong. join_coach and
@@ -1066,8 +1225,9 @@ export function useNoscaData(profile) {
     bookings, competitions, recurring, prefs, threads,
     reviewSummary, myReview, reviews, coachAvailability,
     reload: load,
-    logLesson, setDrill, setDrills: assignDrills, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia, requestRating,
-    addBooking, addBookings, cancelBooking, confirmBooking,
+    logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
+    setDrill, setDrills: assignDrills, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia, requestRating,
+    addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
     savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview,

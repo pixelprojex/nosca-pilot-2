@@ -123,7 +123,7 @@ function onLessonInsert(db, l) {
   notify(db, l.player_id, "lesson", "New lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
   adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, l.player_id)}'s lesson was logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
 }
-function onRequestInsert(db, r) { notify(db, r.coach_id, "request", `${nameOf(db, r.player_id)} asked to join you`, "Accept or decline from Roster.", { screen: "requests", id: r.id }); }
+function onRequestInsert(db, r) { notify(db, r.coach_id, "request", `${nameOf(db, r.player_id)} asked to join you`, "Tap to accept or decline.", { screen: "requests", id: r.id }); }
 function onRequestDecided(db, r) {
   if (r.status === "accepted") notify(db, r.player_id, "accepted", `${nameOf(db, r.coach_id)} accepted you`, "Your lessons, drills and messages start here.", { screen: "home", id: r.id });
   else if (r.status === "declined") notify(db, r.player_id, "declined", `${nameOf(db, r.coach_id)} couldn't take you on`, "You can ask another coach with their code.", { screen: "home", id: r.id });
