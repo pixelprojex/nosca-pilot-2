@@ -14,15 +14,25 @@ account is yours to click through; it's about 10 minutes total, once.
 ## What's real in this build
 
 - Coach sign-up, with an invite code to hand to players
-- Player sign-up — with the coach's code, or without one and added later
+- Player sign-up — with the coach's code, or without one and added later.
+  A code sends a request; the coach accepts or declines it from Today,
+  Roster or You → Requests, and the player is told
 - **The full designed interface**, behind that real sign-in
 - Log a lesson — private or group, notes, and real video/photo upload
 - Lesson history — the coach sees everyone's; a player sees only theirs
 - Attendance — the coach takes a real register; a player sees their own %
 - Drills and tips — the coach sets them; a player ticks drills done
-- Families — anyone can hand out a family code; whoever enters it
-  joins that person's family, and the database lets a guardian see
-  their family's lessons and book or message for them
+- Families — optional, and made on purpose: You → Family creates a
+  code or joins with one. The adults in a family see a young player's
+  lessons, drills and bookings, book into their coach's hours and
+  write to the coach; the young player sees who is in it. A parent
+  signing up gets a family made; an under-18 must join one
+- Notifications — a lesson logged, a request answered, a booking asked
+  for or confirmed, a message, drills, a tip: written by the database,
+  listed under the bell, shown once on opening when they landed while
+  the app was closed, and pushed to the phone once push is set up
+- Your profile — photo, name, sport, date of birth, phone, club, a
+  line about you, password, family, sign out, delete: one screen
 
 ## Where the work stands
 
@@ -50,8 +60,9 @@ The plain pilot screens built first are preserved in `src/pages` and
    creates every table, the sign-up trigger, the security rules and the
    storage bucket, and checks its own work.
 4. Read the one row that comes back under the query. `tables` should
-   say `13 of 13`, `signup_trigger` `true`, `profiles_policy` should
-   begin `OK`, and so should `tables_as_user` and `tables_as_anon`. If
+   say `17 of 17`, `signup_trigger` `true`, `notify_triggers` `7`,
+   `profiles_policy` should begin `OK`, and so should `tables_as_user`
+   and `tables_as_anon`. `storage_bucket` should name both buckets. If
    instead you see red text, nothing was changed — see
    **Troubleshooting** at the bottom.
 
@@ -208,12 +219,72 @@ Only `supabase/nosca.sql` exists now, and it never says this.
 hasn't been run on this project yet. Run it (Step 1, Part 1) and try
 again.
 
-## Resetting the pilot
+## Push notifications
 
-If you want to wipe every account and lesson and start clean: open
-`supabase/nosca.sql`, find the block at the very top titled
-**OPTIONAL — start again**, remove the two `--` in front of the two
-`delete` lines, and run the file. Everything else (lessons, media
-rows, drills) cascades away automatically because of how the database
-is built. Put the `--` back afterwards. Uploaded files are cleared
-separately, in **Storage → media** → select all → Delete.
+In-app notifications need none of this — the bell and the "since you
+were away" list read the `notifications` table directly. Push is
+additive: it lets a phone hear about a new one while Nosca is closed.
+Setting it up is done once and takes about ten minutes.
+
+1. Generate a key pair on your computer:
+   ```
+   npx web-push generate-vapid-keys
+   ```
+   It prints a public key and a private key. Keep both.
+2. On Netlify → **Site configuration → Environment variables**, add:
+   - `VITE_VAPID_PUBLIC_KEY` — the public key (this one is built into
+     the app, which is why it carries the `VITE_` prefix)
+   - `VAPID_PUBLIC_KEY` — the same public key again
+   - `VAPID_PRIVATE_KEY` — the private key
+   - `VAPID_SUBJECT` — `mailto:` followed by your email address
+   - `SUPABASE_URL` — the Project URL from Supabase
+   - `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Project Settings → API →
+     the key labelled **service_role**
+   - `PUSH_WEBHOOK_SECRET` — any long random string you make up
+3. Redeploy (Deploys → Trigger deploy) so the public key goes into the
+   build and the function picks up the rest.
+4. In Supabase → **Database → Webhooks** → **Create a new hook**:
+   - Table: `notifications`
+   - Events: **Insert** only
+   - Type: **HTTP request**, method **POST**
+   - URL: `https://<your site>/.netlify/functions/push`
+   - HTTP headers: add one, name `x-nosca-secret`, value the secret
+     from step 2
+   - Save.
+
+That is all. Each new row in `notifications` now reaches every device
+its person has turned notifications on from.
+
+Worth knowing:
+
+- On iPhone and iPad (iOS 16.4 or later) push only works once Nosca has
+  been added to the Home Screen — Share → **Add to Home Screen** — and
+  opened from there. Android and desktop Chrome work straight from the
+  browser.
+- The service role key bypasses every row-level security rule. It goes
+  in `SUPABASE_SERVICE_ROLE_KEY` only — never in any variable that
+  starts with `VITE_`, because those are built into the app anyone can
+  download.
+- The pieces: `src/lib/push.js` (the browser subscribes),
+  `public/sw.js` (the service worker shows the notification),
+  `netlify/functions/push.mjs` (the relay the webhook calls).
+
+## Starting again
+
+To wipe every account, lesson, message and file and begin from nothing,
+either:
+
+- **The script** (thorough — removes the stored files too):
+  ```
+  SUPABASE_URL=https://<ref>.supabase.co \
+  SUPABASE_SERVICE_ROLE_KEY=<service role key> \
+  node scripts/wipe.mjs --yes
+  ```
+  It prints what it removes and what is left. Without `--yes` it
+  refuses to run.
+- **The SQL editor**: paste `supabase/wipe.sql` and run it. This deletes
+  every account and row; the bucket listings come back empty, though
+  the files behind them are only truly gone via the script.
+
+Neither can be undone. Both leave the tables, policies and buckets in
+place, so the app works again immediately with the first new sign-up.

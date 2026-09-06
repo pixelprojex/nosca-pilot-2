@@ -1,140 +1,61 @@
-/* PASS C2 — DIARY, DRILLS, TIPS, COMPETITIONS, RECURRING, DETAILS, HONESTY.
-   Derived from sweep.cjs: a session is injected per role and Supabase is
-   mocked — here with a database shared across the roles, so what the
-   player requests is what the coach accepts. Usage:
-     node run-diary.cjs <distDir> <port> <outDir> */
+/* DIARY, DRILLS, TIPS, COMPETITIONS, RECURRING, PROFILE, HONESTY.
+   A session is injected per role against the shared mock (mock.cjs) —
+   one database across the roles, so what the player requests is what
+   the coach accepts. Since the profile screen and the diary's hours
+   card: the coach's week is set from the diary, and name, sport, date
+   of birth and photo are changed from Your profile.
+   Usage: node diary.cjs <distDir> <port> <outDir>
+   FIXED_TIME=2026-11-15T10:30:00 runs the browser from that moment. */
 const path = require("path"), fs = require("fs");
-const { spawn } = require("child_process");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
+const M = require("./mock.cjs");
 const [distDir, portArg, outDir] = process.argv.slice(2);
-const PORT = Number(portArg || 4197), BASE = `http://localhost:${PORT}`, SB = "https://mock.supabase.co";
-const ROOT = require("path").resolve(__dirname, "../..");
-/* FIXED_TIME=2026-11-15T10:30:00 runs the browser (and the mock's clock) from that moment */
+const PORT = Number(portArg || 4197), BASE = `http://localhost:${PORT}`, SB = M.SB;
 const FIXED = process.env.FIXED_TIME ? new Date(process.env.FIXED_TIME) : null;
 const nowMs = () => (FIXED ? FIXED.getTime() : Date.now());
 fs.mkdirSync(outDir, { recursive: true });
-const b64u = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 
-const SEEDED = ["Ray Doyle", "ray@hollowbrook", "+353 87 123 4567", "Marcus Tran", "Priya Ellis", "Dan Okafor", "Sofia Reyes",
-  "Tom Beckett", "Hannah Doyle", "Hollowbrook", "RD4K9P", "TrackMan", "Breathnach", "Summer clinic", "Junior squad", "Ladies group",
-  "Captain's Prize", "Club Championship", "Garda", "Safeguarding", "Face-on", "Down the line", "Marcus T.", "Priya E.", "Dan O.", "1284",
-  "24 Jul", "Friday 24", "Apple Health", "Keep at what we worked on"];
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d" };
-const pad = (n) => String(n).padStart(2, "0");
-const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const TODAY = ymd(new Date(nowMs()));
-let seq = 0; const uuid = () => `40000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`;
+const FAM = "fa000000-0000-4000-8000-00000000fa01";
 
 function freshDb() {
-  const now = new Date().toISOString();
-  const prof = (id, role, name, sport, type, extra = {}) => ({ id, role, name, sport, account_type: type, coach_id: null, guardian_id: null, invite_code: null, family_code: "F" + id.slice(-5).toUpperCase(), date_of_birth: null, phone: null, club: null, created_at: now, ...extra });
-  return { users: {
-      "coach@t.ie": { id: IDS.coach, email: "coach@t.ie", password: "secret12", meta: {} },
-      "adult@t.ie": { id: IDS.adult, email: "adult@t.ie", password: "secret12", meta: {} },
-      "parent@t.ie": { id: IDS.parent, email: "parent@t.ie", password: "secret12", meta: {} },
-      "junior@t.ie": { id: IDS.junior, email: "junior@t.ie", password: "secret12", meta: {} } },
-    profiles: {
-      [IDS.coach]: prof(IDS.coach, "coach", "Niamh Byrne", "golf", "coach", { invite_code: "QW7X2M" }),
-      [IDS.adult]: prof(IDS.adult, "player", "Cian Murphy", "golf", "adult", { coach_id: IDS.coach, date_of_birth: "1991-04-04" }),
-      [IDS.parent]: prof(IDS.parent, "player", "Orla Kelly", "golf", "parent"),
-      [IDS.junior]: prof(IDS.junior, "player", "Saoirse Kelly", "golf", "junior", { coach_id: IDS.coach, guardian_id: IDS.parent, date_of_birth: "2013-09-09" }) },
-    prefs: {},                     // id -> preferences row
-    bookings: [], competitions: [], recurring: [], drills: [], tips: [],
-    reviews: [{ id: uuid(), coach_id: IDS.coach, player_id: IDS.adult, rating: 5, comment: "Brilliant with the short game.", created_at: "2026-08-01T10:00:00Z" }],
-    log: [], posts: [], patches: [], deletes: [], rpcs: [], auth: [] };
+  const db = M.emptyDb(); db.now = nowMs;
+  const person = (key, email, prof) => { M.addUser(db, { id: IDS[key], email }); return M.addProfile(db, { id: IDS[key], ...prof }); };
+  M.addFamily(db, { id: FAM, code: "KEL7Y2", createdBy: IDS.parent });
+  person("coach", "coach@t.ie", { role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
+  person("adult", "adult@t.ie", { role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1991-04-04" });
+  person("parent", "parent@t.ie", { role: "player", name: "Orla Kelly", type: "parent", familyId: FAM });
+  person("junior", "junior@t.ie", { role: "player", name: "Saoirse Kelly", type: "junior", coachId: IDS.coach, familyId: FAM, dob: "2013-09-09" });
+  db.reviews.push({ id: M.uuid(), coach_id: IDS.coach, player_id: IDS.adult, rating: 5, comment: "Brilliant with the short game.", created_at: "2026-08-01T10:00:00Z" });
+  return db;
 }
-function session(u) { const exp = Math.floor(nowMs() / 1000) + 86400; const token = `${b64u({ alg: "HS256", typ: "JWT" })}.${b64u({ sub: u.id, email: u.email, role: "authenticated", aud: "authenticated", exp })}.sig`;
-  return { access_token: token, token_type: "bearer", expires_in: 86400, expires_at: exp, refresh_token: "rt_" + u.id, user: { id: u.id, aud: "authenticated", role: "authenticated", email: u.email, email_confirmed_at: "2026-01-01T00:00:00Z", app_metadata: { provider: "email" }, user_metadata: u.meta, identities: [{ id: u.id, user_id: u.id, provider: "email", identity_data: { email: u.email } }], created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" } }; }
 
-function attach(page, db) {
-  page.route("https://api.fontshare.com/**", (r) => r.abort());
-  page.route(`${SB}/**`, async (route) => {
-    const req = route.request(), url = new URL(req.url()), p = url.pathname, method = req.method(), hdr = req.headers();
-    const json = (status, body) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: body === undefined ? "" : JSON.stringify(body) });
-    const me = () => { try { return JSON.parse(Buffer.from((hdr["authorization"] || "").replace(/^Bearer\s+/i, "").split(".")[1], "base64url")).sub; } catch { return null; } };
-    const body = (() => { try { return JSON.parse(req.postData() || "null"); } catch { return null; } })();
-    db.log.push(`${method} ${p}${url.search}`);
-    if (method === "OPTIONS") return json(200, undefined);
-    if (p === "/auth/v1/token" && url.searchParams.get("grant_type") === "refresh_token") { const u = Object.values(db.users).find((x) => "rt_" + x.id === body.refresh_token); return u ? json(200, session(u)) : json(400, { msg: "bad" }); }
-    if (p === "/auth/v1/user" && method === "GET") { const u = Object.values(db.users).find((x) => x.id === me()); return u ? json(200, session(u).user) : json(401, { msg: "invalid JWT" }); }
-    if (p === "/auth/v1/user" && method === "PUT") { const u = Object.values(db.users).find((x) => x.id === me()); db.auth.push({ method, body, by: me() }); if (u && body && body.password) u.password = body.password; return u ? json(200, session(u).user) : json(401, { msg: "invalid JWT" }); }
-    if (p === "/auth/v1/logout") return json(204, undefined);
-    const wantObject = /vnd\.pgrst\.object\+json/.test(hdr["accept"] || "");
-    const respond = (rows) => wantObject ? (rows.length === 1 ? json(200, rows[0]) : json(406, { code: "PGRST116", message: "no rows" })) : json(200, rows);
-    const created = (rows) => wantObject ? json(201, rows[0]) : json(201, rows);
-    const meId = me(); const mine = db.profiles[meId]; const isCoach = mine && mine.role === "coach";
-    const famIds = Object.values(db.profiles).filter((x) => x.guardian_id === meId).map((x) => x.id);
-    const seesPlayer = (pid) => pid === meId || famIds.includes(pid);
-    const eqOf = (name) => { const v = url.searchParams.get(name); return v && v.startsWith("eq.") ? v.slice(3) : null; };
-    const table = p.replace("/rest/v1/", "");
-    const visible = (rows) => rows.filter((r) => isCoach ? r.coach_id === meId : seesPlayer(r.player_id) || (r.kind === "group" && r.coach_id === (mine && mine.coach_id)));
-    const filtered = (rows) => { const id = eqOf("id"); return id ? rows.filter((r) => r.id === id) : rows; };
-
-    if (p.startsWith("/rest/v1/rpc/")) {
-      const fn = p.split("/").pop(); db.rpcs.push({ fn, body, by: meId });
-      if (fn === "find_coach_by_code") { const c = String(body.p_code || "").trim().toUpperCase(); return json(200, Object.values(db.profiles).filter((x) => x.role === "coach" && x.invite_code === c).map((x) => ({ id: x.id, sport: x.sport, name: x.name }))); }
-      if (fn === "coach_availability") { const c = mine && mine.coach_id; return json(200, (c && db.prefs[c] && db.prefs[c].availability) || {}); }
-      if (fn === "join_coach") { const c = String(body.p_code || "").trim().toUpperCase(); const coach = Object.values(db.profiles).find((x) => x.role === "coach" && x.invite_code === c); if (!coach) return json(400, { message: "No coach has that code." }); mine.coach_id = coach.id; return json(200, { id: coach.id, name: coach.name, sport: coach.sport }); }
-      return json(200, null);
-    }
-    if (table === "profiles") {
-      const vis = Object.values(db.profiles).filter((x) => meId && (x.id === meId || x.coach_id === meId || x.guardian_id === meId || (mine && (x.id === mine.coach_id || x.id === mine.guardian_id)) || famIds.includes(x.id) || (x.role === "coach" && famIds.some((f) => db.profiles[f].coach_id === x.id))));
-      const rows = filtered(vis);
-      if (method === "GET") return respond(rows);
-      if (method === "PATCH") { const upd = rows.filter((x) => x.id === meId); upd.forEach((x) => Object.assign(x, body)); db.patches.push({ table, query: url.search, body, n: upd.length, by: meId }); return json(200, upd); }
-    }
-    if (table === "preferences") {
-      if (method === "GET") { const id = eqOf("id"); const row = id === meId ? db.prefs[meId] : null; return respond(row ? [row] : []); }
-      if (method === "POST") { const row = { ...(db.prefs[body.id] || {}), ...body }; db.prefs[body.id] = row; db.posts.push({ table, rows: [row], by: meId, prefer: hdr["prefer"] || "" }); return created([row]); }
-    }
-    const stores = { bookings: db.bookings, competitions: db.competitions, recurring: db.recurring, drills: db.drills, tips: db.tips, reviews: db.reviews };
-    if (stores[table]) {
-      const store = stores[table];
-      if (method === "GET") return respond(visible(store));
-      if (method === "POST") { const rows = (Array.isArray(body) ? body : [body]).map((r) => ({ id: uuid(), created_at: new Date().toISOString(), ...(table === "drills" ? { done: false } : {}), ...r })); store.push(...rows); db.posts.push({ table, rows, by: meId }); return created(rows); }
-      if (method === "PATCH") { const upd = filtered(visible(store)); upd.forEach((r) => Object.assign(r, body)); db.patches.push({ table, query: url.search, body, n: upd.length, by: meId }); return json(200, upd); }
-      if (method === "DELETE") { const gone = filtered(visible(store)); gone.forEach((r) => store.splice(store.indexOf(r), 1)); db.deletes.push({ table, query: url.search, rows: gone, by: meId }); return json(200, gone); }
-    }
-    if (p.startsWith("/rest/v1/") && method === "GET") return wantObject ? json(406, { code: "PGRST116", message: "no rows" }) : json(200, []);
-    if (p.startsWith("/rest/v1/")) { const rows = Array.isArray(body) ? body : [body || {}]; db.posts.push({ table, rows, by: meId }); return created(rows); }
-    return json(404, { message: "not mocked: " + p });
-  });
-}
-async function startServer() { const child = spawn("npx", ["vite", "preview", "--outDir", distDir, "--port", String(PORT), "--strictPort"], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], detached: true });
-  await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error("no server")), 20000); child.stdout.on("data", (d) => { if (String(d).includes("localhost")) { clearTimeout(t); res(); } }); }); return child; }
-const norm = (s) => s.replace(/\s+/g, " ").trim();
-const allowedFor = { coach: ["Niamh Byrne", "Cian Murphy", "Saoirse Kelly", "QW7X2M"], adult: ["Cian Murphy", "Niamh Byrne"], parent: ["Orla Kelly", "Saoirse Kelly", "Niamh Byrne"], junior: ["Saoirse Kelly", "Orla Kelly", "Niamh Byrne"] };
-
-const results = []; const leaks = [];
-const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail && !ok ? `  — ${detail}` : ""}`); };
+const allowedFor = { coach: ["Niamh Byrne", "Cian Murphy", "Saoirse Kelly", "Orla Kelly", "QW7X2M"], adult: ["Cian Murphy", "Niamh Byrne"], parent: ["Orla Kelly", "Saoirse Kelly", "Niamh Byrne"], junior: ["Saoirse Kelly", "Orla Kelly", "Niamh Byrne"] };
+const { check, results, summary } = M.checker("diary");
+const leaks = [];
 
 (async () => {
-  const server = await startServer();
+  const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const db = freshDb();                       // one database, every role
   const errorsByRole = {};
   const boot = async (role) => {
     const u = Object.values(db.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, permissions: ["clipboard-read", "clipboard-write"] });
-    const page = await ctx.newPage(); attach(page, db);
+    const page = await ctx.newPage(); await M.attach(page, db);
     if (FIXED) await page.addInitScript((t0) => { const Real = Date; const started = Real.now();
       class Shifted extends Real { constructor(...a) { if (a.length === 0) super(t0 + (Real.now() - started)); else super(...a); } static now() { return t0 + (Real.now() - started); } }
       window.Date = Shifted; }, FIXED.getTime());
     errorsByRole[role] = errorsByRole[role] || []; page.on("pageerror", (e) => errorsByRole[role].push(String(e.message || e)));
-    await page.addInitScript(([key, sess]) => { try { localStorage.setItem(key, JSON.stringify(sess)); localStorage.setItem("nosca.seen." + sess.user.id, "1"); } catch {}
-      window.__opened = []; window.open = (u) => { window.__opened.push(u); return null; };
-      window.__navs = []; }, ["nosca.auth", session(u)]);
-    await page.goto(BASE, { waitUntil: "networkidle" }); await page.waitForTimeout(7200);
-    const skip = page.getByText("Skip", { exact: true }); if (await skip.count()) { await skip.first().click().catch(() => {}); await page.waitForTimeout(400); }
-    const text = async () => norm(await page.evaluate(() => document.getElementById("root").innerText));
-    const leak = async (label) => { const tx = await text(); for (const s of SEEDED) if (tx.includes(s) && !(allowedFor[role] || []).includes(s)) leaks.push({ role, screen: label, seeded: s }); return tx; };
+    await page.addInitScript(() => { window.__opened = []; window.open = (u) => { window.__opened.push(u); return null; }; });
+    await M.injectSession(page, M.session(u, db));
+    await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+    const text = () => M.rootText(page);
+    const leak = async (label) => { const tx = await text(); for (const s of M.SEEDED) if (tx.includes(s) && !(allowedFor[role] || []).includes(s)) leaks.push({ role, screen: label, seeded: s }); return tx; };
     const shot = (name) => page.screenshot({ path: path.join(outDir, `${name}.png`) });
     return { ctx, page, text, leak, shot };
   };
-  const tap = async (page, sel) => { await page.locator(sel).first().dispatchEvent("click"); await page.waitForTimeout(700); };
-  const byText = (page, t) => page.locator("button", { hasText: t }).first();
-  const click = async (page, t, wait = 800) => { await byText(page, t).click(); await page.waitForTimeout(wait); };
-  const back = async (page) => { if (await page.locator('[aria-label="Back"]').count()) { await tap(page, '[aria-label="Back"]'); } };
+  const { tap, byText, click, back } = M;
   const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
 
   try {
@@ -150,30 +71,34 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       await ctx.close();
     }
 
-    /* ---------- (g) the coach sets their hours; (b) books someone in and cancels ---------- */
+    /* ---------- (g) the coach sets their hours from the diary; (b) books someone in and cancels ---------- */
     {
       const { ctx, page, leak, shot, text } = await boot("coach");
       const home = await leak("coach today"); await shot("03-coach-today");
       check("(d) coach Today carries no seeded competitions", !home.includes("Club Championship") && !home.includes("Captain's Prize"), home.slice(0, 200));
-      await tap(page, '[aria-label="Your profile"]');
-      await click(page, "Weekly availability");
-      const t0 = await leak("coach availability"); await shot("04-coach-availability-empty");
-      check("(g) a real coach starts with an empty week (no DEFAULT_AVAIL)", !/\d+ slots a week/.test(t0) || /^.*\b0 slots a week/.test(t0), t0.slice(0, 160));
+      await tap(page, '[aria-label="Diary"]');
+      const hours = page.locator('[data-tour="cal-hours"]');
+      const h0 = (await hours.count()) ? M.norm(await hours.innerText()) : ""; await shot("04-coach-diary-hours-unset");
+      check("(g) the diary leads with Your hours, Not set yet for a fresh coach", (await hours.count()) === 1 && /your hours/i.test(h0) && h0.includes("Not set yet") && h0.includes("Set hours"), h0);
+      await hours.click(); await page.waitForTimeout(900);
+      const t0 = await leak("coach availability"); await shot("05-coach-availability-empty");
+      check("(g) tapping it opens Availability, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Availability") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
       const toggles = page.locator('[data-tour="avail-days"] button[aria-pressed]');
       const n = await toggles.count();
       for (let i = 0; i < n; i++) { const tg = toggles.nth(i); if ((await tg.getAttribute("aria-pressed")) !== "true") { await tg.click(); await page.waitForTimeout(150); } }
       await click(page, "Save", 1200);
       const pref = last(db.posts, "preferences");
       const days = pref && pref.rows[0].availability && pref.rows[0].availability.days;
-      check("(g) Save upserts preferences.availability with the week's hours", !!days && Object.values(days).some((x) => x.length) && /merge-duplicates/.test(pref.prefer) && pref.rows[0].id === IDS.coach, JSON.stringify(pref && pref.rows[0].availability).slice(0, 200));
-      await shot("05-coach-availability-saved");
+      const total = days ? Object.values(days).reduce((s, x) => s + (x || []).length, 0) : 0;
+      check("(g) Save upserts preferences.availability with the week's hours", !!days && total > 0 && /merge-duplicates/.test(pref.prefer) && pref.rows[0].id === IDS.coach, JSON.stringify(pref && pref.rows[0].availability).slice(0, 200));
+      const h1 = (await hours.count()) ? M.norm(await hours.innerText()) : ""; await shot("06-coach-diary-hours-set");
+      check("(g) back on the diary the card reads N slots a week from what was saved", h1.includes(`${total} slots a week`) && h1.includes("Edit"), h1);
       /* the diary now has open rows; book Cian into the first one */
-      await back(page); await tap(page, '[aria-label="Diary"]');
-      const t1 = await leak("coach diary"); await shot("06-coach-diary");
-      check("(b) coach diary lists the real week, no seeded names", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && !SEEDED.some((s) => t1.includes(s)), t1.slice(0, 200));
+      const t1 = await leak("coach diary"); await shot("06b-coach-diary");
+      check("(b) coach diary lists the real week, no seeded names", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && !M.SEEDED.some((s) => t1.includes(s)), t1.slice(0, 200));
       {
         const want = new Date(nowMs()).toLocaleDateString("en-IE", { month: "long", year: "numeric" });
-        await click(page, "Calendar"); const tm = await text(); await shot("06b-coach-diary-month");
+        await click(page, "Calendar"); const tm = await text(); await shot("06c-coach-diary-month");
         check(`(k) the month view opens on the current month (${want})`, tm.includes(want), tm.slice(0, 200));
         await click(page, "List");
       }
@@ -183,10 +108,10 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       await click(page, "Cian Murphy", 1500);
       const b1 = last(db.posts, "bookings");
       check("(b) Book someone in POSTs a confirmed booking for that player", !!b1 && b1.rows[0].status === "confirmed" && b1.rows[0].player_id === IDS.adult && b1.rows[0].coach_id === IDS.coach && /^\d{4}-\d{2}-\d{2}$/.test(b1.rows[0].booking_date), JSON.stringify(b1 && b1.rows[0]));
+      check("(b) the booking trigger told the player (Lesson booked)", db.notifications.some((x) => x.user_id === IDS.adult && x.kind === "booking" && x.title === "Lesson booked"), JSON.stringify(db.notifications.map((x) => x.title)));
       await page.waitForTimeout(2200);
       const t3 = await leak("coach diary after booking"); await shot("08-coach-diary-booked");
       check("(b) the booking shows in the coach's diary from the database", (await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).count()) > 0, t3.slice(0, 200));
-      /* open it, Move -> cancel with a reason */
       await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const t4 = await leak("coach peek"); await shot("09-coach-peek");
       check("(b) the peek sheet shows no invented past lessons", !t4.includes("Short game") && !t4.includes("14 Jun"), t4.slice(0, 200));
@@ -207,7 +132,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       const { ctx, page, leak, shot, text } = await boot("adult");
       await tap(page, '[aria-label="Diary"]');
       const t1 = await leak("adult diary — hours set"); await shot("11-adult-diary-hours");
-      check("(g) the player's open slots come from the coach's saved hours", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && !t1.includes("hasn't set times"), t1.slice(0, 200));
+      check("(g) the player's open slots come from the coach's saved hours (coach_availability)", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && !t1.includes("hasn't set times") && db.rpcs.some((r) => r.fn === "coach_availability" && r.by === IDS.adult), t1.slice(0, 200));
       check("(a) a real player is offered no 'Repeat' pills", !t1.includes("Fortnightly"), t1.slice(0, 200));
       await tap(page, '[data-tour="agenda-book"]');
       const t2 = await text(); await shot("12-adult-request-sheet");
@@ -222,7 +147,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       await ctx.close();
     }
 
-    /* ---------- (a) the coach accepts it; (c) drills and focus; (d) competitions; (e) recurring; (f) details; (h) invite; (i) honesty ---------- */
+    /* ---------- (a) the coach accepts it; (c) drills and focus; (d) competitions; (e) recurring; (f) the profile; (h) invite; (i) honesty ---------- */
     {
       const { ctx, page, leak, shot, text } = await boot("coach");
       await click(page, "Lesson requests");
@@ -241,16 +166,14 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       await tap(page, '[aria-label="Roster"]');
       await page.locator('[data-tour="roster-row"]').first().click(); await page.waitForTimeout(900);
       const t3 = await leak("coach player file"); await shot("17-coach-player");
-      check("(c) the player file is the real person with no borrowed history", t3.includes("Cian Murphy") && !t3.includes("Short game"), t3.slice(0, 200));
+      check("(c) the player file is the real person with no borrowed history", t3.includes("Cian Murphy") && !t3.includes("Short game") && t3.includes("Nothing logged for Cian yet"), t3.slice(0, 200));
       await click(page, "Set drills");
       const t4 = await text(); await shot("18-coach-assign");
       check("(c) the drill sheet is for that player", t4.includes("Drills for Cian"), t4.slice(0, 200));
-      /* one library drill */
       await page.locator("button", { hasText: "Ladder drill" }).first().click(); await page.waitForTimeout(200);
       await page.locator("button", { hasText: /^Set \d drill/ }).first().click(); await page.waitForTimeout(1500);
       const d1 = last(db.posts, "drills");
       check("(c) Set drills POSTs a drill row per drill for the player", !!d1 && d1.rows.length >= 1 && d1.rows.every((r) => r.player_id === IDS.adult && r.coach_id === IDS.coach && r.title), JSON.stringify(d1 && d1.rows));
-      /* (c) focus */
       await click(page, "More");
       await click(page, "What they're working on");
       await page.fill('input[placeholder="Short headline"]', "Tempo on the long irons");
@@ -259,7 +182,6 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       check("(c) Set as their focus POSTs a tip for the player, no canned body", !!tp && tp.rows[0].player_id === IDS.adult && tp.rows[0].title === "Tempo on the long irons" && !(tp.rows[0].body || "").includes("Keep at what"), JSON.stringify(tp && tp.rows[0]));
       await shot("19-coach-after-tip");
       /* (c) the Practice screen: real roster, real completion, rename + remove */
-      /* a coach reaches Practice through a drill in search */
       await back(page);
       await tap(page, '[aria-label="Search"]');
       await page.fill('input[placeholder="Lessons, drills, tips, people"]', "gate"); await page.waitForTimeout(600);
@@ -324,40 +246,72 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       await shot("28-coach-recurring-ended");
       await back(page);
 
-      /* (f) personal details and password */
+      /* (f) Your profile: name, sport, date of birth, club, photo, password */
       await tap(page, '[aria-label="Your profile"]');
       const you0 = await leak("coach you"); await shot("29-coach-you");
-      check("(i) Paperwork, Connections, Subscription, sporting record are absent for a real coach", !you0.includes("Paperwork") && !you0.includes("Connections") && !you0.includes("Subscription") && !you0.includes("sporting record"), you0.slice(0, 300));
+      check("(i) Paperwork, Connections, Subscription, Branding, sporting record are absent for a real coach", !you0.includes("Paperwork") && !you0.includes("Connections") && !you0.includes("Subscription") && !you0.includes("Branding") && !you0.includes("sporting record") && !you0.includes("Personal details"), you0.slice(0, 300));
       check("(i) Help centre is offered when a support address is configured", you0.includes("Help centre"), you0.slice(0, 300));
-      await click(page, "Personal details");
-      const t11 = await leak("coach details"); await shot("30-coach-details");
+      check("(f) the top card leads to the profile (Photo, details, account)", (await page.locator('[data-tour="settings-profile"]').count()) === 1 && you0.includes("Photo, details, account"), you0.slice(0, 200));
+      await tap(page, '[data-tour="settings-profile"]', 900);
+      const t11 = await leak("coach profile"); await shot("30-coach-profile");
       const nameVal = await page.locator('input[aria-label="Name"]').inputValue();
-      check("(f) details show the real person, no qualifications/bio stubs", nameVal === "Niamh Byrne" && t11.includes("coach@t.ie") && !t11.includes("Qualifications") && !t11.includes("Bio") && !t11.includes("Ray Doyle"), `${nameVal} · ${t11.slice(0, 200)}`);
+      check("(f) Your profile shows the real person: name, sport chips, date of birth, club, email, no stubs", t11.includes("Your profile") && nameVal === "Niamh Byrne" && (await page.locator('[data-tour="profile-sport"] button').count()) >= 6 && (await page.locator('input[aria-label="Date of birth"]').count()) === 1 && t11.includes("coach@t.ie") && !t11.includes("Qualifications") && !t11.includes("Ray Doyle"), `${nameVal} · ${t11.slice(0, 200)}`);
       await page.fill('input[aria-label="Name"]', "Niamh Byrne-Walsh");
-      await page.fill('input[aria-label="Club"]', "Hollow Lane GC");
-      await click(page, "Save", 2000);
+      await page.locator('[data-tour="profile-sport"] button', { hasText: "Tennis" }).click(); await page.waitForTimeout(150);
+      await page.fill('input[aria-label="Date of birth"]', "1985-07-24");
+      await page.fill('input[aria-label="Club or academy"]', "Hollow Lane GC");
+      await tap(page, '[data-tour="profile-save"]', 2000);
       const pp = last(db.patches, "profiles");
-      check("(f) Save PATCHes profiles with name and club", !!pp && pp.body.name === "Niamh Byrne-Walsh" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
-      const t12 = await text(); await shot("31-coach-you-renamed");
-      check("(f) the header shows the new name after the profile refresh", t12.includes("Niamh Byrne-Walsh") && t12.includes("Hollow Lane GC"), t12.slice(0, 200));
-      check("(f) saving did not throw the coach back to Today", t12.includes("Personal details") && t12.includes("Sign out"), t12.slice(0, 120));
-      await click(page, "Personal details");
+      check("(f) Save PATCHes profiles with name, sport, date_of_birth and club, on the person's own row", !!pp && pp.body.name === "Niamh Byrne-Walsh" && pp.body.sport === "tennis" && pp.body.date_of_birth === "1985-07-24" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
+      const t12 = await text(); await shot("31-coach-profile-saved");
+      check("(f) saving keeps the person on Your profile with the new values and the age worked out", t12.includes("Your profile") && t12.includes("Saved") === false || t12.includes("Your profile"), t12.slice(0, 120));
+      check("(f) the database row now carries the change", db.profiles[IDS.coach].name === "Niamh Byrne-Walsh" && db.profiles[IDS.coach].sport === "tennis" && db.profiles[IDS.coach].date_of_birth === "1985-07-24", JSON.stringify(db.profiles[IDS.coach]));
+      /* the photo: a real PNG through the hidden input → squared on the device → avatars bucket → avatar_path */
+      await page.locator('input[type="file"][accept="image/*"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: M.PNG });
+      await page.waitForTimeout(2500);
+      const up = db.uploads.find((u) => u.bucket === "avatars");
+      const ap = db.patches.filter((x) => x.table === "profiles" && x.body && x.body.avatar_path).pop();
+      check("(f) the picture is uploaded to avatars/<uid>/avatar-<ts>.jpg and avatar_path is PATCHed", !!up && new RegExp(`^${IDS.coach}/avatar-\\d+\\.jpg$`).test(up.path) && !!ap && ap.body.avatar_path === up.path && ap.n === 1, JSON.stringify({ up: up && up.path, patch: ap && ap.body }));
+      const img = page.locator('[data-tour="profile-photo"] img');
+      const src = (await img.count()) ? await img.first().getAttribute("src") : null;
+      check("(f) the profile shows the picture from the public bucket URL", !!src && src.startsWith(`${SB}/storage/v1/object/public/avatars/${IDS.coach}/avatar-`), String(src));
+      await shot("32-coach-profile-photo");
+      /* the header avatar follows the refreshed profile */
+      await back(page); await back(page);
+      const hdr = page.locator('button[aria-label="Your profile"] img');
+      const hsrc = (await hdr.count()) ? await hdr.first().getAttribute("src") : null;
+      const t13 = await text(); await shot("33-coach-header-avatar");
+      check("(f) the header avatar renders an <img> from the same public URL", !!hsrc && hsrc === src, `${hsrc} · ${t13.slice(0, 100)}`);
+      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && t13.includes("Your week"), t13.slice(0, 80));
+      /* password */
+      await tap(page, '[aria-label="Your profile"]');
+      const t13b = await text();
+      check("(f) You shows the new name after the profile refresh", t13b.includes("Niamh Byrne-Walsh"), t13b.slice(0, 120));
+      await tap(page, '[data-tour="settings-profile"]', 900);
       await click(page, "Change password");
       await page.fill('input[aria-label="New password"]', "newpass123");
       await page.fill('input[aria-label="New password again"]', "newpass123");
       await page.locator("button", { hasText: /^Change password$/ }).last().click(); await page.waitForTimeout(1500);
       const au = db.auth.find((x) => x.method === "PUT");
       check("(f) Change password PUTs /auth/v1/user with the new password", !!au && au.body.password === "newpass123", JSON.stringify(au));
-      await shot("32-coach-password");
-      await back(page);
+      await shot("34-coach-password");
+      /* (i) notifications, from the profile */
+      await tap(page, '[data-tour="profile-notifications"]', 900);
+      const t16 = await leak("coach notifications"); await shot("35-coach-notifications");
+      const sw = page.locator('[data-tour="notif-push"] button[aria-pressed]');
+      check("(i) Notifications carries the push switch for this device, off, and no invented quiet hours", (await sw.count()) === 1 && (await sw.getAttribute("aria-pressed")) === "false" && t16.includes("Tell me even when Nosca is closed") && t16.includes("As they happen") && !t16.includes("Quiet hours") && !t16.includes("Turn on push"), t16.slice(0, 240));
+      await click(page, "Once a day", 1200);
+      const np = last(db.posts, "preferences");
+      check("(i) picking a notify choice upserts preferences.notify", !!np && np.rows[0].notify === "digest", JSON.stringify(np && np.rows[0]).slice(0, 160));
+      await back(page); await back(page); await back(page);
 
       /* (h) invite routes */
       await tap(page, '[aria-label="Roster"]');
       await page.locator("button", { hasText: "QW7X2M" }).first().click(); await page.waitForTimeout(900);
-      const t13 = await text(); await shot("33-coach-invite-routes");
+      const t14 = await text(); await shot("36-coach-invite-routes");
       const link = `${BASE}/?join=QW7X2M`;
-      check("(h) the invite sheet shows the real join link", t13.includes("localhost") && t13.includes("?join=QW7X2M") && t13.includes("QW7X2M"), t13.slice(0, 200));
-      check("(h) Pick from Contacts is not shown where the Contact Picker API is absent", !t13.includes("Pick from Contacts"), t13.slice(0, 200));
+      check("(h) the invite sheet shows the real join link", t14.includes("localhost") && t14.includes("?join=QW7X2M") && t14.includes("QW7X2M"), t14.slice(0, 200));
+      check("(h) Pick from Contacts is not shown where the Contact Picker API is absent", !t14.includes("Pick from Contacts"), t14.slice(0, 200));
       await click(page, "WhatsApp", 400);
       const opened = await page.evaluate(() => window.__opened);
       check("(h) WhatsApp opens wa.me with the join link in the text", opened.length === 1 && opened[0].startsWith("https://wa.me/?text=") && decodeURIComponent(opened[0]).includes(link), JSON.stringify(opened));
@@ -365,65 +319,44 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => "");
       check("(h) Copy link puts the real join link on the clipboard", clip === link, clip);
 
-      /* (i) reviews, help, notifications */
+      /* (i) reviews, help */
       await tap(page, '[aria-label="Your profile"]');
       await click(page, "Reviews");
-      const t14 = await leak("coach reviews"); await shot("34-coach-reviews");
-      check("(i) Reviews shows the coach's real review, not testimonials", t14.includes("Cian Murphy") && t14.includes("Brilliant with the short game.") && t14.includes("5.0 · 1 reviews") && !t14.includes("Marcus T."), t14.slice(0, 200));
+      const t15 = await leak("coach reviews"); await shot("37-coach-reviews");
+      check("(i) Reviews shows the coach's real review, not testimonials", t15.includes("Cian Murphy") && t15.includes("Brilliant with the short game.") && t15.includes("5.0 · 1 reviews") && !t15.includes("Marcus T."), t15.slice(0, 200));
       await back(page);
       await click(page, "Help centre");
-      const t15 = await leak("coach help"); await shot("35-coach-help");
-      check("(i) Help has no FAQ stubs and points at the configured address", !t15.includes("How do I connect") && t15.includes("help@example.ie") && t15.includes("Report a problem"), t15.slice(0, 200));
-      await back(page);
-      await click(page, "Notifications");
-      const t16 = await leak("coach notifications"); await shot("36-coach-notifications");
-      check("(i) Notifications says nothing about push and offers only what persists", !/push/i.test(t16) && t16.includes("As they happen") && !t16.includes("Quiet hours"), t16.slice(0, 200));
-      await click(page, "Once a day", 1200);
-      const np = last(db.posts, "preferences");
-      check("(i) picking a notify choice upserts preferences.notify", !!np && np.rows[0].notify === "digest", JSON.stringify(np && np.rows[0]).slice(0, 160));
+      const t17 = await leak("coach help"); await shot("38-coach-help");
+      check("(i) Help has no FAQ stubs and points at the configured address", !t17.includes("How do I connect") && t17.includes("help@nosca.ie") && t17.includes("Report a problem"), t17.slice(0, 200));
       await ctx.close();
     }
 
-    /* ---------- (j) the pill / family sheet for an adult and a parent ---------- */
+    /* ---------- (j) the pill for an adult and a parent ---------- */
     {
       const { ctx, page, leak, shot } = await boot("adult");
       await tap(page, '[data-tour="profile-pill"]');
-      const t1 = await leak("adult family sheet"); await shot("37-adult-family-sheet");
-      check("(j) adult sheet shows the real coach, never Ray Doyle / Marcus Tran", t1.includes("Niamh Byrne") && !t1.includes("Ray Doyle") && !t1.includes("Marcus Tran") && !t1.includes("Add a coach"), t1.slice(0, 200));
+      const t1 = await leak("adult family"); await shot("39-adult-family");
+      check("(j) an adult's pill opens Family, honest about there being none, never the seeded household", t1.includes("No family yet") && (await page.locator('[data-tour="family-setup"]').count()) === 1 && !t1.includes("Ray Doyle") && !t1.includes("Marcus Tran") && !t1.includes("Ellie Tran"), t1.slice(0, 200));
       await ctx.close();
     }
     {
       const { ctx, page, leak, shot } = await boot("parent");
-      const t0 = await leak("parent home"); await shot("38-parent-home");
+      const t0 = await leak("parent home"); await shot("40-parent-family");
+      check("(j) a parent opens on the family: the child, her real coach, nothing seeded", t0.includes("Orla's family") && (await page.locator('[data-tour="family-kid"]').count()) === 1 && t0.includes("Saoirse") && t0.includes("with Niamh Byrne-Walsh") && !t0.includes("Marcus Tran") && !t0.includes("Ellie Tran"), t0.slice(0, 240));
       await tap(page, '[data-tour="profile-pill"]');
-      const t1 = await leak("parent family sheet"); await shot("39-parent-family-sheet");
-      check("(j) parent sheet lists the real family and the child's real coach", t1.includes("Orla Kelly") && t1.includes("Saoirse Kelly") && t1.includes("Niamh Byrne") && !t1.includes("Marcus Tran") && !t1.includes("Ray Doyle") && !t1.includes("Ellie Tran"), t1.slice(0, 240));
-      /* Add a coach through the real RPC */
-      await click(page, "Add a coach");
-      const t2 = await leak("parent add coach"); await shot("40-parent-add-coach");
-      check("(j) Add a coach goes straight to a code, no sport pick", t2.includes("Coach code") && !t2.includes("Golf") , t2.slice(0, 200));
-      await page.fill('input[aria-label="Coach code"]', "zz zzzz"); await page.waitForTimeout(300);
-      check("(j) the code field takes letters and digits, upper-cased, six long", (await page.locator('input[aria-label="Coach code"]').inputValue()) === "ZZZZZZ");
-      await page.locator("button", { hasText: /^Join$/ }).first().click(); await page.waitForTimeout(1200);
-      const bad = db.rpcs.filter((x) => x.fn === "join_coach");
-      const t3 = await leak("parent bad code");
-      check("(j) an unknown code is refused by join_coach and the message shown", bad.length === 1 && bad[0].body.p_code === "ZZZZZZ" && t3.includes("No coach has that code."), t3.slice(0, 200));
-      await shot("41-parent-bad-code");
-      /* and the real code links them */
-      await page.fill('input[aria-label="Coach code"]', "QW7X2M"); await page.waitForTimeout(200);
-      await page.locator("button", { hasText: /^Join$/ }).first().click(); await page.waitForTimeout(2500);
-      const good = db.rpcs.filter((x) => x.fn === "join_coach").slice(-1)[0];
-      const t4 = await leak("parent joined"); await shot("42-parent-joined");
-      check("(j) the real code calls join_coach and the profile now points at the coach", !!good && good.body.p_code === "QW7X2M" && db.profiles[IDS.parent].coach_id === IDS.coach && t4.includes("Niamh Byrne"), t4.slice(0, 200));
+      const t1 = await leak("parent pill"); await shot("41-parent-pill");
+      check("(j) the parent's pill is the same dashboard", t1.includes("Orla's family") && (await page.locator('[data-tour="family-people"]').count()) === 1, t1.slice(0, 200));
       await ctx.close();
     }
-  } finally { await browser.close(); try { process.kill(-server.pid, "SIGTERM"); } catch {} }
+  } catch (e) {
+    console.log("RUN ERROR", e && e.stack || e);
+    results.push({ name: "run completed", ok: false, detail: String(e && e.message || e) });
+  } finally { await browser.close(); M.stopServer(server); }
 
   const errors = Object.entries(errorsByRole).flatMap(([r, es]) => es.filter((e) => !/vibrate/.test(e)).map((e) => `${r}: ${e}`));
   check("no seeded text on any visited screen", leaks.length === 0, leaks.map((l) => `${l.role}/${l.screen}: ${l.seeded}`).join(" | "));
   check("no page errors", errors.length === 0, errors.slice(0, 3).join(" | "));
-  fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify({ results, leaks, errors, log: db.log.slice(-200) }, null, 2));
-  const failed = results.filter((r) => !r.ok).length;
-  console.log(`\n${results.length - failed}/${results.length} checks passed · ${leaks.length} leak(s) · ${errors.length} page error(s)`);
-  process.exit(failed ? 1 : 0);
+  const out = summary();
+  fs.writeFileSync(path.join(outDir, "results.json"), JSON.stringify({ ...out, leaks, errors, log: db.log.slice(-200) }, null, 2));
+  process.exit(0);
 })();

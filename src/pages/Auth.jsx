@@ -33,7 +33,8 @@ import {
 
 const MIN_PASS = 8;
 const ADULT = 18;
-const FAMILY_REQUIRED = "Under 18s join with a parent's family code. Ask them to open Nosca → Family → Share.";
+const FAMILY_REQUIRED = "Under 18s join with a parent's family code. Ask them to open Nosca → You → Family → Share.";
+const FAMILY_OPTIONAL = "Joining a family someone already set up? Enter their code. Otherwise one is made for you.";
 const ALREADY = "There's already an account with that email. Try signing in.";
 
 export const friendly = (msg) => {
@@ -197,7 +198,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
            footer={<>
              <ErrLine>{err}</ErrLine>
              {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={() => onSignInInstead(email.trim().toLowerCase())}>{tr("Sign in")}</Button></div>}
-             <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr(role === "player" ? "Continue" : "Create account")}</Button>
+             <Button tone="ink" disabled={busy} onClick={submit}>{busy ? "…" : tr(role === "coach" ? "Create account" : "Continue")}</Button>
            </>}>
       <div className="pt-6">
         <Headline>{tr("Your details")}</Headline>
@@ -272,7 +273,7 @@ function CodeStatus({ look, value, issue, hint, tried }) {
     return (
       <p className="mt-3 flex items-center justify-center gap-1.5" style={{ fontFamily: ui, fontSize: 13.5, color: t.ink }}>
         <Check size={15} color={STEADY} strokeWidth={2.1} />
-        <span>{look.name}{look.sport && SPORTS[look.sport] ? ` · ${SPORTS[look.sport].label}` : ""}</span>
+        <span>{look.name}{look.sport && SPORTS[look.sport] ? ` · ${SPORTS[look.sport].label}` : ""}{look.members != null ? ` · ${look.members} ${look.members === 1 ? tr("person") : tr("people")}` : ""}</span>
       </p>
     );
   }
@@ -287,14 +288,14 @@ function CodeStatus({ look, value, issue, hint, tried }) {
 }
 
 /* ---------- 4 · your codes (players only) ---------- */
-function CodesStep({ junior, initial, busy, err, onBack, onDone, onSkip, onSignInInstead }) {
+function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip, onSignInInstead }) {
   const t = useT();
   const [coach, setCoach] = useState(initial?.coach || "");
   const [fam, setFam] = useState(initial?.family || "");
   const [tried, setTried] = useState(false);
   const [pending, setPending] = useState(false);
   const coachLook = useCodeLookup("find_coach_by_code", coach);
-  const famLook = useCodeLookup("find_guardian_by_code", fam);
+  const famLook = useCodeLookup("find_family_by_code", fam);
   const coachWrap = useRef(null), famWrap = useRef(null);
 
   const issueFor = (value, look, noun) => {
@@ -334,25 +335,29 @@ function CodesStep({ junior, initial, busy, err, onBack, onDone, onSkip, onSignI
   );
 
   return (
-    <SignupShell onBack={onBack} title={tr("Your codes")}
-                 sub={junior ? tr("Your coach's code, and a parent's family code.") : tr("Optional. You can add these later from Home.")}
+    <SignupShell onBack={onBack} title={parent ? tr("Your family") : tr("Your codes")}
+                 sub={parent ? tr("One code links your household. Children enter it when they sign up.")
+                    : junior ? tr("Your coach's code, and a parent's family code.") : tr("Optional. You can add these later.")}
                  footer={<>
                    <ErrLine>{err}</ErrLine>
                    {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={onSignInInstead}>{tr("Sign in")}</Button></div>}
                    <Button tone="ink" disabled={busy} onClick={submit}>{busy || pending ? "…" : tr("Create account")}</Button>
-                   {!junior && <QuietLink onClick={onSkip} disabled={busy}>{tr("Skip for now")}</QuietLink>}
+                   {!junior && <QuietLink onClick={onSkip} disabled={busy}>{parent ? tr("Start a new family") : tr("Skip for now")}</QuietLink>}
                  </>}>
       <div style={{ overflowY: "auto", minHeight: 0, maxHeight: "100%" }}>
-        <div ref={coachWrap} className="pt-1 pb-7">
-          {label(tr("Coach code"))}
-          <CodeBoxes value={coach} onChange={setCoach} bad={!!coachIssue && (cleanCode(coach).length === 6 || tried)} />
-          <CodeStatus look={coachLook} value={coach} issue={coachIssue} tried={tried} />
-        </div>
+        {!parent && (
+          <div ref={coachWrap} className="pt-1 pb-7">
+            {label(tr("Coach code"))}
+            <CodeBoxes value={coach} onChange={setCoach} bad={!!coachIssue && (cleanCode(coach).length === 6 || tried)} />
+            <CodeStatus look={coachLook} value={coach} issue={coachIssue} tried={tried}
+                        hint={tr("Your coach accepts you from their app.")} />
+          </div>
+        )}
         <div ref={famWrap} className="pb-2">
           {label(tr("Family code"))}
           <CodeBoxes value={fam} onChange={setFam} bad={!!famIssue && (cleanCode(fam).length === 6 || (tried && (junior || !!cleanCode(fam))))} />
           <CodeStatus look={famLook} value={fam} issue={famIssue} tried={tried && junior}
-                      hint={junior ? FAMILY_REQUIRED : null} />
+                      hint={junior ? FAMILY_REQUIRED : parent ? FAMILY_OPTIONAL : tr("If your household has one. Otherwise, later, under You → Family.")} />
         </div>
       </div>
     </SignupShell>
@@ -707,7 +712,7 @@ export default function Auth({ invite, mode, onInviteUsed }) {
   if (stage === "codes") {
     return (
       <Neutral>
-        <CodesStep junior={typeof details?.age === "number" && details.age < ADULT}
+        <CodesStep junior={typeof details?.age === "number" && details.age < ADULT} parent={role === "parent"}
                    initial={codes} busy={busy} err={err}
                    onBack={() => go("details")}
                    onSignInInstead={() => signInInstead(details?.email)}
@@ -726,7 +731,7 @@ export default function Auth({ invite, mode, onInviteUsed }) {
                    onDone={(d) => {
                      setDetails(d);
                      setErr("");
-                     if (role === "player") { setStage("codes"); return; }
+                     if (role === "player" || role === "parent") { setStage("codes"); return; }
                      createAccount(d, null);
                    }} />
     </Neutral>
