@@ -6,6 +6,9 @@
 # Webhook POSTs new notifications rows to it. See README, "Push
 # notifications".
 [functions]
+  # web-push is CommonJS and requires('crypto'); shipping it unbundled
+  # keeps the ESM bundler from breaking that resolution at deploy time.
+  external_node_modules = ["web-push"]
   directory = "netlify/functions"
   node_bundler = "esbuild"
 

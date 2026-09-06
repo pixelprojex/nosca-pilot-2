@@ -57,6 +57,11 @@ function isStandalone() {
  */
 export function pushSupport() {
   if (!hasWindow()) return "unsupported";
+  /* No key in the build means no push, whatever the browser can do.
+     Saying so here keeps the prompt and the switch from promising
+     something that cannot happen — and from burning their one ask on
+     a configuration problem the person cannot fix. */
+  if (!vapidKey()) return "unsupported";
   if (isIos() && !isStandalone()) return "ios-home-screen";
   const hasSw = "serviceWorker" in navigator;
   const hasPush = typeof window.PushManager !== "undefined";
@@ -197,14 +202,18 @@ export async function subscribePush(supabase, userId) {
     let keyBytes;
     try { keyBytes = urlBase64ToUint8Array(key); } catch { return { ok: false, reason: "The VAPID key is not valid" }; }
 
+    /* PERMISSION FIRST. Safari ties the prompt to a live user gesture,
+       and registering plus waiting for the worker can take longer than
+       that window lasts — the ask was being refused before it appeared.
+       Nothing below depends on the order. */
+    let permission = window.Notification.permission;
+    if (permission === "default") permission = await requestPermission();
+    if (permission !== "granted") return { ok: false, reason: "Permission declined" };
+
     const reg = await registerSw();
     if (!reg) return { ok: false, reason: "Couldn't start the service worker" };
     if (!(await whenActive(reg))) return { ok: false, reason: "The service worker didn't start — reload and try again" };
     if (!reg.pushManager) return { ok: false, reason: "This browser can't receive notifications" };
-
-    let permission = window.Notification.permission;
-    if (permission === "default") permission = await requestPermission();
-    if (permission !== "granted") return { ok: false, reason: "Permission declined" };
 
     let subscription = await reg.pushManager.getSubscription();
     if (subscription && !sameKey(subscription, keyBytes)) {
@@ -227,6 +236,24 @@ export async function subscribePush(supabase, userId) {
       if (!saved.ok) return saved;
     }
     return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: reasonFor(err) };
+  }
+}
+
+/* THE ROW AND THE BROWSER DRIFT APART: a 410 prunes the row, an account
+   is deleted and takes its rows with it, a phone changes hands, an
+   endpoint rotates. Called on every open where permission is already
+   granted, this puts them back in step without asking anyone anything.
+   It never registers or subscribes — it only re-files a subscription
+   the browser already holds. */
+export async function syncSubscription(supabase, userId) {
+  try {
+    if (!supabase || !userId) return { ok: false, reason: "Not signed in" };
+    if (pushSupport() !== "granted") return { ok: false, reason: "Not granted" };
+    const subscription = await currentSubscription();
+    if (!subscription) return { ok: false, reason: "No subscription on this device" };
+    return await saveRow(supabase, rowFor(subscription, userId));
   } catch (err) {
     return { ok: false, reason: reasonFor(err) };
   }

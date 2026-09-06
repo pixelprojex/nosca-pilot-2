@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
+import { unsubscribePush } from "./push";
 
 const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
@@ -100,6 +101,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signOut = async () => {
+    /* Let go of the push subscription while the session is still alive —
+       the delete needs the JWT to pass RLS. Otherwise this phone keeps
+       receiving the previous person's notifications. Never let it block
+       the sign-out itself. */
+    try { await unsubscribePush(supabase); } catch (e) { /* signing out matters more */ }
     await supabase.auth.signOut();
     loadedFor.current = null;
     setProfile(null);

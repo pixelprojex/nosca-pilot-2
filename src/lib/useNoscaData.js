@@ -37,6 +37,17 @@ const juniorRow = (p) => p.role === "player" && (p.account_type === "junior" || 
 export const MAX_UPLOAD_MB = Number(import.meta.env.VITE_MAX_UPLOAD_MB) > 0 ? Number(import.meta.env.VITE_MAX_UPLOAD_MB) : 50;
 const mb = (bytes) => `${Math.max(1, Math.round((bytes || 0) / 1048576))} MB`;
 const safeName = (name) => (name || "file").normalize("NFKD").replace(/[^\w.\-]+/g, "_").replace(/_+/g, "_").slice(-80);
+/* Six characters of entropy per file. crypto.randomUUID needs a secure
+   context and is missing on older Safari, so this falls back. */
+const token = () => {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID().slice(0, 8);
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+      return Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+  } catch (e) { /* fall through */ }
+  return Math.random().toString(36).slice(2, 10);
+};
 
 /* The public address of a profile picture. The bucket is public and
    the path carries the time it was set, so the URL changes when the
@@ -130,7 +141,8 @@ export function useNoscaData(profile) {
      family is reflected the moment it is written, with nothing else
      needing to remember to refresh. */
   const [links, setLinks] = useState(null);
-  const mediaCache = useRef(new Map());          // lesson id -> { at, items }
+  const mediaCache = useRef(new Map());          // lesson id -> { at, count, items }
+  const mediaFlight = useRef(new Map());         // lesson id -> the request in the air
 
   const isCoach = profile?.role === "coach";
 
@@ -422,15 +434,26 @@ export function useNoscaData(profile) {
 
   /* ---------------- writes ---------------- */
 
-  /* What happened to each file attached to the last lesson logged —
-     shown on the burst and on Today until every one is in or given up
-     on. { lessonId, items: [{ name, size, status: uploading|done|failed, error }] } */
+  /* What happened to every file attached to any lesson this session —
+     shown on the burst, on Today and on the lesson until each one is in
+     or given up on.
+     { items: [{ key, lessonId, name, size, status: uploading|done|failed, error }] } */
   const [uploads, setUploads] = useState(null);
   const pendingFiles = useRef(new Map());        // name -> File, for Retry
 
   const uploadOne = async (lessonId, f) => {
     const name = safeName(f.name);
-    const path = `${profile.id}/${lessonId}/${Date.now()}-${name}`;
+    /* THE PATH MUST BE UNIQUE PER FILE, NOT PER BATCH.
+       Promise.all runs every uploadOne body synchronously up to its
+       first await, so every file in one publish read the SAME
+       Date.now(). The path then differed only by filename — and an
+       iPhone names every camera capture "image.jpg" or "video.mp4".
+       Three clips recorded in the wizard became three identical paths;
+       upsert:false let the first win and 409'd the rest, so exactly one
+       clip reached the lesson. That is the "only one video uploaded"
+       everyone kept seeing. A per-file token removes the collision
+       whatever the files are called. */
+    const path = `${profile.id}/${lessonId}/${Date.now()}-${token()}-${name}`;
     if (f.size > MAX_UPLOAD_MB * 1048576) {
       return { error: `${mb(f.size)} — the limit is ${MAX_UPLOAD_MB} MB. Trim the clip and try again.` };
     }
@@ -439,7 +462,8 @@ export function useNoscaData(profile) {
     });
     if (upErr) {
       const m = String(upErr.message || upErr.error || "");
-      const why = /exceeded|too large|413|maximum/i.test(m) ? `Too big for the storage limit (${MAX_UPLOAD_MB} MB).`
+      const why = /already exists|duplicate|409/i.test(m) ? "A file with that name is already on this lesson."
+        : /exceeded|too large|413|maximum/i.test(m) ? `Too big for the storage limit (${MAX_UPLOAD_MB} MB).`
         : /network|fetch|load failed/i.test(m) ? "The connection dropped."
         : /not allowed|policy|row-level|403/i.test(m) ? "Storage refused it — run supabase/nosca.sql again."
         : m || "The upload failed.";
@@ -457,34 +481,60 @@ export function useNoscaData(profile) {
   /* Every file at once, each reporting for itself; the lesson exists
      before the first byte moves, so a failed clip never loses the
      write-up. Anything that fails stays listed with a reason and a
-     Retry, rather than quietly vanishing. */
+     Retry, rather than quietly vanishing.
+
+     The list spans every lesson, not one. It used to be
+     { lessonId, items }: logging a second lesson while the first was
+     still uploading threw the first away, and when its files settled
+     the write-back was skipped because the id had moved on — a failed
+     clip disappeared with no message and no way to retry it. Each item
+     now carries its own lesson and its own key. */
   const uploadFiles = async (lessonId, files) => {
     const list = (files || []).filter(Boolean);
     if (!list.length) return { failed: 0 };
-    list.forEach((f) => pendingFiles.current.set(`${lessonId}:${f.name}:${f.size}`, f));
-    const key = (f) => `${lessonId}:${f.name}:${f.size}`;
+    /* One key per FILE. Name and size are not unique — an iPhone hands
+       back "image.jpg" for every capture — so two files could share a
+       key and both report whatever the first one did. */
+    const keys = list.map((f) => f.__noscaKey || (f.__noscaKey = `${lessonId}:${token()}`));
+    list.forEach((f, i) => pendingFiles.current.set(keys[i], f));
     /* a retry re-lists only the files it retries; what already landed stays counted */
-    const fresh = list.map((f) => ({ key: key(f), name: f.name, size: f.size, kind: f.type.split("/")[0], status: "uploading", error: null }));
-    setUploads((u) => ({ lessonId, items: [...((u && u.lessonId === lessonId ? u.items : []).filter((it) => !fresh.some((f) => f.key === it.key))), ...fresh] }));
+    const fresh = list.map((f, i) => ({ key: keys[i], lessonId, name: f.name, size: f.size, kind: (f.type || "").split("/")[0], status: "uploading", error: null }));
+    setUploads((u) => ({ items: [...(((u && u.items) || []).filter((it) => !keys.includes(it.key))), ...fresh] }));
     const results = await Promise.all(list.map((f) => uploadOne(lessonId, f).catch((e) => ({ error: (e && e.message) || "The upload failed." }))));
-    list.forEach((f, i) => { if (!results[i].error) pendingFiles.current.delete(key(f)); });
-    setUploads((u) => u && u.lessonId === lessonId ? { ...u, items: u.items.map((it) => {
-      const i = list.findIndex((f) => key(f) === it.key);
-      if (i < 0) return it;
-      const r = results[i];
-      return r.error ? { ...it, status: "failed", error: r.error } : { ...it, status: "done", error: null };
-    }) } : u);
+    list.forEach((f, i) => { if (!results[i].error) pendingFiles.current.delete(keys[i]); });
+    setUploads((u) => {
+      if (!u) return u;
+      return { items: u.items.map((it) => {
+        const i = keys.indexOf(it.key);
+        if (i < 0) return it;                       // another lesson's file: leave it alone
+        const r = results[i];
+        return r.error ? { ...it, status: "failed", error: r.error } : { ...it, status: "done", error: null };
+      }) };
+    });
     const failed = results.filter((r) => r.error).length;
     mediaCache.current.delete(lessonId);
     await load();
     return { failed };
   };
 
+  /* Everything that failed, wherever it failed, in one press — grouped
+     so each lesson's files go up together. */
   const retryUploads = async () => {
-    const u = uploads; if (!u) return { failed: 0 };
-    const again = u.items.filter((it) => it.status === "failed").map((it) => pendingFiles.current.get(it.key)).filter(Boolean);
-    if (!again.length) return { failed: 0 };
-    return uploadFiles(u.lessonId, again);
+    const u = uploads; if (!u || !u.items) return { failed: 0 };
+    const byLesson = new Map();
+    u.items.filter((it) => it.status === "failed").forEach((it) => {
+      const f = pendingFiles.current.get(it.key);
+      if (!f) return;
+      if (!byLesson.has(it.lessonId)) byLesson.set(it.lessonId, []);
+      byLesson.get(it.lessonId).push(f);
+    });
+    if (!byLesson.size) return { failed: 0 };
+    let failed = 0;
+    for (const [id, again] of byLesson) {
+      const r = await uploadFiles(id, again);
+      failed += (r && r.failed) || 0;
+    }
+    return { failed };
   };
   const dismissUploads = () => { setUploads(null); pendingFiles.current.clear(); };
 
@@ -1185,29 +1235,59 @@ export function useNoscaData(profile) {
   /* Everything attached to a lesson, each with a signed URL valid for
      an hour, cached for the session (see MEDIA_TTL). One storage call
      signs the whole set. */
-  const lessonMedia = async (lessonId) => {
+  const lessonMedia = async (lessonId, expected) => {
     const hit = mediaCache.current.get(lessonId);
-    if (hit && Date.now() - hit.at < MEDIA_TTL) return hit.items;
+    /* A hit is only good while the lesson still claims the same number
+       of files. The other party adding a clip used to be invisible for
+       fifty minutes, because nothing on the reader's side ever cleared
+       this — deletes only run on the client that did the write. */
+    const stale = hit && expected != null && hit.count != null && hit.count !== expected;
+    if (hit && !stale && Date.now() - hit.at < MEDIA_TTL) return hit.items;
     const { data: rows, error } = await supabase.from("lesson_media")
       .select("id, kind, storage_path, created_at").eq("lesson_id", lessonId).order("created_at");
     if (error || !rows || !rows.length) return [];
     const paths = rows.map((m) => m.storage_path);
-    const { data: signed } = await supabase.storage.from("media").createSignedUrls(paths, 3600);
+    const { data: signed, error: signErr } = await supabase.storage.from("media").createSignedUrls(paths, 3600);
     const urlFor = (path, i) => {
       const s = (signed || []).find((x) => x.path === path) || (signed || [])[i];
       return s && !s.error ? s.signedUrl : null;
     };
+    /* Every row is kept, url or not. A file that would not sign is a
+       file the person is told about, not one that quietly disappears. */
     const items = rows.map((m, i) => ({
       id: m.id,
       type: m.kind,                                   // video · photo · audio
       kind: m.kind,
       url: urlFor(m.storage_path, i),
-      name: m.storage_path.split("/").pop().replace(/^\d+-/, ""),
-    })).filter((m) => m.url);
-    mediaCache.current.set(lessonId, { at: Date.now(), items });
+      /* strip the "<millis>-<token>-" the upload prefixes, and the older
+         "<millis>-" shape from files stored before that changed */
+      name: m.storage_path.split("/").pop().replace(/^\d+-[0-9a-z]{6,8}-/i, "").replace(/^\d+-/, ""),
+    }));
+    /* Only a complete set is worth remembering; a partial one would be
+       served as the truth until the TTL ran out. */
+    if (!signErr && items.every((m) => m.url)) {
+      /* remember the count we were TOLD to expect, not how many rows we
+         found — `expected` falls back to the video count, which is not
+         the same number as the file count on a lesson with a photo */
+      mediaCache.current.set(lessonId, { at: Date.now(), count: expected == null ? null : expected, items });
+    }
     return items;
   };
-  const mediaFor = lessonMedia;
+  /* Two callers can want the same lesson at once — the feed prefetch and
+     the lesson the person just opened. Without this they both sign the
+     same set, because the cache is only written after the round trip.
+     One request in the air per lesson, shared by everyone waiting. */
+  const lessonMediaShared = (lessonId, expected) => {
+    const flying = mediaFlight.current.get(lessonId);
+    if (flying) return flying;
+    const hit = mediaCache.current.get(lessonId);
+    const stale = hit && expected != null && hit.count != null && hit.count !== expected;
+    if (hit && !stale && Date.now() - hit.at < MEDIA_TTL) return Promise.resolve(hit.items);
+    const p = lessonMedia(lessonId, expected).finally(() => mediaFlight.current.delete(lessonId));
+    mediaFlight.current.set(lessonId, p);
+    return p;
+  };
+  const mediaFor = lessonMediaShared;
 
   return {
     loading, loadError, isCoach, inviteCode, coachName, coachSport,
@@ -1226,7 +1306,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia, requestRating,
+    setDrill, setDrills: assignDrills, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

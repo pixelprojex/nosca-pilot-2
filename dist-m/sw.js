@@ -15,26 +15,6 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-/* Chrome will not offer "Install" without a fetch handler. This one
-   caches NOTHING — it passes navigations straight to the network and,
-   only when that fails, answers with a line of text. A cached shell
-   would make a deploy appear to do nothing, which is the failure
-   CLAUDE.md warns about. */
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.mode !== "navigate") return;
-  event.respondWith(
-    fetch(req).catch(() =>
-      new Response(
-        "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\">" +
-        "<title>Nosca</title><body style=\"font:16px -apple-system,system-ui,sans-serif;padding:14vh 8vw;color:#12211C\">" +
-        "<p>Nosca needs a connection.</p><p style=\"color:#7A8580\">Try again when you are back online.</p>",
-        { headers: { "content-type": "text/html; charset=utf-8" }, status: 503 }
-      )
-    )
-  );
-});
-
 /* The Netlify function sends JSON { title, body, data }. `data` may
    carry { screen, id } — where a tap should land. */
 self.addEventListener("push", (event) => {
@@ -65,12 +45,7 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const data = (event.notification && event.notification.data) || {};
   const screen = typeof data.screen === "string" && data.screen ? data.screen : null;
-  /* carry the id too: "a lesson was logged" has to land on THAT lesson,
-     not on the lessons tab */
-  const id = data && data.id != null ? String(data.id) : null;
-  const target = screen
-    ? "/?open=" + encodeURIComponent(screen) + (id ? "&oid=" + encodeURIComponent(id) : "")
-    : "/";
+  const target = screen ? "/?open=" + encodeURIComponent(screen) : "/";
 
   event.waitUntil((async () => {
     const origin = self.location.origin;

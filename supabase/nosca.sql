@@ -436,6 +436,9 @@ create unique index if not exists coach_requests_open_key
   on public.coach_requests (player_id, coach_id) where status = 'pending';
 create index if not exists notifications_user_idx
   on public.notifications (user_id, created_at desc);
+-- the sender looks a person's devices up by user_id and nothing else
+create index if not exists push_subscriptions_user_idx
+  on public.push_subscriptions (user_id);
 
 -- The app upserts a review on (coach_id, player_id) and a register
 -- mark on (session_id, player_id); both need a unique key to land on.
@@ -1440,6 +1443,104 @@ $rt$;
 
 
 -- ============================================================
+-- 10b · CALLING THE SENDER
+--
+-- Sections 5 to 10 write a notification row for everything worth
+-- telling someone about. That row lights the bell inside the app. To
+-- reach a phone with the app CLOSED it has to leave the database, and
+-- this is the hop that carries it: an after-insert trigger that posts
+-- the row to the relay (netlify/functions/push.mjs), which signs it
+-- with the VAPID keys and hands it to each of that person's devices.
+--
+-- It lived only as a dashboard click before, described in the README
+-- and in no file — so a fresh project set up by running this script
+-- wrote every notification and pushed none of them, silently. It is
+-- here now, because this file is the source of truth.
+--
+-- WHAT THE FOUNDER FILLS IN, once, after the first run:
+--   insert into public.app_settings (key, value) values
+--     ('push_url',    'https://<your-site>.netlify.app/.netlify/functions/push'),
+--     ('push_secret', '<the same string as PUSH_SECRET on Netlify>')
+--   on conflict (key) do update set value = excluded.value;
+--
+-- Until both rows exist the trigger does nothing at all — no error, no
+-- delay, no half-sent notification. Section 14 reports which state it
+-- is in.
+--
+-- pg_net posts without waiting for the answer, so a slow or missing
+-- relay can never hold up the write that caused it. If the extension
+-- is unavailable the block below is skipped and the app behaves
+-- exactly as it does today: the bell works, the phone stays quiet.
+-- ============================================================
+
+-- Settings the database itself needs. Only the service role may read
+-- it: the secret in here must never reach a browser, and nothing in
+-- the app has any reason to ask for it.
+create table if not exists public.app_settings (
+  key   text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.app_settings enable row level security;
+-- No policy is granted to authenticated or anon on purpose. RLS with no
+-- policy denies everyone except the service role, which is what we want.
+drop policy if exists "app_settings: nobody" on public.app_settings;
+
+-- pg_net is present on Supabase and absent on a bare Postgres, so this
+-- may not be possible — and must never stop the file when it is not.
+do $net$
+begin
+  create extension if not exists pg_net with schema extensions;
+exception when others then
+  raise notice 'pg_net unavailable (%) — the bell works, phones stay quiet', sqlerrm;
+end
+$net$;
+
+create or replace function public.notify_push() returns trigger
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  url  text;
+  key  text;
+begin
+  select value into url from public.app_settings where key = 'push_url';
+  select value into key from public.app_settings where key = 'push_secret';
+  -- not configured yet: the bell still works, nothing is sent
+  if url is null or key is null or url = '' or key = '' then
+    return new;
+  end if;
+  perform extensions.net_http_post(
+    url     := url,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-nosca-secret', key),
+    body    := jsonb_build_object(
+                 'user_id', new.user_id,
+                 'title',   new.title,
+                 'body',    new.body,
+                 'kind',    new.kind,
+                 'data',    coalesce(new.data, '{}'::jsonb)),
+    timeout_milliseconds := 4000);
+  return new;
+exception when others then
+  -- A notification is never lost because the push failed to leave.
+  return new;
+end
+$$;
+
+do $push$
+begin
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where p.proname = 'net_http_post' and n.nspname = 'extensions') then
+    drop trigger if exists notifications_push on public.notifications;
+    create trigger notifications_push
+      after insert on public.notifications
+      for each row execute function public.notify_push();
+  else
+    raise notice 'pg_net not available — the bell works, phones stay quiet until it is enabled';
+  end if;
+end
+$push$;
+
+
+-- ============================================================
 -- 11 · THE LESSONS VIEW
 --
 -- What the app reads instead of the lessons table: each lesson with
@@ -2111,6 +2212,17 @@ select
   (select count(*) from pg_trigger where tgname in ('lessons_notify', 'requests_notify', 'bookings_notify',
                                                     'messages_notify', 'drills_notify', 'tips_notify', 'family_notify'))
                                                                                     as notify_triggers,
+
+  -- Is a notification able to LEAVE the database? The bell works either
+  -- way; this says whether a phone hears about it with the app closed.
+  (select case
+     when not exists (select 1 from pg_trigger where tgname = 'notifications_push')
+       then 'no — pg_net is not enabled, so nothing is sent'
+     when not exists (select 1 from public.app_settings where key = 'push_url'    and value <> '')
+       or not exists (select 1 from public.app_settings where key = 'push_secret' and value <> '')
+       then 'trigger ready — add push_url and push_secret to app_settings'
+     else 'yes — notifications post to the relay'
+   end)                                                                             as push,
   (select count(*) from auth.users)                                                 as accounts,
   (select count(*) from public.profiles)                                            as profiles,
   (select count(*) from public.families)                                            as families;

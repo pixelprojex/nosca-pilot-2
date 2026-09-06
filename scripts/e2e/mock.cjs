@@ -307,7 +307,19 @@ async function attach(page, db, opts = {}) {
     if (p.startsWith("/storage/v1/")) {
       const rest = p.replace("/storage/v1/object/", "");
       if (rest.startsWith("sign/") && method === "POST") { const bucket = rest.slice(5); const paths = (body && body.paths) || []; db.signed.push(...paths); db.posts.push({ table: "sign", rows: paths, by: me() });
-        return json(200, paths.map((pth) => ({ error: null, path: pth, signedURL: `/object/sign/${bucket}/${pth}?token=t-${pth.split("/").pop()}` }))); }
+        /* the storage SELECT policy: your own folder, or a file that hangs
+           off a lesson you are allowed to see */
+        const scope = scopeFor(db, me());
+        const canSee = (pth) => {
+          if (String(pth).split("/")[0] === me()) return true;
+          const row = db.media.find((m) => m.storage_path === pth);
+          if (!row) return false;
+          const l = db.lessons.find((x) => x.id === row.lesson_id);
+          return !!l && scope.lessonVisible(l);
+        };
+        return json(200, paths.map((pth) => (canSee(pth)
+          ? { error: null, path: pth, signedURL: `/object/sign/${bucket}/${pth}?token=t-${pth.split("/").pop()}` }
+          : { error: "Either the object does not exist or you do not have access to it", path: pth, signedURL: null }))); }
       if (rest.startsWith("sign/") && method === "GET") { return bytes(/\.mp4$/.test(p) ? MP4 : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, /\.mp4$/.test(p) ? "video/mp4" : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
       if (rest.startsWith("public/") && method === "GET") return bytes(PNG, "image/png");
       if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }
@@ -319,7 +331,20 @@ async function attach(page, db, opts = {}) {
         const spec = db.failUpload ? db.failUpload(objPath, bucket) : null;
         db.uploads.push({ bucket, path: objPath, by: me(), refused: !!spec, size: Number(hdr["content-length"] || 0) });
         if (spec) return json(spec.status || 413, spec.body || { statusCode: "413", error: "Payload too large", message: "The object exceeded the maximum allowed size" });
-        db.files[bucket] = db.files[bucket] || {}; db.files[bucket][objPath] = { size: Number(hdr["content-length"] || 0), type: hdr["content-type"] || "" };
+        /* upsert:false is what Supabase actually does, and modelling it is
+           the only reason the suites can catch two files racing to the same
+           path — which is exactly how "only one video uploaded" happened. */
+        db.files[bucket] = db.files[bucket] || {};
+        if (db.files[bucket][objPath] && String(hdr["x-upsert"]) !== "true") {
+          db.uploads[db.uploads.length - 1].refused = true;
+          return json(409, { statusCode: "409", error: "Duplicate", message: "The resource already exists" });
+        }
+        /* the storage INSERT policy: your own folder only */
+        if (String(objPath).split("/")[0] !== me()) {
+          db.uploads[db.uploads.length - 1].refused = true;
+          return json(403, { statusCode: "403", error: "Unauthorized", message: "new row violates row-level security policy" });
+        }
+        db.files[bucket][objPath] = { size: Number(hdr["content-length"] || 0), type: hdr["content-type"] || "" };
         db.posts.push({ table: "upload", rows: [p], by: me() });
         return json(200, { Key: `${bucket}/${objPath}`, Id: uuid("f1000000") }); }
       return json(404, { statusCode: "404", error: "not_found", message: "Object not found" });

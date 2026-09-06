@@ -88,7 +88,7 @@ const leaks = [];
       const aud = page.locator("audio[controls]");
       const asrc = (await aud.count()) ? await aud.first().getAttribute("src") : null;
       check("(a) a real <audio controls> for the voice note", !!asrc && asrc.includes("2-note.webm"), String(asrc));
-      check("(a) signed URLs were requested once per lesson (cached)", db.posts.filter((x) => x.table === "sign").length === 1, String(db.posts.filter((x) => x.table === "sign").length));
+      check("(a) signed URLs were requested once per lesson (cached)", db.posts.filter((x) => x.table === "sign").length === 1, JSON.stringify(db.posts.filter((x) => x.table === "sign").map((x) => x.rows)));
       await shot("adult-lesson-audio");
       const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('button', { hasText: "Download lesson log" }).first().click()]);
       const file = dl ? await dl.path() : null; const html = file ? fs.readFileSync(file, "utf8") : "";
@@ -261,6 +261,46 @@ const leaks = [];
       /* the retry reports on the files it retried — one — and nothing failed; it then clears itself */
       check("(h) the strip then reads attached, with nothing failed", /\d files? attached/.test(th2) && !/didn't upload/.test(th2) || th2 === "", th2);
       check("(h) the junior's lesson told the junior and every adult in the family", db.notifications.some((n) => n.user_id === IDS.junior && n.kind === "lesson" && n.data.id === lessonH.id) && db.notifications.some((n) => n.user_id === IDS.parent && n.kind === "lesson" && n.data.screen === "family" && n.data.id === lessonH.id), JSON.stringify(db.notifications.filter((n) => n.kind === "lesson").map((n) => [n.user_id.slice(-4), n.title])));
+
+      /* (h2) THE IPHONE CASE. Every camera capture comes back called
+         "image.jpg" or "video.mp4". These used to share one storage
+         path — one Date.now() for the whole batch — so upsert:false
+         kept the first and 409'd the rest: three clips, one clip in the
+         lesson. This is the regression test for that. */
+      db.failUpload = null;
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page, { carryOn: true });
+      const before = db.uploads.filter((u) => u.bucket === "media").length;
+      /* the plus, then Log a lesson — Today's empty state is gone now
+         that this coach has something to log */
+      await M.tap(page, '[data-tour="quick"]', 700);
+      await M.tap(page, '[data-tour="quick-log"]', 900);
+      await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
+      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.fill('input[type="time"]', "14:00"); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.fill('textarea[placeholder="What happened, in a line or two"]', "Three captures, all called the same thing.");
+      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.locator('input[type="file"]').first().setInputFiles([
+        { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
+        { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
+        { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
+      ]);
+      await page.waitForTimeout(600);
+      for (let i = 0; i < 4; i++) {
+        const pub = page.getByRole("button", { name: "Publish", exact: true });
+        if (await pub.count()) { await pub.first().click(); break; }
+        await page.getByRole("button", { name: "Continue" }).first().click();
+        await page.waitForTimeout(400);
+      }
+      await page.waitForTimeout(4600);
+      const sameUps = db.uploads.filter((u) => u.bucket === "media").slice(before);
+      const samePaths = sameUps.map((u) => u.path);
+      check("(h2) three files with the SAME name all upload, to three different paths, none refused",
+            sameUps.length === 3 && new Set(samePaths).size === 3 && sameUps.every((u) => !u.refused),
+            JSON.stringify(samePaths.map((x) => x.split("/").pop())));
+      const sameLesson = db.lessons.filter((l) => l.coach_id === IDS.coach).pop();
+      const sameRows = db.media.filter((m) => m.lesson_id === sameLesson.id);
+      check("(h2) …and all three are attached to the lesson", sameRows.length === 3 && new Set(sameRows.map((r) => r.storage_path)).size === 3, JSON.stringify(sameRows.map((r) => r.storage_path.split("/").pop())));
       await ctx.close();
     }
 

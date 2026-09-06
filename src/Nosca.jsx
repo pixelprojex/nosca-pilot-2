@@ -12,7 +12,7 @@ import {
   Receipt, Banknote, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck,
   ExternalLink, Tag, Phone, Paperclip, Clock, ListChecks, Download, Palette, Zap,
   TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Building2, Edit3, Trophy, Award, Star, CloudRain,
-  Copy, Settings2, BellOff
+  Copy, Settings2, BellOff, Layers
 } from "lucide-react";
 
 /* ==================================================================
@@ -5676,11 +5676,28 @@ function Evidence({ item, live, mark }) {
 }
 
 
-const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near }) {
+const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed }) {
   const t = useT();
+  const live = useLive();
   const [frame, setFrame] = useState(0);
   const rail = useRef(null);
   const items = media && media.length ? media : [];
+
+  /* A lesson the prefetch never reached asks for its own files the
+     first time it comes near, so the twentieth lesson down is not a
+     black card for ever. */
+  useEffect(() => { if (near && media === undefined && onNeed) onNeed(lesson); }, [near, media, lesson, onNeed]);
+
+  /* the counter is a control: tapping it walks the rail, for anyone who
+     never discovers the sideways swipe */
+  const step = (d) => {
+    const el = rail.current;
+    if (!el) return;
+    const w = el.clientWidth || 1;
+    const next = (frame + d + items.length) % items.length;
+    el.scrollTo({ left: next * w, behavior: "smooth" });
+    setFrame(next);
+  };
 
   const tick = useRef(0);
   const onRailScroll = (e) => {
@@ -5698,19 +5715,50 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
          style={{ height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always", overflow: "hidden" }}>
 
       {media === null ? (
-        <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />
-      ) : items.length === 0 || !near ? (
-        <GeneratedField lesson={lesson} mark={t.mark} />
+        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0B0F10" }} aria-hidden="true">
+          <span style={{ opacity: 0.4, animation: "markBreathe 3s ease-in-out infinite" }}><Mark size={22} color={t.mark} /></span>
+        </div>
+      ) : items.length === 0 ? (
+        /* Nothing was attached. The harness draws its field; a real
+           lesson gets a plain ground — CLAUDE.md: no drawn placeholder
+           for a real lesson, because it reads as a clip that failed. */
+        live ? <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />
+             : <GeneratedField lesson={lesson} mark={t.mark} />
       ) : (
+        /* `near` decides whether the heavy elements are mounted, never
+           whether the person sees their own footage: swapping a drawn
+           field in for a real clip is what read as "it didn't upload". */
         <div ref={rail} onScroll={onRailScroll}
              className="absolute inset-0 flex overflow-x-auto"
              style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain", scrollbarWidth: "none" }}>
           {items.map((it, i) => (
-            <div key={i} className="relative shrink-0"
+            <div key={it.id || i} className="relative shrink-0"
                  style={{ width: "100%", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>
-              <Evidence item={it} live={active && i === frame} mark={t.mark} />
+              {near || i === 0
+                ? <Evidence item={it} live={active && i === frame} mark={t.mark} />
+                : <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* MORE THAN ONE. The rail is a sideways swipe inside a feed that
+          snaps downwards, so without this nobody finds the second clip —
+          which is exactly how "only one video uploaded" gets reported.
+          A count you can tap, and a dot per file. */}
+      {items.length > 1 && (
+        <div className="absolute" style={{ top: 30, right: 18, zIndex: 30 }}>
+          <button onClick={() => { haptic(7); soft(); step(1); }}
+                  className="flex items-center gap-1.5 px-2.5 active:opacity-70"
+                  style={{ height: 26, borderRadius: 13, background: "rgba(0,0,0,0.45)",
+                           backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                           border: "0.5px solid rgba(255,255,255,0.22)" }}
+                  aria-label={`${tr("Next file")} — ${frame + 1} ${tr("of")} ${items.length}`}>
+            <Layers size={11} color="rgba(255,255,255,0.9)" strokeWidth={2.2} />
+            <span style={{ ...TYPE.caption, fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.92)", fontVariantNumeric: "tabular-nums" }}>
+              {frame + 1}/{items.length}
+            </span>
+          </button>
         </div>
       )}
 
@@ -5749,6 +5797,20 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
           </span>
         )}
 
+        {items.length > 1 && (
+          <span className="flex items-center gap-1.5 mt-4" aria-hidden="true">
+            {items.map((it, i) => (
+              <span key={it.id || i} className="rounded-full"
+                    style={{ width: i === frame ? 16 : 5, height: 5,
+                             background: i === frame ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.38)",
+                             transition: "width 240ms cubic-bezier(.22,1,.36,1), background 240ms" }} />
+            ))}
+            <span className="ml-1.5" style={{ ...TYPE.caption, fontSize: 10, color: "rgba(255,255,255,0.55)" }}>
+              {items.length} {items.length === 1 ? tr("file") : tr("files")}
+            </span>
+          </span>
+        )}
+
         <button onClick={() => { hapticCommit(); soft(); onOpen && onOpen(lesson); }}
                 onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
                 onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -5766,7 +5828,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   );
 });
 
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded }) {
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed }) {
   const t = useT();
   const [active, setActive] = useState(0);
   const [prog, setProg] = useState(0);        // 0..1 through the whole feed
@@ -5839,7 +5901,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
                     WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
         {lessons.map((l, i) => (
           <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active}
-                    near={Math.abs(i - active) <= 1}
+                    near={Math.abs(i - active) <= 1} onNeed={onNeed}
                     media={mediaFor(l, i)} onOpen={onOpen} />
         ))}
       </div>
@@ -9038,13 +9100,6 @@ function LessonCard({ lesson, onOpen, active, saved, media, live }) {
                 <Play size={18} color="#fff" style={{ marginLeft: 2 }} />
               </span>
             </span>
-            {lesson.videos > 1 && (
-              <span className="absolute rounded-full px-2 py-1"
-                    style={{ bottom: 12, right: 12, background: "rgba(0,0,0,0.45)",
-                             ...TYPE.caption, fontSize: 10, color: "#fff" }}>
-                {lesson.videos}
-              </span>
-            )}
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center"
@@ -9053,6 +9108,21 @@ function LessonCard({ lesson, onOpen, active, saved, media, live }) {
               <Mark size={34} color={t.mark} />
             </span>
           </div>
+        )}
+
+        {/* How many files are on this lesson, over whatever the preview
+            turned out to be. `media` is the real count from
+            lessons_view; `videos` is the harness's. It used to sit
+            inside the drawn-still branch, so a real account — the only
+            one with real files — never saw it. */}
+        {(lesson.media ?? lesson.videos ?? 0) > 1 && (
+          <span className="absolute flex items-center gap-1 rounded-full px-2 py-1"
+                style={{ bottom: 12, right: 12, background: "rgba(0,0,0,0.45)",
+                         backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                         ...TYPE.caption, fontSize: 10, fontWeight: 600, color: "#fff" }}>
+            <Layers size={10} strokeWidth={2.2} color="#fff" />
+            {lesson.media ?? lesson.videos}
+          </span>
         )}
       </div>
     </button>
@@ -9633,7 +9703,7 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
 
 
 
-function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, setPrefs, sport, ownMedia, onUpload, onOverture, liveMedia }) {
+function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, setPrefs, sport, ownMedia, onUpload, onOverture, liveMedia, onNeedMedia }) {
   const t = useT();
   const ready = useLoad();
   const view = (prefs && prefs.logView) === "list" ? "List" : "Cards";
@@ -9649,8 +9719,10 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
        frames, the device readout and the test-media control are the
        design harness's only. */
     const mediaFor = liveMedia
-      /* null while a lesson's files are still being signed, [] when it has none */
-      ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? null : []))
+      /* [] when the lesson has none; the signed items once they are in;
+         null while a fetch is in flight; undefined when nothing has
+         asked yet, which is the card's cue to ask for itself. */
+      ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? undefined : []))
       : (l, i) => {
       const own = (ownMedia && ownMedia[i]) || [];
       if (own.length) return own;
@@ -9663,7 +9735,7 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
       }
       return sim;
     };
-    return <LessonFeed lessons={lessons} mediaFor={mediaFor}
+    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia}
                        view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
@@ -9722,9 +9794,12 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, s
                   {l.unread && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: DANGER }} />}
                 </span>
               </span>
-              {l.videos > 0 && (
+              {/* every file, not just the clips: three files reading as
+                  "2" is the same lie as one clip in the feed */}
+              {(l.media ?? l.videos ?? 0) > 0 && (
                 <span className="flex items-center gap-1 shrink-0" style={{ ...TYPE.caption, color: STEADY }}>
-                  <Play size={11} color={STEADY} />{l.videos}
+                  {(l.videos || 0) > 0 ? <Play size={11} color={STEADY} /> : <Layers size={11} color={STEADY} />}
+                  {l.media ?? l.videos}
                 </span>
               )}
               {saved.includes(l.id) && <Download size={13} color={t.faint} />}
@@ -9752,12 +9827,17 @@ function useLessonMedia(lessonId, loader, count) {
     if (!count) { setItems([]); return; }
     let alive = true;
     setItems(null);
-    loader(lessonId).then((m) => { if (alive) setItems(m || []); })
+    loader(lessonId, count).then((m) => { if (alive) setItems(m || []); })
                     .catch(() => { if (alive) setItems([]); });
     return () => { alive = false; };
   }, [lessonId, count, has]);
   return items;
 }
+
+/* Monotonic and unique however fast items arrive — several files picked
+   in one tap all land in the same millisecond. */
+let CAPTURE_SEQ = 0;
+const captureSeq = () => (Date.now() * 1000) + (CAPTURE_SEQ = (CAPTURE_SEQ + 1) % 1000);
 
 const mediaLabel = (it, i, all) => {
   const same = (all || []).filter((x) => x.type === it.type);
@@ -14341,16 +14421,19 @@ function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family =
 function UploadStatus({ uploads, onRetry, onDismiss }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
-  if (!uploads || !uploads.items || !uploads.items.length) return null;
-  const items = uploads.items;
+  /* Every hook runs before the guard. React counts hooks by position,
+     so an early return above the effect crashed the next render with
+     "rendered fewer hooks than expected" the moment the strip cleared. */
+  const items = (uploads && uploads.items) || [];
   const moving = items.filter((it) => it.status === "uploading");
   const failed = items.filter((it) => it.status === "failed");
   const done = items.filter((it) => it.status === "done");
   useEffect(() => {
-    if (moving.length || failed.length) return;
+    if (!items.length || moving.length || failed.length) return;
     const x = setTimeout(() => onDismiss && onDismiss(), 2600);
     return () => clearTimeout(x);
-  }, [moving.length, failed.length]);
+  }, [items.length, moving.length, failed.length]);
+  if (!items.length) return null;
   const noun = (n) => (n === 1 ? tr("file") : tr("files"));
   return (
     <div className="px-6 pt-2 pb-1" data-tour="upload-status" style={{ animation: "contentRise 320ms cubic-bezier(.22,1,.36,1) both" }}>
@@ -14734,14 +14817,35 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [liveMedia, setLiveMedia] = useState({});
   useEffect(() => {
     if (!data || !account || account.role === "coach" || stack[stack.length - 1] !== "log") return;
-    const want = (data.lessons || []).filter((l) => (l.media ?? l.videos) > 0 && !(l.id in liveMedia)).slice(0, 12);
+    /* Re-fetch a lesson whose file count has moved since we last signed
+       it: the coach adding a second clip used to be invisible for the
+       rest of the session, because this only ever asked once. */
+    const want = (data.lessons || []).filter((l) => {
+      const n = l.media ?? l.videos ?? 0;
+      if (n <= 0) return false;
+      if (!(l.id in liveMedia)) return true;
+      const got = liveMedia[l.id];
+      return Array.isArray(got) && got.length !== n;
+    }).slice(0, 12);
     if (!want.length) return;
     let alive = true;
-    want.forEach((l) => data.lessonMedia(l.id)
+    want.forEach((l) => data.lessonMedia(l.id, l.media ?? l.videos)
       .then((items) => { if (alive) setLiveMedia((m) => ({ ...m, [l.id]: items })); })
       .catch(() => {}));
     return () => { alive = false; };
   }, [data && data.lessons, stack]);
+  /* The prefetch takes the first twelve; a card further down asks for
+     itself as it comes near, so a long log is never a wall of black. */
+  const asking = useRef(new Set());
+  const needMedia = React.useCallback((l) => {
+    if (!data || !l || l.id == null || asking.current.has(l.id)) return;
+    asking.current.add(l.id);
+    setLiveMedia((m) => (l.id in m ? m : { ...m, [l.id]: null }));
+    data.lessonMedia(l.id, l.media ?? l.videos)
+      .then((items) => setLiveMedia((m) => ({ ...m, [l.id]: items })))
+      .catch(() => setLiveMedia((m) => ({ ...m, [l.id]: [] })))
+      .finally(() => asking.current.delete(l.id));
+  }, [data]);
   const addOwnMedia = (idx, files) => {
     if (!files.length) return;
 
@@ -14887,10 +14991,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     try {
       const params = new URLSearchParams(window.location.search);
       const open = params.get("open");
+      /* the worker carries the id alongside the screen, so "a lesson was
+         logged" lands on that lesson rather than the lessons tab */
+      const oid = params.get("oid");
       if (open) {
-        params.delete("open");
+        params.delete("open"); params.delete("oid");
         window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}${window.location.hash}`);
-        setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open } }), 300);
+        setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open, ...(oid ? { id: oid } : {}) } }), 300);
       }
     } catch (e) { /* no history API */ }
     if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
@@ -16244,7 +16351,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
       home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
-      log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} />,
+      log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
@@ -16551,7 +16658,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                  it goes under a holding key and is offered when
                                                  the next lesson is logged. */
                                               const who = captureFor ? captureFor.who : "__unassigned";
-                                              const id = Date.now();
+                                              /* Date.now() alone gave every file picked in one go
+                                                 the same id, and the wizard filters captures BY id
+                                                 — so pulling one into the write-up took the rest
+                                                 with it, or dropped them. One id per item. */
+                                              const id = captureSeq();
                                               const kind = item.type || item.kind;
                                               const mapped = kind === "video" ? { id, kind: "video", angle: tr("Live capture"), file: item.file, name: item.name }
                                                 : kind === "photo" ? { id, kind: "action", file: item.file, name: item.name }
