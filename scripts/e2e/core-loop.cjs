@@ -347,6 +347,42 @@ const leaks = [];
       }
     }
 
+    /* (j) TWO PLAYERS WITH THE SAME NAME.
+       Everything used to resolve a person by their display name, so the
+       second Cian Murphy on a roster was the first one as far as every
+       write was concerned: the lesson, the drills and the tip all
+       landed on whoever the roster listed first. */
+    {
+      const ndb = freshDb();
+      const TWIN = "00000000-0000-4000-8000-00000000tw1n";
+      M.addUser(ndb, { id: TWIN, email: "twin@t.ie" });
+      M.addProfile(ndb, { id: TWIN, role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1990-01-01" });
+      const { ctx, page } = await boot("coach", ndb);
+      await M.tap(page, '[data-tour="quick"]', 700);
+      await M.tap(page, '[data-tour="quick-log"]', 900);
+      const rows = page.locator('button:has-text("Cian Murphy")');
+      check("(j) both people called Cian Murphy are offered, not one", (await rows.count()) === 2, String(await rows.count()));
+      /* the SECOND one — the one a name lookup would never reach */
+      await rows.nth(1).click(); await page.waitForTimeout(300);
+      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
+      await page.fill('textarea[placeholder="What happened, in a line or two"]', "The other Cian.");
+      for (let i = 0; i < 4; i++) {
+        const pub = page.getByRole("button", { name: "Publish", exact: true });
+        if (await pub.count()) { await pub.first().click(); break; }
+        await page.getByRole("button", { name: "Continue" }).first().click();
+        await page.waitForTimeout(400);
+      }
+      await page.waitForTimeout(1500);
+      const lp = ndb.posts.filter((x) => x.table === "lessons").pop();
+      const lrow = lp && lp.rows[0];
+      check("(j) the lesson was written against the person who was ticked, not the first of that name",
+            !!lrow && lrow.player_id === TWIN, JSON.stringify(lrow && { player_id: lrow.player_id, expected: TWIN }));
+      check("(j) …and the notification went to them", ndb.notifications.some((n) => n.user_id === TWIN && n.kind === "lesson"),
+            JSON.stringify(ndb.notifications.filter((n) => n.kind === "lesson").map((n) => n.user_id)));
+      await ctx.close();
+    }
+
   } catch (e) {
     console.log("RUN ERROR", e && e.stack || e);
     results.push({ name: "run completed", ok: false, detail: String(e && e.message || e) });

@@ -2002,7 +2002,7 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
         {roster.map((r, i) => {
           const on = members.includes(r.name);
           return (
-            <button key={r.name} onClick={() => { haptic(9); soft(); toggle(r.name); }} className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
+            <button key={r.id || r.name} onClick={() => { haptic(9); soft(); toggle(r.name); }} className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
                     style={{ minHeight: 42, borderRadius: R.pill, background: on ? t.ink : t.surface,
                              border: `1px solid ${on ? t.ink : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
@@ -4701,7 +4701,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
         {list.length === 0 ? (
           <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name.")}</p>
         ) : list.map((r, i) => (
-          <button key={r.name} onClick={() => { hapticCommit(); soft(); onPick(r.name); }}
+          <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
                   className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                   style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                            animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
@@ -9798,7 +9798,7 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
   return (
     <LessonDetail banner={banner} lesson={live ? lesson : { ...lesson, note: lesson.note || cfg.transcript }} role="coach" live={live} playerName={name} items={items}
                   loading={live && media === null && count > 0} drills={drills || []} tips={tips || []} attendance={attendance} groupLesson={lesson.type === "Group"}
-                  onSetDrills={() => assignDrills(name, lesson.focusId)} onMessage={() => push("thread:" + (lesson.playerId || name))}
+                  onSetDrills={() => assignDrills(lesson.playerId || name, lesson.focusId)} onMessage={() => push("thread:" + (lesson.playerId || name))}
                   onLogAnother={() => { if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }}
                   onDownload={live && onDownload ? (its) => onDownload(lesson, its) : null}
                   onEdit={live && onEdit ? () => onEdit(lesson) : null}
@@ -10215,13 +10215,19 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const t = useT(); const L = useL();
   const live = useLive();
 
+  /* PEOPLE, NOT NAMES. Everything here used to be a display name, so
+     two players called the same thing were one person to the wizard
+     and the lesson landed on whichever the roster listed first. The
+     pool is rows now and `who` holds the rows that were ticked; the
+     harness has no ids, so its rows are { id: name, name } and it
+     behaves exactly as before. */
+  const POOL_W = (livePlayers ?? PLAYERS).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
   const seedWho = prefill
     ? (prefill.kind && prefill.kind.startsWith("Group")
         ? ((groups || []).find((g) => g.name === prefill.who)?.members || [])
         : [prefill.who])
     : [];
-  const POOL_W = livePlayers ?? PLAYERS;
-  const known = seedWho.filter((n) => POOL_W.includes(n));
+  const known = POOL_W.filter((r) => seedWho.includes(r.name));
 
   /* A lesson logged from a real booking already carries its day, so
      the date sits on the first page only when nothing anchors it —
@@ -10304,7 +10310,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
      nobody chosen yet — that pile belongs to whoever is being logged
      next, which is exactly what a coach filming between lessons
      expects. */
-  const waiting = [...who, "__unassigned"].flatMap((name) => (captured[name] || [])
+  const waiting = [...who.map((r) => r.name), "__unassigned"].flatMap((name) => (captured[name] || [])
     .filter((it) => !pulled.some((p) => p.id === it.id))
     .map((it) => ({ ...it, from: name === "__unassigned" ? tr("Captured earlier") : name })));
 
@@ -10336,7 +10342,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     setVideos((vs) => vs.map((x, j) => (j === i ? { ...x, working: true } : x)));
     setTimeout(() => setVideos((vs) => vs.map((x, j) => (j === i ? { ...x, working: false, transcript: cfg.transcript } : x))), 1300);
   };
-  const first = (who[0] || "").split(" ")[0];
+  const first = ((who[0] || {}).name || "").split(" ")[0];
   const [ownDrill, setOwnDrill] = useState("");
   const [extraDrills, setExtraDrills] = useState([]);
   const recommended = (cfg.drills || []).filter((d) => focus.includes(d.focus)).concat(cfg.drills.slice(0, 3)).slice(0, 6);
@@ -10357,12 +10363,15 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     return last ? { ids: [last.focusId], subs: last.subs, label: `Carry on from ${last.focus.toLowerCase()}` } : null;
   })();
 
-  const matches = POOL_W.filter((n) => n.toLowerCase().includes(q.trim().toLowerCase()));
+  const matches = POOL_W.filter((r) => r.name.toLowerCase().includes(q.trim().toLowerCase()));
   const canAdvance = [who.length > 0, chosen.length > 0, true][step];
   const showReviewAsk = askReview && who.length === 1 && !pickedGroup
-    && (lessonCounts ? (lessonCounts[who[0]] || 0) === 0 : false);
+    && (lessonCounts ? (lessonCounts[who[0].id] || 0) === 0 : false);
   const finish = () => onPublish({
-    type: group ? "group" : "private", who, groupName: pickedGroup, focus: chosen.join(" · "),
+    /* both: the names for anything that reads back as text, the ids
+       for everything that writes to the database */
+    type: group ? "group" : "private", who: who.map((r) => r.name), whoIds: who.map((r) => r.id),
+    groupName: pickedGroup, focus: chosen.join(" · "),
     focusList: chosen, focusIds: focus, custom, subs: [], ctx,   // the wizard has no sub-focus picker
     note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
     nextDrills, nextTip, wantRating, m: logM, d: logD, pulled,
@@ -10435,7 +10444,12 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 {groups.map((g) => {
                   const on = pickedGroup === g.name;
                   return (
-                    <button key={g.id} onClick={() => { hapticCommit(); soft(); if (on) { setPickedGroup(null); setWho([]); } else { setPickedGroup(g.name); setWho(g.members); } }}
+                    <button key={g.id} onClick={() => { hapticCommit(); soft(); if (on) { setPickedGroup(null); setWho([]); }
+                                            else { setPickedGroup(g.name);
+                                                   /* a saved group knows its members by id where the
+                                                      account is real, and by name in the harness */
+                                                   const ids = g.memberIds && g.memberIds.length ? g.memberIds : null;
+                                                   setWho(POOL_W.filter((r) => (ids ? ids.includes(r.id) : (g.members || []).includes(r.name)))); } }}
                             className="w-full px-4 flex items-center gap-3 text-left active:opacity-60"
                             style={{ minHeight: 60, borderRadius: R.surface, background: t.surface, border: `1px solid ${on ? t.accent : t.hair}` }}>
                       <Users size={17} color={on ? t.accent : t.faint} strokeWidth={1.6} />
@@ -10457,13 +10471,15 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               ) : (
                 <div style={{ borderTop: `1px solid ${t.hair}` }}>
                   {matches.map((pl, pi) => {
-                    const on = who.includes(pl);
+                    const on = who.some((r) => r.id === pl.id);
                     return (
-                      <button key={pl} data-tour={pi === 0 ? "wiz-who" : undefined} onClick={() => { haptic(6); setPickedGroup(null); tog(who, setWho, pl); }}
+                      <button key={pl.id} data-tour={pi === 0 ? "wiz-who" : undefined}
+                              onClick={() => { haptic(6); setPickedGroup(null);
+                                setWho(on ? who.filter((r) => r.id !== pl.id) : [...who, pl]); }}
                               className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                               style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
-                        <Avatar name={pl} size={36} />
-                        <span className="flex-1" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink }}>{pl}</span>
+                        <Avatar name={pl.name} size={36} />
+                        <span className="flex-1" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink }}>{pl.name}</span>
                         <span className="flex items-center justify-center shrink-0"
                               style={{ width: 22, height: 22, borderRadius: R.control, border: `1.5px solid ${on ? t.accent : t.hair}`, background: on ? t.accent : "transparent" }}>
                           {on && <Check size={12} color="#fff" strokeWidth={2.1} />}
@@ -10487,7 +10503,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               where the walkthrough's ring cannot reach it. */}
           {step === 1 && (<>
             <p className="px-6 mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>
-              {pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : who.join(", ")}
+              {pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : who.map((r) => r.name).join(", ")}
             </p>
 
             {suggestion && focus.length === 0 && (
@@ -10832,7 +10848,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
           </div></div>
           <div className="px-6 pb-2">
             <div className="mb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>{list.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>No one matching “{q}”.</p></div>) : list.map((r, i) => (
-              <div key={r.name} className="flex items-center gap-3 px-4"
+              <div key={r.id || r.name} className="flex items-center gap-3 px-4"
                    style={{ minHeight: 66, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}`,
                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
                 {/* one target, not three: two unlabelled icons on the row a
@@ -10994,7 +11010,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
             <button onClick={() => { haptic(8); push("thread:" + name); }} className="flex-1 active:opacity-60"
                     style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message")}</button>
-            <button onClick={() => { hapticCommit(); assignDrills(name, null); }} className="flex-1 active:opacity-75"
+            <button onClick={() => { hapticCommit(); assignDrills(r.id ? r : name, null); }} className="flex-1 active:opacity-75"
                     style={{ minHeight: 48, borderRadius: R.control, background: t.accent,
                              ...TYPE.small, fontWeight: 600, color: t.onAccent }}>{tr("Set drills")}</button>
           </div>
@@ -11012,7 +11028,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
               {[[tr("Recurring lessons"), () => onRecurring(name)],
                 [tr("Progress"), () => push("history:" + name)],
                 ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]]),
-                [tr("What they're working on"), () => assignTip(name, null)]].map(([lbl, act]) => (
+                [tr("What they're working on"), () => assignTip(r.id ? r : name, null)]].map(([lbl, act]) => (
                 <button key={lbl} onClick={act} className="w-full flex items-center text-left active:opacity-50"
                         style={{ minHeight: 52, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                   <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
@@ -11977,9 +11993,11 @@ function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
   const [time, setTime] = useState("8:00 am");
   const [weeks, setWeeks] = useState(8);
   const [showAll, setShowAll] = useState(false);
-  const tog = (p) => { haptic(5); setMembers(members.includes(p) ? members.filter((x) => x !== p) : [...members, p]); };
+  /* rows, so two players called the same thing are two members; the
+     harness has no ids, so its rows are { id: name, name } */
+  const tog = (p) => { haptic(5); setMembers(members.some((x) => x.id === p.id) ? members.filter((x) => x.id !== p.id) : [...members, p]); };
   const ready = name.trim() && members.length > 0;
-  const POOL = livePlayers ?? PLAYERS;
+  const POOL = (livePlayers ?? PLAYERS).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
   const shown = showAll ? POOL : POOL.slice(0, 4);
 
   return (
@@ -11995,12 +12013,12 @@ function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
         {shown.map((p) => {
-          const on = members.includes(p);
+          const on = members.some((x) => x.id === p.id);
           return (
-            <button key={p} onClick={() => tog(p)} className="rounded-full pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
+            <button key={p.id} onClick={() => tog(p)} className="rounded-full pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
                     style={{ minHeight: 42, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : t.hair}` }}>
-              <Avatar name={p} size={30} />
-              <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{p.split(" ")[0]}</span>
+              <Avatar name={p.name} size={30} />
+              <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{p.name.split(" ")[0]}</span>
               {on && <Check size={13} color={STEADY} strokeWidth={2.1} />}
             </button>
           );
@@ -12034,7 +12052,7 @@ function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
         </div>
       </div>
 
-      <Button disabled={!ready} onClick={() => { onCreate({ name: name.trim(), members, day, time, weeks, sport: coachSport }); close(); }}>
+      <Button disabled={!ready} onClick={() => { onCreate({ name: name.trim(), members: members.map((m) => m.name), memberIds: members.map((m) => m.id), day, time, weeks, sport: coachSport }); close(); }}>
         {ready ? `Create · ${weeks} ${DAY_NAMES[day]}s from now` : "Name it and pick members"}
       </Button>
     </>
@@ -12223,7 +12241,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
   };
   const rows = live
     ? (roster || []).map((r) => { const mine = (drills || []).filter((d) => d.playerId === r.id); return { id: r.id, name: r.name, done: mine.filter((d) => d.done).length, total: mine.length, list: mine }; })
-    : ROSTER.map((r) => r.name === "Marcus Tran" ? { name: r.name, done: marcusDone, total: items.length } : { name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
+    : ROSTER.map((r) => r.name === "Marcus Tran" ? { id: r.name, name: r.name, done: marcusDone, total: items.length } : { id: r.name, name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
   return (
     <Screen title={tr("Practice")} meta={tr("What you've set, and who's doing it")} right={right}>
       <div className="px-6 mb-6">
@@ -12235,11 +12253,11 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
-      <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet.")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.name; return (
-        <div key={r.name}>
+      <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet.")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
+        <div key={r.id}>
         <Row label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
              right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: Math.min(r.total, 12) }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
-             last={i === rows.length - 1 && !isOpen} onToggle={() => (live ? setOpen(isOpen ? null : r.name) : sheet(r.name))} />
+             last={i === rows.length - 1 && !isOpen} onToggle={() => (live ? setOpen(isOpen ? null : r.id) : sheet(r))} />
         {isOpen && (
           <div className="px-5 pb-4" style={{ background: t.wash, borderBottom: i === rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>
             {r.list.map((d) => (
@@ -12253,7 +12271,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
               </div>
             ))}
             {r.list.length === 0 && <p className="pt-3" style={{ fontFamily: ui, fontSize: 13, color: t.faint }}>{tr("Nothing set.")}</p>}
-            <button onClick={() => { haptic(8); sheet(r.name); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Set drills")}</button>
+            <button onClick={() => { haptic(8); sheet(r); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Set drills")}</button>
           </div>
         )}
         </div>
@@ -13768,7 +13786,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
             {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
             {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
-            {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
+            {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.id || r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
             {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<MessageCircle size={17} color={t.sub} strokeWidth={1.6} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
           </>)}
         </div>
@@ -14650,10 +14668,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setCeleb({ label: tr("Called off"), sub: `${affected.length} ${tr("told, packages extended")}`, tone: DANGER });
   };
   /* Focus suggestions in flight, and what has been agreed per person. */
-  const [focusReqs, setFocusReqs] = useState([
+  /* Gated at the initialiser, the way `series`, `requests` and the
+     seeded registers already are — a real coach was being shown an
+     agreed focus for a player they have never met, on Today, on the
+     booking peek and on the lesson peek. */
+  const [focusReqs, setFocusReqs] = useState(account ? [] : [
     { who: "Priya Ellis", focus: "Short game", note: "Losing shots around the green." },
   ]);
-  const [agreedFocus, setAgreedFocus] = useState({ "Marcus Tran": "Driving" });
+  const [agreedFocus, setAgreedFocus] = useState(account ? {} : { "Marcus Tran": "Driving" });
   const settleFocus = (req, focus) => {
     setFocusReqs((v) => v.filter((x) => x !== req));
     setAgreedFocus((m) => ({ ...m, [req.who]: focus }));
@@ -14674,7 +14696,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [requests, setRequests] = useState(account ? [] : SEED_REQUESTS);
   const [accepted, setAccepted] = useState([]);
   const [unlogged, setUnlogged] = useState(UNLOGGED);
-  const [goals, setGoals] = useState({ "Marcus Tran": [{ id: 1, t: "Break 90 at the club champs", by: "End of season", done: false }] });
+  const [goals, setGoals] = useState(account ? {} : { "Marcus Tran": [{ id: 1, t: "Break 90 at the club champs", by: "End of season", done: false }] });
   const [attendance, setAttendance] = useState({});
   const [prefill, setPrefill] = useState(sc ? (sc.prefill || null) : null);
   /* A real coach's saved slots and lesson length; a real player gets
@@ -14758,7 +14780,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      restored, not only with what is tapped */
   useEffect(() => { setHapticsEnabled(hapticsOn); }, [hapticsOn]);
   useEffect(() => { setSoundOn(soundState); }, [soundState]);
-  const [playerNotes, setPlayerNotes] = useState({ "Marcus Tran": "Prefers video over verbal. Club champs in September." });
+  const [playerNotes, setPlayerNotes] = useState(account ? {} : { "Marcus Tran": "Prefers video over verbal. Club champs in September." });
   const [mini, setMini] = useState(null);
 
   const [seedProfiles, setProfiles] = useState(persona ? persona.profiles : [{ id: 1, name: "Marcus Tran", age: null }]);
@@ -14867,9 +14889,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Saving an arrangement books every slot out on the calendar. */
   const saveSeries = async (v) => {
     if (data) {
-      const who = (data.roster || []).find((r) => r.name === v.who);
+      /* the person the coach picked, by id. Falling back to the name
+         is only for the calendar's "new arrangement" path, which has
+         nobody chosen and defaults to the first on the roster. */
+      const who = (recurFor && recurFor.id ? (data.roster || []).find((r) => r.id === recurFor.id) : null)
+        || (data.roster || []).find((r) => r.name === v.who);
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
-      const old = (data.recurring || []).find((x) => x.who === v.who);
+      const old = (data.recurring || []).find((x) => x.playerId === who.id);
       if (old) { const r0 = await data.removeRecurring(old.id); if (r0 && r0.error) { say(r0.error.message); return; } }
       const r1 = await data.addRecurring({ playerId: who.id, weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq });
       if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save that.")); return; }
@@ -15146,17 +15172,26 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const isGroup = l.type === "group";
       const names = Array.isArray(l.who) ? l.who : (l.who ? [l.who] : []);
       const named = names[0];
-      const match = (data.roster || []).find((r) => r.name === named);
+      /* BY ID. The wizard hands back the ids of the people who were
+         ticked; resolving the display name against the roster instead
+         gave the lesson to whichever of two players with the same name
+         happened to be listed first. The name lookup survives only as
+         the fallback for a lesson that reached here without ids. */
+      const pickedIds = (Array.isArray(l.whoIds) ? l.whoIds : []).filter(Boolean);
+      const match = pickedIds.length
+        ? (data.roster || []).find((r) => r.id === pickedIds[0])
+        : (data.roster || []).find((r) => r.name === named);
       /* WHO WAS THERE. A group lesson carries a name and no player, so
          without this list the session counts for nobody — not on the
          coach's view of each player, and not in the players' own logs.
          A saved group knows its members; an ad-hoc handful is exactly
          the people the coach just ticked. */
       const saved = isGroup ? (myGroups || []).find((g) => g.name === (l.groupName || named)) : null;
-      const attendeeNames = saved && saved.members && saved.members.length ? saved.members : names;
-      const attendeeIds = isGroup
-        ? attendeeNames.map((n) => ((data.roster || []).find((r) => r.name === n) || {}).id).filter(Boolean)
-        : [];
+      const savedIds = saved && saved.memberIds && saved.memberIds.length ? saved.memberIds : null;
+      const attendeeIds = !isGroup ? []
+        : savedIds || (pickedIds.length ? pickedIds
+          : (saved && saved.members ? saved.members : names)
+              .map((n) => ((data.roster || []).find((r) => r.name === n) || {}).id).filter(Boolean));
       /* The lesson was actually logged for whichever day the coach
          picked in the wizard's own date step — not necessarily today. */
       const year = new Date().getFullYear();
@@ -15263,7 +15298,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setActiveId(id); go("home"); say(`${coachInfo.name.split(" ")[0]} added`); haptic(18);
   };
 
-  const openAssignDrills = (name, focusId) => { setAssignTo(name); setAssignFocus(focusId); setSheet("assign"); haptic(8); };
+  /* WHO DID THEY MEAN. Callers hand over whatever they hold — a roster
+     row, an id, or a display name — and this settles it. A name is the
+     last resort, because two players called the same thing resolve to
+     whichever the roster lists first; anything that knows an id passes
+     one, and the harness has no ids, so a name is all it ever has. */
+  const personOf = (v) => {
+    if (!v) return null;
+    const list = (data && data.roster) || [];
+    if (typeof v === "object") return v.id ? v : (list.find((r) => r.name === v.name) || v);
+    return list.find((r) => r.id === v) || list.find((r) => r.name === v) || { id: v, name: v };
+  };
+  const openAssignDrills = (who, focusId) => { setAssignTo(personOf(who)); setAssignFocus(focusId); setSheet("assign"); haptic(8); };
   const saveDrill = (d) => {
     setLibrary((l) => {
       const cur = l[coachSport] || [];
@@ -15285,10 +15331,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const bumpUses = (names) => setLibrary((l) => ({
     ...l, [coachSport]: (l[coachSport] || []).map((d) => (names.includes(d.t) ? { ...d, uses: (d.uses || 0) + 1 } : d)),
   }));
-  const doAssignDrills = async (name, drills) => {
+  const doAssignDrills = async (target, drills) => {
     bumpUses(drills.map((d) => d.t));
+    const person = personOf(target);
+    const name = person ? person.name : "";
     if (data) {
-      const who = (data.roster || []).find((r) => r.name === name);
+      const who = (data.roster || []).find((r) => r.id === (person || {}).id);
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
       const res = await data.setDrills(who.id, drills.map((d) => d.t));
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set those drills.")); return; }
@@ -15297,19 +15345,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (name === "Marcus Tran" && coachSport === "golf") setPractice((p) => ({ ...p, "1:golf": drills.map((d, i) => ({ id: `golf-${Date.now()}-${i}`, t: d.t, d: d.d, done: false })) }));
     say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${(name || "").split(" ")[0]}`); haptic(18);
   };
-  const openAssignTip = (name, focusLabel) => { setAssignTo(name); setAssignFocus(focusLabel); setSheet("tip"); haptic(8); };
+  const openAssignTip = (who, focusLabel) => { setAssignTo(personOf(who)); setAssignFocus(focusLabel); setSheet("tip"); haptic(8); };
   const doSetTip = async (tip) => {
+    const person = personOf(assignTo);
+    const assignName = person ? person.name : "";
     if (data) {
-      const who = (data.roster || []).find((r) => r.name === assignTo);
+      const who = (data.roster || []).find((r) => r.id === (person || {}).id);
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
       const res = await data.setTip(who.id, tip.title, tip.body);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set that.")); return; }
-      chime(); say(`${tr("Focus set for")} ${(assignTo || "").split(" ")[0]}`); haptic(18); return;
+      chime(); say(`${tr("Focus set for")} ${assignName.split(" ")[0]}`); haptic(18); return;
     }
-    if (assignTo === "Marcus Tran" && coachSport === "golf") {
+    if (assignName === "Marcus Tran" && coachSport === "golf") {
       setTips((p) => ({ ...p, "1:golf": [{ id: Date.now(), title: tip.title, body: tip.body, focus: assignFocus || "General", date: "Today", weeksAgo: 0 }, ...(p["1:golf"] || [])] }));
     }
-    chime(); say(`Tip sent to ${assignTo?.split(" ")[0]}`); haptic(18);
+    chime(); say(`Tip sent to ${assignName.split(" ")[0]}`); haptic(18);
   };
   const addDrill = (d) => setLibrary((l) => ({ ...l, [coachSport]: [d, ...l[coachSport]] }));
 
@@ -15338,8 +15388,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   const createGroup = async (g) => {
     if (data) {
+      /* the picker hands over ids; resolving the names again would
+         merge two players called the same thing into one member */
       const byName = Object.fromEntries((data.roster || []).map((r) => [r.name, r.id]));
-      const rec = { id: `g-${Date.now()}`, name: g.name, members: g.members, memberIds: g.members.map((n) => byName[n]).filter(Boolean),
+      const ids = (g.memberIds && g.memberIds.length ? g.memberIds : g.members.map((n) => byName[n])).filter(Boolean);
+      const rec = { id: `g-${Date.now()}`, name: g.name, members: g.members, memberIds: ids,
                     day: g.day, time: g.time, weeks: g.weeks, createdAt: new Date().toISOString() };
       const cur = (data.prefs && data.prefs.groups) || [];
       if (cur.some((x) => (x.name || "").toLowerCase() === rec.name.toLowerCase())) { hapticWarn(); say(tr("You already have a group with that name.")); return; }
@@ -15620,15 +15673,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     };
     body = <Thread role={role} name={row ? row.who : threadKey} pop={pop} say={say} live={liveThread} />;
   } else if (screen.startsWith("thread:")) {
-    const threadName = screen.split(":")[1];
+    const threadName = screen.slice("thread:".length);
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
     body = <Thread role={role} name={threadName} isGroup={isGroupThread} pop={pop} say={say} />;
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
-    const pname = screen.split(":")[1];
+    const pname = screen.slice("player:".length);
     body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? data.lessons : null}
                         player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
-                        onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
+                        onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
   /* A coach searches their own drill library; anyone else searches the
      drills set for them — myLibrary is a coach's, and is empty for a
@@ -15682,7 +15735,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
   } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} lessonCount={archive.length} />;
   } else if (screen.startsWith("history:")) {
-    const hname = screen.split(":")[1];
+    const hname = screen.slice("history:".length);
     /* a real record: what the coach actually marked for this person */
     const realAtt = data ? (() => {
       /* BY ID. A register's marks are keyed by the player's id, so
@@ -15856,7 +15909,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
                              registers={registers} /> : <div />;
   } else if (screen.startsWith("annotate:")) {
-    const ang = screen.split(":")[1];
+    const ang = screen.slice("annotate:".length);
     body = <VideoAnnotate angle={ang} transcript={cfg.transcript}
                           onSave={(shapes, caps) => setAnnotations((a) => ({ ...a, [ang]: { shapes, caps } }))} pop={pop} say={say} />;
   } else if (screen === "requests") {
@@ -15938,7 +15991,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     bare = screen === "log";
     body = {
       today:     <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
-      log:       <Wizard livePlayers={data ? data.roster.map((r) => r.name) : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.name, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
+      log:       <Wizard livePlayers={data ? data.roster : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
     }[screen] || <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
@@ -16197,11 +16250,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             {sheet === "pickWho" ? <PickPerson roster={roster}
                                             title={pickFor === "tip" ? tr("Set a tip") : tr("Set drills")}
                                             sub={tr("Who is it for?")}
-                                            onPick={(name) => {
+                                            onPick={(r) => {
                                               setSheet(null);
                                               setTimeout(() => {
-                                                if (pickFor === "tip") { setGoalFor(name); setAssignTo(name); setSheet("tip"); }
-                                                else openAssignDrills(name);
+                                                if (pickFor === "tip") { setGoalFor(r.name); setAssignTo(r); setSheet("tip"); }
+                                                else openAssignDrills(r);
                                               }, 180);
                                             }}
                                             close={() => setSheet(null)} />
@@ -16287,9 +16340,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} say={say} />
               : sheet === "invite" ? <InviteBody code={inviteShown} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
-              : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
+              : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
               : sheet === "tip" ? <TipBody focusLabel={assignFocus || (cfg.focus[0] || {}).label} prompts={TIP_PROMPTS[coachSport]} onSet={doSetTip} close={() => setSheet(null)} />
-              : sheet === "group" ? <GroupCreate livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} coachSport={coachSport} onCreate={createGroup} close={() => setSheet(null)} />
+              : sheet === "group" ? <GroupCreate livePlayers={data ? data.roster : null} cfg={cfg} coachSport={coachSport} onCreate={createGroup} close={() => setSheet(null)} />
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} existingNames={[...PLAYERS, ...invited.map((p) => p.name)]}
                                                     onSend={(names) => setInvited((v) => [...v, ...names.map((n) => ({ name: n, sentAt: "just now" }))])}
                                                     close={() => setSheet(null)} say={say} />
@@ -16336,7 +16389,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     </p>
                     <div className="flex flex-col gap-2">
                       {roster.map((r, i) => (
-                        <Tile key={r.name} className="px-4 py-3.5" delay={i * 45}
+                        <Tile key={r.id || r.name} className="px-4 py-3.5" delay={i * 45}
                               onPress={async () => {
                                 if (data) {
                                   const res = await data.addBooking({ playerId: r.id, date: isoOf(bookSlot.day.m, bookSlot.day.d), time: bookSlot.time, duration });
@@ -16512,10 +16565,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who's it for")}</h2>
                     <div className="flex flex-col gap-2">
                       {roster.map((r, i) => {
-                        const has = mySeriesLive.some((x) => x.who === r.name && !x.ended);
+                        const has = mySeriesLive.some((x) => (r.id ? x.playerId === r.id : x.who === r.name) && !x.ended);
                         return (
-                          <Tile key={r.name} className="px-4 py-3.5" delay={i * 45}
-                                onPress={has ? null : () => { setRecurFor(r.name); setSheet("recurring"); }}>
+                          <Tile key={r.id || r.name} className="px-4 py-3.5" delay={i * 45}
+                                onPress={has ? null : () => { setRecurFor(r); setSheet("recurring"); }}>
                             <div className="flex items-center gap-3.5" style={{ opacity: has ? 0.45 : 1 }}>
                               <Avatar name={r.name} size={38} />
                               <span className="flex-1 min-w-0">
@@ -16530,7 +16583,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     </div>
                   </>
                 )
-              : sheet === "recurring" ? <RecurringSetup name={recurFor || (roster[0] || (data ? {} : ROSTER[0])).name || ""} existing={data ? mySeries.find((x) => x.who === recurFor) : series.find((x) => x.who === recurFor && x.sport === coachSport)}
+              : sheet === "recurring" ? <RecurringSetup name={(recurFor || roster[0] || (data ? {} : ROSTER[0]) || {}).name || ""}
+                                          existing={data ? (recurFor && mySeries.find((x) => (recurFor.id ? x.playerId === recurFor.id : x.who === recurFor.name))) : series.find((x) => recurFor && x.who === recurFor.name && x.sport === coachSport)}
                                           slots={slots} duration={duration} onSave={saveSeries} onEnd={endSeries}
                                           close={() => setSheet(null)} say={say} />
               : sheet === "lessonEdit" && editLesson && data ? <LessonEditBody lesson={editLesson} cfg={cfg} say={say}
