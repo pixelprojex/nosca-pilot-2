@@ -704,7 +704,7 @@ export default function Auth({ invite, mode, onInviteUsed }) {
   if (stage === "sport") {
     return (
       <Neutral>
-        <PickSport lang="en" onBack={() => go("who")} onPick={(id) => { setSport(id); go("details"); }} />
+        <PickSport onBack={() => go("who")} onPick={(id) => { setSport(id); go("details"); }} />
       </Neutral>
     );
   }

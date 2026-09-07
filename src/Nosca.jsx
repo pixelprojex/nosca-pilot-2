@@ -11,7 +11,7 @@ import {
   Delete, Lock, Mail, Apple, Camera, Image as ImageIcon, ChevronDown, Search, Wallet,
   Receipt, Banknote, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck,
   ExternalLink, Tag, Phone, Paperclip, Clock, ListChecks, Download, Palette, Zap,
-  TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Building2, Edit3, Trophy, Award, Star, CloudRain,
+  TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Edit3, Trophy, Award, Star, CloudRain,
   Copy, Settings2, BellOff, Layers
 } from "lucide-react";
 
@@ -930,135 +930,15 @@ const COACHES = {
 /* Region first, then language — the way Apple and Google do it, and the
    way people actually think about it. Region also decides date format
    and currency, so it is not a cosmetic choice. */
-/* ==================================================================
-   EUROPE
-   Every country in Europe, each mapped to the languages actually
-   spoken there. A person picks a country, then a language — and from
-   that point the app is in that language only. No English fallback in
-   the interface, because a half-translated app tells someone they were
-   an afterthought.
-================================================================== */
-const REGIONS = [
-  { id: "al", name: "Shqipëri",            en: "Albania",        langs: ["sq"] },
-  { id: "at", name: "Österreich",          en: "Austria",        langs: ["de"] },
-  { id: "be", name: "België · Belgique",   en: "Belgium",        langs: ["nl", "fr", "de"] },
-  { id: "ba", name: "Bosna i Hercegovina", en: "Bosnia",         langs: ["hr", "sr"] },
-  { id: "bg", name: "България",            en: "Bulgaria",       langs: ["bg"] },
-  { id: "hr", name: "Hrvatska",            en: "Croatia",        langs: ["hr"] },
-  { id: "cy", name: "Κύπρος",              en: "Cyprus",         langs: ["el", "tr"] },
-  { id: "cz", name: "Česko",               en: "Czechia",        langs: ["cs"] },
-  { id: "dk", name: "Danmark",             en: "Denmark",        langs: ["da"] },
-  { id: "ee", name: "Eesti",               en: "Estonia",        langs: ["et"] },
-  { id: "fi", name: "Suomi",               en: "Finland",        langs: ["fi", "sv"] },
-  { id: "fr", name: "France",              en: "France",         langs: ["fr"] },
-  { id: "de", name: "Deutschland",         en: "Germany",        langs: ["de"] },
-  { id: "gr", name: "Ελλάδα",              en: "Greece",         langs: ["el"] },
-  { id: "hu", name: "Magyarország",        en: "Hungary",        langs: ["hu"] },
-  { id: "is", name: "Ísland",              en: "Iceland",        langs: ["is"] },
-  { id: "ie", name: "Éire · Ireland",      en: "Ireland",        langs: ["en", "ga"] },
-  { id: "it", name: "Italia",              en: "Italy",          langs: ["it"] },
-  { id: "lv", name: "Latvija",             en: "Latvia",         langs: ["lv"] },
-  { id: "lt", name: "Lietuva",             en: "Lithuania",      langs: ["lt"] },
-  { id: "lu", name: "Luxembourg",          en: "Luxembourg",     langs: ["fr", "de"] },
-  { id: "mt", name: "Malta",               en: "Malta",          langs: ["mt", "en"] },
-  { id: "md", name: "Moldova",             en: "Moldova",        langs: ["ro"] },
-  { id: "me", name: "Crna Gora",           en: "Montenegro",     langs: ["sr"] },
-  { id: "nl", name: "Nederland",           en: "Netherlands",    langs: ["nl"] },
-  { id: "mk", name: "Северна Македонија",  en: "North Macedonia", langs: ["mk"] },
-  { id: "no", name: "Norge",               en: "Norway",         langs: ["no"] },
-  { id: "pl", name: "Polska",              en: "Poland",         langs: ["pl"] },
-  { id: "pt", name: "Portugal",            en: "Portugal",       langs: ["pt"] },
-  { id: "ro", name: "România",             en: "Romania",        langs: ["ro"] },
-  { id: "rs", name: "Србија",              en: "Serbia",         langs: ["sr"] },
-  { id: "sk", name: "Slovensko",           en: "Slovakia",       langs: ["sk"] },
-  { id: "si", name: "Slovenija",           en: "Slovenia",       langs: ["sl"] },
-  { id: "es", name: "España",              en: "Spain",          langs: ["es", "ca", "eu", "gl"] },
-  { id: "se", name: "Sverige",             en: "Sweden",         langs: ["sv"] },
-  { id: "ch", name: "Schweiz · Suisse",    en: "Switzerland",    langs: ["de", "fr", "it"] },
-  { id: "tr", name: "Türkiye",             en: "Türkiye",        langs: ["tr"] },
-  { id: "ua", name: "Україна",             en: "Ukraine",        langs: ["uk"] },
-  { id: "gb", name: "United Kingdom",      en: "United Kingdom", langs: ["en", "cy"] },
-];
 
-/* Regional-indicator pairs render as the actual flag on iOS. Derived
-   from the country code so there is no asset to ship or keep in sync. */
-const flagOf = (id) => id.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
-
-const LANGS = [
-  { id: "en", native: "English" },      { id: "ga", native: "Gaeilge" },
-  { id: "es", native: "Español" },      { id: "fr", native: "Français" },
-  { id: "de", native: "Deutsch" },      { id: "it", native: "Italiano" },
-  { id: "pt", native: "Português" },    { id: "nl", native: "Nederlands" },
-  { id: "pl", native: "Polski" },       { id: "sv", native: "Svenska" },
-  { id: "da", native: "Dansk" },        { id: "no", native: "Norsk" },
-  { id: "fi", native: "Suomi" },        { id: "el", native: "Ελληνικά" },
-  { id: "cs", native: "Čeština" },      { id: "ro", native: "Română" },
-  { id: "hu", native: "Magyar" },       { id: "hr", native: "Hrvatski" },
-  { id: "bg", native: "Български" },    { id: "sk", native: "Slovenčina" },
-  { id: "sl", native: "Slovenščina" },  { id: "lt", native: "Lietuvių" },
-  { id: "lv", native: "Latviešu" },     { id: "et", native: "Eesti" },
-  { id: "uk", native: "Українська" },   { id: "tr", native: "Türkçe" },
-  { id: "is", native: "Íslenska" },     { id: "mt", native: "Malti" },
-  { id: "ca", native: "Català" },       { id: "eu", native: "Euskara" },
-  { id: "gl", native: "Galego" },       { id: "sr", native: "Српски" },
-  { id: "sq", native: "Shqip" },        { id: "mk", native: "Македонски" },
-  { id: "cy", native: "Cymraeg" },
-];
 
 /* Interface strings. Keys are deliberately few and heavily reused, so a
    new language is one block rather than a scattered hunt. */
 export const STRINGS = {
   en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Roster", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Publish", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
-  ga: { today:"Inniu", calendar:"Féilire", log:"Logáil", roster:"Rolla", chats:"Teachtaireachtaí", home:"Baile", lessons:"Ceachtanna", practice:"Cleachtadh", family:"Teaghlach", you:"Tusa", settings:"Socruithe", search:"Cuardaigh", alerts:"Foláirimh", save:"Sábháil", cancel:"Cealaigh", done:"Déanta", skip:"Scipeáil", continue:"Ar aghaidh", publish:"Foilsigh", back:"Ar ais", language:"Teanga", region:"Tír", appearance:"Cuma", darkMode:"Mód dorcha", textSize:"Méid téacs", sound:"Fuaim", haptics:"Aiseolas tadhaill", logLesson:"Logáil ceacht", workingOn:"Ag obair ar", nextLesson:"An chéad cheacht eile", players:"imreoirí", showOriginal:"Taispeáin an bunleagan", showTranslation:"Taispeáin an t-aistriúchán", translatedFor:"Aistrithe duitse", whereAreYou:"Cá bhfuil tú?", yourLanguage:"Do theanga", yourSport:"Do spórt", whichAreYou:"Cé acu tusa?", coach:"Traenálaí", player:"Imreoir", whoIsItFor:"Cé dó é?", forMe:"Domsa atá sé", forMyChild:"Do mo pháiste", imUnder18:"Táim faoi 18", yourDetails:"Do shonraí", fullName:"Ainm iomlán", email:"Ríomhphost", mobile:"Fón póca", password:"Pasfhocal", dateOfBirth:"Dáta breithe", haveAccount:"Cuntas agat?", signIn:"Sínigh isteach", getStarted:"Tosaigh", teachAndEarn:"Múineann tú agus faigheann tú íocaíocht", takeLessons:"Glacann tú ceachtanna — saor in aisce", manageChild:"Bainistíonn tú duine faoi 18", parentSetUp:"Tá tuismitheoir tar éis tú a shocrú", overEighteen:"Tá tú 18 nó níos sine" },
-  es: { today:"Hoy", calendar:"Calendario", log:"Registrar", roster:"Alumnos", chats:"Mensajes", home:"Inicio", lessons:"Clases", practice:"Práctica", family:"Familia", you:"Tú", settings:"Ajustes", search:"Buscar", alerts:"Avisos", save:"Guardar", cancel:"Cancelar", done:"Hecho", skip:"Omitir", continue:"Continuar", publish:"Publicar", back:"Atrás", language:"Idioma", region:"País", appearance:"Apariencia", darkMode:"Modo oscuro", textSize:"Tamaño del texto", sound:"Sonido", haptics:"Vibración", logLesson:"Registrar clase", workingOn:"Trabajando en", nextLesson:"Próxima clase", players:"alumnos", showOriginal:"Ver original", showTranslation:"Ver traducción", translatedFor:"Traducido para ti", whereAreYou:"¿Dónde estás?", yourLanguage:"Tu idioma", yourSport:"Tu deporte", whichAreYou:"¿Qué eres?", coach:"Entrenador", player:"Jugador", whoIsItFor:"¿Para quién es?", forMe:"Es para mí", forMyChild:"Es para mi hijo/a", imUnder18:"Soy menor de 18", yourDetails:"Tus datos", fullName:"Nombre completo", email:"Correo", mobile:"Móvil", password:"Contraseña", dateOfBirth:"Fecha de nacimiento", haveAccount:"¿Ya tienes cuenta?", signIn:"Iniciar sesión", getStarted:"Empezar", teachAndEarn:"Enseñas y cobras", takeLessons:"Recibes clases — siempre gratis", manageChild:"Gestionas a un menor de 18", parentSetUp:"Un padre ya te ha dado de alta", overEighteen:"Tienes 18 años o más" },
-  fr: { today:"Aujourd'hui", calendar:"Calendrier", log:"Séance", roster:"Élèves", chats:"Messages", home:"Accueil", lessons:"Leçons", practice:"Exercices", family:"Famille", you:"Vous", settings:"Réglages", search:"Rechercher", alerts:"Alertes", save:"Enregistrer", cancel:"Annuler", done:"Terminé", skip:"Passer", continue:"Continuer", publish:"Publier", back:"Retour", language:"Langue", region:"Pays", appearance:"Apparence", darkMode:"Mode sombre", textSize:"Taille du texte", sound:"Son", haptics:"Retour haptique", logLesson:"Noter la leçon", workingOn:"Travail en cours", nextLesson:"Prochaine leçon", players:"élèves", showOriginal:"Voir l'original", showTranslation:"Voir la traduction", translatedFor:"Traduit pour vous", whereAreYou:"Où êtes-vous ?", yourLanguage:"Votre langue", yourSport:"Votre sport", whichAreYou:"Vous êtes ?", coach:"Entraîneur", player:"Joueur", whoIsItFor:"C'est pour qui ?", forMe:"C'est pour moi", forMyChild:"C'est pour mon enfant", imUnder18:"J'ai moins de 18 ans", yourDetails:"Vos informations", fullName:"Nom complet", email:"E-mail", mobile:"Mobile", password:"Mot de passe", dateOfBirth:"Date de naissance", haveAccount:"Déjà un compte ?", signIn:"Se connecter", getStarted:"Commencer", teachAndEarn:"Vous enseignez et êtes payé", takeLessons:"Vous prenez des cours — toujours gratuit", manageChild:"Vous gérez un mineur", parentSetUp:"Un parent vous a déjà inscrit", overEighteen:"Vous avez 18 ans ou plus" },
-  de: { today:"Heute", calendar:"Kalender", log:"Erfassen", roster:"Spieler", chats:"Nachrichten", home:"Start", lessons:"Stunden", practice:"Übungen", family:"Familie", you:"Du", settings:"Einstellungen", search:"Suchen", alerts:"Hinweise", save:"Sichern", cancel:"Abbrechen", done:"Fertig", skip:"Überspringen", continue:"Weiter", publish:"Veröffentlichen", back:"Zurück", language:"Sprache", region:"Land", appearance:"Darstellung", darkMode:"Dunkelmodus", textSize:"Schriftgröße", sound:"Ton", haptics:"Haptik", logLesson:"Stunde erfassen", workingOn:"Aktueller Fokus", nextLesson:"Nächste Stunde", players:"Spieler", showOriginal:"Original anzeigen", showTranslation:"Übersetzung anzeigen", translatedFor:"Für dich übersetzt", whereAreYou:"Wo bist du?", yourLanguage:"Deine Sprache", yourSport:"Deine Sportart", whichAreYou:"Was bist du?", coach:"Trainer", player:"Spieler", whoIsItFor:"Für wen ist es?", forMe:"Für mich", forMyChild:"Für mein Kind", imUnder18:"Ich bin unter 18", yourDetails:"Deine Angaben", fullName:"Vollständiger Name", email:"E-Mail", mobile:"Mobil", password:"Passwort", dateOfBirth:"Geburtsdatum", haveAccount:"Schon ein Konto?", signIn:"Anmelden", getStarted:"Loslegen", teachAndEarn:"Du unterrichtest und wirst bezahlt", takeLessons:"Du nimmst Stunden — immer kostenlos", manageChild:"Du verwaltest jemanden unter 18", parentSetUp:"Ein Elternteil hat dich eingerichtet", overEighteen:"Du bist 18 oder älter" },
-  it: { today:"Oggi", calendar:"Calendario", log:"Registra", roster:"Allievi", chats:"Messaggi", home:"Home", lessons:"Lezioni", practice:"Esercizi", family:"Famiglia", you:"Tu", settings:"Impostazioni", search:"Cerca", alerts:"Avvisi", save:"Salva", cancel:"Annulla", done:"Fatto", skip:"Salta", continue:"Continua", publish:"Pubblica", back:"Indietro", language:"Lingua", region:"Paese", appearance:"Aspetto", darkMode:"Modo scuro", textSize:"Dimensione testo", sound:"Suono", haptics:"Vibrazione", logLesson:"Registra lezione", workingOn:"Al lavoro su", nextLesson:"Prossima lezione", players:"allievi", showOriginal:"Vedi originale", showTranslation:"Vedi traduzione", translatedFor:"Tradotto per te", whereAreYou:"Dove sei?", yourLanguage:"La tua lingua", yourSport:"Il tuo sport", whichAreYou:"Chi sei?", coach:"Allenatore", player:"Giocatore", whoIsItFor:"Per chi è?", forMe:"È per me", forMyChild:"È per mio figlio", imUnder18:"Ho meno di 18 anni", yourDetails:"I tuoi dati", fullName:"Nome completo", email:"Email", mobile:"Cellulare", password:"Password", dateOfBirth:"Data di nascita", haveAccount:"Hai già un account?", signIn:"Accedi", getStarted:"Inizia", teachAndEarn:"Insegni e vieni pagato", takeLessons:"Prendi lezioni — sempre gratis", manageChild:"Gestisci un minore di 18 anni", parentSetUp:"Un genitore ti ha già registrato", overEighteen:"Hai 18 anni o più" },
-  pt: { today:"Hoje", calendar:"Calendário", log:"Registar", roster:"Alunos", chats:"Mensagens", home:"Início", lessons:"Aulas", practice:"Treino", family:"Família", you:"Tu", settings:"Definições", search:"Pesquisar", alerts:"Alertas", save:"Guardar", cancel:"Cancelar", done:"Concluído", skip:"Ignorar", continue:"Continuar", publish:"Publicar", back:"Voltar", language:"Idioma", region:"País", appearance:"Aparência", darkMode:"Modo escuro", textSize:"Tamanho do texto", sound:"Som", haptics:"Vibração", logLesson:"Registar aula", workingOn:"A trabalhar em", nextLesson:"Próxima aula", players:"alunos", showOriginal:"Ver original", showTranslation:"Ver tradução", translatedFor:"Traduzido para ti", whereAreYou:"Onde estás?", yourLanguage:"O teu idioma", yourSport:"O teu desporto", whichAreYou:"O que és?", coach:"Treinador", player:"Jogador", whoIsItFor:"Para quem é?", forMe:"É para mim", forMyChild:"É para o meu filho", imUnder18:"Tenho menos de 18", yourDetails:"Os teus dados", fullName:"Nome completo", email:"Email", mobile:"Telemóvel", password:"Palavra-passe", dateOfBirth:"Data de nascimento", haveAccount:"Já tens conta?", signIn:"Entrar", getStarted:"Começar", teachAndEarn:"Ensinas e recebes", takeLessons:"Tens aulas — sempre grátis", manageChild:"Geres um menor de 18", parentSetUp:"Um adulto já te registou", overEighteen:"Tens 18 anos ou mais" },
-  nl: { today:"Vandaag", calendar:"Agenda", log:"Vastleggen", roster:"Spelers", chats:"Berichten", home:"Start", lessons:"Lessen", practice:"Oefenen", family:"Gezin", you:"Jij", settings:"Instellingen", search:"Zoeken", alerts:"Meldingen", save:"Opslaan", cancel:"Annuleren", done:"Klaar", skip:"Overslaan", continue:"Doorgaan", publish:"Publiceren", back:"Terug", language:"Taal", region:"Land", appearance:"Weergave", darkMode:"Donkere modus", textSize:"Tekstgrootte", sound:"Geluid", haptics:"Trillen", logLesson:"Les vastleggen", workingOn:"Werkt aan", nextLesson:"Volgende les", players:"spelers", showOriginal:"Origineel tonen", showTranslation:"Vertaling tonen", translatedFor:"Voor jou vertaald", whereAreYou:"Waar ben je?", yourLanguage:"Jouw taal", yourSport:"Jouw sport", whichAreYou:"Wat ben je?", coach:"Coach", player:"Speler", whoIsItFor:"Voor wie is het?", forMe:"Voor mezelf", forMyChild:"Voor mijn kind", imUnder18:"Ik ben onder de 18", yourDetails:"Jouw gegevens", fullName:"Volledige naam", email:"E-mail", mobile:"Mobiel", password:"Wachtwoord", dateOfBirth:"Geboortedatum", haveAccount:"Al een account?", signIn:"Inloggen", getStarted:"Beginnen", teachAndEarn:"Je geeft les en wordt betaald", takeLessons:"Je krijgt les — altijd gratis", manageChild:"Je beheert iemand onder de 18", parentSetUp:"Een ouder heeft je aangemeld", overEighteen:"Je bent 18 of ouder" },
-  pl: { today:"Dziś", calendar:"Kalendarz", log:"Zapisz", roster:"Zawodnicy", chats:"Wiadomości", home:"Start", lessons:"Lekcje", practice:"Trening", family:"Rodzina", you:"Ty", settings:"Ustawienia", search:"Szukaj", alerts:"Powiadomienia", save:"Zapisz", cancel:"Anuluj", done:"Gotowe", skip:"Pomiń", continue:"Dalej", publish:"Opublikuj", back:"Wstecz", language:"Język", region:"Kraj", appearance:"Wygląd", darkMode:"Tryb ciemny", textSize:"Rozmiar tekstu", sound:"Dźwięk", haptics:"Wibracje", logLesson:"Zapisz lekcję", workingOn:"Pracuje nad", nextLesson:"Następna lekcja", players:"zawodnicy", showOriginal:"Pokaż oryginał", showTranslation:"Pokaż tłumaczenie", translatedFor:"Przetłumaczone dla ciebie", whereAreYou:"Gdzie jesteś?", yourLanguage:"Twój język", yourSport:"Twój sport", whichAreYou:"Kim jesteś?", coach:"Trener", player:"Zawodnik", whoIsItFor:"Dla kogo to jest?", forMe:"Dla mnie", forMyChild:"Dla mojego dziecka", imUnder18:"Mam mniej niż 18 lat", yourDetails:"Twoje dane", fullName:"Imię i nazwisko", email:"E-mail", mobile:"Telefon", password:"Hasło", dateOfBirth:"Data urodzenia", haveAccount:"Masz już konto?", signIn:"Zaloguj się", getStarted:"Zaczynajmy", teachAndEarn:"Uczysz i zarabiasz", takeLessons:"Bierzesz lekcje — zawsze za darmo", manageChild:"Zarządzasz osobą poniżej 18 lat", parentSetUp:"Rodzic już cię zarejestrował", overEighteen:"Masz 18 lat lub więcej" },
-  sv: { today:"Idag", calendar:"Kalender", log:"Logga", roster:"Spelare", chats:"Meddelanden", home:"Hem", lessons:"Lektioner", practice:"Träning", family:"Familj", you:"Du", settings:"Inställningar", search:"Sök", alerts:"Aviseringar", save:"Spara", cancel:"Avbryt", done:"Klar", skip:"Hoppa över", continue:"Fortsätt", publish:"Publicera", back:"Tillbaka", language:"Språk", region:"Land", appearance:"Utseende", darkMode:"Mörkt läge", textSize:"Textstorlek", sound:"Ljud", haptics:"Vibration", logLesson:"Logga lektion", workingOn:"Arbetar med", nextLesson:"Nästa lektion", players:"spelare", showOriginal:"Visa original", showTranslation:"Visa översättning", translatedFor:"Översatt åt dig", whereAreYou:"Var är du?", yourLanguage:"Ditt språk", yourSport:"Din sport", whichAreYou:"Vad är du?", coach:"Tränare", player:"Spelare", whoIsItFor:"Vem är det för?", forMe:"Det är för mig", forMyChild:"Det är för mitt barn", imUnder18:"Jag är under 18", yourDetails:"Dina uppgifter", fullName:"Fullständigt namn", email:"E-post", mobile:"Mobil", password:"Lösenord", dateOfBirth:"Födelsedatum", haveAccount:"Har du ett konto?", signIn:"Logga in", getStarted:"Kom igång", teachAndEarn:"Du undervisar och får betalt", takeLessons:"Du tar lektioner — alltid gratis", manageChild:"Du hanterar någon under 18", parentSetUp:"En förälder har redan registrerat dig", overEighteen:"Du är 18 eller äldre" },
-  da: { today:"I dag", calendar:"Kalender", log:"Log", roster:"Spillere", chats:"Beskeder", home:"Hjem", lessons:"Lektioner", practice:"Træning", family:"Familie", you:"Dig", settings:"Indstillinger", search:"Søg", alerts:"Notifikationer", save:"Gem", cancel:"Annuller", done:"Færdig", skip:"Spring over", continue:"Fortsæt", publish:"Udgiv", back:"Tilbage", language:"Sprog", region:"Land", appearance:"Udseende", darkMode:"Mørk tilstand", textSize:"Tekststørrelse", sound:"Lyd", haptics:"Vibration", logLesson:"Log lektion", workingOn:"Arbejder med", nextLesson:"Næste lektion", players:"spillere", showOriginal:"Vis original", showTranslation:"Vis oversættelse", translatedFor:"Oversat til dig", whereAreYou:"Hvor er du?", yourLanguage:"Dit sprog", yourSport:"Din sport", whichAreYou:"Hvad er du?", coach:"Træner", player:"Spiller", whoIsItFor:"Hvem er det til?", forMe:"Det er til mig", forMyChild:"Det er til mit barn", imUnder18:"Jeg er under 18", yourDetails:"Dine oplysninger", fullName:"Fulde navn", email:"E-mail", mobile:"Mobil", password:"Adgangskode", dateOfBirth:"Fødselsdato", haveAccount:"Har du en konto?", signIn:"Log ind", getStarted:"Kom i gang", teachAndEarn:"Du underviser og får betaling", takeLessons:"Du får lektioner — altid gratis", manageChild:"Du styrer en under 18", parentSetUp:"En forælder har oprettet dig", overEighteen:"Du er 18 eller derover" },
-  no: { today:"I dag", calendar:"Kalender", log:"Logg", roster:"Spillere", chats:"Meldinger", home:"Hjem", lessons:"Timer", practice:"Trening", family:"Familie", you:"Du", settings:"Innstillinger", search:"Søk", alerts:"Varsler", save:"Lagre", cancel:"Avbryt", done:"Ferdig", skip:"Hopp over", continue:"Fortsett", publish:"Publiser", back:"Tilbake", language:"Språk", region:"Land", appearance:"Utseende", darkMode:"Mørk modus", textSize:"Tekststørrelse", sound:"Lyd", haptics:"Vibrasjon", logLesson:"Logg time", workingOn:"Jobber med", nextLesson:"Neste time", players:"spillere", showOriginal:"Vis original", showTranslation:"Vis oversettelse", translatedFor:"Oversatt for deg", whereAreYou:"Hvor er du?", yourLanguage:"Ditt språk", yourSport:"Din idrett", whichAreYou:"Hva er du?", coach:"Trener", player:"Spiller", whoIsItFor:"Hvem er det for?", forMe:"Det er for meg", forMyChild:"Det er for barnet mitt", imUnder18:"Jeg er under 18", yourDetails:"Dine opplysninger", fullName:"Fullt navn", email:"E-post", mobile:"Mobil", password:"Passord", dateOfBirth:"Fødselsdato", haveAccount:"Har du konto?", signIn:"Logg inn", getStarted:"Kom i gang", teachAndEarn:"Du underviser og får betalt", takeLessons:"Du tar timer — alltid gratis", manageChild:"Du styrer en under 18", parentSetUp:"En forelder har registrert deg", overEighteen:"Du er 18 eller eldre" },
-  fi: { today:"Tänään", calendar:"Kalenteri", log:"Kirjaa", roster:"Pelaajat", chats:"Viestit", home:"Koti", lessons:"Tunnit", practice:"Harjoittelu", family:"Perhe", you:"Sinä", settings:"Asetukset", search:"Haku", alerts:"Ilmoitukset", save:"Tallenna", cancel:"Peruuta", done:"Valmis", skip:"Ohita", continue:"Jatka", publish:"Julkaise", back:"Takaisin", language:"Kieli", region:"Maa", appearance:"Ulkoasu", darkMode:"Tumma tila", textSize:"Tekstin koko", sound:"Ääni", haptics:"Värinä", logLesson:"Kirjaa tunti", workingOn:"Työn alla", nextLesson:"Seuraava tunti", players:"pelaajat", showOriginal:"Näytä alkuperäinen", showTranslation:"Näytä käännös", translatedFor:"Käännetty sinulle", whereAreYou:"Missä olet?", yourLanguage:"Kielesi", yourSport:"Lajisi", whichAreYou:"Kuka olet?", coach:"Valmentaja", player:"Pelaaja", whoIsItFor:"Kenelle tämä on?", forMe:"Se on minulle", forMyChild:"Se on lapselleni", imUnder18:"Olen alle 18", yourDetails:"Tietosi", fullName:"Koko nimi", email:"Sähköposti", mobile:"Puhelin", password:"Salasana", dateOfBirth:"Syntymäaika", haveAccount:"Onko sinulla tili?", signIn:"Kirjaudu", getStarted:"Aloita", teachAndEarn:"Opetat ja saat palkkaa", takeLessons:"Otat tunteja — aina ilmaista", manageChild:"Hallinnoit alle 18-vuotiasta", parentSetUp:"Vanhempi on jo rekisteröinyt sinut", overEighteen:"Olet 18 tai vanhempi" },
-  el: { today:"Σήμερα", calendar:"Ημερολόγιο", log:"Καταγραφή", roster:"Αθλητές", chats:"Μηνύματα", home:"Αρχική", lessons:"Μαθήματα", practice:"Προπόνηση", family:"Οικογένεια", you:"Εσύ", settings:"Ρυθμίσεις", search:"Αναζήτηση", alerts:"Ειδοποιήσεις", save:"Αποθήκευση", cancel:"Ακύρωση", done:"Έτοιμο", skip:"Παράλειψη", continue:"Συνέχεια", publish:"Δημοσίευση", back:"Πίσω", language:"Γλώσσα", region:"Χώρα", appearance:"Εμφάνιση", darkMode:"Σκούρο θέμα", textSize:"Μέγεθος κειμένου", sound:"Ήχος", haptics:"Δόνηση", logLesson:"Καταγραφή μαθήματος", workingOn:"Δουλεύουμε σε", nextLesson:"Επόμενο μάθημα", players:"αθλητές", showOriginal:"Πρωτότυπο", showTranslation:"Μετάφραση", translatedFor:"Μεταφράστηκε για σένα", whereAreYou:"Πού βρίσκεσαι;", yourLanguage:"Η γλώσσα σου", yourSport:"Το άθλημά σου", whichAreYou:"Τι είσαι;", coach:"Προπονητής", player:"Αθλητής", whoIsItFor:"Για ποιον είναι;", forMe:"Για μένα", forMyChild:"Για το παιδί μου", imUnder18:"Είμαι κάτω των 18", yourDetails:"Τα στοιχεία σου", fullName:"Ονοματεπώνυμο", email:"Email", mobile:"Κινητό", password:"Κωδικός", dateOfBirth:"Ημερομηνία γέννησης", haveAccount:"Έχεις λογαριασμό;", signIn:"Σύνδεση", getStarted:"Ξεκίνα", teachAndEarn:"Διδάσκεις και πληρώνεσαι", takeLessons:"Κάνεις μαθήματα — πάντα δωρεάν", manageChild:"Διαχειρίζεσαι ανήλικο", parentSetUp:"Ένας γονέας σε έχει ήδη εγγράψει", overEighteen:"Είσαι 18 ή άνω" },
-  cs: { today:"Dnes", calendar:"Kalendář", log:"Zapsat", roster:"Hráči", chats:"Zprávy", home:"Domů", lessons:"Lekce", practice:"Trénink", family:"Rodina", you:"Ty", settings:"Nastavení", search:"Hledat", alerts:"Upozornění", save:"Uložit", cancel:"Zrušit", done:"Hotovo", skip:"Přeskočit", continue:"Pokračovat", publish:"Zveřejnit", back:"Zpět", language:"Jazyk", region:"Země", appearance:"Vzhled", darkMode:"Tmavý režim", textSize:"Velikost textu", sound:"Zvuk", haptics:"Vibrace", logLesson:"Zapsat lekci", workingOn:"Pracujeme na", nextLesson:"Další lekce", players:"hráči", showOriginal:"Zobrazit originál", showTranslation:"Zobrazit překlad", translatedFor:"Přeloženo pro tebe", whereAreYou:"Kde jsi?", yourLanguage:"Tvůj jazyk", yourSport:"Tvůj sport", whichAreYou:"Kdo jsi?", coach:"Trenér", player:"Hráč", whoIsItFor:"Pro koho to je?", forMe:"Pro mě", forMyChild:"Pro mé dítě", imUnder18:"Je mi méně než 18", yourDetails:"Tvé údaje", fullName:"Celé jméno", email:"E-mail", mobile:"Mobil", password:"Heslo", dateOfBirth:"Datum narození", haveAccount:"Máš účet?", signIn:"Přihlásit se", getStarted:"Začít", teachAndEarn:"Učíš a dostáváš zaplaceno", takeLessons:"Chodíš na lekce — vždy zdarma", manageChild:"Spravuješ osobu do 18 let", parentSetUp:"Rodič tě už zaregistroval", overEighteen:"Je ti 18 nebo více" },
-  ro: { today:"Azi", calendar:"Calendar", log:"Înregistrează", roster:"Sportivi", chats:"Mesaje", home:"Acasă", lessons:"Lecții", practice:"Antrenament", family:"Familie", you:"Tu", settings:"Setări", search:"Caută", alerts:"Alerte", save:"Salvează", cancel:"Anulează", done:"Gata", skip:"Omite", continue:"Continuă", publish:"Publică", back:"Înapoi", language:"Limbă", region:"Țară", appearance:"Aspect", darkMode:"Mod întunecat", textSize:"Mărimea textului", sound:"Sunet", haptics:"Vibrații", logLesson:"Înregistrează lecția", workingOn:"Lucrăm la", nextLesson:"Următoarea lecție", players:"sportivi", showOriginal:"Vezi originalul", showTranslation:"Vezi traducerea", translatedFor:"Tradus pentru tine", whereAreYou:"Unde ești?", yourLanguage:"Limba ta", yourSport:"Sportul tău", whichAreYou:"Ce ești?", coach:"Antrenor", player:"Jucător", whoIsItFor:"Pentru cine este?", forMe:"Este pentru mine", forMyChild:"Este pentru copilul meu", imUnder18:"Am sub 18 ani", yourDetails:"Datele tale", fullName:"Nume complet", email:"Email", mobile:"Telefon", password:"Parolă", dateOfBirth:"Data nașterii", haveAccount:"Ai deja cont?", signIn:"Conectează-te", getStarted:"Începe", teachAndEarn:"Predai și ești plătit", takeLessons:"Iei lecții — mereu gratuit", manageChild:"Administrezi un minor", parentSetUp:"Un părinte te-a înregistrat deja", overEighteen:"Ai 18 ani sau mai mult" },
-  hu: { today:"Ma", calendar:"Naptár", log:"Rögzítés", roster:"Játékosok", chats:"Üzenetek", home:"Kezdőlap", lessons:"Órák", practice:"Gyakorlás", family:"Család", you:"Te", settings:"Beállítások", search:"Keresés", alerts:"Értesítések", save:"Mentés", cancel:"Mégse", done:"Kész", skip:"Kihagyás", continue:"Tovább", publish:"Közzététel", back:"Vissza", language:"Nyelv", region:"Ország", appearance:"Megjelenés", darkMode:"Sötét mód", textSize:"Szövegméret", sound:"Hang", haptics:"Rezgés", logLesson:"Óra rögzítése", workingOn:"Ezen dolgozunk", nextLesson:"Következő óra", players:"játékosok", showOriginal:"Eredeti megtekintése", showTranslation:"Fordítás megtekintése", translatedFor:"Neked lefordítva", whereAreYou:"Hol vagy?", yourLanguage:"A nyelved", yourSport:"A sportod", whichAreYou:"Ki vagy?", coach:"Edző", player:"Játékos", whoIsItFor:"Kinek szól?", forMe:"Nekem", forMyChild:"A gyermekemnek", imUnder18:"18 év alatti vagyok", yourDetails:"Adataid", fullName:"Teljes név", email:"E-mail", mobile:"Mobil", password:"Jelszó", dateOfBirth:"Születési dátum", haveAccount:"Van már fiókod?", signIn:"Bejelentkezés", getStarted:"Kezdjük", teachAndEarn:"Tanítasz és fizetést kapsz", takeLessons:"Órákat veszel — mindig ingyenes", manageChild:"18 év alattit kezelsz", parentSetUp:"Egy szülő már regisztrált téged", overEighteen:"18 éves vagy idősebb vagy" },
-  hr: { today:"Danas", calendar:"Kalendar", log:"Zabilježi", roster:"Igrači", chats:"Poruke", home:"Početna", lessons:"Treninzi", practice:"Vježbe", family:"Obitelj", you:"Ti", settings:"Postavke", search:"Traži", alerts:"Obavijesti", save:"Spremi", cancel:"Odustani", done:"Gotovo", skip:"Preskoči", continue:"Nastavi", publish:"Objavi", back:"Natrag", language:"Jezik", region:"Država", appearance:"Izgled", darkMode:"Tamni način", textSize:"Veličina teksta", sound:"Zvuk", haptics:"Vibracija", logLesson:"Zabilježi trening", workingOn:"Radimo na", nextLesson:"Sljedeći trening", players:"igrači", showOriginal:"Prikaži izvornik", showTranslation:"Prikaži prijevod", translatedFor:"Prevedeno za tebe", whereAreYou:"Gdje si?", yourLanguage:"Tvoj jezik", yourSport:"Tvoj sport", whichAreYou:"Tko si?", coach:"Trener", player:"Igrač", whoIsItFor:"Za koga je?", forMe:"Za mene", forMyChild:"Za moje dijete", imUnder18:"Imam manje od 18", yourDetails:"Tvoji podaci", fullName:"Puno ime", email:"E-pošta", mobile:"Mobitel", password:"Lozinka", dateOfBirth:"Datum rođenja", haveAccount:"Imaš račun?", signIn:"Prijavi se", getStarted:"Započni", teachAndEarn:"Podučavaš i zarađuješ", takeLessons:"Ideš na treninge — uvijek besplatno", manageChild:"Upravljaš osobom mlađom od 18", parentSetUp:"Roditelj te već registrirao", overEighteen:"Imaš 18 ili više" },
-  tr: { today:"Bugün", calendar:"Takvim", log:"Kaydet", roster:"Sporcular", chats:"Mesajlar", home:"Ana sayfa", lessons:"Dersler", practice:"Antrenman", family:"Aile", you:"Sen", settings:"Ayarlar", search:"Ara", alerts:"Bildirimler", save:"Kaydet", cancel:"İptal", done:"Tamam", skip:"Atla", continue:"Devam", publish:"Yayınla", back:"Geri", language:"Dil", region:"Ülke", appearance:"Görünüm", darkMode:"Koyu mod", textSize:"Yazı boyutu", sound:"Ses", haptics:"Titreşim", logLesson:"Dersi kaydet", workingOn:"Üzerinde çalışılan", nextLesson:"Sonraki ders", players:"sporcular", showOriginal:"Orijinali göster", showTranslation:"Çeviriyi göster", translatedFor:"Senin için çevrildi", whereAreYou:"Neredesin?", yourLanguage:"Dilin", yourSport:"Sporun", whichAreYou:"Kimsin?", coach:"Antrenör", player:"Sporcu", whoIsItFor:"Kimin için?", forMe:"Benim için", forMyChild:"Çocuğum için", imUnder18:"18 yaşından küçüğüm", yourDetails:"Bilgilerin", fullName:"Ad soyad", email:"E-posta", mobile:"Cep telefonu", password:"Şifre", dateOfBirth:"Doğum tarihi", haveAccount:"Hesabın var mı?", signIn:"Giriş yap", getStarted:"Başla", teachAndEarn:"Ders verir, ücret alırsın", takeLessons:"Ders alırsın — her zaman ücretsiz", manageChild:"18 yaş altını yönetirsin", parentSetUp:"Bir veli seni kaydetti", overEighteen:"18 yaşında veya daha büyüksün" },
-  uk: { today:"Сьогодні", calendar:"Календар", log:"Записати", roster:"Спортсмени", chats:"Повідомлення", home:"Головна", lessons:"Заняття", practice:"Тренування", family:"Сім'я", you:"Ти", settings:"Налаштування", search:"Пошук", alerts:"Сповіщення", save:"Зберегти", cancel:"Скасувати", done:"Готово", skip:"Пропустити", continue:"Далі", publish:"Опублікувати", back:"Назад", language:"Мова", region:"Країна", appearance:"Вигляд", darkMode:"Темний режим", textSize:"Розмір тексту", sound:"Звук", haptics:"Вібрація", logLesson:"Записати заняття", workingOn:"Працюємо над", nextLesson:"Наступне заняття", players:"спортсмени", showOriginal:"Показати оригінал", showTranslation:"Показати переклад", translatedFor:"Перекладено для тебе", whereAreYou:"Де ти?", yourLanguage:"Твоя мова", yourSport:"Твій спорт", whichAreYou:"Хто ти?", coach:"Тренер", player:"Гравець", whoIsItFor:"Для кого це?", forMe:"Для мене", forMyChild:"Для моєї дитини", imUnder18:"Мені менше 18", yourDetails:"Твої дані", fullName:"Повне ім'я", email:"Ел. пошта", mobile:"Мобільний", password:"Пароль", dateOfBirth:"Дата народження", haveAccount:"Вже маєш акаунт?", signIn:"Увійти", getStarted:"Почати", teachAndEarn:"Ти навчаєш і отримуєш оплату", takeLessons:"Ти береш заняття — завжди безкоштовно", manageChild:"Ти керуєш особою до 18", parentSetUp:"Батьки вже зареєстрували тебе", overEighteen:"Тобі 18 або більше" },
 };
 
-/* Day and month names — a calendar in your own language is the most
-   basic form of respect an app can show. */
-const CAL_I18N = {
-  en: { d:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], m:["January","February","March","April","May","June","July","August","September","October","November","December"] },
-  ga: { d:["Luan","Máirt","Céadaoin","Déardaoin","Aoine","Satharn","Domhnach"], m:["Eanáir","Feabhra","Márta","Aibreán","Bealtaine","Meitheamh","Iúil","Lúnasa","Meán Fómhair","Deireadh Fómhair","Samhain","Nollaig"] },
-  es: { d:["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"], m:["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"] },
-  fr: { d:["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"], m:["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"] },
-  de: { d:["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"], m:["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"] },
-  it: { d:["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"], m:["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"] },
-  pt: { d:["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"], m:["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"] },
-  nl: { d:["Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag","Zaterdag","Zondag"], m:["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"] },
-  pl: { d:["Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota","Niedziela"], m:["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"] },
-  sv: { d:["Måndag","Tisdag","Onsdag","Torsdag","Fredag","Lördag","Söndag"], m:["Januari","Februari","Mars","April","Maj","Juni","Juli","Augusti","September","Oktober","November","December"] },
-  da: { d:["Mandag","Tirsdag","Onsdag","Torsdag","Fredag","Lørdag","Søndag"], m:["Januar","Februar","Marts","April","Maj","Juni","Juli","August","September","Oktober","November","December"] },
-  no: { d:["Mandag","Tirsdag","Onsdag","Torsdag","Fredag","Lørdag","Søndag"], m:["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"] },
-  fi: { d:["Maanantai","Tiistai","Keskiviikko","Torstai","Perjantai","Lauantai","Sunnuntai"], m:["Tammikuu","Helmikuu","Maaliskuu","Huhtikuu","Toukokuu","Kesäkuu","Heinäkuu","Elokuu","Syyskuu","Lokakuu","Marraskuu","Joulukuu"] },
-  el: { d:["Δευτέρα","Τρίτη","Τετάρτη","Πέμπτη","Παρασκευή","Σάββατο","Κυριακή"], m:["Ιανουάριος","Φεβρουάριος","Μάρτιος","Απρίλιος","Μάιος","Ιούνιος","Ιούλιος","Αύγουστος","Σεπτέμβριος","Οκτώβριος","Νοέμβριος","Δεκέμβριος"] },
-  cs: { d:["Pondělí","Úterý","Středa","Čtvrtek","Pátek","Sobota","Neděle"], m:["Leden","Únor","Březen","Duben","Květen","Červen","Červenec","Srpen","Září","Říjen","Listopad","Prosinec"] },
-  ro: { d:["Luni","Marți","Miercuri","Joi","Vineri","Sâmbătă","Duminică"], m:["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"] },
-  hu: { d:["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"], m:["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"] },
-  hr: { d:["Ponedjeljak","Utorak","Srijeda","Četvrtak","Petak","Subota","Nedjelja"], m:["Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj","Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"] },
-  tr: { d:["Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi","Pazar"], m:["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"] },
-  uk: { d:["Понеділок","Вівторок","Середа","Четвер","П'ятниця","Субота","Неділя"], m:["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"] },
-};
 
-/* Languages we have fully translated. A country whose language isn't
-   here still works, but we say so plainly rather than silently serving
-   English and pretending. */
-const TRANSLATED = Object.keys(STRINGS);
 
 /* The sign-up as one list, so no screen can disagree with another
    about how far along you are. */
@@ -1069,184 +949,18 @@ const JOURNEY = {
 const stepOf = (path, key) => Math.max(0, (JOURNEY[path] || JOURNEY.player).indexOf(key));
 const stepsIn = (path) => (JOURNEY[path] || JOURNEY.player).length;
 
-/* ==================================================================
-   PHRASES
-   Keyed by the English source so a translator can see the sentence in
-   context rather than a bare key. tr() resolves against whichever
-   language is live; anything missing falls back to the source, and the
-   coverage check below tells us honestly where the gaps are.
-================================================================== */
-const PHRASES = {
-  // --- navigation and chrome ---
-  "Back":{es:"Atrás",fr:"Retour",de:"Zurück",it:"Indietro",pt:"Voltar",nl:"Terug",pl:"Wstecz",ga:"Ar ais"},
-  "Skip":{es:"Omitir",fr:"Passer",de:"Überspringen",it:"Salta",pt:"Ignorar",nl:"Overslaan",pl:"Pomiń",ga:"Scipeáil"},
-  "Save":{es:"Guardar",fr:"Enregistrer",de:"Sichern",it:"Salva",pt:"Guardar",nl:"Opslaan",pl:"Zapisz",ga:"Sábháil"},
-  "Cancel":{es:"Cancelar",fr:"Annuler",de:"Abbrechen",it:"Annulla",pt:"Cancelar",nl:"Annuleren",pl:"Anuluj",ga:"Cealaigh"},
-  "Continue":{es:"Continuar",fr:"Continuer",de:"Weiter",it:"Continua",pt:"Continuar",nl:"Doorgaan",pl:"Dalej",ga:"Ar aghaidh"},
-  "Close":{es:"Cerrar",fr:"Fermer",de:"Schließen",it:"Chiudi",pt:"Fechar",nl:"Sluiten",pl:"Zamknij",ga:"Dún"},
-  "Add":{es:"Añadir",fr:"Ajouter",de:"Hinzufügen",it:"Aggiungi",pt:"Adicionar",nl:"Toevoegen",pl:"Dodaj",ga:"Cuir leis"},
-  "Remove":{es:"Quitar",fr:"Retirer",de:"Entfernen",it:"Rimuovi",pt:"Remover",nl:"Verwijderen",pl:"Usuń",ga:"Bain"},
-  "Delete":{es:"Eliminar",fr:"Supprimer",de:"Löschen",it:"Elimina",pt:"Eliminar",nl:"Verwijderen",pl:"Usuń",ga:"Scrios"},
-  "Send":{es:"Enviar",fr:"Envoyer",de:"Senden",it:"Invia",pt:"Enviar",nl:"Versturen",pl:"Wyślij",ga:"Seol"},
-  "Search":{es:"Buscar",fr:"Rechercher",de:"Suchen",it:"Cerca",pt:"Pesquisar",nl:"Zoeken",pl:"Szukaj",ga:"Cuardaigh"},
-  "Clear":{es:"Borrar",fr:"Effacer",de:"Leeren",it:"Cancella",pt:"Limpar",nl:"Wissen",pl:"Wyczyść",ga:"Glan"},
-  "Share":{es:"Compartir",fr:"Partager",de:"Teilen",it:"Condividi",pt:"Partilhar",nl:"Delen",pl:"Udostępnij",ga:"Roinn"},
-  "Book":{es:"Reservar",fr:"Réserver",de:"Buchen",it:"Prenota",pt:"Reservar",nl:"Boeken",pl:"Rezerwuj",ga:"Cuir in áirithe"},
-  "Message":{es:"Mensaje",fr:"Message",de:"Nachricht",it:"Messaggio",pt:"Mensagem",nl:"Bericht",pl:"Wiadomość",ga:"Teachtaireacht"},
-  "Undo":{es:"Deshacer",fr:"Annuler",de:"Rückgängig",it:"Annulla",pt:"Anular",nl:"Ongedaan maken",pl:"Cofnij",ga:"Cealaigh"},
-  "More":{es:"Más",fr:"Plus",de:"Mehr",it:"Più",pt:"Mais",nl:"Meer",pl:"Więcej",ga:"Níos mó"},
-  "Fewer":{es:"Menos",fr:"Moins",de:"Weniger",it:"Meno",pt:"Menos",nl:"Minder",pl:"Mniej",ga:"Níos lú"},
-  "Stop":{es:"Parar",fr:"Arrêter",de:"Stopp",it:"Ferma",pt:"Parar",nl:"Stop",pl:"Zatrzymaj",ga:"Stad"},
-  "Details":{es:"Detalles",fr:"Détails",de:"Details",it:"Dettagli",pt:"Detalhes",nl:"Details",pl:"Szczegóły",ga:"Sonraí"},
-  "Preview":{es:"Vista previa",fr:"Aperçu",de:"Vorschau",it:"Anteprima",pt:"Pré-visualização",nl:"Voorbeeld",pl:"Podgląd",ga:"Réamhamharc"},
-  "Offline":{es:"Sin conexión",fr:"Hors ligne",de:"Offline",it:"Offline",pt:"Offline",nl:"Offline",pl:"Offline",ga:"As líne"},
-  "Nothing found.":{es:"No hay resultados.",fr:"Aucun résultat.",de:"Nichts gefunden.",it:"Nessun risultato.",pt:"Nada encontrado.",nl:"Niets gevonden.",pl:"Nic nie znaleziono.",ga:"Níor aimsíodh faic."},
-
-  // --- screens ---
-  "Practice":{es:"Práctica",fr:"Exercices",de:"Übungen",it:"Esercizi",pt:"Treino",nl:"Oefenen",pl:"Trening",ga:"Cleachtadh"},
-  "Messages":{es:"Mensajes",fr:"Messages",de:"Nachrichten",it:"Messaggi",pt:"Mensagens",nl:"Berichten",pl:"Wiadomości",ga:"Teachtaireachtaí"},
-  "Drills":{es:"Ejercicios",fr:"Exercices",de:"Übungen",it:"Esercizi",pt:"Exercícios",nl:"Oefeningen",pl:"Ćwiczenia",ga:"Druileanna"},
-  "Alerts":{es:"Avisos",fr:"Alertes",de:"Hinweise",it:"Avvisi",pt:"Alertas",nl:"Meldingen",pl:"Powiadomienia",ga:"Foláirimh"},
-  "Stats":{es:"Estadísticas",fr:"Statistiques",de:"Statistiken",it:"Statistiche",pt:"Estatísticas",nl:"Statistieken",pl:"Statystyki",ga:"Staitisticí"},
-  "Family":{es:"Familia",fr:"Famille",de:"Familie",it:"Famiglia",pt:"Família",nl:"Gezin",pl:"Rodzina",ga:"Teaghlach"},
-  "You":{es:"Tú",fr:"Vous",de:"Du",it:"Tu",pt:"Tu",nl:"Jij",pl:"Ty",ga:"Tusa"},
-  "Help":{es:"Ayuda",fr:"Aide",de:"Hilfe",it:"Aiuto",pt:"Ajuda",nl:"Hulp",pl:"Pomoc",ga:"Cabhair"},
-  "Subscription":{es:"Suscripción",fr:"Abonnement",de:"Abonnement",it:"Abbonamento",pt:"Subscrição",nl:"Abonnement",pl:"Subskrypcja",ga:"Síntiús"},
-  "Branding":{es:"Marca",fr:"Identité",de:"Branding",it:"Brand",pt:"Marca",nl:"Huisstijl",pl:"Marka",ga:"Brandáil"},
-  "Availability":{es:"Disponibilidad",fr:"Disponibilités",de:"Verfügbarkeit",it:"Disponibilità",pt:"Disponibilidade",nl:"Beschikbaarheid",pl:"Dostępność",ga:"Infhaighteacht"},
-  "Waitlist":{es:"Lista de espera",fr:"Liste d'attente",de:"Warteliste",it:"Lista d'attesa",pt:"Lista de espera",nl:"Wachtlijst",pl:"Lista oczekujących",ga:"Liosta feithimh"},
-  "Requests":{es:"Solicitudes",fr:"Demandes",de:"Anfragen",it:"Richieste",pt:"Pedidos",nl:"Verzoeken",pl:"Prośby",ga:"Iarratais"},
-  "To log":{es:"Por registrar",fr:"À rédiger",de:"Nachzutragen",it:"Da registrare",pt:"Por registar",nl:"Nog vastleggen",pl:"Do zapisania",ga:"Le scríobh"},
-  "All lessons":{es:"Todas las clases",fr:"Toutes les leçons",de:"Alle Stunden",it:"Tutte le lezioni",pt:"Todas as aulas",nl:"Alle lessen",pl:"Wszystkie lekcje",ga:"Gach ceacht"},
-  "Your groups":{es:"Tus grupos",fr:"Vos groupes",de:"Deine Gruppen",it:"I tuoi gruppi",pt:"Os teus grupos",nl:"Jouw groepen",pl:"Twoje grupy",ga:"Do ghrúpaí"},
-  "Notifications":{es:"Notificaciones",fr:"Notifications",de:"Mitteilungen",it:"Notifiche",pt:"Notificações",nl:"Meldingen",pl:"Powiadomienia",ga:"Fógraí"},
-  "Personal details":{es:"Datos personales",fr:"Informations personnelles",de:"Persönliche Daten",it:"Dati personali",pt:"Dados pessoais",nl:"Persoonlijke gegevens",pl:"Dane osobowe",ga:"Sonraí pearsanta"},
-  "Downloads":{es:"Descargas",fr:"Téléchargements",de:"Downloads",it:"Download",pt:"Transferências",nl:"Downloads",pl:"Pobrane",ga:"Íoslódálacha"},
-  "Mark it up":{es:"Anotar",fr:"Annoter",de:"Markieren",it:"Annota",pt:"Anotar",nl:"Markeren",pl:"Zaznacz",ga:"Marcáil"},
-
-  // --- actions and rows ---
-  "Set drills":{es:"Asignar ejercicios",fr:"Définir les exercices",de:"Übungen festlegen",it:"Assegna esercizi",pt:"Definir exercícios",nl:"Oefeningen instellen",pl:"Ustaw ćwiczenia",ga:"Socraigh druileanna"},
-  "Add a coach":{es:"Añadir entrenador",fr:"Ajouter un entraîneur",de:"Trainer hinzufügen",it:"Aggiungi allenatore",pt:"Adicionar treinador",nl:"Coach toevoegen",pl:"Dodaj trenera",ga:"Cuir traenálaí leis"},
-  "Add a tip":{es:"Añadir consejo",fr:"Ajouter un conseil",de:"Tipp hinzufügen",it:"Aggiungi consiglio",pt:"Adicionar dica",nl:"Tip toevoegen",pl:"Dodaj wskazówkę",ga:"Cuir leid leis"},
-  "Log a lesson":{es:"Registrar una clase",fr:"Noter une leçon",de:"Stunde erfassen",it:"Registra una lezione",pt:"Registar uma aula",nl:"Les vastleggen",pl:"Zapisz lekcję",ga:"Logáil ceacht"},
-  "Book a lesson":{es:"Reservar una clase",fr:"Réserver une leçon",de:"Stunde buchen",it:"Prenota una lezione",pt:"Reservar uma aula",nl:"Les boeken",pl:"Zarezerwuj lekcję",ga:"Cuir ceacht in áirithe"},
-  "Set your hours":{es:"Define tus horarios",fr:"Définissez vos horaires",de:"Zeiten festlegen",it:"Imposta i tuoi orari",pt:"Define os teus horários",nl:"Stel je uren in",pl:"Ustaw swoje godziny",ga:"Socraigh do chuid uaireanta"},
-  "Create a group":{es:"Crear un grupo",fr:"Créer un groupe",de:"Gruppe erstellen",it:"Crea un gruppo",pt:"Criar um grupo",nl:"Groep maken",pl:"Utwórz grupę",ga:"Cruthaigh grúpa"},
-  "Message everyone":{es:"Mensaje a todos",fr:"Message à tous",de:"Nachricht an alle",it:"Messaggio a tutti",pt:"Mensagem a todos",nl:"Bericht aan iedereen",pl:"Wiadomość do wszystkich",ga:"Teachtaireacht chuig cách"},
-  "Edit stats":{es:"Editar estadísticas",fr:"Modifier les statistiques",de:"Statistiken bearbeiten",it:"Modifica statistiche",pt:"Editar estatísticas",nl:"Statistieken bewerken",pl:"Edytuj statystyki",ga:"Cuir staitisticí in eagar"},
-  "Choose your stats":{es:"Elige tus estadísticas",fr:"Choisissez vos statistiques",de:"Statistiken wählen",it:"Scegli le statistiche",pt:"Escolhe as estatísticas",nl:"Kies je statistieken",pl:"Wybierz statystyki",ga:"Roghnaigh do staitisticí"},
-  "Sign out":{es:"Cerrar sesión",fr:"Se déconnecter",de:"Abmelden",it:"Esci",pt:"Terminar sessão",nl:"Uitloggen",pl:"Wyloguj się",ga:"Logáil amach"},
-  "Delete account":{es:"Eliminar cuenta",fr:"Supprimer le compte",de:"Konto löschen",it:"Elimina account",pt:"Eliminar conta",nl:"Account verwijderen",pl:"Usuń konto",ga:"Scrios cuntas"},
-  "Change password":{es:"Cambiar contraseña",fr:"Changer le mot de passe",de:"Passwort ändern",it:"Cambia password",pt:"Alterar palavra-passe",nl:"Wachtwoord wijzigen",pl:"Zmień hasło",ga:"Athraigh pasfhocal"},
-  "Contact us":{es:"Contáctanos",fr:"Nous contacter",de:"Kontakt",it:"Contattaci",pt:"Contacta-nos",nl:"Contact",pl:"Kontakt",ga:"Déan teagmháil"},
-  "Help centre":{es:"Centro de ayuda",fr:"Centre d'aide",de:"Hilfecenter",it:"Centro assistenza",pt:"Centro de ajuda",nl:"Helpcentrum",pl:"Centrum pomocy",ga:"Ionad cabhrach"},
-  "Report a problem":{es:"Informar de un problema",fr:"Signaler un problème",de:"Problem melden",it:"Segnala un problema",pt:"Reportar um problema",nl:"Probleem melden",pl:"Zgłoś problem",ga:"Tuairiscigh fadhb"},
-  "Terms of Service":{es:"Términos del servicio",fr:"Conditions d'utilisation",de:"Nutzungsbedingungen",it:"Termini di servizio",pt:"Termos de serviço",nl:"Voorwaarden",pl:"Regulamin",ga:"Téarmaí seirbhíse"},
-  "Privacy Policy":{es:"Política de privacidad",fr:"Politique de confidentialité",de:"Datenschutz",it:"Privacy",pt:"Política de privacidade",nl:"Privacybeleid",pl:"Polityka prywatności",ga:"Polasaí príobháideachta"},
-  "Licences":{es:"Licencias",fr:"Licences",de:"Lizenzen",it:"Licenze",pt:"Licenças",nl:"Licenties",pl:"Licencje",ga:"Ceadúnais"},
-  "Data & permissions":{es:"Datos y permisos",fr:"Données et autorisations",de:"Daten und Berechtigungen",it:"Dati e permessi",pt:"Dados e permissões",nl:"Gegevens en rechten",pl:"Dane i uprawnienia",ga:"Sonraí agus ceadanna"},
-  "Family dashboard":{es:"Panel familiar",fr:"Tableau familial",de:"Familienübersicht",it:"Pannello famiglia",pt:"Painel da família",nl:"Gezinsoverzicht",pl:"Panel rodziny",ga:"Painéal teaghlaigh"},
-  "Drill library":{es:"Biblioteca de ejercicios",fr:"Bibliothèque d'exercices",de:"Übungsbibliothek",it:"Libreria esercizi",pt:"Biblioteca de exercícios",nl:"Oefeningenbibliotheek",pl:"Biblioteka ćwiczeń",ga:"Leabharlann druileanna"},
-  "Weekly availability":{es:"Disponibilidad semanal",fr:"Disponibilités hebdomadaires",de:"Wöchentliche Verfügbarkeit",it:"Disponibilità settimanale",pt:"Disponibilidade semanal",nl:"Wekelijkse beschikbaarheid",pl:"Dostępność tygodniowa",ga:"Infhaighteacht sheachtainiúil"},
-  "Roster & groups":{es:"Alumnos y grupos",fr:"Élèves et groupes",de:"Spieler und Gruppen",it:"Allievi e gruppi",pt:"Alunos e grupos",nl:"Spelers en groepen",pl:"Zawodnicy i grupy",ga:"Rolla agus grúpaí"},
-  "Requests & waitlist":{es:"Solicitudes y lista de espera",fr:"Demandes et liste d'attente",de:"Anfragen und Warteliste",it:"Richieste e lista d'attesa",pt:"Pedidos e lista de espera",nl:"Verzoeken en wachtlijst",pl:"Prośby i lista oczekujących",ga:"Iarratais agus liosta feithimh"},
-  "Coaches & profiles":{es:"Entrenadores y perfiles",fr:"Entraîneurs et profils",de:"Trainer und Profile",it:"Allenatori e profili",pt:"Treinadores e perfis",nl:"Coaches en profielen",pl:"Trenerzy i profile",ga:"Traenálaithe agus próifílí"},
-  "Invite code & QR":{es:"Código de invitación y QR",fr:"Code d'invitation et QR",de:"Einladungscode und QR",it:"Codice invito e QR",pt:"Código de convite e QR",nl:"Uitnodigingscode en QR",pl:"Kod zaproszenia i QR",ga:"Cód cuiridh agus QR"},
-  "Family code":{es:"Código familiar",fr:"Code famille",de:"Familiencode",it:"Codice famiglia",pt:"Código de família",nl:"Gezinscode",pl:"Kod rodzinny",ga:"Cód teaghlaigh"},
-  "Your profile":{es:"Tu perfil",fr:"Votre profil",de:"Dein Profil",it:"Il tuo profilo",pt:"O teu perfil",nl:"Jouw profiel",pl:"Twój profil",ga:"Do phróifíl"},
-  "Your drills":{es:"Tus ejercicios",fr:"Vos exercices",de:"Deine Übungen",it:"I tuoi esercizi",pt:"Os teus exercícios",nl:"Jouw oefeningen",pl:"Twoje ćwiczenia",ga:"Do dhruileanna"},
-  "Latest lesson":{es:"Última clase",fr:"Dernière leçon",de:"Letzte Stunde",it:"Ultima lezione",pt:"Última aula",nl:"Laatste les",pl:"Ostatnia lekcja",ga:"An ceacht is déanaí"},
-  "Lesson log":{es:"Registro de clases",fr:"Journal des leçons",de:"Stundenprotokoll",it:"Registro lezioni",pt:"Registo de aulas",nl:"Lesoverzicht",pl:"Dziennik lekcji",ga:"Loga ceachtanna"},
-  "Empty for now":{es:"Aquí no hay nada aún",fr:"Rien pour l'instant",de:"Noch nichts hier",it:"Ancora niente qui",pt:"Ainda nada aqui",nl:"Nog niets hier",pl:"Jeszcze nic tu nie ma",ga:"Faic anseo fós"},
-  "All clear":{es:"Todo en orden",fr:"Tout est clair",de:"Alles erledigt",it:"Tutto a posto",pt:"Tudo em ordem",nl:"Alles is klaar",pl:"Wszystko czyste",ga:"Gach rud glan"},
-  "Still current":{es:"Sigue vigente",fr:"Toujours d'actualité",de:"Weiterhin aktuell",it:"Ancora attuale",pt:"Ainda atual",nl:"Nog actueel",pl:"Wciąż aktualne",ga:"Fós reatha"},
-  "Which sport?":{es:"¿Qué deporte?",fr:"Quel sport ?",de:"Welche Sportart?",it:"Quale sport?",pt:"Que desporto?",nl:"Welke sport?",pl:"Jaki sport?",ga:"Cén spórt?"},
-  "What are they working on?":{es:"¿En qué están trabajando?",fr:"Sur quoi travaillent-ils ?",de:"Woran arbeiten sie?",it:"Su cosa stanno lavorando?",pt:"Em que estão a trabalhar?",nl:"Waar werken ze aan?",pl:"Nad czym pracują?",ga:"Cad air a bhfuil siad ag obair?"},
-  "What you've worked on":{es:"En lo que has trabajado",fr:"Ce que vous avez travaillé",de:"Woran du gearbeitet hast",it:"Su cosa hai lavorato",pt:"No que trabalhaste",nl:"Waar je aan hebt gewerkt",pl:"Nad czym pracowałeś",ga:"Ar ar oibrigh tú"},
-  "Set as their focus":{es:"Fijar como su enfoque",fr:"Définir comme objectif",de:"Als Fokus setzen",it:"Imposta come focus",pt:"Definir como foco",nl:"Als focus instellen",pl:"Ustaw jako cel",ga:"Socraigh mar fhócas"},
-  "Recurring lessons & package":{es:"Clases recurrentes y bono",fr:"Leçons récurrentes et forfait",de:"Serientermine und Paket",it:"Lezioni ricorrenti e pacchetto",pt:"Aulas recorrentes e pacote",nl:"Terugkerende lessen en pakket",pl:"Lekcje cykliczne i pakiet",ga:"Ceachtanna rialta agus pacáiste"},
-  "Remove from roster":{es:"Quitar de la lista",fr:"Retirer de la liste",de:"Von der Liste entfernen",it:"Rimuovi dall'elenco",pt:"Remover da lista",nl:"Van de lijst halen",pl:"Usuń z listy",ga:"Bain den rolla"},
-  "Only you can see this":{es:"Solo tú puedes ver esto",fr:"Vous seul voyez ceci",de:"Nur du siehst das",it:"Solo tu puoi vederlo",pt:"Só tu vês isto",nl:"Alleen jij ziet dit",pl:"Tylko ty to widzisz",ga:"Ní fheiceann ach tusa é seo"},
-
-  // --- subtitles and secondary copy ---
-  "Approve who joins and who fills cancellations":{es:"Aprueba quién entra y quién cubre las cancelaciones",fr:"Validez qui rejoint et qui reprend les annulations",de:"Genehmige Beitritte und Nachrücker",it:"Approva chi entra e chi copre le disdette",pt:"Aprova quem entra e quem ocupa as desistências",nl:"Keur goed wie meedoet en wie annuleringen opvult",pl:"Zatwierdzaj, kto dołącza i kto zajmuje odwołane terminy",ga:"Ceadaigh cé a thagann isteach"},
-  "Who's waiting for a slot":{es:"Quién espera un hueco",fr:"Qui attend un créneau",de:"Wer auf einen Termin wartet",it:"Chi aspetta un posto",pt:"Quem espera por uma vaga",nl:"Wie wacht op een plek",pl:"Kto czeka na termin",ga:"Cé atá ag fanacht ar sliotán"},
-  "Days and times you coach":{es:"Días y horas que entrenas",fr:"Jours et heures où vous enseignez",de:"Tage und Zeiten, an denen du trainierst",it:"Giorni e orari in cui alleni",pt:"Dias e horas em que treinas",nl:"Dagen en tijden dat je lesgeeft",pl:"Dni i godziny, w których trenujesz",ga:"Laethanta agus amanna a dhéanann tú traenáil"},
-  "Your reusable library":{es:"Tu biblioteca reutilizable",fr:"Votre bibliothèque réutilisable",de:"Deine wiederverwendbare Bibliothek",it:"La tua libreria riutilizzabile",pt:"A tua biblioteca reutilizável",nl:"Je herbruikbare bibliotheek",pl:"Twoja biblioteka wielokrotnego użytku",ga:"Do leabharlann inathúsáidte"},
-  "Everyone you manage, in one place":{es:"Todos los que gestionas, en un solo lugar",fr:"Toutes les personnes que vous gérez, au même endroit",de:"Alle, die du verwaltest, an einem Ort",it:"Tutti quelli che gestisci, in un posto",pt:"Todos os que geres, num só lugar",nl:"Iedereen die je beheert, op één plek",pl:"Wszyscy, którymi zarządzasz, w jednym miejscu",ga:"Gach duine a bhainistíonn tú, in aon áit"},
-  "Logo, colour, club name":{es:"Logo, color, nombre del club",fr:"Logo, couleur, nom du club",de:"Logo, Farbe, Vereinsname",it:"Logo, colore, nome del club",pt:"Logo, cor, nome do clube",nl:"Logo, kleur, clubnaam",pl:"Logo, kolor, nazwa klubu",ga:"Lógó, dath, ainm an chlub"},
-  "Add a young person or another coach":{es:"Añade a un menor o a otro entrenador",fr:"Ajoutez un mineur ou un autre entraîneur",de:"Füge einen Jugendlichen oder Trainer hinzu",it:"Aggiungi un minore o un altro allenatore",pt:"Adiciona um jovem ou outro treinador",nl:"Voeg een jongere of coach toe",pl:"Dodaj młodą osobę lub trenera",ga:"Cuir duine óg nó traenálaí eile leis"},
-  "Videos saved for offline":{es:"Vídeos guardados sin conexión",fr:"Vidéos enregistrées hors ligne",de:"Offline gespeicherte Videos",it:"Video salvati offline",pt:"Vídeos guardados offline",nl:"Video's offline opgeslagen",pl:"Filmy zapisane offline",ga:"Físeáin sábháilte as líne"},
-  "Sessions you train with others":{es:"Sesiones en las que entrenas con otros",fr:"Séances où vous vous entraînez à plusieurs",de:"Einheiten, in denen du mit anderen trainierst",it:"Sessioni in cui ti alleni con altri",pt:"Sessões em que treinas com outros",nl:"Sessies waarin je met anderen traint",pl:"Zajęcia, na których trenujesz z innymi",ga:"Seisiúin a dhéanann tú le daoine eile"},
-  "Choose who, and what they practise":{es:"Elige a quién y qué practican",fr:"Choisissez qui, et ce qu'ils travaillent",de:"Wähle wen, und was geübt wird",it:"Scegli chi, e cosa esercitano",pt:"Escolhe quem, e o que praticam",nl:"Kies wie, en wat ze oefenen",pl:"Wybierz kogo i co ćwiczą",ga:"Roghnaigh cé, agus cad a chleachtann siad"},
-  "Choose what reaches you, and when":{es:"Elige qué te llega y cuándo",fr:"Choisissez ce qui vous parvient, et quand",de:"Wähle, was dich erreicht, und wann",it:"Scegli cosa ti arriva, e quando",pt:"Escolhe o que te chega, e quando",nl:"Kies wat je bereikt, en wanneer",pl:"Wybierz, co do ciebie dociera i kiedy",ga:"Roghnaigh cad a shroicheann tú, agus cathain"},
-  "Everyone":{es:"Todos",fr:"Tout le monde",de:"Alle",it:"Tutti",pt:"Todos",nl:"Iedereen",pl:"Wszyscy",ga:"Gach duine"},
-  "Everyone's calendar":{es:"Calendario de todos",fr:"Calendrier de tous",de:"Kalender aller",it:"Calendario di tutti",pt:"Calendário de todos",nl:"Ieders agenda",pl:"Kalendarz wszystkich",ga:"Féilire gach duine"},
-  "Accept":{es:"Aceptar",fr:"Accepter",de:"Annehmen",it:"Accetta",pt:"Aceitar",nl:"Accepteren",pl:"Akceptuj",ga:"Glac"},
-  "Decline":{es:"Rechazar",fr:"Refuser",de:"Ablehnen",it:"Rifiuta",pt:"Recusar",nl:"Weigeren",pl:"Odrzuć",ga:"Diúltaigh"},
-  "Done":{es:"Hecho",fr:"Terminé",de:"Fertig",it:"Fatto",pt:"Concluído",nl:"Klaar",pl:"Gotowe",ga:"Déanta"},
-  "Account":{es:"Cuenta",fr:"Compte",de:"Konto",it:"Account",pt:"Conta",nl:"Account",pl:"Konto",ga:"Cuntas"},
-  "Calendar":{es:"Calendario",fr:"Calendrier",de:"Kalender",it:"Calendario",pt:"Calendário",nl:"Agenda",pl:"Kalendarz",ga:"Féilire"},
-  "Attendance":{es:"Asistencia",fr:"Présence",de:"Anwesenheit",it:"Presenza",pt:"Presença",nl:"Aanwezigheid",pl:"Obecność",ga:"Tinreamh"},
-  "Categories":{es:"Categorías",fr:"Catégories",de:"Kategorien",it:"Categorie",pt:"Categorias",nl:"Categorieën",pl:"Kategorie",ga:"Catagóirí"},
-  "Current plan":{es:"Plan actual",fr:"Formule actuelle",de:"Aktueller Tarif",it:"Piano attuale",pt:"Plano atual",nl:"Huidig abonnement",pl:"Obecny plan",ga:"Plean reatha"},
-  "Change plan":{es:"Cambiar de plan",fr:"Changer de formule",de:"Tarif wechseln",it:"Cambia piano",pt:"Mudar de plano",nl:"Abonnement wijzigen",pl:"Zmień plan",ga:"Athraigh plean"},
-  "Add goal":{es:"Añadir objetivo",fr:"Ajouter un objectif",de:"Ziel hinzufügen",it:"Aggiungi obiettivo",pt:"Adicionar objetivo",nl:"Doel toevoegen",pl:"Dodaj cel",ga:"Cuir sprioc leis"},
-  "Assign this":{es:"Asignar esto",fr:"Attribuer",de:"Zuweisen",it:"Assegna",pt:"Atribuir",nl:"Toewijzen",pl:"Przypisz",ga:"Sann é seo"},
-  "Add another":{es:"Añadir otro",fr:"En ajouter un autre",de:"Weitere hinzufügen",it:"Aggiungine un altro",pt:"Adicionar outro",nl:"Nog een toevoegen",pl:"Dodaj kolejny",ga:"Cuir ceann eile leis"},
-  "Did they turn up?":{es:"¿Asistieron?",fr:"Sont-ils venus ?",de:"Waren sie da?",it:"Si sono presentati?",pt:"Apareceram?",nl:"Kwamen ze opdagen?",pl:"Czy się pojawili?",ga:"Ar tháinig siad?"},
-  "Which numbers do you track?":{es:"¿Qué datos registras?",fr:"Quels chiffres suivez-vous ?",de:"Welche Zahlen verfolgst du?",it:"Quali numeri segui?",pt:"Que números registas?",nl:"Welke cijfers volg je?",pl:"Jakie liczby śledzisz?",ga:"Cé na huimhreacha a leanann tú?"},
-  "Which drills do you use?":{es:"¿Qué ejercicios usas?",fr:"Quels exercices utilisez-vous ?",de:"Welche Übungen nutzt du?",it:"Quali esercizi usi?",pt:"Que exercícios usas?",nl:"Welke oefeningen gebruik je?",pl:"Jakich ćwiczeń używasz?",ga:"Cé na druileanna a úsáideann tú?"},
-  "Which days do you coach?":{es:"¿Qué días entrenas?",fr:"Quels jours enseignez-vous ?",de:"An welchen Tagen trainierst du?",it:"In quali giorni alleni?",pt:"Em que dias treinas?",nl:"Op welke dagen geef je les?",pl:"W jakie dni trenujesz?",ga:"Cé na laethanta a dhéanann tú traenáil?"},
-  "And at what times?":{es:"¿Y a qué horas?",fr:"Et à quelles heures ?",de:"Und zu welchen Zeiten?",it:"E a che ora?",pt:"E a que horas?",nl:"En op welke tijden?",pl:"I o jakich godzinach?",ga:"Agus cén t-am?"},
-  "Pick up to three. You can change these any time.":{es:"Elige hasta tres. Puedes cambiarlo cuando quieras.",fr:"Choisissez-en jusqu'à trois. Modifiable à tout moment.",de:"Bis zu drei. Jederzeit änderbar.",it:"Scegline fino a tre. Modificabile quando vuoi.",pt:"Escolhe até três. Podes mudar quando quiseres.",nl:"Kies er maximaal drie. Altijd te wijzigen.",pl:"Wybierz do trzech. Możesz to zmienić w każdej chwili.",ga:"Suas le trí. Is féidir a athrú am ar bith."},
-  "Your starting library. Add your own as you go.":{es:"Tu biblioteca inicial. Añade las tuyas sobre la marcha.",fr:"Votre bibliothèque de départ. Ajoutez les vôtres au fil du temps.",de:"Deine Startbibliothek. Eigene jederzeit ergänzen.",it:"La tua libreria iniziale. Aggiungi le tue col tempo.",pt:"A tua biblioteca inicial. Acrescenta as tuas.",nl:"Je startbibliotheek. Voeg later je eigen toe.",pl:"Twoja startowa biblioteka. Dodawaj własne.",ga:"Do leabharlann tosaigh. Cuir do chinn féin leis."},
-  "These become the slots players can book.":{es:"Estos serán los huecos que podrán reservar.",fr:"Ce seront les créneaux réservables.",de:"Das werden die buchbaren Termine.",it:"Diventeranno gli orari prenotabili.",pt:"Estes serão os horários reserváveis.",nl:"Dit worden de boekbare tijden.",pl:"To będą terminy do rezerwacji.",ga:"Is iad seo na sliotáin is féidir a chur in áirithe."},
-  "Finish set-up":{es:"Finalizar configuración",fr:"Terminer la configuration",de:"Einrichtung abschließen",it:"Completa la configurazione",pt:"Concluir configuração",nl:"Instellen voltooien",pl:"Zakończ konfigurację",ga:"Críochnaigh an socrú"},
-  "Lesson length":{es:"Duración de la clase",fr:"Durée de la leçon",de:"Dauer der Stunde",it:"Durata della lezione",pt:"Duração da aula",nl:"Lesduur",pl:"Długość lekcji",ga:"Fad an cheachta"},
-  "Start times":{es:"Horas de inicio",fr:"Heures de début",de:"Startzeiten",it:"Orari di inizio",pt:"Horas de início",nl:"Starttijden",pl:"Godziny rozpoczęcia",ga:"Amanna tosaigh"},
-  "Add your own drill":{es:"Añade tu propio ejercicio",fr:"Ajoutez votre exercice",de:"Eigene Übung hinzufügen",it:"Aggiungi il tuo esercizio",pt:"Adiciona o teu exercício",nl:"Eigen oefening toevoegen",pl:"Dodaj własne ćwiczenie",ga:"Cuir do dhruil féin leis"},
-  "slots on":{es:"huecos en",fr:"créneaux sur",de:"Termine an",it:"posti su",pt:"horários em",nl:"tijden op",pl:"terminów w",ga:"sliotán ar"},
-  "days":{es:"días",fr:"jours",de:"Tagen",it:"giorni",pt:"dias",nl:"dagen",pl:"dni",ga:"lá"},
-  "and recurring groups":{es:"y grupos recurrentes",fr:"et groupes réguliers",de:"und feste Gruppen",it:"e gruppi ricorrenti",pt:"e grupos recorrentes",nl:"en vaste groepen",pl:"i stałe grupy",ga:"agus grúpaí rialta"},
-  "How they see the app":{es:"Cómo ven la app",fr:"Ce qu'ils voient",de:"Wie sie die App sehen",it:"Come vedono l'app",pt:"Como veem a app",nl:"Hoe zij de app zien",pl:"Jak widzą aplikację",ga:"Conas a fheiceann siad an aip"},
-  "Support":{es:"Soporte",fr:"Assistance",de:"Support",it:"Assistenza",pt:"Apoio",nl:"Ondersteuning",pl:"Wsparcie",ga:"Tacaíocht"},
-  "Legal":{es:"Legal",fr:"Mentions légales",de:"Rechtliches",it:"Note legali",pt:"Legal",nl:"Juridisch",pl:"Informacje prawne",ga:"Dlíthiúil"},
-  "Made in Ireland":{es:"Hecho en Irlanda",fr:"Conçu en Irlande",de:"Hergestellt in Irland",it:"Fatto in Irlanda",pt:"Feito na Irlanda",nl:"Gemaakt in Ierland",pl:"Zrobione w Irlandii",ga:"Déanta in Éirinn"},
-};
 
 /* Resolve any user-facing string. Falls back to the source rather than
    to a third language, so nobody ever sees a sentence in a language
    they did not choose. */
 
-/* The remaining languages, written as one block each. tr() checks the
-   per-phrase table first, then here — so adding a language is a single
-   contiguous edit rather than 120 scattered ones. */
-const PHRASES_BY_LANG = {
-  el: { "Support":"Υποστήριξη","Help centre":"Κέντρο βοήθειας","Contact us":"Επικοινωνία","Legal":"Νομικά","Made in Ireland":"Φτιαγμένο στην Ιρλανδία","Report a problem":"Αναφορά προβλήματος","Back":"Πίσω","Skip":"Παράλειψη","Save":"Αποθήκευση","Cancel":"Ακύρωση","Continue":"Συνέχεια","Close":"Κλείσιμο","Add":"Προσθήκη","Remove":"Αφαίρεση","Delete":"Διαγραφή","Send":"Αποστολή","Search":"Αναζήτηση","Clear":"Καθαρισμός","Share":"Κοινοποίηση","Book":"Κράτηση","Message":"Μήνυμα","More":"Περισσότερα","Fewer":"Λιγότερα","Done":"Έτοιμο","Details":"Λεπτομέρειες","Preview":"Προεπισκόπηση","Practice":"Προπόνηση","Messages":"Μηνύματα","Drills":"Ασκήσεις","Alerts":"Ειδοποιήσεις","Stats":"Στατιστικά","Family":"Οικογένεια","You":"Εσύ","Help":"Βοήθεια","Subscription":"Συνδρομή","Branding":"Ταυτότητα","Availability":"Διαθεσιμότητα","Waitlist":"Λίστα αναμονής","Requests":"Αιτήματα","All lessons":"Όλα τα μαθήματα","Your groups":"Οι ομάδες σου","Notifications":"Ειδοποιήσεις","Personal details":"Προσωπικά στοιχεία","Set drills":"Ορισμός ασκήσεων","Add a coach":"Προσθήκη προπονητή","Log a lesson":"Καταγραφή μαθήματος","Book a lesson":"Κράτηση μαθήματος","Set your hours":"Όρισε τις ώρες σου","Account":"Λογαριασμός","Calendar":"Ημερολόγιο","Attendance":"Παρουσίες","Sign out":"Αποσύνδεση","Delete account":"Διαγραφή λογαριασμού","Terms of Service":"Όροι χρήσης","Privacy Policy":"Πολιτική απορρήτου","Licences":"Άδειες","Data & permissions":"Δεδομένα και άδειες","Weekly availability":"Εβδομαδιαία διαθεσιμότητα","Roster & groups":"Αθλητές και ομάδες","Your reusable library":"Η βιβλιοθήκη σου","Days and times you coach":"Μέρες και ώρες που προπονείς","Who's waiting for a slot":"Ποιος περιμένει θέση","Approve who joins and who fills cancellations":"Ενέκρινε ποιος μπαίνει","Nothing here yet":"Τίποτα εδώ ακόμα","Working on":"Δουλεύουμε σε","Goal":"Στόχος","Last lesson":"Τελευταίο μάθημα","Profile":"Προφίλ","Completed":"Ολοκληρωμένα","On time":"Στην ώρα","No shows":"Απουσίες","Lessons":"Μαθήματα","Late":"Αργοπορία","Did not show":"Δεν ήρθε","Did they turn up?":"Ήρθαν;","Today's schedule":"Το πρόγραμμα σήμερα","You're free today":"Είσαι ελεύθερος σήμερα","Nothing booked.":"Καμία κράτηση." },
-  sv: { "Support":"Support","Help centre":"Hjälpcenter","Contact us":"Kontakta oss","Legal":"Juridik","Made in Ireland":"Gjord i Irland","Report a problem":"Rapportera problem","Back":"Tillbaka","Skip":"Hoppa över","Save":"Spara","Cancel":"Avbryt","Continue":"Fortsätt","Close":"Stäng","Add":"Lägg till","Remove":"Ta bort","Delete":"Radera","Send":"Skicka","Search":"Sök","Clear":"Rensa","Share":"Dela","Book":"Boka","Message":"Meddelande","More":"Fler","Fewer":"Färre","Done":"Klar","Details":"Detaljer","Preview":"Förhandsvisning","Practice":"Träning","Messages":"Meddelanden","Drills":"Övningar","Alerts":"Aviseringar","Stats":"Statistik","Family":"Familj","You":"Du","Help":"Hjälp","Subscription":"Prenumeration","Branding":"Profil","Availability":"Tillgänglighet","Waitlist":"Väntelista","Requests":"Förfrågningar","All lessons":"Alla lektioner","Your groups":"Dina grupper","Notifications":"Aviseringar","Personal details":"Personuppgifter","Set drills":"Ange övningar","Add a coach":"Lägg till tränare","Log a lesson":"Logga lektion","Book a lesson":"Boka lektion","Set your hours":"Ange dina tider","Account":"Konto","Calendar":"Kalender","Attendance":"Närvaro","Sign out":"Logga ut","Delete account":"Radera konto","Terms of Service":"Användarvillkor","Privacy Policy":"Integritetspolicy","Licences":"Licenser","Data & permissions":"Data och behörigheter","Weekly availability":"Veckotillgänglighet","Roster & groups":"Spelare och grupper","Your reusable library":"Ditt bibliotek","Days and times you coach":"Dagar och tider du tränar","Who's waiting for a slot":"Vem väntar på en tid","Approve who joins and who fills cancellations":"Godkänn vem som får gå med","Nothing here yet":"Inget här än","Working on":"Arbetar med","Goal":"Mål","Last lesson":"Senaste lektionen","Profile":"Profil","Completed":"Genomförda","On time":"I tid","No shows":"Uteblivna","Lessons":"Lektioner","Late":"Sen","Did not show":"Kom inte","Did they turn up?":"Kom de?","Today's schedule":"Dagens schema","You're free today":"Du är ledig idag","Nothing booked.":"Inget bokat." },
-  da: { "Support":"Support","Help centre":"Hjælpecenter","Contact us":"Kontakt os","Legal":"Juridisk","Made in Ireland":"Lavet i Irland","Report a problem":"Rapportér et problem","Back":"Tilbage","Skip":"Spring over","Save":"Gem","Cancel":"Annuller","Continue":"Fortsæt","Close":"Luk","Add":"Tilføj","Remove":"Fjern","Delete":"Slet","Send":"Send","Search":"Søg","Clear":"Ryd","Share":"Del","Book":"Book","Message":"Besked","More":"Flere","Fewer":"Færre","Done":"Færdig","Details":"Detaljer","Preview":"Forhåndsvisning","Practice":"Træning","Messages":"Beskeder","Drills":"Øvelser","Alerts":"Notifikationer","Stats":"Statistik","Family":"Familie","You":"Dig","Help":"Hjælp","Subscription":"Abonnement","Branding":"Profil","Availability":"Tilgængelighed","Waitlist":"Venteliste","Requests":"Anmodninger","All lessons":"Alle lektioner","Your groups":"Dine hold","Notifications":"Notifikationer","Personal details":"Personlige oplysninger","Set drills":"Angiv øvelser","Add a coach":"Tilføj træner","Log a lesson":"Log lektion","Book a lesson":"Book lektion","Set your hours":"Angiv dine tider","Account":"Konto","Calendar":"Kalender","Attendance":"Fremmøde","Sign out":"Log ud","Delete account":"Slet konto","Terms of Service":"Vilkår","Privacy Policy":"Privatlivspolitik","Licences":"Licenser","Data & permissions":"Data og tilladelser","Weekly availability":"Ugentlig tilgængelighed","Roster & groups":"Spillere og hold","Your reusable library":"Dit bibliotek","Days and times you coach":"Dage og tider du træner","Who's waiting for a slot":"Hvem venter på en tid","Approve who joins and who fills cancellations":"Godkend hvem der kommer med","Nothing here yet":"Intet her endnu","Working on":"Arbejder med","Goal":"Mål","Last lesson":"Sidste lektion","Profile":"Profil","Completed":"Gennemførte","On time":"Til tiden","No shows":"Udeblivelser","Lessons":"Lektioner","Late":"Forsinket","Did not show":"Mødte ikke op","Did they turn up?":"Kom de?","Today's schedule":"Dagens program","You're free today":"Du har fri i dag","Nothing booked.":"Intet booket." },
-  no: { "Support":"Støtte","Help centre":"Hjelpesenter","Contact us":"Kontakt oss","Legal":"Juridisk","Made in Ireland":"Laget i Irland","Report a problem":"Rapporter et problem","Back":"Tilbake","Skip":"Hopp over","Save":"Lagre","Cancel":"Avbryt","Continue":"Fortsett","Close":"Lukk","Add":"Legg til","Remove":"Fjern","Delete":"Slett","Send":"Send","Search":"Søk","Clear":"Tøm","Share":"Del","Book":"Book","Message":"Melding","More":"Flere","Fewer":"Færre","Done":"Ferdig","Details":"Detaljer","Preview":"Forhåndsvisning","Practice":"Trening","Messages":"Meldinger","Drills":"Øvelser","Alerts":"Varsler","Stats":"Statistikk","Family":"Familie","You":"Du","Help":"Hjelp","Subscription":"Abonnement","Branding":"Profil","Availability":"Tilgjengelighet","Waitlist":"Venteliste","Requests":"Forespørsler","All lessons":"Alle timer","Your groups":"Dine grupper","Notifications":"Varsler","Personal details":"Personopplysninger","Set drills":"Angi øvelser","Add a coach":"Legg til trener","Log a lesson":"Logg time","Book a lesson":"Book time","Set your hours":"Angi tidene dine","Account":"Konto","Calendar":"Kalender","Attendance":"Oppmøte","Sign out":"Logg ut","Delete account":"Slett konto","Terms of Service":"Vilkår","Privacy Policy":"Personvern","Licences":"Lisenser","Data & permissions":"Data og tillatelser","Weekly availability":"Ukentlig tilgjengelighet","Roster & groups":"Spillere og grupper","Your reusable library":"Ditt bibliotek","Days and times you coach":"Dager og tider du trener","Who's waiting for a slot":"Hvem venter på en time","Approve who joins and who fills cancellations":"Godkjenn hvem som blir med","Nothing here yet":"Ingenting her ennå","Working on":"Jobber med","Goal":"Mål","Last lesson":"Forrige time","Profile":"Profil","Completed":"Fullførte","On time":"Presis","No shows":"Uteblitt","Lessons":"Timer","Late":"Forsinket","Did not show":"Møtte ikke","Did they turn up?":"Kom de?","Today's schedule":"Dagens program","You're free today":"Du er ledig i dag","Nothing booked.":"Ingenting booket." },
-  fi: { "Support":"Tuki","Help centre":"Ohjekeskus","Contact us":"Ota yhteyttä","Legal":"Oikeudellinen","Made in Ireland":"Tehty Irlannissa","Report a problem":"Ilmoita ongelmasta","Back":"Takaisin","Skip":"Ohita","Save":"Tallenna","Cancel":"Peruuta","Continue":"Jatka","Close":"Sulje","Add":"Lisää","Remove":"Poista","Delete":"Poista","Send":"Lähetä","Search":"Haku","Clear":"Tyhjennä","Share":"Jaa","Book":"Varaa","Message":"Viesti","More":"Enemmän","Fewer":"Vähemmän","Done":"Valmis","Details":"Tiedot","Preview":"Esikatselu","Practice":"Harjoittelu","Messages":"Viestit","Drills":"Harjoitukset","Alerts":"Ilmoitukset","Stats":"Tilastot","Family":"Perhe","You":"Sinä","Help":"Ohje","Subscription":"Tilaus","Branding":"Ilme","Availability":"Saatavuus","Waitlist":"Jonotuslista","Requests":"Pyynnöt","All lessons":"Kaikki tunnit","Your groups":"Ryhmäsi","Notifications":"Ilmoitukset","Personal details":"Omat tiedot","Set drills":"Aseta harjoitukset","Add a coach":"Lisää valmentaja","Log a lesson":"Kirjaa tunti","Book a lesson":"Varaa tunti","Set your hours":"Aseta aikasi","Account":"Tili","Calendar":"Kalenteri","Attendance":"Läsnäolo","Sign out":"Kirjaudu ulos","Delete account":"Poista tili","Terms of Service":"Käyttöehdot","Privacy Policy":"Tietosuoja","Licences":"Lisenssit","Data & permissions":"Tiedot ja luvat","Weekly availability":"Viikoittainen saatavuus","Roster & groups":"Pelaajat ja ryhmät","Your reusable library":"Kirjastosi","Days and times you coach":"Päivät ja ajat jolloin valmennat","Who's waiting for a slot":"Kuka odottaa paikkaa","Approve who joins and who fills cancellations":"Hyväksy kuka liittyy","Nothing here yet":"Ei vielä mitään","Working on":"Työn alla","Goal":"Tavoite","Last lesson":"Viime tunti","Profile":"Profiili","Completed":"Suoritettu","On time":"Ajoissa","No shows":"Poissaolot","Lessons":"Tunnit","Late":"Myöhässä","Did not show":"Ei tullut","Did they turn up?":"Tulivatko he?","Today's schedule":"Tämän päivän ohjelma","You're free today":"Sinulla on vapaata tänään","Nothing booked.":"Ei varauksia." },
-  cs: { "Support":"Podpora","Help centre":"Centrum nápovědy","Contact us":"Kontaktujte nás","Legal":"Právní","Made in Ireland":"Vyrobeno v Irsku","Report a problem":"Nahlásit problém","Back":"Zpět","Skip":"Přeskočit","Save":"Uložit","Cancel":"Zrušit","Continue":"Pokračovat","Close":"Zavřít","Add":"Přidat","Remove":"Odebrat","Delete":"Smazat","Send":"Odeslat","Search":"Hledat","Clear":"Vymazat","Share":"Sdílet","Book":"Rezervovat","Message":"Zpráva","More":"Více","Fewer":"Méně","Done":"Hotovo","Details":"Podrobnosti","Preview":"Náhled","Practice":"Trénink","Messages":"Zprávy","Drills":"Cvičení","Alerts":"Upozornění","Stats":"Statistiky","Family":"Rodina","You":"Ty","Help":"Nápověda","Subscription":"Předplatné","Branding":"Značka","Availability":"Dostupnost","Waitlist":"Čekací listina","Requests":"Žádosti","All lessons":"Všechny lekce","Your groups":"Tvoje skupiny","Notifications":"Oznámení","Personal details":"Osobní údaje","Set drills":"Nastavit cvičení","Add a coach":"Přidat trenéra","Log a lesson":"Zapsat lekci","Book a lesson":"Rezervovat lekci","Set your hours":"Nastav své hodiny","Account":"Účet","Calendar":"Kalendář","Attendance":"Docházka","Sign out":"Odhlásit se","Delete account":"Smazat účet","Terms of Service":"Podmínky","Privacy Policy":"Ochrana údajů","Licences":"Licence","Data & permissions":"Data a oprávnění","Weekly availability":"Týdenní dostupnost","Roster & groups":"Hráči a skupiny","Your reusable library":"Tvoje knihovna","Days and times you coach":"Dny a časy, kdy trénuješ","Who's waiting for a slot":"Kdo čeká na termín","Approve who joins and who fills cancellations":"Schval, kdo se přidá","Nothing here yet":"Zatím tu nic není","Working on":"Pracujeme na","Goal":"Cíl","Last lesson":"Poslední lekce","Profile":"Profil","Completed":"Dokončeno","On time":"Včas","No shows":"Neúčasti","Lessons":"Lekce","Late":"Pozdě","Did not show":"Nepřišel","Did they turn up?":"Přišli?","Today's schedule":"Dnešní rozvrh","You're free today":"Dnes máš volno","Nothing booked.":"Nic není rezervováno." },
-  ro: { "Support":"Asistență","Help centre":"Centru de ajutor","Contact us":"Contactează-ne","Legal":"Legal","Made in Ireland":"Făcut în Irlanda","Report a problem":"Raportează o problemă","Back":"Înapoi","Skip":"Omite","Save":"Salvează","Cancel":"Anulează","Continue":"Continuă","Close":"Închide","Add":"Adaugă","Remove":"Elimină","Delete":"Șterge","Send":"Trimite","Search":"Caută","Clear":"Golește","Share":"Distribuie","Book":"Rezervă","Message":"Mesaj","More":"Mai multe","Fewer":"Mai puține","Done":"Gata","Details":"Detalii","Preview":"Previzualizare","Practice":"Antrenament","Messages":"Mesaje","Drills":"Exerciții","Alerts":"Alerte","Stats":"Statistici","Family":"Familie","You":"Tu","Help":"Ajutor","Subscription":"Abonament","Branding":"Brand","Availability":"Disponibilitate","Waitlist":"Listă de așteptare","Requests":"Cereri","All lessons":"Toate lecțiile","Your groups":"Grupurile tale","Notifications":"Notificări","Personal details":"Date personale","Set drills":"Setează exerciții","Add a coach":"Adaugă antrenor","Log a lesson":"Înregistrează lecția","Book a lesson":"Rezervă o lecție","Set your hours":"Setează-ți orele","Account":"Cont","Calendar":"Calendar","Attendance":"Prezență","Sign out":"Deconectare","Delete account":"Șterge contul","Terms of Service":"Termeni","Privacy Policy":"Confidențialitate","Licences":"Licențe","Data & permissions":"Date și permisiuni","Weekly availability":"Disponibilitate săptămânală","Roster & groups":"Sportivi și grupuri","Your reusable library":"Biblioteca ta","Days and times you coach":"Zilele și orele în care antrenezi","Who's waiting for a slot":"Cine așteaptă un loc","Approve who joins and who fills cancellations":"Aprobă cine se alătură","Nothing here yet":"Încă nimic aici","Working on":"Lucrăm la","Goal":"Obiectiv","Last lesson":"Ultima lecție","Profile":"Profil","Completed":"Finalizate","On time":"La timp","No shows":"Absențe","Lessons":"Lecții","Late":"Întârziat","Did not show":"Nu a venit","Did they turn up?":"Au venit?","Today's schedule":"Programul de azi","You're free today":"Ești liber azi","Nothing booked.":"Nimic rezervat." },
-  hu: { "Support":"Támogatás","Help centre":"Súgóközpont","Contact us":"Kapcsolat","Legal":"Jogi","Made in Ireland":"Írországban készült","Report a problem":"Hiba jelentése","Back":"Vissza","Skip":"Kihagyás","Save":"Mentés","Cancel":"Mégse","Continue":"Tovább","Close":"Bezárás","Add":"Hozzáadás","Remove":"Eltávolítás","Delete":"Törlés","Send":"Küldés","Search":"Keresés","Clear":"Törlés","Share":"Megosztás","Book":"Foglalás","Message":"Üzenet","More":"Több","Fewer":"Kevesebb","Done":"Kész","Details":"Részletek","Preview":"Előnézet","Practice":"Gyakorlás","Messages":"Üzenetek","Drills":"Gyakorlatok","Alerts":"Értesítések","Stats":"Statisztika","Family":"Család","You":"Te","Help":"Súgó","Subscription":"Előfizetés","Branding":"Arculat","Availability":"Elérhetőség","Waitlist":"Várólista","Requests":"Kérések","All lessons":"Összes óra","Your groups":"Csoportjaid","Notifications":"Értesítések","Personal details":"Személyes adatok","Set drills":"Gyakorlatok beállítása","Add a coach":"Edző hozzáadása","Log a lesson":"Óra rögzítése","Book a lesson":"Óra foglalása","Set your hours":"Állítsd be az időpontjaid","Account":"Fiók","Calendar":"Naptár","Attendance":"Jelenlét","Sign out":"Kijelentkezés","Delete account":"Fiók törlése","Terms of Service":"Feltételek","Privacy Policy":"Adatvédelem","Licences":"Licencek","Data & permissions":"Adatok és engedélyek","Weekly availability":"Heti elérhetőség","Roster & groups":"Játékosok és csoportok","Your reusable library":"Könyvtárad","Days and times you coach":"Napok és időpontok, amikor edzel","Who's waiting for a slot":"Ki vár időpontra","Approve who joins and who fills cancellations":"Hagyd jóvá, ki csatlakozik","Nothing here yet":"Még nincs itt semmi","Working on":"Ezen dolgozunk","Goal":"Cél","Last lesson":"Utolsó óra","Profile":"Profil","Completed":"Teljesítve","On time":"Időben","No shows":"Hiányzások","Lessons":"Órák","Late":"Késett","Did not show":"Nem jött el","Did they turn up?":"Eljöttek?","Today's schedule":"Mai program","You're free today":"Ma szabad vagy","Nothing booked.":"Nincs foglalás." },
-  hr: { "Support":"Podrška","Help centre":"Centar za pomoć","Contact us":"Kontaktiraj nas","Legal":"Pravno","Made in Ireland":"Izrađeno u Irskoj","Report a problem":"Prijavi problem","Back":"Natrag","Skip":"Preskoči","Save":"Spremi","Cancel":"Odustani","Continue":"Nastavi","Close":"Zatvori","Add":"Dodaj","Remove":"Ukloni","Delete":"Izbriši","Send":"Pošalji","Search":"Traži","Clear":"Očisti","Share":"Podijeli","Book":"Rezerviraj","Message":"Poruka","More":"Više","Fewer":"Manje","Done":"Gotovo","Details":"Detalji","Preview":"Pregled","Practice":"Vježbe","Messages":"Poruke","Drills":"Vježbe","Alerts":"Obavijesti","Stats":"Statistika","Family":"Obitelj","You":"Ti","Help":"Pomoć","Subscription":"Pretplata","Branding":"Brend","Availability":"Dostupnost","Waitlist":"Lista čekanja","Requests":"Zahtjevi","All lessons":"Svi treninzi","Your groups":"Tvoje grupe","Notifications":"Obavijesti","Personal details":"Osobni podaci","Set drills":"Postavi vježbe","Add a coach":"Dodaj trenera","Log a lesson":"Zabilježi trening","Book a lesson":"Rezerviraj trening","Set your hours":"Postavi svoje termine","Account":"Račun","Calendar":"Kalendar","Attendance":"Dolasci","Sign out":"Odjava","Delete account":"Izbriši račun","Terms of Service":"Uvjeti","Privacy Policy":"Privatnost","Licences":"Licence","Data & permissions":"Podaci i dopuštenja","Weekly availability":"Tjedna dostupnost","Roster & groups":"Igrači i grupe","Your reusable library":"Tvoja biblioteka","Days and times you coach":"Dani i termini kad treniraš","Who's waiting for a slot":"Tko čeka termin","Approve who joins and who fills cancellations":"Odobri tko se pridružuje","Nothing here yet":"Ovdje još nema ničega","Working on":"Radimo na","Goal":"Cilj","Last lesson":"Zadnji trening","Profile":"Profil","Completed":"Završeno","On time":"Na vrijeme","No shows":"Nedolasci","Lessons":"Treninzi","Late":"Kasnio","Did not show":"Nije došao","Did they turn up?":"Jesu li došli?","Today's schedule":"Današnji raspored","You're free today":"Danas si slobodan","Nothing booked.":"Ništa rezervirano." },
-  bg: { "Support":"Поддръжка","Help centre":"Помощен център","Contact us":"Свържете се","Legal":"Правно","Made in Ireland":"Направено в Ирландия","Report a problem":"Съобщи за проблем","Back":"Назад","Skip":"Пропусни","Save":"Запази","Cancel":"Отказ","Continue":"Продължи","Close":"Затвори","Add":"Добави","Remove":"Премахни","Delete":"Изтрий","Send":"Изпрати","Search":"Търсене","Clear":"Изчисти","Share":"Сподели","Book":"Резервирай","Message":"Съобщение","More":"Още","Fewer":"По-малко","Done":"Готово","Details":"Подробности","Preview":"Преглед","Practice":"Тренировка","Messages":"Съобщения","Drills":"Упражнения","Alerts":"Известия","Stats":"Статистика","Family":"Семейство","You":"Ти","Help":"Помощ","Subscription":"Абонамент","Branding":"Бранд","Availability":"Наличност","Waitlist":"Списък на чакащите","Requests":"Заявки","All lessons":"Всички уроци","Your groups":"Твоите групи","Notifications":"Известия","Personal details":"Лични данни","Set drills":"Задай упражнения","Add a coach":"Добави треньор","Log a lesson":"Запиши урок","Book a lesson":"Резервирай урок","Set your hours":"Задай часовете си","Account":"Профил","Calendar":"Календар","Attendance":"Присъствие","Sign out":"Изход","Delete account":"Изтрий профила","Terms of Service":"Условия","Privacy Policy":"Поверителност","Licences":"Лицензи","Data & permissions":"Данни и разрешения","Weekly availability":"Седмична наличност","Roster & groups":"Спортисти и групи","Your reusable library":"Твоята библиотека","Days and times you coach":"Дни и часове, в които тренираш","Who's waiting for a slot":"Кой чака място","Approve who joins and who fills cancellations":"Одобри кой се присъединява","Nothing here yet":"Още няма нищо тук","Working on":"Работим по","Goal":"Цел","Last lesson":"Последен урок","Profile":"Профил","Completed":"Завършени","On time":"Навреме","No shows":"Неявявания","Lessons":"Уроци","Late":"Закъснял","Did not show":"Не дойде","Did they turn up?":"Дойдоха ли?","Today's schedule":"Днешната програма","You're free today":"Днес си свободен","Nothing booked.":"Няма резервации." },
-  sk: { "Support":"Podpora","Help centre":"Centrum pomoci","Contact us":"Kontaktujte nás","Legal":"Právne","Made in Ireland":"Vyrobené v Írsku","Report a problem":"Nahlásiť problém","Back":"Späť","Skip":"Preskočiť","Save":"Uložiť","Cancel":"Zrušiť","Continue":"Pokračovať","Close":"Zavrieť","Add":"Pridať","Remove":"Odstrániť","Delete":"Vymazať","Send":"Odoslať","Search":"Hľadať","Clear":"Vymazať","Share":"Zdieľať","Book":"Rezervovať","Message":"Správa","More":"Viac","Fewer":"Menej","Done":"Hotovo","Details":"Podrobnosti","Preview":"Náhľad","Practice":"Tréning","Messages":"Správy","Drills":"Cvičenia","Alerts":"Upozornenia","Stats":"Štatistiky","Family":"Rodina","You":"Ty","Help":"Pomoc","Subscription":"Predplatné","Branding":"Značka","Availability":"Dostupnosť","Waitlist":"Čakacia listina","Requests":"Žiadosti","All lessons":"Všetky lekcie","Your groups":"Tvoje skupiny","Notifications":"Oznámenia","Personal details":"Osobné údaje","Set drills":"Nastaviť cvičenia","Add a coach":"Pridať trénera","Log a lesson":"Zapísať lekciu","Book a lesson":"Rezervovať lekciu","Set your hours":"Nastav svoje hodiny","Account":"Účet","Calendar":"Kalendár","Attendance":"Dochádzka","Sign out":"Odhlásiť sa","Delete account":"Vymazať účet","Terms of Service":"Podmienky","Privacy Policy":"Ochrana údajov","Licences":"Licencie","Data & permissions":"Údaje a povolenia","Weekly availability":"Týždenná dostupnosť","Roster & groups":"Hráči a skupiny","Your reusable library":"Tvoja knižnica","Days and times you coach":"Dni a časy, keď trénuješ","Who's waiting for a slot":"Kto čaká na termín","Approve who joins and who fills cancellations":"Schváľ, kto sa pridá","Nothing here yet":"Zatiaľ tu nič nie je","Working on":"Pracujeme na","Goal":"Cieľ","Last lesson":"Posledná lekcia","Profile":"Profil","Completed":"Dokončené","On time":"Načas","No shows":"Neúčasti","Lessons":"Lekcie","Late":"Neskoro","Did not show":"Neprišiel","Did they turn up?":"Prišli?","Today's schedule":"Dnešný rozvrh","You're free today":"Dnes máš voľno","Nothing booked.":"Nič rezervované." },
-  sl: { "Support":"Podpora","Help centre":"Center za pomoč","Contact us":"Kontaktiraj nas","Legal":"Pravno","Made in Ireland":"Izdelano na Irskem","Report a problem":"Prijavi težavo","Back":"Nazaj","Skip":"Preskoči","Save":"Shrani","Cancel":"Prekliči","Continue":"Naprej","Close":"Zapri","Add":"Dodaj","Remove":"Odstrani","Delete":"Izbriši","Send":"Pošlji","Search":"Iskanje","Clear":"Počisti","Share":"Deli","Book":"Rezerviraj","Message":"Sporočilo","More":"Več","Fewer":"Manj","Done":"Končano","Details":"Podrobnosti","Preview":"Predogled","Practice":"Vadba","Messages":"Sporočila","Drills":"Vaje","Alerts":"Opozorila","Stats":"Statistika","Family":"Družina","You":"Ti","Help":"Pomoč","Subscription":"Naročnina","Branding":"Znamka","Availability":"Razpoložljivost","Waitlist":"Čakalni seznam","Requests":"Zahteve","All lessons":"Vse ure","Your groups":"Tvoje skupine","Notifications":"Obvestila","Personal details":"Osebni podatki","Set drills":"Nastavi vaje","Add a coach":"Dodaj trenerja","Log a lesson":"Zabeleži uro","Book a lesson":"Rezerviraj uro","Set your hours":"Nastavi svoje termine","Account":"Račun","Calendar":"Koledar","Attendance":"Prisotnost","Sign out":"Odjava","Delete account":"Izbriši račun","Terms of Service":"Pogoji","Privacy Policy":"Zasebnost","Licences":"Licence","Data & permissions":"Podatki in dovoljenja","Weekly availability":"Tedenska razpoložljivost","Roster & groups":"Igralci in skupine","Your reusable library":"Tvoja knjižnica","Days and times you coach":"Dnevi in ure, ko treniraš","Who's waiting for a slot":"Kdo čaka na termin","Approve who joins and who fills cancellations":"Odobri, kdo se pridruži","Nothing here yet":"Tukaj še ni ničesar","Working on":"Delamo na","Goal":"Cilj","Last lesson":"Zadnja ura","Profile":"Profil","Completed":"Zaključeno","On time":"Pravočasno","No shows":"Odsotnosti","Lessons":"Ure","Late":"Zamuda","Did not show":"Ni prišel","Did they turn up?":"So prišli?","Today's schedule":"Današnji urnik","You're free today":"Danes si prost","Nothing booked.":"Nič rezerviranega." },
-  lt: { "Support":"Pagalba","Help centre":"Pagalbos centras","Contact us":"Susisiekite","Legal":"Teisinė","Made in Ireland":"Pagaminta Airijoje","Report a problem":"Pranešti apie problemą","Back":"Atgal","Skip":"Praleisti","Save":"Išsaugoti","Cancel":"Atšaukti","Continue":"Tęsti","Close":"Uždaryti","Add":"Pridėti","Remove":"Pašalinti","Delete":"Ištrinti","Send":"Siųsti","Search":"Ieškoti","Clear":"Išvalyti","Share":"Bendrinti","Book":"Rezervuoti","Message":"Žinutė","More":"Daugiau","Fewer":"Mažiau","Done":"Atlikta","Details":"Išsamiau","Preview":"Peržiūra","Practice":"Treniruotė","Messages":"Žinutės","Drills":"Pratimai","Alerts":"Pranešimai","Stats":"Statistika","Family":"Šeima","You":"Tu","Help":"Pagalba","Subscription":"Prenumerata","Branding":"Prekės ženklas","Availability":"Prieinamumas","Waitlist":"Laukiančiųjų sąrašas","Requests":"Prašymai","All lessons":"Visos pamokos","Your groups":"Tavo grupės","Notifications":"Pranešimai","Personal details":"Asmens duomenys","Set drills":"Nustatyti pratimus","Add a coach":"Pridėti trenerį","Log a lesson":"Įrašyti pamoką","Book a lesson":"Rezervuoti pamoką","Set your hours":"Nustatyk savo valandas","Account":"Paskyra","Calendar":"Kalendorius","Attendance":"Lankomumas","Sign out":"Atsijungti","Delete account":"Ištrinti paskyrą","Terms of Service":"Sąlygos","Privacy Policy":"Privatumas","Licences":"Licencijos","Data & permissions":"Duomenys ir leidimai","Weekly availability":"Savaitinis prieinamumas","Roster & groups":"Žaidėjai ir grupės","Your reusable library":"Tavo biblioteka","Days and times you coach":"Dienos ir laikas, kai treniruoji","Who's waiting for a slot":"Kas laukia laisvos vietos","Approve who joins and who fills cancellations":"Patvirtink, kas prisijungia","Nothing here yet":"Čia dar nieko nėra","Working on":"Dirbame ties","Goal":"Tikslas","Last lesson":"Paskutinė pamoka","Profile":"Profilis","Completed":"Užbaigta","On time":"Laiku","No shows":"Neatvyko","Lessons":"Pamokos","Late":"Vėlavo","Did not show":"Neatvyko","Did they turn up?":"Ar jie atvyko?","Today's schedule":"Šiandienos tvarkaraštis","You're free today":"Šiandien esi laisvas","Nothing booked.":"Nieko nerezervuota." },
-  uk: { "Support":"Підтримка","Help centre":"Центр допомоги","Contact us":"Звʼязатися","Legal":"Правове","Made in Ireland":"Зроблено в Ірландії","Report a problem":"Повідомити про проблему","Back":"Назад","Skip":"Пропустити","Save":"Зберегти","Cancel":"Скасувати","Continue":"Далі","Close":"Закрити","Add":"Додати","Remove":"Прибрати","Delete":"Видалити","Send":"Надіслати","Search":"Пошук","Clear":"Очистити","Share":"Поділитися","Book":"Забронювати","Message":"Повідомлення","More":"Більше","Fewer":"Менше","Done":"Готово","Details":"Деталі","Preview":"Попередній перегляд","Practice":"Тренування","Messages":"Повідомлення","Drills":"Вправи","Alerts":"Сповіщення","Stats":"Статистика","Family":"Сім'я","You":"Ти","Help":"Довідка","Subscription":"Підписка","Branding":"Бренд","Availability":"Доступність","Waitlist":"Список очікування","Requests":"Запити","All lessons":"Усі заняття","Your groups":"Твої групи","Notifications":"Сповіщення","Personal details":"Особисті дані","Set drills":"Задати вправи","Add a coach":"Додати тренера","Log a lesson":"Записати заняття","Book a lesson":"Забронювати заняття","Set your hours":"Встанови свої години","Account":"Обліковий запис","Calendar":"Календар","Attendance":"Відвідуваність","Sign out":"Вийти","Delete account":"Видалити акаунт","Terms of Service":"Умови","Privacy Policy":"Конфіденційність","Licences":"Ліцензії","Data & permissions":"Дані та дозволи","Weekly availability":"Тижнева доступність","Roster & groups":"Спортсмени та групи","Your reusable library":"Твоя бібліотека","Days and times you coach":"Дні та години, коли ти тренуєш","Who's waiting for a slot":"Хто чекає на місце","Approve who joins and who fills cancellations":"Затвердь, хто приєднується","Nothing here yet":"Тут поки нічого немає","Working on":"Працюємо над","Goal":"Ціль","Last lesson":"Останнє заняття","Profile":"Профіль","Completed":"Завершено","On time":"Вчасно","No shows":"Пропуски","Lessons":"Заняття","Late":"Запізнився","Did not show":"Не прийшов","Did they turn up?":"Вони прийшли?","Today's schedule":"Сьогоднішній розклад","You're free today":"Сьогодні ти вільний","Nothing booked.":"Нічого не заброньовано." },
-  tr: { "Support":"Destek","Help centre":"Yardım merkezi","Contact us":"Bize ulaşın","Legal":"Yasal","Made in Ireland":"İrlanda'da yapıldı","Report a problem":"Sorun bildir","Back":"Geri","Skip":"Atla","Save":"Kaydet","Cancel":"İptal","Continue":"Devam","Close":"Kapat","Add":"Ekle","Remove":"Kaldır","Delete":"Sil","Send":"Gönder","Search":"Ara","Clear":"Temizle","Share":"Paylaş","Book":"Rezerve et","Message":"Mesaj","More":"Daha fazla","Fewer":"Daha az","Done":"Tamam","Details":"Ayrıntılar","Preview":"Önizleme","Practice":"Antrenman","Messages":"Mesajlar","Drills":"Çalışmalar","Alerts":"Bildirimler","Stats":"İstatistikler","Family":"Aile","You":"Sen","Help":"Yardım","Subscription":"Abonelik","Branding":"Marka","Availability":"Uygunluk","Waitlist":"Bekleme listesi","Requests":"İstekler","All lessons":"Tüm dersler","Your groups":"Gruplarýn","Notifications":"Bildirimler","Personal details":"Kişisel bilgiler","Set drills":"Çalışma belirle","Add a coach":"Antrenör ekle","Log a lesson":"Ders kaydet","Book a lesson":"Ders rezerve et","Set your hours":"Saatlerini belirle","Account":"Hesap","Calendar":"Takvim","Attendance":"Katılım","Sign out":"Çıkış yap","Delete account":"Hesabı sil","Terms of Service":"Koşullar","Privacy Policy":"Gizlilik","Licences":"Lisanslar","Data & permissions":"Veri ve izinler","Weekly availability":"Haftalık uygunluk","Roster & groups":"Sporcular ve gruplar","Your reusable library":"Kütüphanen","Days and times you coach":"Antrenman verdiğin gün ve saatler","Who's waiting for a slot":"Kim yer bekliyor","Approve who joins and who fills cancellations":"Kimin katılacağını onayla","Nothing here yet":"Burada henüz bir şey yok","Working on":"Üzerinde çalışılan","Goal":"Hedef","Last lesson":"Son ders","Profile":"Profil","Completed":"Tamamlanan","On time":"Zamanında","No shows":"Gelmeyenler","Lessons":"Dersler","Late":"Geç","Did not show":"Gelmedi","Did they turn up?":"Geldiler mi?","Today's schedule":"Bugünkü program","You're free today":"Bugün boştasın","Nothing booked.":"Rezervasyon yok." },
-};
 
-export const tr = (str) => {
-  if (!str || LANG === "en") return str;
-  const e = PHRASES[str];
-  if (e && e[LANG]) return e[LANG];
-  const byLang = PHRASES_BY_LANG[LANG];
-  return (byLang && byLang[str]) || str;
-};
+/* Every string in the app goes through here. It used to look each one
+   up in a dictionary of thirteen languages; the pilot is Ireland and
+   English, and CLAUDE.md says no language screen, so the dictionary is
+   gone and this is the identity. The call sites stay: it is the one
+   place to put a translation back if the pilot ever leaves. */
+export const tr = (str) => str;
 
 
 
@@ -1427,20 +1141,11 @@ const PLAYERS = ROSTER.map((r) => r.name);
 /* ==================================================================
    CALENDAR · June – October 2026, so "months ahead" has real room
 ================================================================== */
-/* One live pointer so module-level date helpers can localise without
-   every call site having to thread the language through. */
-let LANG = "en";
-const setLangGlobal = (l) => { LANG = CAL_I18N[l] ? l : "en"; };
-const cal = () => CAL_I18N[LANG] || CAL_I18N.en;
-
-const DOW_FOR = () => cal().d.map((x) => x.slice(0, 1).toUpperCase());
 const DOW = ["M", "T", "W", "T", "F", "S", "S"];
-/* `has` matters: Array.prototype.map (and every other array method that
-   checks HasProperty before Get) skips indexes the proxy says it lacks,
-   so without it DAY_NAMES.map(...) returned seven holes and every day
-   picker built from it rendered empty. */
-const DAY_NAMES = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().d[Number(k)] : cal().d[k] ?? Array.prototype[k]),
-                                  has: (_, k) => k in cal().d });
+/* Monday first, the way the rest of the app counts. These were two
+   Proxies over a thirteen-language table, which is also why they
+   needed a `has` trap to survive .map(). Plain arrays now. */
+const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 /* A stored date, read as a local day. "YYYY-MM-DD" through `new Date`
    is UTC midnight, and DAY_NAMES runs Monday first while getDay() runs
    Sunday first — both wrong by a day, in opposite places. */
@@ -1455,14 +1160,10 @@ const MONTH_SHAPE = [
   { idx: 8,  year: 2026, days: 31, start: 5 }, { idx: 9,  year: 2026, days: 30, start: 1 },
   { idx: 10, year: 2026, days: 31, start: 3 },
 ];
-/* name resolves against whichever language is live */
-const nameMonths = (shapes) => shapes.map((m) => Object.defineProperty({ ...m }, "name", {
-  get() { return `${cal().m[this.idx - 1]} ${this.year}`; }, enumerable: true,
-}));
-const MONTHS = nameMonths(MONTH_SHAPE);
-const MONTHS_FULL = new Proxy([], { get: (_, k) => (typeof k === "string" && /^\d+$/.test(k) ? cal().m[Number(k)] : cal().m[k] ?? Array.prototype[k]) });
+const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS = MONTH_SHAPE.map((m) => ({ ...m, name: `${MONTHS_FULL[m.idx - 1]} ${m.year}` }));
 /* a month's name on its own, for any month number — "July" */
-const monthName = (m) => cal().m[m - 1] || "";
+const monthName = (m) => MONTHS_FULL[m - 1] || "";
 const TODAY = { m: 7, d: 24 };
 
 /* THE CALENDAR A TREE RUNS ON
@@ -1477,10 +1178,11 @@ const TODAY = { m: 7, d: 24 };
 const HARNESS_CALENDAR = { months: MONTHS, today: TODAY, year: 2026 };
 const monthShape = (y, m) => ({ idx: m, year: y, days: new Date(y, m, 0).getDate(), start: (new Date(y, m - 1, 1).getDay() + 6) % 7 });
 function calendarFor(clock, span = 6) {
-  const months = nameMonths(Array.from({ length: span }, (_, i) => {
+  const months = Array.from({ length: span }, (_, i) => {
     const d = new Date(clock.getFullYear(), clock.getMonth() + i, 1);
-    return monthShape(d.getFullYear(), d.getMonth() + 1);
-  }));
+    const m = monthShape(d.getFullYear(), d.getMonth() + 1);
+    return { ...m, name: `${MONTHS_FULL[m.idx - 1]} ${m.year}` };
+  });
   return { months, today: { m: clock.getMonth() + 1, d: clock.getDate() }, year: clock.getFullYear() };
 }
 const CalendarCtx = createContext(HARNESS_CALENDAR);
@@ -1702,25 +1404,28 @@ const NOTIF_CATS = {
    Each person reads it in their own language — so an Irish coach and a
    Spanish player have one conversation, in two languages, and neither
    is reading the other's. The original is always one tap away. */
+/* The seeded conversation in the design harness. English only, as
+   the pilot is — the machinery that carried thirteen translations of
+   each line went with the language screen. */
 const MSG_I18N = {
-  m1: { src:"en", en:"Might be ten minutes late on Monday — is that alright?", ga:"B'fhéidir go mbeidh mé deich nóiméad déanach Dé Luain — an bhfuil sé sin ceart go leor?", es:"Puede que llegue diez minutos tarde el lunes, ¿te viene bien?", fr:"Je risque d'avoir dix minutes de retard lundi — ça vous va ?", de:"Am Montag komme ich vielleicht zehn Minuten später — ist das in Ordnung?", it:"Lunedì potrei arrivare dieci minuti tardi — va bene?", pt:"Posso chegar dez minutos atrasado na segunda — tudo bem?", nl:"Ik ben maandag misschien tien minuten later — is dat goed?", pl:"W poniedziałek mogę się spóźnić dziesięć minut — czy to w porządku?", sv:"Jag kan bli tio minuter sen på måndag — går det bra?", el:"Ίσως αργήσω δέκα λεπτά τη Δευτέρα — είναι εντάξει;", uk:"У понеділок можу запізнитися на десять хвилин — це нормально?", tr:"Pazartesi on dakika geç kalabilirim — uygun mu?" },
-  m2: { src:"en", en:"No bother, we'll still get the full session in.", ga:"Fadhb ar bith, gheobhaidh muid an seisiún iomlán isteach fós.", es:"Sin problema, aun así haremos la sesión completa.", fr:"Pas de souci, on fera quand même la séance complète.", de:"Kein Problem, wir schaffen die volle Einheit trotzdem.", it:"Nessun problema, faremo comunque la sessione completa.", pt:"Sem problema, faremos a sessão completa na mesma.", nl:"Geen probleem, we doen alsnog de volledige sessie.", pl:"Żaden problem, i tak zrobimy pełny trening.", sv:"Inga problem, vi hinner ändå hela passet.", el:"Κανένα πρόβλημα, θα κάνουμε ολόκληρη την προπόνηση.", uk:"Не проблема, ми все одно проведемо повне заняття.", tr:"Sorun değil, yine de tam seansı yaparız." },
-  m3: { src:"en", en:"Perfect, see you Monday.", ga:"Foirfe, feicfidh mé Dé Luain thú.", es:"Perfecto, nos vemos el lunes.", fr:"Parfait, à lundi.", de:"Perfekt, bis Montag.", it:"Perfetto, ci vediamo lunedì.", pt:"Perfeito, até segunda.", nl:"Perfect, tot maandag.", pl:"Świetnie, do poniedziałku.", sv:"Perfekt, vi ses på måndag.", el:"Τέλεια, τα λέμε Δευτέρα.", uk:"Чудово, побачимось у понеділок.", tr:"Harika, pazartesi görüşürüz." },
-  m4: { src:"en", en:"Hi Ray — something's come up Wednesday afternoon.", ga:"Dia duit a Ray — tháinig rud éigin aníos tráthnóna Dé Céadaoin.", es:"Hola Ray, me ha surgido algo el miércoles por la tarde.", fr:"Bonjour Ray — j'ai un imprévu mercredi après-midi.", de:"Hallo Ray — mir ist am Mittwochnachmittag etwas dazwischengekommen.", it:"Ciao Ray — mi è capitato un imprevisto mercoledì pomeriggio.", pt:"Olá Ray — surgiu-me algo na quarta à tarde.", nl:"Hoi Ray — er is iets tussengekomen woensdagmiddag.", pl:"Cześć Ray — coś mi wypadło w środę po południu.", sv:"Hej Ray — något har kommit emellan på onsdag eftermiddag.", el:"Γεια σου Ρέι — μου προέκυψε κάτι την Τετάρτη το απόγευμα.", uk:"Привіт, Рей — у середу по обіді дещо трапилось.", tr:"Merhaba Ray — çarşamba öğleden sonra bir işim çıktı." },
-  m5: { src:"en", en:"Could we move Wednesday to six?", ga:"An bhféadfaimis Dé Céadaoin a bhogadh go dtí a sé?", es:"¿Podríamos mover el miércoles a las seis?", fr:"Pourrait-on décaler mercredi à dix-huit heures ?", de:"Könnten wir Mittwoch auf achtzehn Uhr verschieben?", it:"Potremmo spostare mercoledì alle sei?", pt:"Podemos mudar quarta para as seis?", nl:"Kunnen we woensdag naar zes uur verzetten?", pl:"Czy możemy przenieść środę na szóstą?", sv:"Kan vi flytta onsdag till sex?", el:"Μπορούμε να μεταφέρουμε την Τετάρτη στις έξι;", uk:"Чи можемо перенести середу на шосту?", tr:"Çarşambayı altıya alabilir miyiz?" },
-  m6: { src:"en", en:"Course is closed for the medal on Saturday, so we'll use the range.", ga:"Tá an cúrsa dúnta don bhonn Dé Sathairn, mar sin bainfimid úsáid as an raon.", es:"El campo está cerrado por el medal del sábado, así que usaremos el campo de prácticas.", fr:"Le parcours est fermé pour le medal samedi, on utilisera donc le practice.", de:"Der Platz ist am Samstag wegen des Medals gesperrt, also nutzen wir die Range.", it:"Il campo è chiuso per la medal di sabato, useremo il driving range.", pt:"O campo está fechado no sábado, por isso usamos o driving range.", nl:"De baan is zaterdag dicht, dus we gebruiken de range.", pl:"Pole jest zamknięte w sobotę, więc skorzystamy z driving range.", sv:"Banan är stängd på lördag, så vi använder rangen.", el:"Το γήπεδο είναι κλειστό το Σάββατο, οπότε θα χρησιμοποιήσουμε το range.", uk:"Поле закрите в суботу, тож будемо на драйв-рейнджі.", tr:"Saha cumartesi kapalı, o yüzden range kullanacağız." },
-  m7: { src:"en", en:"Grand, thanks for the heads up.", ga:"Go breá, go raibh maith agat as an rabhadh.", es:"Genial, gracias por avisar.", fr:"Très bien, merci pour l'info.", de:"Alles klar, danke für den Hinweis.", it:"Ottimo, grazie per l'avviso.", pt:"Ótimo, obrigado pelo aviso.", nl:"Prima, bedankt voor het laten weten.", pl:"Świetnie, dzięki za info.", sv:"Toppen, tack för att du sa till.", el:"Ωραία, ευχαριστώ για την ενημέρωση.", uk:"Чудово, дякую, що попередив.", tr:"Harika, haber verdiğin için sağ ol." },
-  m8: { src:"en", en:"Saturday is on. Meet at the short game area at eight.", ga:"Tá Dé Sathairn ar siúl. Buailimis le chéile ag an limistéar cluiche ghearr ar a hocht.", es:"El sábado sigue en pie. Nos vemos en la zona de juego corto a las ocho.", fr:"Samedi est maintenu. Rendez-vous à l'aire de petit jeu à huit heures.", de:"Samstag findet statt. Treffpunkt um acht im Kurzspielbereich.", it:"Sabato si fa. Ci vediamo all'area di gioco corto alle otto.", pt:"Sábado mantém-se. Encontro na zona de jogo curto às oito.", nl:"Zaterdag gaat door. Om acht uur bij het korte spel.", pl:"Sobota aktualna. Spotykamy się przy short game o ósmej.", sv:"Lördag gäller. Vi ses vid närspelsområdet klockan åtta.", el:"Το Σάββατο ισχύει. Ραντεβού στο short game στις οκτώ.", uk:"Субота в силі. Зустрічаємось на зоні короткої гри о восьмій.", tr:"Cumartesi var. Sekizde kısa oyun alanında buluşuyoruz." },
-  m9: { src:"en", en:"Bring a wedge on Saturday.", ga:"Tabhair wedge leat Dé Sathairn.", es:"Trae un wedge el sábado.", fr:"Apportez un wedge samedi.", de:"Bring am Samstag ein Wedge mit.", it:"Porta un wedge sabato.", pt:"Traz um wedge no sábado.", nl:"Neem zaterdag een wedge mee.", pl:"Weź wedge na sobotę.", sv:"Ta med en wedge på lördag.", el:"Φέρε ένα wedge το Σάββατο.", uk:"Візьми ведж у суботу.", tr:"Cumartesi bir wedge getir." },
-  m10: { src:"en", en:"Range is packed at six this evening.", ga:"Tá an raon plódaithe ar a sé tráthnóna inniu.", es:"El campo de prácticas está lleno a las seis esta tarde.", fr:"Le practice est bondé à dix-huit heures ce soir.", de:"Die Range ist heute Abend um sechs voll.", it:"Il range è pieno alle sei stasera.", pt:"O driving range está cheio às seis hoje.", nl:"De range is vanavond om zes uur vol.", pl:"Driving range jest zapchany o szóstej.", sv:"Rangen är full klockan sex ikväll.", el:"Το range είναι γεμάτο στις έξι απόψε.", uk:"Драйв-рейндж переповнений о шостій.", tr:"Range bu akşam altıda dolu." },
-  m11: { src:"en", en:"Come at half five if you can.", ga:"Tar ar leathuair tar éis a cúig más féidir leat.", es:"Ven a las cinco y media si puedes.", fr:"Venez à dix-sept heures trente si vous pouvez.", de:"Komm um halb sechs, wenn du kannst.", it:"Vieni alle cinque e mezza se puoi.", pt:"Vem às cinco e meia se puderes.", nl:"Kom om half zes als je kunt.", pl:"Przyjdź o wpół do szóstej, jeśli możesz.", sv:"Kom halv sex om du kan.", el:"Έλα στις πέντε και μισή αν μπορείς.", uk:"Приходь о пів на шосту, якщо можеш.", tr:"Yapabilirsen beş buçukta gel." },
+  m1: "Might be ten minutes late on Monday — is that alright?",
+  m2: "No bother, we'll still get the full session in.",
+  m3: "Perfect, see you Monday.",
+  m4: "Hi Ray — something's come up Wednesday afternoon.",
+  m5: "Could we move Wednesday to six?",
+  m6: "Course is closed for the medal on Saturday, so we'll use the range.",
+  m7: "Grand, thanks for the heads up.",
+  m8: "Saturday is on. Meet at the short game area at eight.",
+  m9: "Bring a wedge on Saturday.",
+  m10: "Range is packed at six this evening.",
+  m11: "Come at half five if you can.",
 };
-/* Resolve a message into the reader's language, falling back to the
-   language it was written in — never to a third language. */
-const readMsg = (id, lang) => {
+/* A seeded message, as written. `translated` stays in the shape because
+   the harness's Thread still reads it; nothing sets it any more. */
+const readMsg = (id) => {
   const e = MSG_I18N[id];
   if (!e) return null;
-  return { text: e[lang] || e[e.src], original: e[e.src], translated: !!(e[lang] && lang !== e.src), src: e.src };
+  return { text: e, original: e, translated: false, src: "en" };
 };
 
 const THREADS = {
@@ -4686,13 +4391,100 @@ const QUICK_DEFAULT = [
   { id: "message", w: 2 }, { id: "comp",    w: 2 },
 ];
 
-function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) {
+/* One tile. It lives out here, not inside QuickMenu's render, because a
+   component declared in a render body is a NEW component type on every
+   render — React unmounts and remounts every tile, which mid-drag means
+   losing the pointer capture the drag depends on. It is called QuickTile
+   and not Tile because Tile is already a component in this file, and the
+   inner one silently shadowed it. */
+function QuickTile({ it, i, edit, held, liveLesson, onRun, grab, drag, drop, resize }) {
+  const t = useT();
+  const A = QUICK_ACTIONS[it.id];
+  if (!A) return null;
+  const Ico = A.Ico;
+  const live = it.id === "attend" && liveLesson;
+  const wide = it.w === 4;
+  const lifted = held === i;
+
+  return (
+    <button data-tile={i} data-tour={"quick-" + it.id}
+            onPointerDown={(e) => grab(e, i)}
+            onPointerMove={drag}
+            onPointerUp={drop}
+            onPointerCancel={drop}
+            onClick={() => { if (!edit) { haptic(8); soft(); onRun(it.id); } }}
+            className="relative flex items-center text-left"
+            style={{ height: 84, width: "100%", padding: wide ? "0 18px" : "0 14px",
+                     borderRadius: 22, touchAction: edit ? "none" : "auto",
+                     background: live ? `${STEADY}12` : t.wash,
+                     border: live ? `1px solid ${STEADY}30` : "1px solid transparent",
+                     opacity: held !== null && !lifted ? 0.55 : 1,
+                     zIndex: lifted ? 40 : 1,
+                     transform: lifted ? "scale(1.06)" : "scale(1)",
+                     boxShadow: lifted ? ELEV.float : "none",
+                     transition: lifted ? "none" : "transform 260ms cubic-bezier(.22,1,.36,1), opacity 200ms, box-shadow 260ms",
+                     animation: edit && !lifted
+                       ? `wiggle 500ms ease-in-out ${(i % 3) * 70}ms infinite`
+                       : (!edit ? `settle 300ms cubic-bezier(.22,1,.36,1) ${70 + i * 26}ms both` : "none"),
+                     transformOrigin: "center" }}>
+
+      <span className="rounded-full flex items-center justify-center shrink-0"
+            style={{ width: 38, height: 38,
+                     background: live ? `${STEADY}1F` : t.surface,
+                     boxShadow: live ? "none" : ELEV.rest }}>
+        <Ico size={17} color={live ? STEADY : t.accent} strokeWidth={1.8} />
+      </span>
+
+      <span className="flex-1 min-w-0" style={{ marginLeft: 12 }}>
+        <span className="block truncate" style={{ ...TYPE.small, fontWeight: 500, color: t.ink }}>
+          {tr(A.label)}
+        </span>
+        {live && (
+          <span className="flex items-center gap-1.5 mt-1">
+            <span className="rounded-full" style={{ width: 5, height: 5, background: STEADY,
+                             animation: "pulseDot 1.6s ease-in-out infinite" }} />
+            <span className="truncate" style={{ ...TYPE.caption, color: STEADY }}>
+              {liveLesson.who} · {tr("on now")}
+            </span>
+          </span>
+        )}
+      </span>
+
+      {/* the corner grip, as Control Centre puts it — tap to change width */}
+      {edit && (
+        <span onPointerDown={(e) => { e.stopPropagation(); }}
+              onClick={(e) => { e.stopPropagation(); resize(i); }}
+              className="absolute flex items-center justify-center"
+              style={{ right: 6, bottom: 6, width: 30, height: 30, borderRadius: 15,
+                       background: t.ink, boxShadow: ELEV.rest }}>
+          {/* draws the width you'll get, so there's nothing to decode */}
+          <svg width="15" height="11" viewBox="0 0 15 11" aria-hidden="true">
+            {wide
+              ? <rect x="4.5" y="1.5" width="6" height="8" rx="2" fill="#fff" />
+              : <rect x="1" y="1.5" width="13" height="8" rx="2" fill="#fff" />}
+          </svg>
+        </span>
+      )}
+    </button>
+  );
+}
+
+/* A stored layout against the actions that exist today: anything the
+   app no longer offers is dropped, anything new is appended. Without
+   this a saved id that has since gone left a blank cell of its stored
+   width, and one the drag could not even move through. */
+const reconcileQuick = (stored) => {
+  const kept = (Array.isArray(stored) ? stored : []).filter((x) => x && QUICK_ACTIONS[x.id]);
+  const have = new Set(kept.map((x) => x.id));
+  return [...kept, ...QUICK_DEFAULT.filter((d) => !have.has(d.id))];
+};
+
+function QuickMenu({ layout, setLayout, liveLesson, onLog, onRun }) {
   const t = useT();
   const [edit, setEdit] = useState(false);
   const [held, setHeld] = useState(null);        // index being dragged
-  const [ghost, setGhost] = useState({ x: 0, y: 0 });
-  const D = useRef({ id: null, ox: 0, oy: 0, from: null, armed: null, timer: null });
-  const items = layout && layout.length ? layout : QUICK_DEFAULT;
+  const D = useRef({ id: null, from: null, armed: null, timer: null });
+  const items = useMemo(() => reconcileQuick(layout), [layout]);
 
   const move = (from, to) => {
     if (from === to || to < 0 || to >= items.length) return from;
@@ -4719,8 +4511,7 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
     const el = e.currentTarget, pid = e.pointerId;
     D.current.armed = i;                    // pending, not yet dragging
     D.current.timer = setTimeout(() => {
-      const r = el.getBoundingClientRect();
-      D.current = { ...D.current, id: pid, ox: e.clientX - r.left, oy: e.clientY - r.top, from: i, armed: null };
+      D.current = { ...D.current, id: pid, from: i, armed: null };
       try { el.setPointerCapture(pid); } catch (_) {}
       setHeld(i); hapticCommit(); swell();
     }, HOLD_MS);
@@ -4736,7 +4527,6 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
        not a drag */
     if (D.current.armed !== null) { cancelHold(); return; }
     if (D.current.from === null || e.pointerId !== D.current.id) return;
-    setGhost({ x: e.clientX - D.current.ox, y: e.clientY - D.current.oy });
     /* whatever tile is genuinely under the finger */
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const cell = el && el.closest ? el.closest("[data-tile]") : null;
@@ -4751,79 +4541,8 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
   const drop = () => {
     cancelHold();
     if (D.current.from === null) return;
-    D.current = { id: null, ox: 0, oy: 0, from: null, armed: null, timer: null };
+    D.current = { id: null, from: null, armed: null, timer: null };
     setHeld(null); haptic(9);
-  };
-
-  const Tile = ({ it, i }) => {
-    const A = QUICK_ACTIONS[it.id];
-    if (!A) return null;
-    const Ico = A.Ico;
-    const live = it.id === "attend" && liveLesson;
-    const wide = it.w === 4;
-    const lifted = held === i;
-
-    return (
-      <button data-tile={i} data-tour={"quick-" + it.id}
-              onPointerDown={(e) => grab(e, i)}
-              onPointerMove={drag}
-              onPointerUp={drop}
-              onPointerCancel={drop}
-              onClick={() => { if (!edit) { haptic(8); soft(); onRun(it.id); } }}
-              className="relative flex items-center text-left"
-              style={{ height: 84, width: "100%", padding: wide ? "0 18px" : "0 14px",
-                       borderRadius: 22, touchAction: edit ? "none" : "auto",
-                       background: live ? `${STEADY}12` : t.wash,
-                       border: live ? `1px solid ${STEADY}30` : "1px solid transparent",
-                       opacity: held !== null && !lifted ? 0.55 : 1,
-                       zIndex: lifted ? 40 : 1,
-                       transform: lifted ? "scale(1.06)" : "scale(1)",
-                       boxShadow: lifted ? ELEV.float : "none",
-                       transition: lifted ? "none" : "transform 260ms cubic-bezier(.22,1,.36,1), opacity 200ms, box-shadow 260ms",
-                       animation: edit && !lifted
-                         ? `wiggle 500ms ease-in-out ${(i % 3) * 70}ms infinite`
-                         : (!edit ? `settle 300ms cubic-bezier(.22,1,.36,1) ${70 + i * 26}ms both` : "none"),
-                       transformOrigin: "center" }}>
-
-        <span className="rounded-full flex items-center justify-center shrink-0"
-              style={{ width: 38, height: 38,
-                       background: live ? `${STEADY}1F` : t.surface,
-                       boxShadow: live ? "none" : ELEV.rest }}>
-          <Ico size={17} color={live ? STEADY : t.accent} strokeWidth={1.8} />
-        </span>
-
-        <span className="flex-1 min-w-0" style={{ marginLeft: 12 }}>
-          <span className="block truncate" style={{ ...TYPE.small, fontWeight: 500, color: t.ink }}>
-            {tr(A.label)}
-          </span>
-          {live && (
-            <span className="flex items-center gap-1.5 mt-1">
-              <span className="rounded-full" style={{ width: 5, height: 5, background: STEADY,
-                               animation: "pulseDot 1.6s ease-in-out infinite" }} />
-              <span className="truncate" style={{ ...TYPE.caption, color: STEADY }}>
-                {liveLesson.who} · {tr("on now")}
-              </span>
-            </span>
-          )}
-        </span>
-
-        {/* the corner grip, as Control Centre puts it — tap to change width */}
-        {edit && (
-          <span onPointerDown={(e) => { e.stopPropagation(); }}
-                onClick={(e) => { e.stopPropagation(); resize(i); }}
-                className="absolute flex items-center justify-center"
-                style={{ right: 6, bottom: 6, width: 30, height: 30, borderRadius: 15,
-                         background: t.ink, boxShadow: ELEV.rest }}>
-            {/* draws the width you'll get, so there's nothing to decode */}
-            <svg width="15" height="11" viewBox="0 0 15 11" aria-hidden="true">
-              {wide
-                ? <rect x="4.5" y="1.5" width="6" height="8" rx="2" fill="#fff" />
-                : <rect x="1" y="1.5" width="13" height="8" rx="2" fill="#fff" />}
-            </svg>
-          </span>
-        )}
-      </button>
-    );
   };
 
   return (
@@ -4865,7 +4584,8 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
         {items.map((it, i) => (
           <span key={it.id} style={{ gridColumn: `span ${it.w}`,
                        transition: "grid-column 260ms cubic-bezier(.22,1,.36,1)" }}>
-            <Tile it={it} i={i} />
+            <QuickTile it={it} i={i} edit={edit} held={held} liveLesson={liveLesson}
+                       onRun={onRun} grab={grab} drag={drag} drop={drop} resize={resize} />
           </span>
         ))}
       </div>
@@ -4878,9 +4598,6 @@ function QuickMenu({ cfg, layout, setLayout, liveLesson, onLog, onRun, close }) 
     </>
   );
 }
-
-
-
 
 
 /* SOMETHING YOU CANNOT MISS
@@ -5409,145 +5126,6 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
 
 
 
-/* THE COMMAND BAR
-
-   From the research: Superhuman's Cmd+K, where searching and *doing*
-   are the same box. Previously search only found things — you then had
-   to navigate to the action separately. Now typing a name offers the
-   things you'd want to do to that person, so "set a tip for Priya" is
-   one field and one tap instead of five.
-
-   Actions rank above content, because someone who opens a command bar
-   usually wants to act rather than browse. */
-function CommandBar({ role, cfg, roster, lessons, library, go, push, onAct, close }) {
-  const t = useT();
-  const live = useLive();
-  const [q, setQ] = useState("");
-  const term = q.trim().toLowerCase();
-  const hit = (x) => (x || "").toLowerCase().includes(term);
-
-  /* what a coach can do, and to whom */
-  const VERBS = role === "coach" ? [
-    { id: "log",     label: "Log a lesson",     Ico: Plus,          needsWho: false },
-    { id: "tip",     label: "Set a tip for",    Ico: Lightbulb,     needsWho: true },
-    { id: "drills",  label: "Set drills for",   Ico: ListChecks,    needsWho: true },
-    { id: "message", label: "Message",          Ico: MessageCircle, needsWho: true },
-    { id: "attend",  label: "Take attendance",  Ico: Check,         needsWho: false },
-    { id: "capture", label: "Live capture",     Ico: Camera,        needsWho: false },
-    { id: "comp",    label: "Add a competition", Ico: Trophy,       needsWho: false },
-  ] : [
-    { id: "request", label: "Request a lesson", Ico: Plus,          needsWho: false },
-    /* Between lessons is a design sketch: there is no inbox behind it,
-       so a real account is never offered it. */
-    ...(live ? [] : [{ id: "clip", label: "Send a clip", Ico: Play, needsWho: false }]),
-  ];
-
-  const people = term ? (roster || []).filter((r) => hit(r.name)) : [];
-
-  /* a verb matches either by its own name, or because the typed text is
-     a person and the verb takes one */
-  const actions = [];
-  VERBS.forEach((v) => {
-    if (!term) { if (!v.needsWho) actions.push({ v, who: null }); return; }
-    if (hit(v.label)) {
-      if (v.needsWho) people.slice(0, 3).forEach((r) => actions.push({ v, who: r.name }));
-      else actions.push({ v, who: null });
-    } else if (v.needsWho) {
-      people.slice(0, 2).forEach((r) => actions.push({ v, who: r.name }));
-    }
-  });
-
-  const found = term ? (lessons || []).filter((l) => hit(l.focus)).slice(0, 3) : [];
-  const drills = term ? (library || []).filter((d) => hit(d.t)).slice(0, 3) : [];
-
-  const Line = ({ Ico, label, sub, tone, act, i }) => (
-    <button onClick={() => { hapticCommit(); soft(); act(); }}
-            className="w-full flex items-center gap-3.5 text-left active:opacity-60"
-            style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                     animation: `settle 260ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 30}ms both` }}>
-      <span className="rounded-lg flex items-center justify-center shrink-0"
-            style={{ width: 32, height: 32, background: tone ? `${tone}14` : t.wash }}>
-        <Ico size={15} color={tone || t.sub} strokeWidth={1.8} />
-      </span>
-      <span className="flex-1 min-w-0">
-        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-        {sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
-      </span>
-      <ArrowRight size={13} color={t.faint} />
-    </button>
-  );
-
-  const Group = ({ title, children }) => (
-    <div className="mb-5">
-      <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{title}</div>
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>{children}</div>
-    </div>
-  );
-
-  return (
-    <>
-      <div className="flex items-center gap-2.5 px-4 mb-5"
-           style={{ minHeight: 50, borderRadius: R.control, background: t.wash }}>
-        <Search size={16} color={t.faint} />
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)}
-               placeholder={role === "coach" ? tr("Do something, or find anyone") : tr("Search")}
-               className="flex-1 bg-transparent outline-none"
-               style={{ ...TYPE.body, fontSize: 16, color: t.ink }} />
-        {q && (
-          <button onClick={() => { haptic(6); setQ(""); }} className="p-1 active:opacity-50" aria-label={tr("Clear")}>
-            <X size={14} color={t.faint} />
-          </button>
-        )}
-      </div>
-
-      <div style={{ maxHeight: 380, overflowY: "auto" }}>
-        {actions.length > 0 && (
-          <Group title={term ? tr("Do this") : tr("Quick actions")}>
-            {actions.slice(0, 6).map(({ v, who }, i) => (
-              <Line key={v.id + (who || "")} i={i} Ico={v.Ico} tone={t.accent}
-                    label={who ? `${tr(v.label)} ${who.split(" ")[0]}` : tr(v.label)}
-                    act={() => onAct(v.id, who)} />
-            ))}
-          </Group>
-        )}
-
-        {people.length > 0 && (
-          <Group title={cfg.nouns}>
-            {people.slice(0, 4).map((r, i) => (
-              <Line key={r.name} i={i} Ico={User} label={r.name}
-                    sub={`${r.lessons ?? fileFor(r.name, live).done} ${tr("lessons")}`}
-                    act={() => { close(); push("player:" + r.name); }} />
-            ))}
-          </Group>
-        )}
-
-        {found.length > 0 && (
-          <Group title={tr("Lessons")}>
-            {found.map((l, i) => (
-              <Line key={l.id} i={i} Ico={Library} label={l.focus} sub={`${l.d} ${l.m}`}
-                    act={() => { close(); push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`); }} />
-            ))}
-          </Group>
-        )}
-
-        {drills.length > 0 && (
-          <Group title={tr("Drills")}>
-            {drills.map((d, i) => (
-              <Line key={d.t} i={i} Ico={ListChecks} label={d.t}
-                    act={() => { close(); push("library"); }} />
-            ))}
-          </Group>
-        )}
-
-        {term && actions.length + people.length + found.length + drills.length === 0 && (
-          <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>
-            {tr("Nothing for that.")}
-          </p>
-        )}
-      </div>
-    </>
-  );
-}
 
 /* ==================================================================
    THE LESSON FEED — the statement piece
@@ -8508,9 +8086,9 @@ export const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, le
    times they teach — so the app arrives shaped around them instead of
    around a default they have to undo.
 ------------------------------------------------------------------ */
-function CoachSetup({ cfg, sport, lang, slots, onDone }) {
+function CoachSetup({ cfg, sport, slots, onDone }) {
   const t = useT();
-  const L = STRINGS[lang] || STRINGS.en;
+  const L = STRINGS.en;
   const [step, setStep] = useState(0);
   const [stats, setStats] = useState(cfg.defaultStats.slice(0, 3));
   const [drills, setDrills] = useState(cfg.drills.slice(0, 3).map((d) => d.t));
@@ -8690,77 +8268,12 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
   );
 }
 
-export function PickRegion({ region, setRegion, lang, setLang, path = "player", onDone }) {
-  const t = useT();
-  const [stage, setStage] = useState(region ? "lang" : "region");
-  const [q, setQ] = useState("");
-  const reg = REGIONS.find((r) => r.id === region);
-  const L = STRINGS[lang] || STRINGS.en;
-
-  const term = q.trim().toLowerCase();
-  /* Thirty-nine countries in one flat list is a wall. Show the handful
-     most likely first; everything else is one search away. */
-  const COMMON = ["ie", "gb", "es", "fr", "de", "it", "nl", "pt"];
-  const all = REGIONS.filter((r) => !term || r.name.toLowerCase().includes(term) || r.en.toLowerCase().includes(term));
-  const shown = term ? all : REGIONS.filter((r) => COMMON.includes(r.id));
-  const rest = term ? [] : REGIONS.filter((r) => !COMMON.includes(r.id));
-  const choices = reg ? reg.langs.map((id) => LANGS.find((l) => l.id === id)).filter(Boolean) : [];
-
-  if (stage === "region") return (
-    <div className="flex flex-col h-full" style={{ background: t.page }}>
-      <div className="flex flex-col items-center pt-11 pb-7 shrink-0">
-        <Mark size={30} color={t.ink} />
-        <div className="mt-2.5" style={{ fontFamily: display, fontSize: 12.5, letterSpacing: "0.34em", fontWeight: 500, color: t.ink }}>{BRAND}</div>
-      </div>
-      <div className="px-7 shrink-0">
-        <h1 className="mb-5" style={{ fontFamily: display, fontSize: 28, lineHeight: 1.05, letterSpacing: "-0.033em", color: t.ink }}>
-          Country
-        </h1>
-        <div className="flex items-center gap-2.5 px-4 mb-1" style={{ minHeight: 46, borderRadius: R.surface, background: t.wash }}>
-          <Search size={15} color={t.faint} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search"
-                 className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-          {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>}
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto px-7 pt-4 pb-8 min-h-0">
-        {shown.map((r, i) => (
-          <button key={r.id} onClick={() => { haptic(10); soft(); setRegion(r.id);
-                    if (!r.langs.includes(lang)) setLang(r.langs[0]);
-                    setStage("lang"); }}
-                  className="w-full flex items-center gap-3.5 text-left active:opacity-40"
-                  style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
-            <span style={{ fontSize: 22, lineHeight: 1, width: 30 }} aria-hidden="true">{flagOf(r.id)}</span>
-            <span className="flex-1 min-w-0">
-              <span className="block truncate" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{r.name}</span>
-              <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{r.en}</span>
-            </span>
-            <ChevronRight size={15} color={t.faint} />
-          </button>
-        ))}
-        {shown.length === 0 && <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing found.")}</p>}
-      </div>
-    </div>
-  );
-
-  return (
-    <SignupShell step={stepOf(path, "region")} steps={stepsIn(path)} onBack={() => setStage("region")}
-                 title={tr("Language")} sub={reg.name}
-                 footer={<Button tone="ink" onClick={() => { hapticSuccess(); chime(); onDone(); }}>{L.continue}</Button>}>
-      {choices.map((l, i) => (
-        <Choice key={l.id} label={l.native} on={lang === l.id} delay={i * 55}
-                sub={TRANSLATED.includes(l.id) ? null : "Interface in English for now"}
-                onSelect={() => setLang(l.id)} />
-      ))}
-    </SignupShell>
-  );
-}
 
 /* After choosing Player: is this for you, a child, or both. It decides
    whether the account gets managed profiles, so it belongs here rather
    than buried in settings later. */
-export function PickSport({ lang, path = "player", onPick, onBack }) {
-  const L = STRINGS[lang] || STRINGS.en;
+export function PickSport({ path = "player", onPick, onBack }) {
+  const L = STRINGS.en;
   const entries = Object.entries(SPORTS);
   const [sel, setSel] = useState(null);
   return (
@@ -8775,8 +8288,8 @@ export function PickSport({ lang, path = "player", onPick, onBack }) {
   );
 }
 
-export function PickRole({ sport, lang, path = "player", onPick, onBack }) {
-  const L = STRINGS[lang] || STRINGS.en;
+export function PickRole({ sport, path = "player", onPick, onBack }) {
+  const L = STRINGS.en;
   const [sel, setSel] = useState(null);
   /* One question at a time. Coach or player first; what kind of coach,
      or what kind of player, comes next. Four options at once made
@@ -8792,8 +8305,8 @@ export function PickRole({ sport, lang, path = "player", onPick, onBack }) {
 
 /* Which kind of player: an adult signing themselves up, a parent
    setting up for their child, or someone under 18 joining directly. */
-export function PickPlayerType({ lang, onPick, onBack }) {
-  const L = STRINGS[lang] || STRINGS.en;
+export function PickPlayerType({ onPick, onBack }) {
+  const L = STRINGS.en;
   const [sel, setSel] = useState(null);
   return (
     <SignupShell onBack={onBack} title={tr("Player type")}
@@ -8808,8 +8321,8 @@ export function PickPlayerType({ lang, onPick, onBack }) {
 /* Which kind of coach. This shapes what the account can do later, and
    eventually how it is billed — but nothing is charged during the
    pilot, so no pricing is shown or implied here. */
-export function PickCoachType({ lang, onPick, onBack }) {
-  const L = STRINGS[lang] || STRINGS.en;
+export function PickCoachType({ onPick, onBack }) {
+  const L = STRINGS.en;
   const [sel, setSel] = useState(null);
   return (
     <SignupShell onBack={onBack} title={tr("Coach type")}
@@ -8820,8 +8333,8 @@ export function PickCoachType({ lang, onPick, onBack }) {
   );
 }
 
-export function CreateAccount({ role, step = 3, lang, onDone, onBack, busy }) {
-  const t = useT(); const L = STRINGS[lang] || STRINGS.en;
+export function CreateAccount({ role, step = 3, onDone, onBack, busy }) {
+  const t = useT(); const L = STRINGS.en;
   const [name, setName] = useState(""); const [email, setEmail] = useState("");
   const [pass, setPass] = useState(""); const [phone, setPhone] = useState("");
   const [d, setD] = useState(""); const [m, setM] = useState(""); const [y, setY] = useState("");
@@ -9757,7 +9270,7 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
 
 
 
-function PlayerLog({ cfg, lessons, go, push, saved, right, empty, lang, prefs, setPrefs, sport, ownMedia, onUpload, onOverture, liveMedia, onNeedMedia }) {
+function PlayerLog({ cfg, lessons, go, push, saved, right, empty, prefs, setPrefs, sport, ownMedia, onUpload, onOverture, liveMedia, onNeedMedia }) {
   const t = useT();
   const ready = useLoad();
   const view = (prefs && prefs.logView) === "list" ? "List" : "Cards";
@@ -13417,9 +12930,9 @@ const L_CAL = (role, readOnly) => (role === "coach" ? "Schedule" : readOnly ? "C
    Now: the conversations come first, and the two coach-only broadcast
    actions sit together in one quiet row beneath the title, matched in
    weight and clearly secondary. */
-function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, threads }) {
+function MessageList({ role, push, sheet, right, empty, onNew, onWeather, threads }) {
   const t = useT(); const L = useL();
-  const preview = (id) => { const r = id ? readMsg(id, lang) : null; return r ? r.text : ""; };
+  const preview = (id) => { const r = id ? readMsg(id) : null; return r ? r.text : ""; };
   const list = threads
     ? threads.map((th) => ({ id: th.playerId, name: th.who, sub: th.sub, unread: th.unread, when: th.when || "", lastId: null, last: th.last }))
     : empty ? [] : THREADS[role];
@@ -13517,9 +13030,8 @@ const dayLabelOf = (iso, L) => {
   return d.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" });
 };
 
-function Thread({ role, name, isGroup, lang, pop, say, live }) {
+function Thread({ role, name, isGroup, pop, say, live }) {
   const t = useT(); const L = useL(); const other = role === "coach" ? "player" : "coach";
-  const [originals, setOriginals] = useState({});
   /* A real thread is the database's rows, sent through the data layer.
      The seeded conversation and the canned reply belong to the design
      harness only. */
@@ -13544,29 +13056,15 @@ function Thread({ role, name, isGroup, lang, pop, say, live }) {
     setTyping(true);
     setTimeout(() => { setTyping(false); const pool = REPLIES[other]; setLocal((m) => [...m, { from: other, text: pool[m.length % pool.length], at: "now" }]); haptic(8); }, 1700);
   };
-  /* A message is shown in your language when we have it, with the
-     original one tap away. Nothing is hidden — you can always read
-     exactly what the other person wrote. */
-  const Bubble = ({ m, idx }) => {
+  const Bubble = ({ m }) => {
     const mine = m.from === role;
-    const r = m.id ? readMsg(m.id, lang) : { text: m.text, translated: false, original: m.text };
-    const showingSource = originals[idx];
-    const body = r.translated && !showingSource ? r.text : r.original;
-    const translated = r.translated;
+    const body = m.id ? ((readMsg(m.id) || {}).text || m.text) : m.text;
     return (
       <div className={`flex mb-2.5 ${mine ? "justify-end" : "justify-start"}`}>
         <div className="rounded-3xl px-4 py-2.5" style={{ maxWidth: "78%", background: mine ? t.ink : t.surface, border: mine ? "none" : `1px solid ${t.hair}`, borderBottomRightRadius: mine ? 8 : 24, borderBottomLeftRadius: mine ? 24 : 8 }}>
           <p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.45, color: mine ? "#fff" : t.ink }}>{body}</p>
           <div className="flex items-center gap-2 mt-1">
             <span style={{ fontFamily: ui, fontSize: 10.5, color: mine ? "rgba(255,255,255,0.45)" : t.faint }}>{m.at}</span>
-            {translated && (
-              <button onClick={() => { haptic(6); setOriginals((o) => ({ ...o, [idx]: !o[idx] })); }}
-                      className="active:opacity-50 flex items-center gap-1"
-                      style={{ fontFamily: ui, fontSize: 10.5, fontWeight: 600, color: mine ? "rgba(255,255,255,0.62)" : t.accent }}>
-                <Radio size={9} strokeWidth={2.1} />
-                {showingSource ? L.showTranslation : L.showOriginal}
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -13584,12 +13082,6 @@ function Thread({ role, name, isGroup, lang, pop, say, live }) {
           )}
         </div>
         <div ref={feed} className="flex-1 overflow-y-auto px-4 pt-5 pb-3">
-          {lang !== "en" && (
-            <div className="flex items-center justify-center gap-2 mb-4 px-4 py-2" style={{ borderRadius: R.surface, background: t.wash }}>
-              <Radio size={11} color={t.faint} strokeWidth={2.1} />
-              <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{L.translatedFor}</span>
-            </div>
-          )}
           {/* "Today" used to sit over every thread, however old, and
               over an empty one. A real thread is dated by the day each
               message was actually sent. */}
@@ -13599,7 +13091,7 @@ function Thread({ role, name, isGroup, lang, pop, say, live }) {
               {live && dayOf(m.iso) !== dayOf(msgs[i - 1] && msgs[i - 1].iso) && (
                 <p className="text-center mb-5 mt-1" style={{ ...TYPE.caption, color: t.faint }}>{dayLabelOf(m.iso, L)}</p>
               )}
-              <Bubble m={m} idx={i} />
+              <Bubble m={m} />
             </React.Fragment>
           ))}
           {typing && (<div className="flex justify-start mb-2.5"><div className="rounded-3xl px-4 py-3.5 flex gap-1.5" style={{ background: t.surface, border: `1px solid ${t.hair}`, borderBottomLeftRadius: 8 }}>
@@ -13840,7 +13332,7 @@ function ProfileScreen({ account, me, role, avatar, family, onSave, onUploadAvat
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, region, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, lang, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
   const t = useT(); const L = useL();
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -13898,8 +13390,6 @@ function Settings({ role, cfg, conn, brandName, myName, plan, region, demo, live
         <div className="px-6 mb-6"><Card tour="settings-appearance">
           {/* Ireland only, English only for the pilot: these two are the
               design harness's, never a real account's. */}
-          {!live && <Row tour="settings-region" label={L.region || "Region"} value={REGIONS.find((x) => x.id === region)?.name} chevron icon={<I C={Building2} />} onToggle={() => push("region")} />}
-          {!live && <Row tour="settings-language" label={L.language} value={LANGS.find((x) => x.id === lang)?.native} chevron icon={<I C={ExternalLink} />} onToggle={() => push("language")} />}
           <Row tour="settings-dark" label={L.darkMode} right={<Toggle on={dark} onChange={setDark} />} />
           <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.hair}` }}>
             <div className="flex items-center justify-between mb-3">
@@ -13976,44 +13466,6 @@ function Settings({ role, cfg, conn, brandName, myName, plan, region, demo, live
         </Card></div>}
 
         <div className="flex flex-col items-center pb-6"><Mark size={30} color={t.faint} /><p className="mt-2.5" style={{ ...TYPE.caption, color: t.faint }}>{BRAND} {VERSION}</p><p className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>{tr("Made in Ireland")}</p></div>
-      </Screen>
-    </SwipeBack>
-  );
-}
-function RegionScreen({ region, setRegion, lang, setLang, pop }) {
-  const t = useT(); const L = useL();
-  return (
-    <SwipeBack onBack={pop}>
-      <Screen title={L.region || "Region"} onBack={pop}>
-        <div className="px-6 pb-2">
-          <Card>{REGIONS.map((r, i) => (
-            <Row key={r.id} label={r.name} checked={region === r.id} last={i === REGIONS.length - 1}
-                 icon={<span className="shrink-0" style={{ fontSize: 20, lineHeight: 1 }} aria-hidden="true">{flagOf(r.id)}</span>}
-                 onToggle={() => { haptic(10); soft(); setRegion(r.id); if (!r.langs.includes(lang)) setLang(r.langs[0]); }} />
-          ))}</Card>
-          <p className="px-1 mt-4" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.6, color: t.faint }}>
-            Sets your date format and which languages are offered.
-          </p>
-        </div>
-      </Screen>
-    </SwipeBack>
-  );
-}
-function LanguageScreen({ lang, setLang, pop, say }) {
-  const t = useT(); const L = useL();
-  return (
-    <SwipeBack onBack={pop}>
-      <Screen title={L.language} onBack={pop}>
-        <div className="px-6 pb-2">
-          <Card>{LANGS.map((x, i) => (
-            <Row key={x.id} label={x.native} sub={x.label} checked={lang === x.id} last={i === LANGS.length - 1}
-                 onToggle={() => { haptic(10); setLang(x.id); tone(700, 0.12, 0.04); }} />
-          ))}</Card>
-          <p className="px-1 mt-4" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.6, color: t.faint }}>
-            The app, and messages from your coach, appear in this language. Lesson notes and drills stay as your coach
-            wrote them — you'll see the original alongside a translation where we have one.
-          </p>
-        </div>
       </Screen>
     </SwipeBack>
   );
@@ -14280,10 +13732,15 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
   const tipHits = term ? tips.filter((x) => hit(x.title) || hit(x.body)) : [];
   /* A real account searches its own roster and its own threads; the
      seeded pair below belong to the design harness. */
-  const preview = (id) => (readMsg(id, LANG) || {}).text || "";
-  const people = !term ? []
+  const preview = (id) => (readMsg(id) || {}).text || "";
+  /* People are a coach's roster. Chat's search button reaches this
+     screen for every role, so without the gate a player searching
+     their own name opened their own coaching file — Set drills, Set a
+     tip, the coach's private note. The seeded branch already knew
+     this; the live one did not. */
+  const people = !term || role !== "coach" ? []
     : live ? (livePeople || []).filter((r) => hit(r.name)).map((r) => ({ name: r.name, lessons: r.lessons, since: r.since }))
-    : role === "coach" ? ROSTER.filter((r) => hit(r.name)) : [];
+    : ROSTER.filter((r) => hit(r.name));
   const msgs = !term ? []
     : live ? (liveThreads || []).filter((c) => hit(c.who) || hit(c.last)).map((c) => ({ id: c.playerId, name: c.who, text: c.last }))
     : THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))).map((c) => ({ id: c.name, name: c.name, text: preview(c.lastId) }));
@@ -14831,7 +14288,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [scenarios, setScenarios] = useState(false);
   const [famLoaded, setFamLoaded] = useState(false);
   const [announce, setAnnounce] = useState(null);   // takes the whole screen
-  const [quickLayout, setQuickLayout] = useState(QUICK_DEFAULT);
+  /* The layout the coach arranges is theirs and it stays arranged.
+     It was plain useState, so every reorder and resize was undone the
+     moment the sheet closed — an editor that edited nothing. It is a
+     device setting rather than a database column because which tiles
+     sit where is about this phone, not this account.
+     The walkthrough renders a second Nosca inside the real one, and it
+     must not write into the real key, so it keeps its own copy in
+     memory. Both hooks always run; only the pair used changes. */
+  const [savedQuick, setSavedQuick] = useDeviceSetting("quickLayout", QUICK_DEFAULT);
+  const [demoQuick, setDemoQuick] = useState(QUICK_DEFAULT);
+  const [quickLayout, setQuickLayout] = sc ? [demoQuick, setDemoQuick] : [savedQuick, setSavedQuick];
   /* A term's worth of registers, so the attendance screen has
      something to show before anyone takes one. */
   const [registers, setRegisters] = useState(() => {
@@ -15282,7 +14749,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [pushOn, setPushOn] = useState(false);
   const [firstRun, setFirstRun] = useState(true);
   const [annotations, setAnnotations] = useState({});
-  const [lang, setLang] = useState("en");
   const [dark, setDark] = useDeviceSetting("dark", false);
   const [textScale, setTextScale] = useDeviceSetting("textScale", 1);
   const [hapticsOn, setHapticsOn] = useDeviceSetting("haptics", true);
@@ -15499,10 +14965,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setRequests((v) => v.filter((x) => x.name !== r.name)); hapticWarn(); decline(); say("Request declined");
   };
   const markAttendance = (who, status) => { setAttendance((a) => ({ ...a, [who]: { ...(a[who] || { showed: 0, late: 0, noShow: 0, cancelled: 0 }), [status]: ((a[who] || {})[status] || 0) + 1 } })); hapticSuccess(); };
-  const L = STRINGS[lang] || STRINGS.en;
-  /* Synchronous on purpose: an effect runs after the first paint, so
-     the calendar would flash English before correcting itself. */
-  setLangGlobal(lang);
+  const L = STRINGS.en;
   const activeProfile = account
     ? { id: account.id, name: account.name, age: null }
     : (profiles.find((p) => p.id === activeProfileId) || profiles[0]);
@@ -15993,7 +15456,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const youBtn = data
     ? <FamilyPill tour="profile-pill" label={tr("Your profile")} name={myName} src={myAvatar} onOpen={() => push("you")} />
     : <YouAvatarBtn tour="you" name={myName} src={null} tint={myAvatar} onOpen={() => push("you")} />;
-  const navRight = (<>{pill}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); setSheet("cmd"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} />{youBtn}</>);
+  /* One search. There were two — a command-bar sheet reached from a
+     coach's header and a full Search screen reached from everyone
+     else's — and only the screen searched a real account's own
+     lessons, drills, tips, people and messages. */
+  const navRight = (<>{pill}<IconBtn tour="search" C={Search} label={tr("Search")} onOpen={() => { hapticCommit(); push("search"); }} /><IconBtn tour="alerts" C={Bell} label={tr("Alerts")} count={alerts} onOpen={() => push("alerts")} />{youBtn}</>);
   const slimRight = (<>{pill}
     <IconBtn tour="search" C={Search} label={L.search} onOpen={() => push("search")} />
     {(role === "coach" || data) && <IconBtn tour="alerts" C={Bell} label={L.alerts} count={alerts} onOpen={() => push("alerts")} />}
@@ -16086,9 +15553,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     bare = true;
   } else if (!inApp) {
     body = {
-      region:  <PickRegion region={region} setRegion={setRegion} lang={lang} setLang={setLang} path={signupPath} onDone={() => setFlow("sport")} />,
-      sport:   <PickSport lang={lang} path={signupPath} onBack={() => setFlow("role")} onPick={(s) => { setSignupSport(s); setCoachSport(s); setFlow("role"); }} />,
-      role:    <PickRole sport={signupSport} lang={lang} path={signupPath} onBack={() => setFlow("role")}
+      sport:   <PickSport path={signupPath} onBack={() => setFlow("role")} onPick={(s) => { setSignupSport(s); setCoachSport(s); setFlow("role"); }} />,
+      role:    <PickRole sport={signupSport} path={signupPath} onBack={() => setFlow("role")}
                          onPick={(r) => { if (r === "coach") { setSignupRole("coach"); setRole("coach"); setFlow("account"); }
                                           else { setSignupRole("player"); setRole("player"); setFlow("account"); } }} />,
       juvenile: <JuvenileJoin sport={signupSport} onBack={() => setFlow("role")}
@@ -16096,12 +15562,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                 setProfiles([{ id: 1, name: childName, age: 14 }]);
                                 setConns([{ id: 1, profileId: 1, sport: signupSport, coach: COACHES[signupSport][0].name, club: COACHES[signupSport][0].club, seeded: true }]);
                                 setActiveProfileId(1); setActiveId(1); setFamilyGuide(true); setFlow("app"); setStack(["home"]); hapticSuccess(); chime(); }} />,
-      account: <CreateAccount role={signupRole} lang={lang} step={3} onBack={() => setFlow("role")}
+      account: <CreateAccount role={signupRole} step={3} onBack={() => setFlow("role")}
                               onDone={(d) => { setSignupName(d.name); setFlow(signupRole === "coach" ? "club" : "connect"); }} />,
       club:    <CoachClub sport={signupSport} onBack={() => setFlow("account")}
                           onDone={(c) => { setBrandName(c); setFlow("plan"); }} />,
       plan:    <CoachPlan onBack={() => setFlow("club")} onDone={(p) => { setPlan(p); setFlow("code"); }} />,
-      setup:   <CoachSetup cfg={SPORTS[signupSport]} sport={signupSport} lang={lang} slots={slots}
+      setup:   <CoachSetup cfg={SPORTS[signupSport]} sport={signupSport} slots={slots}
                             onDone={(cfgOut) => { setSelectedStats((v) => ({ ...v, [`1:${signupSport}`]: cfgOut.stats }));
                               setLibrary((l) => ({ ...l, [signupSport]: cfgOut.drills.map((n) => ({ t: n, d: "", focus: SPORTS[signupSport].focus[0].id, uses: 0 })) }));
                               setAvail((a) => ({ ...a, [signupSport]: Object.fromEntries(DAY_NAMES.map((_, i) => [i, cfgOut.days.includes(i) ? cfgOut.times : []])) }));
@@ -16152,11 +15618,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       send: async () => ({ error: { message: tr("This conversation isn't available.") } }),
       markRead: () => {}, onDetails: null,
     };
-    body = <Thread role={role} name={row ? row.who : threadKey} lang={lang} pop={pop} say={say} live={liveThread} />;
+    body = <Thread role={role} name={row ? row.who : threadKey} pop={pop} say={say} live={liveThread} />;
   } else if (screen.startsWith("thread:")) {
     const threadName = screen.split(":")[1];
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
-    body = <Thread role={role} name={threadName} isGroup={isGroupThread} lang={lang} pop={pop} say={say} />;
+    body = <Thread role={role} name={threadName} isGroup={isGroupThread} pop={pop} say={say} />;
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pname = screen.split(":")[1];
@@ -16164,7 +15630,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(n); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
-  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={myLibrary} tips={myTips} lessons={data ? (role === "coach" ? data.lessons : playerLessons) : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
+  /* A coach searches their own drill library; anyone else searches the
+     drills set for them — myLibrary is a coach's, and is empty for a
+     player, so the Drills group could never match anything for them
+     even though its row opens Practice. */
+  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={role === "coach" ? myLibrary : (myPractice || [])} tips={myTips} lessons={data ? (role === "coach" ? data.lessons : playerLessons) : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
     body = <LessonLogs role={role} lessons={data ? (role === "coach" ? data.lessons : playerLessons) : playerLessons} pop={pop}
                        onDownload={async (l) => {
@@ -16394,9 +15864,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "unlogged") {
     body = <UnloggedLessons items={openUnlogged} onLog={(u) => { setPrefill(u); go("log"); }}
                             onDismiss={(u) => { setUnlogged((v) => v.filter((x) => x !== u)); say("Removed"); }} pop={pop} />;
-  } else if (screen === "region") {
-    body = <RegionScreen region={region} setRegion={setRegion} lang={lang} setLang={setLang} pop={pop} />;
-  } else if (screen === "language") { body = <LanguageScreen lang={lang} setLang={setLang} pop={pop} say={say} />;
   } else if (screen === "profile" && data) {
     body = <ProfileScreen account={account} me={data.me} role={role} avatar={myAvatar} family={data.family}
                           onSave={async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
@@ -16443,11 +15910,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} region={region} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
-                          weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} lang={lang} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn}
+                          weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn}
                           startOn={startOn} setStartOn={setStartOn}
                           startOptions={[{ id: "auto", label: tr("As it comes") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
                           pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
@@ -16465,7 +15932,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             onRecurring={() => push("recurring")}
                                                             kids={data ? (data.dependants || []).map((k) => ({ ...k, canBook: !!k.coachId && Object.values((((data.hoursByPlayer || {})[k.id] || {}).days) || {}).some((x) => x && x.length) })) : null}
                                                             onBookFor={(k) => { setBookFor(k); }} />;
-  } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} lang={lang} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
+  } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
   } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
   } else if (role === "coach") {
     bare = screen === "log";
@@ -16727,23 +16194,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           )}
 
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
-            {sheet === "cmd" ? <CommandBar role={role} cfg={cfg} roster={roster}
-                                            lessons={data ? (role === "coach" ? data.lessons : playerLessons) : cfg.lessons} library={myLibrary}
-                                            go={go} push={push}
-                                            close={() => setSheet(null)}
-                                            onAct={(id, who) => {
-                                              const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
-                                              if (id === "log")     { setSheet(null); setPrefill(null); return go("log"); }
-                                              if (id === "attend")  return later(() => setSheet("attend"));
-                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
-                                              if (id === "comp")    { setSheet(null); return push("events"); }
-                                              if (id === "tip")     { setGoalFor(who); setAssignTo(who); return later(() => setSheet("tip")); }
-                                              if (id === "drills")  return later(() => openAssignDrills(who));
-                                              if (id === "message") { setSheet(null); return push("thread:" + who); }
-                                              if (id === "request") { setSheet(null); return go("calendar"); }
-                                              if (id === "clip")    { setSheet(null); return go("checkins"); }
-                                            }} />
-            : sheet === "pickWho" ? <PickPerson roster={roster}
+            {sheet === "pickWho" ? <PickPerson roster={roster}
                                             title={pickFor === "tip" ? tr("Set a tip") : tr("Set drills")}
                                             sub={tr("Who is it for?")}
                                             onPick={(name) => {
@@ -16754,7 +16205,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               }, 180);
                                             }}
                                             close={() => setSheet(null)} />
-            : sheet === "quick" ? <QuickMenu cfg={cfg} layout={quickLayout} setLayout={setQuickLayout}
+            : sheet === "quick" ? <QuickMenu layout={quickLayout} setLayout={setQuickLayout}
                                             liveLesson={liveNow}
                                             onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
                                             onRun={(id) => {
@@ -16767,8 +16218,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               if (id === "group")   return later(() => setSheet("newGroup"));
                                               if (id === "message") return later(() => setSheet("newThread"));
                                               if (id === "comp")    { setSheet(null); push("events"); }
-                                            }}
-                                            close={() => setSheet(null)} />
+                                            }} />
             : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
