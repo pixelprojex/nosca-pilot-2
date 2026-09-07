@@ -22,7 +22,7 @@
  */
 
 import webpush from "web-push";
-import { json, restHeaders, loadSubscriptions, sendTo, REQUIRED } from "./lib/push-shared.mjs";
+import { json, restHeaders, loadSubscriptions, sendTo, projectUrl, REQUIRED } from "./lib/push-shared.mjs";
 
 export const config = { schedule: "0 6 * * *" };
 
@@ -32,7 +32,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const MAX_PEOPLE = 500;
 
 async function rows(env, path) {
-  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, { headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
+  const res = await fetch(`${projectUrl(env)}/rest/v1/${path}`, { headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
   if (!res.ok) throw new Error(`${path.split("?")[0]} read failed: ${res.status} ${await res.text()}`);
   const body = await res.json();
   return Array.isArray(body) ? body : [];
@@ -61,7 +61,7 @@ export function summarise(items) {
 }
 
 async function markSent(env, ids, at) {
-  const url = `${env.SUPABASE_URL}/rest/v1/preferences?id=in.(${ids.map(encodeURIComponent).join(",")})`;
+  const url = `${projectUrl(env)}/rest/v1/preferences?id=in.(${ids.map(encodeURIComponent).join(",")})`;
   const res = await fetch(url, {
     method: "PATCH",
     headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY, { prefer: "return=minimal" }),

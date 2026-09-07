@@ -1545,6 +1545,41 @@ exception when others then
 end
 $net$;
 
+-- CARRYING A HAND-MADE SETUP ACROSS. Before this section existed the
+-- only way to get a notification out of the database was to write the
+-- trigger by hand in the SQL editor, with the URL and the secret typed
+-- straight into the function body. Replacing that function with the one
+-- below would leave a project that had push working with a push_url it
+-- has never been told — silently, because an unconfigured trigger does
+-- nothing and says nothing. So: read them out of whatever is there and
+-- keep them.
+do $carry$
+declare
+  src text;
+  u   text;
+  k   text;
+begin
+  select p.prosrc into src
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'notify_push';
+
+  if src is not null and src like '%http_post%' then
+    u := (regexp_match(src, 'url\s*:=\s*''([^'']+)'''))[1];
+    k := (regexp_match(src, '''x-nosca-secret''\s*,\s*''([^'']+)'''))[1];
+    if u is not null and u <> '' then
+      insert into public.app_settings (key, value) values ('push_url', u)
+      on conflict (key) do nothing;
+    end if;
+    if k is not null and k <> '' then
+      insert into public.app_settings (key, value) values ('push_secret', k)
+      on conflict (key) do nothing;
+    end if;
+  end if;
+exception when others then
+  raise notice 'could not read the existing push settings (%) — set them by hand', sqlerrm;
+end
+$carry$;
+
 create or replace function public.notify_push() returns trigger
 language plpgsql security definer set search_path = public, extensions as $$
 declare
@@ -1578,7 +1613,10 @@ do $push$
 begin
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
              where p.proname = 'net_http_post' and n.nspname = 'extensions') then
+    -- every name this trigger has ever had, so a project set up by
+    -- hand does not end up sending each notification twice
     drop trigger if exists notifications_push on public.notifications;
+    drop trigger if exists on_notification_insert on public.notifications;
     create trigger notifications_push
       after insert on public.notifications
       for each row execute function public.notify_push();

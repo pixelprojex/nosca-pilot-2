@@ -18,7 +18,7 @@
  * Environment: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
  */
 
-import { json, restHeaders } from "./lib/push-shared.mjs";
+import { json, restHeaders, projectUrl } from "./lib/push-shared.mjs";
 
 const str = (v) => (typeof v === "string" ? v.trim() : "");
 
@@ -41,7 +41,7 @@ export default async (req) => {
   const env = process.env;
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return json({ error: "missing environment" }, 500);
 
-  const url = `${env.SUPABASE_URL}/rest/v1/push_subscriptions`
+  const url = `${projectUrl(env)}/rest/v1/push_subscriptions`
     + `?endpoint=eq.${encodeURIComponent(oldEndpoint)}&auth=eq.${encodeURIComponent(oldAuth)}`;
 
   let res;

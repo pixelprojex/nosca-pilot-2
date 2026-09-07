@@ -33,7 +33,7 @@ globalThis.fetch = async (url, init = {}) => {
 };
 
 const { default: relay, recordFrom } = await import("../../netlify/functions/push.mjs");
-const { isUrgent } = await import("../../netlify/functions/lib/push-shared.mjs");
+const { isUrgent, projectUrl } = await import("../../netlify/functions/lib/push-shared.mjs");
 const { summarise } = await import("../../netlify/functions/digest.mjs");
 
 let pass = 0, fail = 0;
@@ -134,6 +134,32 @@ check("an empty body is not", recordFrom({}) === null);
 check("every urgent kind is one the database actually writes",
       ["booking", "weather", "request", "accepted", "declined", "message"].every(isUrgent)
       && !isUrgent("lesson") && !isUrgent("drill") && !isUrgent("tip") && !isUrgent("family") && !isUrgent(""));
+
+/* ---------- the project URL, however it was pasted in ----------
+   Supabase's settings page shows the project URL and the REST endpoint
+   side by side. With the REST one in SUPABASE_URL every read asked for
+   /rest/v1/rest/v1/<table> and PostgREST answered 404 PGRST125, which
+   names nothing and is invisible from the app. */
+{
+  const want = "https://mock.supabase.co";
+  check("the project URL is taken as it is", projectUrl({ SUPABASE_URL: want }) === want);
+  check("a trailing slash is trimmed", projectUrl({ SUPABASE_URL: want + "/" }) === want);
+  check("several are trimmed", projectUrl({ SUPABASE_URL: want + "///" }) === want);
+  check("the REST endpoint is accepted too", projectUrl({ SUPABASE_URL: want + "/rest/v1" }) === want);
+  check("…with its own trailing slash", projectUrl({ SUPABASE_URL: want + "/rest/v1/" }) === want);
+  check("surrounding space is ignored", projectUrl({ SUPABASE_URL: "  " + want + "  " }) === want);
+  check("nothing at all is an empty string, not a crash", projectUrl({}) === "" && projectUrl() === "");
+}
+{
+  const before = seen.length;
+  pref = "instant";
+  process.env.SUPABASE_URL = "https://mock.supabase.co/rest/v1";
+  await post({ ...ROW, kind: "booking" });
+  process.env.SUPABASE_URL = "https://mock.supabase.co";
+  const asked = seen.slice(before).find((x) => x.includes("push_subscriptions"));
+  check("a relay configured with the REST endpoint still reads the right path",
+        !!asked && asked.includes("/rest/v1/push_subscriptions") && !asked.includes("/rest/v1/rest/v1/"), asked);
+}
 
 /* ---------- the daily summary ---------- */
 {

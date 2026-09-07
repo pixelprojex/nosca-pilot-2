@@ -8,6 +8,18 @@
 
 import { timingSafeEqual } from "node:crypto";
 
+/* THE PROJECT URL, WHATEVER WAS PASTED IN. Supabase shows both
+   "https://<ref>.supabase.co" and the REST endpoint
+   "https://<ref>.supabase.co/rest/v1" on its API settings page, and it
+   is easy to copy the wrong one. With the second, every read here asked
+   for /rest/v1/rest/v1/<table>, which PostgREST answers with 404
+   PGRST125 "Invalid path specified in request URL" — a message that
+   says nothing about the cause, on a request nobody sees. A trailing
+   slash is the same class of mistake. Both are trimmed, so the setting
+   cannot be wrong in the two ways it is usually wrong. */
+export const projectUrl = (env) =>
+  String((env && env.SUPABASE_URL) || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
+
 export const REQUIRED = [
   "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
   "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
@@ -48,7 +60,7 @@ export function restHeaders(serviceKey, extra) {
 }
 
 export async function loadSubscriptions(env, userId) {
-  const url = `${env.SUPABASE_URL}/rest/v1/push_subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=endpoint,p256dh,auth`;
+  const url = `${projectUrl(env)}/rest/v1/push_subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=endpoint,p256dh,auth`;
   const res = await fetch(url, { headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
   if (!res.ok) throw new Error(`push_subscriptions read failed: ${res.status} ${await res.text()}`);
   const rows = await res.json();
@@ -56,7 +68,7 @@ export async function loadSubscriptions(env, userId) {
 }
 
 export async function removeSubscription(env, endpoint) {
-  const url = `${env.SUPABASE_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`;
+  const url = `${projectUrl(env)}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`;
   const res = await fetch(url, { method: "DELETE", headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
   return res.ok;
 }
@@ -67,7 +79,7 @@ export async function removeSubscription(env, endpoint) {
    swallowing one. */
 export async function notifyPreference(env, userId) {
   try {
-    const url = `${env.SUPABASE_URL}/rest/v1/preferences?id=eq.${encodeURIComponent(userId)}&select=notify`;
+    const url = `${projectUrl(env)}/rest/v1/preferences?id=eq.${encodeURIComponent(userId)}&select=notify`;
     const res = await fetch(url, { headers: restHeaders(env.SUPABASE_SERVICE_ROLE_KEY) });
     if (!res.ok) return "instant";
     const rows = await res.json();
