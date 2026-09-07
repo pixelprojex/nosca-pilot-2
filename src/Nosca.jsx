@@ -1119,23 +1119,30 @@ export const hapticSuccess = () => buzz([14, 40, 26]);
 export const hapticWarn    = () => buzz([28, 60, 28]);
 export const hapticCommit  = () => buzz([10, 30, 10, 30, 22]);
 
+/* The harness's roster. Every row has an id because two of them are
+   called Tom Beckett — which is the whole point of them: the app must
+   tell two people with one name apart, and the design harness is where
+   that is visible. Ids are strings so nothing can confuse one with an
+   array index; the real roster's are uuids. */
 const ROSTER = [
-  { name: "Marcus Tran",  lessons: 12, since: "Feb 2026", pack: [8, 10], last: 10 },
-  { name: "Priya Ellis",  lessons: 8,  since: "Mar 2026", pr: [3, 3], pack: [2, 10], last: 1 },
-  { name: "Dan Okafor",   lessons: 5,  since: "Apr 2026", pr: [0, 2], last: 21 },
-  { name: "Sofia Reyes",  lessons: 3,  since: "May 2026", pr: [1, 4], last: 8 },
-  { name: "Tom Beckett",  lessons: 1,  since: "Jul 2026", last: 2 },
-  { name: "Aoife Nolan",    lessons: 34, since: "Sep 2025", pack: [4, 10], last: 3 },
-  { name: "Tom Beckett",    lessons: 19, since: "Nov 2025", pack: [6, 10], last: 2 },
-  { name: "Hannah Doyle",   lessons: 27, since: "Aug 2025", pr: [2, 4], last: 5 },
-  { name: "Eoin Breathnach",lessons: 41, since: "Jan 2025", pack: [1, 10], last: 1 },
-  { name: "Sinead Walsh",   lessons: 15, since: "Feb 2026", last: 8 },
-  { name: "Cian Murphy",    lessons: 22, since: "Oct 2025", pack: [9, 10], last: 4 },
-  { name: "Orla Fitzgerald",lessons: 11, since: "Apr 2026", last: 6 },
-  { name: "Declan Ryan",    lessons: 38, since: "Jun 2025", pr: [5, 6], last: 2 },
-  { name: "Maeve Kelleher", lessons: 7,  since: "May 2026", last: 12 },
-  { name: "Rory Gallagher", lessons: 29, since: "Dec 2025", pack: [3, 10], last: 3 },
+  { id: "p01", name: "Marcus Tran",  lessons: 12, since: "Feb 2026", pack: [8, 10], last: 10 },
+  { id: "p02", name: "Priya Ellis",  lessons: 8,  since: "Mar 2026", pr: [3, 3], pack: [2, 10], last: 1 },
+  { id: "p03", name: "Dan Okafor",   lessons: 5,  since: "Apr 2026", pr: [0, 2], last: 21 },
+  { id: "p04", name: "Sofia Reyes",  lessons: 3,  since: "May 2026", pr: [1, 4], last: 8 },
+  { id: "p05", name: "Tom Beckett",  lessons: 1,  since: "Jul 2026", last: 2 },
+  { id: "p06", name: "Aoife Nolan",    lessons: 34, since: "Sep 2025", pack: [4, 10], last: 3 },
+  { id: "p07", name: "Tom Beckett",    lessons: 19, since: "Nov 2025", pack: [6, 10], last: 2 },
+  { id: "p08", name: "Hannah Doyle",   lessons: 27, since: "Aug 2025", pr: [2, 4], last: 5 },
+  { id: "p09", name: "Eoin Breathnach",lessons: 41, since: "Jan 2025", pack: [1, 10], last: 1 },
+  { id: "p10", name: "Sinead Walsh",   lessons: 15, since: "Feb 2026", last: 8 },
+  { id: "p11", name: "Cian Murphy",    lessons: 22, since: "Oct 2025", pack: [9, 10], last: 4 },
+  { id: "p12", name: "Orla Fitzgerald",lessons: 11, since: "Apr 2026", last: 6 },
+  { id: "p13", name: "Declan Ryan",    lessons: 38, since: "Jun 2025", pr: [5, 6], last: 2 },
+  { id: "p14", name: "Maeve Kelleher", lessons: 7,  since: "May 2026", last: 12 },
+  { id: "p15", name: "Rory Gallagher", lessons: 29, since: "Dec 2025", pack: [3, 10], last: 3 },
 ];
+/* the id of a seeded person, for the harness's own name-keyed corners */
+const seedId = (name) => (ROSTER.find((r) => r.name === name) || {}).id || name;
 const PLAYERS = ROSTER.map((r) => r.name);
 
 /* ==================================================================
@@ -3952,16 +3959,36 @@ function Sources({ sport, pop, say }) {
    coach: people don't announce that they're drifting away, they just
    stop booking. Surfacing that early is worth more than any new
    feature, because keeping someone costs less than finding someone. */
-function atRisk(roster, series, live) {
+/* WHO IS SLIPPING AWAY. The gap came from `r.last`, a number of days
+   the seeded roster carries and a real one never does — so on a real
+   account every gap was 0, nothing ever qualified, and the screen was
+   permanently empty. A live row carries `lastLesson` as a date and
+   `lessons` as a count, so the gap is a subtraction and someone who has
+   never had a lesson is the clearest case of all rather than the one
+   that scored zero.
+   `bookedIds` is who has something in the diary ahead of them; without
+   it a player booked for Thursday reads as drifting on Tuesday. */
+function atRisk(roster, series, live, bookedIds) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysSince = (iso) => {
+    if (!iso) return null;
+    const [y, m, d] = String(iso).split("-").map(Number);
+    if (!y || !m || !d) return null;
+    return Math.round((today - new Date(y, m - 1, d)) / 86400000);
+  };
   return (roster || []).map((r) => {
     const f = fileFor(r.name, live);
-    const booked = (series || []).some((x) => x.who === r.name && !x.ended);
-    const gap = r.last || 0;
+    const booked = (series || []).some((x) => (r.id ? x.playerId === r.id : x.who === r.name) && !x.ended)
+      || !!(bookedIds && r.id && bookedIds.has(r.id));
+    const done = r.lessons ?? f.done;
+    const gap = live ? daysSince(r.lastLesson) : (r.last || 0);
     let why = null, weight = 0;
-    if (!booked && gap >= 21) { why = "Nothing booked, and it's been a while"; weight = 3; }
+    if (live && done === 0) { why = booked ? "No lessons yet" : "On your roster, never booked in"; weight = booked ? 2 : 3; }
+    else if (gap == null) { why = null; }
+    else if (!booked && gap >= 21) { why = "Nothing booked, and it's been a while"; weight = 3; }
     else if (!booked && gap >= 14) { why = "Nothing in the diary"; weight = 2; }
     else if (gap >= 28) { why = "Long gap since their last lesson"; weight = 2; }
-    return why ? { name: r.name, why, weight, gap, done: f.done } : null;
+    return why ? { name: r.name, id: r.id, why, weight, gap, done } : null;
   }).filter(Boolean).sort((a, b) => b.weight - a.weight);
 }
 
@@ -3988,10 +4015,12 @@ function AtRisk({ list, onMessage, onBook, pop }) {
                   <span className="block truncate" style={{ ...TYPE.subhead, color: t.ink }}>{x.name}</span>
                   <span className="block mt-0.5" style={{ ...TYPE.caption, color: x.weight >= 3 ? CAUTION : t.faint }}>{tr(x.why)}</span>
                 </span>
-                <span className="text-right shrink-0">
-                  <span className="block" style={{ ...TYPE.figure, fontSize: 19, color: t.ink }}>{x.gap}</span>
-                  <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8, color: t.faint }}>{tr("days")}</span>
-                </span>
+                {x.gap != null && (
+                  <span className="text-right shrink-0">
+                    <span className="block" style={{ ...TYPE.figure, fontSize: 19, color: t.ink }}>{x.gap}</span>
+                    <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8, color: t.faint }}>{tr("days")}</span>
+                  </span>
+                )}
               </div>
               <div className="flex gap-2.5 mt-4">
                 <button onClick={() => { haptic(8); onBook(x.name); }} className="flex-1 active:opacity-60"
@@ -6802,7 +6831,7 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
       ) : (
         <div className="flex flex-col gap-2.5">
           {shown.map((p, i) => (
-            <Tile key={p.id || p.name} className="px-4 py-3.5" delay={i * 45} onPress={() => { onPick(p.id || p.name); close(); }}>
+            <Tile key={p.id || p.name} className="px-4 py-3.5" delay={i * 45} onPress={() => { onPick(p); close(); }}>
               <div className="flex items-center gap-3.5">
                 <Avatar name={p.name} size={38} />
                 <span className="flex-1 min-w-0">
@@ -12241,7 +12270,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
   };
   const rows = live
     ? (roster || []).map((r) => { const mine = (drills || []).filter((d) => d.playerId === r.id); return { id: r.id, name: r.name, done: mine.filter((d) => d.done).length, total: mine.length, list: mine }; })
-    : ROSTER.map((r) => r.name === "Marcus Tran" ? { id: r.name, name: r.name, done: marcusDone, total: items.length } : { id: r.name, name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
+    : ROSTER.map((r) => r.name === "Marcus Tran" ? { id: r.id, name: r.name, done: marcusDone, total: items.length } : { id: r.id, name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
   return (
     <Screen title={tr("Practice")} meta={tr("What you've set, and who's doing it")} right={right}>
       <div className="px-6 mb-6">
@@ -14322,7 +14351,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [registers, setRegisters] = useState(() => {
     if (account) return {};              // a real account's registers come from the database, below
     const out = {};
-    const who = ["Marcus Tran","Priya Ellis","Aoife Nolan","Tom Beckett","Hannah Doyle"];
+    const who = ["p01", "p02", "p06", "p07", "p08"];   // ids: the second Tom Beckett, not the first
     const days = [["14 JUN","Summer clinic"],["07 JUN","Marcus Tran"],["31 MAY","Junior squad"],
                   ["24 MAY","Marcus Tran"],["17 MAY","Ladies group"],["10 MAY","Marcus Tran"],
                   ["03 MAY","Summer clinic"],["26 APR","Marcus Tran"],["19 APR","Junior squad"],
@@ -14998,8 +15027,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* what the coach marked for this player, if a register was taken */
   /* the player's own percentage, for the line on their day */
   const attendPct = (() => {
-    /* a real register is keyed by player id; the harness's by name */
-    const me = account ? account.id : activeProfile?.name;
+    /* both registers are keyed by player id now — the harness's people
+       have ids too, because two of them share a name */
+    const me = account ? account.id : seedId(activeProfile?.name);
     let seen = 0, here = 0;
     Object.keys(registers || {}).forEach((k) => {
       const v = registers[k][me];
@@ -15009,7 +15039,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return seen ? Math.round((here / seen) * 100) : null;
   })();
   const myAttendance = (() => {
-    const me = account ? account.id : activeProfile?.name;
+    const me = account ? account.id : seedId(activeProfile?.name);
     for (const k of Object.keys(registers || {})) { const v = registers[k][me]; if (v) return v; }
     return null;
   })();
@@ -15096,6 +15126,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed")]).filter(([, rows]) => rows.length))
     : seedBooked[coachSport];
   const mySeriesLive = data ? mySeries : series;
+  /* Anyone with a lesson still to come. Someone booked for Thursday is
+     not drifting on Tuesday, whatever the gap behind them says. */
+  const bookedAhead = data ? new Set((liveBookingRows || [])
+    .filter((b) => b.playerId && b.date >= isoOf(todayMD.m, todayMD.d) && b.status !== "cancelled" && b.status !== "weather")
+    .map((b) => b.playerId)) : null;
   const myGroups = data ? ((data.prefs && data.prefs.groups) || []) : freshAccount ? [] : (groups[coachSport] || []);
   const myLibrary = library[coachSport] || [];
 
@@ -15443,7 +15478,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
-      + atRisk(roster, mySeriesLive, live).length + focusReqs.length;
+      + atRisk(roster, mySeriesLive, live, bookedAhead).length + focusReqs.length;
   /* A real coach's own numbers, from their real lessons: this week's
      count, the hours they add up to at the coach's lesson length, and
      everything since 1 January. */
@@ -15710,7 +15745,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       openRequests.length && { id: "j1", what: tr("asking to join"), count: openRequests.length, tone: CAUTION, go: () => push("requests") },
       checkIns.filter((x) => x.state === "waiting").length && { id: "j2", what: tr("clips to look at"), count: checkIns.filter((x) => x.state === "waiting").length, tone: CAUTION, go: () => push("checkins") },
       lessonReqs.length && { id: "j3", what: tr("lesson requests"), count: lessonReqs.length, tone: CAUTION, go: () => go("today") },
-      atRisk(roster, mySeriesLive, live).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, mySeriesLive, live).length, tone: DANGER, go: () => push("atrisk") },
+      atRisk(roster, mySeriesLive, live, bookedAhead).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, mySeriesLive, live, bookedAhead).length, tone: DANGER, go: () => push("atrisk") },
       focusReqs.length && { id: "j5", what: tr("focus to agree"), count: focusReqs.length, tone: CAUTION, go: () => go("today") },
       (todayList || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (todayList || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
     ].filter(Boolean);
@@ -15764,7 +15799,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = les
       ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
                          live={!!data} mediaFor={data ? data.lessonMedia : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
-                         attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][cname]) || null; })()}
+                         attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][seedId(cname)]) || null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
                          onEdit={data ? (l) => { setEditLesson(l); setSheet("lessonEdit"); } : null}
                          onDelete={data ? (l) => { setEditLesson(l); setSheet("lessonDelete"); } : null}
@@ -15794,7 +15829,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, mySeriesLive, live)} pop={pop}
+    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} pop={pop}
              onMessage={(n) => push("thread:" + n)}
              onBook={(n) => { setRecurFor(n); push("calendar"); }} />;
   } else if (screen === "digest") {
@@ -15826,11 +15861,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "attendance") {
     /* the register is keyed by player id for a real account, by name in
        the harness; the name is looked up only to show it */
-    const me = account ? account.id : activeProfile?.name;
+    const me = account ? account.id : seedId(activeProfile?.name);
     const nameOfId = (id) => (data ? (((data.roster || []).find((r) => r.id === id) || {}).name
                                       || (id === (account && account.id) ? account.name : null)
                                       || ((data.dependants || []).find((k) => k.id === id) || {}).name
-                                      || "—") : id);
+                                      || "—")
+                                   : ((ROSTER.find((r) => r.id === id) || {}).name || id));
     const rows = [];
     Object.keys(registers || {}).forEach((k) => {
       Object.keys(registers[k]).forEach((who) => {
@@ -15990,9 +16026,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (role === "coach") {
     bare = screen === "log";
     body = {
-      today:     <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
+      today:     <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, mySeriesLive, live, bookedAhead).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />,
       log:       <Wizard livePlayers={data ? data.roster : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
-    }[screen] || <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, series).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
+    }[screen] || <CoachToday banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null} cfg={cfg} coachName={coachName} go={go} push={push} published={published} right={slimRight} fresh={freshAccount} roster={roster} requests={openRequests} unlogged={openUnlogged} today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE} duration={duration} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} focusReqs={freshAccount ? [] : focusReqs} onSettleFocus={settleFocus} onCancelLesson={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }} onNoShow={markNoShow} weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} drifting={freshAccount ? 0 : atRisk(roster, mySeriesLive, live, bookedAhead).length} checkWaiting={freshAccount ? 0 : checkIns.filter((x) => x.state === "waiting").length} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[coachSport] || [])[0]} sport={coachSport} say={say}  onPeek={(b) => { setPeek(b); setSheet("peek"); }} events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={seasonMonthly} asks={data ? liveAsks : freshAccount ? [] : askedFor} onAccept={acceptAsk} onDecline={(r) => { setDeclining(r); setSheet("decline"); }} />;
   } else if (!conn) {
     body = (
       <Screen title={`Morning, ${activeProfile.name.split(" ")[0]}`} right={navRight}>
@@ -16018,7 +16054,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             mediaFor={data ? data.lessonMedia : null}
                             drills={data ? data.drills : null} tips={data ? data.tips : null}
                             /* what the coach marked that day, for the person the lesson belongs to */
-                            attendanceFor={(l) => { const who = data ? (l.playerId || null) : activeProfile?.name;
+                            attendanceFor={(l) => { const who = data ? (l.playerId || null) : seedId(activeProfile?.name);
                               if (!who) return null; const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
                             onMessage={data ? ((l) => (l.playerId && (l.playerId === account.id || (data.dependants || []).some((k) => k.id === l.playerId)) ? push("thread:" + l.playerId) : push("thread:" + account.id))) : () => push("thread:" + (conn?.coach || ""))}
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
@@ -16529,7 +16565,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
-                                            onPick={(n) => push("thread:" + n)} close={() => setSheet(null)} />
+                                            /* a real thread is found by id; the harness's seeded
+                                               conversations are keyed by name */
+                                            onPick={(p) => push("thread:" + (data ? (p.id || p.name) : p.name))} close={() => setSheet(null)} />
               : sheet === "rate" ? <RateLesson focus={(playerLessons[0] || {}).focus || ""} coach={conn?.coach || ""}
                                             onDone={() => { setCeleb({ label: tr("Thanks"), sub: tr("Your coach will see it.") }); setTimeout(() => setSheet("rebookAfter"), 1900); }}
                                             close={() => setSheet(null)} />
