@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useContext, createContext 
 import { useCapture } from "./lib/useCapture";
 import QRCode from "qrcode";
 import { joinLink, shareOrCopy, copyText } from "./lib/share";
-import { MAX_UPLOAD_MB, avatarUrl } from "./lib/useNoscaData";
+import { MAX_UPLOAD_MB, avatarUrl, registerKey } from "./lib/useNoscaData";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
 import { supabase } from "./lib/supabase";
 import {
@@ -2905,10 +2905,17 @@ function EventCard({ event, sport, onPress, delay = 0 }) {
           </span>}
         </span>
         <span className="flex-1 min-w-0">
-          <span className="block uppercase mb-1" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.2em",
-                         fontWeight: 600, color: tone || t.faint }}>{tr(event.kind)}</span>
+          {event.kind && <span className="block uppercase mb-1" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.2em",
+                         fontWeight: 600, color: tone || t.faint }}>{tr(event.kind)}</span>}
           <span className="block truncate" style={{ ...TYPE.subhead, color: t.ink }}>{event.name}</span>
-          <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{event.when}</span>
+          {/* the harness writes one sentence into `when`; a real
+              competition carries a date and a venue and no `when` at
+              all, so this line was blank on every real account */}
+          {(event.when || event.date || event.venue) && (
+            <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>
+              {[event.when || event.date, event.venue].filter(Boolean).join(" · ")}
+            </span>
+          )}
         </span>
         <ChevronRight size={15} color={t.faint} />
       </div>
@@ -3420,7 +3427,7 @@ function NewLessonArrival({ lesson, coach, onOpen }) {
    action — who, when, how long, what today is for, what the last couple
    of sessions were, and anything they're building towards. Everything
    else was noise. */
-function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
+function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], lessonCount,
                       onProfile, onLog, onNoShow, onCancel, onWeather, onCapture, onHistory, onEditComp, close }) {
   const t = useT();
   const live = useLive();
@@ -3465,17 +3472,26 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [],
                   className="w-full flex items-baseline gap-4 py-3 text-left active:opacity-50"
                   style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                            animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>
-            <span className="shrink-0" style={{ width: 50, ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{l.d}</span>
+            {/* the harness writes "14 Jun" into d; a real lesson keeps
+                the day and the month apart */}
+            <span className="shrink-0" style={{ width: 56, ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{l.m ? `${l.d} ${l.m}` : l.d}</span>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
           </button>
         ))}
       </div>
 
-      <button onClick={() => { haptic(8); soft(); onHistory && onHistory(); }}
-              className="w-full py-3 mb-5 text-left active:opacity-50"
-              style={{ ...TYPE.small, color: t.accent }}>
-        {tr("All")} {f.done} {tr("lessons")}
-      </button>
+      {/* f.done is the seeded file's count and is always 0 for a real
+          account, so this read "All 0 lessons" and went somewhere
+          empty. The roster carries the real one. */}
+      {(lessonCount ?? f.done) > 0 ? (
+        <button onClick={() => { haptic(8); soft(); onHistory && onHistory(); }}
+                className="w-full py-3 mb-5 text-left active:opacity-50"
+                style={{ ...TYPE.small, color: t.accent }}>
+          {tr("All")} {lessonCount ?? f.done} {tr("lessons")}
+        </button>
+      ) : (
+        <p className="w-full py-3 mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
+      )}
 
       {/* what they're building towards — the player's own, plus yours */}
       {comps.length > 0 && (
@@ -3741,7 +3757,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                 <span className="flex-1 min-w-0">
                   <span className="block truncate" style={{ ...TYPE.subhead, color: t.ink }}>{x.who}</span>
                   <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>
-                    {DAY_NAMES[x.day]} · {span(x.time, duration)} · {tr(x.freq || "Weekly")}
+                    {DAY_NAMES[x.day]} · {span(x.time, duration)} · {tr(x.every || x.freq || "Weekly")}
                   </span>
                 </span>
                 <span className="text-right shrink-0">
@@ -4308,7 +4324,8 @@ function ParentDigest({ profiles, cfg, pop, stats }) {
                   <Avatar name={k.name} size={44} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{k.name}</span>
-                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{cfg.label}</span>
+                    {/* the child's sport, which may not be the parent's */}
+                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{(SPORTS[k.sport] || cfg).label}</span>
                   </span>
                 </div>
                 {st(k) ? (
@@ -4994,7 +5011,14 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
   const t = useT();
   const soleLive = (lessons || []).filter((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5);
   const [picked, setPicked] = useState(soleLive.length === 1 ? soleLive[0] : null);
-  const [marks, setMarks] = useState(soleLive.length === 1 ? (taken[soleLive[0].time + soleLive[0].who] || {}) : {});
+  /* A register is filed under the day and the label, which is how the
+     database writes it and how registerKey builds it. This read the
+     lesson's time and name instead — a key nothing ever wrote — so a
+     register taken and then reopened came up blank, and the list never
+     showed one as done. The register is always for today, because
+     that is the only day this sheet offers. */
+  const keyOf = (l) => registerKey(l.who, new Date());
+  const [marks, setMarks] = useState(soleLive.length === 1 ? (taken[keyOf(soleLive[0])] || {}) : {});
 
   /* ROWS, NOT NAMES. A register keyed by display name put two players
      called the same thing into one mark and lost the other's record
@@ -5005,15 +5029,19 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
      offered and the coach marks who came. The head-count slice is the
      design harness's seeded groups only. */
   const rowFor = (n) => (roster || []).find((r) => r.name === n) || { id: n, name: n };
-  const membersOf = (l) => (l && l.members) ? l.members.map(rowFor)
+  /* The harness's roster rows carry no id, so without this every one of
+     them marked into marks[undefined] and the register held one answer
+     for the whole group. */
+  const withId = (r) => (r && r.id ? r : { ...r, id: r.name });
+  const membersOf = (l) => ((l && l.members) ? l.members.map(rowFor)
     : (l && l.kind && l.kind.startsWith("Group"))
     ? (roster || []).slice(0, Number((l.kind.match(/\d+/) || [6])[0]))
-    : l ? [l.playerId ? { id: l.playerId, name: l.who } : rowFor(l.who)] : [];
+    : l ? [l.playerId ? { id: l.playerId, name: l.who } : rowFor(l.who)] : []).map(withId);
 
   const open = (l) => {
     haptic(8); soft();
     setPicked(l);
-    setMarks(taken[l.time + l.who] || {});   // reopen a register already taken
+    setMarks(taken[keyOf(l)] || {});   // reopen a register already taken
   };
 
   const mark = (id, v) => {
@@ -5139,7 +5167,7 @@ function Attendance({ lessons, roster, taken, onSubmit, close, say }) {
 
       <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
         {(lessons || []).map((l, i) => {
-          const key = l.time + l.who;
+          const key = keyOf(l);
           const reg = taken[key];
           const n = reg ? Object.values(reg).filter((x) => x === "in").length : 0;
           const total = membersOf(l).length;
@@ -6674,7 +6702,9 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
   /* one line per young player: who they are and the one thing that matters */
   const KidRow = ({ k, i, last }) => {
-    const mine = lessons.filter((l) => l.playerId === k.id);
+    /* a group session carries no player_id; who was at it is the
+       attendee list, exactly as the coach's roster reads it */
+    const mine = lessons.filter((l) => l.playerId === k.id || (l.attendeeIds || []).includes(k.id));
     const todo = drills.filter((d) => d.playerId === k.id && !d.done).length;
     const nx = live.find((b) => b.playerId === k.id);
     return (
@@ -6770,7 +6800,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
   if (!kid) return null;
   const first = (n) => (n || "").split(" ")[0];
   const fmtDay = (iso) => fmtIsoDay(iso);
-  const mine = lessons.filter((l) => l.playerId === kid.id);
+  const mine = lessons.filter((l) => l.playerId === kid.id || (l.attendeeIds || []).includes(kid.id));
   const mineDrills = drills.filter((d) => d.playerId === kid.id);
   const todo = mineDrills.filter((d) => !d.done).length;
   const next = bookings.filter((b) => b.playerId === kid.id && b.date >= todayIso && b.status !== "cancelled" && b.status !== "weather")
@@ -7415,7 +7445,7 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
    and when; expanded it answers everything a coach wants in the two
    minutes before someone walks up.
 ================================================================== */
-function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow, onCancel, push, delay = 0 }) {
+function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow, onCancel, push, delay = 0, lessonsFor }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const live = useLive();
@@ -7449,9 +7479,13 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
       {open && (
         <div style={{ animation: "liftIn 380ms cubic-bezier(.34,1.56,.64,1) both" }}>
           {/* the numbers */}
+          {/* A group has no file, and f.done is 0 for every real
+              account — the roster is where a real count lives. */}
           <div className="flex mx-5 mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
-            <Stat value={f.done} label={tr("Lessons")} />
-            <span style={{ width: 1, background: t.hair }} />
+            {!isGroup && (<>
+              <Stat value={lessonsFor ? (lessonsFor(item.who) ?? 0) : f.done} label={tr("Lessons")} />
+              <span style={{ width: 1, background: t.hair }} />
+            </>)}
             <Stat value={`${duration}m`} label={tr("Length")} />
           </div>
 
@@ -9396,8 +9430,14 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       )}
 
       <Card tour="family-rows">
-        <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<Users size={18} color={t.sub} strokeWidth={1.6} />}
-             onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
+        {/* A coach's groups live on the coach's own preferences, which
+            a player cannot read, so this row led somewhere that was
+            always empty on a real account. It is the harness's until
+            a player's groups are something the database can answer. */}
+        {!live && (
+          <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<Users size={18} color={t.sub} strokeWidth={1.6} />}
+               onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
+        )}
         {!(live && hasCoach) && <Row label={tr("Add a coach")} sub={live ? tr("Enter their code") : tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage(live ? "code" : "sport")} />}
         <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
         <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
@@ -9498,6 +9538,11 @@ function TipCard({ tip, cfg, onOpenHistory }) {
 function TipsHistory({ cfg, tips, pop }) {
   const t = useT();
   const [f, setF] = useState("All");
+  /* Nothing records a focus against a tip, so on a real account these
+     filters could only ever empty the list, and the pill beside each
+     date came out blank. Both appear when there is something to
+     filter by. */
+  const anyFocus = (tips || []).some((x) => x.focus);
   const chips = ["All", ...cfg.focus.map((x) => x.label)];
   const shown = f === "All" ? tips : tips.filter((x) => x.focus === f);
   return (
@@ -9507,19 +9552,23 @@ function TipsHistory({ cfg, tips, pop }) {
           <div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing yet — your coach will set one after your next lesson.</p></Card></div>
         ) : (
           <>
-            <div className="flex gap-2 overflow-x-auto px-6 pb-5" style={{ scrollbarWidth: "none" }}>
-              {chips.map((c) => { const on = f === c; return (
-                <button key={c} onClick={() => { haptic(6); setF(c); }} className="rounded-full px-4 shrink-0 active:opacity-60"
-                        style={{ minHeight: 36, background: on ? t.ink : "transparent", border: `1px solid ${on ? t.ink : t.hair}`, fontFamily: ui, fontSize: 13, fontWeight: 600, color: on ? "#fff" : t.sub }}>{c}</button>
-              ); })}
-            </div>
+            {anyFocus && (
+              <div className="flex gap-2 overflow-x-auto px-6 pb-5" style={{ scrollbarWidth: "none" }}>
+                {chips.map((c) => { const on = f === c; return (
+                  <button key={c} onClick={() => { haptic(6); setF(c); }} className="rounded-full px-4 shrink-0 active:opacity-60"
+                          style={{ minHeight: 36, background: on ? t.ink : "transparent", border: `1px solid ${on ? t.ink : t.hair}`, fontFamily: ui, fontSize: 13, fontWeight: 600, color: on ? "#fff" : t.sub }}>{c}</button>
+                ); })}
+              </div>
+            )}
             <div className="px-6 pb-4">
               {shown.length === 0 ? (
                 <Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing under {f} yet.</p></Card>
               ) : shown.map((tip, i) => (
                 <Card key={tip.id} className="p-5 mb-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="rounded-full px-2.5 py-1" style={{ background: t.wash, fontFamily: ui, fontSize: 10.5, fontWeight: 600, color: t.ink }}>{tip.focus}</span>
+                    {tip.focus
+                      ? <span className="rounded-full px-2.5 py-1" style={{ background: t.wash, fontFamily: ui, fontSize: 10.5, fontWeight: 600, color: t.ink }}>{tip.focus}</span>
+                      : <span />}
                     <span style={{ ...TYPE.caption, color: t.faint }}>{tip.date}</span>
                   </div>
                   <div style={{ fontFamily: display, fontSize: 18, color: t.ink }}>{tip.title}</div>
@@ -11828,22 +11877,38 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
 /* Group lessons need different information from private ones: nobody
    cares about one person's handicap here, they care about who came and
    what the session covered. */
-function GroupHistory({ group, cfg, pop, say, onOpen }) {
+/* A GROUP'S OWN HISTORY.
+   The three stats and the week-by-week list were a script, and on a
+   real account the script was replaced by nothing at all: three zeroes
+   and an empty list under a heading. `sessions` is the group's real
+   logged lessons and `registers` the rolls actually taken, so what can
+   be answered is answered and what cannot is not shown. The head count
+   comes from a register — never from who is in the group, which would
+   report a full house at every session nobody was marked at. */
+function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers }) {
   const t = useT();
-  const live = useLive();
-  /* a real group's sessions are its lessons and registers, not a script */
-  const weeks = live ? [] : [
+  const real = !!sessions;
+  const weeks = real ? sessions.map((l) => {
+    const reg = (registers || {})[`${l.d} ${l.m} ${group.name}`] || null;
+    const marks = reg ? Object.values(reg) : [];
+    return { when: `${l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
+             present: reg ? marks.filter((x) => x === "in").length : null,
+             absent: reg ? marks.filter((x) => x === "out").length : 0 };
+  }) : [
     { when: "Sat 19 Jul", covered: cfg.focus[2].label, subs: cfg.focus[2].subs.slice(0, 2), present: group.members.length, absent: 0 },
     { when: "Sat 12 Jul", covered: cfg.focus[0].label, subs: cfg.focus[0].subs.slice(0, 2), present: group.members.length - 1, absent: 1 },
     { when: "Sat 5 Jul",  covered: cfg.focus[3].label, subs: cfg.focus[3].subs.slice(0, 1), present: group.members.length - 2, absent: 2 },
   ];
-  const avg = weeks.length ? Math.round(weeks.reduce((n, w) => n + w.present, 0) / weeks.length) : 0;
+  const counted = weeks.filter((w) => w.present != null);
+  const avg = counted.length ? Math.round(counted.reduce((n, w) => n + w.present, 0) / counted.length) : null;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={group.name} onBack={pop} meta={`${group.members.length} ${cfg.nouns} · ${DAY_NAMES[group.day]}s ${group.time}`}>
         <div className="px-6 mb-6">
           <div className="flex" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
-            {[["Sessions", String(weeks.length)], ["Average in", String(avg)], ["Weeks left", String(group.weeks - weeks.length)]].map(([k, v], i) => (
+            {[["Sessions", String(weeks.length)],
+              ...(avg == null ? [] : [["Average in", String(avg)]]),
+              ...(group.weeks ? [["Weeks left", String(Math.max(0, group.weeks - weeks.length))]] : [])].map(([k, v], i) => (
               <div key={k} className="flex-1 py-4" style={{ borderLeft: i ? `1px solid ${t.hair}` : "none", paddingLeft: i ? 14 : 0 }}>
                 <div style={{ fontFamily: display, fontSize: 26, lineHeight: 1, letterSpacing: "-0.02em", color: t.ink }}>{v}</div>
                 <div className="mt-1.5 uppercase" style={{ fontFamily: ui, fontSize: 9, letterSpacing: "0.18em", color: t.faint }}>{k}</div>
@@ -11852,23 +11917,30 @@ function GroupHistory({ group, cfg, pop, say, onOpen }) {
           </div>
         </div>
 
-        <Eyebrow>{tr("Week by week")}</Eyebrow>
+        {weeks.length > 0 && <Eyebrow>{tr("Week by week")}</Eyebrow>}
         <div className="px-6 mb-6">
+          {weeks.length === 0 && (
+            <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing logged for this group yet.")}</p>
+          )}
           {weeks.map((w, i) => (
             <div key={i} className="py-4" style={{ borderBottom: `1px solid ${t.hair}` }}>
               <div className="flex items-baseline justify-between">
                 <span style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{w.covered}</span>
                 <span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{w.when}</span>
               </div>
-              <div className="mt-1.5" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{w.subs.join(" · ")}</div>
-              <div className="mt-2.5 flex items-center gap-2">
-                <span className="flex gap-1">
-                  {Array.from({ length: group.members.length }).map((_, k) => (
-                    <span key={k} className="rounded-full" style={{ width: 6, height: 6, background: k < w.present ? t.accent : t.hair }} />
-                  ))}
-                </span>
-                <span style={{ ...TYPE.caption, color: t.faint }}>{w.present} in{w.absent ? `, ${w.absent} out` : ""}</span>
-              </div>
+              {w.subs.length > 0 && <div className="mt-1.5" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{w.subs.join(" · ")}</div>}
+              {/* only a register can say who was there; without one the
+                  session simply carries no head count */}
+              {w.present != null && (
+                <div className="mt-2.5 flex items-center gap-2">
+                  <span className="flex gap-1">
+                    {Array.from({ length: group.members.length }).map((_, k) => (
+                      <span key={k} className="rounded-full" style={{ width: 6, height: 6, background: k < w.present ? t.accent : t.hair }} />
+                    ))}
+                  </span>
+                  <span style={{ ...TYPE.caption, color: t.faint }}>{w.present} in{w.absent ? `, ${w.absent} out` : ""}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -12541,9 +12613,12 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
                 <span style={{ ...TYPE.figure, fontSize: 24, color: t.ink }}>
                   {done}<span style={{ ...TYPE.small, color: t.faint }}> {tr("of")} {items.length}</span>
                 </span>
+                {/* A coach sets a drill, not a length. The seeds carry
+                    minutes; a real drill does not, and ten a piece was
+                    a number the app made up. */}
                 <span style={{ ...TYPE.small, color: t.faint }}>
-                  {items.reduce((a, x) => a + (x.mins || 10), 0)} {tr("min")}
-                  {done === items.length && <span style={{ color: STEADY }}> · {tr("All clear")}</span>}
+                  {items.some((x) => x.mins) && <>{items.reduce((a, x) => a + (x.mins || 10), 0)} {tr("min")}</>}
+                  {done === items.length && <span style={{ color: STEADY }}>{items.some((x) => x.mins) ? " · " : ""}{tr("All clear")}</span>}
                 </span>
               </div>
 
@@ -12591,7 +12666,9 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
-                  <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>
+                  {/* a drill set by a real coach is a name; only the
+                      starter sets carry a description */}
+                  {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
                 </span>
               </button>
               {DRILL_SECONDS(x.d) && !x.done && (
@@ -12906,7 +12983,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
    The grid stays quiet — only availability is signalled — and the times
    carry the weight, one per line, with the finish time always shown. */
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -13215,7 +13292,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                   {mo.idx === T.m && sel === T.d ? tr("Today's schedule") : dayLabel}
                 </div>
                 {booked.map((b, i) => (
-                  <ScheduleBlock key={b.time + i} item={b} duration={duration} delay={i * 70}
+                  <ScheduleBlock key={b.time + i} item={b} duration={duration} delay={i * 70} lessonsFor={lessonsFor}
                                  hoursUntil={mo.idx === T.m && sel === T.d ? (parseTime(b.time) - minsNow) / 60 : null}
                                  onOpenLast={(n) => push("history:" + n)} onLog={() => onLogFor && onLogFor({ ...b, m: mo.idx, d: sel })}
                                  onCancel={(l) => onCancelWithReason && onCancelWithReason(l)} push={push} />
@@ -13344,7 +13421,7 @@ function MessageList({ role, push, sheet, right, empty, lang, onNew, onWeather, 
   const t = useT(); const L = useL();
   const preview = (id) => { const r = id ? readMsg(id, lang) : null; return r ? r.text : ""; };
   const list = threads
-    ? threads.map((th) => ({ id: th.playerId, name: th.who, sub: th.sub, unread: th.unread, when: "", lastId: null, last: th.last }))
+    ? threads.map((th) => ({ id: th.playerId, name: th.who, sub: th.sub, unread: th.unread, when: th.when || "", lastId: null, last: th.last }))
     : empty ? [] : THREADS[role];
 
   const Action = ({ Icon, label, onPress, delay, danger, tour }) => (
@@ -13427,6 +13504,19 @@ function BroadcastBody({ nouns, say, close, onSend }) {
     </>
   );
 }
+/* The day a message was sent, and how to head it. Yesterday and today
+   are named; anything older gets its date. */
+const dayOf = (iso) => (iso ? new Date(iso).toDateString() : null);
+const dayLabelOf = (iso, L) => {
+  if (!iso) return "";
+  const d = new Date(iso), now = new Date();
+  const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                         - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+  if (days === 0) return L.today;
+  if (days === 1) return tr("Yesterday");
+  return d.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" });
+};
+
 function Thread({ role, name, isGroup, lang, pop, say, live }) {
   const t = useT(); const L = useL(); const other = role === "coach" ? "player" : "coach";
   const [originals, setOriginals] = useState({});
@@ -13434,7 +13524,7 @@ function Thread({ role, name, isGroup, lang, pop, say, live }) {
      The seeded conversation and the canned reply belong to the design
      harness only. */
   const [local, setLocal] = useState(live ? [] : (SEEDS[name] || []));
-  const msgs = live ? live.messages.map((m) => ({ from: m.mine ? role : other, text: m.body, at: m.at, key: m.id })) : local;
+  const msgs = live ? live.messages.map((m) => ({ from: m.mine ? role : other, text: m.body, at: m.at, iso: m.iso, key: m.id })) : local;
   const [draft, setDraft] = useState(""); const [typing, setTyping] = useState(false); const [sending, setSending] = useState(false);
   const feed = useRef(null); const group = !live && (isGroup || THREADS.coach.find((c) => c.name === name)?.group);
   useEffect(() => { if (feed.current) feed.current.scrollTop = feed.current.scrollHeight; }, [msgs.length, typing]);
@@ -13500,8 +13590,18 @@ function Thread({ role, name, isGroup, lang, pop, say, live }) {
               <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{L.translatedFor}</span>
             </div>
           )}
-          <p className="text-center mb-5" style={{ ...TYPE.caption, color: t.faint }}>{L.today}</p>
-          {msgs.length === 0 ? (<p className="text-center mt-8" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{live ? tr("No messages yet.") : tr("Say hello to get the group started.")}</p>) : msgs.map((m, i) => <Bubble key={m.key || i} m={m} idx={i} />)}
+          {/* "Today" used to sit over every thread, however old, and
+              over an empty one. A real thread is dated by the day each
+              message was actually sent. */}
+          {!live && msgs.length > 0 && <p className="text-center mb-5" style={{ ...TYPE.caption, color: t.faint }}>{L.today}</p>}
+          {msgs.length === 0 ? (<p className="text-center mt-8" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{live ? tr("No messages yet.") : tr("Say hello to get the group started.")}</p>) : msgs.map((m, i) => (
+            <React.Fragment key={m.key || i}>
+              {live && dayOf(m.iso) !== dayOf(msgs[i - 1] && msgs[i - 1].iso) && (
+                <p className="text-center mb-5 mt-1" style={{ ...TYPE.caption, color: t.faint }}>{dayLabelOf(m.iso, L)}</p>
+              )}
+              <Bubble m={m} idx={i} />
+            </React.Fragment>
+          ))}
           {typing && (<div className="flex justify-start mb-2.5"><div className="rounded-3xl px-4 py-3.5 flex gap-1.5" style={{ background: t.surface, border: `1px solid ${t.hair}`, borderBottomLeftRadius: 8 }}>
             {[0, 1, 2].map((i) => (<span key={i} className="rounded-full" style={{ width: 6, height: 6, background: t.faint, animation: `bl 1.2s ${i * 0.16}s infinite` }} />))}</div></div>)}
         </div>
@@ -14208,9 +14308,9 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
             ))}</div>
           </div>) : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
           ) : (<>
-            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={`${l.d} ${l.m} · ${l.subs.join(", ")}`} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
+            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
-            {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
+            {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
             {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
             {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<MessageCircle size={17} color={t.sub} strokeWidth={1.6} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
           </>)}
@@ -15817,7 +15917,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      their coach, plus anyone in their family who has one. */
   const liveThreads = data ? (() => {
     const byId = Object.fromEntries((data.threads || []).map((th) => [th.playerId, th]));
-    const row = (playerId, who, sub) => { const th = byId[playerId]; return { playerId, who, sub, unread: th ? th.unread : 0, last: th ? th.last : "" }; };
+    const row = (playerId, who, sub) => { const th = byId[playerId]; return { playerId, who, sub, unread: th ? th.unread : 0, last: th ? th.last : "", when: th ? th.when : "" }; };
     if (role === "coach") return (data.roster || []).map((r) => row(r.id, r.name, tr("Player")));
     const rows = [];
     if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach")));
@@ -16115,8 +16215,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const hname = screen.split(":")[1];
     /* a real record: what the coach actually marked for this person */
     const realAtt = data ? (() => {
+      /* BY ID. A register's marks are keyed by the player's id, so
+         reading them by display name found nothing and every real
+         player's attendance came back empty. */
+      const hid = ((data.roster || []).find((r) => r.name === hname) || {}).id;
       let showed = 0, noShow = 0;
-      Object.values(registers || {}).forEach((reg) => { const v = reg[hname]; if (v === "in") showed++; else if (v === "out") noShow++; });
+      if (hid) Object.values(registers || {}).forEach((reg) => { const v = reg[hid]; if (v === "in") showed++; else if (v === "out") noShow++; });
       return showed + noShow ? { [hname]: { showed, noShow, cancelled: 0, late: 0 } } : {};
     })() : null;
     body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={realAtt || attendance} goals={data ? {} : goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
@@ -16266,7 +16370,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen.startsWith("mygroup:")) {
     const gname = screen.slice("mygroup:".length);
     const g = myGroupsForMe.find((x) => x.name === gname);
-    body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} shared /> : <div />;
+    body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} /> : <div />;
   } else if (screen === "tool") {
     body = <SportTool cfg={cfg} sport={sport} rows={freshAccount ? [] : (toolRows[sport] || [])}
                       onAdd={(r) => setToolRows((v) => ({ ...v, [sport]: [r, ...(v[sport] || [])] }))}
@@ -16278,7 +16382,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        somebody else's group without a word */
     const gname = screen.slice("group:".length);
     const g = myGroups.find((x) => x.name === gname) || null;
-    body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} onOpen={(n) => push("player:" + n)} /> : <div />;
+    body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} onOpen={(n) => push("player:" + n)}
+                             sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
+                             registers={registers} /> : <div />;
   } else if (screen.startsWith("annotate:")) {
     const ang = screen.split(":")[1];
     body = <VideoAnnotate angle={ang} transcript={cfg.transcript}
@@ -16345,7 +16451,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           startOn={startOn} setStartOn={setStartOn}
                           startOptions={[{ id: "auto", label: tr("As it comes") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
                           pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
-  } else if (screen === "calendar") { body = <CalendarScreen role={role} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount && !bookFor}
+  } else if (screen === "calendar") { body = <CalendarScreen role={role} lessonsFor={data ? (n) => (((roster || []).find((r) => r.name === n) || {}).lessons ?? 0) : null} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount && !bookFor}
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
@@ -16677,7 +16783,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                 setCeleb({ label: tr("Register taken"), sub: `${n} ${tr("present")}` });
                                                 return;
                                               }
-                                              setRegisters((r) => ({ ...r, [l.time + l.who]: marks }));
+                                              setRegisters((r) => ({ ...r, [registerKey(l.who, new Date())]: marks }));
                                               setCeleb({ label: tr("Register taken"), sub: `${n} ${tr("present")}` });
                                             }}
                                             close={() => setSheet(null)} say={say} />
@@ -16750,6 +16856,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             }}
                                             close={() => { setPendingInvite(null); setSheet(null); }} />
               : sheet === "peek" && peek ? <LessonPeek booking={peek} duration={duration} sport={coachSport} agreed={agreedFocus[peek.who]}
+                                            lessonCount={data ? (((roster || []).find((r) => r.name === peek.who) || {}).lessons ?? 0) : null}
                                             past={data ? (data.lessons || []).filter((l) => l.who === peek.who).slice(0, 2) : undefined}
                                             onHistory={() => { setSheet(null); push(data ? "archive:" + peek.who : "history:" + peek.who); }}
                                             cfg={cfg} onWeather={() => setSheet("weather")}

@@ -16,6 +16,17 @@ import { supabase } from "./supabase";
  */
 
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+
+/* THE ONE KEY A REGISTER IS FILED AND FOUND UNDER: the day it was
+   taken and what it was called — "14 JUN Summer clinic". The reader
+   used the lesson's time and name instead, which the writer never
+   produces, so a coach who took the roll saw no sign of it the moment
+   the sheet closed, and reopening one offered a blank register. Both
+   halves call this now. */
+export const registerKey = (label, date) => {
+  const dt = date instanceof Date ? date : new Date(date);
+  return `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]} ${label}`;
+};
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 /* Whole years since a date of birth — the same sum the database's
@@ -84,17 +95,22 @@ const toLesson = (r, attendeeIds = []) => {
   };
 };
 
+/* "now", "8m", "14:20", "3 Sep" — how long ago, in as few characters
+   as will do. Notifications and message threads both read it, so a
+   time never reads one way in the bell and another in Chat. */
+const relTime = (iso) => {
+  const d = new Date(iso), now = new Date();
+  const mins = Math.round((now - d) / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  if (mins < 60 * 24 && d.getDate() === now.getDate()) return d.toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" });
+  return d.toLocaleDateString("en-IE", { day: "numeric", month: "short" });
+};
+
 const toNotification = (n) => ({
   id: n.id, kind: n.kind, title: n.title, body: n.body || "", data: n.data || {},
   readAt: n.read_at || null, createdAt: n.created_at,
-  when: (() => {
-    const d = new Date(n.created_at), now = new Date();
-    const mins = Math.round((now - d) / 60000);
-    if (mins < 1) return "now";
-    if (mins < 60) return `${mins}m`;
-    if (mins < 60 * 24 && d.getDate() === now.getDate()) return d.toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" });
-    return d.toLocaleDateString("en-IE", { day: "numeric", month: "short" });
-  })(),
+  when: relTime(n.created_at),
 });
 
 /* A signed URL lasts an hour; anything younger than fifty minutes is
@@ -292,9 +308,19 @@ export function useNoscaData(profile) {
 
       setLessons((lRes.data || []).map((r) => toLesson(r, attendeesBy[r.id] || [])));
       setDrills((dRes.data || []).map((d) => ({ id: d.id, t: d.title, done: d.done, playerId: d.player_id, createdAt: d.created_at })));
-      setTips((tRes.data || []).map((t) => ({
-        id: t.id, title: t.title, body: t.body, focus: null, playerId: t.player_id, createdAt: t.created_at,
-      })));
+      /* `tips` carries no focus column, so focus stays null and every
+         screen that shows it must check first. The date and the age DO
+         exist — they were simply never derived, so a tip set in March
+         read "Set this week". */
+      setTips((tRes.data || []).map((t) => {
+        const dt = new Date(t.created_at);
+        return {
+          id: t.id, title: t.title, body: t.body, focus: null,
+          playerId: t.player_id, createdAt: t.created_at,
+          date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
+          weeksAgo: Math.max(0, Math.floor((Date.now() - dt.getTime()) / (7 * 86400000))),
+        };
+      }));
 
       /* attendance: keyed the way the interface expects */
       const sessions = sRes.data || [];
@@ -307,8 +333,7 @@ export function useNoscaData(profile) {
         (marks || []).forEach((mk) => {
           const s = byId[mk.session_id];
           if (!s) return;
-          const dt = new Date(s.session_date);
-          const key = `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]} ${s.label}`;
+          const key = registerKey(s.label, s.session_date);
           out[key] = out[key] || {};
           /* KEYED BY PLAYER ID. Keyed by display name, two players called
              the same thing wrote into one entry and the second one had
@@ -407,6 +432,10 @@ export function useNoscaData(profile) {
           body: msg.body,
           mine: msg.sender_id === profile.id,
           at: new Date(msg.created_at).toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" }),
+          /* the day it was sent, so a thread can put a divider between
+             one day and the next rather than saying "Today" over
+             everything ever written */
+          iso: msg.created_at,
           unread: !msg.read_at && msg.sender_id !== profile.id,
         });
       });
@@ -416,6 +445,10 @@ export function useNoscaData(profile) {
         messages: msgs,
         unread: msgs.filter((x) => x.unread).length,
         last: msgs[msgs.length - 1]?.body || "",
+        /* when the last thing was said. The Chat list rendered an empty
+           string here, so every real conversation sat with no time
+           against it. */
+        when: msgs.length ? relTime(msgs[msgs.length - 1].iso) : "",
       })));
 
       setPrefs(prRes.data || null);
