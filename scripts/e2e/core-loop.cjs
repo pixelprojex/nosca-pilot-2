@@ -151,7 +151,11 @@ const leaks = [];
       await leak("coach quick menu");
       await byText(page, "Attendance").click(); await page.waitForTimeout(800);
       const t4 = await leak("coach attendance"); await shot("coach-attendance");
-      check("(d) Attendance lists today's real confirmed bookings by name", t4.includes("Cian Murphy") && t4.includes("9:00 am") && t4.includes("Saoirse Kelly") && t4.includes("10:30 am") && !t4.includes("4:00 pm"), t4.slice(0, 240));
+      /* the sheet's own text: Today sits behind it, and a lesson merely
+         asked for is answered there, so the page carries "4:00 pm" even
+         though the register must not */
+      const sheet4 = await page.locator("[data-sheet]").first().innerText();
+      check("(d) Attendance lists today's real confirmed bookings by name", sheet4.includes("Cian Murphy") && sheet4.includes("9:00 am") && sheet4.includes("Saoirse Kelly") && sheet4.includes("10:30 am") && !sheet4.includes("4:00 pm"), sheet4.slice(0, 240));
       await page.locator("div.z-40").getByRole("button", { name: /Cian Murphy/ }).first().click(); await page.waitForTimeout(500);
       await page.locator("div.z-40").getByRole("button", { name: "Present", exact: true }).first().click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: /Submit register/ }).click(); await page.waitForTimeout(1200);

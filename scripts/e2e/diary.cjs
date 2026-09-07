@@ -150,7 +150,7 @@ const leaks = [];
     /* ---------- (a) the coach accepts it; (c) drills and focus; (d) competitions; (e) recurring; (f) the profile; (h) invite; (i) honesty ---------- */
     {
       const { ctx, page, leak, shot, text } = await boot("coach");
-      await click(page, "Lesson requests");
+      /* the requests are on Today, not behind a fold: nothing to open */
       const t1 = await leak("coach requests"); await shot("15-coach-requests");
       check("(a) coach Today lists the player's real request", t1.includes("Cian Murphy") && t1.includes("Accept"), t1.slice(0, 200));
       const reqId = db.bookings.find((b) => b.status === "requested").id;
