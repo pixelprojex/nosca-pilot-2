@@ -14,8 +14,7 @@ const ENV = {
   PUSH_WEBHOOK_SECRET: "s3cret",
   SUPABASE_URL: "https://mock.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "service-role",
-  VAPID_PUBLIC_KEY: "BJ2mVQxTn0Vd7bB8jVAI1XcMEZLQfhX4Rl9Nqj-9lPJcm6jS3T3v1MP-oJ7lZKk8sN0Vq1WcOxwq1mYvY3lQ4kE",
-  VAPID_PRIVATE_KEY: "Hs8s0FZzq3Yy0iVQhV_JXWJnPPqYQ7QpV4z8xg2WwJo",
+  VAPID_PRIVATE_KEY: "iN0dXCH6cCiVjBpaHfLXlHb-EhIYqUlKUlL5OKF-w1Y",
   VAPID_SUBJECT: "mailto:help@nosca.ie",
 };
 Object.assign(process.env, ENV);
@@ -33,7 +32,7 @@ globalThis.fetch = async (url, init = {}) => {
 };
 
 const { default: relay, recordFrom } = await import("../../netlify/functions/push.mjs");
-const { isUrgent, projectUrl, sendTo, tally } = await import("../../netlify/functions/lib/push-shared.mjs");
+const { isUrgent, projectUrl, sendTo, tally, publicFromPrivate, useVapid, withVapid } = await import("../../netlify/functions/lib/push-shared.mjs");
 const { summarise } = await import("../../netlify/functions/digest.mjs");
 
 let pass = 0, fail = 0;
@@ -192,6 +191,35 @@ check("every urgent kind is one the database actually writes",
   check("a clean run carries no errors key", tally([{ outcome: "sent" }]).errors === undefined);
   check("nothing of the endpoint but its host is reported",
         !JSON.stringify(t.errors).includes("bad1"), t.errors);
+}
+
+/* ---------- the key it signs with ----------
+   A VAPID pair is one key. Holding the two halves in two environment
+   variables is two chances to paste the wrong thing, and the only
+   symptom is Apple's 403 BadJwtToken. The public half is computed from
+   the private one, so it cannot disagree. */
+{
+  const webpush = (await import("web-push")).default;
+  const pair = webpush.generateVAPIDKeys();
+  check("the public half is derived exactly from the private half",
+        publicFromPrivate(pair.privateKey) === pair.publicKey, publicFromPrivate(pair.privateKey));
+  check("a private key that is not a P-256 scalar derives nothing",
+        publicFromPrivate("nonsense") === null && publicFromPrivate("") === null && publicFromPrivate(undefined) === null);
+
+  const used = useVapid(webpush, { VAPID_SUBJECT: "mailto:help@nosca.ie", VAPID_PRIVATE_KEY: pair.privateKey });
+  check("useVapid reports the key it signed with", used.publicKey === pair.publicKey, used);
+  check("a wrong VAPID_PUBLIC_KEY cannot break it — it is never read",
+        !JSON.stringify(Object.keys(process.env)).includes("VAPID_PUBLIC_KEY") || used.publicKey === pair.publicKey);
+
+  const bad = useVapid(webpush, { VAPID_SUBJECT: "mailto:help@nosca.ie", VAPID_PRIVATE_KEY: "nope" });
+  check("a private key that is not a key is named, not passed on",
+        !!bad.error && bad.error.includes("VAPID_PRIVATE_KEY") && !bad.publicKey, bad);
+  const noSub = useVapid(webpush, { VAPID_SUBJECT: "help@nosca.ie", VAPID_PRIVATE_KEY: pair.privateKey });
+  check("a subject that is not a mailto or url is named too", !!noSub.error, noSub);
+
+  check("a failed run says which key it signed with",
+        withVapid({ sent: 0, failed: 1, errors: [{ status: 403 }] }, pair.publicKey).signedWith === pair.publicKey);
+  check("a clean run does not", withVapid({ sent: 1, failed: 0 }, pair.publicKey).signedWith === undefined);
 }
 
 /* ---------- the daily summary ---------- */

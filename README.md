@@ -234,8 +234,9 @@ Setting it up is done once and takes about ten minutes.
 2. On Netlify → **Site configuration → Environment variables**, add:
    - `VITE_VAPID_PUBLIC_KEY` — the public key (this one is built into
      the app, which is why it carries the `VITE_` prefix)
-   - `VAPID_PUBLIC_KEY` — the same public key again
-   - `VAPID_PRIVATE_KEY` — the private key
+   - `VAPID_PRIVATE_KEY` — the private key. The relay computes the
+     public half from it, so there is no second copy to get wrong.
+     (`VAPID_PUBLIC_KEY` is no longer read; you can delete it.)
    - `VAPID_SUBJECT` — `mailto:` followed by your email address
    - `SUPABASE_URL` — the Project URL from Supabase
    - `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Project Settings → API →

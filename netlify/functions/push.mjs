@@ -31,7 +31,7 @@
 
 import webpush from "web-push";
 import {
-  json, secretMatches, loadSubscriptions, sendTo, tally,
+  json, secretMatches, loadSubscriptions, sendTo, tally, withVapid, useVapid,
   notifyPreference, isUrgent, REQUIRED,
 } from "./lib/push-shared.mjs";
 
@@ -73,12 +73,8 @@ export default async (req) => {
   if (when === "digest") return json({ status: "held", until: "the daily summary" }, 200);
   if (when === "quiet" && !isUrgent(record.kind)) return json({ status: "held", until: "they open Nosca" }, 200);
 
-  try {
-    webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
-  } catch (err) {
-    // A mistyped key or a subject without mailto: — say so rather than crash.
-    return json({ error: `VAPID settings rejected: ${err.message}` }, 500);
-  }
+  const vapid = useVapid(webpush, env);
+  if (vapid.error) return json({ error: vapid.error }, 500);
 
   let subscriptions;
   try {
@@ -94,5 +90,5 @@ export default async (req) => {
   });
 
   const outcomes = await Promise.all(subscriptions.map((sub) => sendTo(webpush, env, sub, message)));
-  return json(tally(outcomes), 200);
+  return json(withVapid(tally(outcomes), vapid.publicKey), 200);
 };
