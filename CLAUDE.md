@@ -100,6 +100,24 @@ seeded data and no account.
   `nowMins` as well as the date (the harness is pinned to 9am so its
   screens are identical every run). `openTimes` drops today's times
   that have been and gone.
+- **The walkthrough belongs to sign-up.** `pages/Arrival.jsx` is the
+  only thing that opens it (a `nosca.tour.now` hand-off), and Arrival is
+  only reached from sign-up. It used to key off a localStorage flag, so
+  signing in on a new phone replayed the whole thing. Settings →
+  Walkthrough is the way back to it.
+- **Set yourself up.** A coach is offered `CoachSetup` once — hours,
+  drills, tips — remembered as `preferences.setup_done`, and reachable
+  again from Settings. Its live mode leaves out the stats step, because
+  nothing stores which stats a coach picked.
+- **A coach's sport never changes.** `profiles.sport` is what their
+  invite code was handed out under. Another sport goes in
+  `preferences.extra_sports`, and `activeSport` is which of them they
+  are working in; `coachSport` follows it, so the drill library, the
+  tips and the groups all move together.
+- **A coach may also be somebody's player.** `request_coach()` allows
+  it, so `data.lessons` holds both what they taught and what they took.
+  `taught()` is every coach-side list; `mineOnly()` is their own.
+- **Only tips. No goals.** Competitions are the goals.
 - **The walkthrough is the app.** Each tour step renders a second
   `<Nosca showcase={…}>` (harness data, inert, scaled) and rings a real
   control found by its `data-tour` attribute. Add a step by adding the

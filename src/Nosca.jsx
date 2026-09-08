@@ -60,15 +60,15 @@ const PLANS = [
    the profile all say the same thing. */
 const PLAYER_FILE = {
   "Marcus Tran":  { done: 12, lastFocus: "Short game", lastOn: "14 Jun",
-                    tip: "Trust the shallow", goal: "Break 90 at the club champs", note: "Prefers mornings" },
+                    tip: "Trust the shallow", note: "Prefers mornings" },
   "Priya Ellis":  { done: 8,  lastFocus: "Driving", lastOn: "02 Jun",
-                    tip: "Tempo over speed", goal: "Play the county foursomes", note: "Pays in cash" },
+                    tip: "Tempo over speed", note: "Pays in cash" },
   "Dan Okafor":   { done: 5,  lastFocus: "Putting", lastOn: "18 May",
-                    tip: "Same routine every putt", goal: null, note: "New to the game" },
+                    tip: "Same routine every putt", note: "New to the game" },
   "Sofia Reyes":  { done: 3,  lastFocus: "Long game", lastOn: "04 May",
-                    tip: "Commit to the shape", goal: null, note: "" },
+                    tip: "Commit to the shape", note: "" },
   "Tom Beckett":  { done: 1,  lastFocus: "Short game", lastOn: "20 Apr",
-                    tip: null, goal: null, note: "Left-handed" },
+                    tip: null, note: "Left-handed" },
 };
 /* Whether this tree is a real, signed-in account. While true, every seed
    generator below returns nothing — so no screen, sheet or tab can
@@ -79,7 +79,7 @@ const PLAYER_FILE = {
 const LiveCtx = createContext(false);
 const useLive = () => useContext(LiveCtx);
 
-const EMPTY_FILE = { done: 0, lastFocus: null, lastOn: null, tip: null, goal: null, note: "", lessons: [] };
+const EMPTY_FILE = { done: 0, lastFocus: null, lastOn: null, tip: null, note: "", lessons: [] };
 const fileFor = (n, live) => live ? EMPTY_FILE : (PLAYER_FILE[n] || EMPTY_FILE);
 
 /* Lessons per month, for the little bar chart on both sides. */
@@ -175,32 +175,27 @@ const BREATHNACH = {
     { id: 1, name: "Gráinne O'Donnell", age: null, sport: "tennis", lessons: 50,
       role: "manager",
       tip: "Split-step before every return",
-      goal: "Win the club doubles",
       note: "Manages the children's accounts",
       event: { name: "Club Doubles", kind: "Competition", when: "Sat 12 Sep", where: "Bishopstown LTC", time: "10:00 am", days: 22 } },
 
     { id: 2, name: "Eoin Breathnach", age: null, sport: "golf", lessons: 20,
       second: { sport: "tennis", lessons: 5 },
       tip: "Finish the turn through it",
-      goal: "Get to single figures",
       note: "Plays both. Golf is the serious one.",
       event: { name: "Winter League", kind: "League", when: "Sun 6 Dec", where: "Monkstown Golf Club", time: "8:30 am", days: 138 } },
 
     { id: 3, name: "Fionn Breathnach", age: 15, turns18: "March 2029", sport: "golf", lessons: 1,
       tip: "One swing thought, not four",
-      goal: "Break 100 by the spring",
       note: "First proper block. Two hours, covered everything.",
       rainedOff: true },
 
     { id: 4, name: "Róisín Breathnach", age: 14, turns18: "August 2030", sport: "tennis", lessons: 500,
       tip: "Recover to the middle after every ball",
-      goal: "Provincial singles",
       note: "Trains most days. Video after nearly every session.",
       event: { name: "Leinster Junior Open", kind: "Tournament", when: "Mon 28 Jul", where: "Bishopstown LTC", time: "9:00 am", days: 4 } },
 
     { id: 5, name: "Eimear Breathnach", age: 12, turns18: "June 2032", sport: "tennis", lessons: 60,
       tip: "Toss a little further in front",
-      goal: "First serve in more often",
       event: { name: "Leinster Junior Open", kind: "Tournament", when: "Mon 28 Jul", where: "Bishopstown LTC", time: "11:00 am", days: 4 } },
 
     { id: 6, name: "Síofra Breathnach", age: 10, turns18: "January 2034", sport: "tennis", lessons: 5,
@@ -281,7 +276,7 @@ const bFile = (name) => {
   const p = BREATHNACH.people.find((x) => x.name === name);
   const h = BREATHNACH.history[name] || [];
   if (!p) return null;
-  return { done: p.lessons, tip: p.tip || null, goal: p.goal || null, note: p.note || "",
+  return { done: p.lessons, tip: p.tip || null, note: p.note || "",
            lastFocus: h[0] ? h[0].focus : null, lastOn: h[0] ? h[0].d : null, recent: h, event: p.event || null };
 };
 
@@ -406,10 +401,6 @@ export const SPORTS = {
       { t: "Commit to the number", d: "Once you've picked the club, commit fully — indecision is the real distance killer.", focus: "course" },
       { t: "Widen the stance in the wind", d: "A wider base holds up better when it's blowing — don't fight it standing tall.", focus: "course" },
     ],
-    goals: [
-      "Break 90", "Get the handicap under 18", "Consistent contact off the tee",
-      "Confident inside 10 feet", "Play a full round without a blow-up hole",
-    ],
     statCatalog: [
       { id: "handicap", l: "Handicap", u: "", manual: true },
       { id: "drive",    l: "Drive",    u: "yd" },
@@ -483,10 +474,6 @@ export const SPORTS = {
       { t: "Take the return early", d: "Step in and take it on the rise — staying back gives them time to recover.", focus: "match" },
       { t: "Racquet head speed, not arm speed", d: "The power comes from a loose wrist through contact, not muscling the shot.", focus: "ground" },
       { t: "Play the percentages at 30-30", d: "Big points aren't the time to go for lines — find the middle of the box.", focus: "match" },
-    ],
-    goals: [
-      "Land 60% of first serves", "Hold serve consistently", "Confident cross-court backhand",
-      "Compete in a first tournament", "Reduce unforced errors on the forehand",
     ],
     statCatalog: [
       { id: "wtn",     l: "WTN",       u: "", manual: true },
@@ -562,10 +549,6 @@ export const SPORTS = {
       { t: "Relax the grip",     d: "A tight grip on the recovery is costing you the connection at the catch.", focus: "catch" },
       { t: "Breathe with the stroke", d: "One breath per stroke keeps the rhythm honest, especially over longer pieces.", focus: "rhythm" },
     ],
-    goals: [
-      "Hold a steady 20 spm for 20 minutes", "Row in the club's first eight", "Improve 2k erg time",
-      "Row confidently in rough water", "Master the single scull",
-    ],
     statCatalog: [
       { id: "twok",   l: "2k time",  u: "", manual: true },
       { id: "split",  l: "Split",    u: "/500m" },
@@ -637,10 +620,6 @@ export const SPORTS = {
       { t: "Take the racquet back early", d: "Early preparation is what's giving you the extra split second on the volley.", focus: "volley" },
       { t: "Vary the pace, not just the length", d: "A slower ball disrupts their rhythm more than raw pace does.", focus: "match" },
       { t: "Stay low through the lunge", d: "Bend the knee, not the back — it's saving your reach on the wide ball.", focus: "move" },
-    ],
-    goals: [
-      "Win a club league match", "Improve length consistency", "Confident with the boast",
-      "Compete in a first tournament", "Sustain a 90-second rally",
     ],
     statCatalog: [
       { id: "rank",    l: "Ranking",  u: "", manual: true },
@@ -714,10 +693,6 @@ export const SPORTS = {
       { t: "Serve to set up the point", d: "It doesn't need to be a winner — it needs to get you to the net first.", focus: "serve" },
       { t: "Defensive lob height", d: "When in trouble, get real height on it — a flat lob is a free smash for them.", focus: "walls" },
     ],
-    goals: [
-      "Master the bandeja", "Confident at the net as a pair", "Win a club social tournament",
-      "Consistent underarm serve", "Read the wall rebound reliably",
-    ],
     statCatalog: [
       { id: "level",   l: "Level",     u: "", manual: true },
       { id: "bandeja", l: "Bandeja",   u: "%" },
@@ -789,10 +764,6 @@ export const SPORTS = {
       { t: "Ride the corners properly", d: "Use every corner to rebalance — cutting them costs the quality of what's next.", focus: "course" },
       { t: "Keep the leg on after the jump", d: "Don't drop the contact on landing — stay in balance and keep riding forward.", focus: "jumping" },
       { t: "Rhythm before accuracy", d: "A rushed, uneven stride will beat you every time — rhythm first, then the lines.", focus: "dressage" },
-    ],
-    goals: [
-      "Confident at Prelim dressage", "Jump a clear round at 80cm", "Ride a balanced canter transition",
-      "Compete at a first show", "Improve position over fences",
     ],
     statCatalog: [
       { id: "score",   l: "Dressage", u: "%", manual: true },
@@ -1411,7 +1382,7 @@ const NOTIF_CATS = {
            ["Who needs attention", "Inactivity and follow-ups"], ["Milestones", "Streaks and anniversaries"]],
   player: [["Lessons", "When your coach publishes"], ["Practice", "New drills and reminders"],
            ["Bookings", "Reminders and changes"], ["Messages", "Direct from your coach"],
-           ["Milestones", "Progress worth celebrating"], ["News from Nosca", "Occasional product updates"]],
+           ["Milestones", "Progress worth celebrating"], ["Product news", "Occasional updates"]],
 };
 
 /* ==================================================================
@@ -1492,7 +1463,7 @@ const LEGAL = {
     ["Complaints", "If you are unhappy with how we handle your data you can complain to the Irish Data Protection Commission."],
   ]},
   record: { title: "Your sporting record", updated: "Portability and sharing", body: [
-    ["What it is", "Everything logged about your coaching: lessons, video, drills, stats, goals and any notes. Taken together it is a record of how you have developed, and it belongs to you."],
+    ["What it is", "Everything logged about your coaching: lessons, video, drills, stats and any notes. Taken together it is a record of how you have developed, and it belongs to you."],
     ["Changing or adding a coach", "You choose what a new coach can see, part by part, before they see anything. Nothing transfers automatically. If you would rather start fresh, that is a valid choice and we do not push against it."],
     ["What your previous coach keeps", "A coach retains their own record of lessons they personally gave. That is their work and their own legal record, and sharing your file with someone new does not erase it. They lose access to anything logged after you leave."],
     ["Injury and health notes", "Treated as special category data under GDPR Article 9. It is never included by default, is marked separately whenever you are choosing, and requires you to opt in explicitly each time."],
@@ -1578,6 +1549,7 @@ const ShimmerCSS = () => (
     @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     @keyframes converge{0%{transform:translateX(var(--from))}100%{transform:translateX(0)}}
     @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+    @keyframes dashRun{0%{stroke-dashoffset:0;opacity:0}10%{opacity:.5}85%{opacity:.5}100%{stroke-dashoffset:-108;opacity:0}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes tickIn{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
     @keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -1672,9 +1644,9 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   /* the mark landing, the wordmark, then the lift away — each gets its
      own pulse, so the sequence is felt as well as seen */
   useEffect(() => {
-    const a = setTimeout(() => haptic(12), 140);
-    const b = setTimeout(() => haptic(8), 460);
-    const c = setTimeout(() => hapticSuccess(), 900);
+    const a = setTimeout(() => haptic(12), 180);
+    const b = setTimeout(() => haptic(8), 620);
+    const c = setTimeout(() => hapticSuccess(), 1180);
     return () => { clearTimeout(a); clearTimeout(b); clearTimeout(c); };
   }, [replayKey]);
   /* Before sign-up there is no sport, so the opening is the brand alone. */
@@ -1684,19 +1656,17 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   const bg = branded ? "#080A09" : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 
-  /* It ran for five and a half seconds. That is a held breath the first
-     time and a wait every time after, and the app opens more often than
-     anything else in here — so the same sequence, a third faster. */
-  const HOLD = branded ? 3500 : 2800;
+  const HOLD = branded ? 5400 : 4000;
   useEffect(() => {
     const a = setTimeout(() => setLeaving(true), HOLD);
     const b = setTimeout(() => onDone && onDone(), HOLD + 700);
     return () => { clearTimeout(a); clearTimeout(b); };
   }, [onDone, replayKey, HOLD]);
 
+  const R = 8.6, CIRC = 2 * Math.PI * R, ARC = 27;
   const T = branded
-    ? { r1: 220, r2: 520, join: 1140, link: 1400, word: 1820, rule: 2140, sub: 2400, foot: 2740 }
-    : { r1: 160, r2: 400, join: 880, link: 1100, word: 1430, rule: 1690, sub: 1920, foot: 2180 };
+    ? { r1: 350, r2: 800, join: 1750, link: 2150, word: 2800, rule: 3300, sub: 3700, foot: 4200 }
+    : { r1: 250, r2: 600, join: 1350, link: 1700, word: 2200, rule: 2600, sub: 2950, foot: 3350 };
 
   return (
     <button onClick={() => { haptic(8); setLeaving(true); setTimeout(() => onDone && onDone(), 400); }}
@@ -1727,19 +1697,25 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
         <svg width={148} height={92} viewBox="0 0 40 25" style={{ overflow: "visible" }} aria-label={BRAND}>
           {/* the rings draw, then slide together into their linked position */}
           <g style={{ "--from": "-7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <path d={RING_L} fill="none" stroke="#F4F6F3" strokeWidth={2.4} strokeLinecap="round"
-                  style={{ "--len": RING_LEN, strokeDasharray: RING_LEN, strokeDashoffset: RING_LEN,
-                           animation: `draw 900ms cubic-bezier(.35,0,.15,1) ${T.r1}ms forwards` }} />
+            <circle cx="14" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
+                    style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
+                             animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r1}ms forwards` }} />
           </g>
-          {/* The second ring arrives in the sport's colour and slides
-              into the first. The link is the two rings meeting — it was
-              a separate stub of an arc laid over the join, which at this
-              size read as a blob rather than a join. */}
           <g style={{ "--from": "7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <path d={RING_R} fill="none" stroke={accent} strokeWidth={2.4} strokeLinecap="round"
-                  style={{ "--len": RING_LEN, strokeDasharray: RING_LEN, strokeDashoffset: RING_LEN,
-                           animation: `draw 900ms cubic-bezier(.35,0,.15,1) ${T.r2}ms forwards` }} />
+            <circle cx="26" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
+                    style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
+                             animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r2}ms forwards` }} />
           </g>
+          {/* the link, drawn last, then a travelling dash that keeps running */}
+          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke={accent} strokeWidth={1.6} strokeLinecap="round"
+                style={{ "--len": ARC, strokeDasharray: ARC, strokeDashoffset: ARC,
+                         animation: `draw 850ms cubic-bezier(.35,0,.15,1) ${T.link}ms forwards` }} />
+          {/* Starts fully transparent. Without this it parks a white
+              segment at the top of the arc for the whole delay — which
+              reads as a stray floating line between the rings. */}
+          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinecap="round"
+                style={{ strokeDasharray: "4 104", strokeDashoffset: 0, opacity: 0,
+                         animation: `dashRun 2.6s linear ${T.link + 900}ms infinite` }} />
         </svg>
       </div>
 
@@ -1931,7 +1907,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
 }
 
 /* A coach making a group. They run it — adding, removing and setting
-   the group's own drills and goals — which is why the group is created
+   the group's own drills — which is why the group is created
    from their side and never a player's. */
 function CreateGroup({ roster, nouns, onCreate, close, say }) {
   const t = useT();
@@ -2464,14 +2440,13 @@ const RECORD_PARTS = [
   { id: "lessons",  label: "Lesson history",     note: "Dates, focus areas and notes", always: false },
   { id: "video",    label: "Video and mark-ups", note: "Clips your coach recorded",    always: false },
   { id: "stats",    label: "Stats and progress", note: "Your numbers over time",       always: false },
-  { id: "goals",    label: "Goals and focus",    note: "What you're working towards",  always: false },
   { id: "drills",   label: "Drill history",      note: "What you've practised",        always: false },
   { id: "health",   label: "Injury notes",       note: "Special category data",        sensitive: true },
 ];
 
 function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
   const t = useT();
-  const [parts, setParts] = useState(["lessons", "stats", "goals"]);
+  const [parts, setParts] = useState(["lessons", "stats"]);
   const [stage, setStage] = useState("choose");
   const toggle = (id) => { haptic(6); soft(); setParts(parts.includes(id) ? parts.filter((x) => x !== id) : [...parts, id]); };
 
@@ -2949,7 +2924,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
   );
 }
 
-/* The coach's moment. Deliberately not the same as booking or goals —
+/* The coach's moment. Deliberately not the same as booking —
    this one lands like a stamp and counts up what the day amounted to.
    It is the reward for the one job the whole app exists to make easy. */
 function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, onDone }) {
@@ -6730,51 +6705,6 @@ function RateLesson({ focus, coach, onDone, close }) {
   );
 }
 
-/* Set straight after a lesson, while the coach is still thinking about
-   the person rather than the diary. */
-function GoalSheet({ name, cfg, onSave, close }) {
-  const t = useT();
-  const [text, setText] = useState("");
-  const [by, setBy] = useState("");
-  const suggestions = [
-    tr("Play a full round without a blow-up hole"),
-    tr("Be consistent under pressure"),
-    `${tr("Improve")} ${cfg.focus[0].label.toLowerCase()}`,
-    tr("Enter a first competition"),
-  ];
-  return (
-    <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>
-        {tr("Goal for")} {(name || "").split(" ")[0]}
-      </h2>
-      
-
-      {!text && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {suggestions.map((sg, i) => (
-            <button key={sg} onClick={() => { haptic(6); soft(); setText(sg); }} className="px-3.5 active:opacity-60"
-                    style={{ minHeight: 38, borderRadius: R.pill, background: t.wash, fontFamily: ui, fontSize: 12.5, color: t.sub,
-                             animation: `fadeUp 360ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>{sg}</button>
-          ))}
-        </div>
-      )}
-
-      <div className="mb-4"><VoiceArea value={text} onChange={setText} rows={2} ph={tr("The goal")} /></div>
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("By when")}</div>
-      <div className="flex flex-wrap gap-2 mb-6">
-        {[tr("End of month"), tr("End of season"), tr("3 months"), tr("This year")].map((w) => {
-          const on = by === w;
-          return (<button key={w} onClick={() => { haptic(6); setBy(w); }} className="px-3.5 active:opacity-60"
-                          style={{ minHeight: 40, borderRadius: R.pill, background: on ? t.ink : t.surface,
-                                   border: `1px solid ${on ? t.ink : t.hair}`, fontFamily: ui, fontSize: 12.5,
-                                   fontWeight: 600, color: on ? "#fff" : t.sub, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{w}</button>);
-        })}
-      </div>
-      <Button disabled={!text.trim() || !by} onClick={() => { onSave(name, text.trim(), by); close(); }}>{tr("Set the goal")}</Button>
-    </>
-  );
-}
-
 /* Starting a conversation. A player can only reach a coach they are
    actually connected to, and a coach only their own roster — the list
    is the safeguard, not a search box over every user. */
@@ -7075,12 +7005,6 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
             )}
-            {f.goal && (
-              <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
-                <div className="uppercase mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Goal")}</div>
-                <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.goal}</div>
-              </div>
-            )}
             {f.lastFocus && (
               <button onClick={() => { haptic(7); onOpenLast && onOpenLast(item.who); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left active:opacity-60"
@@ -7198,6 +7122,14 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
     return () => ro.disconnect();
   }, []);
   const hasRaised = tabs.some((x) => x.raised);
+  /* SIX TABS FIT. Adding a family gives an adult a sixth — Home,
+     Lessons, Drills, Diary, Family, Chat — and every cell is a sixth of
+     the bar. At 320px that is 42px a cell, so "Lessons" ran into
+     "Drills" and Chat's unread badge was clipped by the edge of the
+     bar. The bar gives back its own margins and the label and badges
+     come in to match; nothing is dropped, because a tab that is there
+     for some people and not others is worse than a small label. */
+  const tight = tabs.length >= 6;
   const D = barPath(w, hasRaised);
   const barRef = useRef(null);
   const bubbleRef = useRef(null);
@@ -7297,7 +7229,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
   }, [activeIdx, tabs.length]);
 
   return (
-    <div className="shrink-0 relative z-30" style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 24, paddingTop: 4 }}>
+    <div className="shrink-0 relative z-30" style={{ paddingLeft: tight ? 10 : 16, paddingRight: tight ? 10 : 16, paddingBottom: 24, paddingTop: 4 }}>
       <div ref={(el) => { barRef.current = el; shellRef.current = el; }} data-tour="tabbar"
            onPointerDown={(e) => {
              measure();
@@ -7392,14 +7324,15 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
                     className="flex-1 flex items-center justify-center"
                     style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
               <span ref={(el) => { iconRefs.current[i] = el; }} className="relative flex flex-col items-center justify-center gap-1"
-                    style={{ transition: "transform 260ms cubic-bezier(.22,1,.36,1), opacity 200ms",
+                    style={{ maxWidth: "100%", transition: "transform 260ms cubic-bezier(.22,1,.36,1), opacity 200ms",
                              transform: on ? "scale(1.04)" : "scale(1)", willChange: "transform" }}>
-                <Icon size={19} color={on ? theme.mark : theme.faint} strokeWidth={on ? 2.1 : 1.75} style={{ transition: "color 220ms" }} />
-                <span style={{ fontFamily: ui, fontSize: 9.5, fontWeight: 600, letterSpacing: "0.005em",
+                <Icon size={tight ? 18 : 19} color={on ? theme.mark : theme.faint} strokeWidth={on ? 2.1 : 1.75} style={{ transition: "color 220ms" }} />
+                <span style={{ fontFamily: ui, fontSize: tight ? 8.5 : 9.5, fontWeight: 600,
+                               letterSpacing: tight ? "-0.01em" : "0.005em", maxWidth: "100%",
                                color: on ? theme.mark : theme.faint, transition: "color 220ms", whiteSpace: "nowrap" }}>{tb.label}</span>
-                {tb.badge && (<span className="absolute rounded-full" style={{ top: -2, right: -5, width: 7, height: 7, background: DANGER }} />)}
+                {tb.badge && (<span className="absolute rounded-full" style={{ top: -2, right: tight ? -3 : -5, width: 7, height: 7, background: DANGER }} />)}
                 {tb.count > 0 && (<span className="absolute rounded-full flex items-center justify-center"
-                                        style={{ top: -6, right: -9, minWidth: 15, height: 15, padding: "0 4px", background: DANGER,
+                                        style={{ top: -6, right: tight ? -5 : -9, minWidth: 15, height: 15, padding: "0 4px", background: DANGER,
                                                  fontFamily: ui, fontSize: 9, fontWeight: 600, color: "#fff" }}>{tb.count}</span>)}
               </span>
             </button>
@@ -8111,7 +8044,13 @@ export const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, le
    times they teach — so the app arrives shaped around them instead of
    around a default they have to undo.
 ------------------------------------------------------------------ */
-function CoachSetup({ cfg, sport, slots, onDone }) {
+/* `live` is a real coach going through this after signing up. Two
+   differences: the stats step is left out, because which numbers a
+   coach tracks is not stored anywhere yet and a screen that asks and
+   forgets is worse than one that never asked; and a tips step is added,
+   because the thing a coach says over and over is the thing they were
+   retyping into every player's file. */
+function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompts = [] }) {
   const t = useT();
   const L = STRINGS.en;
   const [step, setStep] = useState(0);
@@ -8121,6 +8060,8 @@ function CoachSetup({ cfg, sport, slots, onDone }) {
   const [times, setTimes] = useState(["9:00 am", "10:00 am", "4:30 pm"]);
   const [dur, setDur] = useState(45);
   const [newDrill, setNewDrill] = useState("");
+  const [tips, setTips] = useState([]);
+  const [newTip, setNewTip] = useState("");
 
   const togg = (arr, set, v, max) => {
     haptic(6); soft();
@@ -8129,25 +8070,32 @@ function CoachSetup({ cfg, sport, slots, onDone }) {
     else hapticWarn();
   };
 
-  const steps = [
-    { title: tr("Stats"), sub: tr("Pick up to three. You can change these any time.") },
-    { title: tr("Drills"),    sub: tr("Your starting library. Add your own as you go.") },
-    { title: tr("Days"),    sub: null },
-    { title: tr("Times"),          sub: tr("These become the slots players can book.") },
-  ];
-  const ready = [stats.length > 0, drills.length > 0, days.length > 0, times.length > 0][step];
+  const ALL = {
+    stats:  { title: tr("Stats"),  sub: tr("Pick up to three. You can change these any time.") },
+    drills: { title: tr("Drills"), sub: tr("Your starting library. Add your own as you go.") },
+    days:   { title: tr("Days"),   sub: null },
+    times:  { title: tr("Times"),  sub: tr("These become the slots players can book.") },
+    tips:   { title: tr("Tips"),   sub: tr("What you find yourself saying. One sits on a player's home until you replace it.") },
+  };
+  const order = live ? ["drills", "days", "times", "tips"] : ["stats", "drills", "days", "times"];
+  const steps = order.map((id) => ALL[id]);
+  const now = order[step];
+  const ready = { stats: stats.length > 0, drills: drills.length > 0, days: days.length > 0,
+                  times: times.length > 0, tips: true }[now];
   const last = step === steps.length - 1;
 
   const chosen = [
-    stats.length ? `${stats.length} ${tr("stats")}` : null,
+    !live && stats.length ? `${stats.length} ${tr("stats")}` : null,
     drills.length ? `${drills.length} ${tr("drills")}` : null,
     days.length ? `${days.length} ${tr("days")}` : null,
-    step === 3 && times.length ? `${times.length} ${tr("times")}` : null,
+    order.indexOf("times") <= step && times.length ? `${times.length} ${tr("times")}` : null,
+    live && order.indexOf("tips") <= step && tips.length ? `${tips.length} ${tr("tips")}` : null,
   ].filter(Boolean);
 
   return (
     <SignupShell step={step} steps={4} title={steps[step].title} sub={steps[step].sub}
                  onBack={step ? () => setStep(step - 1) : null}
+                 right={onSkip ? <TextBtn onClick={() => { haptic(7); onSkip(); }}>{tr("Not now")}</TextBtn> : null}
                  above={chosen.length > 0 && (
                    <div className="flex flex-wrap gap-2 mb-6" style={{ animation: "fadeUp 400ms cubic-bezier(.22,1,.36,1) both" }}>
                      {chosen.map((c) => (
@@ -8160,16 +8108,16 @@ function CoachSetup({ cfg, sport, slots, onDone }) {
                    </div>
                  )}
                  footer={<Button tone="ink" disabled={!ready}
-                           onClick={() => { if (last) { hapticSuccess(); swell(); onDone({ stats, drills, days, times, dur }); }
+                           onClick={() => { if (last) { hapticSuccess(); swell(); onDone({ stats, drills, days, times, dur, tips }); }
                                             else { haptic(10); soft(); setStep(step + 1); } }}>
                            {last ? tr("Finish set-up") : L.continue}</Button>}>
 
-      {step === 0 && cfg.statCatalog.map((st, i) => (
+      {now === "stats" && cfg.statCatalog.map((st, i) => (
         <Choice key={st.id} label={st.l} sub={st.u ? st.u : null} on={stats.includes(st.id)} delay={i * 40}
                 onSelect={() => togg(stats, setStats, st.id, 3)} />
       ))}
 
-      {step === 1 && (<>
+      {now === "drills" && (<>
         {cfg.drills.map((d, i) => (
           <Choice key={d.t} label={d.t} sub={d.d} on={drills.includes(d.t)} delay={i * 40}
                   onSelect={() => togg(drills, setDrills, d.t)} />
@@ -8184,7 +8132,7 @@ function CoachSetup({ cfg, sport, slots, onDone }) {
         </div>
       </>)}
 
-      {step === 2 && (
+      {now === "days" && (
         <div className="flex flex-col gap-2.5">
           {DAY_NAMES.map((d, i) => (
             <Choice key={i} label={d} on={days.includes(i)} delay={i * 35} onSelect={() => togg(days, setDays, i)} />
@@ -8192,7 +8140,7 @@ function CoachSetup({ cfg, sport, slots, onDone }) {
         </div>
       )}
 
-      {step === 3 && (<>
+      {now === "times" && (<>
         <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
           {tr("Lesson length")}
         </div>
@@ -8227,6 +8175,23 @@ function CoachSetup({ cfg, sport, slots, onDone }) {
           {times.length} {tr("slots on")} {days.length} {tr("days")}.
         </p>
       </>)}
+
+      {now === "tips" && (<>
+        {(tipPrompts || []).slice(0, 8).map((tp, i) => (
+          <Choice key={tp} label={tp} on={tips.includes(tp)} delay={i * 40} onSelect={() => togg(tips, setTips, tp)} />
+        ))}
+        <div className="flex gap-2 mt-4">
+          <div className="flex-1"><VoiceInput value={newTip} onChange={setNewTip} ph={tr("Add one of your own")} /></div>
+          <button onClick={() => { if (newTip.trim()) { hapticSuccess(); soft(); setTips([...tips, newTip.trim()]); setNewTip(""); } }}
+                  disabled={!newTip.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
+                  style={{ width: 52, minHeight: 52, borderRadius: R.surface, background: t.accent }} aria-label={tr("Add")}>
+            <Plus size={18} color={t.onAccent} strokeWidth={2.1} />
+          </button>
+        </div>
+        <p className="mt-5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.faint }}>
+          {tr("Skip this if you'd rather write each one as it comes up.")}
+        </p>
+      </>)}
     </SignupShell>
   );
 }
@@ -8236,7 +8201,7 @@ function CoachSetup({ cfg, sport, slots, onDone }) {
    One question per screen, generous space, and from the moment a
    language is chosen every word that follows is in it.
 ------------------------------------------------------------------ */
-export function SignupShell({ step, steps, onBack, title, sub, above, children, footer }) {
+export function SignupShell({ step, steps, onBack, right, title, sub, above, children, footer }) {
   const t = useT();
   /* No progress bar. The number of steps differs by account type — a
      coach and a junior player walk different lengths — so a bar
@@ -8252,6 +8217,9 @@ export function SignupShell({ step, steps, onBack, title, sub, above, children, 
         {onBack
           ? <button onClick={() => { haptic(6); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={23} color={t.ink} strokeWidth={2} /></button>
           : <span style={{ width: 39 }} />}
+        {/* a way past, for anything that can be come back to */}
+        <span className="flex-1" />
+        {right && <span className="pr-4">{right}</span>}
       </div>
 
       <div className="flex-1 flex flex-col px-7 min-h-0">
@@ -10042,13 +10010,14 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
    row: Log what has finished, Register what is running, tap ahead to
    see who is next.
 
-   The actions are last and always there. A coach who wants to write up
-   a lesson that was never booked, or take a register for someone who
-   walked in, should not have to find the plus button — those are the
-   two things they do most. */
+   Last, their own numbers: this week, the hours it comes to, the season
+   so far. A row of buttons sat here — log, register, diary — and every
+   one of them is already on the plus, so it was a second copy of the
+   control centre taking up the bottom of the home screen. Three figures
+   is what belongs at the end of a day. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
-                      roster, drifting = 0, unread = 0, toWriteUp = [],
-                      onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onAttend, onMessages,
+                      roster, drifting = 0, unread = 0, toWriteUp = [], stats = null,
+                      onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onAccept, onDecline, onInvite, push, go }) {
   const t = useT();
   const list = today || [];
@@ -10186,22 +10155,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           </div>
         )}
 
-        {/* THE THREE THINGS A COACH DOES MOST, always here rather than
-            behind the plus. Log covers a lesson that was never in the
-            diary; the register covers whoever turned up without one. */}
-        {(roster || []).length > 0 && (
-          <div className="flex gap-2.5 mt-3">
-            {[[tr("Log a lesson"), Edit3, () => go("log"), true],
-              [tr("Register"), ListChecks, () => onAttend && onAttend(), false],
-              [tr("Diary"), Calendar, () => go("calendar"), false]].map(([label, Ico, act, primary]) => (
-              <button key={label} onClick={() => { hapticCommit(); soft(); act(); }}
-                      className="flex-1 flex flex-col items-center justify-center gap-1.5 active:opacity-70"
-                      style={{ minHeight: 68, borderRadius: R.surface,
-                               background: primary ? t.accent : t.surface,
-                               boxShadow: primary ? `0 6px 18px ${t.accent}26` : ELEV.rest }}>
-                <Ico size={16} color={primary ? t.onAccent : t.sub} strokeWidth={1.9} />
-                <span style={{ ...TYPE.caption, fontWeight: 600, color: primary ? t.onAccent : t.ink }}>{label}</span>
-              </button>
+        {/* their own coaching, in three figures */}
+        {stats && (roster || []).length > 0 && (
+          <div className="flex mt-3 px-5 py-4" data-tour="today-stats"
+               style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest,
+                        animation: "contentRise 500ms cubic-bezier(.22,1,.36,1) both" }}>
+            {[[stats.week, tr("this week")], [`${stats.hours}h`, tr("taught")], [stats.season, tr("this season")]].map(([v, k], i) => (
+              <span key={k} className="flex-1" style={{ borderLeft: i ? `0.5px solid ${HAIR(t.ink, 0.14)}` : "none",
+                           paddingLeft: i ? 14 : 0 }}>
+                <span className="block" style={{ ...TYPE.figure, fontSize: 22, color: t.ink }}>{v}</span>
+                <span className="block mt-1" style={{ ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{k}</span>
+              </span>
             ))}
           </div>
         )}
@@ -10943,9 +10907,11 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
     { d: "31 May", focus: "Driving", note: "Tempo over speed. Held the finish." },
     { d: "17 May", focus: "Putting", note: "Same routine every putt." },
   ]);
-  /* Five is what a coach reads before a lesson; the rest are a tap
-     away rather than a scroll through a season. */
-  const shown = past.slice(0, 5);
+  /* The last few, then the whole archive behind one button. Five was a
+     scroll on a small phone before the coach reached anything else on
+     the screen; three is what they actually read walking out to meet
+     someone, and the button is there whether or not there are more. */
+  const shown = past.slice(0, 3);
   const daysSince = live && r.lastLesson ? Math.max(0, Math.round((new Date() - new Date(r.lastLesson)) / 86400000)) : null;
   /* Private lessons and the group sessions this player was marked at —
      lesson_attendees records who was there, so the coach's count and
@@ -11004,18 +10970,20 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
                 <ChevronRight size={15} color={t.faint} style={{ marginTop: 4 }} />
               </button>
             ))}
-            {past.length > shown.length && (
+            {past.length > 0 && (
               <button data-tour="player-all-lessons" onClick={() => { haptic(7); soft(); onAllLessons ? onAllLessons() : push("history:" + name); }}
                       className="w-full flex items-center justify-center gap-2 mt-3 active:opacity-70"
                       style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
                                ...TYPE.small, fontWeight: 600, color: t.ink }}>
-                {tr("View all")} {past.length} {tr("lessons")}<ChevronRight size={14} color={t.faint} />
+                {past.length > shown.length
+                  ? `${tr("View all")} ${past.length} ${tr("lessons")}`
+                  : tr("All lessons")}<ChevronRight size={14} color={t.faint} />
               </button>
             )}
           </div>
 
           {/* what is live right now — three lines, no cards */}
-          {(f.tip || f.goal || seriesFor) && (
+          {(f.tip || seriesFor) && (
             <div className="mb-7">
               {seriesFor && (
                 <div className="flex items-baseline gap-3 py-2">
@@ -11027,12 +10995,6 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
                 <div className="flex items-baseline gap-3 py-2">
                   <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint }}>{tr("Focus")}</span>
                   <span style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
-                </div>
-              )}
-              {f.goal && (
-                <div className="flex items-baseline gap-3 py-2">
-                  <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint }}>{tr("Goal")}</span>
-                  <span style={{ ...TYPE.body, color: t.ink }}>{f.goal}</span>
                 </div>
               )}
             </div>
@@ -11791,24 +11753,22 @@ function FamilyGuide({ juvenile, name, onDone }) {
 /* A PLAYER'S RECORD, AS A COACH ACTUALLY KEEPS IT
 
    Two things a coach genuinely has: the lessons they logged, and
-   whether the person turned up. Plus a goal, if they set one.
+   whether the person turned up.
 
    The serve-percentage charts that used to sit here were invented
    numbers — no coach is courtside recording first-serve percentage into
    an app, so a graph of it is a graph of nothing. Removed rather than
    left as decoration. */
-function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, pop, push, say, lessons }) {
+function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
   const t = useT();
   const live = useLive();
   const [tab, setTab] = useState("Lessons");
-  const [newGoal, setNewGoal] = useState(""); const [byWhen, setByWhen] = useState("");
 
   /* Only what was actually recorded. No fallback figures — an empty
      register reads as empty, not as a perfect record. */
   const att = attendance[name] || null;
   const total = att ? att.showed + att.noShow + att.cancelled : 0;
   const rate = total ? Math.round((att.showed / total) * 100) : null;
-  const myGoals = goals[name] || [];
   const list = lessons || hadLessons(cfg, live);
 
   const Stat = ({ n, label, tone }) => (
@@ -11823,7 +11783,7 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
       <Screen title={name} onBack={pop}
               meta={list.length ? `${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}` : tr("Nothing logged yet")}>
         <div className="px-6 mb-5">
-          <Segmented tour="history-tabs" options={live ? [tr("Lessons"), tr("Attendance")] : [tr("Lessons"), tr("Attendance"), tr("Goals")]} value={tab} onChange={setTab} />
+          <Segmented tour="history-tabs" options={[tr("Lessons"), tr("Attendance")]} value={tab} onChange={setTab} />
         </div>
 
         {tab === tr("Lessons") && (
@@ -11879,55 +11839,6 @@ function PlayerHistory({ name, cfg, attendance, goals, onAddGoal, onToggleGoal, 
           </div>
         )}
 
-        {tab === tr("Goals") && (
-          <div className="px-6 pb-2">
-            {myGoals.length === 0 && (
-              <p className="py-8 text-center" style={{ ...TYPE.body, color: t.faint }}>
-                {tr("No goal set yet.")}
-              </p>
-            )}
-            {myGoals.length > 0 && (
-              <Card className="mb-4">
-                {myGoals.map((g, i) => (
-                  <button key={i} onClick={() => { g.done ? haptic(7) : hapticSuccess(); onToggleGoal(name, i); }}
-                          className="w-full flex items-center gap-3.5 px-5 py-4 text-left active:opacity-60"
-                          style={{ borderBottom: i === myGoals.length - 1 ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-                    <span className="rounded-full flex items-center justify-center shrink-0"
-                          style={{ width: 22, height: 22, background: g.done ? STEADY : "transparent",
-                                   border: g.done ? "none" : `1.5px solid ${HAIR(t.ink, 0.28)}` }}>
-                      {g.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block" style={{ ...TYPE.body, color: g.done ? t.faint : t.ink,
-                                     textDecoration: g.done ? "line-through" : "none" }}>{g.text}</span>
-                      {g.by && <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("By")} {g.by}</span>}
-                    </span>
-                  </button>
-                ))}
-              </Card>
-            )}
-            <Card className="p-5">
-              {!!(cfg.goals || []).length && !newGoal && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {cfg.goals.slice(0, 4).map((g, i) => (
-                    <button key={g} onClick={() => { haptic(6); soft(); setNewGoal(g); }} className="px-3.5 active:opacity-60"
-                            style={{ minHeight: 40, borderRadius: R.pill, background: t.wash, fontFamily: ui, fontSize: 12.5, color: t.sub,
-                                     animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>{g}</button>
-                  ))}
-                </div>
-              )}
-              <VoiceInput value={newGoal} onChange={setNewGoal} ph={tr("Something to work towards")} />
-              <div className="mt-3">
-                <VoiceInput value={byWhen} onChange={setByWhen} ph={tr("By when (optional)")} />
-              </div>
-              <button onClick={() => { if (!newGoal.trim()) return; hapticCommit(); onAddGoal(name, newGoal.trim(), byWhen.trim()); setNewGoal(""); setByWhen(""); say && say(tr("Goal set")); }}
-                      className="w-full mt-4 active:opacity-80"
-                      style={{ minHeight: 48, borderRadius: R.control, background: t.ink, color: "#fff", ...TYPE.subhead, fontSize: 15 }}>
-                {tr("Set goal")}
-              </button>
-            </Card>
-          </div>
-        )}
         <div style={{ height: 26 }} />
       </Screen>
     </SwipeBack>
@@ -13275,7 +13186,7 @@ function LessonLogs({ role, lessons, onDownload, pop }) {
    coach's club and a line about themselves. The account's own controls
    sit underneath — email, password, notifications, data, sign out,
    delete — so nothing about "you" is anywhere else. */
-function ProfileScreen({ account, me, role, avatar, family, onSave, onUploadAvatar, onRemoveAvatar, onChangePassword, onNotifications, onData, onFamily, onSignOut, onDelete, pop, push, say }) {
+function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickSport, onAddSport, onRemoveSport, onSave, onUploadAvatar, onRemoveAvatar, onChangePassword, onSignOut, onDelete, pop, push, say }) {
   const t = useT();
   const fileRef = useRef(null);
   const [f, setF] = useState({
@@ -13338,18 +13249,64 @@ function ProfileScreen({ account, me, role, avatar, family, onSave, onUploadAvat
 
           <Card className="mb-5">
             {field(tr("Name"), "name", { autoComplete: "name" })}
-            <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
-              <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{role === "coach" ? tr("Main sport you coach") : tr("Main sport")}</div>
-              <div className="flex flex-wrap gap-2" data-tour="profile-sport">
-                {Object.entries(SPORTS).map(([id, sp]) => {
-                  const on = f.sport === id;
-                  return (
-                    <button key={id} onClick={() => { haptic(6); setF({ ...f, sport: id }); }} className="px-3.5 active:opacity-60"
-                            style={{ minHeight: 36, borderRadius: R.pill, background: on ? sp.theme.accent : t.wash, ...TYPE.caption, fontWeight: 600, color: on ? sp.theme.onAccent : t.sub }}>{sp.label}</button>
-                  );
-                })}
+            {/* A COACH'S SPORT DOES NOT CHANGE. It is what their invite
+                code was handed out under and what every player who
+                joined them signed up for; switching it silently would
+                re-label a whole roster's history. Another sport is
+                added beside it instead, and the app works in whichever
+                one they are on today. A player picks freely — theirs is
+                only which sport this account is about. */}
+            {role === "coach" ? (
+              <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
+                <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Sports you coach")}</div>
+                <div className="flex flex-wrap gap-2" data-tour="profile-sport">
+                  {(sports && sports.length ? sports : [f.sport]).map((id) => {
+                    const sp = SPORTS[id]; if (!sp) return null;
+                    const on = (activeSport || f.sport) === id;
+                    const isMain = id === f.sport;
+                    return (
+                      <button key={id} onClick={() => { haptic(6); onPickSport && onPickSport(id); }} className="flex items-center gap-1.5 px-3.5 active:opacity-60"
+                              style={{ minHeight: 36, borderRadius: R.pill, background: on ? sp.theme.accent : t.wash,
+                                       ...TYPE.caption, fontWeight: 600, color: on ? sp.theme.onAccent : t.sub }}>
+                        {sp.label}{isMain ? ` · ${tr("main")}` : ""}
+                        {!isMain && onRemoveSport && (
+                          <span onClick={(e) => { e.stopPropagation(); haptic(8); onRemoveSport(id); }} aria-label={tr("Remove")}>
+                            <X size={11} color={on ? sp.theme.onAccent : t.faint} strokeWidth={2.4} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {onAddSport && Object.keys(SPORTS).filter((id) => !(sports || [f.sport]).includes(id)).length > 0 && (
+                  <>
+                    <div className="mt-3.5 mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Add another")}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(SPORTS).filter(([id]) => !(sports || [f.sport]).includes(id)).map(([id, sp]) => (
+                        <button key={id} onClick={() => { hapticCommit(); onAddSport(id); }} className="px-3.5 active:opacity-60"
+                                style={{ minHeight: 34, borderRadius: R.pill, background: "transparent",
+                                         border: `1px solid ${HAIR(t.ink, 0.18)}`, ...TYPE.caption, fontWeight: 600, color: t.sub }}>
+                          + {sp.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
+                <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Main sport")}</div>
+                <div className="flex flex-wrap gap-2" data-tour="profile-sport">
+                  {Object.entries(SPORTS).map(([id, sp]) => {
+                    const on = f.sport === id;
+                    return (
+                      <button key={id} onClick={() => { haptic(6); setF({ ...f, sport: id }); }} className="px-3.5 active:opacity-60"
+                              style={{ minHeight: 36, borderRadius: R.pill, background: on ? sp.theme.accent : t.wash, ...TYPE.caption, fontWeight: 600, color: on ? sp.theme.onAccent : t.sub }}>{sp.label}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
               <div style={{ ...TYPE.caption, color: t.faint }}>{tr("Date of birth")}{age != null ? ` · ${age}` : ""}</div>
               <input type="date" value={f.dob || ""} onChange={(e) => setF({ ...f, dob: e.target.value })} aria-label={tr("Date of birth")} className="w-full outline-none mt-1"
@@ -13366,13 +13323,16 @@ function ProfileScreen({ account, me, role, avatar, family, onSave, onUploadAvat
           {err && <p className="px-2 mb-4" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
           {dirty && <div className="mb-6"><Button tone="ink" disabled={busy} onClick={save}>{busy ? "…" : tr("Save changes")}</Button></div>}
 
-          <Eyebrow>{tr("Account")}</Eyebrow>
+          {/* WHO YOU ARE, AND NOTHING ELSE. Notifications, the family
+              and data permissions were all filed under a screen called
+              "Your profile", which is where nobody looks for them; they
+              are settings, and they live in Settings now. What is left
+              is the four things this screen is actually about: your
+              sign-in, your password, leaving, and going for good. */}
+          <Eyebrow>{tr("Sign-in")}</Eyebrow>
           <Card className="mb-6" tour="profile-account">
             {account && account.email && <Row label={tr("Email")} value={account.email} icon={<I C={Mail} />} />}
             <Row label={tr("Change password")} chevron icon={<I C={Lock} />} onToggle={onChangePassword} />
-            <Row tour="profile-notifications" label={tr("Notifications")} chevron icon={<I C={Bell} />} onToggle={onNotifications} />
-            <Row tour="profile-family" label={tr("Family")} sub={family ? family.displayName : tr("None yet — start or join one")} chevron icon={<I C={Users} />} onToggle={onFamily} />
-            <Row label={tr("Data & permissions")} chevron icon={<I C={ShieldCheck} />} onToggle={onData} />
             <Row label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={onSignOut} />
             <Row tour="profile-delete" label={tr("Delete account")} sub={tr("Everything, permanently")} danger last icon={<I C={Trash2} danger />} onToggle={onDelete} />
           </Card>
@@ -13383,7 +13343,7 @@ function ProfileScreen({ account, me, role, avatar, family, onSave, onUploadAvat
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, onDeleteAccount, onTour, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, lifetime = 0, monthly = [], reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, onDeleteAccount, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, lifetime = 0, monthly = [], reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, textScale, setTextScale, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
   const t = useT(); const L = useL();
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -13432,6 +13392,11 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           {demo && <Row label={tr("Subscription")} sub={`${BRAND} ${plan?.name || "Coach"}`} chevron icon={<I C={ShieldCheck} />} onToggle={() => push("subscription")} />}
           {!live && <Row tour="settings-availability" label={tr("Weekly availability")} sub={tr("Days and times you coach")} chevron icon={<I C={CalendarDays} />} onToggle={() => push("availability")} />}
           {!live && <Row tour="settings-roster" label={tr("Roster & groups")} sub={`${cfg.nouns} · ${tr("and recurring groups")}`} chevron icon={<I C={Users} />} onToggle={() => push("roster")} />}
+          {live && <Row label={tr("Set yourself up")} sub={tr("Hours, drills and tips")} chevron icon={<I C={ListChecks} />} onToggle={() => onSetup && onSetup()} />}
+          {/* a coach who takes lessons themselves */}
+          {live && (hasCoach
+            ? <Row label={tr("Lessons you've taken")} sub={coachOfMine || ""} chevron icon={<I C={Library} />} onToggle={() => push("myLessons")} />
+            : <Row label={tr("Take lessons yourself")} sub={tr("Join a coach with their code")} chevron icon={<I C={UserPlus} />} onToggle={() => push("takeLessons")} />)}
           <Row tour="settings-library" label={tr("Drills")} sub={tr("Your reusable library")} chevron icon={<I C={Library} />} onToggle={() => push("library")} />
           <Row tour="settings-lessonlogs" label={tr("Lesson logs")} sub={tr("Save any lesson as a file")} chevron icon={<I C={Download} />} onToggle={() => push("lessonLogs")} />
           {!live && <Row tour="settings-branding" label={tr("Branding")} sub={tr("Logo, colour, club name")} chevron icon={<I C={Palette} />} onToggle={() => push("branding")} />}
@@ -13491,6 +13456,15 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           <Row label={tr("Reduce motion")} sub={tr("Fewer animations")} last right={<Toggle on={reduceMotion} onChange={setReduceMotion} />} />
         </Card></div>
 
+        {/* The rows a real account needs and could not find: they were
+            inside Your profile, behind the profile card, on a screen
+            named after a photo and a phone number. */}
+        {live && (<><Eyebrow>{tr("Account")}</Eyebrow>
+        <div className="px-6 mb-6"><Card>
+          <Row tour="settings-notifications" label={tr("Notifications")} sub={tr("What your phone tells you")} chevron icon={<I C={Bell} />} onToggle={() => push("notifications")} />
+          <Row tour="settings-data" label={tr("Data & permissions")} sub={tr("What is stored, and getting it back")} chevron last icon={<I C={ShieldCheck} />} onToggle={() => push("legal:data")} />
+        </Card></div></>)}
+
         {!live && (<><Eyebrow>{tr("Account")}</Eyebrow>
         <div className="px-6 mb-6"><Card tour="settings-account">
           <Row tour="settings-photo" label={tr("Photo")}  chevron icon={<I C={Camera} />} onToggle={() => onPhoto && onPhoto()} />
@@ -13505,9 +13479,14 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         <Eyebrow>{tr("Support")}</Eyebrow>
         <div className="px-6 mb-6"><Card tour="settings-support">
           {/* a coach's own attendance record is nobody's: registers are theirs to take */}
+          {/* Named as the thing it is. It was "How Nosca works", one row
+              under "How it works", which is two rows saying the same
+              phrase for two different screens. The walkthrough only
+              plays itself at sign-up now, so this is the way back to
+              it. */}
+          <Row tour="settings-tour" label={tr("Walkthrough")} sub={tr("Every screen, again")} chevron icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
           {role !== "coach" && <Row tour="settings-attendance" label={tr("Attendance")} sub={tr("Your record")} chevron icon={<I C={Check} />} onToggle={() => push("attendance")} />}
-          <Row tour="settings-prefs" label={tr("How it works")} chevron icon={<I C={Palette} />} onToggle={() => push("prefs")} />
-          <Row tour="settings-tour" label={tr("How Nosca works")}  chevron last={live && !SUPPORT_EMAIL} icon={<I C={Sparkles} />} onToggle={() => onTour && onTour()} />
+          <Row tour="settings-prefs" label={tr("How it works")} chevron last={live && !SUPPORT_EMAIL} icon={<I C={Palette} />} onToggle={() => push("prefs")} />
           {(!live || SUPPORT_EMAIL) && <Row tour="settings-help" label={tr("Help centre")} chevron icon={<I C={HelpCircle} />} onToggle={() => push("support")} />}
           {(!live || SUPPORT_EMAIL) && <Row tour="settings-contact" label={tr("Contact us")} chevron last icon={<I C={Mail} />} onToggle={() => push("support")} />}
         </Card></div>
@@ -14291,6 +14270,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [region, setRegion] = useState(null);
   const [signupSport, setSignupSport] = useState("golf");
   const [coachSport, setCoachSport] = useState(sc ? sc.sport : (account?.sport || "golf"));
+  /* THE LESSONS I GAVE, not the ones I was given. A coach may also be
+     somebody's player now, and both kinds come back in one read — so a
+     coach's archive, their week and their write-up backlog all take
+     this list, and their own lessons as a player go through mineOnly
+     like anyone else's. */
+  const taught = (list) => (list || []).filter((l) => !account || !l.coachId || l.coachId === account.id);
+  /* which of a coach's sports they are working in right now */
+  const [pickedSport, setPickedSport] = useState(null);
   const [role, setRole] = useState(sc ? sc.role : "coach");
   const [stack, setStack] = useState(sc ? sc.stack : ["today"]);
   const [published, setPublished] = useState(null);
@@ -14347,7 +14334,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (hadCoach.current === false && now && role === "player") setJoined({ coachName: data.coachName, sport: data.coachSport });
     hadCoach.current = now;
   }, [data && data.hasCoach]);
-  const [goalFor, setGoalFor] = useState(null);
   const [scenarios, setScenarios] = useState(false);
   const [famLoaded, setFamLoaded] = useState(false);
   const [announce, setAnnounce] = useState(null);   // takes the whole screen
@@ -14580,17 +14566,42 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [captured, setCaptured] = useState({});
   const [checkIns, setCheckIns] = useState(CHECKIN_SEED);
   const [tour, setTour] = useState(false);
+  /* SET YOURSELF UP. The screen has existed since the first build and
+     only the design harness ever reached it, so every real coach
+     arrived at an app with no hours, no drills and no tips and had to
+     find all three under Settings. Offered once, after the walkthrough
+     if they took one, and remembered on their preferences row rather
+     than in this browser. Reachable again from Settings. */
+  const [setup, setSetup] = useState(false);
+  const setupAsked = useRef(false);
   useEffect(() => {
-    if (!account || sc) return;
-    const key = `nosca.seen.${account.id}`;
-    try {
-      if (!window.localStorage.getItem(key)) {
-        setTour(true);
-        window.localStorage.setItem(key, "1");
-      }
-    } catch (e) { /* private browsing — skip rather than fail */ }
-  }, [account]);
-  /* The arrival screen can ask for the walkthrough on the next mount;
+    /* `role` is state and is set from the account by another effect, so
+       on the commit this first runs it is still the default "coach" —
+       which offered a coach's set-up to every player who signed up.
+       The account's own role is the answer, and it is right the moment
+       there is an account at all. */
+    if (sc || !data || data.loading || setupAsked.current) return;
+    if (!account || account.role !== "coach") { setupAsked.current = true; return; }
+    setupAsked.current = true;
+    if (data.prefs && data.prefs.setup_done) return;
+    /* Never in front of a coach who is already working. Someone who has
+       set their hours has told us when they coach, whatever the flag
+       says — an app that stops a working week to ask questions it can
+       already answer is worse than one that never asked. Settings has
+       it either way. */
+    const days = ((data.prefs && data.prefs.availability) || {}).days || {};
+    if (Object.values(days).some((x) => x && x.length)) return;
+    setSetup(true);
+  }, [account, data && data.loading, data && data.prefs]);
+  /* SIGNING UP OPENS IT. SIGNING IN NEVER DOES.
+     It used to key off a localStorage flag per account, which is a
+     property of the browser rather than of the person: signing in on a
+     new phone, in a private window, or after clearing site data played
+     the whole walkthrough again at someone who had been using Nosca for
+     months. The only thing that opens it now is the arrival screen,
+     which is reached from sign-up alone — and Settings, for anyone who
+     wants it again. */
+  /* The arrival screen asks for the walkthrough on the next mount;
      the request is consumed so a refresh doesn't replay it. */
   useEffect(() => {
     if (sc) return;
@@ -14744,7 +14755,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [requests, setRequests] = useState(account ? [] : SEED_REQUESTS);
   const [accepted, setAccepted] = useState([]);
   const [unlogged, setUnlogged] = useState(UNLOGGED);
-  const [goals, setGoals] = useState(account ? {} : { "Marcus Tran": [{ id: 1, t: "Break 90 at the club champs", by: "End of season", done: false }] });
   const [attendance, setAttendance] = useState({});
   const [prefill, setPrefill] = useState(sc ? (sc.prefill || null) : null);
   /* A real coach's saved slots and lesson length; a real player gets
@@ -14802,7 +14812,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      booking itself — log the same lesson from the plus instead and the
      row kept asking to be logged, and a reload brought every one of
      them back. The lessons table is the answer, so it is asked. */
-  const loggedToday = data ? new Set((data.lessons || [])
+  const loggedToday = data ? new Set(taught(data.lessons)
     .filter((l) => l.iso === `${yearOf(todayMD.m, calendar)}-${String(todayMD.m).padStart(2, "0")}-${String(todayMD.d).padStart(2, "0")}`)
     .map((l) => l.playerId || l.who)) : null;
   const realToday = data ? (((data.bookings || {})[key(todayMD.m, todayMD.d)] || [])
@@ -15028,8 +15038,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   const openRequests = data ? (data.requests || []) : freshAccount ? [] : requests;
   const openWaitlist = freshAccount ? [] : waitlist;
-  const addGoal = (who, text, by) => setGoals((g) => ({ ...g, [who]: [...(g[who] || []), { id: Date.now(), t: text, by, done: false }] }));
-  const toggleGoal = (who, id) => setGoals((g) => ({ ...g, [who]: (g[who] || []).map((x) => (x.id === id ? { ...x, done: !x.done } : x)) }));
   const acceptRequest = async (r) => {
     if (data && r.id) {
       const res = await data.respondToRequest(r.id, true);
@@ -15077,7 +15085,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         : null)
     : (conns.find((c) => c.id === activeId && c.profileId === activeProfileId) || conns.find((c) => c.profileId === activeProfileId));
   const inApp = flow === "app";
-  const sport = account ? account.sport : role === "coach" ? coachSport : (conn?.sport || "golf");
+  /* A SECOND SPORT, NOT A DIFFERENT ONE. profiles.sport is what a coach
+     signed up to coach and never changes — it is what their code was
+     handed out under and what every player who joined them expects.
+     Anything else they coach is listed on their preferences row, and
+     this is which of them they are working in today. */
+  const mySports = account && role === "coach"
+    ? [account.sport, ...(((data && data.prefs && data.prefs.extra_sports) || []).filter((x) => x && x !== account.sport && SPORTS[x]))]
+    : [];
+  const activeSport = mySports.length > 1 && pickedSport && mySports.includes(pickedSport) ? pickedSport
+                    : (account ? account.sport : coachSport);
+  const sport = account ? activeSport : role === "coach" ? coachSport : (conn?.sport || "golf");
+  /* Everything keyed by sport — the drill library, the tips, the groups
+     — reads coachSport, so switching sport moves all of it together. */
+  useEffect(() => {
+    if (account && role === "coach" && activeSport && activeSport !== coachSport) setCoachSport(activeSport);
+  }, [account, role, activeSport, coachSport]);
   const cfg = SPORTS[sport];
   /* EVERY LESSON THIS PERSON WAS AT: their own, and the group sessions
      their coach marked them at. One rule, used by the log, the archive
@@ -15085,7 +15108,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      player who only ever attends a squad is not shown an empty log. */
   const mineOnly = (list) => (list || []).filter((l) => !account || l.playerId === account.id || (l.attendeeIds || []).includes(account.id));
   /* the coach's archive is everything they gave; anyone else's is their own */
-  const archive = data ? (role === "coach" ? (data.lessons || []) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
+  const archive = data ? (role === "coach" ? taught(data.lessons) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
   const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
@@ -15161,7 +15184,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      showed today, so a lesson missed on Friday was invisible on
      Monday. Newest first, because that is the one they still
      remember. */
-  const writtenUp = data ? new Set((data.lessons || []).map((l) => `${l.iso}|${l.playerId || l.who}`)) : null;
+  const writtenUp = data ? new Set(taught(data.lessons).map((l) => `${l.iso}|${l.playerId || l.who}`)) : null;
   const toWriteUp = data ? (liveBookingRows || [])
     .filter((b) => b.status === "confirmed" && (b.playerId || b.groupName)
                    && b.date < isoOf(todayMD.m, todayMD.d)
@@ -15177,6 +15200,38 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     .map((b) => b.playerId)) : null;
   const myGroups = data ? ((data.prefs && data.prefs.groups) || []) : freshAccount ? [] : (groups[coachSport] || []);
   const myLibrary = library[coachSport] || [];
+
+  /* Their hours, their drills and their tips, in one write. Whatever
+     they skipped is simply not in the patch, so nothing is overwritten
+     with a default they never chose. */
+  const finishSetup = async (out) => {
+    setSetup(false);
+    if (!data) return;
+    const patch = { setup_done: true };
+    if (out) {
+      if (out.days && out.times) {
+        const week = {};
+        for (let d = 0; d < 7; d++) week[d] = out.days.includes(d) ? out.times.slice().sort((a, b) => parseTime(a) - parseTime(b)) : [];
+        patch.availability = { ...((data.prefs && data.prefs.availability) || {}), days: week, duration: out.dur || 45, slots: out.times };
+      }
+      if (out.drills && out.drills.length) {
+        const known = SPORTS[coachSport] ? SPORTS[coachSport].drills : [];
+        const rows = out.drills.map((name) => known.find((d) => d.t === name) || { t: name, d: "", focus: null });
+        const had = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || [];
+        const names = new Set(had.map((d) => String(d.t).toLowerCase()));
+        patch.custom_drills = { ...((data.prefs && data.prefs.custom_drills) || {}),
+                                [coachSport]: [...rows.filter((d) => !names.has(String(d.t).toLowerCase())), ...had] };
+      }
+      if (out.tips && out.tips.length) {
+        const had = (data.prefs && data.prefs.custom_tips && data.prefs.custom_tips[coachSport]) || [];
+        patch.custom_tips = { ...((data.prefs && data.prefs.custom_tips) || {}),
+                              [coachSport]: [...out.tips.filter((x) => !had.includes(x)), ...had] };
+      }
+    }
+    const res = await data.savePrefs(patch);
+    if (res && res.error) { hapticWarn(); say(res.error.message); return; }
+    if (out) done(tr("You're set up"), tr("Hours, drills and tips saved"));
+  };
 
   const say = (m) => { setToast(m); setTimeout(() => setToast(null), 1900); };
   /* An everyday confirmation: a tick, what happened, and the detail.
@@ -15505,7 +15560,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        as their own so the Family screens can show them. Everywhere a
        person is looking at their OWN log, that is too much: filter to
        the signed-in person and leave the whole list to FamilyHome. */
-    if (data) return role === "coach" ? data.lessons : mineOnly(data.lessons);
+    if (data) return role === "coach" ? taught(data.lessons) : mineOnly(data.lessons);
     if (!conn || freshAccount) return [];
     const seed = conn.seeded ? SPORTS[conn.sport].lessons : [];
     if (published && role === "player") return [{ id: 999, focus: published.focus, subs: published.subs, d: "24", m: "JUL", type: published.type === "group" ? "Group" : "Private", videos: published.videos.length, unread: true }, ...seed];
@@ -15535,7 +15590,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
     const jan1 = new Date(now.getFullYear(), 0, 1);
     const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const mine = role === "coach" ? (data.lessons || []) : mineOnly(data.lessons);
+    const mine = role === "coach" ? taught(data.lessons) : mineOnly(data.lessons);
     const week = mine.filter((l) => l.iso && l.iso >= ymd(weekAgo) && l.iso <= ymd(now)).length;
     const season = mine.filter((l) => l.iso && l.iso >= ymd(jan1)).length;
     return { weekDone: week, weekHours: Math.round((week * (duration || 45)) / 60), seasonDone: season };
@@ -15762,7 +15817,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pname = screen.slice("player:".length);
-    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? data.lessons : null}
+    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
                         player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
@@ -15770,9 +15825,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      drills set for them — myLibrary is a coach's, and is empty for a
      player, so the Drills group could never match anything for them
      even though its row opens Practice. */
-  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={role === "coach" ? myLibrary : (myPractice || [])} tips={myTips} lessons={data ? (role === "coach" ? data.lessons : playerLessons) : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
+  } else if (screen === "takeLessons" && data) {
+    /* A COACH IS ALSO SOMEBODY'S PLAYER. Coaches take lessons; the app
+       refused the code outright, in the database as well as here. The
+       same screen a player uses, from the same code — their own lessons
+       are then theirs, and are kept out of everything that counts what
+       they have taught. */
+    body = <NoCoach juvenile={false} pending={data.myRequest} declinedBy={data.declinedBy}
+                    onWithdraw={data.cancelRequest ? () => data.cancelRequest() : null}
+                    onJoin={async (code) => { const r = await data.joinCoach(code); if (!(r && r.error)) { chime(); done(tr("Request sent"), tr("They accept from their app")); pop(); } return r; }} />;
+    bare = true;
+  } else if (screen === "myLessons" && data) {
+    body = <LessonLogs role="player" lessons={mineOnly(data.lessons)} pop={pop}
+                       onDownload={async (l) => { const media = await data.lessonMedia(l.id);
+                         downloadLessonLog({ lesson: l, coach: l.coach || "", who: null, media, say }); }} />;
+  } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={role === "coach" ? myLibrary : (myPractice || [])} tips={myTips} lessons={data ? (role === "coach" ? taught(data.lessons) : playerLessons) : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
-    body = <LessonLogs role={role} lessons={data ? (role === "coach" ? data.lessons : playerLessons) : playerLessons} pop={pop}
+    body = <LessonLogs role={role} lessons={data ? (role === "coach" ? taught(data.lessons) : playerLessons) : playerLessons} pop={pop}
                        onDownload={async (l) => {
                          const media = data ? await data.lessonMedia(l.id) : [];
                          downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName), who: role === "coach" || l.type === "Group" ? l.who : null, media, say });
@@ -15829,7 +15898,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (hid) Object.values(registers || {}).forEach((reg) => { const v = reg[hid]; if (v === "in") showed++; else if (v === "out") noShow++; });
       return showed + noShow ? { [hname]: { showed, noShow, cancelled: 0, late: 0 } } : {};
     })() : null;
-    body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={realAtt || attendance} goals={data ? {} : goals} onAddGoal={addGoal} onToggleGoal={toggleGoal} pop={pop} push={push} say={say} />;
+    body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={realAtt || attendance} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("clesson:")) {
     /* THE ID COMES FIRST and the name is whatever is left, taken with
        indexOf rather than split. It used to be `clesson:<who>:<id>`
@@ -16002,12 +16071,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <UnloggedLessons items={openUnlogged} onLog={(u) => { setPrefill(u); go("log"); }}
                             onDismiss={(u) => { setUnlogged((v) => v.filter((x) => x !== u)); say("Removed"); }} pop={pop} />;
   } else if (screen === "profile" && data) {
-    body = <ProfileScreen account={account} me={data.me} role={role} avatar={myAvatar} family={data.family}
+    body = <ProfileScreen account={account} me={data.me} role={role} avatar={myAvatar}
+                          sports={mySports} activeSport={activeSport} onPickSport={(sp) => { setPickedSport(sp); say(`${SPORTS[sp].label} ${tr("it is")}`); }}
+                          onAddSport={async (sp) => { const cur = (data.prefs && data.prefs.extra_sports) || [];
+                            const r = await data.savePrefs({ extra_sports: [...cur.filter((x) => x !== sp), sp] });
+                            if (r && r.error) { hapticWarn(); say(r.error.message); return; }
+                            done(tr("Added"), SPORTS[sp].label); }}
+                          onRemoveSport={async (sp) => { const cur = (data.prefs && data.prefs.extra_sports) || [];
+                            const r = await data.savePrefs({ extra_sports: cur.filter((x) => x !== sp) });
+                            if (r && r.error) { hapticWarn(); say(r.error.message); return; }
+                            if (pickedSport === sp) setPickedSport(null); say(tr("Removed")); }}
                           onSave={async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
                           onUploadAvatar={async (file) => { const res = await data.uploadAvatar(file); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
                           onRemoveAvatar={async () => { const res = await data.removeAvatar(); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; }}
-                          onChangePassword={() => setSheet("password")} onNotifications={() => push("notifications")} onData={() => push("legal:data")}
-                          onFamily={() => push("familyCode")} onSignOut={restart} onDelete={() => setSheet("deleteAccount")} pop={pop} push={push} say={say} />;
+                          onChangePassword={() => setSheet("password")}
+                          onSignOut={restart} onDelete={() => setSheet("deleteAccount")} pop={pop} push={push} say={say} />;
   } else if (screen === "details") { body = <Details role={role} pop={pop} say={say} me={account ? { name: account.name, email: account.email, phone: account.phone, club: account.club } : null}
                                                    onSave={data ? async (v) => { const res = await data.updateProfile(v); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null}
                                                    onChangePassword={data ? () => setSheet("password") : null} />;
@@ -16047,11 +16125,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
-                          avatar={myAvatar} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true}
+  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+                          avatar={myAvatar} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
-                          weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} lifetime={data ? (data.lessons || []).length : freshAccount ? 0 : 1284} monthly={data ? (realMonthly || []) : freshAccount ? [] : MONTHLY} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn}
+                          weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} lifetime={data ? (role === "coach" ? taught(data.lessons).length : mineOnly(data.lessons).length) : freshAccount ? 0 : 1284} monthly={data ? (realMonthly || []) : freshAccount ? [] : MONTHLY} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} dark={dark} setDark={setDark} textScale={textScale} setTextScale={setTextScale} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn}
                           startOn={startOn} setStartOn={setStartOn}
                           startOptions={[{ id: "auto", label: tr("As it comes") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
                           pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
@@ -16090,7 +16168,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
                   onMessages={() => go("messages")}
-                  onAttend={() => { setAttendFor(null); setSheet("attend"); }}
+                  stats={liveStats ? { week: liveStats.weekDone, hours: liveStats.weekHours, season: liveStats.seasonDone }
+                                   : freshAccount ? { week: 0, hours: 0, season: 0 }
+                                   : { week: 11, hours: 9, season: 210 }}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
                   onNoShow={markNoShow}
                   onPeek={(b) => { setPeek(b); setSheet("peek"); }}
@@ -16230,7 +16310,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               ["Player offered a new time", () => { setRole("player"); setRescheduleFor("Thursday 5:30 pm"); setStack(["home"]); setSheet("reschedule"); }],
               ["Lesson waiting to be logged", () => { setRole("coach"); setStack(["today"]); }],
               ["Logging — attendance first", () => { setRole("coach"); setPrefill({ who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: "Private" }); setStack(["log"]); }],
-              ["Just published — drills, tip, goal", () => { setRole("coach"); setPublished({ type: "private", who: ["Marcus Tran"], focus: "Short game", focusIds: ["short"], subs: [], videos: [], note: null, attend: "showed" }); setStack(["published"]); }],
+              ["Just published — drills and a tip", () => { setRole("coach"); setPublished({ type: "private", who: ["Marcus Tran"], focus: "Short game", focusIds: ["short"], subs: [], videos: [], note: null, attend: "showed" }); setStack(["published"]); }],
               ["Focus suggestion to approve", () => { setRole("coach"); setFocusReqs([{ who: "Priya Ellis", focus: "Short game", note: "Losing shots around the green." }]); setStack(["today"]); }],
               ["Player suggesting a focus", () => { setRole("player"); setStack(["home"]); setSheet("suggest"); }],
               ["Player rating a lesson", () => { setRole("player"); setStack(["home"]); setSheet("rate"); }],
@@ -16320,6 +16400,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             <CatchUp items={catchUp} onOpen={openNotification}
                      onDone={() => { data && data.markNotificationsRead(); setCatchUp(null); }} />
           )}
+          {setup && !tour && data && (
+            <div className="absolute inset-0" style={{ zIndex: 66, background: theme.page }}>
+              <CoachSetup live cfg={cfg} sport={coachSport} slots={slots}
+                          tipPrompts={[...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])]}
+                          onDone={finishSetup} onSkip={() => finishSetup(null)} />
+            </div>
+          )}
           {tour && <Walkthrough role={role} juvenile={juvenile} sport={sport}
                        isParent={account ? (account.accountType === "parent" || hasFamily) : (!juvenile && profiles.some((p) => p.age))}
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
@@ -16364,7 +16451,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onPick={(r) => {
                                               setSheet(null);
                                               setTimeout(() => {
-                                                if (pickFor === "tip") { setGoalFor(r.name); setAssignTo(r); setSheet("tip"); }
+                                                if (pickFor === "tip") { setAssignTo(r); setSheet("tip"); }
                                                 else openAssignDrills(r);
                                               }, 180);
                                             }}
@@ -16452,7 +16539,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "invite" ? <InviteBody code={inviteShown} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
-              : sheet === "tip" ? <TipBody focusLabel={assignFocus || (cfg.focus[0] || {}).label} prompts={TIP_PROMPTS[coachSport]} onSet={doSetTip} close={() => setSheet(null)} />
+              : sheet === "tip" ? <TipBody focusLabel={assignFocus || (cfg.focus[0] || {}).label}
+                                            prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
+                                            onSet={doSetTip} close={() => setSheet(null)} />
               : sheet === "group" ? <GroupCreate livePlayers={data ? data.roster : null} cfg={cfg} coachSport={coachSport} onCreate={createGroup} close={() => setSheet(null)} />
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} existingNames={[...PLAYERS, ...invited.map((p) => p.name)]}
                                                     onSend={(names) => setInvited((v) => [...v, ...names.map((n) => ({ name: n, sentAt: "just now" }))])}
@@ -16607,9 +16696,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "suggest" ? <SuggestFocus cfg={cfg}
                                             onSend={(f, n) => { setFocusReqs((v) => [...v, { who: activeProfile.name, focus: f, note: n }]);
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
-                                            close={() => setSheet(null)} />
-              : sheet === "goal" ? <GoalSheet name={goalFor || "them"} cfg={cfg}
-                                            onSave={(n, txt, by) => { addGoal(n, txt, by); done(tr("Goal set"), txt); }}
                                             close={() => setSheet(null)} />
               : sheet === "newChoice" ? (
                   <>

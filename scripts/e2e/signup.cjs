@@ -511,21 +511,36 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
     });
 
     /* a real account's walkthrough leaves out steps whose control it never has */
-    await scenario(browser, "17-live-tour-runs-for-a-real-account", async ({ page, db, shot, note }) => {
+    /* Signing in never plays the walkthrough — that belongs to sign-up.
+       Settings → Walkthrough is the way back to it, and this is where
+       the step counts for a real account are checked. */
+    await scenario(browser, "17-live-tour-from-settings-not-on-sign-in", async ({ page, db, shot, note }) => {
       const counter = async () => (await page.locator("[data-tour-counter]").first().textContent().catch(() => "")) || "";
+      const openFromSettings = async () => {
+        await page.getByRole("button", { name: "You" }).first().click(); await page.waitForTimeout(700);
+        await page.getByRole("button", { name: /Walkthrough/ }).first().click(); await page.waitForTimeout(1200);
+      };
+
       await signIn(page, "coach@example.ie", "secret123");
-      await page.waitForTimeout(1200); await waitSplash(page); await shot("coach-tour");
+      await page.waitForTimeout(1200); await waitSplash(page); await shot("coach-signed-in");
+      if ((await counter()).trim()) note("FAIL the walkthrough opened on sign-in for a coach");
+      else note("signing in did not play the walkthrough");
+      await openFromSettings(); await shot("coach-tour");
       const c = (await counter()).trim();
       const cn = Number((c.match(/1 \/ (\d+)/) || [])[1]);
-      if (!cn || cn < 15 || cn > 30) note("FAIL coach tour counter is " + JSON.stringify(c)); else note(`coach tour: ${cn} steps for a real account`);
+      if (!cn || cn < 15 || cn > 30) note("FAIL coach tour counter is " + JSON.stringify(c)); else note(`coach tour from Settings: ${cn} steps`);
       await dismissTour(page);
+
       addPlayer(db, { email: "ann@example.ie", name: "Ann Burke", coachId: COACH_ID });
       await page.evaluate(() => localStorage.clear());
       await signIn(page, "ann@example.ie", "secret123");
-      await page.waitForTimeout(1200); await waitSplash(page); await shot("player-tour");
+      await page.waitForTimeout(1200); await waitSplash(page); await shot("player-signed-in");
+      if ((await counter()).trim()) note("FAIL the walkthrough opened on sign-in for a player");
+      else note("signing in did not play the walkthrough for a player either");
+      await openFromSettings(); await shot("player-tour");
       const p = (await counter()).trim();
       const pn = Number((p.match(/1 \/ (\d+)/) || [])[1]);
-      if (!pn || pn < 8 || pn > 25) note("FAIL player tour counter is " + JSON.stringify(p)); else note(`player tour: ${pn} steps for a real account`);
+      if (!pn || pn < 8 || pn > 25) note("FAIL player tour counter is " + JSON.stringify(p)); else note(`player tour from Settings: ${pn} steps`);
       await dismissTour(page);
     });
 

@@ -72,10 +72,17 @@ const nowIso = (db) => new Date(db.now()).toISOString();
 
 /* ---------------------------------------------------------------- fixtures */
 function addUser(db, { id, email, password = "secret12", meta = {} }) { const u = { id, email: email.toLowerCase(), password, meta }; db.users[u.email] = u; return u; }
-function addProfile(db, { id, role, name, sport = "golf", type = null, coachId = null, familyId = null, inviteCode = null, dob = null, phone = null, club = null, avatar = null, bio = null, createdAt = null }) {
+function addProfile(db, { id, role, name, sport = "golf", type = null, coachId = null, familyId = null, inviteCode = null, dob = null, phone = null, club = null, avatar = null, bio = null, createdAt = null, established = true }) {
   const row = { id, role, name, sport, account_type: type || (role === "coach" ? "coach" : null), coach_id: coachId, family_id: familyId, invite_code: role === "coach" ? (inviteCode || code6()) : null,
     date_of_birth: dob, phone, club, avatar_path: avatar, bio, created_at: createdAt || nowIso(db) };
-  db.profiles[id] = row; return row;
+  db.profiles[id] = row;
+  /* A coach a fixture puts in the database is one who has been using
+     Nosca — they have a roster and lessons behind them — so they are
+     past "set yourself up". A coach who arrives through the sign-up
+     trigger has no preferences row at all, which is what the app reads
+     as brand new. */
+  if (role === "coach" && established) setPrefs(db, id, { setup_done: true });
+  return row;
 }
 function addFamily(db, { id = uuid("fa000000"), code = code6(), name = null, createdBy = null }) { const f = { id, code, name, created_by: createdBy, created_at: nowIso(db) }; db.families[id] = f; return f; }
 function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupName = null, date, focus, subs = [], notes = null, unread = true, ratingRequested = false }) {
@@ -98,7 +105,7 @@ function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, group
 }
 function addDrill(db, { id = uuid("d0000000"), coachId, playerId, title, done = false }) { const row = { id, coach_id: coachId, player_id: playerId, title, done, created_at: nowIso(db) }; db.drills.push(row); return row; }
 function addMessage(db, { id = uuid("30000000"), coachId, playerId, senderId, body, readAt = null, createdAt }) { const row = { id, coach_id: coachId, player_id: playerId, sender_id: senderId, body, read_at: readAt, created_at: createdAt || nowIso(db) }; db.messages.push(row); return row; }
-function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, availability: {}, groups: [], updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
+function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
 
 /* a week of hours in the shape the app saves: Monday-first day keys */
 const weekOf = (times = ["9:00 am", "10:00 am", "11:00 am", "2:00 pm", "3:00 pm"], days = [0, 1, 2, 3, 4]) =>
@@ -130,10 +137,16 @@ function onRequestDecided(db, r) {
   if (r.status === "accepted") notify(db, r.player_id, "accepted", `${nameOf(db, r.coach_id)} accepted you`, null, { screen: "home", id: r.id });
   else if (r.status === "declined") notify(db, r.player_id, "declined", `${nameOf(db, r.coach_id)} can't take you on`, null, { screen: "home", id: r.id });
 }
-function onBookingInsert(db, b) {
+function onBookingInsert(db, b, actor) {
   if (!b.player_id) return;
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
-  if (b.status === "requested") notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} asked for a lesson`, whn, { screen: "today", id: b.id });
+  if (b.status === "requested") {
+    notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} asked for a lesson`, whn, { screen: "today", id: b.id });
+    /* asked for on their behalf — the child is told it happened */
+    if (actor && actor !== b.player_id) {
+      notify(db, b.player_id, "booking", "Lesson asked for", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
+    }
+  }
   else if (b.status === "confirmed") {
     notify(db, b.player_id, "booking", "Lesson booked", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
     adultsFor(db, b.player_id).forEach((a) => notify(db, a, "booking", `${firstOf(db, b.player_id)}'s lesson booked`, whn, { screen: "family", id: b.id }));
@@ -147,14 +160,24 @@ function onBookingUpdate(db, b, old, actor) {
   else if (b.status === "weather") { notify(db, b.player_id, "weather", "Called off — weather", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson called off`, `${whn} · weather`); }
   else if (b.status === "cancelled") {
     if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson cancelled`, whn); }
-    else notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, whn, { screen: "calendar", id: b.id });
+    else {
+      notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, whn, { screen: "calendar", id: b.id });
+      if (actor && actor !== b.player_id) {
+        notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
+      }
+    }
   }
 }
 function onMessageInsert(db, m) {
   const snip = String(m.body || "").slice(0, 80);
   if (m.sender_id === m.coach_id) {
-    notify(db, m.player_id, "message", nameOf(db, m.coach_id), snip, { screen: "thread", id: m.player_id });
-    adultsFor(db, m.player_id).forEach((a) => notify(db, a, "message", `${nameOf(db, m.coach_id)} → ${firstOf(db, m.player_id)}`, snip, { screen: "thread", id: m.player_id }));
+    /* a junior's messages are told to the adults who look after them,
+       named as theirs; the junior only hears directly if there are none */
+    const adults = adultsFor(db, m.player_id);
+    adults.forEach((a) => notify(db, a, "message", `${nameOf(db, m.coach_id)} messaged ${firstOf(db, m.player_id)}`, snip, { screen: "thread", id: m.player_id }));
+    if (!adults.length) notify(db, m.player_id, "message", nameOf(db, m.coach_id), snip, { screen: "thread", id: m.player_id });
+    /* the child is told THAT it happened and never what it said */
+    else notify(db, m.player_id, "message", `${nameOf(db, m.coach_id)} messaged your family`, null, { screen: "home" });
   } else notify(db, m.coach_id, "message", nameOf(db, m.sender_id), snip, { screen: "thread", id: m.player_id });
 }
 function onDrillsInsert(db, rows) {
@@ -182,7 +205,7 @@ function signupTrigger(db, u) {
   const ccode = String(m.coach_code || "").trim().toUpperCase(), fcode = String(m.family_code || "").trim().toUpperCase();
   const coach = role === "player" && ccode ? Object.values(db.profiles).find((p) => p.role === "coach" && String(p.invite_code || "").toUpperCase() === ccode) : null;
   let fam = fcode ? Object.values(db.families).find((f) => f.code === fcode) : null;
-  const row = addProfile(db, { id: u.id, role, name, sport, type, dob, phone: String(m.phone || "").trim() || null, familyId: fam ? fam.id : null });
+  const row = addProfile(db, { id: u.id, role, name, sport, type, dob, phone: String(m.phone || "").trim() || null, familyId: fam ? fam.id : null, established: false });
   if (!fam && type === "parent") { fam = addFamily(db, { createdBy: u.id }); row.family_id = fam.id; }
   if (fam) onFamilyJoin(db, row);
   if (coach) addRequest(db, { playerId: u.id, coachId: coach.id, notify: true });
@@ -381,7 +404,6 @@ async function attach(page, db, opts = {}) {
         const c = Object.values(db.profiles).find((x) => x.role === "coach" && String(x.invite_code || "").toUpperCase() === code);
         if (!c) return human("That code doesn't match a coach.");
         if (c.id === meId) return human("That's your own code.");
-        if (mine.role === "coach") return human("A coach account can't join another coach as a player.");
         if (mine.coach_id === c.id) return human(`You're with ${c.name} already.`);
         if (mine.coach_id) return human("Leave your current coach first — open their profile from Home.");
         if (!db.requests.some((r) => r.player_id === meId && r.coach_id === c.id && r.status === "pending")) addRequest(db, { playerId: meId, coachId: c.id, notify: true });
@@ -493,7 +515,7 @@ async function attach(page, db, opts = {}) {
       target.push(...made);
       made.forEach((r) => { if (table === "lesson_media") db.files.media[r.storage_path] = db.files.media[r.storage_path] || { size: 10 }; });
       if (table === "lessons") made.forEach((r) => onLessonInsert(db, r));
-      if (table === "bookings") made.forEach((r) => onBookingInsert(db, r));
+      if (table === "bookings") made.forEach((r) => onBookingInsert(db, r, meId));
       if (table === "messages") made.forEach((r) => onMessageInsert(db, r));
       if (table === "drills") onDrillsInsert(db, made);
       if (table === "tips") made.forEach((r) => onTipInsert(db, r));

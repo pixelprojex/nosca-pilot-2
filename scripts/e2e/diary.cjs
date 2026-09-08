@@ -261,17 +261,24 @@ const leaks = [];
       await tap(page, '[data-tour="settings-profile"]', 900);
       const t11 = await leak("coach profile"); await shot("30-coach-profile");
       const nameVal = await page.locator('input[aria-label="Name"]').inputValue();
-      check("(f) Your profile shows the real person: name, sport chips, date of birth, club, email, no stubs", t11.includes("Your profile") && nameVal === "Niamh Byrne" && (await page.locator('[data-tour="profile-sport"] button').count()) >= 6 && (await page.locator('input[aria-label="Date of birth"]').count()) === 1 && t11.includes("coach@t.ie") && !t11.includes("Qualifications") && !t11.includes("Ray Doyle"), `${nameVal} · ${t11.slice(0, 200)}`);
+      check("(f) Your profile shows the real person: name, the sport they coach, date of birth, club, email, no stubs", t11.includes("Your profile") && nameVal === "Niamh Byrne" && (await page.locator('[data-tour="profile-sport"] button').count()) === 1 && /Golf · main/.test(t11) && (await page.locator('input[aria-label="Date of birth"]').count()) === 1 && t11.includes("coach@t.ie") && !t11.includes("Qualifications") && !t11.includes("Ray Doyle"), `${nameVal} · ${t11.slice(0, 200)}`);
+      /* THE DEFAULT SPORT IS NOT A SETTING. It is what the invite code
+         was handed out under, so the profile shows it and offers the
+         other five as additions rather than replacements. */
+      check("(f) the sport they signed up to coach cannot be swapped, only added to", t11.includes("Sports you coach") && t11.includes("Add another") && /\+ Tennis/.test(t11), t11.slice(0, 260));
+      await page.getByRole("button", { name: "+ Tennis" }).first().click(); await page.waitForTimeout(1200);
+      check("(f) adding a second sport writes preferences.extra_sports and leaves profiles.sport alone",
+            JSON.stringify((db.prefs[IDS.coach] || {}).extra_sports || []) === '["tennis"]' && db.profiles[IDS.coach].sport === "golf",
+            JSON.stringify({ extra: (db.prefs[IDS.coach] || {}).extra_sports, sport: db.profiles[IDS.coach].sport }));
       await page.fill('input[aria-label="Name"]', "Niamh Byrne-Walsh");
-      await page.locator('[data-tour="profile-sport"] button', { hasText: "Tennis" }).click(); await page.waitForTimeout(150);
       await page.fill('input[aria-label="Date of birth"]', "1985-07-24");
       await page.fill('input[aria-label="Club or academy"]', "Hollow Lane GC");
       await tap(page, '[data-tour="profile-save"]', 2000);
       const pp = last(db.patches, "profiles");
-      check("(f) Save PATCHes profiles with name, sport, date_of_birth and club, on the person's own row", !!pp && pp.body.name === "Niamh Byrne-Walsh" && pp.body.sport === "tennis" && pp.body.date_of_birth === "1985-07-24" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
+      check("(f) Save PATCHes profiles with name, date_of_birth and club, on the person's own row", !!pp && pp.body.name === "Niamh Byrne-Walsh" && pp.body.sport === "golf" && pp.body.date_of_birth === "1985-07-24" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
       const t12 = await text(); await shot("31-coach-profile-saved");
       check("(f) saving keeps the person on Your profile with the new values and the age worked out", t12.includes("Your profile") && t12.includes("Saved") === false || t12.includes("Your profile"), t12.slice(0, 120));
-      check("(f) the database row now carries the change", db.profiles[IDS.coach].name === "Niamh Byrne-Walsh" && db.profiles[IDS.coach].sport === "tennis" && db.profiles[IDS.coach].date_of_birth === "1985-07-24", JSON.stringify(db.profiles[IDS.coach]));
+      check("(f) the database row now carries the change", db.profiles[IDS.coach].name === "Niamh Byrne-Walsh" && db.profiles[IDS.coach].sport === "golf" && db.profiles[IDS.coach].date_of_birth === "1985-07-24", JSON.stringify(db.profiles[IDS.coach]));
       /* the photo: a real PNG through the hidden input → squared on the device → avatars bucket → avatar_path */
       await page.locator('input[type="file"][accept="image/*"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: M.PNG });
       await page.waitForTimeout(2500);
@@ -301,8 +308,12 @@ const leaks = [];
       const au = db.auth.find((x) => x.method === "PUT");
       check("(f) Change password PUTs /auth/v1/user with the new password", !!au && au.body.password === "newpass123", JSON.stringify(au));
       await shot("34-coach-password");
-      /* (i) notifications, from the profile */
-      await tap(page, '[data-tour="profile-notifications"]', 900);
+      /* (i) notifications — a setting, so it lives in Settings now,
+             not buried on the profile screen behind a photo and a phone
+             number */
+      check("(f) the profile screen no longer carries settings", !(await page.locator('[data-tour="profile-notifications"]').count()), "profile-notifications still on the profile");
+      await back(page); await page.waitForTimeout(700);
+      await tap(page, '[data-tour="settings-notifications"]', 900);
       const t16 = await leak("coach notifications"); await shot("35-coach-notifications");
       const sw = page.locator('[data-tour="notif-push"] button[aria-pressed]');
       check("(i) Notifications carries the push switch for this device, off, and no invented quiet hours", (await sw.count()) === 1 && (await sw.getAttribute("aria-pressed")) === "false" && t16.includes("Tell me even when Nosca is closed") && t16.includes("As they happen") && !t16.includes("Quiet hours") && !t16.includes("Turn on push"), t16.slice(0, 240));

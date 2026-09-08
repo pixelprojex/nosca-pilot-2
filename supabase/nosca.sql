@@ -263,6 +263,19 @@ alter table public.preferences add column if not exists groups         jsonb not
 -- skipped. Null means they have never had one.
 alter table public.preferences add column if not exists digest_at      timestamptz;
 
+-- A coach's SECOND SPORT. profiles.sport is what they signed up to
+-- coach and never changes — it is what their code and their players
+-- were joined under. Anything else they coach is listed here, and the
+-- app lets them work in whichever of them they are in front of today.
+alter table public.preferences add column if not exists extra_sports   text[] not null default '{}';
+-- The tips a coach gives over and over, keyed by sport, so the tip
+-- sheet offers their own words rather than only the starter set.
+alter table public.preferences add column if not exists custom_tips    jsonb not null default '{}'::jsonb;
+-- Have they been through "set yourself up" — their hours, their drills,
+-- their tips. False until they finish it or skip it, so it is offered
+-- once rather than every time the app opens.
+alter table public.preferences add column if not exists setup_done     boolean not null default false;
+
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the
 -- message: the coach, the player, or the player's guardian.
@@ -975,9 +988,12 @@ begin
   if my_role is null then
     raise exception 'Your account isn''t finished. Sign out, sign back in, and try again.';
   end if;
-  if my_role = 'coach' then
-    raise exception 'A coach account can''t join another coach as a player.';
-  end if;
+  -- A COACH MAY ALSO BE SOMEONE'S PLAYER. Coaches take lessons too, and
+  -- refusing the code was an arbitrary rule rather than a safe one:
+  -- coach_id is simply who coaches you, and a coach having one changes
+  -- nothing about the people they coach themselves. What is still
+  -- refused is coaching yourself, just above.
+
   if my_coach = c.id then
     raise exception 'You''re with % already.', c.name;
   end if;
@@ -1357,6 +1373,14 @@ begin
     if new.status = 'requested' then
       perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' asked for a lesson',
         whn, jsonb_build_object('screen', 'today', 'id', new.id));
+      -- ASKED FOR ON THEIR BEHALF. A junior cannot book, so a parent
+      -- does it for them — and until now the child heard nothing until
+      -- the coach confirmed it, if they were told then at all. Their own
+      -- diary is the one thing that is unarguably theirs.
+      if actor is not null and actor <> new.player_id then
+        perform public.notify(new.player_id, 'booking', 'Lesson asked for',
+          whn || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'calendar', 'id', new.id));
+      end if;
     elsif new.status = 'confirmed' then
       perform public.notify(new.player_id, 'booking', 'Lesson booked', whn || ' · ' || public.name_of(new.coach_id),
         jsonb_build_object('screen', 'calendar', 'id', new.id));
@@ -1391,6 +1415,11 @@ begin
       else
         perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' cancelled', whn,
           jsonb_build_object('screen', 'calendar', 'id', new.id));
+        -- cancelled for them, by the adult who booked it
+        if actor is not null and actor <> new.player_id then
+          perform public.notify(new.player_id, 'booking', 'Lesson cancelled',
+            whn || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'calendar', 'id', new.id));
+        end if;
       end if;
     end if;
   end if;
@@ -1405,16 +1434,34 @@ create trigger bookings_notify after insert or update on public.bookings
 create or replace function public.trg_messages_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare
-  a    uuid;
-  snip text := left(new.body, 80);
+  a      uuid;
+  adults int := 0;
+  snip   text := left(new.body, 80);
 begin
   if new.sender_id = new.coach_id then
-    perform public.notify(new.player_id, 'message', public.name_of(new.coach_id), snip,
-      jsonb_build_object('screen', 'thread', 'id', new.player_id));
+    -- A CHILD'S MESSAGES GO TO THE ADULT WHO LOOKS AFTER THEM. A junior
+    -- was buzzed on their own phone for every message their coach sent,
+    -- and the adult got the same line with an arrow in it that read as
+    -- though the coach had written to them. The adults are told, and
+    -- told whose message it is; the junior is only told directly if
+    -- there is no adult looking after them at all.
     for a in select public.adults_for(new.player_id) loop
-      perform public.notify(a, 'message', public.name_of(new.coach_id) || ' → ' || public.first_name_of(new.player_id), snip,
+      adults := adults + 1;
+      perform public.notify(a, 'message', public.name_of(new.coach_id) || ' messaged ' || public.first_name_of(new.player_id), snip,
         jsonb_build_object('screen', 'thread', 'id', new.player_id));
     end loop;
+    if adults = 0 then
+      perform public.notify(new.player_id, 'message', public.name_of(new.coach_id), snip,
+        jsonb_build_object('screen', 'thread', 'id', new.player_id));
+    else
+      -- The child is told THAT it happened and never what it said: the
+      -- conversation is between their coach and the adult who looks
+      -- after them, and there is no thread for a junior to open. Not
+      -- telling them at all meant lessons were arranged around them
+      -- with no sign on their own phone that anything had.
+      perform public.notify(new.player_id, 'message', public.name_of(new.coach_id) || ' messaged your family',
+        null, jsonb_build_object('screen', 'home'));
+    end if;
   else
     perform public.notify(new.coach_id, 'message', public.name_of(new.sender_id), snip,
       jsonb_build_object('screen', 'thread', 'id', new.player_id));

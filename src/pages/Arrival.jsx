@@ -46,10 +46,12 @@ export default function Arrival({ role, profile, data, onDone }) {
 
   const go = (tour) => {
     haptic(10);
+    /* The one thing that opens the walkthrough. Nothing else does — a
+       sign-in on a new device used to replay it, because "have you seen
+       this" was kept per browser rather than tied to signing up. */
     try {
       if (tour) window.sessionStorage.setItem("nosca.tour.now", "1");
-      else window.localStorage.setItem(`nosca.seen.${profile.id}`, "1");   // the first-run tour keys off this
-    } catch (e) { /* private mode — the app decides on its own */ }
+    } catch (e) { /* private mode — they can start it from Settings */ }
     onDone();
   };
 
