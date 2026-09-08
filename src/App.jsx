@@ -4,6 +4,8 @@ import Auth from "./pages/Auth";
 import Arrival from "./pages/Arrival";
 import Nosca from "./Nosca";
 import { useNoscaData, avatarUrl } from "./lib/useNoscaData";
+import { registerSw, syncSubscription } from "./lib/push";
+import { supabase } from "./lib/supabase";
 
 /* The full designed application, behind the real sign-in.
  *
@@ -64,6 +66,19 @@ function SignedIn({ profile, signOut, email, invite, onInviteUsed }) {
   const { refreshProfile } = useAuth();
   const [arrival, setArrival] = useState(readArrival);
   useEffect(() => { try { window.sessionStorage.removeItem("nosca.arrival"); } catch (e) { /* private mode */ } }, []);
+
+  /* PUSH, ON EVERY OPEN.
+     Register the worker now rather than on the tap that asks for
+     permission: Safari ties that prompt to a live gesture, and
+     registering inside it can outlast the gesture. Then put the stored
+     subscription back in step with this account — a row is pruned when
+     an endpoint 410s, an account is deleted, or a phone changes hands,
+     and nothing else would ever notice. Neither call asks anyone
+     anything, so both are safe on every open. */
+  useEffect(() => {
+    registerSw();
+    if (profile && profile.id) syncSubscription(supabase, profile.id).catch(() => {});
+  }, [profile && profile.id]);
 
   /* One object per real change. Nosca resets its navigation whenever
      this prop's identity changes, and SignedIn re-renders on every data

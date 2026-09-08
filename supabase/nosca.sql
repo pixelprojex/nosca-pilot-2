@@ -129,6 +129,27 @@ create table if not exists public.lesson_media (
   created_at   timestamptz not null default now()
 );
 
+-- ---------- lesson_attendees ----------
+-- Who was actually at a group lesson. A private lesson carries its one
+-- person in lessons.player_id; a group lesson carries a name and, until
+-- now, nobody — so every per-player count and per-player list was of
+-- private lessons only. A player in a weekly squad read as "1 lesson"
+-- on their coach's screen, and their own log was empty.
+-- One row per player per lesson, written when the lesson is logged.
+-- Nothing is filled in for lessons logged before this table existed:
+-- who is in a group today is not who was there in March, and a number
+-- that is missing is honest where an invented one is not.
+create table if not exists public.lesson_attendees (
+  lesson_id  uuid not null references public.lessons  (id) on delete cascade,
+  player_id  uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (lesson_id, player_id)
+);
+-- the primary key answers "who was at this lesson"; this answers
+-- "which lessons was this person at", which is the one the app asks
+create index if not exists lesson_attendees_player_idx
+  on public.lesson_attendees (player_id);
+
 -- ---------- drills & tips ----------
 create table if not exists public.drills (
   id         uuid primary key default gen_random_uuid(),
@@ -235,6 +256,12 @@ alter table public.preferences add column if not exists custom_drills  jsonb not
 alter table public.preferences add column if not exists availability   jsonb not null default '{}'::jsonb;
 -- [ { id, name, members: [player ids], names: [player names], day, time, weeks } ]
 alter table public.preferences add column if not exists groups         jsonb not null default '[]'::jsonb;
+-- When the daily summary last went out to this person. Only used when
+-- notify = 'digest': netlify/functions/digest.mjs sends everything
+-- unread since this moment and then moves it on, so nothing is
+-- summarised twice and nothing that arrived while the job was down is
+-- skipped. Null means they have never had one.
+alter table public.preferences add column if not exists digest_at      timestamptz;
 
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the
@@ -436,6 +463,9 @@ create unique index if not exists coach_requests_open_key
   on public.coach_requests (player_id, coach_id) where status = 'pending';
 create index if not exists notifications_user_idx
   on public.notifications (user_id, created_at desc);
+-- the sender looks a person's devices up by user_id and nothing else
+create index if not exists push_subscriptions_user_idx
+  on public.push_subscriptions (user_id);
 
 -- The app upserts a review on (coach_id, player_id) and a register
 -- mark on (session_id, player_id); both need a unique key to land on.
@@ -865,6 +895,21 @@ as $fn$
      or m.player_id in (select public.my_family_ids());
 $fn$;
 
+-- Group lessons you, or someone you look after, were at. The lessons
+-- policy needs this because it may not read lesson_attendees directly:
+-- the lesson_attendees policy reads lessons, and two tables reading
+-- each other recurse just as one reading itself does. Being security
+-- definer, this reads the attendee list outside the policies, which is
+-- what stops the loop — the same reason my_attendance_session_ids()
+-- exists.
+create or replace function public.my_lesson_ids()
+returns setof uuid language sql stable security definer set search_path = ''
+as $fn$
+  select a.lesson_id from public.lesson_attendees a
+  where a.player_id = auth.uid()
+     or a.player_id in (select public.my_family_ids());
+$fn$;
+
 -- Policies run as the signed-in person, so that role must be allowed
 -- to call these. Nobody else needs to.
 do $grants$
@@ -875,7 +920,7 @@ begin
     'my_coach_id()', 'is_junior_of(uuid)', 'is_junior()', 'my_family_id()', 'my_family_member_ids()',
     'my_family_ids()', 'my_family_coach_ids()', 'my_players_guardian_ids()', 'coach_of(uuid)',
     'my_pending_coach_ids()', 'my_requesting_player_ids()', 'coach_availability(uuid)',
-    'my_attendance_session_ids()'
+    'my_attendance_session_ids()', 'my_lesson_ids()'
   ] loop
     execute format('revoke all on function public.%s from public, anon', fn);
     execute format('grant execute on function public.%s to authenticated', fn);
@@ -1163,6 +1208,13 @@ begin
   where lesson_id in (select l.id from public.lessons l
                       where l.coach_id = me or l.player_id = me);
 
+  -- And their place on any group lesson. The row cascades when their
+  -- profile goes, but a coach deleting their account takes the lessons
+  -- with them, so clear both directions explicitly.
+  delete from public.lesson_attendees
+  where player_id = me
+     or lesson_id in (select l.id from public.lessons l where l.coach_id = me);
+
   -- Some projects record who uploaded each file with a key to
   -- auth.users; a file left behind would then hold the account open.
   -- Clearing the owner releases it. Guarded, because the column and
@@ -1440,6 +1492,142 @@ $rt$;
 
 
 -- ============================================================
+-- 10b · CALLING THE SENDER
+--
+-- Sections 5 to 10 write a notification row for everything worth
+-- telling someone about. That row lights the bell inside the app. To
+-- reach a phone with the app CLOSED it has to leave the database, and
+-- this is the hop that carries it: an after-insert trigger that posts
+-- the row to the relay (netlify/functions/push.mjs), which signs it
+-- with the VAPID keys and hands it to each of that person's devices.
+--
+-- It lived only as a dashboard click before, described in the README
+-- and in no file — so a fresh project set up by running this script
+-- wrote every notification and pushed none of them, silently. It is
+-- here now, because this file is the source of truth.
+--
+-- WHAT THE FOUNDER FILLS IN, once, after the first run:
+--   insert into public.app_settings (key, value) values
+--     ('push_url',    'https://<your-site>.netlify.app/.netlify/functions/push'),
+--     ('push_secret', '<the same string as PUSH_SECRET on Netlify>')
+--   on conflict (key) do update set value = excluded.value;
+--
+-- Until both rows exist the trigger does nothing at all — no error, no
+-- delay, no half-sent notification. Section 14 reports which state it
+-- is in.
+--
+-- pg_net posts without waiting for the answer, so a slow or missing
+-- relay can never hold up the write that caused it. If the extension
+-- is unavailable the block below is skipped and the app behaves
+-- exactly as it does today: the bell works, the phone stays quiet.
+-- ============================================================
+
+-- Settings the database itself needs. Only the service role may read
+-- it: the secret in here must never reach a browser, and nothing in
+-- the app has any reason to ask for it.
+create table if not exists public.app_settings (
+  key   text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.app_settings enable row level security;
+-- No policy is granted to authenticated or anon on purpose. RLS with no
+-- policy denies everyone except the service role, which is what we want.
+drop policy if exists "app_settings: nobody" on public.app_settings;
+
+-- pg_net is present on Supabase and absent on a bare Postgres, so this
+-- may not be possible — and must never stop the file when it is not.
+do $net$
+begin
+  create extension if not exists pg_net with schema extensions;
+exception when others then
+  raise notice 'pg_net unavailable (%) — the bell works, phones stay quiet', sqlerrm;
+end
+$net$;
+
+-- CARRYING A HAND-MADE SETUP ACROSS. Before this section existed the
+-- only way to get a notification out of the database was to write the
+-- trigger by hand in the SQL editor, with the URL and the secret typed
+-- straight into the function body. Replacing that function with the one
+-- below would leave a project that had push working with a push_url it
+-- has never been told — silently, because an unconfigured trigger does
+-- nothing and says nothing. So: read them out of whatever is there and
+-- keep them.
+do $carry$
+declare
+  src text;
+  u   text;
+  k   text;
+begin
+  select p.prosrc into src
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname = 'notify_push';
+
+  if src is not null and src like '%http_post%' then
+    u := (regexp_match(src, 'url\s*:=\s*''([^'']+)'''))[1];
+    k := (regexp_match(src, '''x-nosca-secret''\s*,\s*''([^'']+)'''))[1];
+    if u is not null and u <> '' then
+      insert into public.app_settings (key, value) values ('push_url', u)
+      on conflict (key) do nothing;
+    end if;
+    if k is not null and k <> '' then
+      insert into public.app_settings (key, value) values ('push_secret', k)
+      on conflict (key) do nothing;
+    end if;
+  end if;
+exception when others then
+  raise notice 'could not read the existing push settings (%) — set them by hand', sqlerrm;
+end
+$carry$;
+
+create or replace function public.notify_push() returns trigger
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  url  text;
+  key  text;
+begin
+  select value into url from public.app_settings where key = 'push_url';
+  select value into key from public.app_settings where key = 'push_secret';
+  -- not configured yet: the bell still works, nothing is sent
+  if url is null or key is null or url = '' or key = '' then
+    return new;
+  end if;
+  perform extensions.net_http_post(
+    url     := url,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-nosca-secret', key),
+    body    := jsonb_build_object(
+                 'user_id', new.user_id,
+                 'title',   new.title,
+                 'body',    new.body,
+                 'kind',    new.kind,
+                 'data',    coalesce(new.data, '{}'::jsonb)),
+    timeout_milliseconds := 4000);
+  return new;
+exception when others then
+  -- A notification is never lost because the push failed to leave.
+  return new;
+end
+$$;
+
+do $push$
+begin
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where p.proname = 'net_http_post' and n.nspname = 'extensions') then
+    -- every name this trigger has ever had, so a project set up by
+    -- hand does not end up sending each notification twice
+    drop trigger if exists notifications_push on public.notifications;
+    drop trigger if exists on_notification_insert on public.notifications;
+    create trigger notifications_push
+      after insert on public.notifications
+      for each row execute function public.notify_push();
+  else
+    raise notice 'pg_net not available — the bell works, phones stay quiet until it is enabled';
+  end if;
+end
+$push$;
+
+
+-- ============================================================
 -- 11 · THE LESSONS VIEW
 --
 -- What the app reads instead of the lessons table: each lesson with
@@ -1528,7 +1716,7 @@ begin
     select policyname, tablename
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('profiles', 'families', 'coach_requests', 'lessons', 'lesson_media',
+      and tablename in ('profiles', 'families', 'coach_requests', 'lessons', 'lesson_media', 'lesson_attendees',
                         'drills', 'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
                         'competitions', 'recurring', 'preferences', 'messages', 'reviews',
                         'notifications', 'push_subscriptions')
@@ -1545,6 +1733,7 @@ alter table public.notifications       enable row level security;
 alter table public.push_subscriptions  enable row level security;
 alter table public.lessons             enable row level security;
 alter table public.lesson_media        enable row level security;
+alter table public.lesson_attendees    enable row level security;
 alter table public.drills              enable row level security;
 alter table public.tips                enable row level security;
 alter table public.attendance_sessions enable row level security;
@@ -1565,7 +1754,7 @@ alter table public.reviews             enable row level security;
 grant usage on schema public to anon, authenticated;
 
 revoke all on public.profiles, public.families, public.coach_requests, public.notifications,
-              public.push_subscriptions, public.lessons, public.lesson_media, public.drills,
+              public.push_subscriptions, public.lessons, public.lesson_media, public.lesson_attendees, public.drills,
               public.tips, public.attendance_sessions, public.attendance_marks,
               public.bookings, public.competitions, public.recurring,
               public.preferences, public.messages, public.reviews, public.lessons_view
@@ -1581,7 +1770,7 @@ grant select, update, delete on public.notifications to authenticated;
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
 
 grant select, insert, update, delete on
-  public.lessons, public.lesson_media, public.drills, public.tips,
+  public.lessons, public.lesson_media, public.lesson_attendees, public.drills, public.tips,
   public.attendance_sessions, public.attendance_marks, public.bookings,
   public.competitions, public.recurring, public.preferences,
   public.messages, public.reviews
@@ -1643,6 +1832,9 @@ create policy "lessons: yours, your family's, and your coach's group lessons" on
     or (kind = 'group'
         and (coach_id = public.my_coach_id()
              or coach_id in (select public.my_family_coach_ids())))
+    -- a group lesson you were actually marked at stays yours even after
+    -- you leave that coach
+    or id in (select public.my_lesson_ids())
   );
 
 create policy "lessons: the coach writes them" on public.lessons
@@ -1658,6 +1850,22 @@ create policy "lesson_media: files of lessons you can see" on public.lesson_medi
   );
 
 create policy "lesson_media: the lesson's coach writes them" on public.lesson_media
+  for all to authenticated
+  using      (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()))
+  with check (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()));
+
+-- ---------- lesson_attendees ----------
+-- Same shape as lesson_media: whether you may see who was at a lesson
+-- follows from whether you may see the lesson, and the lessons policy
+-- is applied inside the subquery. This table never reads itself, and
+-- the lessons policy reaches it only through my_lesson_ids(), which is
+-- security definer — so neither recurses into the other.
+create policy "lesson_attendees: of lessons you can see" on public.lesson_attendees
+  for select to authenticated using (
+    exists (select 1 from public.lessons l where l.id = lesson_id)
+  );
+
+create policy "lesson_attendees: the lesson's coach writes them" on public.lesson_attendees
   for all to authenticated
   using      (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()))
   with check (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()));
@@ -1973,7 +2181,7 @@ do $check$
 declare
   fake  constant text := '00000000-0000-0000-0000-000000000000';
   every constant text[] := array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
-                                 'lessons', 'lessons_view', 'lesson_media', 'drills',
+                                 'lessons', 'lessons_view', 'lesson_media', 'lesson_attendees', 'drills',
                                  'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
                                  'competitions', 'recurring', 'preferences', 'messages', 'reviews'];
   tbl        text;
@@ -2056,7 +2264,7 @@ $check$;
 with
   want_tables as (
     select unnest(array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
-                        'lessons', 'lesson_media', 'drills', 'tips',
+                        'lessons', 'lesson_media', 'lesson_attendees', 'drills', 'tips',
                         'attendance_sessions', 'attendance_marks', 'bookings', 'competitions',
                         'recurring', 'preferences', 'messages', 'reviews']) as t
   ),
@@ -2111,6 +2319,17 @@ select
   (select count(*) from pg_trigger where tgname in ('lessons_notify', 'requests_notify', 'bookings_notify',
                                                     'messages_notify', 'drills_notify', 'tips_notify', 'family_notify'))
                                                                                     as notify_triggers,
+
+  -- Is a notification able to LEAVE the database? The bell works either
+  -- way; this says whether a phone hears about it with the app closed.
+  (select case
+     when not exists (select 1 from pg_trigger where tgname = 'notifications_push')
+       then 'no — pg_net is not enabled, so nothing is sent'
+     when not exists (select 1 from public.app_settings where key = 'push_url'    and value <> '')
+       or not exists (select 1 from public.app_settings where key = 'push_secret' and value <> '')
+       then 'trigger ready — add push_url and push_secret to app_settings'
+     else 'yes — notifications post to the relay'
+   end)                                                                             as push,
   (select count(*) from auth.users)                                                 as accounts,
   (select count(*) from public.profiles)                                            as profiles,
   (select count(*) from public.families)                                            as families;

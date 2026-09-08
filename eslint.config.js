@@ -11,8 +11,20 @@ import globals from "globals";
  * bug. These rules catch it before a deploy does. Nothing here is a
  * style rule.
  */
+const CATCHES = {
+  "no-undef": "error",                       // a name that is never declared
+  "no-redeclare": "error",                   // two top-level declarations with one name
+  "no-dupe-keys": "error",
+  "no-const-assign": "error",
+  "no-dupe-args": "error",
+  "no-unreachable": "error",
+  "no-use-before-define": ["error", { functions: false, classes: false, variables: false }],
+};
+
 export default [
-  { ignores: ["dist/**", "node_modules/**"] },
+  /* dist-m is the e2e harness's own build: a minified bundle nobody
+     wrote and nothing here should read. */
+  { ignores: ["dist/**", "dist-*/**", "node_modules/**", ".claude/**"] },
   {
     files: ["src/**/*.{js,jsx}"],
     plugins: { react },
@@ -35,5 +47,43 @@ export default [
       "no-unreachable": "error",
       "no-use-before-define": ["error", { functions: false, classes: false, variables: false }],
     },
+  },
+  /* The half that runs on a server, and the half that runs without a
+     page. Neither is in the build, so nothing else looks at them at
+     all — a mistyped name in the push relay would first be seen by a
+     phone that never rang. */
+  {
+    files: ["netlify/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: { ...globals.node },
+    },
+    rules: CATCHES,
+  },
+  /* The Playwright suites are node, but the bodies they hand to
+     page.evaluate run in the browser — both sets of globals are real
+     here. */
+  {
+    files: ["scripts/**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: CATCHES,
+  },
+  {
+    files: ["scripts/**/*.cjs"],
+    languageOptions: { sourceType: "commonjs" },
+  },
+  {
+    files: ["public/sw.js"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "script",
+      globals: { ...globals.serviceworker },
+    },
+    rules: CATCHES,
   },
 ];

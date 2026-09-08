@@ -55,7 +55,7 @@ function emptyDb() {
     families: {},         // id -> { id, code, name, created_by, created_at }
     requests: [],         // coach_requests rows
     notifications: [],
-    lessons: [], media: [], drills: [], tips: [], sessions: [], marks: [],
+    lessons: [], media: [], attendees: [], drills: [], tips: [], sessions: [], marks: [],
     bookings: [], competitions: [], recurring: [], messages: [], reviews: [], pushSubs: [],
     prefs: {},            // id -> preferences row
     files: { media: {}, avatars: {} },   // bucket -> path -> { size, type }
@@ -82,6 +82,8 @@ function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupN
   const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, kind: groupName ? "group" : "private", focus, subs, notes, lesson_date: date, unread, rating_requested: ratingRequested, created_at: `${date}T10:00:00Z` };
   db.lessons.push(row); return row;
 }
+/* who was at a group lesson — lessons carry a name, not a player */
+function addAttendee(db, { lessonId, playerId }) { const row = { lesson_id: lessonId, player_id: playerId, created_at: nowIso(db) }; db.attendees.push(row); return row; }
 function addMedia(db, { id = uuid("2e000000"), lessonId, kind, path: p, createdAt }) { const row = { id, lesson_id: lessonId, kind, storage_path: p, created_at: createdAt || nowIso(db) }; db.media.push(row); db.files.media[p] = { size: 10, type: kind }; return row; }
 function addRequest(db, { id = uuid("ce000000"), playerId, coachId, status = "pending", createdAt, notify: tell = false }) {
   const row = { id, player_id: playerId, coach_id: coachId, status, created_at: createdAt || nowIso(db), decided_at: status === "pending" ? null : nowIso(db) };
@@ -206,7 +208,12 @@ function scopeFor(db, meId) {
     || lookedCoaches.includes(x.id) || guardians.includes(x.id) || pendingCoaches.includes(x.id) || requesting.includes(x.id));
   const playerScope = (pid) => pid === meId || looked.includes(pid);
   const isCoach = !!mine && mine.role === "coach";
-  const lessonVisible = (l) => l.coach_id === meId || playerScope(l.player_id) || (l.kind === "group" && !!mine && l.coach_id === mine.coach_id);
+  /* my_lesson_ids(): a group lesson you were actually marked at stays
+     yours, even after you leave that coach */
+  const attendedIds = db.attendees.filter((a) => a.player_id === meId || looked.includes(a.player_id)).map((a) => a.lesson_id);
+  const lessonVisible = (l) => l.coach_id === meId || playerScope(l.player_id)
+    || (l.kind === "group" && !!mine && l.coach_id === mine.coach_id)
+    || attendedIds.includes(l.id);
   return { mine, famId, iAmJunior, looked, profileVisible, playerScope, isCoach, lessonVisible };
 }
 
@@ -307,7 +314,19 @@ async function attach(page, db, opts = {}) {
     if (p.startsWith("/storage/v1/")) {
       const rest = p.replace("/storage/v1/object/", "");
       if (rest.startsWith("sign/") && method === "POST") { const bucket = rest.slice(5); const paths = (body && body.paths) || []; db.signed.push(...paths); db.posts.push({ table: "sign", rows: paths, by: me() });
-        return json(200, paths.map((pth) => ({ error: null, path: pth, signedURL: `/object/sign/${bucket}/${pth}?token=t-${pth.split("/").pop()}` }))); }
+        /* the storage SELECT policy: your own folder, or a file that hangs
+           off a lesson you are allowed to see */
+        const scope = scopeFor(db, me());
+        const canSee = (pth) => {
+          if (String(pth).split("/")[0] === me()) return true;
+          const row = db.media.find((m) => m.storage_path === pth);
+          if (!row) return false;
+          const l = db.lessons.find((x) => x.id === row.lesson_id);
+          return !!l && scope.lessonVisible(l);
+        };
+        return json(200, paths.map((pth) => (canSee(pth)
+          ? { error: null, path: pth, signedURL: `/object/sign/${bucket}/${pth}?token=t-${pth.split("/").pop()}` }
+          : { error: "Either the object does not exist or you do not have access to it", path: pth, signedURL: null }))); }
       if (rest.startsWith("sign/") && method === "GET") { return bytes(/\.mp4$/.test(p) ? MP4 : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, /\.mp4$/.test(p) ? "video/mp4" : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
       if (rest.startsWith("public/") && method === "GET") return bytes(PNG, "image/png");
       if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }
@@ -319,7 +338,20 @@ async function attach(page, db, opts = {}) {
         const spec = db.failUpload ? db.failUpload(objPath, bucket) : null;
         db.uploads.push({ bucket, path: objPath, by: me(), refused: !!spec, size: Number(hdr["content-length"] || 0) });
         if (spec) return json(spec.status || 413, spec.body || { statusCode: "413", error: "Payload too large", message: "The object exceeded the maximum allowed size" });
-        db.files[bucket] = db.files[bucket] || {}; db.files[bucket][objPath] = { size: Number(hdr["content-length"] || 0), type: hdr["content-type"] || "" };
+        /* upsert:false is what Supabase actually does, and modelling it is
+           the only reason the suites can catch two files racing to the same
+           path — which is exactly how "only one video uploaded" happened. */
+        db.files[bucket] = db.files[bucket] || {};
+        if (db.files[bucket][objPath] && String(hdr["x-upsert"]) !== "true") {
+          db.uploads[db.uploads.length - 1].refused = true;
+          return json(409, { statusCode: "409", error: "Duplicate", message: "The resource already exists" });
+        }
+        /* the storage INSERT policy: your own folder only */
+        if (String(objPath).split("/")[0] !== me()) {
+          db.uploads[db.uploads.length - 1].refused = true;
+          return json(403, { statusCode: "403", error: "Unauthorized", message: "new row violates row-level security policy" });
+        }
+        db.files[bucket][objPath] = { size: Number(hdr["content-length"] || 0), type: hdr["content-type"] || "" };
         db.posts.push({ table: "upload", rows: [p], by: me() });
         return json(200, { Key: `${bucket}/${objPath}`, Id: uuid("f1000000") }); }
       return json(404, { statusCode: "404", error: "not_found", message: "Object not found" });
@@ -403,6 +435,7 @@ async function attach(page, db, opts = {}) {
       lessons_view: { rows: () => lessonsView(db), see: (x) => S.lessonVisible(x) },
       lessons: { rows: () => db.lessons, see: (x) => S.lessonVisible(x) },
       lesson_media: { rows: () => db.media, see: (x) => { const l = db.lessons.find((y) => y.id === x.lesson_id); return !!l && S.lessonVisible(l); } },
+      lesson_attendees: { rows: () => db.attendees, see: (x) => { const l = db.lessons.find((y) => y.id === x.lesson_id); return !!l && S.lessonVisible(l); } },
       drills: { rows: () => db.drills, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) },
       tips: { rows: () => db.tips, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) },
       attendance_sessions: { rows: () => db.sessions, see: (x) => x.coach_id === meId || db.marks.some((m) => m.session_id === x.id && S.playerScope(m.player_id)) },
@@ -427,6 +460,7 @@ async function attach(page, db, opts = {}) {
       const ok = (r) => {
         if (table === "lessons") return S.isCoach && r.coach_id === meId;
         if (table === "lesson_media") return S.isCoach && db.lessons.some((l) => l.id === r.lesson_id && l.coach_id === meId);
+        if (table === "lesson_attendees") return S.isCoach && db.lessons.some((l) => l.id === r.lesson_id && l.coach_id === meId);
         if (table === "drills" || table === "tips" || table === "recurring" || table === "attendance_sessions") return S.isCoach && r.coach_id === meId;
         if (table === "attendance_marks") return db.sessions.some((s) => s.id === r.session_id && s.coach_id === meId);
         if (table === "bookings") return S.isCoach ? r.coach_id === meId : (!S.iAmJunior && (r.status || "confirmed") === "requested" && (r.player_id === meId || S.looked.includes(r.player_id)) && r.coach_id === (db.profiles[r.player_id] || {}).coach_id);
@@ -438,7 +472,7 @@ async function attach(page, db, opts = {}) {
         return false;
       };
       /* the not-null columns the table would refuse before any policy is asked */
-      const REQUIRED = { lessons: ["coach_id", "focus"], bookings: ["coach_id", "booking_date", "start_time"], messages: ["coach_id", "player_id", "sender_id", "body"], drills: ["coach_id", "player_id", "title"], tips: ["coach_id", "player_id", "title"], lesson_media: ["lesson_id", "kind", "storage_path"], recurring: ["coach_id", "weekday", "start_time"], competitions: ["name", "event_date"], attendance_sessions: ["coach_id", "label"], attendance_marks: ["session_id", "player_id", "state"], reviews: ["coach_id", "player_id", "rating"] };
+      const REQUIRED = { lessons: ["coach_id", "focus"], bookings: ["coach_id", "booking_date", "start_time"], messages: ["coach_id", "player_id", "sender_id", "body"], drills: ["coach_id", "player_id", "title"], tips: ["coach_id", "player_id", "title"], lesson_media: ["lesson_id", "kind", "storage_path"], lesson_attendees: ["lesson_id", "player_id"], recurring: ["coach_id", "weekday", "start_time"], competitions: ["name", "event_date"], attendance_sessions: ["coach_id", "label"], attendance_marks: ["session_id", "player_id", "state"], reviews: ["coach_id", "player_id", "rating"] };
       const missing = rows.flatMap((r) => (REQUIRED[table] || []).filter((k) => r[k] == null));
       if (missing.length) { db.posts.push({ table, rows, by: meId, refused: true }); return json(400, { code: "23502", message: `null value in column "${missing[0]}" of relation "${table}" violates not-null constraint`, details: null, hint: null }); }
       if (!rows.every(ok)) { db.posts.push({ table, rows, by: meId, refused: true }); return forbidden(); }
@@ -454,7 +488,7 @@ async function attach(page, db, opts = {}) {
       if (table === "preferences") { made.forEach((r) => setPrefs(db, r.id, r)); db.posts.push({ table, rows: made, by: meId, prefer }); return created(made.map((r) => db.prefs[r.id])); }
       if (table === "reviews") { made.forEach((r) => { const i = db.reviews.findIndex((x) => x.coach_id === r.coach_id && x.player_id === r.player_id); if (i >= 0 && /merge-duplicates/.test(prefer)) db.reviews[i] = { ...db.reviews[i], ...r, id: db.reviews[i].id }; else db.reviews.push(r); }); db.posts.push({ table, rows: made, by: meId, prefer }); return created(made); }
       if (table === "push_subscriptions") { made.forEach((r) => { const i = db.pushSubs.findIndex((x) => x.endpoint === r.endpoint); if (i >= 0) db.pushSubs[i] = { ...db.pushSubs[i], ...r }; else db.pushSubs.push(r); }); db.posts.push({ table, rows: made, by: meId, prefer }); return created(made); }
-      const target = { lessons: db.lessons, lesson_media: db.media, drills: db.drills, tips: db.tips, attendance_sessions: db.sessions, attendance_marks: db.marks, bookings: db.bookings, competitions: db.competitions, recurring: db.recurring, messages: db.messages }[table];
+      const target = { lessons: db.lessons, lesson_media: db.media, lesson_attendees: db.attendees, drills: db.drills, tips: db.tips, attendance_sessions: db.sessions, attendance_marks: db.marks, bookings: db.bookings, competitions: db.competitions, recurring: db.recurring, messages: db.messages }[table];
       target.push(...made);
       made.forEach((r) => { if (table === "lesson_media") db.files.media[r.storage_path] = db.files.media[r.storage_path] || { size: 10 }; });
       if (table === "lessons") made.forEach((r) => onLessonInsert(db, r));
@@ -547,7 +581,7 @@ const SEEDED = ["Ray Doyle", "ray@hollowbrook", "+353 87 123 4567", "Marcus Tran
 
 module.exports = {
   SB, ROOT, b64u, uuid, code6, pad, ymd, MON, MP4, WEBM, PNG, yearsOld, juniorRow,
-  emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addRequest, addNotification, addBooking, addDrill, addMessage, setPrefs, weekOf,
+  emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addDrill, addMessage, setPrefs, weekOf,
   session, signupTrigger, notify, scopeFor, lessonsView, attach, startServer, stopServer,
   norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, checker, SEEDED,
 };

@@ -29,6 +29,18 @@ function freshDb() {
   return db;
 }
 const allowedFor = { coach: ["Niamh Byrne", "Cian Murphy", "Saoirse Kelly", "Orla Kelly", "Eoin Walsh", "QW7X2M"], adult: ["Cian Murphy", "Niamh Byrne"], parent: ["Orla Kelly", "Saoirse Kelly", "Niamh Byrne"], junior: ["Saoirse Kelly", "Orla Kelly", "Niamh Byrne"] };
+/* The coach's home names today. Two of the seeded strings are the
+   harness's own fixed date — "Friday 24" and "24 Jul" — so on the 24th
+   of July, and on any Friday the 24th, a real account legitimately
+   renders them and this sweep would call it a leak. Whatever today
+   actually is, is allowed; every other date is not. */
+const DOW = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const NOW = new Date();
+const TODAY_LINE = `${DOW[(NOW.getDay() + 6) % 7]} ${NOW.getDate()} ${MONTHS_FULL[NOW.getMonth()]}`;
+Object.keys(allowedFor).forEach((r) => {
+  M.SEEDED.forEach((sd) => { if (TODAY_LINE.includes(sd)) allowedFor[r].push(sd); });
+});
 /* the screens added with families, requests, notifications and the profile — each must be reached and read clean */
 const TARGETS = {
   coach: [["requests", ['[data-tour="today-requests"]'], /Requests/], ["alerts", ['[aria-label="Alerts"]'], /Alerts/], ["you", ['[aria-label="Your profile"]'], /Sign out/], ["profile", ['[aria-label="Your profile"]', '[data-tour="settings-profile"]'], /Your profile/],

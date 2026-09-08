@@ -11,3 +11,6 @@ package-lock.json
 # agent worktrees and local harness state
 .claude/
 .e2e-out/
+
+# built by the e2e harness (npx vite build --outDir dist-m)
+dist-m/

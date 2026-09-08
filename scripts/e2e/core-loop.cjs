@@ -88,7 +88,7 @@ const leaks = [];
       const aud = page.locator("audio[controls]");
       const asrc = (await aud.count()) ? await aud.first().getAttribute("src") : null;
       check("(a) a real <audio controls> for the voice note", !!asrc && asrc.includes("2-note.webm"), String(asrc));
-      check("(a) signed URLs were requested once per lesson (cached)", db.posts.filter((x) => x.table === "sign").length === 1, String(db.posts.filter((x) => x.table === "sign").length));
+      check("(a) signed URLs were requested once per lesson (cached)", db.posts.filter((x) => x.table === "sign").length === 1, JSON.stringify(db.posts.filter((x) => x.table === "sign").map((x) => x.rows)));
       await shot("adult-lesson-audio");
       const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('button', { hasText: "Download lesson log" }).first().click()]);
       const file = dl ? await dl.path() : null; const html = file ? fs.readFileSync(file, "utf8") : "";
@@ -151,7 +151,11 @@ const leaks = [];
       await leak("coach quick menu");
       await byText(page, "Attendance").click(); await page.waitForTimeout(800);
       const t4 = await leak("coach attendance"); await shot("coach-attendance");
-      check("(d) Attendance lists today's real confirmed bookings by name", t4.includes("Cian Murphy") && t4.includes("9:00 am") && t4.includes("Saoirse Kelly") && t4.includes("10:30 am") && !t4.includes("4:00 pm"), t4.slice(0, 240));
+      /* the sheet's own text: Today sits behind it, and a lesson merely
+         asked for is answered there, so the page carries "4:00 pm" even
+         though the register must not */
+      const sheet4 = await page.locator("[data-sheet]").first().innerText();
+      check("(d) Attendance lists today's real confirmed bookings by name", sheet4.includes("Cian Murphy") && sheet4.includes("9:00 am") && sheet4.includes("Saoirse Kelly") && sheet4.includes("10:30 am") && !sheet4.includes("4:00 pm"), sheet4.slice(0, 240));
       await page.locator("div.z-40").getByRole("button", { name: /Cian Murphy/ }).first().click(); await page.waitForTimeout(500);
       await page.locator("div.z-40").getByRole("button", { name: "Present", exact: true }).first().click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: /Submit register/ }).click(); await page.waitForTimeout(1200);
@@ -170,22 +174,20 @@ const leaks = [];
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[aria-label="Add"]');
       await page.getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
-      await leak("wizard who"); await byText(page, "Cian Murphy").click(); await page.waitForTimeout(300);
+      const tw0 = await leak("wizard who"); await shot("coach-wizard-who");
+      check("(e) the first page asks who and when, and never for a time nothing stores", tw0.includes("Date") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0, tw0.slice(0, 200));
+      await byText(page, "Cian Murphy").click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await leak("wizard when");
-      await page.fill('input[type="time"]', "10:00"); await page.waitForTimeout(200);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await leak("wizard focus");
-      await page.getByRole("button", { name: "Short game", exact: true }).click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      const t6 = await leak("wizard notes"); await shot("coach-wizard-notes");
+      /* three pages now — who and when, what happened, what's next. The
+         focus, the clips and the note used to be a page each. */
+      const t6 = await leak("wizard what happened"); await shot("coach-wizard-what");
       check("(e) notes step offers a typed note and a real voice note, no transcript", t6.includes("Record a voice note") && (await page.locator('textarea[placeholder="What happened, in a line or two"]').count()) === 1 && !t6.includes("Tap to record"), t6.slice(0, 200));
+      check("(e) media step: Record / Library / Photo / Captured, no device readout", t6.includes("Record") && t6.includes("Library") && t6.includes("Photo") && t6.includes("Captured") && !/TrackMan|Serve radar|Launch/i.test(t6) && (await page.locator('input[type="file"]').count()) >= 1, t6.slice(0, 200));
+      check("(e) the focus, the clips and the note are one page", t6.includes("Short game") && t6.includes("Clips and photos") && t6.includes("The note") && t6.includes("2 / 3"), t6.slice(0, 300));
+      await page.getByRole("button", { name: "Short game", exact: true }).click(); await page.waitForTimeout(300);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Worked on tempo from a hundred yards.");
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      const t7 = await leak("wizard media"); await shot("coach-wizard-media");
-      check("(e) media step: Record / Library / Photo / Captured, no device readout", t7.includes("Record") && t7.includes("Library") && t7.includes("Photo") && t7.includes("Captured") && !/TrackMan|Serve radar|Launch/i.test(t7) && (await page.locator('input[type="file"]').count()) >= 1, t7.slice(0, 200));
-      /* one way forward per step now: Continue until the last one, which
-         is the Publish. The second, outlined Publish is gone. */
+      /* one way forward per page: Continue until the last one, which is
+         the Publish. */
       for (let i = 0; i < 4; i++) {
         const pub = page.getByRole("button", { name: "Publish", exact: true });
         if (await pub.count()) { await pub.first().click(); break; }
@@ -225,10 +227,8 @@ const leaks = [];
       await page.getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
       await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await page.fill('input[type="time"]', "10:30"); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Two clips attached.");
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "swing.mp4", mimeType: "video/mp4", buffer: M.MP4 },
         { name: "big-clip.mp4", mimeType: "video/mp4", buffer: M.MP4 },
@@ -261,6 +261,44 @@ const leaks = [];
       /* the retry reports on the files it retried — one — and nothing failed; it then clears itself */
       check("(h) the strip then reads attached, with nothing failed", /\d files? attached/.test(th2) && !/didn't upload/.test(th2) || th2 === "", th2);
       check("(h) the junior's lesson told the junior and every adult in the family", db.notifications.some((n) => n.user_id === IDS.junior && n.kind === "lesson" && n.data.id === lessonH.id) && db.notifications.some((n) => n.user_id === IDS.parent && n.kind === "lesson" && n.data.screen === "family" && n.data.id === lessonH.id), JSON.stringify(db.notifications.filter((n) => n.kind === "lesson").map((n) => [n.user_id.slice(-4), n.title])));
+
+      /* (h2) THE IPHONE CASE. Every camera capture comes back called
+         "image.jpg" or "video.mp4". These used to share one storage
+         path — one Date.now() for the whole batch — so upsert:false
+         kept the first and 409'd the rest: three clips, one clip in the
+         lesson. This is the regression test for that. */
+      db.failUpload = null;
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page, { carryOn: true });
+      const before = db.uploads.filter((u) => u.bucket === "media").length;
+      /* the plus, then Log a lesson — Today's empty state is gone now
+         that this coach has something to log */
+      await M.tap(page, '[data-tour="quick"]', 700);
+      await M.tap(page, '[data-tour="quick-log"]', 900);
+      await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
+      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
+      await page.fill('textarea[placeholder="What happened, in a line or two"]', "Three captures, all called the same thing.");
+      await page.locator('input[type="file"]').first().setInputFiles([
+        { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
+        { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
+        { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
+      ]);
+      await page.waitForTimeout(600);
+      for (let i = 0; i < 4; i++) {
+        const pub = page.getByRole("button", { name: "Publish", exact: true });
+        if (await pub.count()) { await pub.first().click(); break; }
+        await page.getByRole("button", { name: "Continue" }).first().click();
+        await page.waitForTimeout(400);
+      }
+      await page.waitForTimeout(4600);
+      const sameUps = db.uploads.filter((u) => u.bucket === "media").slice(before);
+      const samePaths = sameUps.map((u) => u.path);
+      check("(h2) three files with the SAME name all upload, to three different paths, none refused",
+            sameUps.length === 3 && new Set(samePaths).size === 3 && sameUps.every((u) => !u.refused),
+            JSON.stringify(samePaths.map((x) => x.split("/").pop())));
+      const sameLesson = db.lessons.filter((l) => l.coach_id === IDS.coach).pop();
+      const sameRows = db.media.filter((m) => m.lesson_id === sameLesson.id);
+      check("(h2) …and all three are attached to the lesson", sameRows.length === 3 && new Set(sameRows.map((r) => r.storage_path)).size === 3, JSON.stringify(sameRows.map((r) => r.storage_path.split("/").pop())));
       await ctx.close();
     }
 
@@ -276,6 +314,79 @@ const leaks = [];
       check("(f) junior opens their own lesson by id", t.includes("Grip") && t.includes("Left hand a touch stronger."), t.slice(0, 200));
       await ctx.close();
     }
+    /* ---------- (i) a group lesson counts for everyone who was at it ---------- */
+    {
+      const gdb = freshDb();
+      const squad = M.addLesson(gdb, { coachId: IDS.coach, groupName: "Tuesday squad", date: "2026-09-03", focus: "Serve", notes: "Toss out in front." });
+      M.addAttendee(gdb, { lessonId: squad.id, playerId: IDS.adult });
+      M.addAttendee(gdb, { lessonId: squad.id, playerId: IDS.junior });
+
+      {
+        const { ctx, page, leak } = await boot("coach", gdb);
+        await tap(page, '[aria-label="Roster"]', 900);
+        const row = page.locator('[data-tour="roster-row"]').filter({ hasText: "Cian Murphy" }).first();
+        const rowText = (await row.count()) ? M.norm(await row.innerText()) : "";
+        /* two private in the fixture, plus the squad they were marked at */
+        check("(i) the coach's roster counts a group session for the players who were at it", /3 lessons/.test(rowText), rowText);
+        await row.click(); await page.waitForTimeout(1200);
+        const t = await leak("coach player file with a group");
+        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && t.includes("3 lessons") && !t.includes("private"), t.slice(0, 240));
+        await ctx.close();
+      }
+      {
+        /* the same session, from the other side: the player's own log */
+        const { ctx, page, leak } = await boot("adult", gdb);
+        await tap(page, '[aria-label="Lessons"]', 900);
+        if (await page.locator('[aria-label="list"]').count()) await tap(page, '[aria-label="list"]', 800);
+        const t = await leak("player log with a group");
+        check("(i) the player's own log carries the group session they attended", t.includes("Serve"), t.slice(0, 240));
+        await ctx.close();
+      }
+      {
+        /* and somebody who was NOT at it does not get it */
+        const { ctx, page, leak } = await boot("parent", gdb);
+        const t = await leak("parent, not at the squad");
+        check("(i) a person who was not marked at it never sees it", !t.includes("Toss out in front."), t.slice(0, 200));
+        await ctx.close();
+      }
+    }
+
+    /* (j) TWO PLAYERS WITH THE SAME NAME.
+       Everything used to resolve a person by their display name, so the
+       second Cian Murphy on a roster was the first one as far as every
+       write was concerned: the lesson, the drills and the tip all
+       landed on whoever the roster listed first. */
+    {
+      const ndb = freshDb();
+      const TWIN = "00000000-0000-4000-8000-00000000tw1n";
+      M.addUser(ndb, { id: TWIN, email: "twin@t.ie" });
+      M.addProfile(ndb, { id: TWIN, role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1990-01-01" });
+      const { ctx, page } = await boot("coach", ndb);
+      await M.tap(page, '[data-tour="quick"]', 700);
+      await M.tap(page, '[data-tour="quick-log"]', 900);
+      const rows = page.locator('button:has-text("Cian Murphy")');
+      check("(j) both people called Cian Murphy are offered, not one", (await rows.count()) === 2, String(await rows.count()));
+      /* the SECOND one — the one a name lookup would never reach */
+      await rows.nth(1).click(); await page.waitForTimeout(300);
+      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
+      await page.fill('textarea[placeholder="What happened, in a line or two"]', "The other Cian.");
+      for (let i = 0; i < 4; i++) {
+        const pub = page.getByRole("button", { name: "Publish", exact: true });
+        if (await pub.count()) { await pub.first().click(); break; }
+        await page.getByRole("button", { name: "Continue" }).first().click();
+        await page.waitForTimeout(400);
+      }
+      await page.waitForTimeout(1500);
+      const lp = ndb.posts.filter((x) => x.table === "lessons").pop();
+      const lrow = lp && lp.rows[0];
+      check("(j) the lesson was written against the person who was ticked, not the first of that name",
+            !!lrow && lrow.player_id === TWIN, JSON.stringify(lrow && { player_id: lrow.player_id, expected: TWIN }));
+      check("(j) …and the notification went to them", ndb.notifications.some((n) => n.user_id === TWIN && n.kind === "lesson"),
+            JSON.stringify(ndb.notifications.filter((n) => n.kind === "lesson").map((n) => n.user_id)));
+      await ctx.close();
+    }
+
   } catch (e) {
     console.log("RUN ERROR", e && e.stack || e);
     results.push({ name: "run completed", ok: false, detail: String(e && e.message || e) });

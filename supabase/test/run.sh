@@ -54,5 +54,32 @@ select (select count(*) from public.families) = 1
    and not exists (select 1 from information_schema.columns where table_name='profiles' and column_name in ('guardian_id','family_code'));
 SQL
 fi
+echo "== upgrade path: a push trigger written by hand, then nosca.sql"
+createdb -h "$D" -p $PORT -U super -O supa handmade; $PS -d handmade -f "$D/fixture-db.sql"
+$PU -d handmade --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null 2>&1
+# what the founder had before section 10b existed: the URL and the secret
+# typed into the function body, under a trigger of their own naming
+$PU -d handmade <<'SQL' >/dev/null 2>&1
+drop trigger if exists notifications_push on public.notifications;
+delete from public.app_settings;
+create or replace function public.notify_push() returns trigger language plpgsql security definer as $hand$
+begin
+  perform net.http_post(url := 'https://nosca.example/.netlify/functions/push',
+    headers := jsonb_build_object('Content-Type','application/json','x-nosca-secret','s3cret-typed-by-hand'),
+    body := to_jsonb(NEW));
+  return NEW;
+end;
+$hand$;
+create trigger on_notification_insert after insert on public.notifications
+  for each row execute function public.notify_push();
+SQL
+$PU -d handmade --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null 2>&1
+$PU -d handmade -tA <<'SQL' | sed 's/^t$/PASS a hand-written push trigger kept its URL and secret, and fires once/; s/^f$/FAIL hand-written push trigger was replaced by an unconfigured one/'
+select (select value from public.app_settings where key='push_url') = 'https://nosca.example/.netlify/functions/push'
+   and (select value from public.app_settings where key='push_secret') = 's3cret-typed-by-hand'
+   and (select count(*) from pg_trigger t join pg_class c on c.oid=t.tgrelid
+        where c.relname='notifications' and not t.tgisinternal) <= 1;
+SQL
+
 fails=$($PU -d fresh -f "$HERE/behaviour.sql" 2>&1 | grep -c "^FAIL" || true)
 echo "== FAIL count: $fails"; [ "$fails" = "0" ]
