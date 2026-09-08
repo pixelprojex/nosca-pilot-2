@@ -22,7 +22,7 @@
  */
 
 import webpush from "web-push";
-import { json, restHeaders, loadSubscriptions, sendTo, projectUrl, REQUIRED } from "./lib/push-shared.mjs";
+import { json, restHeaders, loadSubscriptions, sendTo, tally, projectUrl, REQUIRED } from "./lib/push-shared.mjs";
 
 export const config = { schedule: "0 6 * * *" };
 
@@ -116,6 +116,7 @@ export default async () => {
   }
 
   let sent = 0, failed = 0, removed = 0, told = 0;
+  const reasons = new Map();
   const done = [];
 
   for (const person of people) {
@@ -137,15 +138,15 @@ export default async () => {
 
     const message = JSON.stringify(summarise(mine));
     const outcomes = await Promise.all(subscriptions.map((sub) => sendTo(webpush, env, sub, message)));
-    for (const outcome of outcomes) {
-      if (outcome === "sent") sent++;
-      else if (outcome === "gone") removed++;
-      else failed++;
-    }
-    if (outcomes.includes("sent")) told++;
+    const run = tally(outcomes);
+    sent += run.sent; failed += run.failed; removed += run.removed;
+    (run.errors || []).forEach((e) => { const k = `${e.status}|${e.reason}|${e.host}`; if (!reasons.has(k)) reasons.set(k, e); });
+    if (run.sent > 0) told++;
     done.push(person.id);
   }
 
   if (done.length) await markSent(env, done, nowIso);
-  return json({ people: people.length, told, sent, failed, removed }, 200);
+  const out = { people: people.length, told, sent, failed, removed };
+  if (reasons.size) out.errors = [...reasons.values()];
+  return json(out, 200);
 };

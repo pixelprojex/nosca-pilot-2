@@ -295,8 +295,25 @@ Worth knowing:
   `netlify/functions/lib/push-shared.mjs` (what they share — a
   subdirectory, so Netlify does not make a URL of it).
 - `node scripts/e2e/push-relay.mjs` runs the relay against a stubbed
-  network: which payloads it accepts, and what each preference holds
-  back. No keys or connection needed.
+  network: which payloads it accepts, what each preference holds back,
+  and how a rejected send reports itself. No keys or connection needed.
+- **If a notification does not arrive**, the relay's own answer says
+  where it stopped. Read it in the SQL editor:
+  ```sql
+  select status_code, content, created
+  from net._http_response order by created desc limit 5;
+  ```
+  - `{"status":"ignored"}` — the row never looked like a notification.
+  - `push_subscriptions read failed` — `SUPABASE_URL` is wrong. It is
+    the project URL, `https://<ref>.supabase.co`, not the REST endpoint.
+  - `{"sent":0,"failed":N,"errors":[…]}` — it reached the push service
+    and was turned away; each error names the status, the service and
+    its reason. `403 BadJwtToken` or `VapidPkHashMismatch` means the
+    keys disagree: `VAPID_PUBLIC_KEY` must be the same string as
+    `VITE_VAPID_PUBLIC_KEY`, and `VAPID_PRIVATE_KEY` its own half of
+    that pair. Generating a new pair means every device has to
+    subscribe again.
+  - `{"sent":N}` — it left. Anything after that is the phone's.
 
 ## Starting again
 

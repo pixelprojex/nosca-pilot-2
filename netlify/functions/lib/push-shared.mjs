@@ -90,8 +90,23 @@ export async function notifyPreference(env, userId) {
   }
 }
 
+/* The push service that holds this subscription — "web.push.apple.com",
+   "fcm.googleapis.com". The rest of the endpoint is the device's own
+   address and stays out of anything we return. */
+const hostOf = (endpoint) => {
+  try { return new URL(endpoint).host; } catch { return "?"; }
+};
+
 /* One send, with the two failures that mean "this device is gone"
-   folded in. Returns 'sent' | 'gone' | 'failed'. */
+   folded in. Returns { outcome: 'sent' | 'gone' | 'failed', ... } and,
+   when it failed, WHY.
+
+   It used to return the word "failed" and put the reason in
+   console.error, where it lived in the Netlify function log and nowhere
+   a person looking at the database would ever see it. Every caller
+   reads this over HTTP, so the answer belongs in the answer: a run that
+   reports `failed: 2` and nothing else sends you looking through three
+   services to find out that two keys do not match. */
 export async function sendTo(webpush, env, sub, message) {
   try {
     await webpush.sendNotification(
@@ -99,14 +114,37 @@ export async function sendTo(webpush, env, sub, message) {
       message,
       { TTL: 3600 },
     );
-    return "sent";
+    return { outcome: "sent" };
   } catch (err) {
     const status = err && err.statusCode;
     if (status === 404 || status === 410) {
       await removeSubscription(env, sub.endpoint);
-      return "gone";
+      return { outcome: "gone", status, host: hostOf(sub.endpoint) };
     }
-    console.error("push failed", status, err && err.body);
-    return "failed";
+    /* the push service's own words, trimmed: Apple answers
+       {"reason":"BadJwtToken"}, FCM answers a sentence */
+    const raw = (err && (err.body || err.message)) || "";
+    const reason = String(raw).replace(/\s+/g, " ").trim().slice(0, 160) || "no reason given";
+    console.error("push failed", status, reason);
+    return { outcome: "failed", status: status || null, host: hostOf(sub.endpoint), reason };
   }
+}
+
+/* What a run did, in the shape every one of these functions returns.
+   `errors` carries the distinct reasons rather than one line per device,
+   so ten phones behind one bad key read as one problem. */
+export function tally(outcomes) {
+  const out = { sent: 0, failed: 0, removed: 0 };
+  const seen = new Map();
+  for (const o of outcomes) {
+    if (o.outcome === "sent") out.sent++;
+    else if (o.outcome === "gone") out.removed++;
+    else {
+      out.failed++;
+      const key = `${o.status}|${o.reason}|${o.host}`;
+      if (!seen.has(key)) seen.set(key, { status: o.status, host: o.host, reason: o.reason });
+    }
+  }
+  if (seen.size) out.errors = [...seen.values()];
+  return out;
 }

@@ -31,7 +31,7 @@
 
 import webpush from "web-push";
 import {
-  json, secretMatches, loadSubscriptions, sendTo,
+  json, secretMatches, loadSubscriptions, sendTo, tally,
   notifyPreference, isUrgent, REQUIRED,
 } from "./lib/push-shared.mjs";
 
@@ -93,16 +93,6 @@ export default async (req) => {
     data: record.data || {},
   });
 
-  let sent = 0;
-  let failed = 0;
-  let removed = 0;
-
   const outcomes = await Promise.all(subscriptions.map((sub) => sendTo(webpush, env, sub, message)));
-  for (const outcome of outcomes) {
-    if (outcome === "sent") sent++;
-    else if (outcome === "gone") removed++;
-    else failed++;
-  }
-
-  return json({ sent, failed, removed }, 200);
+  return json(tally(outcomes), 200);
 };

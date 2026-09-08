@@ -33,7 +33,7 @@ globalThis.fetch = async (url, init = {}) => {
 };
 
 const { default: relay, recordFrom } = await import("../../netlify/functions/push.mjs");
-const { isUrgent, projectUrl } = await import("../../netlify/functions/lib/push-shared.mjs");
+const { isUrgent, projectUrl, sendTo, tally } = await import("../../netlify/functions/lib/push-shared.mjs");
 const { summarise } = await import("../../netlify/functions/digest.mjs");
 
 let pass = 0, fail = 0;
@@ -159,6 +159,39 @@ check("every urgent kind is one the database actually writes",
   const asked = seen.slice(before).find((x) => x.includes("push_subscriptions"));
   check("a relay configured with the REST endpoint still reads the right path",
         !!asked && asked.includes("/rest/v1/push_subscriptions") && !asked.includes("/rest/v1/rest/v1/"), asked);
+}
+
+/* ---------- why a send failed ----------
+   A run that answers `failed: 2` and nothing else is a dead end: the
+   reason lived in console.error, inside the Netlify function log. Two
+   devices behind one bad key are one problem, and it says so. */
+{
+  const gone = { statusCode: 410 };
+  const apple = Object.assign(new Error("x"), { statusCode: 403, body: '{"reason":"BadJwtToken"}' });
+  const stub = {
+    sendNotification: async (sub) => {
+      if (sub.endpoint.includes("ok")) return;
+      throw sub.endpoint.includes("gone") ? gone : apple;
+    },
+  };
+  const sub = (id) => ({ endpoint: `https://web.push.apple.com/${id}`, p256dh: "p", auth: "a" });
+  const outcomes = [];
+  for (const id of ["ok", "bad1", "bad2", "gone"]) outcomes.push(await sendTo(stub, ENV, sub(id), "{}"));
+
+  check("a send that worked says so", outcomes[0].outcome === "sent", outcomes[0]);
+  check("a rejected send carries the status and the service's own words",
+        outcomes[1].outcome === "failed" && outcomes[1].status === 403
+        && outcomes[1].reason.includes("BadJwtToken") && outcomes[1].host === "web.push.apple.com", outcomes[1]);
+  check("a 410 is a device that is gone, not a failure", outcomes[3].outcome === "gone", outcomes[3]);
+
+  const t = tally(outcomes);
+  check("the tally counts each outcome", t.sent === 1 && t.failed === 2 && t.removed === 1, t);
+  check("two devices behind one reason are one reason", t.errors.length === 1, t.errors);
+  check("…and it names the status, the service and why", t.errors[0].status === 403
+        && t.errors[0].host === "web.push.apple.com" && t.errors[0].reason.includes("BadJwtToken"), t.errors[0]);
+  check("a clean run carries no errors key", tally([{ outcome: "sent" }]).errors === undefined);
+  check("nothing of the endpoint but its host is reported",
+        !JSON.stringify(t.errors).includes("bad1"), t.errors);
 }
 
 /* ---------- the daily summary ---------- */
