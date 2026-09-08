@@ -53,19 +53,41 @@ export function publicFromPrivate(privateKey) {
   }
 }
 
-/* Hands web-push a pair that is a pair. Returns the public key it used
-   so a caller can say which one, and null when the private key is not a
-   P-256 scalar at all — which is worth saying plainly rather than
-   letting the push service say "bad token". */
+/* WHO IS SENDING THIS, IN A FORM APPLE ACCEPTS. The `sub` claim of the
+   VAPID token has to be a `mailto:` or an `https:` URL — Apple is
+   strict where web-push is not, and answers anything else with
+   `403 BadJwtToken`, which names nothing. A pasted variable arrives
+   with a trailing newline; an address arrives without its `mailto:`;
+   a site arrives as `http://`. All three pass web-push and all three
+   are rejected by Apple. So whatever is configured is put into the one
+   shape that works, rather than trusted to already be in it. */
+export function vapidSubject(raw) {
+  const v = String(raw || "").trim().replace(/^["']|["']$/g, "");
+  if (!v) return null;
+  if (/^mailto:/i.test(v)) return v;
+  if (/^https:\/\//i.test(v)) return v;
+  if (/^http:\/\//i.test(v)) return "https://" + v.slice(7);
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "mailto:" + v;
+  if (/^[^\s/@]+\.[^\s/@]+$/.test(v)) return "https://" + v;
+  return null;
+}
+
+/* Hands web-push a pair that is a pair, and a subject in the shape
+   every push service accepts. Returns both, so a caller can say what it
+   signed with, and an error naming the variable when one of them cannot
+   be made sense of — better than letting the push service say only
+   "bad token". */
 export function useVapid(webpush, env) {
   const publicKey = publicFromPrivate(env.VAPID_PRIVATE_KEY);
   if (!publicKey) return { error: "VAPID_PRIVATE_KEY is not a P-256 key (expected 32 bytes, base64url)" };
+  const subject = vapidSubject(env.VAPID_SUBJECT);
+  if (!subject) return { error: "VAPID_SUBJECT must be an email address or an https:// URL" };
   try {
-    webpush.setVapidDetails(env.VAPID_SUBJECT, publicKey, env.VAPID_PRIVATE_KEY);
+    webpush.setVapidDetails(subject, publicKey, env.VAPID_PRIVATE_KEY);
   } catch (err) {
     return { error: `VAPID settings rejected: ${err.message}` };
   }
-  return { publicKey };
+  return { publicKey, subject };
 }
 
 /* The notifications worth waking a phone for when someone has asked to
@@ -197,7 +219,12 @@ export function tally(outcomes) {
    so naming it costs nothing and settles the question: if this does not
    match VITE_VAPID_PUBLIC_KEY in the build, every device subscribed to
    a different pair and VAPID_PRIVATE_KEY is the wrong half. */
-export function withVapid(out, publicKey) {
-  if (out.errors && publicKey) out.signedWith = publicKey;
+export function withVapid(out, vapid) {
+  if (out.errors && vapid) {
+    if (vapid.publicKey) out.signedWith = vapid.publicKey;
+    /* the contact address in the token — sent to the push service in
+       the clear on every request, and the other thing it can reject */
+    if (vapid.subject) out.subject = vapid.subject;
+  }
   return out;
 }

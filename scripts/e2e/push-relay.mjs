@@ -32,7 +32,7 @@ globalThis.fetch = async (url, init = {}) => {
 };
 
 const { default: relay, recordFrom } = await import("../../netlify/functions/push.mjs");
-const { isUrgent, projectUrl, sendTo, tally, publicFromPrivate, useVapid, withVapid } = await import("../../netlify/functions/lib/push-shared.mjs");
+const { isUrgent, projectUrl, sendTo, tally, publicFromPrivate, useVapid, withVapid, vapidSubject } = await import("../../netlify/functions/lib/push-shared.mjs");
 const { summarise } = await import("../../netlify/functions/digest.mjs");
 
 let pass = 0, fail = 0;
@@ -214,12 +214,34 @@ check("every urgent kind is one the database actually writes",
   const bad = useVapid(webpush, { VAPID_SUBJECT: "mailto:help@nosca.ie", VAPID_PRIVATE_KEY: "nope" });
   check("a private key that is not a key is named, not passed on",
         !!bad.error && bad.error.includes("VAPID_PRIVATE_KEY") && !bad.publicKey, bad);
-  const noSub = useVapid(webpush, { VAPID_SUBJECT: "help@nosca.ie", VAPID_PRIVATE_KEY: pair.privateKey });
-  check("a subject that is not a mailto or url is named too", !!noSub.error, noSub);
+  const bare = useVapid(webpush, { VAPID_SUBJECT: " help@nosca.ie\n", VAPID_PRIVATE_KEY: pair.privateKey });
+  check("a bare address is put into the shape Apple takes, not refused",
+        !bare.error && bare.subject === "mailto:help@nosca.ie", bare);
+  const noSub = useVapid(webpush, { VAPID_SUBJECT: "Ray", VAPID_PRIVATE_KEY: pair.privateKey });
+  check("a subject nothing can be made of names its variable",
+        !!noSub.error && noSub.error.includes("VAPID_SUBJECT"), noSub);
 
-  check("a failed run says which key it signed with",
-        withVapid({ sent: 0, failed: 1, errors: [{ status: 403 }] }, pair.publicKey).signedWith === pair.publicKey);
-  check("a clean run does not", withVapid({ sent: 1, failed: 0 }, pair.publicKey).signedWith === undefined);
+  const shown = withVapid({ sent: 0, failed: 1, errors: [{ status: 403 }] }, used);
+  check("a failed run says which key it signed with", shown.signedWith === pair.publicKey, shown);
+  check("…and which contact address", shown.subject === "mailto:help@nosca.ie", shown);
+  check("a clean run says neither", withVapid({ sent: 1, failed: 0 }, used).signedWith === undefined);
+}
+
+/* ---------- the contact address in the token ----------
+   Apple takes a mailto: or an https: URL and rejects everything else
+   with 403 BadJwtToken. web-push is looser, so three ordinary mistakes
+   pass it and fail at Apple: a pasted trailing newline, an address
+   without its mailto:, and a site on http. */
+{
+  const want = "mailto:help@nosca.ie";
+  check("a mailto is left alone", vapidSubject(want) === want);
+  check("whitespace from a paste is trimmed", vapidSubject("  " + want + "\n") === want);
+  check("stray quotes from a paste are trimmed", vapidSubject(`"${want}"`) === want);
+  check("a bare address gains its mailto:", vapidSubject("help@nosca.ie") === want);
+  check("https is left alone", vapidSubject("https://nosca.ie") === "https://nosca.ie");
+  check("http is upgraded", vapidSubject("http://nosca.ie") === "https://nosca.ie");
+  check("a bare host becomes https", vapidSubject("nosca.ie") === "https://nosca.ie");
+  check("nothing usable is nothing", vapidSubject("") === null && vapidSubject(null) === null && vapidSubject("Ray") === null);
 }
 
 /* ---------- the daily summary ---------- */
