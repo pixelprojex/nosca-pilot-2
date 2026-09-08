@@ -90,5 +90,5 @@ export default async (req) => {
   });
 
   const outcomes = await Promise.all(subscriptions.map((sub) => sendTo(webpush, env, sub, message)));
-  return json(withVapid(tally(outcomes), vapid.publicKey), 200);
+  return json(withVapid(tally(outcomes), vapid), 200);
 };

@@ -145,5 +145,5 @@ export default async () => {
   if (done.length) await markSent(env, done, nowIso);
   const out = { people: people.length, told, sent, failed, removed };
   if (reasons.size) out.errors = [...reasons.values()];
-  return json(withVapid(out, vapid.publicKey), 200);
+  return json(withVapid(out, vapid), 200);
 };
