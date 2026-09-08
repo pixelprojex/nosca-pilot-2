@@ -237,7 +237,10 @@ Setting it up is done once and takes about ten minutes.
    - `VAPID_PRIVATE_KEY` — the private key. The relay computes the
      public half from it, so there is no second copy to get wrong.
      (`VAPID_PUBLIC_KEY` is no longer read; you can delete it.)
-   - `VAPID_SUBJECT` — `mailto:` followed by your email address
+   - `VAPID_SUBJECT` — `mailto:` followed by your email address, with
+     no space after the colon (a space is accepted by everything on the
+     way out and rejected by Apple with `403 BadJwtToken`; the relay
+     now closes it up for you)
    - `SUPABASE_URL` — the Project URL from Supabase
    - `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Project Settings → API →
      the key labelled **service_role**
@@ -315,6 +318,24 @@ Worth knowing:
     that pair. Generating a new pair means every device has to
     subscribe again.
   - `{"sent":N}` — it left. Anything after that is the phone's.
+
+### What a notification looks like
+
+The title carries the fact and nothing else — "Lesson booked", "Ciara
+Murphy asked to join", "Called off — weather". The body carries the one
+detail that did not fit, and is left empty when there is none. No "tap
+to accept", no full stops, no sentences: it is read on a lock screen
+among twenty others, and anything longer is cut off before the part
+that matters.
+
+They also collapse. Each notification is tagged with the thing it is
+about, so three messages from the same person are one line rather than
+three, and a booking that is made, confirmed and then called off leaves
+one current notification instead of three contradictory ones.
+
+Change the wording in section 10 of `supabase/nosca.sql` — the triggers
+are the only thing that writes a notification — and make the same change
+in `scripts/e2e/mock.cjs` so the tests keep testing the real thing.
 
 ## Starting again
 

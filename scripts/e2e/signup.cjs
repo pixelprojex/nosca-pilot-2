@@ -236,7 +236,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       const req = prof && requestOf(db, prof.id);
       if (!prof || prof.coach_id) note("FAIL a coach code must not link the player outright (coach_id set)");
       if (!req || req.coach_id !== COACH_ID || req.status !== "pending") note("FAIL the trigger did not create a pending coach_request"); else note("the trigger made a pending request to Sinéad Walsh");
-      if (!db.notifications.some((n) => n.user_id === COACH_ID && n.kind === "request" && /Aoife Nolan asked to join you/.test(n.title))) note("FAIL the request trigger did not tell the coach");
+      if (!db.notifications.some((n) => n.user_id === COACH_ID && n.kind === "request" && /Aoife Nolan asked to join/.test(n.title))) note("FAIL the request trigger did not tell the coach");
       await shot("arrival-player");
       t = await rootText(page);
       if (!/You've asked Sinéad Walsh/.test(t) || !/accept you from their app/.test(t)) note("FAIL arrival should say You've asked Sinéad Walsh, got: " + t.slice(0, 160)); else note("arrival: You've asked Sinéad Walsh");

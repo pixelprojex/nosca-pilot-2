@@ -50,7 +50,7 @@ const post = (body, secret = "s3cret") =>
 
 const answer = async (res) => ({ status: res.status, body: await res.json() });
 
-const ROW = { user_id: "11111111-1111-4111-8111-111111111111", kind: "lesson", title: "New lesson logged", body: "Putting", data: { screen: "lesson", id: "l1" } };
+const ROW = { user_id: "11111111-1111-4111-8111-111111111111", kind: "lesson", title: "Lesson logged", body: "Putting", data: { screen: "lesson", id: "l1" } };
 
 /* ---------- who is allowed to call it ---------- */
 {

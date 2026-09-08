@@ -77,6 +77,29 @@ seeded data and no account.
   `ROSTER` without checking `data` or `useLive()` first. A real account
   either does the real thing through `useNoscaData` or does not show
   the control — nothing may toast and pretend.
+- **One mark, one loading screen.** `src/lib/brandmark.jsx` owns the
+  two rings and the screen built from them, because the gate in
+  App.jsx renders before Nosca.jsx exists. The rings weave — each is
+  broken by a gap where the other passes over — so nothing is knocked
+  out with a background colour and the mark works on any surface. The
+  app icons and the favicon are generated from the same numbers by
+  `node scripts/icons.mjs`; change the geometry, run it, commit what it
+  writes. Nothing may import Nosca from that file.
+- **A confirmation is a line, not a ceremony.** `done(text, sub)`
+  raises the toast with a tick — that is what every everyday action
+  answers with. The full-screen `Celebration` is for the few moments
+  that earn it: called off for weather, joining a coach or a family.
+  Logging a lesson keeps its own burst; opening the app keeps the
+  splash. Anything a coach does a dozen times in a sitting gets the
+  toast.
+- **Notifications are one shape.** The title carries the fact and
+  nothing else; the body carries the detail that did not fit, and is
+  null when there is none. No instructions, no encouragement, no full
+  stops. It is read on a lock screen among twenty others.
+- **Nothing is offered in the past.** The calendar context carries
+  `nowMins` as well as the date (the harness is pinned to 9am so its
+  screens are identical every run). `openTimes` drops today's times
+  that have been and gone.
 - **The walkthrough is the app.** Each tour step renders a second
   `<Nosca showcase={…}>` (harness data, inert, scaled) and rings a real
   control found by its `data-tour` attribute. Add a step by adding the
