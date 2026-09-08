@@ -62,13 +62,24 @@ export function publicFromPrivate(privateKey) {
    are rejected by Apple. So whatever is configured is put into the one
    shape that works, rather than trusted to already be in it. */
 export function vapidSubject(raw) {
-  const v = String(raw || "").trim().replace(/^["']|["']$/g, "");
+  const v = String(raw || "").trim().replace(/^["']|["']$/g, "").trim();
   if (!v) return null;
-  if (/^mailto:/i.test(v)) return v;
-  if (/^https:\/\//i.test(v)) return v;
-  if (/^http:\/\//i.test(v)) return "https://" + v.slice(7);
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "mailto:" + v;
-  if (/^[^\s/@]+\.[^\s/@]+$/.test(v)) return "https://" + v;
+  /* The space in "mailto: someone@example.com" is what this whole
+     function exists for. It is the natural way to type it, it survives
+     every check web-push makes, and Apple answers the resulting token
+     with 403 BadJwtToken. Neither an address nor a URL may contain
+     whitespace, so all of it goes. */
+  const addr = (rest) => rest.replace(/\s+/g, "");
+  if (/^mailto:/i.test(v)) {
+    const a = addr(v.slice(7));
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a) ? "mailto:" + a : null;
+  }
+  if (/^https?:\/\//i.test(v)) {
+    const host = addr(v.replace(/^https?:\/\//i, ""));
+    return host ? "https://" + host : null;
+  }
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr(v))) return "mailto:" + addr(v);
+  if (/^[^\s/@]+\.[^\s/@]+$/.test(addr(v))) return "https://" + addr(v);
   return null;
 }
 

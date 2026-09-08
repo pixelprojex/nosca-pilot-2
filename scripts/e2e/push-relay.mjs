@@ -238,6 +238,13 @@ check("every urgent kind is one the database actually writes",
   check("whitespace from a paste is trimmed", vapidSubject("  " + want + "\n") === want);
   check("stray quotes from a paste are trimmed", vapidSubject(`"${want}"`) === want);
   check("a bare address gains its mailto:", vapidSubject("help@nosca.ie") === want);
+  /* the one that was actually deployed, and the reason Apple refused
+     every send: a space after the scheme */
+  check("a space after mailto: is closed up", vapidSubject("mailto: help@nosca.ie") === want);
+  check("…however much of it there is", vapidSubject("  mailto:   help@nosca.ie \n") === want);
+  check("a space after https:// is closed up too", vapidSubject("https:// nosca.ie") === "https://nosca.ie");
+  check("a mailto with no address left is nothing", vapidSubject("mailto:") === null && vapidSubject("mailto: ") === null);
+  check("a mailto that is not an address is nothing", vapidSubject("mailto:Ray") === null);
   check("https is left alone", vapidSubject("https://nosca.ie") === "https://nosca.ie");
   check("http is upgraded", vapidSubject("http://nosca.ie") === "https://nosca.ie");
   check("a bare host becomes https", vapidSubject("nosca.ie") === "https://nosca.ie");
