@@ -6,7 +6,7 @@
  * will, so this is a module and not a URL.
  */
 
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, createPrivateKey, createPublicKey } from "node:crypto";
 
 /* THE PROJECT URL, WHATEVER WAS PASTED IN. Supabase shows both
    "https://<ref>.supabase.co" and the REST endpoint
@@ -22,8 +22,51 @@ export const projectUrl = (env) =>
 
 export const REQUIRED = [
   "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
-  "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
+  "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
 ];
+
+/* THE PUBLIC KEY IS THE PRIVATE KEY'S, NOT AN ENVIRONMENT VARIABLE'S.
+   A VAPID pair is one key: the public half is computable from the
+   private half, and a push service checks that the token was signed by
+   the pair it is shown. Two variables holding two halves is two chances
+   to paste the wrong thing, and getting it wrong produces
+   `403 BadJwtToken` from Apple — which names neither variable, arrives
+   nowhere a person looks, and cost this project three days.
+   So the private key is asked, and the public half is derived from it.
+   VAPID_PUBLIC_KEY is no longer read, and cannot be wrong. */
+const b64u = (b) => b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64u = (s) => Buffer.from(String(s || "").replace(/-/g, "+").replace(/_/g, "/"), "base64");
+/* a PKCS#8 wrapper for a P-256 private key; the 32-byte scalar follows */
+const P256_PKCS8 = Buffer.from("3041020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420", "hex");
+
+export function publicFromPrivate(privateKey) {
+  try {
+    const d = unb64u(privateKey);
+    if (d.length !== 32) return null;
+    const spki = createPublicKey(
+      createPrivateKey({ key: Buffer.concat([P256_PKCS8, d]), format: "der", type: "pkcs8" }),
+    ).export({ format: "der", type: "spki" });
+    /* the uncompressed point is the last 65 bytes of the SPKI */
+    return b64u(spki.subarray(spki.length - 65));
+  } catch {
+    return null;
+  }
+}
+
+/* Hands web-push a pair that is a pair. Returns the public key it used
+   so a caller can say which one, and null when the private key is not a
+   P-256 scalar at all — which is worth saying plainly rather than
+   letting the push service say "bad token". */
+export function useVapid(webpush, env) {
+  const publicKey = publicFromPrivate(env.VAPID_PRIVATE_KEY);
+  if (!publicKey) return { error: "VAPID_PRIVATE_KEY is not a P-256 key (expected 32 bytes, base64url)" };
+  try {
+    webpush.setVapidDetails(env.VAPID_SUBJECT, publicKey, env.VAPID_PRIVATE_KEY);
+  } catch (err) {
+    return { error: `VAPID settings rejected: ${err.message}` };
+  }
+  return { publicKey };
+}
 
 /* The notifications worth waking a phone for when someone has asked to
    hear only what matters: their day changing, or a question waiting on
@@ -146,5 +189,15 @@ export function tally(outcomes) {
     }
   }
   if (seen.size) out.errors = [...seen.values()];
+  return out;
+}
+
+/* When a send is refused, the key it was signed with is the first thing
+   anyone asks about. It is a PUBLIC key — it ships in the app bundle —
+   so naming it costs nothing and settles the question: if this does not
+   match VITE_VAPID_PUBLIC_KEY in the build, every device subscribed to
+   a different pair and VAPID_PRIVATE_KEY is the wrong half. */
+export function withVapid(out, publicKey) {
+  if (out.errors && publicKey) out.signedWith = publicKey;
   return out;
 }

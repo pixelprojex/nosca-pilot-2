@@ -22,7 +22,7 @@
  */
 
 import webpush from "web-push";
-import { json, restHeaders, loadSubscriptions, sendTo, tally, projectUrl, REQUIRED } from "./lib/push-shared.mjs";
+import { json, restHeaders, loadSubscriptions, sendTo, tally, withVapid, useVapid, projectUrl, REQUIRED } from "./lib/push-shared.mjs";
 
 export const config = { schedule: "0 6 * * *" };
 
@@ -75,11 +75,8 @@ export default async () => {
   const missing = REQUIRED.filter((name) => !env[name]);
   if (missing.length) return json({ error: `missing environment: ${missing.join(", ")}` }, 500);
 
-  try {
-    webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
-  } catch (err) {
-    return json({ error: `VAPID settings rejected: ${err.message}` }, 500);
-  }
+  const vapid = useVapid(webpush, env);
+  if (vapid.error) return json({ error: vapid.error }, 500);
 
   const now = new Date();
   const nowIso = now.toISOString();
@@ -148,5 +145,5 @@ export default async () => {
   if (done.length) await markSent(env, done, nowIso);
   const out = { people: people.length, told, sent, failed, removed };
   if (reasons.size) out.errors = [...reasons.values()];
-  return json(out, 200);
+  return json(withVapid(out, vapid.publicKey), 200);
 };
