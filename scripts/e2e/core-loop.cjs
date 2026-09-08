@@ -208,10 +208,13 @@ const leaks = [];
       check("(g) the roster row carries the real lesson count", (await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).innerText()).includes("3 lessons") && tr0.includes("1 lessons"), tr0.slice(0, 240));
       await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const tg = await leak("coach player file"); await shot("coach-player-file");
-      const fileRows = page.locator('[data-tour="player-lessons"] button');
+      const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"])');
       const rowTexts = await fileRows.allInnerTexts();
       check("(g) the player file lists that player's real lessons, newest first, with the count in the header", tg.includes("3 lessons") && rowTexts.length === 3 && /Short game/.test(rowTexts[0]) && /01 SEP|Short game/.test(rowTexts[1]) && /20 AUG/.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
       check("(g) the file's rows are the coach's own — nothing seeded (14 Jun, Driving)", !tg.includes("14 Jun") && !tg.includes("Held the finish"), tg.slice(0, 200));
+      /* the archive is one tap away whether or not there are more than
+         the few shown — three lessons still get a way through to all */
+      check("(g) the whole archive is one button away", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /All lessons/.test(tg), tg.slice(0, 200));
       await fileRows.filter({ hasText: "Putting" }).first().click(); await page.waitForTimeout(1200);
       const t10 = await leak("coach lesson view"); await shot("coach-lesson-view");
       check("(g) tapping a row opens the coach lesson view by id with its real notes and media", t10.includes("Putting") && t10.includes("Pace on the long ones first.") && !t10.includes("Distance control") && (await page.locator("video[controls]").count()) === 1 && t10.includes("Download lesson log"), t10.slice(0, 240));

@@ -87,6 +87,10 @@ const toLesson = (r, attendeeIds = []) => {
     note: r.notes,
     who: r.who,
     playerId: r.player_id,
+    /* who taught it. A coach may also be somebody's player, so "my
+       lessons" and "the lessons I gave" are two different lists and
+       both are in here. */
+    coachId: r.coach_id,
     coach: r.coach_name,
     date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
     iso: r.lesson_date,
