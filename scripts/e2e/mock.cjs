@@ -122,13 +122,13 @@ function notify(db, userId, kind, title, body, data) { if (!userId) return null;
 
 function onLessonInsert(db, l) {
   if (!l.player_id) return;
-  notify(db, l.player_id, "lesson", "New lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
-  adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, l.player_id)}'s lesson was logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
+  notify(db, l.player_id, "lesson", "Lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
+  adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, l.player_id)}'s lesson logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
 }
-function onRequestInsert(db, r) { notify(db, r.coach_id, "request", `${nameOf(db, r.player_id)} asked to join you`, "Tap to accept or decline.", { screen: "requests", id: r.id }); }
+function onRequestInsert(db, r) { notify(db, r.coach_id, "request", `${nameOf(db, r.player_id)} asked to join`, null, { screen: "requests", id: r.id }); }
 function onRequestDecided(db, r) {
-  if (r.status === "accepted") notify(db, r.player_id, "accepted", `${nameOf(db, r.coach_id)} accepted you`, "Your lessons, drills and messages start here.", { screen: "home", id: r.id });
-  else if (r.status === "declined") notify(db, r.player_id, "declined", `${nameOf(db, r.coach_id)} couldn't take you on`, "You can ask another coach with their code.", { screen: "home", id: r.id });
+  if (r.status === "accepted") notify(db, r.player_id, "accepted", `${nameOf(db, r.coach_id)} accepted you`, null, { screen: "home", id: r.id });
+  else if (r.status === "declined") notify(db, r.player_id, "declined", `${nameOf(db, r.coach_id)} can't take you on`, null, { screen: "home", id: r.id });
 }
 function onBookingInsert(db, b) {
   if (!b.player_id) return;
@@ -136,22 +136,22 @@ function onBookingInsert(db, b) {
   if (b.status === "requested") notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} asked for a lesson`, whn, { screen: "today", id: b.id });
   else if (b.status === "confirmed") {
     notify(db, b.player_id, "booking", "Lesson booked", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
-    adultsFor(db, b.player_id).forEach((a) => notify(db, a, "booking", `${firstOf(db, b.player_id)} has a lesson booked`, whn, { screen: "family", id: b.id }));
+    adultsFor(db, b.player_id).forEach((a) => notify(db, a, "booking", `${firstOf(db, b.player_id)}'s lesson booked`, whn, { screen: "family", id: b.id }));
   }
 }
 function onBookingUpdate(db, b, old, actor) {
   if (!b.player_id || b.status === old.status) return;
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
   const tellAdults = (title, body) => adultsFor(db, b.player_id).forEach((a) => notify(db, a, b.status === "weather" ? "weather" : "booking", title, body, { screen: "family", id: b.id }));
-  if (b.status === "confirmed") { notify(db, b.player_id, "booking", "Lesson confirmed", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson is confirmed`, whn); }
-  else if (b.status === "weather") { notify(db, b.player_id, "weather", "Called off for weather", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson is called off`, `${whn} · weather`); }
+  if (b.status === "confirmed") { notify(db, b.player_id, "booking", "Lesson confirmed", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, whn); }
+  else if (b.status === "weather") { notify(db, b.player_id, "weather", "Called off — weather", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson called off`, `${whn} · weather`); }
   else if (b.status === "cancelled") {
-    if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson is cancelled`, whn); }
+    if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson cancelled`, whn); }
     else notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, whn, { screen: "calendar", id: b.id });
   }
 }
 function onMessageInsert(db, m) {
-  const snip = String(m.body || "").slice(0, 90);
+  const snip = String(m.body || "").slice(0, 80);
   if (m.sender_id === m.coach_id) {
     notify(db, m.player_id, "message", nameOf(db, m.coach_id), snip, { screen: "thread", id: m.player_id });
     adultsFor(db, m.player_id).forEach((a) => notify(db, a, "message", `${nameOf(db, m.coach_id)} → ${firstOf(db, m.player_id)}`, snip, { screen: "thread", id: m.player_id }));
@@ -160,7 +160,8 @@ function onMessageInsert(db, m) {
 function onDrillsInsert(db, rows) {
   const groups = {}; rows.forEach((r) => { (groups[`${r.player_id}|${r.coach_id}`] = groups[`${r.player_id}|${r.coach_id}`] || []).push(r); });
   Object.values(groups).forEach((g) => { const r = g[0], n = g.length;
-    notify(db, r.player_id, "drill", n === 1 ? `New drill: ${r.title}` : `${n} new drills`, nameOf(db, r.coach_id), { screen: "practice" });
+    notify(db, r.player_id, "drill", n === 1 ? "New drill" : `${n} new drills`,
+      n === 1 ? `${r.title} · ${nameOf(db, r.coach_id)}` : nameOf(db, r.coach_id), { screen: "practice" });
     adultsFor(db, r.player_id).forEach((a) => notify(db, a, "drill", `${firstOf(db, r.player_id)} has ${n === 1 ? "a new drill" : `${n} new drills`}`, nameOf(db, r.coach_id), { screen: "family" })); });
 }
 function onTipInsert(db, t) {

@@ -6,6 +6,7 @@ import Nosca from "./Nosca";
 import { useNoscaData, avatarUrl } from "./lib/useNoscaData";
 import { registerSw, syncSubscription } from "./lib/push";
 import { supabase } from "./lib/supabase";
+import { BrandLoader } from "./lib/brandmark.jsx";
 
 /* The full designed application, behind the real sign-in.
  *
@@ -102,14 +103,7 @@ function SignedIn({ profile, signOut, email, invite, onInviteUsed }) {
   }), [profile.id, profile.role, profile.name, profile.sport, profile.account_type,
        profile.phone, profile.club, profile.bio, profile.avatar_path, profile.date_of_birth, email]);
 
-  if (data.loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center"
-           style={{ background: "#FAF7F0", color: "#A39E93", fontSize: 14 }}>
-        Loading…
-      </div>
-    );
-  }
+  if (data.loading) return <BrandLoader />;
 
   if (data.loadError) {
     /* An unrecoverable spinner is worse than an honest error. This
@@ -246,16 +240,19 @@ function Gate() {
     );
   }
 
+  /* The app's own loading screen, not the word "Loading" — this is the
+     first thing anyone sees on a cold open, before Nosca.jsx renders at
+     all. The way out only appears once the wait has gone on too long. */
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
-         style={{ background: "#FAF7F0" }}>
-      <p style={{ color: "#A39E93", fontSize: 14, marginBottom: stuck ? 20 : 0 }}>Loading…</p>
-      {stuck && (
-        <button onClick={signOut} style={{ color: "#A39E93", fontSize: 13, textDecoration: "underline" }}>
+    <BrandLoader
+      action={stuck && (
+        <button onClick={signOut}
+                style={{ fontFamily: "'Switzer', ui-sans-serif, -apple-system, sans-serif",
+                         fontSize: 13, color: "#A39C93", textDecoration: "underline" }}>
           Taking too long? Sign out
         </button>
       )}
-    </div>
+    />
   );
 }
 

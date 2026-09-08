@@ -1245,6 +1245,14 @@ grant execute on function public.delete_my_account() to authenticated;
 -- thing it describes.
 -- ============================================================
 
+-- ONE SHAPE FOR ALL OF THEM. A notification is read on a lock screen,
+-- in a list of twenty, at arm's length: the title carries the fact and
+-- nothing else, the body carries the detail that did not fit, and there
+-- is no body at all when there is no detail. No instructions ("Tap to
+-- accept"), no sentences of encouragement, no full stops. It read like
+-- a paragraph before, which is unreadable at that size and pushes the
+-- part that matters out of view.
+--
 -- One row for one person. Internal: nothing but the triggers call it.
 create or replace function public.notify(p_user uuid, p_kind text, p_title text, p_body text, p_data jsonb default '{}'::jsonb)
 returns void
@@ -1299,10 +1307,10 @@ returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare a uuid;
 begin
   if new.player_id is not null then
-    perform public.notify(new.player_id, 'lesson', 'New lesson logged',
+    perform public.notify(new.player_id, 'lesson', 'Lesson logged',
       new.focus || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'lesson', 'id', new.id));
     for a in select public.adults_for(new.player_id) loop
-      perform public.notify(a, 'lesson', public.first_name_of(new.player_id) || '''s lesson was logged',
+      perform public.notify(a, 'lesson', public.first_name_of(new.player_id) || '''s lesson logged',
         new.focus || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'family', 'id', new.id));
     end loop;
   end if;
@@ -1318,15 +1326,15 @@ create or replace function public.trg_requests_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 begin
   if tg_op = 'INSERT' then
-    perform public.notify(new.coach_id, 'request', public.name_of(new.player_id) || ' asked to join you',
-      'Tap to accept or decline.', jsonb_build_object('screen', 'requests', 'id', new.id));
+    perform public.notify(new.coach_id, 'request', public.name_of(new.player_id) || ' asked to join',
+      null, jsonb_build_object('screen', 'requests', 'id', new.id));
   elsif tg_op = 'UPDATE' and new.status <> old.status then
     if new.status = 'accepted' then
       perform public.notify(new.player_id, 'accepted', public.name_of(new.coach_id) || ' accepted you',
-        'Your lessons, drills and messages start here.', jsonb_build_object('screen', 'home', 'id', new.id));
+        null, jsonb_build_object('screen', 'home', 'id', new.id));
     elsif new.status = 'declined' then
-      perform public.notify(new.player_id, 'declined', public.name_of(new.coach_id) || ' couldn''t take you on',
-        'You can ask another coach with their code.', jsonb_build_object('screen', 'home', 'id', new.id));
+      perform public.notify(new.player_id, 'declined', public.name_of(new.coach_id) || ' can''t take you on',
+        null, jsonb_build_object('screen', 'home', 'id', new.id));
     end if;
   end if;
   return new;
@@ -1353,7 +1361,7 @@ begin
       perform public.notify(new.player_id, 'booking', 'Lesson booked', whn || ' · ' || public.name_of(new.coach_id),
         jsonb_build_object('screen', 'calendar', 'id', new.id));
       for a in select public.adults_for(new.player_id) loop
-        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || ' has a lesson booked', whn,
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson booked', whn,
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     end if;
@@ -1362,14 +1370,14 @@ begin
       perform public.notify(new.player_id, 'booking', 'Lesson confirmed', whn || ' · ' || public.name_of(new.coach_id),
         jsonb_build_object('screen', 'calendar', 'id', new.id));
       for a in select public.adults_for(new.player_id) loop
-        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson is confirmed', whn,
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson confirmed', whn,
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     elsif new.status = 'weather' then
-      perform public.notify(new.player_id, 'weather', 'Called off for weather', whn || ' · ' || public.name_of(new.coach_id),
+      perform public.notify(new.player_id, 'weather', 'Called off — weather', whn || ' · ' || public.name_of(new.coach_id),
         jsonb_build_object('screen', 'calendar', 'id', new.id));
       for a in select public.adults_for(new.player_id) loop
-        perform public.notify(a, 'weather', public.first_name_of(new.player_id) || '''s lesson is called off', whn || ' · weather',
+        perform public.notify(a, 'weather', public.first_name_of(new.player_id) || '''s lesson called off', whn || ' · weather',
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     elsif new.status = 'cancelled' then
@@ -1377,7 +1385,7 @@ begin
         perform public.notify(new.player_id, 'booking', 'Lesson cancelled', whn || ' · ' || public.name_of(new.coach_id),
           jsonb_build_object('screen', 'calendar', 'id', new.id));
         for a in select public.adults_for(new.player_id) loop
-          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson is cancelled', whn,
+          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson cancelled', whn,
             jsonb_build_object('screen', 'family', 'id', new.id));
         end loop;
       else
@@ -1398,7 +1406,7 @@ create or replace function public.trg_messages_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare
   a    uuid;
-  snip text := left(new.body, 90);
+  snip text := left(new.body, 80);
 begin
   if new.sender_id = new.coach_id then
     perform public.notify(new.player_id, 'message', public.name_of(new.coach_id), snip,
@@ -1425,8 +1433,9 @@ declare r record; a uuid;
 begin
   for r in select player_id, coach_id, count(*) as n, min(title) as one from new_rows group by player_id, coach_id loop
     perform public.notify(r.player_id, 'drill',
-      case when r.n = 1 then 'New drill: ' || r.one else r.n || ' new drills' end,
-      public.name_of(r.coach_id), jsonb_build_object('screen', 'practice'));
+      case when r.n = 1 then 'New drill' else r.n || ' new drills' end,
+      case when r.n = 1 then r.one || ' · ' || public.name_of(r.coach_id) else public.name_of(r.coach_id) end,
+      jsonb_build_object('screen', 'practice'));
     for a in select public.adults_for(r.player_id) loop
       perform public.notify(a, 'drill', public.first_name_of(r.player_id) || ' has ' || case when r.n = 1 then 'a new drill' else r.n || ' new drills' end,
         public.name_of(r.coach_id), jsonb_build_object('screen', 'family'));

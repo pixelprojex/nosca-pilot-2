@@ -173,7 +173,7 @@ const leaks = [];
       /* (e) log a lesson with a typed note */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[aria-label="Add"]');
-      await page.getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
+      await page.locator("[data-sheet]").getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
       const tw0 = await leak("wizard who"); await shot("coach-wizard-who");
       check("(e) the first page asks who and when, and never for a time nothing stores", tw0.includes("Date") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0, tw0.slice(0, 200));
       await byText(page, "Cian Murphy").click(); await page.waitForTimeout(300);
@@ -224,7 +224,7 @@ const leaks = [];
       /* (h) two files, one refused by the storage limit, retried from Today */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[aria-label="Add"]');
-      await page.getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
+      await page.locator("[data-sheet]").getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
       await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);

@@ -30,7 +30,7 @@ function freshDb() {
   M.addLesson(db, { id: LESSON.old, coachId: IDS.coach, playerId: IDS.adult, date: "2026-08-20", focus: "Putting", notes: "Pace on the long ones first." });
   M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.coach, body: "See you Tuesday at nine.", createdAt: ago(90) });
   /* what the triggers wrote while Cian was away — three unread */
-  M.addNotification(db, { id: N.lesson, userId: IDS.adult, kind: "lesson", title: "New lesson logged", body: "Short game · Niamh Byrne", data: { screen: "lesson", id: LESSON.new }, createdAt: ago(120) });
+  M.addNotification(db, { id: N.lesson, userId: IDS.adult, kind: "lesson", title: "Lesson logged", body: "Short game · Niamh Byrne", data: { screen: "lesson", id: LESSON.new }, createdAt: ago(120) });
   M.addNotification(db, { id: N.message, userId: IDS.adult, kind: "message", title: "Niamh Byrne", body: "See you Tuesday at nine.", data: { screen: "thread", id: IDS.adult }, createdAt: ago(90) });
   M.addNotification(db, { id: N.booking, userId: IDS.adult, kind: "booking", title: "Lesson confirmed", body: "Tue 08 Sep 9:00 am · Niamh Byrne", data: { screen: "calendar", id: "b0" }, createdAt: ago(30) });
   /* a player asking the coach: the request and the notification the trigger writes with it */
@@ -69,8 +69,8 @@ const { check, results, summary } = M.checker("notifications");
       const t0 = await text(); await shot("01-adult-catchup");
       const rows = catchup(page).locator("button");
       check("(a) opening with unread notifications shows the catch-up over everything", (await catchup(page).count()) === 1 && /while you were away/i.test(t0) && t0.includes("3 things happened"), t0.slice(0, 200));
-      check("(a) it lists the three, newest first, with their bodies", (await rows.count()) === 3 && /Lesson confirmed/.test(await rows.nth(0).innerText()) && /Niamh Byrne/.test(await rows.nth(1).innerText()) && /New lesson logged/.test(await rows.nth(2).innerText()) && t0.includes("Short game · Niamh Byrne"), t0.slice(0, 300));
-      await rows.filter({ hasText: "New lesson logged" }).first().click(); await page.waitForTimeout(1200);
+      check("(a) it lists the three, newest first, with their bodies", (await rows.count()) === 3 && /Lesson confirmed/.test(await rows.nth(0).innerText()) && /Niamh Byrne/.test(await rows.nth(1).innerText()) && /Lesson logged/.test(await rows.nth(2).innerText()) && t0.includes("Short game · Niamh Byrne"), t0.slice(0, 300));
+      await rows.filter({ hasText: "Lesson logged" }).first().click(); await page.waitForTimeout(1200);
       const t1 = await text(); await shot("02-adult-lesson-from-catchup");
       check("(a) tapping a lesson notification lands on that lesson", (await catchup(page).count()) === 0 && t1.includes("Short game") && t1.includes("Cleaner contact from the fringe.") && (await page.locator('button', { hasText: "Download lesson log" }).count()) === 1, t1.slice(0, 200));
       const p1 = readPatches()[0];
@@ -79,7 +79,7 @@ const { check, results, summary } = M.checker("notifications");
       check("(a) the bell now counts the two still unread", (await M.bellCount(page)) === 2, String(await M.bellCount(page)));
       await tap(page, '[aria-label="Alerts"]', 900);
       const t2 = await text(); await shot("03-adult-alerts");
-      check("(a) the bell opens the list of all three, read and unread", (await alertRows(page).count()) === 3 && t2.includes("New lesson logged") && t2.includes("Lesson confirmed") && t2.includes("See you Tuesday at nine."), t2.slice(0, 240));
+      check("(a) the bell opens the list of all three, read and unread", (await alertRows(page).count()) === 3 && t2.includes("Lesson logged") && t2.includes("Lesson confirmed") && t2.includes("See you Tuesday at nine."), t2.slice(0, 240));
       await alertRows(page).filter({ hasText: "See you Tuesday" }).first().click(); await page.waitForTimeout(1200);
       const t3 = await text(); await shot("04-adult-thread-from-alert");
       /* the notification carries the player's id; the thread is the one with their coach */
@@ -92,7 +92,7 @@ const { check, results, summary } = M.checker("notifications");
     {
       const { ctx, page, text, shot } = await boot("adult");
       const t0 = await text(); await shot("05-adult-catchup-one");
-      check("(b) the next open shows only what is still unread", (await catchup(page).count()) === 1 && t0.includes("One thing happened") && t0.includes("Lesson confirmed") && !t0.includes("New lesson logged"), t0.slice(0, 200));
+      check("(b) the next open shows only what is still unread", (await catchup(page).count()) === 1 && t0.includes("One thing happened") && t0.includes("Lesson confirmed") && !t0.includes("Lesson logged"), t0.slice(0, 200));
       await click(page, "Carry on", 1000);
       const p = readPatches().slice(-1)[0];
       check("(b) Carry on PATCHes read_at for everything unread", !!p && p.body.read_at && p.query.includes(N.booking) && p.query.includes("read_at=is.null") && p.n === 1 && db.notifications.filter((n) => n.user_id === IDS.adult && !n.read_at).length === 0, p ? p.query : "no PATCH");
@@ -115,8 +115,8 @@ const { check, results, summary } = M.checker("notifications");
     {
       const { ctx, page, text, shot } = await boot("coach");
       const t0 = await text(); await shot("08-coach-catchup");
-      check("(c) the coach's catch-up names who asked to join", (await catchup(page).count()) === 1 && t0.includes("Eoin Walsh asked to join you"), t0.slice(0, 200));
-      await catchup(page).locator("button", { hasText: "asked to join you" }).first().click(); await page.waitForTimeout(1200);
+      check("(c) the coach's catch-up names who asked to join", (await catchup(page).count()) === 1 && t0.includes("Eoin Walsh asked to join"), t0.slice(0, 200));
+      await catchup(page).locator("button", { hasText: "asked to join" }).first().click(); await page.waitForTimeout(1200);
       const t1 = await text(); await shot("09-coach-requests-from-catchup");
       check("(c) tapping it lands on Requests with the asker", t1.includes("Requests") && t1.includes("Eoin Walsh") && (await byText(page, "Accept").count()) === 1, t1.slice(0, 200));
       await M.back(page);
@@ -124,8 +124,8 @@ const { check, results, summary } = M.checker("notifications");
       const t2 = await text(); await shot("10-coach-alerts");
       /* the notification row IS the door — a strip above it counting the
          same rows was the screen saying it twice */
-      const job = page.locator("button", { hasText: "Eoin Walsh asked to join you" }).first();
-      check("(c) the alerts list names the person asking to join, once", (await job.count()) === 1 && !/asking to join you/.test(t2) && t2.includes("Eoin Walsh asked to join you"), t2.slice(0, 240));
+      const job = page.locator("button", { hasText: "Eoin Walsh asked to join" }).first();
+      check("(c) the alerts list names the person asking to join, once", (await job.count()) === 1 && !/asking to join you/.test(t2) && t2.includes("Eoin Walsh asked to join"), t2.slice(0, 240));
       await job.click(); await page.waitForTimeout(900);
       const t3 = await text();
       check("(c) the row opens Requests", t3.includes("Requests") && t3.includes("Eoin Walsh"), t3.slice(0, 160));

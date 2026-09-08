@@ -5,6 +5,7 @@ import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import { MAX_UPLOAD_MB, avatarUrl, registerKey } from "./lib/useNoscaData";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
 import { supabase } from "./lib/supabase";
+import { Mark, BrandLoader, RING_L, RING_R, RING_LEN } from "./lib/brandmark.jsx";
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home, Library,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
@@ -24,15 +25,10 @@ export const BRAND = "NOSCA";
 const SUPPORT_EMAIL = (import.meta.env && import.meta.env.VITE_SUPPORT_EMAIL) || "";
 const VERSION = "1.2.0 (38)";
 
-export function Mark({ size = 34, color = "#16201A" }) {
-  return (
-    <svg width={size} height={size * 0.62} viewBox="0 0 40 25" aria-label={BRAND}>
-      <circle cx="14" cy="12.5" r="8.6" fill="none" stroke={color} strokeWidth={2.1} />
-      <circle cx="26" cy="12.5" r="8.6" fill="none" stroke={color} strokeWidth={2.1} />
-      <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" />
-    </svg>
-  );
-}
+/* The mark lives in lib/brandmark.jsx, because the loading screen is
+   drawn from the same geometry and both are on screen before this file
+   is. Re-exported so every existing import keeps working. */
+export { Mark };
 
 const SWATCHES = [
   { id: "sport",  name: "Sport default", accent: null,      onAccent: null },
@@ -1182,7 +1178,12 @@ const TODAY = { m: 7, d: 24 };
    calendar as a parameter and default to the harness's; the app hands
    the right one down through CalendarCtx, so a harness instance
    rendered inside a live one (the walkthrough) keeps its own. */
-const HARNESS_CALENDAR = { months: MONTHS, today: TODAY, year: 2026 };
+/* `nowMins` is the time of day, in minutes since midnight. The harness
+   is pinned to nine in the morning so its screens are identical every
+   run; a real account reads the clock. Without it "today" meant the
+   whole day, and at six in the evening the diary still offered eight
+   o'clock this morning. */
+const HARNESS_CALENDAR = { months: MONTHS, today: TODAY, year: 2026, nowMins: 9 * 60 };
 const monthShape = (y, m) => ({ idx: m, year: y, days: new Date(y, m, 0).getDate(), start: (new Date(y, m - 1, 1).getDay() + 6) % 7 });
 function calendarFor(clock, span = 6) {
   const months = Array.from({ length: span }, (_, i) => {
@@ -1190,7 +1191,8 @@ function calendarFor(clock, span = 6) {
     const m = monthShape(d.getFullYear(), d.getMonth() + 1);
     return { ...m, name: `${MONTHS_FULL[m.idx - 1]} ${m.year}` };
   });
-  return { months, today: { m: clock.getMonth() + 1, d: clock.getDate() }, year: clock.getFullYear() };
+  return { months, today: { m: clock.getMonth() + 1, d: clock.getDate() }, year: clock.getFullYear(),
+           nowMins: clock.getHours() * 60 + clock.getMinutes() };
 }
 const CalendarCtx = createContext(HARNESS_CALENDAR);
 const useCalendar = () => useContext(CalendarCtx);
@@ -1320,9 +1322,21 @@ const isPast = (m, d, c = HARNESS_CALENDAR) => {
   return a < b;
 };
 
+/* Is today, and this time of day has been and gone. */
+const isToday = (m, d, c = HARNESS_CALENDAR) => m === c.today.m && d === c.today.d && yearOf(m, c) === c.year;
+const timeGone = (m, d, time, c = HARNESS_CALENDAR) => {
+  if (!isToday(m, d, c)) return false;
+  const at = parseTime(time);
+  return at != null && at <= (c.nowMins ?? 0);
+};
+
 function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR) {
   if (isPast(m, d, c)) return [];
-  const base = avail[dowOf(m, d, c)] || [];
+  /* A slot that started an hour ago is not free, it is over. Only the
+     date was checked before, so on any afternoon the morning's times
+     were still offered — and a lesson could be booked into a slot the
+     coach had already spent. */
+  const base = (avail[dowOf(m, d, c)] || []).filter((t) => !timeGone(m, d, t, c));
   const taken = (seedBooked[key(m, d)] || []).map((b) => b.time);
   const off = blocked.filter((b) => b.m === m && b.d === d).map((b) => b.time);
   const own = mine.filter((b) => b.m === m && b.d === d).map((b) => b.time);
@@ -1556,7 +1570,6 @@ const ShimmerCSS = () => (
     @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes ping{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
     @keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
-    @keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     @keyframes tighten{from{opacity:0;letter-spacing:0.62em}to{opacity:1;letter-spacing:0.34em}}
     @keyframes trackFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
     @keyframes glow{0%,100%{opacity:.25}50%{opacity:.55}}
@@ -1565,13 +1578,9 @@ const ShimmerCSS = () => (
     @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     @keyframes converge{0%{transform:translateX(var(--from))}100%{transform:translateX(0)}}
     @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
-    @keyframes dashRun{0%{stroke-dashoffset:0;opacity:0}10%{opacity:.5}85%{opacity:.5}100%{stroke-dashoffset:-108;opacity:0}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes popIn{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
     @keyframes tickIn{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
     @keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes cheer{0%{transform:translateY(0) scale(.9);opacity:0}30%{opacity:1}100%{transform:translateY(-26px) scale(1.1);opacity:0}}
-    @keyframes sheen{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
     @keyframes liftIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
     @keyframes slideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
     @keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -1583,27 +1592,13 @@ const ShimmerCSS = () => (
     @keyframes celebFade{0%{opacity:0}12%{opacity:1}80%{opacity:1}100%{opacity:0}}
     @keyframes spark{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
     @keyframes labelUp{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
-    @keyframes orbitA{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    @keyframes orbitB{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
-    @keyframes hueCycle{0%{stroke:var(--c0)}20%{stroke:var(--c1)}40%{stroke:var(--c2)}60%{stroke:var(--c3)}80%{stroke:var(--c4)}100%{stroke:var(--c0)}}
-    @keyframes chase{0%{stroke-dashoffset:0}100%{stroke-dashoffset:-170}}
     @keyframes tourPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 var(--ring)}50%{opacity:.78;box-shadow:0 0 0 9px transparent}}
     @keyframes pulseDot{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
     /* Seamless loops only — every one ends exactly where it began, so
        nothing visibly restarts. */
-    @keyframes spinSlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    @keyframes spinBack{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
-    @keyframes hueRoll{0%{stroke:var(--h0)}17%{stroke:var(--h1)}34%{stroke:var(--h2)}51%{stroke:var(--h3)}68%{stroke:var(--h4)}85%{stroke:var(--h5)}100%{stroke:var(--h0)}}
-    @keyframes turn{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    @keyframes turnBack{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
-    @keyframes linkBreathe{0%,100%{opacity:.2}50%{opacity:.85}}
     @keyframes markBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
-    @keyframes ringFlash{0%{transform:scale(.85);opacity:.9}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
-    @keyframes ringHold{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.85}}
     @keyframes slideFrom{0%{opacity:0;transform:translateX(28px) scale(.98)}100%{opacity:1;transform:translateX(0) scale(1)}}
-    @keyframes dotGrow{0%{width:6px}100%{width:20px}}
     @keyframes ringDraw{from{stroke-dashoffset:290}}
-    @keyframes nudgeX{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
     /* the overture: mark draws in, whole thing lifts away */
     @keyframes overtureMark{0%{transform:scale(.7) rotate(-8deg);opacity:0}55%{transform:scale(1.06) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
     @keyframes overtureOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.04)}}
@@ -1617,7 +1612,6 @@ const ShimmerCSS = () => (
     @keyframes joinRight{0%{transform:translateX(46px);opacity:0}55%{opacity:1}100%{transform:translateX(0);opacity:1}}
     @keyframes contentRise{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
     @keyframes figureCount{0%{opacity:0;transform:translateY(12px) scale(.94)}60%{opacity:1;transform:translateY(-2px) scale(1.02)}100%{opacity:1;transform:translateY(0) scale(1)}}
-    @keyframes edgeGlow{0%,100%{opacity:0}50%{opacity:.5}}
     @keyframes shimmerOnce{0%{transform:translateX(-140%)}100%{transform:translateX(240%)}}
     /* --- motion added this pass --- */
     /* a tick that draws itself rather than appearing */
@@ -1625,17 +1619,13 @@ const ShimmerCSS = () => (
     /* a count that lands rather than switches */
     @keyframes countIn{0%{transform:translateY(-7px) scale(.82);opacity:0}60%{transform:translateY(1px) scale(1.06)}100%{transform:translateY(0) scale(1);opacity:1}}
     /* the accent bar under a fold as it opens */
-    @keyframes railOut{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
     /* a row settling into place under your thumb */
     @keyframes settle{0%{transform:translateY(9px);opacity:0}100%{transform:translateY(0);opacity:1}}
     /* the quiet pulse on something that needs a decision */
-    @keyframes waitPulse{0%,100%{box-shadow:0 0 0 0 rgba(208,138,30,0)}50%{box-shadow:0 0 0 5px rgba(208,138,30,.16)}}
     /* a card lifting as it becomes the active one in the deck */
-    @keyframes deckRise{0%{transform:translateY(10px) scale(.985);opacity:.6}100%{transform:translateY(0) scale(1);opacity:1}}
     @keyframes stampIn{0%{transform:scale(2.4) rotate(-14deg);opacity:0}55%{transform:scale(.92) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
     @keyframes shockwave{0%{transform:scale(.2);opacity:.7;border-width:14px}100%{transform:scale(2.6);opacity:0;border-width:1px}}
     @keyframes streakUp{0%{transform:translateY(24px);opacity:0}100%{transform:translateY(0);opacity:1}}
-    @keyframes barFill{from{width:0}to{width:var(--w)}}
     @keyframes tally{0%{transform:translateY(14px) scale(.7);opacity:0}60%{transform:translateY(-3px) scale(1.06);opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
     /* Honour the system setting. Everything still works, it just stops
        moving — which is the point of the preference. */
@@ -1682,9 +1672,9 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   /* the mark landing, the wordmark, then the lift away — each gets its
      own pulse, so the sequence is felt as well as seen */
   useEffect(() => {
-    const a = setTimeout(() => haptic(12), 180);
-    const b = setTimeout(() => haptic(8), 620);
-    const c = setTimeout(() => hapticSuccess(), 1180);
+    const a = setTimeout(() => haptic(12), 140);
+    const b = setTimeout(() => haptic(8), 460);
+    const c = setTimeout(() => hapticSuccess(), 900);
     return () => { clearTimeout(a); clearTimeout(b); clearTimeout(c); };
   }, [replayKey]);
   /* Before sign-up there is no sport, so the opening is the brand alone. */
@@ -1694,17 +1684,19 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   const bg = branded ? "#080A09" : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 
-  const HOLD = branded ? 5400 : 4000;
+  /* It ran for five and a half seconds. That is a held breath the first
+     time and a wait every time after, and the app opens more often than
+     anything else in here — so the same sequence, a third faster. */
+  const HOLD = branded ? 3500 : 2800;
   useEffect(() => {
     const a = setTimeout(() => setLeaving(true), HOLD);
     const b = setTimeout(() => onDone && onDone(), HOLD + 700);
     return () => { clearTimeout(a); clearTimeout(b); };
   }, [onDone, replayKey, HOLD]);
 
-  const R = 8.6, CIRC = 2 * Math.PI * R, ARC = 27;
   const T = branded
-    ? { r1: 350, r2: 800, join: 1750, link: 2150, word: 2800, rule: 3300, sub: 3700, foot: 4200 }
-    : { r1: 250, r2: 600, join: 1350, link: 1700, word: 2200, rule: 2600, sub: 2950, foot: 3350 };
+    ? { r1: 220, r2: 520, join: 1140, link: 1400, word: 1820, rule: 2140, sub: 2400, foot: 2740 }
+    : { r1: 160, r2: 400, join: 880, link: 1100, word: 1430, rule: 1690, sub: 1920, foot: 2180 };
 
   return (
     <button onClick={() => { haptic(8); setLeaving(true); setTimeout(() => onDone && onDone(), 400); }}
@@ -1735,25 +1727,19 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
         <svg width={148} height={92} viewBox="0 0 40 25" style={{ overflow: "visible" }} aria-label={BRAND}>
           {/* the rings draw, then slide together into their linked position */}
           <g style={{ "--from": "-7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <circle cx="14" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
-                    style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
-                             animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r1}ms forwards` }} />
+            <path d={RING_L} fill="none" stroke="#F4F6F3" strokeWidth={2.4} strokeLinecap="round"
+                  style={{ "--len": RING_LEN, strokeDasharray: RING_LEN, strokeDashoffset: RING_LEN,
+                           animation: `draw 900ms cubic-bezier(.35,0,.15,1) ${T.r1}ms forwards` }} />
           </g>
+          {/* The second ring arrives in the sport's colour and slides
+              into the first. The link is the two rings meeting — it was
+              a separate stub of an arc laid over the join, which at this
+              size read as a blob rather than a join. */}
           <g style={{ "--from": "7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <circle cx="26" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
-                    style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
-                             animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r2}ms forwards` }} />
+            <path d={RING_R} fill="none" stroke={accent} strokeWidth={2.4} strokeLinecap="round"
+                  style={{ "--len": RING_LEN, strokeDasharray: RING_LEN, strokeDashoffset: RING_LEN,
+                           animation: `draw 900ms cubic-bezier(.35,0,.15,1) ${T.r2}ms forwards` }} />
           </g>
-          {/* the link, drawn last, then a travelling dash that keeps running */}
-          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke={accent} strokeWidth={1.6} strokeLinecap="round"
-                style={{ "--len": ARC, strokeDasharray: ARC, strokeDashoffset: ARC,
-                         animation: `draw 850ms cubic-bezier(.35,0,.15,1) ${T.link}ms forwards` }} />
-          {/* Starts fully transparent. Without this it parks a white
-              segment at the top of the arc for the whole delay — which
-              reads as a stray floating line between the rings. */}
-          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinecap="round"
-                style={{ strokeDasharray: "4 104", strokeDashoffset: 0, opacity: 0,
-                         animation: `dashRun 2.6s linear ${T.link + 900}ms infinite` }} />
         </svg>
       </div>
 
@@ -1780,57 +1766,16 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
 /* ==================================================================
    LOADER
    Deliberately not the splash. The splash is a statement; this is a
-   machine at work — two rings orbiting in opposite directions with a
-   chasing arc that cycles through all six sport colours, because the
-   loader belongs to the whole app rather than to one sport.
+   machine at work. It is the same screen the gate shows while a session
+   or a profile is being read — one loading screen for the whole app,
+   drawn from lib/brandmark.jsx, rather than one here and the word
+   "Loading" out there.
 ================================================================== */
 function Loader({ label, onTap }) {
   useEffect(() => { haptic(7); }, []);
   const t = useT();
-  const cols = Object.values(SPORTS).map((sp) => sp.theme.accent);
-  const hues = cols.reduce((a, c, i) => ({ ...a, [`--h${i}`]: c }), {});
-
-  /* Deliberately the splash's mark, held still. The rings don't move —
-     a light travels around each one, inward past the link and out
-     again. Only rotation is animated, and a full turn ends exactly
-     where it began, so there is no seam to notice however long
-     someone waits. */
-  const R = 8.6, CIRC = 2 * Math.PI * R;   // 54.03
-  const ARC = CIRC * 0.26;                  // the travelling light
-
-  return (
-    <button onClick={onTap} aria-label={tr("Loading")}
-            className="absolute inset-0 flex flex-col items-center justify-center"
-            style={{ background: t.page, zIndex: 65, cursor: onTap ? "pointer" : "default" }}>
-
-      <svg width={168} height={105} viewBox="0 0 40 25" style={{ ...hues, overflow: "visible",
-             animation: "markBreathe 5.5s ease-in-out infinite" }}>
-        {/* the mark itself, steady */}
-        <circle cx="14" cy="12.5" r={R} fill="none" stroke={t.hair} strokeWidth={1.6} />
-        <circle cx="26" cy="12.5" r={R} fill="none" stroke={t.hair} strokeWidth={1.6} />
-
-        {/* the link, breathing between them */}
-        <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" strokeWidth={1.6} strokeLinecap="round"
-              style={{ animation: "linkBreathe 2.8s ease-in-out infinite, hueRoll 12s linear infinite" }} />
-
-        {/* a light running each ring, turning inward towards the link */}
-        <circle cx="14" cy="12.5" r={R} fill="none" strokeWidth={1.6} strokeLinecap="round"
-                style={{ strokeDasharray: `${ARC} ${CIRC - ARC}`, transformOrigin: "14px 12.5px",
-                         animation: "turn 2.8s linear infinite, hueRoll 12s linear infinite" }} />
-        <circle cx="26" cy="12.5" r={R} fill="none" strokeWidth={1.6} strokeLinecap="round"
-                style={{ strokeDasharray: `${ARC} ${CIRC - ARC}`, transformOrigin: "26px 12.5px",
-                         animation: "turnBack 2.8s linear infinite, hueRoll 12s linear infinite" }} />
-      </svg>
-
-      <div className="mt-9" style={{ fontFamily: display, fontSize: 13, letterSpacing: "0.34em",
-                    textTransform: "uppercase", color: t.faint }}>{label || BRAND}</div>
-
-      {onTap && (
-        <div className="absolute" style={{ bottom: 44, fontFamily: ui, fontSize: 10.5, letterSpacing: "0.18em",
-                      textTransform: "uppercase", color: t.hair }}>{tr("Tap to continue")}</div>
-      )}
-    </button>
-  );
+  return <BrandLoader absolute label={label || BRAND} onTap={onTap}
+                      page={t.page} ink={t.ink} hair={t.hair} faint={t.faint} />;
 }
 
 /* Photos in a lesson come in two kinds and they behave differently: a
@@ -4760,6 +4705,12 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
      from the plus it picks the one on now, if there is exactly one */
   const start = chosen || (soleLive.length === 1 ? soleLive[0] : null);
   const [picked, setPicked] = useState(start);
+  /* A LESSON THAT WAS NEVER IN THE DIARY. Someone turns up on the day,
+     a group runs an extra session, a booking was never made — the roll
+     still has to be taken. The roster used to be offered only when
+     nothing at all was booked, so a coach with one lesson in the diary
+     had no way to mark anybody else. It is one tap away now, always. */
+  const [walkIn, setWalkIn] = useState(false);
   /* A register is filed under the day and the label, which is how the
      database writes it and how registerKey builds it. This read the
      lesson's time and name instead — a key nothing ever wrote — so a
@@ -4899,20 +4850,6 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           {tr("Nothing booked today.")}{(roster || []).length ? ` ${tr("You can still mark someone.")}` : ""}
         </p>
       )}
-      {(lessons || []).length === 0 && (roster || []).length > 0 && (
-        <div className="mb-2" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-          {(roster || []).map((r, i) => (
-            <button key={r.id || r.name} onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
-                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                             animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
-              <Avatar name={r.name} size={30} />
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-              <ChevronRight size={14} color={t.faint} />
-            </button>
-          ))}
-        </div>
-      )}
 
       <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
         {(lessons || []).map((l, i) => {
@@ -4948,6 +4885,37 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           );
         })}
       </div>
+
+      {/* whoever else turned up */}
+      {(roster || []).length > 0 && !walkIn && (lessons || []).length > 0 && (
+        <button onClick={() => { haptic(7); soft(); setWalkIn(true); }}
+                className="w-full flex items-center gap-3 mt-4 px-4 active:opacity-60"
+                style={{ minHeight: 52, borderRadius: R.control, border: `0.5px dashed ${HAIR(t.ink, 0.28)}` }}>
+          <Plus size={15} color={t.accent} strokeWidth={2.2} />
+          <span style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Someone not in the diary")}</span>
+        </button>
+      )}
+
+      {(roster || []).length > 0 && (walkIn || (lessons || []).length === 0) && (
+        <>
+          {(lessons || []).length > 0 && (
+            <p className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Not in the diary")}</p>
+          )}
+          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+            {(roster || []).map((r, i) => (
+              <button key={r.id || r.name}
+                      onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
+                      className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                      style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
+                               animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
+                <Avatar name={r.name} size={30} />
+                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
+                <ChevronRight size={14} color={t.faint} />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -6673,10 +6641,11 @@ function Celebration({ label, sub, onDone, tone = "accent" }) {
 
       <svg width={128} height={80} viewBox="0 0 40 25" style={{ overflow: "visible",
              animation: "ringPop 620ms cubic-bezier(.22,1,.36,1) both" }}>
-        <circle cx="14" cy="12.5" r={R} fill="none" stroke={t.ink} strokeWidth={1.6} opacity={0.22} />
-        <circle cx="26" cy="12.5" r={R} fill="none" stroke={t.ink} strokeWidth={1.6} opacity={0.22} />
-        <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke={colour} strokeWidth={1.6} strokeLinecap="round"
-              style={{ strokeDasharray: 27, strokeDashoffset: 27,
+        <path d={RING_L} fill="none" stroke={t.ink} strokeWidth={2.4} strokeLinecap="round" opacity={0.22} />
+        <path d={RING_R} fill="none" stroke={t.ink} strokeWidth={2.4} strokeLinecap="round" opacity={0.22} />
+        {/* the second ring closing is the mark completing itself */}
+        <path d={RING_R} fill="none" stroke={colour} strokeWidth={2.4} strokeLinecap="round"
+              style={{ strokeDasharray: RING_LEN, strokeDashoffset: RING_LEN,
                        animation: "tickDraw 520ms cubic-bezier(.35,0,.15,1) 380ms both" }} />
         {/* the tick, struck through the middle */}
         <path d="M15.4 12.9 L18.7 16.2 L25 9.6" fill="none" stroke={colour} strokeWidth={2.1}
@@ -7541,16 +7510,40 @@ function Sheet({ open, onClose, children }) {
     </div>
   );
 }
+/* WHAT A CONFIRMATION COSTS.
+   Everything the app does used to answer with the same full-screen
+   celebration: rings, sparks, a held tick, 1.75 seconds. Fine the first
+   time; tacky by the tenth, and a coach accepting lesson times accepts a
+   dozen in a sitting. So the everyday answers come here instead — a
+   line that slides up, says what happened, and is gone — and the
+   celebration is kept for the handful of moments that earn it: opening
+   the app, calling a lesson off for weather, writing a lesson up,
+   joining a coach. `done` adds the tick; without it this is still the
+   plain message strip it always was. */
 function Toast({ msg }) {
   const t = useT();
+  const m = typeof msg === "string" ? (msg ? { text: msg } : null) : msg;
   return (
     /* pointer-events off: the wrapper is always mounted, and an invisible
        strip that swallows taps 98px above the bottom of every screen is
        exactly the kind of "button that does nothing" that gets reported. */
     <div className="absolute left-0 right-0 flex justify-center z-50 px-6" style={{ bottom: 98, pointerEvents: "none" }}>
-      <div className="rounded-full px-5 py-3" style={{ background: t.ink, opacity: msg ? 1 : 0,
-                    transform: msg ? "translateY(0)" : "translateY(12px)", transition: "opacity 240ms, transform 240ms" }}>
-        <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{msg || ""}</span>
+      <div className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-3"
+           style={{ background: t.ink, maxWidth: "100%", opacity: m ? 1 : 0,
+                    transform: m ? "translateY(0)" : "translateY(12px)", transition: "opacity 200ms, transform 200ms" }}>
+        {m && m.done && (
+          <span className="rounded-full flex items-center justify-center shrink-0"
+                style={{ width: 19, height: 19, background: m.tone || STEADY,
+                         animation: "checkPop 320ms cubic-bezier(.28,1.4,.5,1) both" }}>
+            <Check size={12} color="#fff" strokeWidth={3} />
+          </span>
+        )}
+        <span className="min-w-0">
+          <span className="block truncate" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{(m && m.text) || ""}</span>
+          {m && m.sub && (
+            <span className="block truncate" style={{ fontFamily: ui, fontSize: 12, color: "rgba(255,255,255,0.62)" }}>{m.sub}</span>
+          )}
+        </span>
       </div>
     </div>
   );
@@ -10033,18 +10026,29 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
 }
 
 /* THE COACH'S DAY.
-   Every lesson today, in time order, on one card, with the verb on the
-   row: Log what has finished, Register what is running, tap ahead to
-   see who is next. Above it, only things with a name attached — someone
-   asking to join, someone asking for a lesson, someone drifting.
 
-   It was four cards and five collapsed folds, so a coach with three
-   lessons opened the app to three grey bars and two thirds of empty
-   screen, and the next lesson appeared twice: once as a hero card and
-   again as the first row of a fold badged "2". Nothing has been taken
-   away — the folds are simply open, and what they held is on the glass. */
+   Three things in order, and nothing else: what is waiting on them,
+   what is happening today, and the two or three actions they came in
+   to do.
+
+   WAITING ON YOU is every duty the app knows about, each as one line
+   with the answer on it — someone asking to join, someone asking for a
+   lesson, messages unanswered, lessons never written up, players
+   drifting away. They were spread across four screens before, so the
+   only way to find out whether anything needed doing was to go and
+   look on each of them.
+
+   TODAY is every lesson in time order on one card, with the verb on the
+   row: Log what has finished, Register what is running, tap ahead to
+   see who is next.
+
+   The actions are last and always there. A coach who wants to write up
+   a lesson that was never booked, or take a register for someone who
+   walked in, should not have to find the plus button — those are the
+   two things they do most. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
-                      roster, drifting = 0, onLogFor, onNoShow, onPeek, onRegister,
+                      roster, drifting = 0, unread = 0, toWriteUp = [],
+                      onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onAttend, onMessages,
                       onAccept, onDecline, onInvite, push, go }) {
   const t = useT();
   const list = today || [];
@@ -10060,6 +10064,13 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
   const nextUp = list.find((l) => !l.done && l !== liveNow && (l.hoursUntil ?? 9) > 0.5) || null;
   const marked = liveNow || nextUp;
   const avatarFor = (l) => avatarUrl(((roster || []).find((r) => r.name === l.who) || {}).avatarPath);
+  /* The day in one line under the date, so the shape of it is known
+     before a single row is read. */
+  const dayLine = list.length === 0
+    ? tr("Nothing booked")
+    : [`${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}`,
+       done.length ? `${done.length} ${tr("to log")}` : null,
+       liveNow ? tr("one on now") : null].filter(Boolean).join(" · ");
 
   const Strip = ({ tone, Ico, label, sub, onTap, tour }) => (
     <button data-tour={tour} onClick={() => { haptic(8); soft(); onTap(); }}
@@ -10082,7 +10093,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
       {banner}
       <div className="px-6 pt-3">
 
-        <h1 className="mb-5" style={{ fontFamily: display, fontSize: 27, letterSpacing: "-0.03em", color: t.ink }}>{dateLine}</h1>
+        <h1 style={{ fontFamily: display, fontSize: 27, letterSpacing: "-0.03em", color: t.ink }}>{dateLine}</h1>
+        <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{dayLine}</p>
 
         {/* people asking to join: one line, straight to the answer */}
         {requests && requests.length > 0 && (
@@ -10119,6 +10131,21 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           </div>
         )}
 
+        {/* lessons that happened and were never written up */}
+        {toWriteUp.length > 0 && (
+          <Strip tone={t.accent} Ico={Edit3} onTap={() => (onWriteUp ? onWriteUp() : push("unlogged"))}
+                 label={toWriteUp.length === 1
+                   ? `${toWriteUp[0].who} · ${tr("still to write up")}`
+                   : `${toWriteUp.length} ${tr("lessons still to write up")}`}
+                 sub={toWriteUp.length === 1 ? `${toWriteUp[0].d} ${monthName(toWriteUp[0].m)}` : null} />
+        )}
+
+        {/* someone is waiting on a reply */}
+        {unread > 0 && (
+          <Strip tone={STEADY} Ico={MessageCircle} onTap={() => (onMessages ? onMessages() : go("messages"))}
+                 label={unread === 1 ? tr("One message unread") : `${unread} ${tr("messages unread")}`} />
+        )}
+
         {drifting > 0 && (
           <Strip tone={DANGER} Ico={Zap} onTap={() => push("atrisk")}
                  label={`${drifting} ${drifting === 1 ? tr("person is drifting") : tr("people are drifting")}`} />
@@ -10148,29 +10175,34 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           </div>
         )}
 
-        {/* nothing booked, but there are people to book */}
-        {list.length === 0 && (roster || []).length > 0 && (
-          <div className="pt-8 text-center">
-            <p style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked today.")}</p>
-            <button onClick={() => { hapticCommit(); soft(); go("log"); }} className="mt-5 px-6 active:opacity-75"
-                    style={{ minHeight: 48, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>
-              {tr("Log a lesson")}
-            </button>
-            <button onClick={() => { haptic(8); soft(); go("calendar"); }} className="block mx-auto mt-4 px-4 py-2 active:opacity-50"
-                    style={{ ...TYPE.small, color: t.sub }}>{tr("Open the diary")}</button>
-          </div>
-        )}
-
         {/* nobody yet: the only thing worth doing is getting someone in */}
-        {list.length === 0 && (roster || []).length === 0 && (
-          <div className="pt-8 text-center">
+        {(roster || []).length === 0 && (
+          <div className="pt-7 pb-2 text-center">
             <p style={{ ...TYPE.body, color: t.faint }}>{tr("No")} {nouns} {tr("yet.")}</p>
             <button onClick={() => { hapticCommit(); soft(); onInvite && onInvite(); }} className="mt-5 px-6 active:opacity-75"
                     style={{ minHeight: 48, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>
               {tr("Invite a player")}
             </button>
-            <button onClick={() => { haptic(8); soft(); go("log"); }} className="block mx-auto mt-4 px-4 py-2 active:opacity-50"
-                    style={{ ...TYPE.small, color: t.sub }}>{tr("Log a lesson")}</button>
+          </div>
+        )}
+
+        {/* THE THREE THINGS A COACH DOES MOST, always here rather than
+            behind the plus. Log covers a lesson that was never in the
+            diary; the register covers whoever turned up without one. */}
+        {(roster || []).length > 0 && (
+          <div className="flex gap-2.5 mt-3">
+            {[[tr("Log a lesson"), Edit3, () => go("log"), true],
+              [tr("Register"), ListChecks, () => onAttend && onAttend(), false],
+              [tr("Diary"), Calendar, () => go("calendar"), false]].map(([label, Ico, act, primary]) => (
+              <button key={label} onClick={() => { hapticCommit(); soft(); act(); }}
+                      className="flex-1 flex flex-col items-center justify-center gap-1.5 active:opacity-70"
+                      style={{ minHeight: 68, borderRadius: R.surface,
+                               background: primary ? t.accent : t.surface,
+                               boxShadow: primary ? `0 6px 18px ${t.accent}26` : ELEV.rest }}>
+                <Ico size={16} color={primary ? t.onAccent : t.sub} strokeWidth={1.9} />
+                <span style={{ ...TYPE.caption, fontWeight: 600, color: primary ? t.onAccent : t.ink }}>{label}</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -12522,9 +12554,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const calendar = useCalendar();
   const cx = now ? { ...calendar, today: now } : calendar;
   const T = cx.today;
-  /* how far off a lesson is, from the actual clock — and only ever for
-     today: a countdown on next Thursday's list means nothing */
-  const minsNow = (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
+  /* how far off a lesson is — and only ever for today: a countdown on
+     next Thursday's list means nothing. Taken from the calendar rather
+     than the clock so the design harness reads the same every run. */
+  const minsNow = cx.nowMins ?? 0;
   const months = cx.months;
   const isGone = (m, d) => isPast(m, d, cx);
   const [mi, setMi] = useState(() => Math.max(0, months.findIndex((x) => x.idx === T.m)));
@@ -14278,7 +14311,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [assignTo, setAssignTo] = useState(null);
   const [assignFocus, setAssignFocus] = useState(null);
   const [tipFor, setTipFor] = useState(null);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(null);
   const [soundState, setSoundState] = useDeviceSetting("sound", true);
   const [signupName, setSignupName] = useState("");
   const [signupCoach, setSignupCoach] = useState(null);
@@ -14500,7 +14533,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const res = await data.confirmBooking(r.id);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't confirm that.")); return; }
       hapticSuccess(); chime();
-      setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${MONTHS_FULL[r.m - 1]}` });
+      done(tr("Booked"), `${r.who} · ${r.d} ${MONTHS_FULL[r.m - 1]}`);
       return;
     }
     hapticSuccess(); chime();
@@ -14511,7 +14544,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       return nx;
     });
     setAskedFor((v) => v.filter((x) => x !== r));
-    setCeleb({ label: tr("Booked"), sub: `${r.who} · ${r.d} ${monthName(r.m)}` });
+    done(tr("Booked"), `${r.who} · ${r.d} ${monthName(r.m)}`);
   };
 
   /* Loads the Breathnach household. Everything it touches is state the
@@ -14636,7 +14669,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (!nx[coachSport][k].length) delete nx[coachSport][k];
       return nx;
     });
-    setCeleb({ label: tr("Recorded"), sub: `${bk.who} · ${tr("no show")}`, tone: DANGER });
+    done(tr("Recorded"), `${bk.who} · ${tr("no show")}`, DANGER);
   };
   /* Set when a lesson lands while the player was away. */
   const [arrival, setArrival] = useState(null);
@@ -14694,7 +14727,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const settleFocus = (req, focus) => {
     setFocusReqs((v) => v.filter((x) => x !== req));
     setAgreedFocus((m) => ({ ...m, [req.who]: focus }));
-    setCeleb({ label: tr("Agreed"), sub: `${req.who.split(" ")[0]} · ${focus}` });
+    done(tr("Agreed"), `${req.who.split(" ")[0]} · ${focus}`);
   };
   /* A real account has no standing slots until its coach creates one. */
   const [series, setSeries] = useState(account ? [] : [
@@ -14994,7 +15027,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     say(rec ? `Called off — added back at the end, ${booking.who.split(" ")[0]} notified` : `Called off — ${booking.who.split(" ")[0]} notified`);
   };
   const openRequests = data ? (data.requests || []) : freshAccount ? [] : requests;
-  const openUnlogged = freshAccount ? [] : unlogged;
   const openWaitlist = freshAccount ? [] : waitlist;
   const addGoal = (who, text, by) => setGoals((g) => ({ ...g, [who]: [...(g[who] || []), { id: Date.now(), t: text, by, done: false }] }));
   const toggleGoal = (who, id) => setGoals((g) => ({ ...g, [who]: (g[who] || []).map((x) => (x.id === id ? { ...x, done: !x.done } : x)) }));
@@ -15123,13 +15155,34 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mySeriesLive = data ? mySeries : series;
   /* Anyone with a lesson still to come. Someone booked for Thursday is
      not drifting on Tuesday, whatever the gap behind them says. */
+  /* STILL TO BE WRITTEN UP. A confirmed booking on a day that has gone
+     with nothing in the lessons table against it — the coach's real
+     backlog, which lived nowhere until now: the day card only ever
+     showed today, so a lesson missed on Friday was invisible on
+     Monday. Newest first, because that is the one they still
+     remember. */
+  const writtenUp = data ? new Set((data.lessons || []).map((l) => `${l.iso}|${l.playerId || l.who}`)) : null;
+  const toWriteUp = data ? (liveBookingRows || [])
+    .filter((b) => b.status === "confirmed" && (b.playerId || b.groupName)
+                   && b.date < isoOf(todayMD.m, todayMD.d)
+                   && !writtenUp.has(`${b.date}|${b.playerId || b.groupName}`))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+    .slice(0, 10) : [];
+  /* "To log" is that backlog for a real account, and the harness's
+     seeded one otherwise. It used to be empty for every real account,
+     so the screen existed and never had anything in it. */
+  const openUnlogged = data ? toWriteUp : freshAccount ? [] : unlogged;
   const bookedAhead = data ? new Set((liveBookingRows || [])
     .filter((b) => b.playerId && b.date >= isoOf(todayMD.m, todayMD.d) && b.status !== "cancelled" && b.status !== "weather")
     .map((b) => b.playerId)) : null;
   const myGroups = data ? ((data.prefs && data.prefs.groups) || []) : freshAccount ? [] : (groups[coachSport] || []);
   const myLibrary = library[coachSport] || [];
 
-  const say = (m) => { setToast(m); setTimeout(() => setToast(""), 1900); };
+  const say = (m) => { setToast(m); setTimeout(() => setToast(null), 1900); };
+  /* An everyday confirmation: a tick, what happened, and the detail.
+     This is what used to be a full-screen celebration. */
+  const done = (text, sub, tone) => { hapticSuccess(); setToast({ text, sub, done: true, tone });
+                                      setTimeout(() => setToast(null), 1600); };
   const push = (s) => { haptic(6); setStack((k) => [...k, s]); };
   const pop = () => setStack((k) => (k.length > 1 ? k.slice(0, -1) : k));
   const go = (s) => { haptic(6); setStack([s]); };
@@ -15278,7 +15331,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (bookFor) return bookKid(bookFor, b);
       const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
-      hapticSuccess(); setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); return;
+      hapticSuccess(); done(tr("Asked"), tr("Your coach will confirm.")); return;
     }
     setBookings((x) => [...x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id)), { ...b, connId: conn?.id }]); haptic(18); say("Booked");
   };
@@ -15500,7 +15553,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const bookKid = async (kid, b) => {
     const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration });
     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
-    hapticSuccess(); setCeleb({ label: tr("Asked"), sub: `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}` });
+    hapticSuccess(); done(tr("Asked"), `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}`);
   };
   const openNotification = (n) => {
     if (!data) return;
@@ -15812,9 +15865,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <CaptureNow booking={{ who }} sport={sport} cfg={cfg} captured={captured} setCaptured={setCaptured} pop={pop} say={say} />;
   } else if (screen === "recurring") {
     body = <RecurringManager series={data ? mySeries : series} roster={roster} duration={duration} real={!!data}
-             onEnd={async (x) => { if (data) { const r = await data.removeRecurring(x.id); if (r && r.error) { say(r.error.message); return; } setCeleb({ label: tr("Ended"), sub: x.who, tone: DANGER }); return; }
+             onEnd={async (x) => { if (data) { const r = await data.removeRecurring(x.id); if (r && r.error) { say(r.error.message); return; } done(tr("Ended"), x.who, DANGER); return; }
                setSeries((v) => v.map((y) => (y === x ? { ...y, ended: true } : y)));
-               setCeleb({ label: tr("Ended"), sub: x.who, tone: DANGER }); }}
+               done(tr("Ended"), x.who, DANGER); }}
              onExtend={(x, how) => { setSeries((v) => v.map((y) => (y === x ? { ...y, until: how === "open" ? null : "30 Sep" } : y)));
                say(how === "open" ? tr("Runs until you end it") : tr("Extended by a month")); }}
              onEdit={async (x, patch) => { if (data) {
@@ -15837,9 +15890,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "checkins" && !data) {
     body = <CheckIns role={role} list={freshAccount ? [] : checkIns} pop={pop} say={say}
              onAnswer={(c) => { setCheckIns((v) => v.map((x) => (x === c ? { ...x, state: "answered", reply: tr("Looks better — keep the turn going through it.") } : x)));
-               setCeleb({ label: tr("Sent"), sub: c.who }); }}
+               done(tr("Sent"), c.who); }}
              onSend={() => { setCheckIns((v) => [{ id: Date.now(), who: (activeProfile || {}).name || "", when: tr("Just now"), note: "", state: "waiting", secs: 9 }, ...v]);
-               setCeleb({ label: tr("Sent"), sub: tr("Your coach will look at it.") }); }} />;
+               done(tr("Sent"), tr("Your coach will look at it.")); }} />;
   } else if (screen === "familyCode") {
     body = <FamilyScreen family={data ? data.family : (sc && sc.parent ? showcaseFamily : null)} isJunior={juvenile} live={!!data}
                          onCreate={data ? (n) => data.createFamily(n) : async () => ({})} onJoin={data ? (c) => data.joinFamily(c) : async () => ({})}
@@ -15851,7 +15904,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           myReview={data ? data.myReview : null}
                           onSubmitReview={(rating, comment) => (data ? data.submitReview(rating, comment) : Promise.resolve({}))}
                           onMessage={() => go("messages")}
-                          onLeaveCoach={data ? async () => { const r = await data.leaveCoach(); if (r && r.error) return r; pop(); setCeleb({ label: tr("Left"), sub: coachName, tone: DANGER }); if (onProfileChanged) await onProfileChanged(); return {}; } : null}
+                          onLeaveCoach={data ? async () => { const r = await data.leaveCoach(); if (r && r.error) return r; pop(); done(tr("Left"), coachName, DANGER); if (onProfileChanged) await onProfileChanged(); return {}; } : null}
                           juvenile={juvenile} pop={pop} />;
   } else if (screen === "attendance") {
     /* the register is keyed by player id for a real account, by name in
@@ -16033,6 +16086,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   asks={data ? liveAsks : freshAccount ? [] : askedFor}
                   events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])}
                   drifting={atRisk(roster, mySeriesLive, live, bookedAhead).length}
+                  unread={unread}
+                  toWriteUp={openUnlogged}
+                  onWriteUp={() => push("unlogged")}
+                  onMessages={() => go("messages")}
+                  onAttend={() => { setAttendFor(null); setSheet("attend"); }}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
                   onNoShow={markNoShow}
                   onPeek={(b) => { setPeek(b); setSheet("peek"); }}
@@ -16064,7 +16122,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
+      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); done(tr("Rebooked"), sl); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
       log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
@@ -16077,7 +16135,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); done(tr("Rebooked"), sl); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
   }
 
   return (
@@ -16336,11 +16394,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                 const res = await data.takeRegister(l.who, marks);
                                                 /* the register is what was written, not what was ticked */
                                                 if (res && res.error) { hapticWarn(); say(res.error.message); return; }
-                                                setCeleb({ label: tr("Register taken"), sub: `${n} ${tr("present")}` });
+                                                done(tr("Register taken"), `${n} ${tr("present")}`);
                                                 return;
                                               }
                                               setRegisters((r) => ({ ...r, [registerKey(l.who, new Date())]: marks }));
-                                              setCeleb({ label: tr("Register taken"), sub: `${n} ${tr("present")}` });
+                                              done(tr("Register taken"), `${n} ${tr("present")}`);
                                             }}
                                             close={() => setSheet(null)} say={say} />
             : sheet === "capture" ? <LiveCapture lessons={todayList || []} chosen={captureFor}
@@ -16447,14 +16505,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                 if (data) {
                                   const res = await data.addBooking({ playerId: r.id, date: isoOf(bookSlot.day.m, bookSlot.day.d), time: bookSlot.time, duration });
                                   if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't book that.")); return; }
-                                  setSheet(null); setCeleb({ label: tr("Booked"), sub: `${r.name} · ${bookSlot.time}` }); return;
+                                  setSheet(null); done(tr("Booked"), `${r.name} · ${bookSlot.time}`); return;
                                 }
                                 setSeedBooked((prev) => {
                                   const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
                                   const k = key(bookSlot.day.m, bookSlot.day.d);
                                   nx[coachSport][k] = [...(nx[coachSport][k] || []), { time: bookSlot.time, who: r.name, kind: "Private" }];
                                   return nx; });
-                                setSheet(null); setCeleb({ label: tr("Booked"), sub: `${r.name} · ${bookSlot.time}` }); }}>
+                                setSheet(null); done(tr("Booked"), `${r.name} · ${bookSlot.time}`); }}>
                           <div className="flex items-center gap-3.5">
                             <Avatar name={r.name} size={36} />
                             <span className="flex-1" style={{ fontFamily: ui, fontSize: 15, color: theme.ink }}>{r.name}</span>
@@ -16471,21 +16529,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
                       {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
                     </p>
-                    <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } setCeleb({ label: tr("Asked"), sub: tr("Your coach will confirm.") }); }}>{tr("Request it")}</Button>
+                    <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } done(tr("Asked"), tr("Your coach will confirm.")); }}>{tr("Request it")}</Button>
                   </>
                 )
               : sheet === "rebookAfter" ? (
                   <>
                     <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Book the next one")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>{(conn || {}).coach}</p>
-                    <Button onClick={() => { setSheet(null); if (data) { go("calendar"); return; } setCeleb({ label: tr("Booked"), sub: tr("Same time next week") }); }}>{tr("Book it")}</Button>
+                    <Button onClick={() => { setSheet(null); if (data) { go("calendar"); return; } done(tr("Booked"), tr("Same time next week")); }}>{tr("Book it")}</Button>
                     <button onClick={() => { setSheet(null); go("calendar"); }} className="w-full mt-3 py-3 active:opacity-50"
                             style={{ fontFamily: ui, fontSize: 13.5, color: theme.sub }}>{tr("Pick another time")}</button>
                   </>
                 )
               : sheet === "transfer" ? <RecordTransfer name={(activeProfile || {}).name || ""} fromCoach={(conn || {}).coach || tr("your last coach")}
                                             toCoach={transferTo || tr("your new coach")}
-                                            onDone={(parts) => setCeleb({ label: tr("Record shared"), sub: `${parts.length} ${tr("parts")}` })}
+                                            onDone={(parts) => done(tr("Record shared"), `${parts.length} ${tr("parts")}`)}
                                             close={() => setSheet(null)} />
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
                                             onDone={async ({ reason, offer }) => {
@@ -16499,13 +16557,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                   const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration }]);
                                                   if (r2 && r2.error) { say(r2.error.message); return; }
                                                 }
-                                                setCeleb({ label: tr("Cancelled"), sub: offer ? `${tr("Rebooked")} ${offer}` : tr("Their diary is updated."), tone: DANGER });
+                                                done(tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : tr("Their diary is updated."), DANGER);
                                                 return;
                                               }
                                               setCancelNotice({ from: role === "coach" ? coachName : (activeProfile || {}).name, lesson: cancelling, reason, offer });
                                               /* comes back to the package, unlike a no show */
                                               setSeries((list) => list.map((x) => (cancelling && cancelling.includes(x.who) ? { ...x, total: x.total + 1 } : x)));
-                                              setCeleb({ label: tr("Cancelled"), sub: tr("Returned to their package."), tone: DANGER }); }}
+                                              done(tr("Cancelled"), tr("Returned to their package."), DANGER); }}
                                             close={() => setSheet(null)} />
               : sheet === "compare" ? <VideoCompare cfg={cfg} lessons={role === "coach" ? cfg.lessons : playerLessons}
                                             onClose={() => setSheet(null)} />
@@ -16545,13 +16603,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             bookings={callOffRows(callOffFor || todayMD)} duration={duration}
                                             onConfirm={callOff} close={() => { setCallOffFor(null); setSheet(null); }} />
               : sheet === "reschedule" ? <RescheduleOffer lesson={rescheduleFor || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
-                                            onPick={(sl) => { setCalledOff(null); setCeleb({ label: tr("Rebooked"), sub: sl }); }} close={() => setSheet(null)} />
+                                            onPick={(sl) => { setCalledOff(null); done(tr("Rebooked"), sl); }} close={() => setSheet(null)} />
               : sheet === "suggest" ? <SuggestFocus cfg={cfg}
                                             onSend={(f, n) => { setFocusReqs((v) => [...v, { who: activeProfile.name, focus: f, note: n }]);
-                                              setCeleb({ label: tr("Sent"), sub: tr("Your coach will confirm.") }); }}
+                                              done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
               : sheet === "goal" ? <GoalSheet name={goalFor || "them"} cfg={cfg}
-                                            onSave={(n, txt, by) => { addGoal(n, txt, by); setCeleb({ label: tr("Goal set"), sub: txt }); }}
+                                            onSave={(n, txt, by) => { addGoal(n, txt, by); done(tr("Goal set"), txt); }}
                                             close={() => setSheet(null)} />
               : sheet === "newChoice" ? (
                   <>
@@ -16578,7 +16636,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
                                             onCreate={(g) => { if (data) { createGroup(g); return; }
                                               setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
-                                              setCeleb({ label: tr("Group created"), sub: `${g.name} · ${g.members.length}` }); }}
+                                              done(tr("Group created"), `${g.name} · ${g.members.length}`); }}
                                             close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
@@ -16586,7 +16644,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                conversations are keyed by name */
                                             onPick={(p) => push("thread:" + (data ? (p.id || p.name) : p.name))} close={() => setSheet(null)} />
               : sheet === "rate" ? <RateLesson focus={(playerLessons[0] || {}).focus || ""} coach={conn?.coach || ""}
-                                            onDone={() => { setCeleb({ label: tr("Thanks"), sub: tr("Your coach will see it.") }); setTimeout(() => setSheet("rebookAfter"), 1900); }}
+                                            onDone={() => { done(tr("Thanks"), tr("Your coach will see it.")); setTimeout(() => setSheet("rebookAfter"), 1900); }}
                                             close={() => setSheet(null)} />
               : sheet === "decline" && declining ? (
                   <>
@@ -16600,10 +16658,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                     const r1 = await data.cancelBooking(declining.id, "cancelled");
                                     const r2 = (r1 && r1.error) ? r1 : await data.addBookings([{ playerId: declining.playerId, date: declining.date || isoOf(declining.m, declining.d), time: sl, duration }]);
                                     if (r2 && r2.error) { say(r2.error.message || tr("Couldn't offer that time.")); return; }
-                                    setSheet(null); setCeleb({ label: tr("Booked"), sub: `${declining.who} · ${sl}` }); return;
+                                    setSheet(null); done(tr("Booked"), `${declining.who} · ${sl}`); return;
                                   }
                                   setAskedFor((v) => v.filter((x) => x !== declining));
-                                  setSheet(null); setCeleb({ label: tr("Offered"), sub: `${declining.who} · ${sl}` }); }}
+                                  setSheet(null); done(tr("Offered"), `${declining.who} · ${sl}`); }}
                                 className="px-3.5 active:opacity-60"
                                 style={{ minHeight: 44, borderRadius: R.pill, background: theme.wash,
                                          ...TYPE.small, fontWeight: 500, color: theme.ink }}>{sl}</button>

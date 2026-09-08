@@ -47,11 +47,24 @@ self.addEventListener("push", (event) => {
   if (!payload || typeof payload !== "object") payload = {};
 
   const title = payload.title || "Nosca";
+  const data = payload.data || {};
+  /* ONE PER THING, NOT ONE PER EVENT. A tag makes a new notification
+     replace the last one carrying the same tag, which is how every
+     other app behaves: three messages from the same coach are one
+     line on the lock screen, and a booking that is made, confirmed
+     and then called off does not leave three contradictory
+     notifications sitting there. The tag is the screen and the id the
+     notification already carries — a thread per person, a booking per
+     booking — so anything genuinely separate still arrives separately.
+     `renotify` keeps the buzz: replaced, not silenced. */
+  const tag = data.screen ? `${data.screen}:${data.id == null ? "" : data.id}` : "nosca";
   const options = {
     body: payload.body || "",
     icon: "/icons/icon-192.png",
     badge: "/icons/badge-96.png",
-    data: payload.data || {},
+    tag,
+    renotify: true,
+    data,
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
