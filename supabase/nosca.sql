@@ -1405,16 +1405,26 @@ create trigger bookings_notify after insert or update on public.bookings
 create or replace function public.trg_messages_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare
-  a    uuid;
-  snip text := left(new.body, 80);
+  a      uuid;
+  adults int := 0;
+  snip   text := left(new.body, 80);
 begin
   if new.sender_id = new.coach_id then
-    perform public.notify(new.player_id, 'message', public.name_of(new.coach_id), snip,
-      jsonb_build_object('screen', 'thread', 'id', new.player_id));
+    -- A CHILD'S MESSAGES GO TO THE ADULT WHO LOOKS AFTER THEM. A junior
+    -- was buzzed on their own phone for every message their coach sent,
+    -- and the adult got the same line with an arrow in it that read as
+    -- though the coach had written to them. The adults are told, and
+    -- told whose message it is; the junior is only told directly if
+    -- there is no adult looking after them at all.
     for a in select public.adults_for(new.player_id) loop
-      perform public.notify(a, 'message', public.name_of(new.coach_id) || ' → ' || public.first_name_of(new.player_id), snip,
+      adults := adults + 1;
+      perform public.notify(a, 'message', public.name_of(new.coach_id) || ' messaged ' || public.first_name_of(new.player_id), snip,
         jsonb_build_object('screen', 'thread', 'id', new.player_id));
     end loop;
+    if adults = 0 then
+      perform public.notify(new.player_id, 'message', public.name_of(new.coach_id), snip,
+        jsonb_build_object('screen', 'thread', 'id', new.player_id));
+    end if;
   else
     perform public.notify(new.coach_id, 'message', public.name_of(new.sender_id), snip,
       jsonb_build_object('screen', 'thread', 'id', new.player_id));

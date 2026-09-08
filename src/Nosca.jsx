@@ -1578,6 +1578,7 @@ const ShimmerCSS = () => (
     @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     @keyframes converge{0%{transform:translateX(var(--from))}100%{transform:translateX(0)}}
     @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+    @keyframes dashRun{0%{stroke-dashoffset:0;opacity:0}10%{opacity:.5}85%{opacity:.5}100%{stroke-dashoffset:-108;opacity:0}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes tickIn{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
     @keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -1672,9 +1673,9 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   /* the mark landing, the wordmark, then the lift away — each gets its
      own pulse, so the sequence is felt as well as seen */
   useEffect(() => {
-    const a = setTimeout(() => haptic(12), 140);
-    const b = setTimeout(() => haptic(8), 460);
-    const c = setTimeout(() => hapticSuccess(), 900);
+    const a = setTimeout(() => haptic(12), 180);
+    const b = setTimeout(() => haptic(8), 620);
+    const c = setTimeout(() => hapticSuccess(), 1180);
     return () => { clearTimeout(a); clearTimeout(b); clearTimeout(c); };
   }, [replayKey]);
   /* Before sign-up there is no sport, so the opening is the brand alone. */
@@ -1684,19 +1685,17 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   const bg = branded ? "#080A09" : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 
-  /* It ran for five and a half seconds. That is a held breath the first
-     time and a wait every time after, and the app opens more often than
-     anything else in here — so the same sequence, a third faster. */
-  const HOLD = branded ? 3500 : 2800;
+  const HOLD = branded ? 5400 : 4000;
   useEffect(() => {
     const a = setTimeout(() => setLeaving(true), HOLD);
     const b = setTimeout(() => onDone && onDone(), HOLD + 700);
     return () => { clearTimeout(a); clearTimeout(b); };
   }, [onDone, replayKey, HOLD]);
 
+  const R = 8.6, CIRC = 2 * Math.PI * R, ARC = 27;
   const T = branded
-    ? { r1: 220, r2: 520, join: 1140, link: 1400, word: 1820, rule: 2140, sub: 2400, foot: 2740 }
-    : { r1: 160, r2: 400, join: 880, link: 1100, word: 1430, rule: 1690, sub: 1920, foot: 2180 };
+    ? { r1: 350, r2: 800, join: 1750, link: 2150, word: 2800, rule: 3300, sub: 3700, foot: 4200 }
+    : { r1: 250, r2: 600, join: 1350, link: 1700, word: 2200, rule: 2600, sub: 2950, foot: 3350 };
 
   return (
     <button onClick={() => { haptic(8); setLeaving(true); setTimeout(() => onDone && onDone(), 400); }}
@@ -1727,19 +1726,25 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
         <svg width={148} height={92} viewBox="0 0 40 25" style={{ overflow: "visible" }} aria-label={BRAND}>
           {/* the rings draw, then slide together into their linked position */}
           <g style={{ "--from": "-7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <path d={RING_L} fill="none" stroke="#F4F6F3" strokeWidth={2.4} strokeLinecap="round"
-                  style={{ "--len": RING_LEN, strokeDasharray: RING_LEN, strokeDashoffset: RING_LEN,
-                           animation: `draw 900ms cubic-bezier(.35,0,.15,1) ${T.r1}ms forwards` }} />
+            <circle cx="14" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
+                    style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
+                             animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r1}ms forwards` }} />
           </g>
-          {/* The second ring arrives in the sport's colour and slides
-              into the first. The link is the two rings meeting — it was
-              a separate stub of an arc laid over the join, which at this
-              size read as a blob rather than a join. */}
           <g style={{ "--from": "7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <path d={RING_R} fill="none" stroke={accent} strokeWidth={2.4} strokeLinecap="round"
-                  style={{ "--len": RING_LEN, strokeDasharray: RING_LEN, strokeDashoffset: RING_LEN,
-                           animation: `draw 900ms cubic-bezier(.35,0,.15,1) ${T.r2}ms forwards` }} />
+            <circle cx="26" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
+                    style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
+                             animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r2}ms forwards` }} />
           </g>
+          {/* the link, drawn last, then a travelling dash that keeps running */}
+          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke={accent} strokeWidth={1.6} strokeLinecap="round"
+                style={{ "--len": ARC, strokeDasharray: ARC, strokeDashoffset: ARC,
+                         animation: `draw 850ms cubic-bezier(.35,0,.15,1) ${T.link}ms forwards` }} />
+          {/* Starts fully transparent. Without this it parks a white
+              segment at the top of the arc for the whole delay — which
+              reads as a stray floating line between the rings. */}
+          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinecap="round"
+                style={{ strokeDasharray: "4 104", strokeDashoffset: 0, opacity: 0,
+                         animation: `dashRun 2.6s linear ${T.link + 900}ms infinite` }} />
         </svg>
       </div>
 

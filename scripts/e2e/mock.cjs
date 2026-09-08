@@ -153,8 +153,11 @@ function onBookingUpdate(db, b, old, actor) {
 function onMessageInsert(db, m) {
   const snip = String(m.body || "").slice(0, 80);
   if (m.sender_id === m.coach_id) {
-    notify(db, m.player_id, "message", nameOf(db, m.coach_id), snip, { screen: "thread", id: m.player_id });
-    adultsFor(db, m.player_id).forEach((a) => notify(db, a, "message", `${nameOf(db, m.coach_id)} → ${firstOf(db, m.player_id)}`, snip, { screen: "thread", id: m.player_id }));
+    /* a junior's messages are told to the adults who look after them,
+       named as theirs; the junior only hears directly if there are none */
+    const adults = adultsFor(db, m.player_id);
+    adults.forEach((a) => notify(db, a, "message", `${nameOf(db, m.coach_id)} messaged ${firstOf(db, m.player_id)}`, snip, { screen: "thread", id: m.player_id }));
+    if (!adults.length) notify(db, m.player_id, "message", nameOf(db, m.coach_id), snip, { screen: "thread", id: m.player_id });
   } else notify(db, m.coach_id, "message", nameOf(db, m.sender_id), snip, { screen: "thread", id: m.player_id });
 }
 function onDrillsInsert(db, rows) {

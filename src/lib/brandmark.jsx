@@ -114,7 +114,10 @@ export function BrandLoader({
     >
       <style>{KEYFRAMES}</style>
 
-      <svg width={168} height={105} viewBox={MARK.view}
+      {/* The mark at the size it is everywhere else in the app. It was
+          168px across, which on a blank screen reads as a graphic
+          rather than a logo. */}
+      <svg width={72} height={45} viewBox={MARK.view}
            style={{ ...hues, overflow: "visible", animation: "nsBreathe 5.5s ease-in-out infinite" }}>
         {/* the mark itself, steady */}
         <path d={RING_L} fill="none" stroke={hair} strokeWidth={MARK.weight} strokeLinecap="round" />
@@ -129,7 +132,7 @@ export function BrandLoader({
                          animation: "nsTurnBack 2.8s linear infinite, nsHue 12s linear infinite" }} />
       </svg>
 
-      <div style={{ marginTop: 36, fontFamily: display, fontSize: 13, letterSpacing: "0.34em",
+      <div style={{ marginTop: 22, fontFamily: display, fontSize: 11, letterSpacing: "0.32em",
                     textTransform: "uppercase", color: faint }}>{label || BRAND_NAME}</div>
 
       {/* Only ever a way out of a wait that has gone on too long. */}
