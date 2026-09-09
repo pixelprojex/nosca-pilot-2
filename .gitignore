@@ -14,3 +14,7 @@ package-lock.json
 
 # built by the e2e harness (npx vite build --outDir dist-m)
 dist-m/
+
+# mock-Supabase bundles the e2e suites run against
+dist-m/
+dist-f/

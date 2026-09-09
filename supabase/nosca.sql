@@ -1534,12 +1534,21 @@ create trigger family_notify after insert or update of family_id on public.profi
 -- New rows reach an open app the moment they are written, when the
 -- project's realtime publication exists (it does on Supabase; the
 -- local test cluster has none, so this is allowed to do nothing).
+-- Every table the app reads is published, so a change made on one
+-- phone reaches the other without a refresh. Row-level security
+-- applies to realtime as it does to a select: a person is only ever
+-- sent the rows they could have read. Each is added once.
 do $rt$
+declare t text;
 begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
-     and not exists (select 1 from pg_publication_tables
-                     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notifications') then
-    alter publication supabase_realtime add table public.notifications;
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach t in array array['notifications','lessons','bookings','messages','coach_requests',
+                             'drills','tips','attendance_sessions','profiles','preferences'] loop
+      if not exists (select 1 from pg_publication_tables
+                     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    end loop;
   end if;
 exception when others then
   null;
@@ -1639,18 +1648,27 @@ $carry$;
 create or replace function public.notify_push() returns trigger
 language plpgsql security definer set search_path = public, extensions as $$
 declare
-  url  text;
-  key  text;
+  -- NOT `url` AND `key`. app_settings has a column called key, and a
+  -- PL/pgSQL variable of the same name makes `where key = …` ambiguous
+  -- (42702). That error was raised on the first line and swallowed by
+  -- the handler at the bottom, so this function did nothing, quietly,
+  -- for every notification written after the file was last run.
+  v_url  text;
+  v_key  text;
 begin
-  select value into url from public.app_settings where key = 'push_url';
-  select value into key from public.app_settings where key = 'push_secret';
+  select s.value into v_url from public.app_settings s where s.key = 'push_url';
+  select s.value into v_key from public.app_settings s where s.key = 'push_secret';
   -- not configured yet: the bell still works, nothing is sent
-  if url is null or key is null or url = '' or key = '' then
+  if v_url is null or v_key is null or v_url = '' or v_key = '' then
     return new;
   end if;
-  perform extensions.net_http_post(
-    url     := url,
-    headers := jsonb_build_object('Content-Type', 'application/json', 'x-nosca-secret', key),
+  -- pg_net's functions live in the `net` schema whatever schema the
+  -- extension was created in. This called extensions.net_http_post,
+  -- which exists nowhere, and the handler below swallowed the error —
+  -- so every notification was written and none was sent, silently.
+  perform net.http_post(
+    url     := v_url,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-nosca-secret', v_key),
     body    := jsonb_build_object(
                  'user_id', new.user_id,
                  'title',   new.title,
@@ -1668,7 +1686,7 @@ $$;
 do $push$
 begin
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where p.proname = 'net_http_post' and n.nspname = 'extensions') then
+             where p.proname = 'http_post' and n.nspname = 'net') then
     -- every name this trigger has ever had, so a project set up by
     -- hand does not end up sending each notification twice
     drop trigger if exists notifications_push on public.notifications;

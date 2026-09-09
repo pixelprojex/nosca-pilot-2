@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Auth from "./pages/Auth";
 import Arrival from "./pages/Arrival";
 import Nosca from "./Nosca";
-import { useNoscaData, avatarUrl } from "./lib/useNoscaData";
+import { useNoscaData, avatarUrl, localDate } from "./lib/useNoscaData";
 import { registerSw, syncSubscription } from "./lib/push";
 import { supabase } from "./lib/supabase";
 import { BrandLoader } from "./lib/brandmark.jsx";
@@ -47,7 +47,7 @@ const INVITE = (() => {
    thing standing between a minor and those actions. */
 function isUnder18(dob) {
   if (!dob) return false;
-  const b = new Date(dob);
+  const b = localDate(dob);
   const now = new Date();
   let age = now.getFullYear() - b.getFullYear();
   const beforeBirthday = now.getMonth() < b.getMonth()

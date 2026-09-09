@@ -1,32 +1,29 @@
 import React from "react";
 
 /* ==================================================================
-   THE MARK, AND THE SCREEN THAT WAITS
+   THE BRAND COLOUR, THE MARK, AND THE SCREEN THAT WAITS
 
-   Nosca is Irish nasc, "to link", so the mark is two rings that are
-   genuinely linked. It used to be two rings with a thin arc laid
-   between them — a third element, lighter than either ring, which read
-   as a seam rather than a join and left the whole mark looking faint.
-   Now the rings carry it: each one is broken by a small gap exactly
-   where the other passes over it, so they weave. Over at the top,
-   under at the bottom. Nothing is knocked out with a background
-   colour, so the mark sits on any surface, and every stroke is the
-   same weight — which is what makes it read as strong.
+   One anchor colour for everything that is Nosca's rather than a
+   sport's: the loading screen, the app icon, the splash before anyone
+   has picked a sport, the sign-up screens' controls. Sport palettes
+   tint the app once you are inside a sport; this is what the app is
+   before that, and between those moments.
 
-   This module owns the geometry, and the loading screen built from it,
-   because both are needed before Nosca.jsx is on screen at all: the
-   gate in App.jsx renders while the session and profile are still being
-   read. Nothing here imports Nosca — that would be a cycle — so the two
-   font stacks and the six sport accents are repeated as literals.
+   Deep bottle green. Irish without being a flag, dark enough to carry
+   an off-white mark at every icon size, and clearly a colour rather
+   than another near-black — on a home screen full of black and white
+   tiles it is the one you find. Contrast with the paper mark is 11:1;
+   with white text 12:1; with the loader's grey 6.5:1.
+
+   This module owns the geometry and the loading screen because both
+   are needed before Nosca.jsx is on screen at all: the gate in App.jsx
+   renders while the session and profile are still being read. Nothing
+   here imports Nosca — that would be a cycle.
 ================================================================== */
 
-const display = "'Cabinet Grotesk', ui-sans-serif, -apple-system, sans-serif";
-const ui = "'Switzer', 'Instrument Sans', ui-sans-serif, -apple-system, sans-serif";
-
+export const BRAND = "#123C30";          // the base
+export const BRAND_PAPER = "#F4F6F3";    // what sits on it
 export const BRAND_NAME = "NOSCA";
-
-/* golf, tennis, rowing, squash, padel, equestrian */
-export const SPORT_ACCENTS = ["#8C6D28", "#0F7A69", "#2E6E8E", "#B5562E", "#6B4E9E", "#7A3B4A"];
 
 /* Two rings of radius 8.6 with centres 12 apart, so they cross at
    x = 20, y = 12.5 ± 6.16. Everything below is worked out from these
@@ -56,8 +53,7 @@ const TOP_ON_R = -(180 - HALF);                // the top crossing, seen from th
 export const RING_R = ringGap(MARK.rx, TOP_ON_R + GAP, TOP_ON_R - GAP);
 /* How long each broken ring is, for anything that draws itself on. */
 export const RING_LEN = 2 * Math.PI * MARK.r * ((360 - 2 * GAP) / 360);
-/* The left ring's arc across the top crossing — the segment that is
-   doing the linking, and the only place a second colour belongs. */
+
 /* The mark. One weight, one colour — or two, when an accent is given:
    the second ring takes it, which is the only two-tone that still reads
    as one mark. */
@@ -72,75 +68,45 @@ export function Mark({ size = 34, color = "#16201A", accent, weight = MARK.weigh
 
 /* ------------------------------------------------------------------
    THE LOADING SCREEN
-   The mark held still while a light runs each ring, inward past the
-   crossing and out again — only rotation is animated, and a full turn
-   ends exactly where it began, so there is no seam however long anyone
-   waits. This is what the app shows while it reads a session, a profile
-   or a first page of data: the same screen every time, rather than the
-   word "Loading" on three different backgrounds.
------------------------------------------------------------------- */
-const CIRC = 2 * Math.PI * MARK.r;    // 54.03
-const ARC = CIRC * 0.26;              // the travelling light
+   The brand colour, edge to edge, and one small grey ring turning in
+   the middle. Nothing else — no mark, no wordmark, no word. It is the
+   screen the app shows while it reads a session, a profile or a first
+   page of data, and it should be over before it is looked at.
 
+   The ring is a track and an arc on the same circle, so it reads as a
+   ring that is filling rather than a spinner. `action` is the only
+   thing that ever joins it: a way out, shown once a wait has gone on
+   too long, and never before.
+------------------------------------------------------------------ */
 const KEYFRAMES = `
-@keyframes nsTurn{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-@keyframes nsTurnBack{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
-@keyframes nsBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
-@keyframes nsHue{0%{stroke:var(--h0)}17%{stroke:var(--h1)}34%{stroke:var(--h2)}51%{stroke:var(--h3)}68%{stroke:var(--h4)}85%{stroke:var(--h5)}100%{stroke:var(--h0)}}
-@keyframes nsFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes nsSpin{to{transform:rotate(360deg)}}
+@keyframes nsFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media (prefers-reduced-motion: reduce){
-  [data-brand-loader] *{animation:none!important}
+  [data-brand-loader] *{animation-duration:2.4s!important}
 }`;
 
-export function BrandLoader({
-  label,
-  onTap,
-  action,
-  page = "#FAF7F0",
-  hair = "#E8E3DA",
-  faint = "#A39C93",
-  absolute = false,
-}) {
-  const hues = SPORT_ACCENTS.reduce((a, c, i) => ({ ...a, [`--h${i}`]: c }), {});
+export function BrandLoader({ onTap, action, absolute = false }) {
   const Tag = onTap ? "button" : "div";
+  const D = 28, W = 2.5, R = (D - W) / 2, C = 2 * Math.PI * R;
   return (
     <Tag
       data-brand-loader
       onClick={onTap || undefined}
-      aria-label={label || "Loading"}
+      aria-label="Loading"
       aria-busy="true"
       className={`${absolute ? "absolute inset-0" : "min-h-screen w-full"} flex flex-col items-center justify-center`}
-      style={{ background: page, zIndex: absolute ? 65 : undefined, cursor: onTap ? "pointer" : "default" }}
+      style={{ background: BRAND, zIndex: absolute ? 65 : undefined, cursor: onTap ? "pointer" : "default", border: "none", padding: 0 }}
     >
       <style>{KEYFRAMES}</style>
-
-      {/* The mark at the size it is everywhere else in the app. It was
-          168px across, which on a blank screen reads as a graphic
-          rather than a logo. */}
-      <svg width={72} height={45} viewBox={MARK.view}
-           style={{ ...hues, overflow: "visible", animation: "nsBreathe 5.5s ease-in-out infinite" }}>
-        {/* the mark itself, steady */}
-        <path d={RING_L} fill="none" stroke={hair} strokeWidth={MARK.weight} strokeLinecap="round" />
-        <path d={RING_R} fill="none" stroke={hair} strokeWidth={MARK.weight} strokeLinecap="round" />
-
-        {/* a light running each ring, turning inward towards the crossing */}
-        <circle cx={MARK.lx} cy={MARK.cy} r={MARK.r} fill="none" strokeWidth={MARK.weight} strokeLinecap="round"
-                style={{ strokeDasharray: `${ARC} ${CIRC - ARC}`, transformOrigin: `${MARK.lx}px ${MARK.cy}px`,
-                         animation: "nsTurn 2.8s linear infinite, nsHue 12s linear infinite" }} />
-        <circle cx={MARK.rx} cy={MARK.cy} r={MARK.r} fill="none" strokeWidth={MARK.weight} strokeLinecap="round"
-                style={{ strokeDasharray: `${ARC} ${CIRC - ARC}`, transformOrigin: `${MARK.rx}px ${MARK.cy}px`,
-                         animation: "nsTurnBack 2.8s linear infinite, nsHue 12s linear infinite" }} />
+      <svg width={D} height={D} viewBox={`0 0 ${D} ${D}`} aria-hidden="true"
+           style={{ animation: "nsSpin 900ms linear infinite" }}>
+        <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(244,246,243,0.22)" strokeWidth={W} />
+        <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(244,246,243,0.85)" strokeWidth={W}
+                strokeLinecap="round" strokeDasharray={`${C * 0.28} ${C}`} transform={`rotate(-90 ${D / 2} ${D / 2})`} />
       </svg>
-
-      <div style={{ marginTop: 22, fontFamily: display, fontSize: 11, letterSpacing: "0.32em",
-                    textTransform: "uppercase", color: faint }}>{label || BRAND_NAME}</div>
-
-      {/* Only ever a way out of a wait that has gone on too long. */}
-      {action && <div style={{ marginTop: 22, animation: "nsFadeUp 400ms ease both" }}>{action}</div>}
-
-      {onTap && !action && (
-        <div style={{ position: "absolute", bottom: 44, fontFamily: ui, fontSize: 10.5,
-                      letterSpacing: "0.18em", textTransform: "uppercase", color: hair }}>Tap to continue</div>
+      {action && (
+        <div style={{ position: "absolute", bottom: "max(40px, env(safe-area-inset-bottom, 40px))",
+                      animation: "nsFadeUp 400ms ease both" }}>{action}</div>
       )}
     </Tag>
   );

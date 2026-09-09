@@ -293,7 +293,10 @@ function listPrefix(files, prefix) {
    WebSocket route in particular only takes hold once its promise has
    settled — registered and forgotten, the socket goes out to the network. */
 async function attach(page, db, opts = {}) {
-  await page.route("https://api.fontshare.com/**", (r) => r.abort());
+  /* Fonts are answered with an empty stylesheet rather than aborted: an
+     aborted request logs "Failed to load resource" to the console, and the
+     suites treat every console error as the app's. */
+  await page.route("https://api.fontshare.com/**", (r) => r.fulfill({ status: 200, contentType: "text/css", headers: { "access-control-allow-origin": "*" }, body: "" }));
   /* the notifications channel: the app opens a socket the moment it has a
      person; nothing needs to come down it here */
   if (typeof page.routeWebSocket === "function") await page.routeWebSocket(/realtime/, () => {});
