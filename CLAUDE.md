@@ -17,11 +17,17 @@ never floods.
    serving the last good one, so fixes appear to do nothing.
 3. `supabase/test/run.sh` whenever `supabase/nosca.sql` changed — runs
    it on a throwaway Postgres, twice, plus 50 behavioural checks and
-   two upgrade paths.
+   three upgrade paths. The push path stubs `net.http_post` and asserts
+   that one notification enqueues exactly one request: `notify_push()`
+   swallows every error by design, so a broken one passes any test that
+   only checks the trigger exists — two such breakages shipped.
 4. Render it. The Playwright scripts under `scripts/e2e/` drive the
    built app against a mocked Supabase: sign-up for every role, codes
-   both ways, deletion, the walkthrough's ring alignment, and a seed
-   sweep that crawls every screen as each role.
+   both ways, deletion, the walkthrough's ring alignment, a seed sweep
+   that crawls every screen as each role (and records console warnings
+   as failures), `dead-ends.cjs` which taps every control as every role
+   and fails on any that does nothing, and `polish-shots.cjs` for a
+   screenshot of every screen the founder looks at first.
 
 Deploys cost credits. Get it right locally first.
 
@@ -77,14 +83,38 @@ seeded data and no account.
   `ROSTER` without checking `data` or `useLive()` first. A real account
   either does the real thing through `useNoscaData` or does not show
   the control — nothing may toast and pretend.
-- **One mark, one loading screen.** `src/lib/brandmark.jsx` owns the
-  two rings and the screen built from them, because the gate in
+- **One brand colour: `BRAND` in `src/lib/brandmark.jsx` (#123C30).**
+  Deep bottle green. It is the loading screen, the app icon, the splash
+  before a sport, the manifest, and `NEUTRAL.accent`/`mark` on sign-up
+  and sign-in. Sport palettes tint the app only inside a sport. It is
+  repeated as a literal in `scripts/icons.mjs`, `manifest.webmanifest`,
+  `index.html` and `public/sw.js`, which run outside the bundle — change
+  all five together. Contrast: paper on it 11:1, white 12:1.
+- **The loading screen is the brand colour and one small grey ring.**
+  No text, no mark, no wordmark. `BrandLoader` in `brandmark.jsx`; the
+  only thing that ever joins the ring is the way out after a long wait.
+- **One mark.** `brandmark.jsx` owns the two rings, because the gate in
   App.jsx renders before Nosca.jsx exists. The rings weave — each is
   broken by a gap where the other passes over — so nothing is knocked
   out with a background colour and the mark works on any surface. The
   app icons and the favicon are generated from the same numbers by
-  `node scripts/icons.mjs`; change the geometry, run it, commit what it
-  writes. Nothing may import Nosca from that file.
+  `node scripts/icons.mjs` (heavier stroke than on screen, so the 29px
+  settings icon iOS shrinks from the 180 still reads); change the
+  geometry, run it, commit what it writes. Nothing may import Nosca
+  from that file.
+- **A date column is a day, not a moment.** `localDate("2026-09-08")`
+  from `useNoscaData`, never `new Date("2026-09-08")` — the latter is
+  midnight UTC, the evening before on any phone west of Greenwich.
+- **Realtime is every readable table, and the database decides.** The
+  hook's one channel listens to notifications, lessons, bookings,
+  messages, requests, drills, tips, registers, profiles and preferences
+  and debounces one `load()`. RLS applies to realtime as to a select,
+  so nothing is filtered client-side. New tables go in the publication
+  block of nosca.sql AND the channel's list.
+- **pg_net lives in `net`.** `net.http_post`, whatever schema the
+  extension was created in. `extensions.net_http_post` existed nowhere,
+  the trigger swallowed the error, and every notification was written
+  and none sent.
 - **A confirmation is a line, not a ceremony.** `done(text, sub)`
   raises the toast with a tick — that is what every everyday action
   answers with. The full-screen `Celebration` is for the few moments
@@ -109,6 +139,13 @@ seeded data and no account.
   drills, tips — remembered as `preferences.setup_done`, and reachable
   again from Settings. Its live mode leaves out the stats step, because
   nothing stores which stats a coach picked.
+- **One drill library.** A live coach's drills are `custom_drills` in
+  their preferences — what they picked in setup plus what they wrote —
+  held in `library[sport]`. The wizard's chips, the Set-drills sheet and
+  the Drills screen all read that one list; none of them reads the
+  sport's starter set directly (the wizard used to, and offered drills
+  the sheet had never heard of). The harness, with no account, seeds
+  the starter set into the library so every screen still has content.
 - **A coach's sport never changes.** `profiles.sport` is what their
   invite code was handed out under. Another sport goes in
   `preferences.extra_sports`, and `activeSport` is which of them they

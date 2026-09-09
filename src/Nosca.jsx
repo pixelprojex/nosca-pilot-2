@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef, useMemo, useContext, createContext 
 import { useCapture } from "./lib/useCapture";
 import QRCode from "qrcode";
 import { joinLink, shareOrCopy, copyText } from "./lib/share";
-import { MAX_UPLOAD_MB, avatarUrl, registerKey } from "./lib/useNoscaData";
+import { MAX_UPLOAD_MB, avatarUrl, registerKey, localDate } from "./lib/useNoscaData";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
 import { supabase } from "./lib/supabase";
-import { Mark, BrandLoader, RING_L, RING_R, RING_LEN } from "./lib/brandmark.jsx";
+import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home, Library,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
@@ -78,6 +78,9 @@ const PLAYER_FILE = {
    one, and each must keep its own answer. */
 const LiveCtx = createContext(false);
 const useLive = () => useContext(LiveCtx);
+/* The toast, reachable from anything deep in the tree that has a line
+   to say and no prop to say it through — the microphone, mostly. */
+const NoticeCtx = createContext(() => {});
 
 const EMPTY_FILE = { done: 0, lastFocus: null, lastOn: null, tip: null, note: "", lessons: [] };
 const fileFor = (n, live) => live ? EMPTY_FILE : (PLAYER_FILE[n] || EMPTY_FILE);
@@ -334,10 +337,13 @@ export const CONSENT_AGE = ADULT_AGE;   // one number, used everywhere
 const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 60": "studio", "More than 60": "academy" };
 
 
+/* The theme before a sport: sign-up, sign-in, arrival. Its controls and
+   its mark are the brand colour — the one anchor Nosca has before a
+   sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
   ink: "#1A1815", sub: "#6B6560", faint: "#A39C93",
   hair: "#E8E3DA", page: "#FFFFFF", surface: "#FFFFFF",
-  wash: "#F2EDE4", mark: "#1A1815", accent: "#1A1815", onAccent: "#FAF7F2",
+  wash: "#F2EDE4", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
    Anything outside this set is decoration and does not belong. */
@@ -1652,8 +1658,11 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   /* Before sign-up there is no sport, so the opening is the brand alone. */
   const branded = !sport;
   const cfg = SPORTS[sport] || null;
-  const accent = branded ? "#B79A5C" : cfg.theme.accent;
-  const bg = branded ? "#080A09" : cfg.theme.ink;
+  /* Before a sport, the opening is the brand alone: its colour edge to
+     edge and the paper mark on it. The gold that used to sit here was
+     a second brand colour, which is one more than a brand has. */
+  const accent = branded ? BRAND_PAPER : cfg.theme.accent;
+  const bg = branded ? BRAND_COLOUR : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 
   const HOLD = branded ? 5400 : 4000;
@@ -1750,8 +1759,7 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
 function Loader({ label, onTap }) {
   useEffect(() => { haptic(7); }, []);
   const t = useT();
-  return <BrandLoader absolute label={label || BRAND} onTap={onTap}
-                      page={t.page} ink={t.ink} hair={t.hair} faint={t.faint} />;
+  return <BrandLoader absolute onTap={onTap} />;
 }
 
 /* Photos in a lesson come in two kinds and they behave differently: a
@@ -5192,7 +5200,10 @@ function Evidence({ item, live, mark }) {
                style={{ objectFit: "cover", zIndex: 1 }} />
         {failed && (
           /* say so, rather than showing a blank frame forever */
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ zIndex: 2, background: "#0B0F10" }}>
+          /* centred in the top half: the lesson's date, title and note
+             are drawn over the lower third of this frame, and a message
+             centred on the whole frame landed on top of them */
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ zIndex: 2, background: "#0B0F10", paddingBottom: "38%" }}>
             <X size={22} color={DANGER} strokeWidth={2} />
             <span className="mt-3 text-center" style={{ ...TYPE.small, color: "rgba(255,255,255,0.8)" }}>
               {tr("This clip wouldn't play")}
@@ -5475,7 +5486,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
                     style={{ width: 30, height: 26, borderRadius: 13,
                              background: on ? "rgba(255,255,255,0.92)" : "transparent",
                              transition: "background 220ms" }}
-                    aria-label={v.id}>
+                    aria-pressed={on} aria-label={v.id === "feed" ? "Feed" : v.id === "cards" ? "Cards" : "List"}>
               <v.Ico size={13} strokeWidth={2} color={on ? "#111" : "rgba(255,255,255,0.7)"} />
             </button>
           );
@@ -5518,7 +5529,7 @@ function ViewSwitch({ view, setView, onDark, tour }) {
       {opts.map((o) => {
         const on = view === o.id;
         return (
-          <button key={o.id} onClick={() => { haptic(9); soft(); setView(o.id); }}
+          <button key={o.id} aria-pressed={on} aria-label={o.label} onClick={() => { haptic(9); soft(); setView(o.id); }}
                   className="flex items-center gap-1.5 px-3.5 active:opacity-70"
                   style={{ minHeight: 34, borderRadius: R.pill,
                            background: on ? (onDark ? "rgba(255,255,255,0.92)" : t.surface) : "transparent",
@@ -6271,8 +6282,9 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
             {nx ? `${fmtDay(nx.date)} · ${nx.time}` : k.coachId ? tr("Nothing booked") : tr("No coach yet")}
           </span>
         </span>
-        {todo > 0 && <span className="shrink-0 px-2 py-1" style={{ borderRadius: R.pill, background: `${t.accent}14`, ...TYPE.caption, fontWeight: 600, color: t.accent }}>{todo}</span>}
-        {mine.length > 0 && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{mine.length}</span>}
+        {/* said in words: two bare numbers side by side read as nothing */}
+        {todo > 0 && <span className="shrink-0 px-2 py-1" style={{ borderRadius: R.pill, background: `${t.accent}14`, ...TYPE.caption, fontWeight: 600, color: t.accent }}>{todo} {todo === 1 ? tr("drill") : tr("drills")}</span>}
+        {mine.length > 0 && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{mine.length} {mine.length === 1 ? tr("lesson") : tr("lessons")}</span>}
         <ChevronRight size={15} color={t.faint} />
       </button>
     );
@@ -6715,7 +6727,7 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
      family member with a coach of their own; the seeded connections
      are the design harness's. */
   const people = given ? given : role === "coach"
-    ? roster.map((r) => ({ id: r.id, name: r.name, sub: `${r.lessons} ${tr("lessons")}` }))
+    ? roster.map((r) => ({ id: r.id, name: r.name, sub: `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}` }))
     : conns.map((c) => ({ name: c.coach, sub: `${SPORTS[c.sport].label} · ${c.club}` }));
   const term = q.trim().toLowerCase();
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
@@ -7488,7 +7500,7 @@ function Segmented({ options, value, onChange, tour }) {
       {options.map((o) => {
         const on = value === o;
         return (
-          <button key={o} onClick={() => { haptic(6); onChange(o); }} className="flex-1 rounded-lg"
+          <button key={o} aria-pressed={on} onClick={() => { haptic(6); onChange(o); }} className="flex-1 rounded-lg"
                   style={{ minHeight: 34, background: on ? t.surface : "transparent", boxShadow: on ? "0 1px 3px rgba(10,16,12,0.09)" : "none",
                            transition: "background 260ms cubic-bezier(.22,1,.36,1), color 260ms, box-shadow 260ms",
                            fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
@@ -7572,8 +7584,12 @@ function useDictation(onText, onNotice) {
 
 function MicBtn({ onText, size = 34, tint, onNotice }) {
   const t = useT();
-  const { state, start, supported } = useDictation(onText, onNotice);
+  const notice = useContext(NoticeCtx);
+  const { state, start, supported } = useDictation(onText, onNotice || notice);
   const live = state === "listening";
+  /* No microphone where the browser has no dictation: a dimmed button
+     that does nothing when tapped is a dead end, not a hint. */
+  if (!supported) return null;
   return (
     <button onClick={start} aria-label={live ? "Stop dictating" : "Dictate"}
             className="rounded-full flex items-center justify-center shrink-0 active:opacity-60 relative"
@@ -7605,7 +7621,7 @@ function VoiceArea({ value, onChange, ph, rows = 3 }) {
       <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={ph}
                 className="w-full outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
       <div className="flex items-center justify-between pb-2">
-        <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{tr("Type or talk")}</span>
+        <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{speechCtor() ? tr("Type or talk") : ""}</span>
         <MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} />
       </div>
     </div>
@@ -8241,7 +8257,7 @@ export function SignupShell({ step, steps, onBack, right, title, sub, above, chi
 export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 }) {
   const t = useT();
   return (
-    <button onClick={() => { haptic(8); soft(); onSelect(); }}
+    <button onClick={() => { haptic(8); soft(); onSelect(); }} aria-pressed={!!on}
             className="w-full flex items-center gap-4 px-5 text-left mb-2"
             onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
             onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -9304,7 +9320,10 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, prefs, setPref
 
   return (
     <Screen bare right={right}>
-      <div className="px-6 pt-1">
+      {/* Nothing to arrange or filter until there is a lesson: a view
+          switch and a row of focus chips over "No lessons yet" are nine
+          controls that can do nothing. */}
+      {lessons.length > 0 && (<div className="px-6 pt-1">
         {/* the view switch does the work a title was doing badly */}
         <div className="flex items-center gap-3 mb-4">
           <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
@@ -9318,7 +9337,7 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, prefs, setPref
           {chips.map((c) => {
             const on = f === c;
             return (
-              <button key={c} onClick={() => { haptic(6); soft(); setF(c); }}
+              <button key={c} aria-pressed={on} onClick={() => { haptic(6); soft(); setF(c); }}
                       className="rounded-full px-3.5 shrink-0 active:opacity-60"
                       style={{ minHeight: 32, background: on ? t.accent : "transparent",
                                border: `0.5px solid ${on ? t.accent : HAIR(t.ink, 0.2)}`,
@@ -9328,7 +9347,7 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, prefs, setPref
             );
           })}
         </div>
-      </div>
+      </div>)}
 
       {!ready ? (
         <div className="px-6"><Bone h={CARD_H} r={20} /></div>
@@ -10016,7 +10035,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
    control centre taking up the bottom of the home screen. Three figures
    is what belongs at the end of a day. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
-                      roster, drifting = 0, unread = 0, toWriteUp = [], stats = null,
+                      roster, drifting = 0, unread = 0, toWriteUp = [], stats = null, upcoming = [],
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onAccept, onDecline, onInvite, push, go }) {
   const t = useT();
@@ -10144,6 +10163,33 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           </div>
         )}
 
+        {/* ---- the next few days ---- the bookings after today, so a
+            light day still shows what is coming and the evening glance
+            has something to tell. Each row opens the diary. */}
+        {upcoming.length > 0 && (
+          <div className="mt-6">
+            <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Coming up")}</div>
+            <div style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest, overflow: "hidden",
+                          animation: "contentRise 500ms cubic-bezier(.22,1,.36,1) 60ms both" }}>
+              {upcoming.map((b, i) => (
+                <button key={b.id || i} onClick={() => { haptic(8); soft(); go("calendar"); }}
+                        className="w-full flex items-center gap-3 px-4 text-left active:opacity-60"
+                        style={{ minHeight: 60, borderBottom: i < upcoming.length - 1 ? `0.5px solid ${HAIR(t.ink, 0.12)}` : "none" }}>
+                  <span className="shrink-0" style={{ width: 66, ...TYPE.eyebrow, fontSize: 9, color: t.faint, lineHeight: 1.6, whiteSpace: "nowrap" }}>
+                    {b.dayLabel}<br />{b.time}
+                  </span>
+                  <Avatar name={b.who} size={30} src={avatarFor(b)} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{b.who}</span>
+                    {b.group && <span className="block" style={{ ...TYPE.caption, color: t.faint }}>{tr("Group")}</span>}
+                  </span>
+                  <ChevronRight size={16} color={t.faint} strokeWidth={1.8} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* nobody yet: the only thing worth doing is getting someone in */}
         {(roster || []).length === 0 && (
           <div className="pt-7 pb-2 text-center">
@@ -10207,7 +10253,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
    Continues to write up a lesson that takes a coach ninety seconds to
    remember. A coach arriving from a booking already tells us who and
    when, so they land on the second page. */
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt }) {
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt, library, tipPrompts }) {
   const t = useT(); const L = useL();
   const live = useLive();
 
@@ -10341,7 +10387,21 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const first = ((who[0] || {}).name || "").split(" ")[0];
   const [ownDrill, setOwnDrill] = useState("");
   const [extraDrills, setExtraDrills] = useState([]);
-  const recommended = (cfg.drills || []).filter((d) => focus.includes(d.focus)).concat(cfg.drills.slice(0, 3)).slice(0, 6);
+  /* The chips come from the coach's own library — the same drills the
+     Set-drills sheet offers — with the ones that match the chosen focus
+     first. Each title once: a drill that matches the focus and also sits
+     at the top of the library used to appear twice. */
+  const recommended = useMemo(() => {
+    const pool = library || cfg.drills || [];
+    const seen = new Set(), out = [];
+    for (const d of [...pool.filter((d) => d.focus && focus.includes(d.focus)), ...pool]) {
+      const k = String(d.t || "").trim().toLowerCase();
+      if (!k || seen.has(k)) continue;
+      seen.add(k); out.push(d);
+      if (out.length === 6) break;
+    }
+    return out;
+  }, [library, cfg, focus]);
 
   useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
   /* the harness's pretend transcription — never on a real account */
@@ -10460,7 +10520,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             </>)}
 
-            <Eyebrow>{q ? `${matches.length} found` : nouns}</Eyebrow>
+            <Eyebrow>{q ? `${matches.length} found` : nouns.charAt(0).toUpperCase() + nouns.slice(1)}</Eyebrow>
             <div className="px-6 pb-4">
               {matches.length === 0 ? (
                 <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”.` : tr("No players yet.")}</p>
@@ -10732,7 +10792,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip}
                         ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} /></div>
             <div className="flex flex-wrap gap-2 mt-4">
-              {(cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp, i) => (
+              {/* the coach's own tips first, then the sport's — the same
+                  list the Set-tip sheet offers */}
+              {(tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp, i) => (
                 <button key={tp} onClick={() => { haptic(6); soft(); setNextTip(tp); }} className="px-3.5 active:opacity-60"
                         style={{ minHeight: 40, borderRadius: R.pill, background: t.wash, fontFamily: ui, fontSize: 12.5, color: t.sub,
                                  animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>{tp}</button>
@@ -10855,7 +10917,7 @@ function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say,
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                      {`${r.lessons} ${tr("lessons")}`}
+                      {`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`}
                     </span>
                   </span>
                   <ChevronRight size={15} color={t.faint} />
@@ -10912,7 +10974,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
      the screen; three is what they actually read walking out to meet
      someone, and the button is there whether or not there are more. */
   const shown = past.slice(0, 3);
-  const daysSince = live && r.lastLesson ? Math.max(0, Math.round((new Date() - new Date(r.lastLesson)) / 86400000)) : null;
+  const daysSince = live && r.lastLesson ? Math.max(0, Math.round((new Date() - localDate(r.lastLesson)) / 86400000)) : null;
   /* Private lessons and the group sessions this player was marked at —
      lesson_attendees records who was there, so the coach's count and
      the player's own agree. */
@@ -13226,7 +13288,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
              style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} {...extra} />
     </div>
   );
-  const age = f.dob ? (() => { const b = new Date(f.dob), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return isNaN(a) ? null : a; })() : null;
+  const age = f.dob ? (() => { const b = localDate(f.dob), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return isNaN(a) ? null : a; })() : null;
   const I = ({ C, danger }) => <C size={17} color={danger ? DANGER : t.sub} strokeWidth={1.6} />;
 
   return (
@@ -13442,7 +13504,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                 {startOptions.map((o) => {
                   const on = (startOn || "auto") === o.id;
                   return (
-                    <button key={o.id} onClick={() => { haptic(6); setStartOn(o.id); }} className="px-3.5 shrink-0 active:opacity-60"
+                    <button key={o.id} aria-pressed={on} onClick={() => { haptic(6); setStartOn(o.id); }} className="px-3.5 shrink-0 active:opacity-60"
                             style={{ minHeight: 36, borderRadius: R.pill, background: on ? t.ink : "transparent",
                                      border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.18)}`, ...TYPE.caption, fontWeight: 600,
                                      color: on ? "#fff" : t.sub }}>{o.label}</button>
@@ -14856,7 +14918,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      seeded household. Whole years, the same sum as everywhere else. */
   const yearsOld = (dob) => {
     if (!dob) return null;
-    const b = new Date(dob), n = new Date();
+    const b = localDate(dob), n = new Date();
     let a = n.getFullYear() - b.getFullYear();
     if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a -= 1;
     return a;
@@ -15165,7 +15227,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const liveHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
   const myAvail = data ? (liveHours.days || {}) : avail[coachSport];
   const myBlocked = data
-    ? (liveHours.blocked || []).map((x) => { const [iso, time] = String(x).split("|"); const dt = new Date(iso); return { m: dt.getMonth() + 1, d: dt.getDate(), time }; })
+    ? (liveHours.blocked || []).map((x) => { const [iso, time] = String(x).split("|"); const dt = localDate(iso); return { m: dt.getMonth() + 1, d: dt.getDate(), time }; })
     : blocked[coachSport];
   const writeAvail = (week) => {
     if (data) { data.saveAvailability({ ...(liveHours || {}), days: week, duration, slots }); return; }
@@ -15200,6 +15262,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     .map((b) => b.playerId)) : null;
   const myGroups = data ? ((data.prefs && data.prefs.groups) || []) : freshAccount ? [] : (groups[coachSport] || []);
   const myLibrary = library[coachSport] || [];
+  /* The coach's next three confirmed lessons after today, for the home
+     screen. "Tomorrow" is said as such; further out, the day and date. */
+  const upcomingForCoach = data ? (() => {
+    const todayIso = isoOf(todayMD.m, todayMD.d);
+    const short = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const tomorrow = new Date(clock); tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowIso = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    return (liveBookingRows || [])
+      .filter((b) => b.status === "confirmed" && b.date > todayIso)
+      .sort((a, b) => a.date.localeCompare(b.date) || ((parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0)))
+      .slice(0, 3)
+      .map((b) => ({ ...b, dayLabel: b.date === tomorrowIso ? tr("Tomorrow") : `${short[localDate(b.date).getDay()]} ${b.d} ${monthName(b.m).slice(0, 3)}` }));
+  })() : [];
 
   /* Their hours, their drills and their tips, in one write. Whatever
      they skipped is simply not in the patch, so nothing is overwritten
@@ -16165,6 +16240,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])}
                   drifting={atRisk(roster, mySeriesLive, live, bookedAhead).length}
                   unread={unread}
+                  upcoming={upcomingForCoach}
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
                   onMessages={() => go("messages")}
@@ -16182,7 +16258,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard livePlayers={data ? data.roster : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
+      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
     }[screen] || coachToday;
   } else if (!conn) {
     body = (
@@ -16219,7 +16295,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }
 
   return (
-    <LiveCtx.Provider value={live}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <LiveCtx.Provider value={live}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -16807,7 +16883,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></LiveCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></LiveCtx.Provider>
   );
 }
 

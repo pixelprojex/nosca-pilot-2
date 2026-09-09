@@ -93,10 +93,13 @@ function png(width, height, rgba) {
 const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
 /* ---------- render ---------- */
-/* `scale` sizes the mark's own 40-unit box against the icon. At 0.72
-   the rings span about 58% of the width — as large as they can be and
-   still sit inside the 80% circle a maskable icon is cropped to. */
-function render({ size, bg, ring, scale = 0.72, weight = W }) {
+/* `scale` sizes the mark's own 40-unit box against the icon. At 0.74
+   the rings span about 60% of the width — as large as they can be and
+   still sit inside the 80% circle a maskable icon is cropped to.
+   `weight` is heavier than the on-screen mark: iOS makes its 29px
+   settings icon by shrinking the 180, and at 2.75 the stroke came out
+   under a pixel and a half there. 3.6 keeps it a clear two. */
+function render({ size, bg, ring, scale = 0.74, weight = 3.6 }) {
   const px = Buffer.alloc(size * size * 4);
   const [br, bgc, bb] = bg ? hex(bg) : [0, 0, 0];
   const [mr, mg, mb] = hex(ring);
@@ -131,7 +134,9 @@ function render({ size, bg, ring, scale = 0.72, weight = W }) {
   return png(size, size, px);
 }
 
-const INK = "#0B0F0C", PAPER = "#F4F6F3";
+/* The base brand colour — the same value as BRAND in src/lib/brandmark.jsx,
+   repeated here because this script runs outside the bundle. */
+const INK = "#123C30", PAPER = "#F4F6F3";
 /* Deliberately one colour. A gold segment on the crossing looked like a
    flaw in the ring at 60px rather than a detail; the weave already says
    linked, and it says it at every size. */
@@ -141,7 +146,11 @@ const files = [
   ["apple-touch-icon.png", { size: 180, bg: INK, ring: PAPER }],
   /* A notification badge is drawn as a silhouette in the system's own
      colour, so it is white on nothing and carries no accent. */
-  ["badge-96.png", { size: 96, bg: null, ring: "#FFFFFF", scale: 0.86, weight: 3.4 }],
+  ["badge-96.png", { size: 96, bg: null, ring: "#FFFFFF", scale: 0.86, weight: 3.6 }],
+  /* the sizes iOS and Android actually show, rendered directly so the
+     small ones are judged as drawn rather than as a guess */
+  ["preview-29.png", { size: 29, bg: INK, ring: PAPER }],
+  ["preview-60.png", { size: 60, bg: INK, ring: PAPER }],
 ];
 
 for (const [name, opts] of files) {
@@ -156,7 +165,7 @@ const pt = (cx, deg) => `${(cx + R * Math.cos(deg)).toFixed(3)} ${(CY + R * Math
 const arc = (cx, gapAt) => `M${pt(cx, gapAt + GAP)} A ${R} ${R} 0 1 1 ${pt(cx, gapAt - GAP)}`;
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
   <rect width="40" height="40" rx="9" fill="${INK}"/>
-  <g fill="none" stroke="${PAPER}" stroke-width="${W}" stroke-linecap="round" transform="translate(0 7.5)">
+  <g fill="none" stroke="${PAPER}" stroke-width="3.6" stroke-linecap="round" transform="translate(0 7.5)">
     <path d="${arc(LX, HALF)}"/>
     <path d="${arc(RX, -(Math.PI - HALF))}"/>
   </g>

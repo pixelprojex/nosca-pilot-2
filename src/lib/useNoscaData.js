@@ -29,11 +29,20 @@ export const registerKey = (label, date) => {
 };
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
+/* A DATE COLUMN IS A DAY, NOT A MOMENT. "2026-09-08" handed to
+   new Date() is midnight UTC, which is the evening of the 7th on any
+   phone west of Greenwich — so a lesson, a booking or a birthday moved
+   a day for anyone travelling. Split it and build the local day. */
+export const localDate = (ymd) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd || ""));
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(ymd);
+};
+
 /* Whole years since a date of birth — the same sum the database's
    is_junior_of() does, so the two never disagree about who is a junior. */
 export const yearsOld = (dob) => {
   if (!dob) return null;
-  const b = new Date(dob), n = new Date();
+  const b = localDate(dob), n = new Date();
   if (isNaN(b.getTime())) return null;
   let a = n.getFullYear() - b.getFullYear();
   if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a -= 1;
@@ -67,7 +76,7 @@ export const avatarUrl = (path) => path ? supabase.storage.from("avatars").getPu
 
 /* database row -> the shape the interface already speaks */
 const toLesson = (r, attendeeIds = []) => {
-  const dt = new Date(r.lesson_date);
+  const dt = localDate(r.lesson_date);
   return {
     id: r.id,
     /* who was marked at this group lesson; empty for a private one,
@@ -1227,20 +1236,34 @@ export function useNoscaData(profile) {
     return { error };
   };
 
+  /* LIVE BETWEEN DEVICES. A notification arriving refreshed the app, and
+     that covered most of what one person does to another — but not a
+     coach's own second phone, nor anything that writes no notification:
+     a lesson edited, a register taken, hours changed, a drill ticked.
+     So the channel now listens to every table a person can read, and
+     any change on any of them schedules one refresh. The database
+     decides what each person is allowed to hear (RLS applies to
+     realtime exactly as it does to a read), so there is nothing to
+     filter here — a row that is not theirs never arrives. */
   const reloadTimer = useRef(null);
   useEffect(() => {
     if (!profile?.id || typeof supabase.channel !== "function") return;
+    const later = () => {
+      if (reloadTimer.current) clearTimeout(reloadTimer.current);
+      reloadTimer.current = setTimeout(() => { reloadTimer.current = null; load(); }, 800);
+    };
     let channel;
     try {
-      channel = supabase.channel(`notifications:${profile.id}`)
+      channel = supabase.channel(`live:${profile.id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${profile.id}` }, (payload) => {
           const n = payload && payload.new; if (!n) return;
           setNotifications((v) => (v.some((x) => x.id === n.id) ? v : [toNotification(n), ...v]));
-          /* whatever it announces has already been written; pick it up once things settle */
-          if (reloadTimer.current) clearTimeout(reloadTimer.current);
-          reloadTimer.current = setTimeout(() => { reloadTimer.current = null; load(); }, 800);
-        })
-        .subscribe();
+          later();
+        });
+      for (const table of ["lessons", "bookings", "messages", "coach_requests", "drills", "tips", "attendance_sessions", "profiles", "preferences"]) {
+        channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, later);
+      }
+      channel = channel.subscribe();
     } catch (e) { channel = null; }
     return () => { if (channel) { try { supabase.removeChannel(channel); } catch (e) { /* already gone */ } } if (reloadTimer.current) clearTimeout(reloadTimer.current); };
   }, [profile?.id, load]);

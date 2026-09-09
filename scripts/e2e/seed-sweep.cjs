@@ -64,6 +64,9 @@ const TARGETS = {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
       const page = await ctx.newPage(); await M.attach(page, db);
       const errors = []; page.on("pageerror", (e) => errors.push(String(e.message || e)));
+      /* a warning in the console is a defect on a phone nobody can open
+         the console on: a missing key, a bad prop, a deprecated API */
+      page.on("console", (m) => { if (["warning", "error"].includes(m.type()) && !/vibrate|React DevTools/.test(m.text())) errors.push(`console.${m.type()}: ${m.text().slice(0, 160)}`); });
       await M.injectSession(page, M.session(u, db));
       const home = async () => { await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page); };
       await home();

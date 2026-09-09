@@ -27,7 +27,7 @@ self.addEventListener("fetch", (event) => {
     fetch(req).catch(() =>
       new Response(
         "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\">" +
-        "<title>Nosca</title><body style=\"font:16px -apple-system,system-ui,sans-serif;padding:14vh 8vw;color:#12211C\">" +
+        "<title>Nosca</title><body style=\"font:16px -apple-system,system-ui,sans-serif;padding:14vh 8vw;color:#123C30\">" +
         "<p>Nosca needs a connection.</p><p style=\"color:#7A8580\">Try again when you are back online.</p>",
         { headers: { "content-type": "text/html; charset=utf-8" }, status: 503 }
       )
