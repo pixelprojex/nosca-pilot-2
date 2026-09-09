@@ -88,14 +88,14 @@ const { check, results, summary } = M.checker("notifications");
       await ctx.close();
     }
 
-    /* ---------- (b) one left: Carry on marks it, a fresh open shows nothing, Clear all deletes ---------- */
+    /* ---------- (b) one left: Dismiss marks it, a fresh open shows nothing, Clear all deletes ---------- */
     {
       const { ctx, page, text, shot } = await boot("adult");
       const t0 = await text(); await shot("05-adult-catchup-one");
       check("(b) the next open shows only what is still unread", (await catchup(page).count()) === 1 && t0.includes("One thing happened") && t0.includes("Lesson confirmed") && !t0.includes("Lesson logged"), t0.slice(0, 200));
-      await click(page, "Carry on", 1000);
+      await click(page, "Dismiss", 1000);
       const p = readPatches().slice(-1)[0];
-      check("(b) Carry on PATCHes read_at for everything unread", !!p && p.body.read_at && p.query.includes(N.booking) && p.query.includes("read_at=is.null") && p.n === 1 && db.notifications.filter((n) => n.user_id === IDS.adult && !n.read_at).length === 0, p ? p.query : "no PATCH");
+      check("(b) Dismiss PATCHes read_at for everything unread", !!p && p.body.read_at && p.query.includes(N.booking) && p.query.includes("read_at=is.null") && p.n === 1 && db.notifications.filter((n) => n.user_id === IDS.adult && !n.read_at).length === 0, p ? p.query : "no PATCH");
       check("(b) the bell reads 0", (await M.bellCount(page)) === 0 && (await page.locator('[aria-label="Alerts"] span').count()) === 0, String(await M.bellCount(page)));
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page, { carryOn: false });
       const t1 = await text(); await shot("06-adult-no-catchup");

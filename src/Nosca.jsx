@@ -15715,7 +15715,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach"), { kind: "own", coachId: (data.links && data.links.coach) || null }));
     /* a child's conversation is with the child's coach, carried on by
        the adult: listed under the coach's name, marked as the child's */
-    (data.dependants || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.coachName || tr("Their coach"), `${tr("For")} ${f.name.split(" ")[0]}`, { kind: "child", child: f.name.split(" ")[0], coachId: f.coachId })));
+    (data.dependants || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.coachName || tr("Their coach"), `${tr("For")} ${f.name.split(" ")[0]}`, { kind: "child", child: f.name.split(" ")[0], childName: f.name, coachId: f.coachId })));
     return rows;
   })() : null;
   const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
@@ -15936,7 +15936,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* the key is a player id, or a name from an older entry point —
        either way the thread is the real one, or honestly unavailable */
     const threadKey = screen.slice(7);
-    const row = (liveThreads || []).find((c) => c.playerId === threadKey || c.who === threadKey);
+    /* a child's thread is listed under the coach's name but reached by
+       the child's — from the family screen — so both names find it */
+    const row = (liveThreads || []).find((c) => c.playerId === threadKey || c.who === threadKey || c.childName === threadKey);
     const th = row ? (data.threads || []).find((x) => x.playerId === row.playerId) : null;
     /* names for anyone who might have written in this thread: the
        roster, the family's adults, and the coach */
