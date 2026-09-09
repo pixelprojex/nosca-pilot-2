@@ -574,7 +574,7 @@ const SPLASH_MS = 7200;
 async function settle(page, { carryOn = true, wait = SPLASH_MS } = {}) {
   if (wait) await page.waitForTimeout(wait);
   const skip = page.getByText("Skip", { exact: true }); if (await skip.count()) { await skip.first().click().catch(() => {}); await page.waitForTimeout(500); }
-  if (carryOn) { const co = page.getByRole("button", { name: "Carry on", exact: true }); if (await co.count()) { await co.first().click().catch(() => {}); await page.waitForTimeout(500); } }
+  if (carryOn) { const co = page.getByRole("button", { name: "Dismiss", exact: true }); if (await co.count()) { await co.first().click().catch(() => {}); await page.waitForTimeout(500); } }
 }
 /* a stored session, so a script starts inside the app without the sign-in screens */
 async function injectSession(page, sess, { seen = true } = {}) {

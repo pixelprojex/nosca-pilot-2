@@ -33,6 +33,8 @@ function freshDb() {
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: ago(-2), time: "10:00 am", status: "confirmed" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: ago(-3), time: "9:00 am", status: "requested" });
   M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.adult, body: "Grand, see you at four." });
+  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.coach, body: "Saoirse hit the ball beautifully today." });
+  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.parent, body: "Thanks Niamh — can she come Friday instead?" });
   return db;
 }
 
@@ -72,6 +74,16 @@ function freshDb() {
       await tap('[aria-label="Roster"]'); await tap('[data-tour="roster-row"]'); await tap('[data-tour="player-lessons"] button', 900); await shot("c13-lesson-view-coach");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Diary"]'); await tap('[data-tour="agenda-book"], [data-tour="cal-open"]', 700); await shot("c14-book-sheet");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap('[aria-label="Your profile"]'); await page.locator('[data-tour="settings-appearance"]').first().scrollIntoViewIfNeeded().catch(() => {}); await shot("c15-settings-mid");
+      await page.getByPlaceholder("Search settings").fill("drill"); await page.waitForTimeout(400); await shot("c16-settings-search");
+      await page.getByPlaceholder("Search settings").fill(""); await page.waitForTimeout(300);
+      await text("Set yourself up", 800); await shot("c17-setup-1");
+      await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c18-setup-2");
+      await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c19-setup-3");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap('[aria-label="Chat"]'); await shot("c20-chat-list");
+      await text("Saoirse Kelly", 900); await shot("c21-thread-junior");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");
@@ -85,6 +97,10 @@ function freshDb() {
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("parent");
       await shot("p1-family"); await tap('[aria-label="Lessons"]'); await shot("p2-lessons"); await tap('[aria-label="Diary"]'); await shot("p3-diary");
+      await tap('[data-tour="agenda-book"]', 700); await shot("p4-request-for-child");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap('[aria-label="Chat"]'); await shot("p5-chat-list");
+      await page.locator('[data-tour="chat-row"]').first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("p6-thread-for-child");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("junior");
       await shot("j1-home"); await tap('[aria-label="Family"]'); await shot("j2-family");

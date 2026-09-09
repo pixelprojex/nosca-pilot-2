@@ -96,7 +96,7 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("coach", { carryOn: false });
       const cu = await leak("coach catch-up"); await shot("03-coach-catchup");
       check("(b) the request landed under the coach's catch-up on opening", (await page.locator('[data-tour="catchup-list"]').count()) === 1 && cu.includes("Eoin Walsh asked to join"), cu.slice(0, 200));
-      await click(page, "Carry on", 900);
+      await click(page, "Dismiss", 900);
       const t0 = await leak("coach today"); await shot("04-coach-today");
       const strip = page.locator('[data-tour="today-requests"]');
       check("(b) Today says who asked to join", (await strip.count()) === 1 && M.norm(await strip.innerText()).includes("Eoin Walsh asked to join"), t0.slice(0, 200));
@@ -134,7 +134,7 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("eoin", { carryOn: false });
       const t0 = await leak("eoin catch-up"); await shot("11-eoin-catchup");
       check("(c) the accepted player is told on opening: '<coach> accepted you'", t0.includes("Niamh Byrne accepted you"), t0.slice(0, 200));
-      await click(page, "Carry on", 900);
+      await click(page, "Dismiss", 900);
       const t1 = await leak("eoin home"); await shot("12-eoin-home");
       check("(c) …and opens on Home with the coach named, not the coachless screen", !t1.includes("Add your coach") && !t1.includes("Request sent") && t1.includes("Niamh Byrne"), t1.slice(0, 200));
       await ctx.close();
@@ -143,7 +143,7 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("aoife", { carryOn: false });
       const c0 = await leak("aoife catch-up"); await shot("13-aoife-catchup");
       check("(c) the declined player is told on opening: '<coach> couldn't take you on'", c0.includes("Niamh Byrne couldn't take you on"), c0.slice(0, 200));
-      await click(page, "Carry on", 900);
+      await click(page, "Dismiss", 900);
       const t0 = await leak("aoife declined"); await shot("14-aoife-declined");
       check("(c) …and opens on Add your coach with the code boxes ready", t0.includes("Add your coach") && (await M.codeBoxes(page).count()) >= 6, t0.slice(0, 200));
       /* the home screen's own line about the decline reads the coach's row, which the
@@ -232,7 +232,9 @@ const leaks = [];
       check("(f) the diary opens as Book for <first name>", t1.startsWith("Book for Saoirse") || t1.includes("Book for Saoirse"), t1.slice(0, 200));
       check("(f) the open slots are the child's coach's hours", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && rpc("coach_availability").some((x) => x.args && x.args.p_player === IDS.junior), t1.slice(0, 200));
       await tap(page, '[data-tour="agenda-book"]');
-      await click(page, "Request it", 1800);
+      const sheetText = await text();
+      check("(f) the request sheet names the child, not the parent", sheetText.includes("A lesson for Saoirse") && sheetText.includes("Request for Saoirse"), sheetText.slice(-200));
+      await click(page, "Request for Saoirse", 1800);
       const bk = db.posts.filter((x) => x.table === "bookings").pop(); const brow = bk && bk.rows[0];
       /* the row must be the child's, to the child's coach — the Confirm sheet reached from an open
          slot must honour "Book for", not book the parent themselves */
@@ -246,7 +248,8 @@ const leaks = [];
       await page.locator('[data-tour="family-kid"]').click(); await page.waitForTimeout(900);
       await page.getByRole("button", { name: "Message coach", exact: true }).click(); await page.waitForTimeout(900);
       const t3 = await leak("parent thread"); await shot("24-parent-thread");
-      check("(f) Message coach opens the child's thread with her coach", t3.includes("Saoirse Kelly") && (await page.locator('input[placeholder="Message"]').count()) === 1, t3.slice(0, 200));
+      /* the thread is the coach's, held for the child: headed by the coach and marked "For Saoirse" */
+      check("(f) Message coach opens the child's thread with her coach", t3.includes("Niamh Byrne") && t3.includes("For Saoirse") && (await page.locator('input[placeholder="Message"]').count()) === 1, t3.slice(0, 200));
       await page.fill('input[placeholder="Message"]', "Can Saoirse move to Thursday?");
       await tap(page, '[aria-label="Send"]', 1500);
       const msg = db.posts.filter((x) => x.table === "messages").pop(); const mrow = msg && msg.rows[0];

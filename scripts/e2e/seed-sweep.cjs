@@ -81,7 +81,7 @@ const TARGETS = {
       const tap = async (i) => { const ok = await page.evaluate((i) => { const els = Array.from(document.querySelectorAll('button, [role="button"]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < innerHeight && !b.disabled; }); const el = els[i]; if (!el) return false; el.click(); return true; }, i); await page.waitForTimeout(650); return ok; };
       const first = await clickable(); let budget = 90;
       for (const a of first) { if (budget <= 0) break; if (/sign out|delete|log out|leave/i.test(a.label)) continue; if (!(await tap(a.i))) continue; budget--; const fresh = await record(a.label || `#${a.i}`);
-        if (fresh) { const second = await clickable(); for (const b of second.slice(0, 14)) { if (budget <= 0) break; if (/sign out|delete|log out|leave|clear all|carry on/i.test(b.label)) continue; if (!(await tap(b.i))) continue; budget--; await record(`${a.label} → ${b.label}`); await page.goBack().catch(() => {}); const back = page.locator('[aria-label="Back"]'); if (await back.count()) await back.first().click().catch(() => {}); await page.waitForTimeout(350); } }
+        if (fresh) { const second = await clickable(); for (const b of second.slice(0, 14)) { if (budget <= 0) break; if (/sign out|delete|log out|leave|clear all|carry on|dismiss/i.test(b.label)) continue; if (!(await tap(b.i))) continue; budget--; await record(`${a.label} → ${b.label}`); await page.goBack().catch(() => {}); const back = page.locator('[aria-label="Back"]'); if (await back.count()) await back.first().click().catch(() => {}); await page.waitForTimeout(350); } }
         await home(); }
       /* then the newer screens, on purpose */
       const reached = {};
