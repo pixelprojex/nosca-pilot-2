@@ -444,6 +444,11 @@ export function useNoscaData(profile) {
           id: msg.id,
           body: msg.body,
           mine: msg.sender_id === profile.id,
+          /* who wrote it: the coach, the player, or an adult in the
+             player's family writing on their behalf. A parent's message
+             must never read as the child's, or as the coach's. */
+          senderId: msg.sender_id,
+          fromCoach: msg.sender_id === msg.coach_id,
           at: new Date(msg.created_at).toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" }),
           /* the day it was sent, so a thread can put a divider between
              one day and the next rather than saying "Today" over
@@ -454,6 +459,7 @@ export function useNoscaData(profile) {
       });
       setThreads(Object.entries(byPlayer).map(([pid, msgs]) => ({
         playerId: pid,
+        coachId: (mRes.data || []).find((m) => m.player_id === pid)?.coach_id || null,
         who: nameOf[pid] || "—",
         messages: msgs,
         unread: msgs.filter((x) => x.unread).length,

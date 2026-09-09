@@ -135,10 +135,12 @@ seeded data and no account.
   only reached from sign-up. It used to key off a localStorage flag, so
   signing in on a new phone replayed the whole thing. Settings →
   Walkthrough is the way back to it.
-- **Set yourself up.** A coach is offered `CoachSetup` once — hours,
-  drills, tips — remembered as `preferences.setup_done`, and reachable
-  again from Settings. Its live mode leaves out the stats step, because
-  nothing stores which stats a coach picked.
+- **Set yourself up.** A coach is offered `CoachSetup` once — three
+  screens, hours · drills · tips, chips not cards, a body that scrolls
+  — remembered as `preferences.setup_done`, and reachable again from
+  Settings. Its live mode leaves out the stats step, because nothing
+  stores which stats a coach picked. It does not use `SignupShell`,
+  whose body deliberately does not scroll.
 - **One drill library.** A live coach's drills are `custom_drills` in
   their preferences — what they picked in setup plus what they wrote —
   held in `library[sport]`. The wizard's chips, the Set-drills sheet and
@@ -151,6 +153,29 @@ seeded data and no account.
   `preferences.extra_sports`, and `activeSport` is which of them they
   are working in; `coachSport` follows it, so the drill library, the
   tips and the groups all move together.
+- **A parent's message is the parent's.** In a junior's thread three
+  people can write: the coach, and any adult in the family on the
+  child's behalf. Every message row carries `senderId` and `fromCoach`;
+  a line that is neither mine nor the coach's is labelled with the
+  adult's first name and "parent" (or just "Parent" where the coach
+  cannot read the name). A parent's Chat lists their own conversation
+  and the children's apart, the children's under the coach's name and
+  marked "For <child>". Never let a parent's line read as the child's.
+- **Who a booking is for is chosen before the slot.** The diary carries
+  a "For" strip for any adult with a bookable child — themselves (if
+  they have a coach) and each child — and the hours shown are that
+  person's coach's. A parent with no coach of their own opens on the
+  first bookable child. The request sheet and its button name the child.
+- **Haptics happen inside the gesture.** iOS honours the switch trick
+  only synchronously within the user's tap; a `setTimeout`, even of 0,
+  is outside it. `buzz()` fires its first beat at once. Call `haptic*()`
+  before any `await`, and never from an effect expecting it to be felt.
+- **Settings is a list, not a page.** `Settings` builds `groups` of rows
+  ({ label, sub, icon, onTap, right, tour, keys }) and renders them
+  through one loop, so the search field filters everything and every
+  row is drawn one way. Add a setting by adding a row; keep its `tour`
+  id if the walkthrough rings it. No text-size control: the type is set
+  once for everyone.
 - **A coach may also be somebody's player.** `request_coach()` allows
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
