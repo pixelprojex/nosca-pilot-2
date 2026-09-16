@@ -1465,13 +1465,13 @@ const LEGAL = {
     ["Accounts", "You must be 16 or older to hold an account, or have a parent or guardian create one on your behalf. A parent account may add linked profiles for their children. Keep your login details private."],
     ["Coach and player relationship", `Coaching is arranged directly between coaches and players. ${BRAND} provides the software; it does not employ coaches, supervise lessons, or guarantee outcomes.`],
     ["Content", "You keep ownership of the video and audio you upload. You grant us the licence needed to store it, process it, and show it to the people you share it with."],
-    ["Subscription", "Your Nosca subscription is billed through the App Store, and refunds follow Apple's policy. Nosca does not process lesson fees — what you charge and how you collect it stays between you and your players."],
+    ["Money", `${BRAND} does not process lesson fees — what a coach charges and how they collect it stays between them and their players.`],
     ["Ending your account", "You can close your account at any time from Settings. We may suspend accounts that breach these terms or put other people at risk."],
     ["Governing law", "These terms are governed by the laws of Ireland, and the Irish courts have jurisdiction."],
   ]},
   privacy: { title: "Privacy Policy", updated: "Last updated 1 July 2026", body: [
     ["Who we are", `${BRAND} is an Irish company and the data controller for the information described here. Reach our data protection contact at privacy@nosca.app.`],
-    ["What we collect", "Your name, email, mobile and date of birth; lessons, video, audio, drills, notes and messages; basic device and usage information; and payment records held by our processor."],
+    ["What we collect", "Your name, email, mobile and date of birth; lessons, video, audio, drills, notes and messages; and basic device and usage information."],
     ["Health and injury information", "Coaching notes often touch on injuries, physical limitations, recovery and fitness. Under GDPR this is special category data and carries a higher bar than ordinary personal data. We ask for your explicit consent before a coach can record it against your profile, we never use it for anything but delivering your coaching, and you can withdraw that consent or delete the notes at any time."],
     ["Coaches' obligations", "A coach recording health information about a player is a controller of that data in their own right. Our terms require coaches to collect only what coaching genuinely needs, keep it confidential, and delete it when a player leaves. We provide the tools; the coach remains responsible for what they write."],
     ["Children", `Accounts are for people aged ${CONSENT_AGE} and over, which is Ireland's digital age of consent. A younger player takes part through a profile managed by their parent or guardian, who can see that profile's lessons, notes and coach messages. Coaches are told when a profile is parent-managed.`],
@@ -3524,23 +3524,23 @@ const TOUR = {
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
     { area: "Log a lesson", title: "The plus", body: "Logging, attendance, live capture, drills — all start here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
     { area: "Log a lesson", title: "Who and when", body: "A player or a group, and the day it happened.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
-    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → What happened", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 1 } },
-    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → What's next", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
-    { area: "Log a lesson", title: "Publish", body: "The lesson, clips, drills and takeaway arrive together.", path: "Log a lesson → Publish", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
+    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → How did it go", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
+    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → Drills to set", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
+    { area: "Log a lesson", title: "Publish", body: "The lesson, clips, drills and takeaway arrive together.", path: "Log a lesson → One thing to remember", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 4 } },
     { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
     { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
     { area: "Diary", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "Diary → Your hours", target: "cal-hours", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Recurring lessons", body: "Standing weekly slots, booked out for the whole run.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Book in the diary", body: "Tap a free slot to book someone; tap a booking to log or cancel it.", path: "Diary → free slot", target: "agenda-book", state: { stack: ["calendar"] } },
-    { area: "Roster", title: "Roster", body: "Your code and QR to invite, then everyone you coach.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Roster", body: "Everyone you coach. The plus shares your code.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
     { area: "Roster", title: "A player's file", body: "Their lessons, newest first, the moment you open them. Message or set drills below.", path: "Roster → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
     { area: "Roster", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
     { area: "Chat", title: "Chat", body: "A thread with every player. A junior's parent reads theirs.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
     { area: "Chat", title: "Start a conversation", body: "The plus writes to one player, or to everyone at once.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
     { area: "Alerts", title: "Alerts", body: "Requests, bookings, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
-    { area: "You", title: "Your profile", body: "Photo, details, club, password, family — all in one place.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Your profile", body: "Photo, details, club and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["today", "you"] } },
     { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Roster.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["today", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["today", "you"] } },
   ],
   player: [
     { area: "Start", title: "Your coach", body: "Enter their code to ask. They accept from their app, and you're told.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
@@ -3555,8 +3555,8 @@ const TOUR = {
     { area: "Family", title: "Family", body: "Optional. Start or join one so a parent can follow a young player. It becomes its own tab.", path: "You → Family", target: "settings-dashboard", state: { stack: ["home", "you"] } },
     { area: "Family", title: "One code", body: "Create a code and share it, or join with the one you were given.", path: "Family → Set up", target: "family-create", state: { stack: ["home", "familyCode"] } },
     { area: "Alerts", title: "Alerts", body: "New lessons, confirmations, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["home"] } },
-    { area: "You", title: "Your profile", body: "Photo, details, password, family — all in one place.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["home", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { area: "You", title: "Your profile", body: "Photo, details and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["home", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["home", "you"] } },
   ],
   parent: [
     { area: "Family", title: "Your family", body: "One line per young player. Tap to open them.", path: "Tab bar → Family", target: "family-kid", state: { stack: ["family"] } },
@@ -3568,8 +3568,8 @@ const TOUR = {
     { area: "Diary", title: "Diary", body: "Confirmed lessons for everyone. Requests come from a child's card.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
     { area: "Chat", title: "Chat", body: "You write to your children's coaches; they read what a coach sends them.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
     { area: "Alerts", title: "Alerts", body: "A lesson logged, a booking confirmed, a message — for each child.", path: "Header → bell", target: "alerts", state: { stack: ["family"] } },
-    { area: "You", title: "Your profile", body: "Photo, details, password, family — all in one place.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["family", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["family", "you"] } },
+    { area: "You", title: "Your profile", body: "Photo, details and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["family", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["family", "you"] } },
   ],
   juvenile: [
     { area: "Start", title: "Your coach", body: "Enter the code your coach gave. They accept you from their app.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
@@ -3579,7 +3579,7 @@ const TOUR = {
     { area: "Drills", title: "Drills", body: "Tick them off; your coach sees it.", path: "Tab bar → Drills", target: "drill-row", state: { stack: ["practice"] } },
     { area: "Diary", title: "Diary", body: "Your lessons. A parent books them for you.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
     { area: "Family", title: "Family", body: "Who's in your family. They book and message your coach for you.", path: "You → Family", target: "settings-dashboard", state: { stack: ["home", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → How Nosca works", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["home", "you"] } },
   ],
 };
 
@@ -3926,7 +3926,7 @@ function atRisk(roster, series, live, bookedIds) {
   }).filter(Boolean).sort((a, b) => b.weight - a.weight);
 }
 
-function AtRisk({ list, onMessage, onBook, pop }) {
+function AtRisk({ list, onMessage, pop }) {
   const t = useT();
   return (
     <SwipeBack onBack={pop}>
@@ -3941,31 +3941,24 @@ function AtRisk({ list, onMessage, onBook, pop }) {
               </span>
               <p style={{ ...TYPE.title, color: t.ink }}>{tr("Everyone's booked in")}</p>
             </div>
-          ) : list.map((x, i) => (
-            <Tile key={x.name} accent={x.weight >= 3 ? CAUTION : null} className="px-5 py-4 mb-2.5" delay={i * 65}>
-              <div className="flex items-center gap-3.5">
-                <Avatar name={x.name} size={42} />
-                <span className="flex-1 min-w-0">
-                  <span className="block truncate" style={{ ...TYPE.subhead, color: t.ink }}>{x.name}</span>
-                  <span className="block mt-0.5" style={{ ...TYPE.caption, color: x.weight >= 3 ? CAUTION : t.faint }}>{tr(x.why)}</span>
-                </span>
-                {x.gap != null && (
-                  <span className="text-right shrink-0">
-                    <span className="block" style={{ ...TYPE.figure, fontSize: 19, color: t.ink }}>{x.gap}</span>
-                    <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8, color: t.faint }}>{tr("days")}</span>
+          ) : (
+            /* rows, one action: the number says it, the sentence is spare */
+            <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+              {list.map((x) => (
+                <div key={x.id || x.name} className="flex items-center gap-3.5" style={{ minHeight: 66, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+                  <Avatar name={x.name} size={40} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{x.name}</span>
+                    <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: x.weight >= 3 ? CAUTION : t.faint }}>
+                      {x.gap != null ? `${x.gap} ${tr("days")}` : tr(x.why)}
+                    </span>
                   </span>
-                )}
-              </div>
-              <div className="flex gap-2.5 mt-4">
-                <button onClick={() => { haptic(8); onBook(x.name); }} className="flex-1 active:opacity-60"
-                        style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`,
-                                 fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{tr("Offer a time")}</button>
-                <button onClick={() => { hapticCommit(); onMessage(x.name); }} className="flex-1 active:opacity-75"
-                        style={{ minHeight: 44, borderRadius: R.control, background: t.accent,
-                                 fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.onAccent }}>{tr("Message")}</button>
-              </div>
-            </Tile>
-          ))}
+                  <button onClick={() => { hapticCommit(); onMessage(x.id || x.name); }} className="shrink-0 px-3 active:opacity-60"
+                          style={{ minHeight: 40, ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Message")}</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Screen>
     </SwipeBack>
@@ -5491,6 +5484,8 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const [leaveErr, setLeaveErr] = useState("");
   const [leaving, setLeaving] = useState(false);
   const first = (coachName || "").split(" ")[0] || tr("your coach");
 
@@ -5560,12 +5555,13 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
                   <p className="mb-3" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>
                     {tr("Your lessons stay with them. You can join another coach after.")}
                   </p>
+                  {leaveErr && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{leaveErr}</p>}
                   <div className="flex gap-2">
                     <button onClick={() => { haptic(6); setLeaving(false); }} className="flex-1 active:opacity-60"
                             style={{ minHeight: 46, borderRadius: R.control, border: `1px solid ${t.hair}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
-                    <button onClick={async () => { hapticWarn(); setBusy(true); const r = await onLeaveCoach(); setBusy(false); if (r && r.error) { setErr(r.error.message); setLeaving(false); return; } }}
+                    <button onClick={async () => { hapticWarn(); setLeaveBusy(true); const r = await onLeaveCoach(); setLeaveBusy(false); if (r && r.error) { setLeaveErr(r.error.message); return; } }}
                             className="flex-1 active:opacity-80"
-                            style={{ minHeight: 46, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : `${tr("Leave")} ${first}`}</button>
+                            style={{ minHeight: 46, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{leaveBusy ? "…" : `${tr("Leave")} ${first}`}</button>
                   </div>
                 </div>
               ) : (
@@ -5870,9 +5866,10 @@ function FamilyCodeEntry({ lookup, onJoin, busy, tour }) {
   }, [clean]);
   const join = async () => {
     setErr("");
+    hapticCommit();
     const res = await onJoin(clean);
     if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
-    hapticSuccess(); soft(); setCode("");
+    soft(); setCode("");
   };
   return (
     <div data-tour={tour}>
@@ -5899,7 +5896,7 @@ function FamilyCodeEntry({ lookup, onJoin, busy, tour }) {
    to hand out, who is in it, and lets an adult name it or leave. The
    dashboard (FamilyHome) is where a family is *used*; this is where it
    is set up. */
-function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, lookup, say, pop, onOpenHome, live }) {
+function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, lookup, say, pop }) {
   const t = useT();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -5911,11 +5908,12 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
   const url = code ? joinLink("family", code) : null;
 
   const create = async () => {
+    hapticCommit();
     setBusy(true); setErr("");
     const res = await onCreate(name);
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
-    hapticSuccess(); chime();
+    chime();
   };
   const join = async (c) => { setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
   const share = async () => {
@@ -5933,16 +5931,17 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
       <SwipeBack onBack={pop}>
         <Screen title={tr("Family")} onBack={pop} meta={tr("One code links a household")}>
           <div className="px-6">
-            <p className="mb-6" style={{ ...TYPE.body, lineHeight: 1.55, color: t.sub }}>
-              {tr("Adults in a family follow a young player's lessons, book for them and talk to their coach.")}
-            </p>
-            <Eyebrow>{tr("Start a family")}</Eyebrow>
-            <Card tour="family-create" className="p-5 mb-8">
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("A name, if you like — “The Kellys”")} maxLength={40}
-                     className="w-full outline-none mb-4 px-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
-              {err && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
-              <Button tone="ink" disabled={busy} onClick={create}>{busy ? "…" : tr("Create a family code")}</Button>
-            </Card>
+            {/* a junior joins the family an adult made; they are never
+                handed a code nobody would show them */}
+            {!isJunior && (<>
+              <Eyebrow>{tr("Start a family")}</Eyebrow>
+              <Card tour="family-create" className="p-5 mb-8">
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Name it, if you like")} maxLength={40}
+                       className="w-full outline-none mb-4 px-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
+                {err && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
+                <Button tone="ink" disabled={busy} onClick={create}>{busy ? "…" : tr("Create a family code")}</Button>
+              </Card>
+            </>)}
             <Eyebrow>{tr("Join a family")}</Eyebrow>
             <Card className="p-5 mb-8"><FamilyCodeEntry tour="family-join" lookup={lookup} onJoin={join} busy={busy} /></Card>
             <div style={{ height: 26 }} />
@@ -5961,14 +5960,12 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={family.displayName} onBack={pop} meta={`${family.members.length} ${family.members.length === 1 ? tr("person") : tr("people")}`}
-              right={onOpenHome ? <TextBtn onClick={onOpenHome}>{tr("Dashboard")}</TextBtn> : null}>
+      <Screen title={family.displayName} onBack={pop} meta={`${family.members.length} ${family.members.length === 1 ? tr("person") : tr("people")}`}>
         <div className="px-6">
           {!isJunior && (<>
             <Eyebrow>{tr("Family code")}</Eyebrow>
             <Card className="p-6 mb-8 text-center" tour="family-code">
               <span className="block" style={{ fontFamily: display, fontSize: 34, letterSpacing: "0.28em", paddingLeft: "0.28em", color: t.ink }}>{code}</span>
-              <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Anyone in the house joins with this code.")}</p>
               <div className="mt-5 flex items-center justify-center gap-2.5">
                 <button onClick={copy} className="inline-flex items-center gap-2 px-5 active:opacity-70"
                         style={{ minHeight: 44, borderRadius: R.pill, border: `1px solid ${t.hair}`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
@@ -6009,11 +6006,6 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
               ) : <Row label={tr("Leave the family")} danger last icon={<LogOut size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => setLeaving(true)} />}
             </Card>
           )}
-          {isJunior && (
-            <p className="px-2 pb-4" style={{ ...TYPE.caption, lineHeight: 1.6, color: t.faint }}>
-              {tr("Ask an adult in your family to change anything here.")}
-            </p>
-          )}
           <div style={{ height: 26 }} />
         </div>
       </Screen>
@@ -6028,7 +6020,10 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
    booking — and can book for them, open their lessons and write to
    their coach from here. A junior sees who is in the family and what
    is coming up, and nothing they cannot do. */
-function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = [], bookings = [], hoursByPlayer = {}, onOpenKid, onSettings, onSetUp, right, todayIso }) {
+/* bookings in the order they happen: "1:00 pm" sorts after "9:00 am"
+   only if the clock is read, not the string */
+const byWhen = (x, y) => (x.date === y.date ? (parseTime(x.time) ?? 0) - (parseTime(y.time) ?? 0) : x.date < y.date ? -1 : 1);
+function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = [], bookings = [], onOpenKid, onSettings, onSetUp, right, todayIso }) {
   const t = useT();
   const ready = useLoad();
   const fmtDay = (iso) => fmtIsoDay(iso);
@@ -6047,11 +6042,13 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
   }
 
   const live = bookings.filter((b) => b.date >= todayIso && b.status !== "cancelled" && b.status !== "weather")
-    .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time));
-  const nameOf = (id) => (family.members.find((m) => m.id === id) || {}).name || "";
+    .sort(byWhen);
+  const nameOf = (id) => { const m = family.members.find((x) => x.id === id); return m ? (m.me ? tr("You") : m.name) : ""; };
   const first = (n) => (n || "").split(" ")[0];
-  const next = live[0] || null;
-  const rest = live.slice(1, 6);
+  /* a junior's own next lesson is already on their Home; here they see
+     the household's list and nothing to do */
+  const next = isJunior ? null : live[0] || null;
+  const rest = isJunior ? live.slice(0, 6) : live.slice(1, 6);
 
   /* one line per young player: who they are and the one thing that matters */
   const KidRow = ({ k, i, last }) => {
@@ -6137,9 +6134,6 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
               </span>
             ))}
           </div>
-          {isJunior && (
-            <p className="px-1 pb-4" style={{ ...TYPE.caption, lineHeight: 1.6, color: t.faint }}>{tr("The adults here can see your lessons, book for you and talk to your coach.")}</p>
-          )}
           <div style={{ height: 26 }} />
         </div>
       )}
@@ -6158,8 +6152,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
   const mineDrills = drills.filter((d) => d.playerId === kid.id);
   const todo = mineDrills.filter((d) => !d.done).length;
   const next = bookings.filter((b) => b.playerId === kid.id && b.date >= todayIso && b.status !== "cancelled" && b.status !== "weather")
-    .sort((x, y) => (x.date + x.time).localeCompare(y.date + y.time))[0];
-  const last = mine[0];
+    .sort(byWhen)[0];
   const shown = mine.slice(0, 5);
 
   return (
@@ -6178,7 +6171,6 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
 
           <div className="mb-7" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
             {[[tr("Next"), next ? `${fmtDay(next.date)} · ${next.time}${next.status === "requested" ? ` · ${tr("asked")}` : ""}` : tr("Nothing booked"), !next],
-              [tr("Last lesson"), last ? `${last.focus} · ${last.d} ${last.m}` : tr("None yet"), !last],
               /* "All done" is praise; nothing set is not the same thing */
               [tr("To practise"), mineDrills.length === 0 ? tr("None set") : todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), mineDrills.length === 0]].map(([lbl, val, quiet]) => (
               <div key={lbl} className="flex items-baseline gap-3 py-3" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
@@ -6215,12 +6207,10 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
   );
 }
 
-/* PREFERENCES
-
-   Durable display, notification and privacy choices live here; the
-   things you change constantly stay inline on the screen they affect.
-   That split is the whole point — a settings screen people visit once
-   and then forget, rather than a dumping ground. */
+/* PREFERENCES — the durable choices, saved to the profile's row. The
+   ones a person changes are rows on Settings (a coach's register rule
+   and review prompt) or a control on the screen they affect (the log
+   view's pill on Lessons). */
 const PREF_DEFAULTS = {
   logView:    "feed",     // feed · cards · list
   calView:    "list",     // list · grid
@@ -6232,97 +6222,6 @@ const PREF_DEFAULTS = {
   attendance: "all",      // all · private · group · off
   askForReview: true,     // prompt once, on a player's first lesson only
 };
-
-function Preferences({ prefs, setPrefs, role, cfg, pop, say }) {
-  const t = useT();
-  const set = (k, v) => { haptic(8); soft(); setPrefs((p) => ({ ...p, [k]: v })); };
-
-  const Choice = ({ label, sub, k, options }) => (
-    <div className="py-4" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-      <span className="block" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-      {sub && <span className="block mt-0.5 mb-3" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
-      <div className="flex gap-1.5 mt-2.5 p-1" style={{ borderRadius: R.pill, background: t.wash }}>
-        {options.map((o) => {
-          const on = prefs[k] === o.id;
-          return (
-            <button key={o.id} onClick={() => set(k, o.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 active:opacity-70"
-                    style={{ minHeight: 38, borderRadius: R.pill,
-                             background: on ? t.surface : "transparent",
-                             boxShadow: on ? ELEV.rest : "none",
-                             transition: "background 200ms, box-shadow 200ms" }}>
-              {o.Ico && <o.Ico size={13} color={on ? t.accent : t.faint} strokeWidth={1.9} />}
-              <span style={{ ...TYPE.caption, fontWeight: 500, color: on ? t.ink : t.faint }}>{tr(o.label)}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  const Switch = ({ label, sub, k }) => (
-    <button onClick={() => set(k, !prefs[k])}
-            className="w-full flex items-center gap-3 py-4 text-left active:opacity-60"
-            style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-      <span className="flex-1 min-w-0">
-        <span className="block" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-        {sub && <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
-      </span>
-      <span className="rounded-full shrink-0 relative"
-            style={{ width: 46, height: 28, background: prefs[k] ? STEADY : HAIR(t.ink, 0.22),
-                     transition: "background 240ms cubic-bezier(.22,1,.36,1)" }}>
-        <span className="absolute rounded-full"
-              style={{ width: 22, height: 22, top: 3, left: prefs[k] ? 21 : 3, background: "#fff",
-                       boxShadow: ELEV.rest,
-                       transition: "left 260ms cubic-bezier(.34,1.56,.64,1)" }} />
-      </span>
-    </button>
-  );
-
-  const Head = ({ children }) => (
-    <div className="mt-7 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</div>
-  );
-
-  return (
-    <SwipeBack onBack={pop}>
-      <Screen title={tr("How it works")} onBack={pop} meta={tr("Yours alone")}>
-        <div className="px-6 pb-2">
-
-          <Head>{tr("Lessons")}</Head>
-          <Choice k="logView" label={tr("Lesson log")}
-                  sub={tr("How your history is shown")}
-                  options={[
-                    { id: "feed",  label: "Immersive", Ico: Play },
-                    { id: "cards", label: "Cards",     Ico: Library },
-                    { id: "list",  label: "List",      Ico: ListChecks },
-                  ]} />
-
-          {/* The Diary's own List/Calendar switch is on the Diary, where
-              people look. When to tell you lives on Notifications, beside
-              the push switch it qualifies. Neither belongs here twice. */}
-
-          {role === "coach" && (<>
-            <Head>{tr("Registers")}</Head>
-            <Choice k="attendance" label={tr("Take attendance")}
-                    sub={tr("Plenty of coaches never do")}
-                    options={[
-                      { id: "all",     label: "Every lesson" },
-                      { id: "private", label: "Private" },
-                      { id: "group",   label: "Group" },
-                      { id: "off",     label: "Never" },
-                    ]} />
-            <Switch k="askForReview" label={tr("Ask for a review")}
-                    sub={tr("Once, after a player's first lesson")} />
-          </>)}
-
-          <p className="mt-7 pb-4" style={{ ...TYPE.caption, lineHeight: 1.6, color: t.faint }}>
-            {tr("These are yours. Nobody you coach — or who coaches you — can change them.")}
-          </p>
-        </div>
-      </Screen>
-    </SwipeBack>
-  );
-}
 
 /* ==================================================================
    TILES
@@ -8657,11 +8556,11 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       </div>
       <Button disabled={code.length !== 6 || joining} onClick={async () => {
         if (!onJoinCode) return;
-        setJoining(true);
+        hapticCommit(); setJoining(true);
         const res = await onJoinCode(code);
         setJoining(false);
         if (res && res.error) { hapticWarn(); setJoinErr(res.error.message || tr("Couldn't join that coach.")); return; }
-        hapticSuccess(); chime();
+        chime();
         say && say(`${tr("Asked")} ${(res && res.coach && res.coach.name) || tr("the coach")} — ${tr("they accept from their app")}`);
         close();
       }}>{joining ? tr("Asking…") : tr("Ask to join")}</Button>
@@ -10342,107 +10241,69 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   );
 }
 
-function CoachRoster({ groups, invited, roster, requests, push, pop, sheet, say, right, coachName, noun, nouns, code, lessonCount = 0 }) {
+function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCount = 0 }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
   const [tab, setTab] = useState(nounTitle); const [q, setQ] = useState("");
-  const list = (roster || ROSTER).filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
+  const all = roster || ROSTER;
+  const list = all.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
+  /* a search only once the list is long enough to need one */
+  const searchable = all.length > 8;
+  const row = (key, tour, onTap, avatar, label, sub) => (
+    <button key={key} data-tour={tour} onClick={onTap} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+            style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+      {avatar}
+      <span className="flex-1 min-w-0">
+        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+        {sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
+      </span>
+      <ChevronRight size={15} color={t.faint} />
+    </button>
+  );
   return (
-    <>
-      <Screen title={L.roster} meta={`${(roster || ROSTER).length} ${nouns} · ${groups.length} groups`} right={right}>
-        {/* One way in, not three. The code is the invite — sharing it
-            is the same act as inviting someone, so it is one control. */}
-        <div className="px-6 mb-5">
-          <button onClick={() => { hapticCommit(); soft(); sheet("import"); }}
-                  onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                  onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  className="w-full flex items-center gap-4 px-5 text-left active:opacity-90"
-                  style={{ minHeight: 84, borderRadius: R.surface, background: t.accent, willChange: "transform",
-                           boxShadow: ELEV.raise, transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
-                           animation: "liftIn 460ms cubic-bezier(.22,1,.36,1) both" }}>
-            <span className="p-1.5 shrink-0" style={{ borderRadius: R.field, background: "rgba(255,255,255,0.1)" }}>
-              {code ? <QrImage url={joinLink("coach", code)} size={36} /> : <QrSvg size={36} />}
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block" style={{ ...TYPE.eyebrow, fontSize: 8, color: "rgba(255,255,255,0.5)" }}>{tr("Invite")} {nouns}</span>
-              <span className="block mt-1.5" style={{ fontFamily: display, fontSize: 22, letterSpacing: "0.12em", color: "#fff" }}>{code || "——————"}</span>
-            </span>
-            <Share2 size={18} color="rgba(255,255,255,0.7)" />
-          </button>
-        </div>
-
-        {/* who is asking to join is answered on Today and under the bell.
-            Roster is where you go once they have joined. */}
-
-        <div className="px-6 mb-4"><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
-        {tab === nounTitle && lessonCount > 0 && (
-          <div className="px-6 mb-4">
-            <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
-                    className="w-full flex items-center gap-3 px-5 text-left active:opacity-60"
-                    style={{ minHeight: 52, borderRadius: R.control, background: t.wash }}>
-              <Library size={16} color={t.sub} strokeWidth={1.7} />
-              <span className="flex-1" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Every lesson you've logged")}</span>
-              <span style={{ ...TYPE.caption, color: t.faint }}>{lessonCount}</span>
-              <ChevronRight size={15} color={t.faint} />
-            </button>
-          </div>
-        )}
+    <Screen title={L.roster} meta={`${all.length} ${nouns} · ${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}`} right={right}
+            /* the code is the invite: one control, and it opens the share sheet */
+            action={<button data-tour="roster-invite" onClick={() => { hapticCommit(); soft(); sheet("import"); }}
+                            className="rounded-full flex items-center justify-center active:opacity-70 disabled:opacity-40"
+                            style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Invite")} disabled={!code && !!roster}>
+                      <UserPlus size={18} color={t.onAccent} strokeWidth={2} />
+                    </button>}>
+      <div className="px-6 mb-4"><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
+      <div className="px-6 pb-2">
         {tab === nounTitle ? (<>
-          <div className="px-6 mb-4"><div className="flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
-            <Search size={16} color={t.faint} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${nouns || "players"}`} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
-            <MicBtn onText={(txt) => setQ(txt)} size={28} />
-          </div></div>
-          <div className="px-6 pb-2">
-            <div className="mb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>{list.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>No one matching “{q}”.</p></div>) : list.map((r, i) => (
-              <div key={r.id || r.name} className="flex items-center gap-3 px-4"
-                   style={{ minHeight: 66, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}`,
-                            animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
-                {/* one target, not three: two unlabelled icons on the row a
-                    coach scrolls fastest only ever caught mis-taps, and both
-                    live on the player's own file anyway */}
-                <button data-tour={i === 0 ? "roster-row" : undefined} onClick={() => { haptic(6); push("player:" + r.name); }} className="flex-1 flex items-center gap-3.5 text-left min-w-0 active:opacity-50">
-                  <Avatar name={r.name} size={38} />
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                      {`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`}
-                    </span>
-                  </span>
-                  <ChevronRight size={15} color={t.faint} />
-                </button>
-              </div>
-            ))}</div>
+          {searchable && (
+            <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
+              <Search size={15} color={t.faint} />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+              {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
+            </div>
+          )}
+          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+            {list.length === 0 ? (
+              <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("Nobody yet. The plus shares your code.")}</p>
+            ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
+                <Avatar name={r.name} size={40} />, r.name, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`))}
+            {lessonCount > 0 && row("archive", "roster-archive", () => { haptic(7); soft(); push("archive"); },
+                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><Library size={16} color={t.sub} strokeWidth={1.7} /></span>,
+                tr("All lessons"), `${lessonCount}`)}
           </div>
-          {invited.length > 0 && (<>
-            <Eyebrow>{tr("Invited, not joined yet")}</Eyebrow>
-            <div className="px-6 pb-2"><Card>
-              {invited.map((p, i) => (
-                <Row key={p.name} label={p.name} sub={tr("Sent a text with your invite link")} icon={<Avatar name={p.name} size={38} />}
-                     right={<TextBtn onClick={() => sheet("import")}>{tr("Resend")}</TextBtn>}
-                     last={i === invited.length - 1} />
-              ))}
-            </Card></div>
-          </>)}
         </>) : (
-          <div className="px-6 pb-2">
-            <Card className="mb-4">{groups.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No groups yet.")}</p></div>) : groups.map((g, i) => (
-              <Row key={g.id} label={g.name} sub={`${g.members.length} players · ${DAY_NAMES[g.day].slice(0,3)} ${g.time} · ${g.weeks} weeks`} chevron last={i === groups.length - 1}
-                   icon={<span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 38, height: 38, background: t.wash }}><Users size={16} color={GROUP} /></span>}
-                   onToggle={() => push("group:" + g.name)} />
-            ))}</Card>
-            <Card><Row tour="roster-newgroup" label={tr("Create a group")} last icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => sheet("group")} /></Card>
+          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+            {groups.map((g) => row(g.id, undefined, () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={40} group />, g.name,
+                `${g.members.length} ${nouns || "players"} · ${DAY_NAMES[g.day].slice(0, 3)} ${g.time}`))}
+            {row("new", "roster-newgroup", () => { hapticCommit(); sheet("group"); },
+                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><Plus size={17} color={t.sub} strokeWidth={2} /></span>,
+                tr("Create a group"), null)}
           </div>
         )}
-      </Screen>
-    </>
+      </div>
+    </Screen>
   );
 }
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons }) {
+function RosterPlayer({ name, tip, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -10450,7 +10311,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
      count in the header — never a seeded person's. */
   const r = live ? (player || live.find((x) => x.name === name) || { name, lessons: 0 })
                  : (ROSTER.find((x) => x.name === name) || ROSTER[0]);
-  const f = live ? { lessons: null, name, done: r.lessons || 0 } : fileFor(name, !seeded);
+  const f = live ? { lessons: null, name, done: r.lessons || 0, tip: tip || null } : fileFor(name, !seeded);
   const [more, setMore] = useState(false);
   /* their private lessons and the group sessions they were marked at */
   const real = live ? (lessons || []).filter((l) => (player ? (l.playerId === player.id || (l.attendeeIds || []).includes(player.id)) : l.who === name)) : null;
@@ -10505,7 +10366,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
               <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing logged for")} {name.split(" ")[0]} {tr("yet.")}</p>
             )}
             {shown.map((l, i) => (
-              <button key={l.id || i} onClick={() => { haptic(7); soft(); if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + name); }}
+              <button key={l.id || i} onClick={() => { haptic(7); soft(); if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + (r.id || name)); }}
                       className="w-full flex items-start gap-4 text-left active:opacity-50"
                       style={{ minHeight: 76, paddingTop: 14, paddingBottom: 14,
                                borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
@@ -10523,7 +10384,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
               </button>
             ))}
             {past.length > 0 && (
-              <button data-tour="player-all-lessons" onClick={() => { haptic(7); soft(); onAllLessons ? onAllLessons() : push("history:" + name); }}
+              <button data-tour="player-all-lessons" onClick={() => { haptic(7); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
                       className="w-full flex items-center justify-center gap-2 mt-3 active:opacity-70"
                       style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
                                ...TYPE.small, fontWeight: 600, color: t.ink }}>
@@ -10545,7 +10406,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
               )}
               {f.tip && (
                 <div className="flex items-baseline gap-3 py-2">
-                  <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint }}>{tr("Focus")}</span>
+                  <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint }}>{tr("Tip")}</span>
                   <span style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
                 </div>
               )}
@@ -10553,7 +10414,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
           )}
 
           <div className="flex gap-2.5 mb-6" data-tour="player-actions">
-            <button onClick={() => { haptic(8); push("thread:" + name); }} className="flex-1 active:opacity-60"
+            <button onClick={() => { haptic(8); push("thread:" + (r.id || name)); }} className="flex-1 active:opacity-60"
                     style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message")}</button>
             <button onClick={() => { hapticCommit(); assignDrills(r.id ? r : name, null); }} className="flex-1 active:opacity-75"
@@ -10572,7 +10433,7 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
           {more && (
             <div style={{ animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               {[[tr("Recurring lessons"), () => onRecurring(name)],
-                [tr("Progress"), () => push("history:" + name)],
+                [tr("Progress"), () => push("history:" + (r.id || name))],
                 ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]]),
                 [tr("What they're working on"), () => assignTip(r.id ? r : name, null)]].map(([lbl, act]) => (
                 <button key={lbl} onClick={act} className="w-full flex items-center text-left active:opacity-50"
@@ -10581,12 +10442,6 @@ function RosterPlayer({ name, note, setNote, sportTool, seriesFor, onRecurring, 
                   <ChevronRight size={14} color={t.faint} />
                 </button>
               ))}
-              {!live && (
-                <div className="mt-5">
-                  <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Your note")}</div>
-                  <VoiceArea value={note} onChange={setNote} rows={3} ph={tr("Only you see this")} />
-                </div>
-              )}
             </div>
           )}
           <div style={{ height: 26 }} />
@@ -10682,7 +10537,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
     && (!term || (l.who || "").toLowerCase().includes(term) || (l.focus || "").toLowerCase().includes(term)
         || (l.subs || []).some((x) => x.toLowerCase().includes(term))
         || (l.note || "").toLowerCase().includes(term))
-    && (focus === "All" || l.focus === focus)
+    && (focus === "All" || String(l.focus || "").split(" · ").includes(focus))
     && (kind === "All" || l.type === kind)
     && (year === "All" || yearOf(l) === year));
 
@@ -11319,16 +11174,8 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
   /* Only what was actually recorded. No fallback figures — an empty
      register reads as empty, not as a perfect record. */
   const att = attendance[name] || null;
-  const total = att ? att.showed + att.noShow + att.cancelled : 0;
-  const rate = total ? Math.round((att.showed / total) * 100) : null;
+  const total = att ? att.showed + att.noShow : 0;
   const list = lessons || hadLessons(cfg, live);
-
-  const Stat = ({ n, label, tone }) => (
-    <span className="flex-1 text-center">
-      <span className="block" style={{ ...TYPE.figure, fontSize: 26, color: tone || t.ink }}>{n}</span>
-      <span className="block mt-1" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{label}</span>
-    </span>
-  );
 
   return (
     <SwipeBack onBack={pop}>
@@ -11367,26 +11214,10 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
                 {tr("No register taken yet.")}
               </p>
             ) : (
-              <>
-                <Card className="p-6 mb-4">
-                  <div className="flex items-center">
-                    <Stat n={att.showed} label={tr("Attended")} tone={STEADY} />
-                    <Stat n={att.late || 0} label={tr("Late")} tone={att.late ? CAUTION : null} />
-                    <Stat n={att.noShow} label={tr("Missed")} tone={att.noShow ? DANGER : null} />
-                  </div>
-                  {rate != null && (
-                    <p className="mt-5 pt-4 text-center"
-                       style={{ ...TYPE.small, color: t.sub, borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-                      {rate}% {tr("of sessions attended")}
-                    </p>
-                  )}
-                </Card>
-                {att.cancelled > 0 && (
-                  <p style={{ ...TYPE.caption, color: t.faint }}>
-                    {att.cancelled} {tr("cancelled in advance — not counted against them.")}
-                  </p>
-                )}
-              </>
+              /* a register holds two marks, so the record is one line */
+              <p className="py-4" style={{ ...TYPE.body, color: t.ink, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}`, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                {att.showed} {tr("of")} {total} {tr("attended")}{att.noShow ? ` · ${att.noShow} ${tr("missed")}` : ""}
+              </p>
             )}
           </div>
         )}
@@ -11403,7 +11234,7 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
    a list of names is enough. */
 /* Sending a link beats collecting numbers. It goes wherever the coach
    already talks to people, and the person taps it on their own phone. */
-function ImportRoster({ existingNames, onSend, close, say, noun, nouns, code }) {
+function ImportRoster({ close, say, noun, nouns, code }) {
   const t = useT();
   const live = useLive();
   /* The invite is the join link with the real code. Each route hands
@@ -11438,7 +11269,6 @@ function ImportRoster({ existingNames, onSend, close, say, noun, nouns, code }) 
       const names = (picked || []).map((c) => (c.name && c.name[0]) || "").filter(Boolean);
       const tels = (picked || []).flatMap((c) => c.tel || []);
       if (!tels.length) { say(tr("No number on that contact.")); return; }
-      onSend && onSend(names);
       window.location.href = `sms:${tels.join(",")}?&body=${encodeURIComponent(`${text} ${link}`)}`;
     } catch (e) { /* they closed the picker */ }
   };
@@ -12773,20 +12603,24 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
     || (f.phone || "") !== (me.phone || "") || (f.club || "") !== (me.club || "") || (f.bio || "") !== (me.bio || ""));
   const save = async () => {
     if (busy) return;
+    hapticCommit();
     setBusy(true); setErr("");
-    const res = await onSave({ name: f.name, sport: f.sport, dateOfBirth: f.dob || null, phone: f.phone, bio: f.bio, ...(role === "coach" ? { club: f.club } : {}) });
+    /* a coach's sport is what their code was handed out under — it is
+       never written from here */
+    const res = await onSave({ name: f.name, ...(role === "coach" ? { club: f.club } : { sport: f.sport }), dateOfBirth: f.dob || null, phone: f.phone, bio: f.bio });
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't save that.")); return; }
-    hapticSuccess(); say(tr("Saved"));
+    say(tr("Saved"));
   };
   const pick = async (e) => {
     const file = e.target.files && e.target.files[0]; e.target.value = "";
     if (!file) return;
+    hapticCommit();
     setPicBusy(true);
     const res = await onUploadAvatar(file);
     setPicBusy(false);
     if (res && res.error) { hapticWarn(); say(res.error.message); return; }
-    hapticSuccess(); chime();
+    chime();
   };
   const field = (label, key, extra = {}) => (
     <div key={key} className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
@@ -12902,7 +12736,6 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
           <Card className="mb-6" tour="profile-account">
             {account && account.email && <Row label={tr("Email")} value={account.email} icon={<I C={Mail} />} />}
             <Row label={tr("Change password")} chevron icon={<I C={Lock} />} onToggle={onChangePassword} />
-            <Row label={tr("Sign out")} icon={<I C={LogOut} />} onToggle={onSignOut} />
             <Row tour="profile-delete" label={tr("Delete account")} sub={tr("Everything, permanently")} danger last icon={<I C={Trash2} danger />} onToggle={onDelete} />
           </Card>
           <div style={{ height: 26 }} />
@@ -12912,8 +12745,26 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, onDeleteAccount, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, weekHours = 0, seasonDone = 0, lifetime = 0, monthly = [], reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, pop, push, go, sheet, say, restart, avatar, requestCount = 0, familyName, hasCoach }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
+  /* a row of chips for a setting with a few named values — the same
+     shape as "Opens on" below, so the list stays one list */
+  const chips = (label, value, options, onPick) => (
+    <div className="px-5 py-4">
+      <div className="mb-3" style={{ fontFamily: ui, fontSize: 15, color: t.ink }}>{label}</div>
+      <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        {options.map((o) => {
+          const on = value === o.id;
+          return (
+            <button key={o.id} aria-pressed={on} onClick={() => { haptic(6); onPick(o.id); }} className="px-3.5 shrink-0 active:opacity-60"
+                    style={{ minHeight: 36, borderRadius: R.pill, background: on ? t.ink : "transparent",
+                             border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.18)}`, ...TYPE.caption, fontWeight: 600, color: on ? "#fff" : t.sub }}>{o.label}</button>
+          );
+        })}
+      </div>
+    </div>
+  );
+  const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
   const [q, setQ] = useState("");
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -12931,21 +12782,24 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       demo && { label: tr("Subscription"), sub: `${BRAND} ${plan?.name || "Coach"}`, icon: ShieldCheck, onTap: () => push("subscription") },
       !live && { label: tr("Weekly availability"), sub: tr("Days and times you coach"), icon: CalendarDays, tour: "settings-availability", onTap: () => push("availability") },
       !live && { label: tr("Roster & groups"), sub: `${cfg.nouns} · ${tr("and recurring groups")}`, icon: Users, tour: "settings-roster", onTap: () => push("roster") },
-      live && { label: tr("Set yourself up"), sub: tr("Hours, drills and tips"), icon: ListChecks, onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times"] },
+      live && { label: tr("Set yourself up"), icon: ListChecks, onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
         ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", icon: Library, onTap: () => push("myLessons") }
         : { label: tr("Take lessons yourself"), sub: tr("Join a coach with their code"), icon: UserPlus, onTap: () => push("takeLessons") }),
-      { label: tr("Drills"), sub: tr("Your reusable library"), icon: Library, tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
-      { label: tr("Lesson logs"), sub: tr("Save any lesson as a file"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf"] },
+      { label: tr("Drills"), icon: Library, tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
+      { label: tr("Lesson logs"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
       !live && { label: tr("Branding"), sub: tr("Logo, colour, club name"), icon: Palette, tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code & QR"), value: inviteCode || "——————", icon: QrCode, tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
+      prefs && { label: tr("Take attendance"), keys: ["register", "attendance", "roll"], custom: chips(tr("Take attendance"), prefs.attendance || "all",
+        [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v)) },
+      prefs && { label: tr("Ask for a review"), sub: tr("Once, after a player's first lesson"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
-      { label: tr("This month"), icon: TrendingUp, tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
+      (!live || hasDependants) && { label: tr("This month"), icon: TrendingUp, tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
       { label: tr("Family"), sub: live ? (familyName || tr("Start or join one")) : tr("Everyone you manage, in one place"), icon: Users, tour: "settings-dashboard",
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
       live ? { label: tr("Your coach"), sub: hasCoach ? (conn?.coach || "") : tr("Ask to join one with their code"), icon: UserPlus, tour: "settings-family", onTap: () => hasCoach ? push("coachProfile") : sheet("family"), keys: ["join", "code"] }
            : { label: tr("Coaches & profiles"), sub: tr("Add a young person or another coach"), icon: UserPlus, tour: "settings-family", onTap: () => sheet("family") },
-      { label: tr("Lesson logs"), sub: tr("Save any lesson as a file"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export"] },
+      { label: tr("Lesson logs"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "file", "save"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
     { title: L.appearance, tour: "settings-appearance", rows: [
@@ -12965,12 +12819,12 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           </div>
         </div>) },
       { label: L.sound, right: T(soundState, setSoundState, (v) => { setSoundOn(v); if (v) chime(); }), keys: ["tones", "audio", "mute"] },
-      { label: L.haptics, sub: tr("A tap you can feel"), right: T(hapticsOn, setHapticsOn, setHapticsEnabled), keys: ["vibrate", "vibration", "feedback"] },
-      { label: tr("Reduce motion"), sub: tr("Fewer animations"), right: T(reduceMotion, setReduceMotion), keys: ["animation"] },
+      { label: L.haptics, right: T(hapticsOn, setHapticsOn, setHapticsEnabled), keys: ["vibrate", "vibration", "feedback", "tap"] },
+      { label: tr("Reduce motion"), right: T(reduceMotion, setReduceMotion), keys: ["animation", "animations"] },
     ] },
     live ? { title: tr("Account"), rows: [
-      { label: tr("Notifications"), sub: tr("What your phone tells you"), icon: Bell, tour: "settings-notifications", onTap: () => push("notifications"), keys: ["push", "alerts", "quiet"] },
-      { label: tr("Data & permissions"), sub: tr("What is stored, and getting it back"), icon: ShieldCheck, tour: "settings-data", onTap: () => push("legal:data"), keys: ["privacy", "export", "gdpr"] },
+      { label: tr("Notifications"), icon: Bell, tour: "settings-notifications", onTap: () => push("notifications"), keys: ["push", "alerts", "quiet", "phone"] },
+      { label: tr("Data & permissions"), icon: ShieldCheck, tour: "settings-data", onTap: () => push("legal:data"), keys: ["privacy", "export", "gdpr", "stored"] },
     ] } : { title: tr("Account"), tour: "settings-account", rows: [
       { label: tr("Photo"), icon: Camera, tour: "settings-photo", onTap: () => onPhoto && onPhoto() },
       multiSport && { label: tr("Main sport"), sub: mainLabel, icon: Tag, onTap: () => onMainSport && onMainSport() },
@@ -12981,11 +12835,12 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Data & permissions"), icon: ShieldCheck, tour: "settings-data", onTap: () => push("legal:data") },
     ] },
     { title: tr("Support"), tour: "settings-support", rows: [
-      { label: tr("Walkthrough"), sub: tr("Every screen, again"), icon: Sparkles, tour: "settings-tour", onTap: () => onTour && onTour(), keys: ["tour", "guide", "how"] },
-      role !== "coach" && { label: tr("Attendance"), sub: tr("Your record"), icon: Check, tour: "settings-attendance", onTap: () => push("attendance") },
-      { label: tr("How it works"), icon: Palette, tour: "settings-prefs", onTap: () => push("prefs"), keys: ["about", "help"] },
-      (!live || SUPPORT_EMAIL) && { label: tr("Help centre"), icon: HelpCircle, tour: "settings-help", onTap: () => push("support"), keys: ["faq", "support"] },
-      (!live || SUPPORT_EMAIL) && { label: tr("Contact us"), icon: Mail, tour: "settings-contact", onTap: () => push("support"), keys: ["email", "support"] },
+      { label: tr("Walkthrough"), icon: Sparkles, tour: "settings-tour", onTap: () => onTour && onTour(), keys: ["tour", "guide", "how", "screens"] },
+      role !== "coach" && { label: tr("Attendance"), icon: Check, tour: "settings-attendance", onTap: () => push("attendance"), keys: ["record", "register"] },
+      /* one row, straight to the mail app: a screen of two rows that
+         each opened it was three taps for one thing */
+      (!live || SUPPORT_EMAIL) && { label: tr("Contact us"), sub: live ? SUPPORT_EMAIL : null, icon: Mail, tour: "settings-contact", keys: ["email", "support", "help", "problem", "faq"],
+        onTap: () => { if (!live) { push("support"); return; } window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`${BRAND}: ${tr("a question")}`)}&body=${encodeURIComponent(`\n\n—\n${BRAND} ${VERSION}`)}`; } },
     ] },
     { title: tr("Legal"), tour: "settings-legal", rows: [
       { label: tr("Terms of Service"), icon: FileText, tour: "settings-terms", onTap: () => push("legal:terms") },
@@ -13008,21 +12863,15 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       <Screen title={tr("You")} onBack={pop}>
         <div className="px-6"><Card className="p-5 mb-5">
           <button data-tour="settings-profile" onClick={() => { haptic(6); push(live ? "profile" : "details"); }} className="w-full flex items-center gap-4 text-left active:opacity-50">
-            <Avatar name={myName} size={58} src={avatar} /><span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{myName}</span><span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{live ? tr("Photo, details, account") : sub}</span></span>
+            <Avatar name={myName} size={58} src={avatar} /><span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{myName}</span>{!live && <span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{sub}</span>}</span>
             <ChevronRight size={18} color={t.faint} />
           </button>
-          {role === "coach" && (
-            <div className="flex mt-5 pt-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-              {[[weekDone, tr("this week")], [`${weekHours}h`, tr("taught")], [seasonDone, tr("this season")], ...(lifetime > seasonDone ? [[lifetime, tr("all time")]] : [])].map(([v, k], i) => (
-                <span key={k} className="flex-1" style={{ borderLeft: i ? `0.5px solid ${HAIR(t.ink, 0.14)}` : "none", paddingLeft: i ? 14 : 0 }}>
-                  <span className="block" style={{ ...TYPE.figure, fontSize: 22, color: t.ink }}>{v}</span>
-                  <span className="block mt-1" style={{ ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{k}</span>
-                </span>
-              ))}
-            </div>
-          )}
-          {role === "coach" && lifetime > 0 && monthly.length > 0 && (
-            <div className="mt-5 pt-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}><MonthBars data={monthly} accent={t.accent} /></div>
+          {/* a coach's tally, said in one line: counts of real lessons,
+              nothing derived from a default length */}
+          {role === "coach" && lifetime > 0 && (
+            <p className="mt-4 pt-4" style={{ ...TYPE.small, color: t.sub, borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+              {weekDone} {tr("this week")} · {seasonDone} {tr("this year")}{lifetime > seasonDone ? ` · ${lifetime} ${tr("all time")}` : ""}
+            </p>
           )}
         </Card></div>
 
@@ -13204,7 +13053,6 @@ function Legal({ docKey, pop }) {
     <SwipeBack onBack={pop}>
       <Screen title={d.title} onBack={pop} meta={d.updated}>
         <div className="px-6 pb-4">
-          <div className="rounded-2xl p-4 mb-6" style={{ background: t.wash }}><p style={{ fontFamily: ui, fontSize: 12, color: t.sub }}>Placeholder copy — have a solicitor draft the real text.</p></div>
           {d.body.map(([h, p]) => (<div key={h} className="mb-6"><h3 className="mb-2" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{h}</h3><p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.65, color: t.sub }}>{p}</p></div>))}
           <p className="pt-2" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{BRAND} · Registered in Ireland · {VERSION}</p>
         </div>
@@ -13240,7 +13088,8 @@ function InviteBody({ code, say }) {
      which happened. */
   const url = code ? joinLink("coach", code) : null;
   const share = async () => {
-    if (!code) { say(tr("Invite shared")); return; }
+    if (!code) return;
+    haptic(8);
     const r = await shareOrCopy({ title: `${tr("Join me on")} ${BRAND}`, text: `${tr("Join me on")} ${BRAND}. ${tr("Code")} ${code}`, url });
     if (r === "shared") say(tr("Invite shared"));
     else if (r === "copied") say(tr("Link copied"));
@@ -13260,7 +13109,7 @@ function InviteBody({ code, say }) {
         {url ? <QrImage url={url} size={148} /> : <QrSvg size={148} />}
       </div>
       <div className="mb-6" style={{ fontFamily: display, fontSize: 36, letterSpacing: "0.16em", paddingLeft: "0.16em", color: t.ink }}>{code || "——————"}</div>
-      <Button onClick={share}><span className="flex items-center justify-center gap-2"><Share2 size={17} /> {tr("Share invite")}</span></Button>
+      <Button onClick={share} disabled={!code}><span className="flex items-center justify-center gap-2"><Share2 size={17} /> {tr("Share invite")}</span></Button>
       <button onClick={copy} disabled={!code} className="mt-3 w-full active:opacity-50 disabled:opacity-30"
               style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Copy code")}</button>
     </div>
@@ -13356,7 +13205,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
             {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
             {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
-            {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.id || r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + r.name)} />))}</Card></div></>)}
+            {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.id || r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + (r.id || r.name))} />))}</Card></div></>)}
             {msgs.length > 0 && (<><Eyebrow>{tr("Messages")}</Eyebrow><div className="px-6 pb-4"><Card>{msgs.map((c, i) => (<Row key={c.id || c.name} label={c.name} sub={c.text} chevron icon={<MessageCircle size={17} color={t.sub} strokeWidth={1.6} />} last={i === msgs.length - 1} onToggle={() => push("thread:" + (c.id || c.name))} />))}</Card></div></>)}
           </>)}
         </div>
@@ -14304,7 +14153,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [calPrefs, setCalPrefs] = useState({ showFree: true, weekends: true, colourType: true, buffer: 0 });
   const [splashKey, setSplashKey] = useState(0);
   const [plan, setPlan] = useState(PLANS[0]);
-  const [invited, setInvited] = useState([]);
   const [freshAccount, setFreshAccount] = useState(!!account);
   const [requests, setRequests] = useState(account ? [] : SEED_REQUESTS);
   const [accepted, setAccepted] = useState([]);
@@ -14402,7 +14250,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      restored, not only with what is tapped */
   useEffect(() => { setHapticsEnabled(hapticsOn); }, [hapticsOn]);
   useEffect(() => { setSoundOn(soundState); }, [soundState]);
-  const [playerNotes, setPlayerNotes] = useState(account ? {} : { "Marcus Tran": "Prefers video over verbal. Club champs in September." });
   const [mini, setMini] = useState(null);
 
   const [seedProfiles, setProfiles] = useState(persona ? persona.profiles : [{ id: 1, name: "Marcus Tran", age: null }]);
@@ -15034,6 +14881,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      last resort, because two players called the same thing resolve to
      whichever the roster lists first; anything that knows an id passes
      one, and the harness has no ids, so a name is all it ever has. */
+  /* a roster row by its id, or by name from an older entry point */
+  const byKey = (key) => { const list = (data && data.roster) || []; return list.find((r) => r.id === key) || list.find((r) => r.name === key) || null; };
   const personOf = (v) => {
     if (!v) return null;
     const list = (data && data.roster) || [];
@@ -15194,18 +15043,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
       + atRisk(roster, mySeriesLive, live, bookedAhead).length + focusReqs.length;
-  /* A real coach's own numbers, from their real lessons: this week's
-     count, the hours they add up to at the coach's lesson length, and
-     everything since 1 January. */
+  /* A real coach's own numbers, from their real lessons: the last
+     seven days, and everything since 1 January. No hours — a lesson row
+     carries no length, so any figure would be a guess. */
   const liveStats = data ? (() => {
     const now = new Date();
-    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
     const jan1 = new Date(now.getFullYear(), 0, 1);
     const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const mine = role === "coach" ? taught(data.lessons) : mineOnly(data.lessons);
     const week = mine.filter((l) => l.iso && l.iso >= ymd(weekAgo) && l.iso <= ymd(now)).length;
     const season = mine.filter((l) => l.iso && l.iso >= ymd(jan1)).length;
-    return { weekDone: week, weekHours: Math.round((week * (duration || 45)) / 60), seasonDone: season };
+    return { weekDone: week, seasonDone: season };
   })() : null;
   /* the seeded household as a family object, for the walkthrough only */
   const showcaseFamily = sc && sc.role === "player" ? (() => {
@@ -15439,10 +15288,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <Thread role={role} name={threadName} isGroup={isGroupThread} pop={pop} say={say} />;
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
-    const pname = screen.slice("player:".length);
+    const pkey = screen.slice("player:".length);
+    const pl = data ? byKey(pkey) : null;
+    const pname = pl ? pl.name : pkey;
     body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
-                        player={data ? (data.roster || []).find((r) => r.name === pname) || null : null}
-                        onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + pname)} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }} note={playerNotes[pname] || ""} setNote={(v) => setPlayerNotes((p) => ({ ...p, [pname]: v }))}
+                        player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
+                        onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
   /* A coach searches their own drill library; anyone else searches the
      drills set for them — myLibrary is a coach's, and is empty for a
@@ -15509,20 +15360,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               /* a real account's own drills live on its preferences; the removal goes there too */
                                               if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
-  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} invited={invited} roster={roster} requests={openRequests} push={push} pop={pop} sheet={setSheet} say={say} right={slimRight} coachName={coachName} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} lessonCount={archive.length} />;
+  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} lessonCount={archive.length} />;
   } else if (screen.startsWith("history:")) {
-    const hname = screen.slice("history:".length);
-    /* a real record: what the coach actually marked for this person */
+    const hkey = screen.slice("history:".length);
+    const hp = data ? byKey(hkey) : null;
+    const hname = hp ? hp.name : hkey;
+    /* a real record: what the coach actually marked for this person,
+       by id — a register's marks are keyed by the player's id */
     const realAtt = data ? (() => {
-      /* BY ID. A register's marks are keyed by the player's id, so
-         reading them by display name found nothing and every real
-         player's attendance came back empty. */
-      const hid = ((data.roster || []).find((r) => r.name === hname) || {}).id;
       let showed = 0, noShow = 0;
-      if (hid) Object.values(registers || {}).forEach((reg) => { const v = reg[hid]; if (v === "in") showed++; else if (v === "out") noShow++; });
-      return showed + noShow ? { [hname]: { showed, noShow, cancelled: 0, late: 0 } } : {};
+      if (hp) Object.values(registers || {}).forEach((reg) => { const v = reg[hp.id]; if (v === "in") showed++; else if (v === "out") noShow++; });
+      return showed + noShow ? { [hname]: { showed, noShow } } : {};
     })() : null;
-    body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? data.lessons.filter((l) => l.who === hname) : null} attendance={realAtt || attendance} pop={pop} push={push} say={say} />;
+    /* their private lessons and the group sessions they were marked at —
+       the same count as the file's header */
+    body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? taught(data.lessons).filter((l) => (hp ? (l.playerId === hp.id || (l.attendeeIds || []).includes(hp.id)) : l.who === hname)) : null} attendance={realAtt || attendance} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("clesson:")) {
     /* THE ID COMES FIRST and the name is whatever is left, taken with
        indexOf rather than split. It used to be `clesson:<who>:<id>`
@@ -15570,9 +15422,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} pop={pop}
-             onMessage={(n) => push("thread:" + n)}
-             onBook={(n) => { setRecurFor(n); push("calendar"); }} />;
+    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} pop={pop} onMessage={(k) => push("thread:" + k)} />;
   } else if (screen === "digest") {
     body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop}
              stats={data ? Object.fromEntries(profiles.map((pf) => [pf.id, {
@@ -15588,9 +15438,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                done(tr("Sent"), tr("Your coach will look at it.")); }} />;
   } else if (screen === "familyCode") {
     body = <FamilyScreen family={data ? data.family : (sc && sc.parent ? showcaseFamily : null)} isJunior={juvenile} live={!!data}
-                         onCreate={data ? (n) => data.createFamily(n) : async () => ({})} onJoin={data ? (c) => data.joinFamily(c) : async () => ({})}
+                         onCreate={data ? (n) => data.createFamily(n) : async () => ({})}
+                         onJoin={data ? async (c) => {
+                           const r = await data.joinFamily(c);
+                           if (r && !r.error) { setCeleb({ label: tr("Joined"), sub: (r.family && r.family.name) || tr("your family") }); go("family"); }
+                           return r;
+                         } : async () => ({})}
                          onLeave={data ? () => data.leaveFamily() : async () => ({})} onRename={data ? (n) => data.renameFamily(n) : async () => ({})}
-                         lookup={data ? data.lookupCode : null} say={say} pop={pop} onOpenHome={() => go("family")} />;
+                         lookup={data ? data.lookupCode : null} say={say} pop={pop} />;
   } else if (screen === "coachProfile") {
     body = <CoachProfile coachName={coachName} sport={sport}
                           reviewSummary={data ? data.reviewSummary : null}
@@ -15621,8 +15476,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       });
     });
     body = <AttendanceScreen role={role} cfg={cfg} records={rows} rule={prefs.attendance} pop={pop} />;
-  } else if (screen === "prefs") {
-    body = <Preferences prefs={prefs} setPrefs={setPrefs} role={role} cfg={cfg} pop={pop} say={say} />;
   } else if (screen === "sources") {
     body = <Sources sport={sport} pop={pop} say={say} />;
   } else if (screen === "credentials") {
@@ -15660,10 +15513,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       </SwipeBack>
     );
   } else if (screen === "archive" || screen.startsWith("archive:")) {
-    const only = screen.startsWith("archive:") ? screen.slice(8) : null;
-    body = <CoachArchive cfg={cfg} lessons={archive} nouns={cfg.nouns} forPlayer={only}
-                         forPlayerId={only && data ? (((data.roster || []).find((r) => r.name === only) || {}).id || null) : null}
-                         onClearPlayer={only ? () => { pop(); push("archive"); } : null}
+    const onlyKey = screen.startsWith("archive:") ? screen.slice(8) : null;
+    const op = onlyKey && data ? byKey(onlyKey) : null;
+    body = <CoachArchive cfg={cfg} lessons={archive} nouns={cfg.nouns} forPlayer={op ? op.name : onlyKey}
+                         forPlayerId={op ? op.id : null}
+                         onClearPlayer={onlyKey ? () => { pop(); push("archive"); } : null}
                          pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {
     body = <MyGroups groups={myGroupsForMe} cfg={cfg} nouns={cfg.nouns} pop={pop} push={push} say={say} />;
@@ -15737,7 +15591,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         onOpenLesson={(l) => push("lesson:" + l.id)} onAllLessons={() => { pop(); go("log"); }} pop={pop} />;
     } else {
       body = <FamilyHome family={fam} isJunior={juvenile} dependants={juvenile ? [] : kids}
-                         lessons={famLessons} drills={famDrills} bookings={famBookings} hoursByPlayer={famHours} todayIso={iso}
+                         lessons={famLessons} drills={famDrills} bookings={famBookings} todayIso={iso}
                          onOpenKid={(k) => push("familyKid:" + k.id)} onSettings={() => push("familyCode")} onSetUp={() => push("familyCode")}
                          right={navRight} />;
     }
@@ -15749,12 +15603,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "stats") { body = (
       <SwipeBack onBack={pop}><Screen title={tr("Stats")} onBack={pop}><div className="px-6"><StatsEditSheet cfg={cfg} selected={mySelected} setSelected={(v) => setSelectedStats((p) => ({ ...p, [pKey]: v }))} manual={myManual} setManual={(v) => setManualStats((p) => ({ ...p, [pKey]: v }))} say={say} close={pop} /></div></Screen></SwipeBack>
     );
-  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} onDeleteAccount={data ? (() => setSheet("deleteAccount")) : null} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
-                          avatar={myAvatar} requestCount={openRequests.length} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} coachOfMine={data ? data.coachName : null}
+  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+                          avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
-                          weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} weekHours={liveStats ? liveStats.weekHours : freshAccount ? 0 : 9} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} lifetime={data ? (role === "coach" ? taught(data.lessons).length : mineOnly(data.lessons).length) : freshAccount ? 0 : 1284} monthly={data ? (realMonthly || []) : freshAccount ? [] : MONTHLY} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} dark={dark} setDark={setDark} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn}
-                          startOn={startOn} setStartOn={setStartOn}
+                          weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} lifetime={data ? (role === "coach" ? taught(data.lessons).length : mineOnly(data.lessons).length) : freshAccount ? 0 : 1284} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} dark={dark} setDark={setDark} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn}
+                          startOn={startOn} setStartOn={setStartOn} prefs={role === "coach" ? prefs : null} setPrefs={setPrefs}
                           startOptions={[{ id: "auto", label: tr("As it comes") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
                           pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
   } else if (screen === "calendar") { body = <CalendarScreen role={role} lessonsFor={data ? (n) => (((roster || []).find((r) => r.name === n) || {}).lessons ?? 0) : null} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount && !bookFor}
@@ -16161,8 +16015,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
                                             onSet={doSetTip} close={() => setSheet(null)} />
               : sheet === "group" ? <GroupCreate livePlayers={data ? data.roster : null} cfg={cfg} coachSport={coachSport} onCreate={createGroup} close={() => setSheet(null)} />
-              : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} existingNames={[...PLAYERS, ...invited.map((p) => p.name)]}
-                                                    onSend={(names) => setInvited((v) => [...v, ...names.map((n) => ({ name: n, sentAt: "just now" }))])}
+              : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} 
                                                     close={() => setSheet(null)} say={say} />
               : sheet === "password" ? <ChangePasswordBody onSubmit={data ? (pw) => data.changePassword(pw) : null} say={say} close={() => setSheet(null)} />
               : sheet === "inviteOffer" && pendingInvite && data ? <InviteOffer invite={pendingInvite} lookup={data.lookupCode}

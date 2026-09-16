@@ -123,7 +123,12 @@ const leaks = [];
       await leak("coach today"); await shot("coach-today");
       await tap(page, '[aria-label="Chat"]');
       const t1 = await leak("coach chat"); await shot("coach-chat");
-      check("(c) coach Chat lists the real roster", t1.includes("Cian Murphy") && t1.includes("Saoirse Kelly") && t1.includes("Grand, thanks Niamh."), t1.slice(0, 200));
+      /* conversations only: the plus offers the rest of the roster, and everyone at once */
+      check("(c) coach Chat lists the conversations, not the whole roster", t1.includes("Cian Murphy") && t1.includes("Grand, thanks Niamh.") && !t1.includes("Saoirse Kelly"), t1.slice(0, 200));
+      await tap(page, '[data-tour="chat-new"]', 500);
+      const tn = await text();
+      check("(c) the plus offers Everyone and every player on the roster", tn.includes("Everyone") && tn.includes("Cian Murphy") && tn.includes("Saoirse Kelly"), tn.slice(0, 200));
+      await page.keyboard.press("Escape"); await page.locator("[data-sheet]").locator('[aria-label="Close"]').first().click().catch(() => {}); await page.waitForTimeout(500);
       await byText(page, "Cian Murphy").click(); await page.waitForTimeout(1000);
       const t2 = await leak("coach thread"); await shot("coach-thread");
       check("(c) opening the thread shows the mocked messages", t2.includes("See you Tuesday at nine.") && t2.includes("Grand, thanks Niamh."), t2.slice(0, 200));
@@ -179,13 +184,13 @@ const leaks = [];
       check("(e) the first page asks who and when, and never for a time nothing stores", tw0.includes("Date") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0, tw0.slice(0, 200));
       await byText(page, "Cian Murphy").click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      /* three pages now — who and when, what happened, what's next. The
-         focus, the clips and the note used to be a page each. */
-      const t6 = await leak("wizard what happened"); await shot("coach-wizard-what");
-      check("(e) notes step offers a typed note and a real voice note, no transcript", t6.includes("Record a voice note") && (await page.locator('textarea[placeholder="What happened, in a line or two"]').count()) === 1 && !t6.includes("Tap to record"), t6.slice(0, 200));
-      check("(e) media step: Record / Library / Photo / Captured, no device readout", t6.includes("Record") && t6.includes("Library") && t6.includes("Photo") && t6.includes("Captured") && !/TrackMan|Serve radar|Launch/i.test(t6) && (await page.locator('input[type="file"]').count()) >= 1, t6.slice(0, 200));
-      check("(e) the focus, the clips and the note are one page", t6.includes("Short game") && t6.includes("Clips and photos") && t6.includes("The note") && t6.includes("2 / 3"), t6.slice(0, 300));
+      /* five questions, one a page: who · what · how it went · drills · a tip */
+      const t6 = await leak("wizard what"); await shot("coach-wizard-what");
+      check("(e) the second page asks what was worked on, as chips, and nothing else", t6.includes("What did you work on?") && t6.includes("Short game") && t6.includes("2 / 5") && !t6.includes("Clip") && (await page.locator("textarea").count()) === 0, t6.slice(0, 300));
       await page.getByRole("button", { name: "Short game", exact: true }).click(); await page.waitForTimeout(300);
+      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
+      const t7 = await leak("wizard how it went"); await shot("coach-wizard-how");
+      check("(e) the third page takes a typed note, a clip, a photo or a voice note, with no device readout", t7.includes("How did it go?") && t7.includes("3 / 5") && (await page.locator('textarea[placeholder="What happened, in a line or two"]').count()) === 1 && t7.includes("Clip") && t7.includes("Photo") && t7.includes("Voice") && !/TrackMan|Serve radar|Launch|Tap to record/i.test(t7), t7.slice(0, 300));
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Worked on tempo from a hundred yards.");
       /* one way forward per page: Continue until the last one, which is
          the Publish. */

@@ -196,11 +196,12 @@ const leaks = [];
       const jf = rpc("join_family")[0];
       check("(e) Join calls join_family with the code and the caller is in", !!jf && jf.args.p_code === famCode && db.profiles[IDS.dara].family_id === db.profiles[IDS.adult].family_id, JSON.stringify(jf && jf.args));
       check("(e) the family trigger told the other member (kind family)", db.notifications.some((n) => n.user_id === IDS.adult && n.kind === "family" && /Dara Kelly joined your family/.test(n.title)), JSON.stringify(db.notifications.filter((n) => n.kind === "family").map((n) => n.title)));
+      /* joining lands on the family itself, with the moment it earns */
+      await page.waitForTimeout(1900);
       const t1 = await leak("dara family screen"); await shot("18-dara-joined");
-      check("(e) the Family screen lists both adults", t1.includes("Cian Murphy") && t1.includes("Dara Kelly (you)") && t1.includes("2 people"), t1.slice(0, 240));
-      await click(page, "Dashboard", 900);
+      check("(e) joining lands on the family dashboard, two people in it", t1.includes("The Murphys") && t1.includes("2 people"), t1.slice(0, 240));
       const people = page.locator('[data-tour="family-people"]');
-      const t2 = await leak("dara dashboard"); await shot("19-dara-dashboard");
+      const t2 = t1; await shot("19-dara-dashboard");
       check("(e) the dashboard shows both faces under In the family and has no young players", (await people.count()) === 1 && /Cian/.test(await people.innerText()) && /You/.test(await people.innerText()) && t2.includes("No young players yet"), t2.slice(0, 240));
       await tap(page, '[data-tour="family-settings"]', 900);
       await click(page, "Leave the family", 500);
