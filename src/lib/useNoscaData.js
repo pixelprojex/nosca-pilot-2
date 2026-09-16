@@ -168,6 +168,10 @@ export function useNoscaData(profile) {
   /* a player's coach's weekly hours, read through coach_availability() —
      null until it has been asked for, {} when the coach has set nothing */
   const [coachAvailability, setCoachAvailability] = useState(null);
+  /* the same coach's taken times (date, time, length — nobody's name),
+     so the diary never offers a slot someone else already holds */
+  const [busySlots, setBusySlots] = useState([]);
+  const [busyByPlayer, setBusyByPlayer] = useState({});
   /* Who this person is linked to, read fresh on every load rather than
      taken from the cached sign-in profile — so joining a coach or a
      family is reflected the moment it is written, with nothing else
@@ -261,16 +265,23 @@ export function useNoscaData(profile) {
          coach's preferences row is otherwise theirs alone — so this
          comes through a function that returns just that. An adult in a
          family asks the same for each junior they look after. */
+      const busyRows = (r) => (r && !r.error && Array.isArray(r.data) ? r.data : []).map((b) => ({ date: b.booking_date, time: b.start_time, duration: b.duration }));
       if (!isCoach) {
-        const { data: hours, error: hoursErr } = await supabase.rpc("coach_availability");
+        const [{ data: hours, error: hoursErr }, busy] = await Promise.all([supabase.rpc("coach_availability"), supabase.rpc("coach_busy_slots")]);
         setCoachAvailability(hoursErr ? {} : (hours || {}));
+        setBusySlots(busyRows(busy));
       }
       const withCoach = kids.filter((k) => k.coachId);
       if (withCoach.length) {
-        const got = await Promise.all(withCoach.map((k) => supabase.rpc("coach_availability", { p_player: k.id })));
+        const [got, busy] = await Promise.all([
+          Promise.all(withCoach.map((k) => supabase.rpc("coach_availability", { p_player: k.id }))),
+          Promise.all(withCoach.map((k) => supabase.rpc("coach_busy_slots", { p_player: k.id }))),
+        ]);
         setHoursByPlayer(Object.fromEntries(withCoach.map((k, i) => [k.id, (got[i] && !got[i].error && got[i].data) || {}])));
+        setBusyByPlayer(Object.fromEntries(withCoach.map((k, i) => [k.id, busyRows(busy[i])])));
       } else {
         setHoursByPlayer({});
+        setBusyByPlayer({});
       }
 
       /* A player needs their coach's real name. Row-level security means
@@ -1403,7 +1414,7 @@ export function useNoscaData(profile) {
     uploads, retryUploads, dismissUploads,
     roster, lessons, drills, tips, registers,
     bookings, competitions, recurring, prefs, threads,
-    reviewSummary, myReview, reviews, coachAvailability,
+    reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
     setDrill, setDrills: assignDrills, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,

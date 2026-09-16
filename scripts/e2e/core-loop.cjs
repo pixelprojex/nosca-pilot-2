@@ -140,7 +140,8 @@ const leaks = [];
       await shot("coach-thread-sent");
       /* Message everyone */
       await tap(page, '[aria-label="Back"]');
-      await byText(page, "Message everyone").click(); await page.waitForTimeout(600);
+      await tap(page, '[data-tour="chat-new"]'); await page.waitForTimeout(400);
+      await byText(page, "Everyone").click(); await page.waitForTimeout(600);
       await page.fill('textarea[placeholder="Write or say your message"]', "Range is closed Friday.");
       await page.getByRole("button", { name: "Send", exact: true }).click(); await page.waitForTimeout(1200);
       const bc = db.posts.filter((x) => x.table === "messages").pop();

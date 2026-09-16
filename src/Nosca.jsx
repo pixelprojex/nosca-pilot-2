@@ -3536,7 +3536,7 @@ const TOUR = {
     { area: "Roster", title: "A player's file", body: "Their lessons, newest first, the moment you open them. Message or set drills below.", path: "Roster → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
     { area: "Roster", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
     { area: "Chat", title: "Chat", body: "A thread with every player. A junior's parent reads theirs.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
-    { area: "Chat", title: "Everyone at once", body: "One message to all, or call a day off for weather.", path: "Chat → Message everyone", target: "chat-broadcast", state: { stack: ["messages"] } },
+    { area: "Chat", title: "Start a conversation", body: "The plus writes to one player, or to everyone at once.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
     { area: "Alerts", title: "Alerts", body: "Requests, bookings, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
     { area: "You", title: "Your profile", body: "Photo, details, club, password, family — all in one place.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["today", "you"] } },
     { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Roster.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
@@ -6515,9 +6515,11 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
   /* `people` is the real list when there is one — the coach, and any
      family member with a coach of their own; the seeded connections
      are the design harness's. */
-  const people = given ? given : role === "coach"
+  const base = given ? given : role === "coach"
     ? roster.map((r) => ({ id: r.id, name: r.name, sub: `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}` }))
     : conns.map((c) => ({ name: c.coach, sub: `${SPORTS[c.sport].label} · ${c.club}` }));
+  /* one message to every player is the first row, not a second button */
+  const people = role === "coach" && base.length > 1 ? [{ id: "__all", name: tr("Everyone"), sub: `${base.length} ${tr("players")}`, all: true }, ...base] : base;
   const term = q.trim().toLowerCase();
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
   return (
@@ -6530,20 +6532,19 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
         {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>}
       </div>
       {shown.length === 0 ? (
-        <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing found.")}</p>
+        <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</p>
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {shown.map((p, i) => (
-            <Tile key={p.id || p.name} className="px-4 py-3.5" delay={i * 45} onPress={() => { onPick(p); close(); }}>
-              <div className="flex items-center gap-3.5">
-                <Avatar name={p.name} size={38} />
-                <span className="flex-1 min-w-0">
-                  <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
-                  <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{p.sub}</span>
-                </span>
-                <ChevronRight size={15} color={t.faint} />
-              </div>
-            </Tile>
+        <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+          {shown.map((p) => (
+            <button key={p.id || p.name} onClick={() => { haptic(6); if (!p.all) close(); onPick(p); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+              <Avatar name={p.name} size={38} group={!!p.all} />
+              <span className="flex-1 min-w-0">
+                <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
+                {p.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{p.sub}</span>}
+              </span>
+              <ChevronRight size={15} color={t.faint} />
+            </button>
           ))}
         </div>
       )}
@@ -11092,7 +11093,7 @@ function UnloggedLessons({ items, onLog, onDismiss, pop }) {
                   <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{u.time} · {u.kind}</span></span>
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => { haptic(8); onDismiss(u); }} className="rounded-2xl px-5 active:opacity-60" style={{ minHeight: 48, border: `1px solid ${t.hair}`, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.sub }}>{tr("Skip")}</button>
+                {onDismiss && <button onClick={() => { haptic(8); onDismiss(u); }} className="rounded-2xl px-5 active:opacity-60" style={{ minHeight: 48, border: `1px solid ${t.hair}`, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.sub }}>{tr("Skip")}</button>}
                 <button onClick={() => { hapticCommit(); onLog(u); }} className="flex-1 rounded-2xl active:opacity-75" style={{ minHeight: 48, background: t.accent, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.onAccent }}>{tr("Log lesson")}</button>
               </div>
             </Card>
@@ -12459,87 +12460,53 @@ const L_CAL = (role, readOnly) => (role === "coach" ? "Schedule" : readOnly ? "C
    Now: the conversations come first, and the two coach-only broadcast
    actions sit together in one quiet row beneath the title, matched in
    weight and clearly secondary. */
-function MessageList({ role, push, sheet, right, empty, onNew, onWeather, threads }) {
-  const t = useT(); const L = useL();
+function MessageList({ role, push, right, empty, onNew, threads }) {
+  const t = useT();
   const preview = (id) => { const r = id ? readMsg(id) : null; return r ? r.text : ""; };
   const list = threads
     ? threads.map((th) => ({ id: th.playerId, name: th.who, sub: th.sub, unread: th.unread, when: th.when || "", lastId: null, last: th.last, kind: th.kind }))
     : empty ? [] : THREADS[role];
-
-  const Action = ({ Icon, label, onPress, delay, danger, tour }) => (
-    <button data-tour={tour} onClick={() => { danger ? hapticWarn() : haptic(8); soft(); onPress(); }}
-            className="flex-1 flex flex-col items-center justify-center gap-2 active:opacity-70"
-            style={{ minHeight: 72, borderRadius: R.surface,
-                     background: t.wash,
-                     animation: `fadeUp 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
-      <Icon size={18} color={danger ? DANGER : t.sub} strokeWidth={1.7} />
-      <span style={{ ...TYPE.caption, fontSize: 12, fontWeight: danger ? 600 : 500,
-                     color: danger ? DANGER : t.sub }}>{label}</span>
-    </button>
-  );
-
+  /* the + starts a conversation: always for a coach; for anyone else
+     only when there is more than one person they could write to */
+  const canStart = role === "coach" || !threads || list.length > 1;
   return (
     <Screen title={tr("Messages")} right={right}
-            action={<button data-tour="chat-new" onClick={() => { hapticCommit(); soft(); role === "coach" ? sheet("newChoice") : onNew && onNew(); }}
-                            className="rounded-full flex items-center justify-center active:opacity-70"
-                            style={{ width: 40, height: 40, background: t.accent,
-                                     boxShadow: `0 4px 14px ${t.accent}22`,
-                                     animation: "ringPop 520ms cubic-bezier(.22,1,.36,1) both" }}
-                            aria-label={tr("New message")}>
-                      <Plus size={19} color={t.onAccent} strokeWidth={2.1} />
-                    </button>}>
-
-      {/* Two broadcast actions, one row, equal weight — secondary to
-          the conversations below them. */}
-      {role === "coach" && (
-        <div className="px-6 mb-5 flex gap-2.5">
-          <Action tour="chat-broadcast" Icon={Radio}     label={tr("Message everyone")} onPress={() => sheet("broadcast")} delay={0} />
-          <Action tour="chat-weather" Icon={CloudRain} label={tr("Call off for weather")} onPress={() => onWeather && onWeather()} delay={60} danger />
-        </div>
-      )}
-
-      {/* A parent carries two kinds of conversation: their own with their
-          coach, and each child's with the child's coach, which they hold
-          on the child's behalf. Listed apart, so a coach's line about a
-          child is never taken for one about the parent. */}
-      {(() => {
-        const kinds = threads ? threads.map((th) => th.kind) : [];
-        const split = kinds.includes("child") && (kinds.includes("own") || true);
-        const own = split ? list.filter((c, i) => threads[i].kind !== "child") : list;
-        const kids = split ? list.filter((c, i) => threads[i].kind === "child") : [];
-        const Rows = ({ rows, offset = 0 }) => rows.map((c, i) => (
-        <button key={c.id || c.name} data-tour={i + offset === 0 ? "chat-row" : undefined} onClick={() => { haptic(6); push("thread:" + (c.id || c.name)); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 72, borderBottom: i === rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>
-          <Avatar name={c.name} size={44} group={c.group} />
-          <span className="flex-1 min-w-0">
-            <span className="flex items-baseline justify-between gap-2"><span className="truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: c.unread ? 700 : 600, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span><span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span></span>
-            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{c.last || c.sub || preview(c.lastId)}</span>
-              {c.unread > 0 && (<span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 19, height: 19, padding: "0 5px", background: t.accent, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.onAccent }}>{c.unread}</span>)}</span>
-            {split && c.sub && c.last && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.accent }}>{c.sub}</span>}
-          </span>
-        </button>));
-        if (split) return (<>
-          {own.length > 0 && (<><Eyebrow>{tr("You")}</Eyebrow><div className="px-6 pb-2 mb-4"><Card><Rows rows={own} /></Card></div></>)}
-          <Eyebrow>{tr("For your children")}</Eyebrow>
-          <div className="px-6 pb-2"><Card><Rows rows={kids} offset={own.length} /></Card></div>
-        </>);
-        return null;
-      })()}
-      {!(threads && threads.some((th) => th.kind === "child")) && <div className="px-6 pb-2"><Card>{list.length === 0 ? (
-        <div className="p-8 text-center">
-          <span className="rounded-full flex items-center justify-center mx-auto mb-4" style={{ width: 52, height: 52, background: t.wash }}><MessageCircle size={21} color={t.sub} strokeWidth={1.6} /></span>
-          <p style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{tr("No messages")}</p>
-          <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Conversations appear here.")}</p>
-        </div>
-      ) : list.map((c, i) => (
-        <button key={c.id || c.name} data-tour={i === 0 ? "chat-row" : undefined} onClick={() => { haptic(6); push("thread:" + (c.id || c.name)); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 74, borderBottom: i === list.length - 1 ? "none" : `1px solid ${t.hair}` }}>
-          <Avatar name={c.name} size={44} group={c.group} />
-          <span className="flex-1 min-w-0">
-            <span className="flex items-baseline justify-between gap-2"><span className="truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: c.unread ? 700 : 600, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span><span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span></span>
-            <span className="flex items-center gap-2 mt-0.5"><span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 13, color: c.unread ? t.ink : t.faint }}>{c.last || c.sub || preview(c.lastId)}</span>
-              {c.unread > 0 && (<span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 19, height: 19, padding: "0 5px", background: t.accent, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.onAccent }}>{c.unread}</span>)}</span>
-          </span>
-        </button>
-      ))}</Card></div>}
+            action={canStart ? (
+              <button data-tour="chat-new" onClick={() => { hapticCommit(); soft(); onNew && onNew(); }}
+                      className="rounded-full flex items-center justify-center active:opacity-70"
+                      style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("New message")}>
+                <Plus size={19} color={t.onAccent} strokeWidth={2.1} />
+              </button>) : null}>
+      <div className="px-6 pb-2">
+        {list.length === 0 ? (
+          <div className="py-16 text-center">
+            <p style={{ ...TYPE.title, color: t.ink }}>{tr("No messages")}</p>
+            <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{role === "coach" ? tr("Start one with the plus") : tr("Your coach's messages land here")}</p>
+          </div>
+        ) : (
+          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+            {list.map((c, i) => (
+              <button key={c.id || c.name} data-tour={i === 0 ? "chat-row" : undefined} onClick={() => { haptic(6); push("thread:" + (c.id || c.name)); }}
+                      className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                      style={{ minHeight: 70, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+                <Avatar name={c.name} size={44} group={c.group} />
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="truncate" style={{ ...TYPE.body, fontWeight: c.unread ? 600 : 500, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span>
+                    <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span>
+                  </span>
+                  <span className="flex items-center gap-2 mt-0.5">
+                    <span className="flex-1 truncate" style={{ ...TYPE.small, color: c.unread ? t.ink : t.faint }}>
+                      {c.kind === "child" && c.sub ? `${c.sub}${c.last ? " · " + c.last : ""}` : (c.last || c.sub || preview(c.lastId))}
+                    </span>
+                    {c.unread > 0 && (<span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 19, height: 19, padding: "0 5px", background: t.accent, ...TYPE.caption, fontWeight: 600, color: t.onAccent }}>{c.unread}</span>)}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </Screen>
   );
 }
@@ -14250,12 +14217,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* A no-show is recorded and the lesson still counts against the
      package — that is the whole point of recording it. A cancellation
      is the opposite: it comes back to them. */
-  const markNoShow = (bk) => {
+  const markNoShow = async (bk) => {
     if (!bk) return;
     hapticWarn();
     /* With a real account this is recorded against the booking, so the
-       player's own diary reflects it too. */
-    if (data && bk.id) data.cancelBooking(bk.id, "cancelled");
+       player's own diary reflects it too — and only once the write has
+       actually landed. */
+    if (data && bk.id) {
+      const r = await data.cancelBooking(bk.id, "cancelled");
+      if (r && r.error) { say(r.error.message || tr("Couldn't record that")); return; }
+    }
     setSeedBooked((prev) => {
       const nx = { ...prev, [coachSport]: { ...prev[coachSport] } };
       const k = key(todayMD.m, todayMD.d);
@@ -14411,7 +14382,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     })
     .sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0))) : null;
   const todayList = realToday || TODAY_SCHEDULE;
-  const liveNow = (todayList || []).find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5) || null;
+  /* started, not over, not logged — bounded on both sides, or a lesson
+     logged at nine reads as "on now" until midnight */
+  const liveNow = (todayList || []).find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5 && (l.hoursUntil ?? 9) > -((l.duration || 45) / 60)) || null;
 
   const [toolRows, setToolRows] = useState(Object.fromEntries(Object.entries(TOOLS).map(([k, v]) => [k, v.rows])));
   const [waitlist, setWaitlist] = useState([
@@ -14757,6 +14730,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mySeedBooked = data
     ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed")]).filter(([, rows]) => rows.length))
     : seedBooked[coachSport];
+  /* A player's diary also carries the coach's other bookings as taken
+     times with nobody's name — security hides those rows, and without
+     this the diary offered slots someone else already held. */
+  const withBusy = (booked, busy) => {
+    const out = Object.fromEntries(Object.entries(booked || {}).map(([k, rows]) => [k, rows.slice()]));
+    for (const b of busy || []) {
+      const dt = localDate(b.date); if (Number.isNaN(dt.getTime())) continue;
+      const k = key(dt.getMonth() + 1, dt.getDate());
+      if (!(out[k] || []).some((x) => x.time === b.time)) out[k] = [...(out[k] || []), { time: b.time, taken: true }];
+    }
+    return out;
+  };
+  const playerBooked = data && role === "player"
+    ? withBusy(mySeedBooked, bookFor ? ((data.busyByPlayer || {})[bookFor.id] || []) : (data.busySlots || []))
+    : mySeedBooked;
   const mySeriesLive = data ? mySeries : series;
   /* Anyone with a lesson still to come. Someone booked for Thursday is
      not drifting on Tuesday, whatever the gap behind them says. */
@@ -15185,14 +15173,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      their coach, plus anyone in their family who has one. */
   const liveThreads = data ? (() => {
     const byId = Object.fromEntries((data.threads || []).map((th) => [th.playerId, th]));
-    const row = (playerId, who, sub, extra) => { const th = byId[playerId]; return { playerId, who, sub, unread: th ? th.unread : 0, last: th ? th.last : "", when: th ? th.when : "", coachId: th ? th.coachId : null, ...(extra || {}) }; };
-    if (role === "coach") return (data.roster || []).map((r) => row(r.id, r.name, r.junior ? tr("Under 18 · a parent replies") : tr("Player"), { coachId: account.id, junior: !!r.junior }));
+    const row = (playerId, who, sub, extra) => { const th = byId[playerId]; const lastAt = th && th.messages.length ? th.messages[th.messages.length - 1].iso : null; return { playerId, who, sub, unread: th ? th.unread : 0, last: th ? th.last : "", when: th ? th.when : "", lastAt, coachId: th ? th.coachId : null, ...(extra || {}) }; };
+    /* conversations, not a directory: unread first, then newest. The +
+       is where a new one starts. */
+    const order = (a, b) => (b.unread > 0) - (a.unread > 0) || String(b.lastAt || "").localeCompare(String(a.lastAt || "")) || a.who.localeCompare(b.who);
+    if (role === "coach") {
+      const rows = (data.roster || []).filter((r) => byId[r.id]).map((r) => row(r.id, r.name, r.junior ? tr("Under 18 · a parent replies") : "", { coachId: account.id, junior: !!r.junior }));
+      /* a coach who takes lessons themselves has a coach of their own to talk to */
+      if (data.hasCoach && account && coachName) rows.unshift(row(account.id, coachName, tr("Your coach"), { kind: "own", coachId: null }));
+      return rows.sort(order);
+    }
     const rows = [];
-    if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach"), { kind: "own", coachId: (data.links && data.links.coach) || null }));
+    if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach"), { kind: "own", coachId: null }));
     /* a child's conversation is with the child's coach, carried on by
        the adult: listed under the coach's name, marked as the child's */
     (data.dependants || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.coachName || tr("Their coach"), `${tr("For")} ${f.name.split(" ")[0]}`, { kind: "child", child: f.name.split(" ")[0], childName: f.name, coachId: f.coachId })));
-    return rows;
+    return rows.sort((a, b) => (a.kind === "own") - (b.kind === "own") ? (a.kind === "own" ? -1 : 1) : order(a, b));
   })() : null;
   const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
@@ -15697,7 +15693,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <JoinRequests requests={openRequests} onAccept={acceptRequest} onDecline={declineRequest} pop={pop} nouns={cfg.nouns} />;
   } else if (screen === "unlogged") {
     body = <UnloggedLessons items={openUnlogged} onLog={(u) => { setPrefill(u); go("log"); }}
-                            onDismiss={(u) => { setUnlogged((v) => v.filter((x) => x !== u)); say("Removed"); }} pop={pop} />;
+                            onDismiss={data ? null : (u) => { setUnlogged((v) => v.filter((x) => x !== u)); say("Removed"); }} pop={pop} />;
   } else if (screen === "profile" && data) {
     body = <ProfileScreen account={account} me={data.me} role={role} avatar={myAvatar}
                           sports={mySports} activeSport={activeSport} onPickSport={(sp) => { setPickedSport(sp); say(`${SPORTS[sp].label} ${tr("it is")}`); }}
@@ -15765,7 +15761,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
-                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={mySeedBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={bookFor ? null : aiPick} readOnly={juvenile && !bookFor}
+                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={bookFor ? null : aiPick} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
@@ -15776,7 +15772,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             kids={data ? (data.dependants || []).map((k) => ({ ...k, canBook: !!k.coachId && Object.values((((data.hoursByPlayer || {})[k.id] || {}).days) || {}).some((x) => x && x.length) })) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
                                                             onBookFor={(k) => { setBookFor(k); }} />;
-  } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} sheet={setSheet} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} onWeather={() => setSheet(data ? "weatherConfirm" : "weather")} />;
+  } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} />;
   } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
   } else if (role === "coach") {
     bare = screen === "log";
@@ -16299,18 +16295,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               return {};
                                             }}
                                             close={() => setSheet(null)} />
-              : sheet === "weatherConfirm" ? <ConfirmPassword
-                                            title={tr("Call off for weather")}
-                                            detail={tr("Everyone affected is told straight away, and this can't be undone. Confirm with your password.")}
-                                            actionLabel={tr("Confirm call-off")}
-                                            onConfirm={async (pw) => {
-                                              if (!data) return {};
-                                              const res = await data.verifyPassword(pw);
-                                              if (res.error) return res;
-                                              setSheet("weather");
-                                              return { next: "weather" };
-                                            }}
-                                            close={() => setSheet(null)} />
               /* the day the coach picked in the diary, not whichever day it
                  happens to be — calling Thursday off on Monday is the whole
                  point of it */
@@ -16324,28 +16308,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onSend={(f, n) => { setFocusReqs((v) => [...v, { who: activeProfile.name, focus: f, note: n }]);
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
-              : sheet === "newChoice" ? (
-                  <>
-                    <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: theme.ink }}>{tr("New")}</h2>
-                    <Tile className="px-5 py-[18px] mb-2.5" onPress={() => setSheet("newThread")}>
-                      <div className="flex items-center gap-3.5">
-                        <MessageCircle size={19} color={theme.sub} strokeWidth={1.6} />
-                        <span className="flex-1" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: theme.ink }}>{tr("Message someone")}</span>
-                        <ChevronRight size={15} color={theme.faint} />
-                      </div>
-                    </Tile>
-                    <Tile className="px-5 py-[18px]" onPress={() => setSheet("newGroup")}>
-                      <div className="flex items-center gap-3.5">
-                        <Users size={19} color={theme.accent} strokeWidth={1.6} />
-                        <span className="flex-1">
-                          <span className="block" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: theme.ink }}>{tr("New group")}</span>
-                          <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 11.5, color: theme.faint }}>{tr("You'll manage it")}</span>
-                        </span>
-                        <ChevronRight size={15} color={theme.faint} />
-                      </div>
-                    </Tile>
-                  </>
-                )
               : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
                                             onCreate={(g) => { if (data) { createGroup(g); return; }
                                               setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
@@ -16355,7 +16317,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             /* a real thread is found by id; the harness's seeded
                                                conversations are keyed by name */
-                                            onPick={(p) => push("thread:" + (data ? (p.id || p.name) : p.name))} close={() => setSheet(null)} />
+                                            onPick={(p) => { if (p.all) { setSheet("broadcast"); return; } push("thread:" + (data ? (p.id || p.name) : p.name)); }} close={() => setSheet(null)} />
               : sheet === "rate" ? <RateLesson focus={(playerLessons[0] || {}).focus || ""} coach={conn?.coach || ""}
                                             onDone={() => { done(tr("Thanks"), tr("Your coach will see it.")); setTimeout(() => setSheet("rebookAfter"), 1900); }}
                                             close={() => setSheet(null)} />

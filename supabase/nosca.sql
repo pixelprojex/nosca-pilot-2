@@ -896,6 +896,31 @@ as $fn$
   end;
 $fn$;
 
+-- The times a coach already has taken, with nobody's name on them. A
+-- player's diary was offering slots other players held, because
+-- row-level security hides other people's private bookings — rightly —
+-- and so the diary could not know a time was gone. This hands back the
+-- coach's requested and confirmed times for the next ninety days and
+-- nothing else: no player, no group name. Same reach as
+-- coach_availability(): your own coach's, or the coach of someone you
+-- look after.
+create or replace function public.coach_busy_slots(p_player uuid default null)
+returns table (booking_date date, start_time text, duration integer)
+language sql stable security definer set search_path = ''
+as $fn$
+  select b.booking_date, b.start_time, b.duration
+  from public.bookings b
+  where b.coach_id = case
+          when p_player is null or p_player = auth.uid() then public.my_coach_id()
+          when p_player in (select public.my_family_ids()) then public.coach_of(p_player)
+          else null end
+    and b.status in ('requested', 'confirmed')
+    and b.booking_date >= current_date
+    and b.booking_date < current_date + 90
+    and (b.player_id is distinct from coalesce(p_player, auth.uid()));
+$fn$;
+grant execute on function public.coach_busy_slots(uuid) to authenticated;
+
 -- registers you, or someone you look after, were marked in. The
 -- sessions policy needs this because it may not read the marks table
 -- directly: the marks policy reads sessions, and two tables reading

@@ -449,6 +449,15 @@ async function attach(page, db, opts = {}) {
         if (!who || who === meId) coachId = mine.coach_id; else if (S.looked.includes(who)) coachId = (db.profiles[who] || {}).coach_id;
         return json(200, (coachId && db.prefs[coachId] && db.prefs[coachId].availability) || {});
       }
+      /* the coach's taken times reach another player as times only — the
+         same shape as the function in nosca.sql */
+      if (fn === "coach_busy_slots") {
+        const who = args.p_player; let coachId = null;
+        if (!who || who === meId) coachId = mine.coach_id; else if (S.looked.includes(who)) coachId = (db.profiles[who] || {}).coach_id;
+        const asker = who || meId;
+        return json(200, coachId ? db.bookings.filter((b) => b.coach_id === coachId && b.player_id !== asker && (b.status === "requested" || b.status === "confirmed"))
+          .map((b) => ({ booking_date: b.booking_date, start_time: b.start_time, duration: b.duration })) : []);
+      }
       if (fn === "delete_my_account") {
         Object.values(db.profiles).forEach((x) => { if (x.coach_id === meId) x.coach_id = null; });
         const fid = mine.family_id; mine.family_id = null; if (fid && !members(fid)) delete db.families[fid];
