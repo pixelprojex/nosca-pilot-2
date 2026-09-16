@@ -82,6 +82,8 @@ function freshDb() {
       await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c18-setup-2");
       await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c19-setup-3");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap('[aria-label="Alerts"]', 900); await shot("c22-alerts");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("c20-chat-list");
       await text("Saoirse Kelly", 900); await shot("c21-thread-junior");
       await ctx.close(); }

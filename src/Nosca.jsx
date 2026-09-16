@@ -13914,57 +13914,59 @@ function PushPrompt({ userId, say }) {
   );
 }
 
-function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family = [], onDo, pop, push, go, empty, items = null, onOpen, onClear, onClearAll, userId, say }) {
+function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family = [], onDo, pop, push, go, empty, items = null, onOpen, onClear, onClearAll, onMarkAllRead, userId, say }) {
   const t = useT();
   const [cleared, setCleared] = useState([]);
   const live = (list) => list.filter((n) => !cleared.includes(n.id));
 
-  /* a real account: the notifications table, newest first, each a door */
+  /* A real account: one plain list of what happened, newest first,
+     Today and then Earlier. A line is the fact, a grey detail if there
+     is one, and the time; a dot means unread; a tap opens the thing;
+     a swipe clears it. One text button: Mark all read while anything is
+     unread, Clear all once nothing is. No kinds, no filters, no jobs —
+     the home screen carries what needs doing. */
   if (items) {
-    const tone = (k) => k === "weather" || k === "declined" ? DANGER : k === "accepted" ? STEADY : k === "request" || k === "booking" ? CAUTION : k === "message" ? t.accent : null;
+    const unread = items.filter((n) => !n.readAt).length;
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const today = items.filter((n) => new Date(n.createdAt) >= startOfToday);
+    const earlier = items.filter((n) => new Date(n.createdAt) < startOfToday);
+    const Line = ({ n, i }) => (
+      <SwipeRow key={n.id} deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
+        <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }} className="w-full flex items-start gap-3.5 px-1 text-left active:opacity-60"
+                style={{ minHeight: 60, paddingTop: 13, paddingBottom: 13, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}`,
+                         animation: `settle 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 10) * 30}ms both` }}>
+          <span className="rounded-full shrink-0" style={{ width: 7, height: 7, marginTop: 7, background: n.readAt ? "transparent" : t.accent }} />
+          <span className="flex-1 min-w-0">
+            <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 500, color: t.ink }}>{n.title}</span>
+            {n.body && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{n.body}</span>}
+          </span>
+          <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint, marginTop: 3 }}>{n.when}</span>
+        </button>
+      </SwipeRow>
+    );
+    const Group = ({ title, list, offset }) => list.length === 0 ? null : (
+      <div className="mb-7">
+        <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{title}</div>
+        <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>{list.map((n, i) => <Line key={n.id} n={n} i={i + offset} />)}</div>
+      </div>
+    );
     return (
       <SwipeBack onBack={pop}>
-        <Screen title={tr("Alerts")} onBack={pop} meta={items.length ? `${items.length}` : tr("All clear")}
-                right={items.length ? <TextBtn onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn> : null}>
-          <div className="px-6 pb-2">
+        <Screen title={tr("Alerts")} onBack={pop}
+                right={items.length === 0 ? null
+                     : unread > 0 ? <TextBtn onClick={() => { haptic(6); onMarkAllRead && onMarkAllRead(); }}>{tr("Mark all read")}</TextBtn>
+                     : <TextBtn onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn>}>
+          <div className="px-6 pb-2" data-tour="alerts-list">
             {userId && <PushPrompt userId={userId} say={say} />}
-            {jobs.length > 0 && (
-              <div className="mb-7" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-                {jobs.map((n, i) => (
-                  <button key={n.id} onClick={() => { haptic(8); soft(); n.go && n.go(); }} className="w-full flex items-center gap-3.5 px-1 py-4 text-left active:opacity-60"
-                          style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`, animation: `settle 360ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>
-                    <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: n.tone || t.hair }} />
-                    <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{n.what}</span>
-                    <span className="rounded-full flex items-center justify-center shrink-0" style={{ minWidth: 22, height: 22, padding: "0 7px", background: n.tone || t.wash, ...TYPE.caption, fontWeight: 500, color: n.tone ? "#fff" : t.sub }}>{n.count}</span>
-                  </button>
-                ))}
-              </div>
-            )}
             {items.length === 0 ? (
               <div className="py-16 text-center">
-                <span className="rounded-full inline-flex items-center justify-center mb-5" style={{ width: 58, height: 58, background: t.wash, animation: "breathe 4s ease-in-out infinite" }}>
-                  <Check size={23} color={STEADY} strokeWidth={2.1} />
-                </span>
                 <p style={{ ...TYPE.title, color: t.ink }}>{tr("All clear")}</p>
-                <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{tr("Lessons, bookings, requests and messages land here.")}</p>
+                <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing new")}</p>
               </div>
-            ) : (
-              <div data-tour="alerts-list" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-                {items.map((n, i) => (
-                  <SwipeRow key={n.id} deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
-                    <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }} className="w-full flex items-start gap-3.5 px-1 py-4 text-left active:opacity-60"
-                            style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`, animation: `settle 360ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 10) * 40}ms both` }}>
-                      <span className="rounded-full shrink-0" style={{ width: 7, height: 7, marginTop: 7, background: n.readAt ? t.hair : (tone(n.kind) || t.accent) }} />
-                      <span className="flex-1 min-w-0">
-                        <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 500, color: t.ink }}>{n.title}</span>
-                        {n.body && <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{n.body}</span>}
-                      </span>
-                      <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint, marginTop: 3 }}>{n.when}</span>
-                    </button>
-                  </SwipeRow>
-                ))}
-              </div>
-            )}
+            ) : (<>
+              <Group title={tr("Today")} list={today} offset={0} />
+              <Group title={tr("Earlier")} list={earlier} offset={today.length} />
+            </>)}
           </div>
         </Screen>
       </SwipeBack>
@@ -15922,6 +15924,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <NotifCentre role={role} jobs={[]} items={data.notifications || []} pop={pop} push={push} go={go}
                         userId={account ? account.id : null} say={say}
                         onOpen={openNotification} onClear={(id) => data.clearNotification(id)}
+                        onMarkAllRead={() => data.markNotificationsRead()}
                         onClearAll={() => { data.clearNotifications(); say(tr("Cleared")); }} />;
   } else if (screen === "alerts") {
     const isParent = role !== "coach" && profiles.some((pf) => pf.age);
