@@ -13877,39 +13877,27 @@ function PushPrompt({ userId, say }) {
   }, []);
   const remember = () => { try { window.localStorage.setItem(KEY, "1"); } catch (e) { /* private mode */ } };
   if (state === "checking" || state === "hidden") return null;
+  /* one row, the height of an alert row: what it offers, and the answer */
+  const turnOn = async () => {
+    if (busy) return; setBusy(true);
+    const r = await subscribePush(supabase, userId);
+    setBusy(false);
+    if (r && r.ok) { remember(); say && say(tr("This phone will be told")); setState("hidden"); }
+    else { say && say((r && r.reason) || tr("Couldn't turn that on")); }
+  };
   return (
-    <div className="mb-6 px-5 py-4" data-tour="push-prompt"
-         style={{ borderRadius: R.surface, background: `${t.accent}0F`, border: `1px solid ${t.accent}26`,
-                  animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
-      <div className="flex items-center gap-3 mb-2">
-        <Bell size={16} color={t.accent} strokeWidth={2} />
-        <span className="flex-1" style={{ ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Hear about this on your phone")}</span>
-      </div>
-      <p className="mb-4" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>
-        {state === "ios"
-          ? tr("On an iPhone, add Nosca to your Home Screen first — Share, then Add to Home Screen — and open it from there.")
-          : tr("New lessons, bookings and messages reach you while Nosca is closed.")}
-      </p>
-      <div className="flex gap-2">
-        {state === "ask" && (
-          <button onClick={async () => {
-                    if (busy) return; setBusy(true);
-                    const r = await subscribePush(supabase, userId);
-                    setBusy(false); remember();
-                    if (r && r.ok) { hapticSuccess(); chime(); say && say(tr("This device will be told")); setState("hidden"); }
-                    else { hapticWarn(); say && say((r && r.reason) || tr("Couldn't turn that on")); setState("hidden"); }
-                  }} disabled={busy}
-                  className="flex-1 active:opacity-80 disabled:opacity-40"
-                  style={{ minHeight: 44, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>
-            {busy ? "…" : tr("Turn them on")}
-          </button>
-        )}
-        <button onClick={() => { haptic(6); remember(); setState("hidden"); }}
-                className={state === "ask" ? "px-5 active:opacity-60" : "flex-1 active:opacity-60"}
-                style={{ minHeight: 44, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>
-          {state === "ask" ? tr("Not now") : tr("Got it")}
-        </button>
-      </div>
+    <div className="flex items-center gap-3 px-1 mb-5" data-tour="push-prompt"
+         style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+      <Bell size={15} color={t.faint} strokeWidth={1.8} />
+      <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
+        {state === "ios" ? tr("Add Nosca to your Home Screen to hear about these") : tr("Hear about these on your phone")}
+      </span>
+      {state === "ask" && (
+        <button onClick={() => { haptic(8); turnOn(); }} disabled={busy} className="shrink-0 active:opacity-60 disabled:opacity-40"
+                style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{busy ? "…" : tr("Turn on")}</button>
+      )}
+      <button onClick={() => { haptic(6); remember(); setState("hidden"); }} className="shrink-0 active:opacity-60"
+              style={{ ...TYPE.small, fontWeight: 600, color: t.faint }}>{state === "ask" ? tr("Not now") : tr("OK")}</button>
     </div>
   );
 }
@@ -13925,6 +13913,12 @@ function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family =
      a swipe clears it. One text button: Mark all read while anything is
      unread, Clear all once nothing is. No kinds, no filters, no jobs —
      the home screen carries what needs doing. */
+  const unreadNow = useRef(0);
+  useEffect(() => { unreadNow.current = (items || []).filter((n) => !n.readAt).length; }, [items]);
+  /* opening the bell is reading it: the dots stay while you look, and
+     whatever was unread is marked read as you leave, so the badge does
+     not need every row tapped */
+  useEffect(() => () => { if (items && unreadNow.current > 0 && onMarkAllRead) onMarkAllRead(); }, []);
   if (items) {
     const unread = items.filter((n) => !n.readAt).length;
     const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
@@ -14097,7 +14091,6 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
    confirmed. Tap one to go there, or clear the lot. */
 function CatchUp({ items, onOpen, onDone }) {
   const t = useT();
-  useEffect(() => { hapticCommit(); swell(); }, []);
   const tone = (k) => k === "weather" || k === "declined" ? DANGER : k === "accepted" || k === "lesson" ? STEADY : k === "request" || k === "booking" ? CAUTION : t.accent;
   const shown = items.slice(0, 6);
   return (
@@ -15925,7 +15918,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         userId={account ? account.id : null} say={say}
                         onOpen={openNotification} onClear={(id) => data.clearNotification(id)}
                         onMarkAllRead={() => data.markNotificationsRead()}
-                        onClearAll={() => { data.clearNotifications(); say(tr("Cleared")); }} />;
+                        onClearAll={async () => { const r = await data.clearNotifications(); if (r && r.error) { hapticWarn(); say(r.error.message); return; } say(tr("Cleared")); }} />;
   } else if (screen === "alerts") {
     const isParent = role !== "coach" && profiles.some((pf) => pf.age);
     /* Coach: everything blocking someone else's week. */
