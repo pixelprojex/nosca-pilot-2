@@ -2950,24 +2950,27 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
 function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, onDone }) {
   const t = useT();
   const first = (lesson.who[0] || "").split(" ")[0];
+  /* With something to offer — the next lesson to log, a rating to ask
+     for — it waits for a tap; its buttons used to fade out under the
+     finger a second after they appeared. With nothing to offer it
+     clears itself. */
+  const waits = !!(onLogNext || onAskRating);
   useEffect(() => {
-    hapticCommit(); swell();
-    const a = setTimeout(() => { hapticSuccess(); tone(1180, 0.1, 0.035); }, 620);
-    const b = setTimeout(() => onDone && onDone(), 2600);
-    return () => { clearTimeout(a); clearTimeout(b); };
-  }, [onDone]);
+    swell();
+    const a = setTimeout(() => tone(1180, 0.1, 0.035), 620);
+    const b = waits ? null : setTimeout(() => onDone && onDone(), 1900);
+    return () => { clearTimeout(a); if (b) clearTimeout(b); };
+  }, []);
 
   const rows = [
-    lesson.groupName ? `${lesson.who.length} ${tr("in the group")}` : first,
+    lesson.groupName ? `${lesson.groupName} · ${lesson.who.length}` : first,
     lesson.focus,
-    lesson.videos && lesson.videos.length ? `${lesson.videos.length} ${tr("clips")}` : null,
-    lesson.nextDrills && lesson.nextDrills.length ? `${lesson.nextDrills.length} ${tr("drills set")}` : null,
-    lesson.nextTip ? tr("Focus set") : null,
   ].filter(Boolean);
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-9" aria-live="polite"
-         style={{ zIndex: 70, background: t.ink, animation: "celebFade 2600ms ease both" }}>
+         onClick={() => { if (waits) { haptic(6); onDone && onDone(); } }}
+         style={{ zIndex: 70, background: t.ink, animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease both" }}>
       {/* shockwave out from the stamp */}
       <span className="absolute rounded-full" aria-hidden="true"
             style={{ width: 130, height: 130, border: `1px solid ${t.accent}`,
@@ -2997,7 +3000,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
              animation: "streakUp 560ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
         <span style={{ fontFamily: display, fontSize: 38, letterSpacing: "-0.04em", color: t.accent }}>{tally}</span>
         <span style={{ fontFamily: ui, fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(244,246,243,0.4)" }}>
-          {tally === 1 ? tr("logged today") : tr("logged today")}
+          {tr("logged today")}
         </span>
       </div>
 
@@ -3007,7 +3010,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
                 style={{ minHeight: 48, borderRadius: R.pill, background: "rgba(255,255,255,0.14)",
                          animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1150ms both" }}>
           <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>
-            {tr("Log next")} — {remaining} {remaining === 1 ? tr("left") : tr("left")}
+            {tr("Log next")} · {remaining} {tr("left")}
           </span>
           <ArrowRight size={14} color="#fff" strokeWidth={2.2} />
         </button>
@@ -10208,7 +10211,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
      the plus button, or "log another" from a lesson already written. */
   const needsDate = !prefill || prefill.m == null;
   const startStep = known.length && !needsDate ? 1 : 0;
-  const titles = [needsDate ? tr("Who and when") : tr("Who"), tr("What happened"), tr("What's next")];
+  /* One question a page. Two dense pages confused everyone who was
+     shown them; five short ones read at a glance, and the caption says
+     how far there is to go. */
+  const titles = [tr("Who was it?"), tr("What did you work on?"), tr("How did it go?"), tr("Drills to set?"), tr("One thing to remember?")];
+  const optional = [false, false, true, true, true];
   const STEPS = titles.length;
   /* `startAt` is the walkthrough's: it shows one step of the wizard,
      inert, without walking there. Clamped, so a tour entry left
@@ -10220,13 +10227,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
      actual day it's being written on — not July the 24th, whenever
      that happens to be. */
   const realToday = new Date();
+  const [logY, setLogY] = useState(realToday.getFullYear());
   const [logM, setLogM] = useState(prefill?.m ?? (realToday.getMonth() + 1));
   const [logD, setLogD] = useState(prefill?.d ?? realToday.getDate());
   const [who, setWho] = useState(known);
   const [pickedGroup, setPickedGroup] = useState(prefill && prefill.kind && prefill.kind.startsWith("Group") ? prefill.who : null);
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState([]);
-  const [ctx, setCtx] = useState(null);
   const [customDraft, setCustomDraft] = useState(""); const [custom, setCustom] = useState([]);
   const [rec, setRec] = useState("idle"); const [secs, setSecs] = useState(0); const [note, setNote] = useState(null);
   const [videos, setVideos] = useState([]); const [cam, setCam] = useState(false);
@@ -10343,16 +10350,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const group = who.length > 1 || !!pickedGroup;
   const nouns = cfg.nouns;
   const tog = (arr, set, v) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
-  const contexts = CONTEXTS[sport];
-
-  const suggestion = (() => {
-    if (who.length !== 1) return null;
-    const last = hadLessons(cfg, live)[0];
-    return last ? { ids: [last.focusId], subs: last.subs, label: `Carry on from ${last.focus.toLowerCase()}` } : null;
-  })();
 
   const matches = POOL_W.filter((r) => r.name.toLowerCase().includes(q.trim().toLowerCase()));
-  const canAdvance = [who.length > 0, chosen.length > 0, true][step];
+  const canAdvance = [who.length > 0, chosen.length > 0, true, true, true][step];
   const showReviewAsk = askReview && who.length === 1 && !pickedGroup
     && (lessonCounts ? (lessonCounts[who[0].id] || 0) === 0 : false);
   const finish = () => onPublish({
@@ -10360,423 +10360,264 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
        for everything that writes to the database */
     type: group ? "group" : "private", who: who.map((r) => r.name), whoIds: who.map((r) => r.id),
     groupName: pickedGroup, focus: chosen.join(" · "),
-    focusList: chosen, focusIds: focus, custom, subs: [], ctx,   // the wizard has no sub-focus picker
+    focusList: chosen, focusIds: focus, custom, subs: [],   // the wizard has no sub-focus picker
     note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
-    nextDrills, nextTip, wantRating, m: logM, d: logD, pulled,
+    nextDrills, nextTip, wantRating, y: logY, m: logM, d: logD, pulled,
   });
 
   const back = () => (step === 0 || (step === startStep && known.length) ? onCancel() : setStep(step - 1));
+  const next = () => { haptic(8); if (step === STEPS - 1) { hapticCommit(); finish(); } else setStep(step + 1); };
+  const whoLine = pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : who.map((r) => r.name.split(" ")[0]).join(", ");
+  const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
+  const chip = (on) => ({ minHeight: 44, borderRadius: R.pill, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.16)}`,
+                          fontFamily: ui, fontSize: 14, fontWeight: 600, color: on ? "#fff" : t.ink, transition: "background 180ms, border-color 180ms" });
 
   return (
     <SwipeBack onBack={back}>
       <div className="flex flex-col h-full relative" style={{ background: t.page }}>
-        <div className="shrink-0" style={{ background: t.page }}>
-          <div className="flex items-center px-1.5" style={{ height: 48 }}>
-            <button onClick={() => { haptic(); back(); }} aria-label={L.back} className="p-2 active:opacity-40"><ChevronLeft size={24} color={t.ink} strokeWidth={2} /></button>
-            <span className="flex-1" />
-            <span className="flex items-center gap-3 pr-4">
-              {/* every optional step, not just three of them: one escape
-                  hatch in one place beats a second footer button */}
-              {step > 0 && step < STEPS - 1 && <TextBtn onClick={() => { haptic(6); setStep(step + 1); }}>{tr("Skip")}</TextBtn>}
-              <span style={{ fontFamily: ui, fontSize: 11.5, letterSpacing: "0.06em", color: t.faint }}>{Math.min(step + 1, STEPS)} / {STEPS}</span>
-            </span>
-          </div>
-          <div className="flex gap-1 px-6 pb-1">
-            {Array.from({ length: STEPS }, (_, i) => (
-              <span key={i} className="flex-1 rounded-full" style={{ height: 2, background: i <= step ? t.accent : t.hair, transition: "background 260ms" }} />
-            ))}
-          </div>
+        <div className="flex items-center px-1.5 shrink-0" style={{ height: 48 }}>
+          <button onClick={() => { haptic(); back(); }} aria-label={L.back} className="p-2 active:opacity-40"><ChevronLeft size={24} color={t.ink} strokeWidth={2} /></button>
+          <span className="flex-1 text-center" style={{ ...TYPE.caption, color: t.faint }}>{step + 1} / {STEPS}</span>
+          <span className="flex justify-end pr-4" style={{ width: 72 }}>
+            {optional[step] && step < STEPS - 1 && <TextBtn color={t.sub} onClick={() => { haptic(6); setStep(step + 1); }}>{tr("Skip")}</TextBtn>}
+          </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto pt-8">
-          <h1 className="px-6 mb-2" style={{ fontFamily: display, fontSize: 32, lineHeight: 1.02, letterSpacing: "-0.036em", color: t.ink,
-                     animation: "fadeUp 460ms cubic-bezier(.22,1,.36,1) both" }}>{titles[step]}</h1>
+        <div className="flex-1 overflow-y-auto pt-5">
+          <h1 className="px-6" style={{ fontFamily: display, fontSize: 30, lineHeight: 1.05, letterSpacing: "-0.034em", color: t.ink,
+                     animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>{titles[step]}</h1>
+          {step > 0 && whoLine && <p className="px-6 mt-2" style={{ ...TYPE.small, color: t.faint }}>{whoLine}</p>}
+          <div style={{ height: 22 }} />
 
           {/* ---------- 1 · who ---------- */}
           {step === 0 && (<>
-
-            <div className="px-6 mb-5">
-              <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
-                <Search size={16} color={t.faint} />
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search your ${nouns}`} className="flex-1 outline-none"
-                       style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-                {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
-                   : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
-              </div>
-            </div>
-
-            {/* Nothing booked anchors this one, so ask when it was. The
-                time is not asked: nothing stores it — lessons carry a
-                date — and a field that records nothing is a field that
-                pretends. */}
-            {needsDate && (
-              <div className="px-6 mb-5">
-                <div data-tour="wiz-when" style={{ borderRadius: R.surface, background: t.surface,
-                              border: `1px solid ${t.hair}`, padding: "14px 18px" }}>
-                  <span className="block mb-1.5" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{tr("Date")}</span>
-                  <input type="date"
-                         value={`${realToday.getFullYear()}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`}
-                         max={`${realToday.getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, "0")}-${String(realToday.getDate()).padStart(2, "0")}`}
-                         onChange={(e) => {
-                           const parts = e.target.value.split("-");
-                           if (parts.length === 3) { setLogM(Number(parts[1])); setLogD(Number(parts[2])); }
-                         }}
-                         className="w-full outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
+            {POOL_W.length > 8 && (
+              <div className="px-6 mb-4">
+                <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
+                  <Search size={15} color={t.faint} />
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
+                         style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+                     : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
                 </div>
               </div>
             )}
-
-            {!q && groups.length > 0 && (<>
-              <Eyebrow>{tr("Groups")}</Eyebrow>
-              <div className="px-6 mb-6 flex flex-col gap-2">
-                {groups.map((g) => {
+            <div className="px-6">
+              <div style={{ borderTop: hair }}>
+                {!q && (groups || []).map((g) => {
                   const on = pickedGroup === g.name;
                   return (
                     <button key={g.id} onClick={() => { hapticCommit(); soft(); if (on) { setPickedGroup(null); setWho([]); }
                                             else { setPickedGroup(g.name);
-                                                   /* a saved group knows its members by id where the
-                                                      account is real, and by name in the harness */
                                                    const ids = g.memberIds && g.memberIds.length ? g.memberIds : null;
                                                    setWho(POOL_W.filter((r) => (ids ? ids.includes(r.id) : (g.members || []).includes(r.name)))); } }}
-                            className="w-full px-4 flex items-center gap-3 text-left active:opacity-60"
-                            style={{ minHeight: 60, borderRadius: R.surface, background: t.surface, border: `1px solid ${on ? t.accent : t.hair}` }}>
-                      <Users size={17} color={on ? t.accent : t.faint} strokeWidth={1.6} />
-                      <span className="flex-1">
-                        <span className="block" style={{ ...TYPE.body, color: t.ink }}>{g.name}</span>
+                            className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 60, borderBottom: hair }}>
+                      <Avatar name={g.name} size={36} group />
+                      <span className="flex-1 min-w-0">
+                        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{g.name}</span>
                         <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{g.members.length} {nouns}</span>
                       </span>
-                      {on && <Check size={17} color={STEADY} strokeWidth={2.1} style={{ animation: "checkPop 420ms cubic-bezier(.28,1.4,.5,1) both" }} />}
+                      <span className="flex items-center justify-center shrink-0"
+                            style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent" }}>
+                        {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
+                      </span>
                     </button>
                   );
                 })}
+                {matches.length === 0 ? (
+                  <p className="py-8 text-center" style={{ ...TYPE.body, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”` : tr("No players yet")}</p>
+                ) : matches.map((pl, pi) => {
+                  const on = who.some((r) => r.id === pl.id);
+                  return (
+                    <button key={pl.id} data-tour={pi === 0 ? "wiz-who" : undefined}
+                            onClick={() => { haptic(6); setPickedGroup(null); setWho(on ? who.filter((r) => r.id !== pl.id) : [...who, pl]); }}
+                            className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 60, borderBottom: hair }}>
+                      <Avatar name={pl.name} size={36} src={avatarUrl(pl.avatarPath)} />
+                      <span className="flex-1 truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
+                      <span className="flex items-center justify-center shrink-0"
+                            style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent" }}>
+                        {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
+                      </span>
+                    </button>
+                  );
+                })}
+                {/* nothing booked anchors this one, so the day is asked here — one row, today unless changed */}
+                {needsDate && (
+                  <label data-tour="wiz-when" className="w-full flex items-center gap-3.5" style={{ minHeight: 60, borderBottom: hair }}>
+                    <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Date")}</span>
+                    <input type="date"
+                           value={`${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`}
+                           max={`${realToday.getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, "0")}-${String(realToday.getDate()).padStart(2, "0")}`}
+                           onChange={(e) => { const parts = e.target.value.split("-"); if (parts.length === 3) { setLogY(Number(parts[0])); setLogM(Number(parts[1])); setLogD(Number(parts[2])); } }}
+                           className="outline-none text-right" style={{ fontFamily: ui, fontSize: 15, color: t.sub, background: "transparent" }} />
+                  </label>
+                )}
               </div>
-            </>)}
+              <div style={{ height: 26 }} />
+            </div>
+          </>)}
 
-            <Eyebrow>{q ? `${matches.length} found` : nouns.charAt(0).toUpperCase() + nouns.slice(1)}</Eyebrow>
-            <div className="px-6 pb-4">
-              {matches.length === 0 ? (
-                <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”.` : tr("No players yet.")}</p>
-              ) : (
-                <div style={{ borderTop: `1px solid ${t.hair}` }}>
-                  {matches.map((pl, pi) => {
-                    const on = who.some((r) => r.id === pl.id);
+          {/* ---------- 2 · what was worked on ---------- */}
+          {step === 1 && (
+            <div className="px-6">
+              <div className="flex flex-wrap gap-2" data-tour="wiz-focus">
+                {cfg.focus.map((f) => {
+                  const on = focus.includes(f.id);
+                  return <button key={f.id} aria-pressed={on} onClick={() => { haptic(6); tog(focus, setFocus, f.id); }} className="px-4 active:opacity-60" style={chip(on)}>{f.label}</button>;
+                })}
+                {custom.map((c) => (
+                  <span key={c} className="px-3.5 flex items-center gap-2" style={chip(true)}>
+                    {c}<button onClick={() => { haptic(6); setCustom(custom.filter((x) => x !== c)); }} aria-label={`Remove ${c}`}><X size={12} color="rgba(255,255,255,0.7)" /></button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-5">
+                <div className="flex-1"><VoiceInput value={customDraft} onChange={setCustomDraft} ph={tr("Something else")} /></div>
+                <button onClick={() => { if (customDraft.trim()) { haptic(10); setCustom([...custom, customDraft.trim()]); setCustomDraft(""); } }}
+                        disabled={!customDraft.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
+                        style={{ width: 54, minHeight: 54, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}><Plus size={17} color="#fff" strokeWidth={2.1} /></button>
+              </div>
+              <div style={{ height: 26 }} />
+            </div>
+          )}
+
+          {/* ---------- 3 · how it went: the note, and anything filmed ---------- */}
+          {step === 2 && (
+            <div className="px-6">
+              <input ref={fileInput} type="file" multiple className="hidden"
+                     onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+              {live ? (
+                <div data-tour="wiz-notes"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} /></div>
+              ) : (<>
+                {rec === "idle" && !note && (
+                  <button data-tour="wiz-notes" onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex items-center justify-center gap-3 active:opacity-70"
+                          style={{ minHeight: 96, borderRadius: R.surface, background: t.wash }}>
+                    <span className="rounded-full flex items-center justify-center" style={{ width: 44, height: 44, background: t.ink }}><Mic size={18} color="#fff" strokeWidth={1.6} /></span>
+                    <span style={{ ...TYPE.body, color: t.ink }}>{tr("Tap to record")}</span>
+                  </button>
+                )}
+                {rec === "recording" && (
+                  <div className="flex flex-col items-center justify-center" style={{ minHeight: 150, borderRadius: R.surface, background: t.wash }}>
+                    <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
+                    <button onClick={() => { haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-4" style={{ width: 54, height: 54, background: DANGER }} aria-label={tr("Stop")}><Square size={18} color="#fff" /></button>
+                  </div>
+                )}
+                {rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
+                {note && (
+                  <Card className="p-5">
+                    <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.65, color: t.ink }}>{note}</p>
+                    <button onClick={() => { setRec("idle"); setNote(null); setSecs(0); }} className="mt-3 active:opacity-50" style={{ ...TYPE.caption, color: t.faint }}>{tr("Record again")}</button>
+                  </Card>
+                )}
+              </>)}
+
+              {/* a clip, a photo, a voice note: three plain ways in */}
+              <div className="grid gap-2 mt-4" data-tour="wiz-media" style={{ gridTemplateColumns: `repeat(${waiting.length ? 4 : 3}, minmax(0, 1fr))` }}>
+                {[
+                  live ? { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") }
+                       : { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
+                  live ? { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => pickFiles("image/*", "environment") }
+                       : { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => addPhoto("action") },
+                  live ? { id: "voice", label: voice ? tr("Voice ✓") : rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice"), Icon: Mic,
+                           act: () => { if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }, on: rec === "recording" }
+                       : { id: "lib",  label: tr("Library"), Icon: Library, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
+                  waiting.length ? { id: "live", label: `${tr("Captured")} · ${waiting.length}`, Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, on: showWaiting } : null,
+                ].filter(Boolean).map((o) => (
+                  <button key={o.id} onClick={o.act} className="flex flex-col items-center justify-center gap-1.5 active:opacity-70"
+                          style={{ minHeight: 68, borderRadius: R.control, background: o.on ? t.ink : t.wash, transition: "background 180ms" }}>
+                    <o.Icon size={17} color={o.on ? "#fff" : t.ink} strokeWidth={1.7} />
+                    <span className="truncate px-1" style={{ ...TYPE.caption, fontWeight: 600, color: o.on ? "#fff" : t.ink }}>{o.label}</span>
+                  </button>
+                ))}
+              </div>
+              {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
+
+              {showWaiting && waiting.length > 0 && (
+                <div className="mt-4" style={{ borderTop: hair }}>
+                  {waiting.map((it) => {
+                    const label = it.kind === "video" ? tr("Clip") : it.kind === "voice" ? tr("Voice note") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo");
+                    const Ico = it.kind === "video" ? Play : it.kind === "voice" ? Mic : it.kind === "note" ? Edit3 : Tag;
                     return (
-                      <button key={pl.id} data-tour={pi === 0 ? "wiz-who" : undefined}
-                              onClick={() => { haptic(6); setPickedGroup(null);
-                                setWho(on ? who.filter((r) => r.id !== pl.id) : [...who, pl]); }}
-                              className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                              style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
-                        <Avatar name={pl.name} size={36} />
-                        <span className="flex-1" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink }}>{pl.name}</span>
-                        <span className="flex items-center justify-center shrink-0"
-                              style={{ width: 22, height: 22, borderRadius: R.control, border: `1.5px solid ${on ? t.accent : t.hair}`, background: on ? t.accent : "transparent" }}>
-                          {on && <Check size={12} color="#fff" strokeWidth={2.1} />}
+                      <button key={it.id} onClick={() => pull(it)} className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 54, borderBottom: hair }}>
+                        <Ico size={15} color={t.sub} strokeWidth={1.8} />
+                        <span className="flex-1 min-w-0">
+                          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+                          {who.length > 1 && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{it.from}</span>}
                         </span>
+                        <span style={{ ...TYPE.caption, fontWeight: 600, color: t.accent }}>{tr("Add")}</span>
                       </button>
                     );
                   })}
                 </div>
               )}
+
+              {live && voice && (
+                <div className="flex items-center gap-3 mt-4" style={{ minHeight: 54, borderTop: hair, borderBottom: hair }}>
+                  <Mic size={15} color={t.sub} strokeWidth={1.8} />
+                  <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")} · {Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
+                  <audio src={voice.url} controls preload="metadata" style={{ height: 32, maxWidth: 150 }} />
+                  <button onClick={() => { haptic(6); URL.revokeObjectURL(voice.url); setVoice(null); }} aria-label={tr("Remove")} className="p-1 active:opacity-50"><X size={14} color={t.faint} /></button>
+                </div>
+              )}
+              {items.length > 0 && (
+                <div className="flex flex-col gap-2.5 mt-4">
+                  {items.map((it, i) => (
+                    <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
+                              onAnnotate={live ? null : () => onAnnotate && onAnnotate(it.angle)}
+                              onTranscribe={live ? null : () => transcribeClip(it.id)}
+                              onRemove={() => removeItem(it.id)} />
+                  ))}
+                </div>
+              )}
+              <div style={{ height: 26 }} />
             </div>
-          </>)}
+          )}
 
-          {/* ---------- 2 · what happened ----------
-              The focus, what was filmed and the note, together. They
-              were three pages, and a coach writing up a lesson holds
-              all three in mind at once.
-
-              Media sits above the note on purpose: the note's record
-              button is 190px tall in the design harness, and with the
-              note first it pushed the capture grid under the footer —
-              where the walkthrough's ring cannot reach it. */}
-          {step === 1 && (<>
-            <p className="px-6 mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>
-              {pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : who.map((r) => r.name).join(", ")}
-            </p>
-
-            {suggestion && focus.length === 0 && (
-              <div className="px-6 mb-5">
-                <button onClick={() => { hapticCommit(); soft(); setFocus(suggestion.ids); }}
-                        className="w-full px-4 flex items-center gap-3 text-left active:opacity-60"
-                        style={{ minHeight: 56, borderRadius: R.surface, background: t.wash }}>
-                  <Sparkles size={15} color={t.accent} strokeWidth={2} />
-                  <span className="flex-1" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{suggestion.label}</span>
-                  <span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Use")}</span>
-                </button>
-              </div>
-            )}
-
-            <div className="px-6 flex flex-wrap gap-2 mb-3" data-tour="wiz-focus">
-              {cfg.focus.map((f) => {
-                const on = focus.includes(f.id);
-                return (
-                  <button key={f.id} onClick={() => { haptic(6); tog(focus, setFocus, f.id); }} className="px-4 active:opacity-60"
-                          style={{ transition: "background 200ms, transform 160ms cubic-bezier(.22,1,.36,1)", minHeight: 44, borderRadius: R.pill, background: on ? t.accent : t.surface, border: `1px solid ${on ? t.accent : t.hair}`,
-                                   fontFamily: ui, fontSize: 14, fontWeight: 600, color: on ? t.onAccent : t.sub }}>{f.label}</button>
-                );
-              })}
-              {custom.map((c) => (
-                <span key={c} className="px-3.5 flex items-center gap-2" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
-                  <span style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.ink }}>{c}</span>
-                  <button onClick={() => { haptic(6); setCustom(custom.filter((x) => x !== c)); }} aria-label={`Remove ${c}`}><X size={12} color={t.faint} /></button>
-                </span>
-              ))}
-            </div>
-
-            <div className="px-6 flex items-center gap-2 mb-6">
-              <div className="flex-1"><VoiceInput value={customDraft} onChange={setCustomDraft} ph={tr("Something else")} /></div>
-              <button onClick={() => { if (customDraft.trim()) { haptic(10); setCustom([...custom, customDraft.trim()]); setCustomDraft(""); } }}
-                      disabled={!customDraft.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
-                      style={{ width: 48, height: 48, borderRadius: R.surface, background: t.accent }} aria-label={tr("Add")}><Plus size={17} color={t.onAccent} strokeWidth={2.1} /></button>
-            </div>
-
-            <Eyebrow>{tr("Clips and photos")}</Eyebrow>
+          {/* ---------- 4 · drills ---------- */}
+          {step === 3 && (
             <div className="px-6">
-            {/* Five ways in. Everything captured lands below in the same
-                shape, so the screen never turns into competing sections. */}
-            <input ref={fileInput} type="file" multiple className="hidden"
-                   onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
-            <div className="grid gap-1.5 mb-5" data-tour="wiz-media" style={{ gridTemplateColumns: `repeat(${live ? 4 : 5}, minmax(0, 1fr))` }}>
-              {(live ? [
-                /* the camera where there is one, a file picker where there
-                   isn't; no device readouts — nothing is read off a photo */
-                { id: "rec",   label: tr("Record"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") },
-                { id: "lib",   label: tr("Library"), Icon: ImageIcon, act: () => pickFiles("video/*,image/*,audio/*", null) },
-                { id: "shot",  label: tr("Photo"),   Icon: Tag,       act: () => pickFiles("image/*", "environment") },
-                { id: "live",  label: tr("Captured"), Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, badge: waiting.length },
-              ] : [
-                { id: "rec",   label: tr("Record"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
-                { id: "lib",   label: tr("Library"), Icon: ImageIcon, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
-                { id: "data",  label: CAPTURE[sport].device.split(" ")[0], Icon: Receipt, act: () => addPhoto("data") },
-                { id: "shot",  label: tr("Photo"),   Icon: Tag,       act: () => addPhoto("action") },
-                { id: "live",  label: tr("Captured"), Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, badge: waiting.length },
-              ]).map((o, i) => (
-                <button key={o.id} onClick={o.act}
-                        onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                        onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                        onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                        className="relative flex flex-col items-center justify-center gap-1.5 active:opacity-70"
-                        style={{ minHeight: 84, borderRadius: R.control,
-                                 background: o.id === "live" && showWaiting ? `${t.accent}0F` : t.surface,
-                                 border: `0.5px solid ${o.id === "live" && showWaiting ? t.accent : HAIR(t.ink, 0.14)}`,
-                                 willChange: "transform", transition: "transform 150ms cubic-bezier(.34,1.56,.64,1), background 200ms",
-                                 animation: `liftIn 400ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
-                  <o.Icon size={18} color={i === 0 ? t.accent : t.sub} strokeWidth={1.6} />
-                  <span className="truncate px-1" style={{ fontFamily: ui, fontSize: 9.5, fontWeight: 600, color: t.ink }}>{o.label}</span>
-                  {o.badge > 0 && (
-                    <span className="absolute rounded-full flex items-center justify-center"
-                          style={{ top: -5, right: -5, minWidth: 18, height: 18, padding: "0 4px", background: DANGER,
-                                   fontFamily: ui, fontSize: 10, fontWeight: 600, color: "#fff",
-                                   animation: "countIn 380ms cubic-bezier(.28,1.4,.5,1) both" }}>{o.badge}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* what's waiting from outside the wizard — a mid-lesson
-                capture, or something filmed via the player's own sheet */}
-            {showWaiting && (
-              <div className="mb-5" style={{ borderRadius: R.surface, background: t.wash, overflow: "hidden",
-                                              animation: "contentRise 320ms cubic-bezier(.22,1,.36,1) both" }}>
-                {waiting.length === 0 ? (
-                  <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>
-                    {tr("Nothing captured outside the log yet.")}
-                  </p>
-                ) : waiting.map((it, i) => {
-                  const label = it.kind === "video" ? tr("Clip") : it.kind === "voice" ? tr("Voice note")
-                    : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo");
-                  const Ico = it.kind === "video" ? Play : it.kind === "voice" ? Mic : it.kind === "note" ? Edit3 : Tag;
-                  return (
-                    <button key={it.id} onClick={() => pull(it)}
-                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-60"
-                            style={{ minHeight: 58, borderBottom: i === waiting.length - 1 ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                                     animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
-                      <Ico size={16} color={t.accent} strokeWidth={1.8} />
-                      <span className="flex-1 min-w-0">
-                        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-                        {who.length > 1 && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{it.from}</span>}
-                      </span>
-                      <span className="rounded-full flex items-center justify-center shrink-0"
-                            style={{ width: 26, height: 26, border: `1.5px solid ${t.accent}` }}>
-                        <Plus size={12} color={t.accent} strokeWidth={2.6} />
-                      </span>
-                    </button>
-                  );
+              <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
+                {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d) => {
+                  const on = nextDrills.includes(d.t);
+                  return <button key={d.t} aria-pressed={on} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }} className="px-4 active:opacity-60" style={chip(on)}>{d.t}</button>;
                 })}
               </div>
-            )}
+              <div className="flex gap-2 mt-5">
+                <div className="flex-1"><VoiceInput value={ownDrill} onChange={setOwnDrill} ph={tr("Add your own")} /></div>
+                <button onClick={() => { const v = ownDrill.trim(); if (!v) return;
+                          hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill("");
+                          onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); }}
+                        disabled={!ownDrill.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
+                        style={{ width: 54, minHeight: 54, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}>
+                  <Plus size={17} color="#fff" strokeWidth={2.1} />
+                </button>
+              </div>
+              <div style={{ height: 26 }} />
+            </div>
+          )}
 
-            {/* Nothing attached is the normal state and the four
-                buttons above already say what to do about it; a line
-                of grey text saying so was just height on a page that
-                now carries the note as well. */}
-            {items.length > 0 && (
-              <div className="flex flex-col gap-2.5">
-                {items.map((it, i) => (
-                  <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
-                            onAnnotate={live ? null : () => onAnnotate && onAnnotate(it.angle)}
-                            onTranscribe={live ? null : () => transcribeClip(it.id)}
-                            onRemove={() => removeItem(it.id)} />
+          {/* ---------- 5 · the one thing ---------- */}
+          {step === 4 && (
+            <div className="px-6">
+              <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip} ph={tipPrompts && tipPrompts[0] ? tipPrompts[0] : tr("One sentence")} /></div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {(tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp) => (
+                  <button key={tp} aria-pressed={nextTip === tp} onClick={() => { haptic(6); soft(); setNextTip(tp); }} className="px-3.5 active:opacity-60" style={{ ...chip(nextTip === tp), minHeight: 40, fontSize: 13, fontWeight: 500 }}>{tp}</button>
                 ))}
               </div>
-            )}
-            <div style={{ height: 26 }} />
-            </div>
-
-            <Eyebrow>{tr("The note")}</Eyebrow>
-            <div className="px-6">
-
-            {/* a real account types or dictates the note, and may add a
-                voice note as a file; nothing is transcribed for them */}
-            {live && (
-              <div className="mb-4"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} /></div>
-            )}
-            {live && voice && (
-              <Card className="p-4 mb-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <Mic size={16} color={t.accent} strokeWidth={1.8} />
-                  <span style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")}</span>
-                  <span className="flex-1" />
-                  <span style={{ ...TYPE.caption, color: t.faint }}>{Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
+              {showReviewAsk && (
+                <div className="flex items-center gap-3 mt-7" style={{ minHeight: 56, borderTop: hair, borderBottom: hair }}>
+                  <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Ask")} {first} {tr("for a rating")}</span>
+                  <Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />
                 </div>
-                <audio src={voice.url} controls preload="metadata" className="w-full" />
-                <button onClick={() => { haptic(6); URL.revokeObjectURL(voice.url); setVoice(null); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Remove")}</button>
-              </Card>
-            )}
-            {rec === "idle" && !(live ? voice : note) && !(live && !cap.supported) && (
-              <button data-tour="wiz-notes" onClick={() => { if (live) { startVoice(); return; } haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex flex-col items-center justify-center gap-3 active:opacity-70"
-                      style={{ minHeight: live ? 130 : 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-                <span className="rounded-full flex items-center justify-center" style={{ width: live ? 52 : 68, height: live ? 52 : 68, background: t.accent }}>
-                  <Mic size={live ? 20 : 26} color={t.onAccent} strokeWidth={1.6} />
-                </span>
-                <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{live ? tr("Record a voice note") : tr("Tap to record")}</span>
-              </button>
-            )}
-            {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
-            {rec === "recording" && (
-              <div className="flex flex-col items-center justify-center" style={{ minHeight: 190, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
-                <div className="flex items-end gap-1 h-8 mb-4">{[8,20,13,28,17,30,11,24,15,28,19,22].map((v, i) => (<div key={i} className="rounded-full" style={{ width: 3, height: v, background: t.accent, opacity: 0.3 + (i % 4) * 0.17 }} />))}</div>
-                <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
-                <button onClick={() => { if (live) { stopVoice(); return; } haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-5" style={{ width: 58, height: 58, background: DANGER }} aria-label={tr("Stop")}><Square size={17} color="#fff" fill="#fff" /></button>
-              </div>
-            )}
-            {!live && rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
-            {!live && note && (
-              <Card className="p-5">
-                <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.65, color: t.ink }}>{note}</p>
-                <button onClick={() => { setRec("idle"); setNote(null); setSecs(0); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Record again")}</button>
-              </Card>
-            )}
-            <div style={{ height: 26 }} />
-            </div>
-          </>)}
-
-          {/* ---------- 3 · what's next ----------
-              Drills, the one thing to remember, and — for a player
-              never logged before — whether to ask them for a rating.
-              A coach who scrolls past that last one is asked again by
-              the burst after publishing. */}
-          {step === 2 && (<>
-            <Eyebrow>{tr("Drills to set")}</Eyebrow>
-            <div className="px-6">
-            <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
-              {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d, i) => {
-                const on = nextDrills.includes(d.t);
-                return (
-                  <button key={d.t} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }}
-                          className="px-4 active:opacity-60"
-                          style={{ minHeight: 48, borderRadius: R.pill, background: on ? t.accent : t.surface,
-                                   border: `1px solid ${on ? t.accent : t.hair}`, fontFamily: ui, fontSize: 14,
-                                   fontWeight: 600, color: on ? t.onAccent : t.sub,
-                                   transition: "background 200ms, transform 200ms cubic-bezier(.34,1.56,.64,1)",
-                                   transform: on ? "scale(1.04)" : "scale(1)",
-                                   animation: `fadeUp 360ms cubic-bezier(.22,1,.36,1) ${i * 50}ms both` }}>{d.t}</button>
-                );
-              })}
-            </div>
-            {/* Anything the coach types becomes a drill and stays
-                selected — a library that only offers its own contents
-                is a library nobody adds to. */}
-            <div className="flex gap-2 mt-5">
-              <div className="flex-1"><VoiceInput value={ownDrill} onChange={setOwnDrill} ph={tr("Add your own")} /></div>
-              <button onClick={() => { const v = ownDrill.trim(); if (!v) return;
-                        hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill("");
-                        /* Typed once, remembered from here on — this is
-                           what makes the suggestion list a coach's own
-                           over time rather than a fixed starter set. */
-                        onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); }}
-                      disabled={!ownDrill.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
-                      style={{ width: 52, minHeight: 52, borderRadius: R.surface, background: t.accent }} aria-label={tr("Add")}>
-                <Plus size={18} color={t.onAccent} strokeWidth={2.1} />
-              </button>
-            </div>
-            {nextDrills.length > 0 && (
-              <p className="mt-4" style={{ fontFamily: ui, fontSize: 13, color: t.faint,
-                     animation: "fadeUp 320ms cubic-bezier(.22,1,.36,1) both" }}>
-                {nextDrills.length} {tr("set for")} {first}
-              </p>
-            )}
-            <div style={{ height: 26 }} />
-            </div>
-
-            <Eyebrow>{tr("The one thing")}</Eyebrow>
-            <div className="px-6">
-            <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip}
-                        ph={chosen[0] ? `${tr("e.g.")} ${chosen[0].toLowerCase()}` : tr("Keep it to one sentence")} /></div>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {/* the coach's own tips first, then the sport's — the same
-                  list the Set-tip sheet offers */}
-              {(tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp, i) => (
-                <button key={tp} onClick={() => { haptic(6); soft(); setNextTip(tp); }} className="px-3.5 active:opacity-60"
-                        style={{ minHeight: 40, borderRadius: R.pill, background: t.wash, fontFamily: ui, fontSize: 12.5, color: t.sub,
-                                 animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>{tp}</button>
-              ))}
-            </div>
-            <div style={{ height: 26 }} />
-            </div>
-
-            {showReviewAsk && (<>
-              <Eyebrow>{tr("Rating")}</Eyebrow>
-            <div className="px-6" style={{ animation: "contentRise 380ms cubic-bezier(.22,1,.36,1) both" }}>
-              <button onClick={() => { haptic(9); soft(); setWantRating(!wantRating); }}
-                      onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                      onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                      onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                      className="w-full flex items-center gap-4 px-5 text-left active:opacity-80"
-                      style={{ minHeight: 84, borderRadius: R.surface, willChange: "transform",
-                               background: wantRating ? t.accent : t.surface,
-                               boxShadow: wantRating ? `0 8px 22px ${t.accent}2E` : ELEV.rest,
-                               transition: "transform 160ms cubic-bezier(.34,1.56,.64,1), background 240ms" }}>
-                <span className="rounded-full flex items-center justify-center shrink-0"
-                      style={{ width: 40, height: 40, background: wantRating ? "rgba(255,255,255,0.18)" : t.wash }}>
-                  {wantRating
-                    ? <Check size={19} color="#fff" strokeWidth={2.4} style={{ animation: "checkPop 400ms cubic-bezier(.28,1.4,.5,1) both" }} />
-                    : <Sparkles size={18} color={t.sub} strokeWidth={1.7} />}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block" style={{ ...TYPE.subhead, color: wantRating ? "#fff" : t.ink }}>{tr("Ask for a rating")}</span>
-                  <span className="block mt-0.5" style={{ ...TYPE.caption, color: wantRating ? "rgba(255,255,255,0.7)" : t.faint }}>
-                    {wantRating ? tr("They'll be asked once") : tr("Off")}
-                  </span>
-                </span>
-              </button>
-            </div>
+              )}
               <div style={{ height: 26 }} />
-            </>)}
-          </>)}
-
+            </div>
+          )}
         </div>
 
-        <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: `1px solid ${t.hair}` }}>
-          {/* One control. There used to be two: a Continue and, on a
-              page reached only when the player had never been logged
-              before, a taller pulsing Publish — so for every other
-              coach the last page said Continue and published anyway,
-              and the accent button was unreachable. */}
-          <div className="flex-1" data-tour="wiz-next"><Button tone="ink" disabled={!canAdvance}
-                onClick={() => { haptic(8); if (step === STEPS - 1) { hapticCommit(); finish(); } else setStep(step + 1); }}>
-                {step === STEPS - 1 ? L.publish : L.continue}
-              </Button></div>
+        <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: hair }}>
+          <div data-tour="wiz-next"><Button tone="ink" disabled={!canAdvance} onClick={next}>{step === STEPS - 1 ? L.publish : L.continue}</Button></div>
         </div>
         {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
       </div>
@@ -15335,19 +15176,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   const publish = async (l) => {
     const lesson = { ...l, when: "just now" };
-    setLogged((n) => n + 1);
-    if (prefill) setLoggedKeys((k) => new Set(k).add(lessonKey(prefill)));
     if (offline) {
       setQueued((q) => q + 1);
       setBurst(lesson);
       return;
     }
-    setBurst(lesson);
+    /* The harness has nothing to write: it celebrates at once. A real
+       account writes first and celebrates only when the row is there —
+       the burst used to say "Logged" over a lesson that had failed. */
+    if (!(data && account)) {
+      setLogged((n) => n + 1);
+      if (prefill) setLoggedKeys((k) => new Set(k).add(lessonKey(prefill)));
+      setBurst(lesson);
+      return;
+    }
 
-    /* With a real account this is written to the database, so the
-       player it belongs to sees it on their own device. Without one
-       (the design harness) nothing is persisted, exactly as before. */
-    if (data && account) {
+    {
       const isGroup = l.type === "group";
       const names = Array.isArray(l.who) ? l.who : (l.who ? [l.who] : []);
       const named = names[0];
@@ -15373,7 +15217,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               .map((n) => ((data.roster || []).find((r) => r.name === n) || {}).id).filter(Boolean));
       /* The lesson was actually logged for whichever day the coach
          picked in the wizard's own date step — not necessarily today. */
-      const year = new Date().getFullYear();
+      const year = l.y || new Date().getFullYear();
       const lessonDate = l.m && l.d
         ? `${year}-${String(l.m).padStart(2, "0")}-${String(l.d).padStart(2, "0")}`
         : undefined;
@@ -15390,16 +15234,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         ratingRequested: !!l.wantRating,
         attendeeIds,
       });
-      if (res && res.lesson) {
-        const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
-        lastLogged.current = { id: res.lesson.id, pending: false };
-        if (askedMeanwhile) data.requestRating(res.lesson.id);
+      if (!res || res.error || !res.lesson) {
+        hapticWarn();
+        say((res && res.error && res.error.message) || tr("Couldn't save the lesson"));
+        return;
       }
-      /* anything the coach set alongside the lesson */
-      for (const d of l.nextDrills || []) {
-        if (match?.id) await data.setDrill(match.id, typeof d === "string" ? d : d.t);
+      const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
+      lastLogged.current = { id: res.lesson.id, pending: false };
+      if (askedMeanwhile) data.requestRating(res.lesson.id);
+      /* anything the coach set alongside the lesson — for everyone who
+         was there, not the first name on the list */
+      const recipients = isGroup ? attendeeIds : (match?.id ? [match.id] : []);
+      for (const pid of recipients) {
+        for (const d of l.nextDrills || []) await data.setDrill(pid, typeof d === "string" ? d : d.t);
+        if (l.nextTip) await data.setTip(pid, l.nextTip, null);
       }
-      if (l.nextTip && match?.id) await data.setTip(match.id, l.nextTip, null);
+      if (prefill) setLoggedKeys((k) => new Set(k).add(lessonKey(prefill)));
+      setBurst(lesson);
     }
   };
 
@@ -16476,7 +16327,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                        onClose={() => { setTour(false); hapticSuccess(); }} />}
           {arrival && <NewLessonArrival lesson={arrival} coach={(conn || {}).coach || ""}
                         onOpen={() => { const id = arrival.id; setArrival(null); setStack([id != null ? "lesson:" + id : "lesson"]); setTimeout(() => setSheet("rate"), 900); }} />}
-          {burst && <PublishedBurst lesson={burst} tally={logged}
+          {burst && <PublishedBurst lesson={burst} tally={data ? taught(data.lessons).filter((x) => x.iso === isoOf(todayMD.m, todayMD.d)).length : logged}
                         onAskRating={data
                           ? (burst.wantRating ? null : askForRating)
                           : () => { setAskRating(burst); say(tr("They'll be asked after this lesson")); }}
