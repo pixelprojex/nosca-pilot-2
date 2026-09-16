@@ -5172,7 +5172,7 @@ function GeneratedField({ lesson, mark }) {
    reattaches the ref each time, which paused the clip on every state
    change and left a black frame. It also needs preload="auto" and an
    explicit load(), or nothing is painted until first play. */
-function Evidence({ item, live, mark }) {
+function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
   const vid = useRef(null);
   const [tk, setTk] = useState(0);
   const [ready, setReady] = useState(false);
@@ -5189,10 +5189,21 @@ function Evidence({ item, live, mark }) {
   const tryPlay = () => {
     const el = vid.current;
     if (!el) return;
-    el.muted = true; el.defaultMuted = true;
-    el.setAttribute("muted", ""); el.setAttribute("playsinline", ""); el.setAttribute("webkit-playsinline", "");
+    /* autoplay is only ever allowed muted; sound comes on afterwards,
+       from a tap, which the browser permits */
+    el.muted = muted; el.defaultMuted = true;
+    if (muted) el.setAttribute("muted", ""); else el.removeAttribute("muted");
+    el.setAttribute("playsinline", ""); el.setAttribute("webkit-playsinline", "");
     const p = el.play();
-    if (p && p.then) p.then(() => setBlocked(false)).catch(() => setBlocked(true));
+    if (p && p.then) p.then(() => setBlocked(false)).catch(() => {
+      /* sound on is allowed only from a tap; a card scrolled into view
+         plays muted instead of not at all, and the switch shows it */
+      if (!muted) {
+        el.muted = true; el.setAttribute("muted", "");
+        const q = el.play();
+        if (q && q.then) q.then(() => { setBlocked(false); onAutoMuted && onAutoMuted(); }).catch(() => setBlocked(true));
+      } else setBlocked(true);
+    });
   };
   useEffect(() => {
     const el = vid.current;
@@ -5200,6 +5211,7 @@ function Evidence({ item, live, mark }) {
     if (live) tryPlay();
     else el.pause();
   }, [live, item.url]);
+  useEffect(() => { const el = vid.current; if (el) el.muted = muted; }, [muted]);
   useEffect(() => {
     const el = vid.current;
     if (el && item.type === "video") { setReady(false); setFailed(false); el.load(); if (live) tryPlay(); }
@@ -5234,6 +5246,7 @@ function Evidence({ item, live, mark }) {
                onLoadedData={() => setReady(true)}
                onCanPlay={() => { setReady(true); if (live && vid.current && vid.current.paused) tryPlay(); }}
                onPlaying={() => { setReady(true); setBlocked(false); }}
+               onTimeUpdate={(e) => { if (onProgress && live) { const el = e.currentTarget; onProgress(el.duration ? el.currentTime / el.duration : 0); } }}
                onError={() => setFailed(true)}
                className="absolute inset-0 w-full h-full"
                style={{ objectFit: "cover", zIndex: 1 }} />
@@ -5322,23 +5335,39 @@ function Evidence({ item, live, mark }) {
 }
 
 
-const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed }) {
+/* the round buttons down the right of a feed card: sound, open, the coach */
+function Round({ label, onTap, children, solid, tour }) {
+  return (
+    <button onClick={onTap} aria-label={label} data-tour={tour} className="flex items-center justify-center active:opacity-70"
+            style={{ width: 46, height: 46, borderRadius: 23,
+                     background: solid ? "rgba(255,255,255,0.94)" : "rgba(20,24,26,0.55)",
+                     backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                     border: solid ? "none" : "0.5px solid rgba(255,255,255,0.18)",
+                     transition: "background 200ms" }}>
+      {children}
+    </button>
+  );
+}
+
+const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho }) {
   const t = useT();
   const live = useLive();
   const [frame, setFrame] = useState(0);
+  const [prog, setProg] = useState(0);      // how far through the clip on screen
+  const [more, setMore] = useState(false);  // the note, opened out
   const rail = useRef(null);
   const items = media && media.length ? media : [];
+  const current = items[frame];
 
   /* A lesson the prefetch never reached asks for its own files the
      first time it comes near, so the twentieth lesson down is not a
      black card for ever. */
   useEffect(() => { if (near && media === undefined && onNeed) onNeed(lesson); }, [near, media, lesson, onNeed]);
+  useEffect(() => { setProg(0); }, [frame, active]);
 
-  /* the counter is a control: tapping it walks the rail, for anyone who
-     never discovers the sideways swipe */
   const step = (d) => {
     const el = rail.current;
-    if (!el) return;
+    if (!el || items.length < 2) return;
     const w = el.clientWidth || 1;
     const next = (frame + d + items.length) % items.length;
     el.scrollTo({ left: next * w, behavior: "smooth" });
@@ -5352,9 +5381,11 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
     tick.current = requestAnimationFrame(() => {
       tick.current = 0;
       const i = Math.round(el.scrollLeft / (el.clientWidth || 1));
-      if (i !== frame) { setFrame(i); haptic(7); soft(); }
+      if (i !== frame) setFrame(i);
     });
   };
+
+  const open = () => { hapticCommit(); soft(); onOpen && onOpen(lesson); };
 
   return (
     <div data-feed-card={index} className="relative"
@@ -5381,103 +5412,79 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
             <div key={it.id || i} className="relative shrink-0"
                  style={{ width: "100%", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>
               {near || i === 0
-                ? <Evidence item={it} live={active && i === frame} mark={t.mark} />
+                ? <Evidence item={it} live={active && i === frame} mark={t.mark} muted={!sound} onAutoMuted={() => onSound && onSound(false)} onProgress={i === frame ? setProg : undefined} />
                 : <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />}
             </div>
           ))}
         </div>
       )}
 
-      {/* MORE THAN ONE. The rail is a sideways swipe inside a feed that
-          snaps downwards, so without this nobody finds the second clip —
-          which is exactly how "only one video uploaded" gets reported.
-          A count you can tap, and a dot per file. */}
-      {items.length > 1 && (
-        <div className="absolute" style={{ top: 30, right: 18, zIndex: 30 }}>
-          <button onClick={() => { haptic(7); soft(); step(1); }}
-                  className="flex items-center gap-1.5 px-2.5 active:opacity-70"
-                  style={{ height: 26, borderRadius: 13, background: "rgba(0,0,0,0.45)",
-                           backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-                           border: "0.5px solid rgba(255,255,255,0.22)" }}
-                  aria-label={`${tr("Next file")} — ${frame + 1} ${tr("of")} ${items.length}`}>
-            <Layers size={11} color="rgba(255,255,255,0.9)" strokeWidth={2.2} />
-            <span style={{ ...TYPE.caption, fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.92)", fontVariantNumeric: "tabular-nums" }}>
-              {frame + 1}/{items.length}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* one scrim, deeper and reaching further, so type never fights
-          the image — Nike's move is to let the photograph run and set
-          the words in the clear space it leaves at the bottom */}
+      {/* a soft floor for the words, and nothing over the picture above it */}
       <div className="absolute inset-x-0 bottom-0" aria-hidden="true"
-           style={{ height: "64%", zIndex: 10,
-                    background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 30%, rgba(0,0,0,0) 100%)" }} />
+           style={{ height: "48%", zIndex: 10,
+                    background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)" }} />
 
-      <div className="absolute inset-x-0 bottom-0 px-6" style={{ paddingBottom: 108, zIndex: 25 }}>
-        <span className="flex items-center gap-2.5" style={{ ...TYPE.eyebrow, fontSize: 9, letterSpacing: "0.18em",
-                       color: "rgba(255,255,255,0.62)",
-                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 60ms both" : "none" }}>
-          <span>{lesson.d} {lesson.m}</span>
-          <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: "rgba(255,255,255,0.4)" }} />
-          <span>{lesson.type === "Group" ? tr("Group") : tr("Private")}</span>
-          {lesson.coach && (<>
-            <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: "rgba(255,255,255,0.4)" }} />
-            <span className="truncate" style={{ maxWidth: 120 }}>{lesson.coach}</span>
-          </>)}
-        </span>
-
-        {/* the headline runs big and tight, the way Nike sets a drop */}
-        <span className="block mt-3" style={{ ...TYPE.hero, fontSize: 46, lineHeight: 0.94, color: "#fff",
-                       letterSpacing: "-0.035em", fontWeight: 300,
-                       animation: active ? "fadeUp 540ms cubic-bezier(.22,1,.36,1) 130ms both" : "none" }}>
-          {lesson.focus}
-        </span>
-
-        {lesson.note && (
-          <span className="block mt-3.5" style={{ ...TYPE.body, lineHeight: 1.5, maxWidth: "88%",
-                         color: "rgba(255,255,255,0.7)",
-                         animation: active ? "fadeUp 540ms cubic-bezier(.22,1,.36,1) 200ms both" : "none" }}>
-            {lesson.note}
+      {/* the column: sound, open, the coach */}
+      <div className="absolute flex flex-col items-center gap-3.5" style={{ right: 16, bottom: 132, zIndex: 30 }}>
+        {current && current.type === "video" && (
+          <Round label={sound ? tr("Mute") : tr("Sound")} onTap={() => { haptic(7); onSound && onSound(!sound); }}>
+            {sound ? <Volume2 size={19} color="#fff" strokeWidth={1.9} /> : <VolumeX size={19} color="rgba(255,255,255,0.9)" strokeWidth={1.9} />}
+          </Round>
+        )}
+        <Round label={tr("Open lesson")} onTap={open} solid tour="feed-open">
+          <ArrowRight size={19} color="#111" strokeWidth={2.2} />
+        </Round>
+        {lesson.coach && (
+          <span className="rounded-full" style={{ padding: 2, background: "rgba(255,255,255,0.9)" }} aria-label={lesson.coach}>
+            <Avatar name={lesson.coach} size={38} />
           </span>
         )}
+      </div>
 
-        {items.length > 1 && (
-          <span className="flex items-center gap-1.5 mt-4" aria-hidden="true">
-            {items.map((it, i) => (
-              <span key={it.id || i} className="rounded-full"
-                    style={{ width: i === frame ? 16 : 5, height: 5,
-                             background: i === frame ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.38)",
-                             transition: "width 240ms cubic-bezier(.22,1,.36,1), background 240ms" }} />
-            ))}
-            <span className="ml-1.5" style={{ ...TYPE.caption, fontSize: 10, color: "rgba(255,255,255,0.55)" }}>
-              {items.length} {items.length === 1 ? tr("file") : tr("files")}
+      {/* what this is: the focus, the day, the coach, the note — on glass */}
+      <div className="absolute" style={{ left: 16, right: 78, bottom: 108, zIndex: 25 }}>
+        <button onClick={() => { haptic(6); setMore((v) => !v); }} className="w-full text-left active:opacity-90"
+                style={{ padding: "14px 16px 12px", borderRadius: 18, background: "rgba(10,13,14,0.38)",
+                         backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                         border: "0.5px solid rgba(255,255,255,0.12)",
+                         animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
+          <span className="block" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
+            {lesson.focus}
+          </span>
+          <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+            {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}
+          </span>
+          {lesson.note && (
+            <span className="flex items-baseline gap-2 mt-2" style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>
+              <span className={`min-w-0 ${more ? "" : "truncate"}`}>{lesson.note}</span>
+              {!more && lesson.note.length > 44 && <span className="shrink-0" style={{ color: "rgba(255,255,255,0.55)" }}>{tr("more")}</span>}
             </span>
-          </span>
-        )}
-
-        <button onClick={() => { hapticCommit(); soft(); onOpen && onOpen(lesson); }}
-                onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                className="inline-flex items-center gap-2 mt-6 px-6 active:opacity-90"
-                style={{ minHeight: 48, borderRadius: R.pill, background: "#fff", willChange: "transform",
-                         boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                         transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
-                         animation: active ? "fadeUp 540ms cubic-bezier(.22,1,.36,1) 280ms both" : "none" }}>
-          <span style={{ ...TYPE.small, fontWeight: 600, color: "#111" }}>{tr("Open lesson")}</span>
-          <ArrowRight size={15} color="#111" strokeWidth={2.4} />
+          )}
+          {items.length > 1 && (
+            <span className="flex items-center gap-1.5 mt-3" aria-label={`${frame + 1} ${tr("of")} ${items.length}`}>
+              {items.map((it, i) => (
+                <span key={it.id || i} className="rounded-full"
+                      style={{ width: i === frame ? 14 : 4, height: 4,
+                               background: i === frame ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.38)",
+                               transition: "width 240ms cubic-bezier(.22,1,.36,1), background 240ms" }} />
+              ))}
+            </span>
+          )}
         </button>
+        {/* how far through the clip */}
+        {current && current.type === "video" && (
+          <div className="mt-2.5 mx-1" aria-hidden="true" style={{ height: 2, borderRadius: 1, background: "rgba(255,255,255,0.22)", overflow: "hidden" }}>
+            <div style={{ width: `${Math.round(prog * 100)}%`, height: 2, background: "#fff", transition: "width 240ms linear" }} />
+          </div>
+        )}
       </div>
     </div>
   );
 });
 
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed }) {
-  const t = useT();
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho }) {
   const [active, setActive] = useState(0);
-  const [prog, setProg] = useState(0);        // 0..1 through the whole feed
+  const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
   const wrap = useRef(null);
 
   useEffect(() => {
@@ -5487,18 +5494,12 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
       entries.forEach((e) => {
         if (!e.isIntersecting) return;
         const i = Number(e.target.getAttribute("data-feed-card"));
-        setActive((prev) => { if (prev !== i) { haptic(10); soft(); } return i; });
+        setActive(i);
       });
     }, { root, threshold: 0.6, rootMargin: "-30% 0px -30% 0px" });
     root.querySelectorAll("[data-feed-card]").forEach((c) => io.observe(c));
     return () => io.disconnect();
   }, [lessons.length]);
-
-  const VIEWS = [
-    { id: "feed",  Ico: Play },
-    { id: "cards", Ico: Library },
-    { id: "list",  Ico: ListChecks },
-  ];
 
   return (
     <div className="absolute inset-0" style={{ background: "#0A0D0E" }}>
@@ -5523,23 +5524,9 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         </label>
       )}
 
-      {/* the three views, top left, frosted */}
-      <div className="absolute flex gap-0.5 p-1" style={{ top: 28, left: 18, zIndex: 30, borderRadius: 16,
-             background: "rgba(0,0,0,0.4)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-             border: "0.5px solid rgba(255,255,255,0.16)" }}>
-        {VIEWS.map((v) => {
-          const on = view === v.id;
-          return (
-            <button key={v.id} onClick={() => { hapticCommit(); soft(); setView(v.id); }}
-                    className="flex items-center justify-center active:opacity-70"
-                    style={{ width: 30, height: 26, borderRadius: 13,
-                             background: on ? "rgba(255,255,255,0.92)" : "transparent",
-                             transition: "background 220ms" }}
-                    aria-pressed={on} aria-label={v.id === "feed" ? "Feed" : v.id === "cards" ? "Cards" : "List"}>
-              <v.Ico size={13} strokeWidth={2} color={on ? "#111" : "rgba(255,255,255,0.7)"} />
-            </button>
-          );
-        })}
+      {/* the three views, top left — the same switch as the other two screens */}
+      <div className="absolute" style={{ top: 26, left: 16, zIndex: 30 }}>
+        <ViewSwitch onDark view={view} setView={setView} tour="log-view" />
       </div>
 
       <div ref={wrap} className="absolute inset-0 overflow-y-auto"
@@ -5548,13 +5535,13 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         {lessons.map((l, i) => (
           <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active}
                     near={Math.abs(i - active) <= 1} onNeed={onNeed}
-                    media={mediaFor(l, i)} onOpen={onOpen} />
+                    media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} showWho={showWho} />
         ))}
       </div>
 
       <div className="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"
-           style={{ height: 168, zIndex: 20,
-                    background: "linear-gradient(to top, #0A0D0E 12%, rgba(10,13,14,0.75) 50%, transparent 100%)" }} />
+           style={{ height: 120, zIndex: 20,
+                    background: "linear-gradient(to top, #0A0D0E 8%, rgba(10,13,14,0.55) 45%, transparent 100%)" }} />
     </div>
   );
 }
@@ -5597,60 +5584,6 @@ function ViewSwitch({ view, setView, onDark, tour }) {
   );
 }
 
-/* OPENING A LESSON
-
-   A held beat between the feed and the record. Not a spinner — a
-   spinner says "wait". This says "here is the one you asked for":
-   the two Nosca rings draw themselves and close around the focus,
-   the date rises beneath, and it clears. About 900ms, once.
-
-   It exists because opening a lesson from the feed is the single
-   moment the app most wants to feel considered. */
-function LessonOverture({ lesson, coach, mark, onDone }) {
-  const t = useT();
-  useEffect(() => {
-    hapticCommit();
-    const t1 = setTimeout(() => { haptic(9); swell(); }, 300);      // mark lands
-    const t2 = setTimeout(() => haptic(7), 720);                     // date
-    const t3 = setTimeout(() => haptic(11), 1020);                   // the focus
-    const t4 = setTimeout(() => hapticSuccess(), 1420);              // the rule closes
-    const t5 = setTimeout(() => onDone && onDone(), 1680);
-    return () => [t1, t2, t3, t4, t5].forEach(clearTimeout);
-  }, [onDone]);
-
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center px-10"
-         style={{ zIndex: 90, background: "#0A0D0E",
-                  animation: "overtureOut 340ms cubic-bezier(.4,0,1,1) 1340ms both" }}>
-
-      {/* a slow wash of the sport's colour, coming up under everything */}
-      <div className="absolute inset-0" aria-hidden="true"
-           style={{ background: `radial-gradient(70% 45% at 50% 46%, ${mark}2E 0%, transparent 72%)`,
-                    animation: "fadeIn 620ms ease-out both" }} />
-
-      {/* the mark, drawn rather than placed */}
-      <span className="relative mb-8" style={{ animation: "overtureMark 900ms cubic-bezier(.22,1,.36,1) both" }}>
-        <Mark size={34} color={mark} />
-      </span>
-
-      <span className="relative text-center" style={{ ...TYPE.eyebrow, fontSize: 9, color: `${mark}`,
-                     animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 320ms both" }}>
-        {lesson.d} {lesson.m}
-      </span>
-
-      <h2 className="relative text-center mt-3"
-          style={{ ...TYPE.hero, fontSize: 34, lineHeight: 1.0, letterSpacing: "-0.03em", color: "#fff",
-                   animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) 620ms both" }}>
-        {lesson.focus}
-      </h2>
-
-      {/* a hairline that draws across, the last thing before it clears */}
-      <span className="relative mt-7" style={{ height: 1, width: 64, background: `${mark}`,
-                     transformOrigin: "center",
-                     animation: "ruleDraw 640ms cubic-bezier(.22,1,.36,1) 900ms both" }} />
-    </div>
-  );
-}
 
 /* ATTENDANCE, ON ITS OWN
 
@@ -9310,13 +9243,11 @@ function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh
 
 
 
-function PlayerLog({ cfg, lessons, go, push, saved, right, empty, prefs, setPrefs, sport, ownMedia, onUpload, onOverture, liveMedia, onNeedMedia }) {
+function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false }) {
   const t = useT();
   const ready = useLoad();
   const view = (prefs && prefs.logView) === "list" ? "List" : "Cards";
-  const [f, setF] = useState("All");
-  const chips = ["All", ...cfg.focus.map((x) => x.label)];
-  const shown = f === "All" ? lessons : lessons.filter((l) => l.focus === f);
+  const shown = lessons;
 
   /* Immersive is a different animal — it owns the screen, so it is not
      a segment inside this one. */
@@ -9342,11 +9273,11 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, prefs, setPref
       }
       return sim;
     };
-    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia}
+    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho}
                        view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
-                       onOpen={(l) => onOverture(l)} />;
+                       onOpen={(l) => push(`lesson:${l.id}`)} />;
   }
 
   return (
@@ -9354,40 +9285,18 @@ function PlayerLog({ cfg, lessons, go, push, saved, right, empty, prefs, setPref
       {/* Nothing to arrange or filter until there is a lesson: a view
           switch and a row of focus chips over "No lessons yet" are nine
           controls that can do nothing. */}
-      {lessons.length > 0 && (<div className="px-6 pt-1">
-        {/* the view switch does the work a title was doing badly */}
-        <div className="flex items-center gap-3 mb-4">
-          <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
-          <span className="flex-1" />
-          <span style={{ ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>
-            {lessons.length}
-          </span>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-4" style={{ scrollbarWidth: "none" }}>
-          {chips.map((c) => {
-            const on = f === c;
-            return (
-              <button key={c} aria-pressed={on} onClick={() => { haptic(6); soft(); setF(c); }}
-                      className="rounded-full px-3.5 shrink-0 active:opacity-60"
-                      style={{ minHeight: 32, background: on ? t.accent : "transparent",
-                               border: `0.5px solid ${on ? t.accent : HAIR(t.ink, 0.2)}`,
-                               ...TYPE.small, fontWeight: 500,
-                               color: on ? t.onAccent : t.sub,
-                               transition: "background 200ms cubic-bezier(.22,1,.36,1)" }}>{c}</button>
-            );
-          })}
-        </div>
+      {lessons.length > 0 && (<div className="px-6 pt-1 mb-4">
+        <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
       </div>)}
 
       {!ready ? (
         <div className="px-6"><Bone h={CARD_H} r={20} /></div>
       ) : shown.length === 0 ? (
         <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-          {lessons.length === 0 ? tr("No lessons yet.") : tr("Nothing under that.")}
+          {tr("No lessons yet.")}
         </p>
       ) : view === "Cards" ? (
-        <VDeck lessons={shown} go={go} push={push} saved={saved} liveMedia={liveMedia} />
+        <VDeck lessons={shown} push={push} saved={saved} liveMedia={liveMedia} />
       ) : (
         <div className="px-6 pb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
           {shown.map((l, i) => (
@@ -14612,7 +14521,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     say(`${tr("Loading")} ${files.length}…`);
   };
 
-  const [overture, setOverture] = useState(null);   // the beat before a lesson opens
   const [pickFor, setPickFor] = useState(null);   // what we are choosing a player for
   const [playerComps, setPlayerComps] = useState({});   // added by the player, seen by their coach
   /* Real competitions, grouped by whose they are, so the lesson sheet
@@ -15698,7 +15606,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        as their own so the Family screens can show them. Everywhere a
        person is looking at their OWN log, that is too much: filter to
        the signed-in person and leave the whole list to FamilyHome. */
-    if (data) return role === "coach" ? taught(data.lessons) : mineOnly(data.lessons);
+    if (data) {
+      if (role === "coach") return taught(data.lessons);
+      /* a parent's own log is the children's as well — most parents take
+         no lessons themselves, and the tab was empty for ever */
+      if (account && account.accountType === "parent" && (data.dependants || []).length) {
+        const kids = new Set((data.dependants || []).map((k) => k.id));
+        return (data.lessons || []).filter((l) => l.playerId === account.id || kids.has(l.playerId) || (l.attendeeIds || []).some((id) => id === account.id || kids.has(id)));
+      }
+      return mineOnly(data.lessons);
+    }
     if (!conn || freshAccount) return [];
     const seed = conn.seeded ? SPORTS[conn.sport].lessons : [];
     if (published && role === "player") return [{ id: 999, focus: published.focus, subs: published.subs, d: "24", m: "JUL", type: published.type === "group" ? "Group" : "Private", videos: published.videos.length, unread: true }, ...seed];
@@ -16356,7 +16273,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
       home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); done(tr("Rebooked"), sl); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
-      log:    <PlayerLog cfg={cfg} lessons={playerLessons} go={go} push={push} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onOverture={(l) => setOverture(l)} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
@@ -16545,8 +16462,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             </div>
           )}
           {loader && <Loader onTap={() => { haptic(8); setLoader(false); }} />}
-          {overture && <LessonOverture lesson={overture} mark={theme.mark}
-                          onDone={() => { const id = overture.id; setOverture(null); push(id != null ? "lesson:" + id : "lesson"); }} />}
           {announce && <Announcement {...announce} onDismiss={() => setAnnounce(null)} />}
           {joined && <JoinedCoach coachName={joined.coachName} sport={joined.sport} onDone={() => setJoined(null)} />}
           {catchUp && !tour && !splash && (
