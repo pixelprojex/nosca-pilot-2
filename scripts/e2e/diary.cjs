@@ -275,7 +275,7 @@ const leaks = [];
       await page.fill('input[aria-label="Club or academy"]', "Hollow Lane GC");
       await tap(page, '[data-tour="profile-save"]', 2000);
       const pp = last(db.patches, "profiles");
-      check("(f) Save PATCHes profiles with name, date_of_birth and club, on the person's own row", !!pp && pp.body.name === "Niamh Byrne-Walsh" && pp.body.sport === "golf" && pp.body.date_of_birth === "1985-07-24" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
+      check("(f) Save PATCHes profiles with name, date_of_birth and club, never a coach's sport, on the person's own row", !!pp && pp.body.name === "Niamh Byrne-Walsh" && !("sport" in pp.body) && pp.body.date_of_birth === "1985-07-24" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
       const t12 = await text(); await shot("31-coach-profile-saved");
       check("(f) saving keeps the person on Your profile with the new values and the age worked out", t12.includes("Your profile") && t12.includes("Saved") === false || t12.includes("Your profile"), t12.slice(0, 120));
       check("(f) the database row now carries the change", db.profiles[IDS.coach].name === "Niamh Byrne-Walsh" && db.profiles[IDS.coach].sport === "golf" && db.profiles[IDS.coach].date_of_birth === "1985-07-24", JSON.stringify(db.profiles[IDS.coach]));
