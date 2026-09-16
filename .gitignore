@@ -18,3 +18,4 @@ dist-m/
 # mock-Supabase bundles the e2e suites run against
 dist-m/
 dist-f/
+dist-f*/
