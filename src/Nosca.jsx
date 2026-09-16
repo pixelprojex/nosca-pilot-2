@@ -2200,8 +2200,8 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                              color: on ? t.onAccent : t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 2)}</span>
               <span className="mt-0.5" style={{ ...TYPE.figure, fontSize: 17,
                              color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
-              {/* load: one dot per slot, filled where booked */}
-              <span className="flex gap-0.5 mt-1.5">
+              {/* load: one dot per slot, filled where booked — the coach's reading of the week */}
+              {isCoach && <span className="flex gap-0.5 mt-1.5">
                 {day.hours.slice(0, 5).map((h, k) => {
                   const isBooked = !!day.booked.find((b) => b.time === h);
                   return (
@@ -2211,7 +2211,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                                      : isBooked ? (full ? DANGER : t.accent) : HAIR(t.ink, 0.28) }} />
                   );
                 })}
-              </span>
+              </span>}
             </button>
           );
         })}
@@ -2228,7 +2228,9 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
       <div className="px-6">
       {shown.map((day, di) => {
         const isToday = day.m === T.m && day.d === T.d;
-        const free = day.hours.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h));
+        /* nothing already gone today: a time that has passed is not open */
+        const gone = (h) => isToday && (parseTime(h) ?? 0) <= (cx.nowMins ?? 0);
+        const free = day.hours.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h) && !gone(h));
         /* A player is here to find a time, so only open slots are
            shown. A coach is here to see their day, so everything is. */
         const rows = isCoach ? day.hours : free;
@@ -2243,9 +2245,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
               <span style={{ ...TYPE.heading, fontSize: 16, color: isToday ? t.accent : t.ink }}>
                 {DAY_NAMES[dowOf(day.m, day.d, cx)]} {day.d}
               </span>
-              <span style={{ ...TYPE.caption, color: t.faint }}>
-                {role === "coach" ? `${day.booked.length}/${day.hours.length}` : `${free.length} ${tr("open")}`}
-              </span>
+              {role === "coach" && <span style={{ ...TYPE.caption, color: t.faint }}>{day.booked.length}/{day.hours.length}</span>}
               <span className="flex-1" />
               {role === "coach" && (
                 <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="p-1.5 active:opacity-50"
@@ -2294,23 +2294,14 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                   </div>
                 );
 
+                /* the row is the button: the time span in ink, and a tap asks for it */
                 return (
-                  <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 52, ...line }}>
-                    <span className="shrink-0" style={{ width: 62, ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{h.replace(/ (am|pm)/, "")}</span>
-                    <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.faint }}>
-                      {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : tr("Open")}
-                    </span>
-                    <button data-tour="agenda-book" onClick={() => { hapticCommit(); soft(); onBookInto(day, h, kind); }}
-                            onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                            onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                            onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                            className="shrink-0 px-3 active:opacity-70"
-                            style={{ minHeight: 30, borderRadius: R.surface, background: `${t.accent}0F`, willChange: "transform",
-                                     transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
-                                     ...TYPE.caption, fontWeight: 500, color: t.accent }}>
-                      {role === "coach" ? tr("Book") : tr("Request")}
-                    </button>
-                  </div>
+                  <button key={h} data-tour="agenda-book" onClick={() => { hapticCommit(); soft(); onBookInto(day, h, kind); }}
+                          className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 52, ...line }}>
+                    <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink, fontVariantNumeric: "tabular-nums" }}>{span(h, duration)}</span>
+                    {kind === "group" && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Group")}</span>}
+                    <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{role === "coach" ? tr("Book") : tr("Request")}</span>
+                  </button>
                 );
               })}
             </div>
@@ -4336,16 +4327,7 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
    press to edit: tiles wiggle, each can be made wide or small, and they
    can be dragged into whatever order suits — the Control Centre idea,
    because no two coaches reach for the same thing second. */
-/* THE QUICK MENU
-
-   Arranged the way Control Centre is: a four-column grid of rounded
-   tiles the coach lays out themselves.
-
-   The editing had to be rebuilt. The old version reordered on
-   `onPointerEnter`, which never fires reliably once a pointer is
-   captured — so dragging appeared to do nothing. It now tracks the
-   finger directly and hit-tests with elementFromPoint, so the tile
-   under your thumb is always the one that moves. */
+/* what the plus menu offers, by id */
 const QUICK_ACTIONS = {
   attend:  { Ico: Check,         label: "Attendance" },
   capture: { Ico: Camera,        label: "Live capture" },
@@ -4356,217 +4338,39 @@ const QUICK_ACTIONS = {
   message: { Ico: MessageCircle, label: "Message" },
   comp:    { Ico: Trophy,        label: "Competition" },
 };
-const QUICK_DEFAULT = [
-  { id: "attend",  w: 2 }, { id: "capture", w: 2 },
-  { id: "tip",     w: 2 }, { id: "drills",  w: 2 },
-  { id: "player",  w: 2 }, { id: "group",   w: 2 },
-  { id: "message", w: 2 }, { id: "comp",    w: 2 },
-];
-
-/* One tile. It lives out here, not inside QuickMenu's render, because a
-   component declared in a render body is a NEW component type on every
-   render — React unmounts and remounts every tile, which mid-drag means
-   losing the pointer capture the drag depends on. It is called QuickTile
-   and not Tile because Tile is already a component in this file, and the
-   inner one silently shadowed it. */
-function QuickTile({ it, i, edit, held, liveLesson, onRun, grab, drag, drop, resize }) {
+/* The plus menu: the one thing a coach does a dozen times a day as the
+   accent button, then eight plain rows in a fixed order. It used to be
+   a grid of tinted tiles with a hold-to-drag, tap-to-resize edit mode
+   and a stored layout — Control Centre on a sheet opened to log a
+   lesson. */
+const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
+function QuickMenu({ liveLesson, onLog, onRun }) {
   const t = useT();
-  const A = QUICK_ACTIONS[it.id];
-  if (!A) return null;
-  const Ico = A.Ico;
-  const live = it.id === "attend" && liveLesson;
-  const wide = it.w === 4;
-  const lifted = held === i;
-
-  return (
-    <button data-tile={i} data-tour={"quick-" + it.id}
-            onPointerDown={(e) => grab(e, i)}
-            onPointerMove={drag}
-            onPointerUp={drop}
-            onPointerCancel={drop}
-            onClick={() => { if (!edit) { haptic(8); soft(); onRun(it.id); } }}
-            className="relative flex items-center text-left"
-            style={{ height: 84, width: "100%", padding: wide ? "0 18px" : "0 14px",
-                     borderRadius: 22, touchAction: edit ? "none" : "auto",
-                     background: live ? `${STEADY}12` : t.wash,
-                     border: live ? `1px solid ${STEADY}30` : "1px solid transparent",
-                     opacity: held !== null && !lifted ? 0.55 : 1,
-                     zIndex: lifted ? 40 : 1,
-                     transform: lifted ? "scale(1.06)" : "scale(1)",
-                     boxShadow: lifted ? ELEV.float : "none",
-                     transition: lifted ? "none" : "transform 260ms cubic-bezier(.22,1,.36,1), opacity 200ms, box-shadow 260ms",
-                     animation: edit && !lifted
-                       ? `wiggle 500ms ease-in-out ${(i % 3) * 70}ms infinite`
-                       : (!edit ? `settle 300ms cubic-bezier(.22,1,.36,1) ${70 + i * 26}ms both` : "none"),
-                     transformOrigin: "center" }}>
-
-      <span className="rounded-full flex items-center justify-center shrink-0"
-            style={{ width: 38, height: 38,
-                     background: live ? `${STEADY}1F` : t.surface,
-                     boxShadow: live ? "none" : ELEV.rest }}>
-        <Ico size={17} color={live ? STEADY : t.accent} strokeWidth={1.8} />
-      </span>
-
-      <span className="flex-1 min-w-0" style={{ marginLeft: 12 }}>
-        <span className="block truncate" style={{ ...TYPE.small, fontWeight: 500, color: t.ink }}>
-          {tr(A.label)}
-        </span>
-        {live && (
-          <span className="flex items-center gap-1.5 mt-1">
-            <span className="rounded-full" style={{ width: 5, height: 5, background: STEADY,
-                             animation: "pulseDot 1.6s ease-in-out infinite" }} />
-            <span className="truncate" style={{ ...TYPE.caption, color: STEADY }}>
-              {liveLesson.who} · {tr("on now")}
-            </span>
-          </span>
-        )}
-      </span>
-
-      {/* the corner grip, as Control Centre puts it — tap to change width */}
-      {edit && (
-        <span onPointerDown={(e) => { e.stopPropagation(); }}
-              onClick={(e) => { e.stopPropagation(); resize(i); }}
-              className="absolute flex items-center justify-center"
-              style={{ right: 6, bottom: 6, width: 30, height: 30, borderRadius: 15,
-                       background: t.ink, boxShadow: ELEV.rest }}>
-          {/* draws the width you'll get, so there's nothing to decode */}
-          <svg width="15" height="11" viewBox="0 0 15 11" aria-hidden="true">
-            {wide
-              ? <rect x="4.5" y="1.5" width="6" height="8" rx="2" fill="#fff" />
-              : <rect x="1" y="1.5" width="13" height="8" rx="2" fill="#fff" />}
-          </svg>
-        </span>
-      )}
-    </button>
-  );
-}
-
-/* A stored layout against the actions that exist today: anything the
-   app no longer offers is dropped, anything new is appended. Without
-   this a saved id that has since gone left a blank cell of its stored
-   width, and one the drag could not even move through. */
-const reconcileQuick = (stored) => {
-  const kept = (Array.isArray(stored) ? stored : []).filter((x) => x && QUICK_ACTIONS[x.id]);
-  const have = new Set(kept.map((x) => x.id));
-  return [...kept, ...QUICK_DEFAULT.filter((d) => !have.has(d.id))];
-};
-
-function QuickMenu({ layout, setLayout, liveLesson, onLog, onRun }) {
-  const t = useT();
-  const [edit, setEdit] = useState(false);
-  const [held, setHeld] = useState(null);        // index being dragged
-  const D = useRef({ id: null, from: null, armed: null, timer: null });
-  const items = useMemo(() => reconcileQuick(layout), [layout]);
-
-  const move = (from, to) => {
-    if (from === to || to < 0 || to >= items.length) return from;
-    const next = items.slice();
-    next.splice(to, 0, next.splice(from, 1)[0]);
-    setLayout(next); haptic(7);
-    return to;
-  };
-
-  const resize = (i) => {
-    const next = items.slice();
-    next[i] = { ...next[i], w: next[i].w === 4 ? 2 : 4 };
-    setLayout(next); haptic(9); soft();
-  };
-
-  /* ---- dragging ---- */
-  /* Hold first, then drag. Without the hold, the smallest movement
-     while tapping reshuffled the grid — which is what made editing feel
-     unpredictable. */
-  const HOLD_MS = 320;
-
-  const grab = (e, i) => {
-    if (!edit) return;
-    const el = e.currentTarget, pid = e.pointerId;
-    D.current.armed = i;                    // pending, not yet dragging
-    D.current.timer = setTimeout(() => {
-      D.current = { ...D.current, id: pid, from: i, armed: null };
-      try { el.setPointerCapture(pid); } catch (_) {}
-      setHeld(i); hapticCommit(); swell();
-    }, HOLD_MS);
-  };
-
-  const cancelHold = () => {
-    clearTimeout(D.current.timer);
-    D.current.armed = null;
-  };
-
-  const drag = (e) => {
-    /* moving before the hold completes cancels it — that was a scroll,
-       not a drag */
-    if (D.current.armed !== null) { cancelHold(); return; }
-    if (D.current.from === null || e.pointerId !== D.current.id) return;
-    /* whatever tile is genuinely under the finger */
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const cell = el && el.closest ? el.closest("[data-tile]") : null;
-    if (!cell) return;
-    const over = Number(cell.getAttribute("data-tile"));
-    if (!Number.isNaN(over) && over !== D.current.from) {
-      D.current.from = move(D.current.from, over);
-      setHeld(D.current.from);
-    }
-  };
-
-  const drop = () => {
-    cancelHold();
-    if (D.current.from === null) return;
-    D.current = { id: null, from: null, armed: null, timer: null };
-    setHeld(null); haptic(9);
-  };
-
   return (
     <>
-      <div className="flex items-center mb-3.5">
-        <span className="flex-1" style={{ ...TYPE.eyebrow, color: edit ? t.accent : t.faint }}>
-          {edit ? tr("Drag to move · tap the corner to resize") : tr("Quick actions")}
-        </span>
-        <button data-tour="quick-edit" onClick={() => { haptic(10); soft(); setEdit(!edit); setHeld(null); }}
-                className="rounded-full flex items-center justify-center active:opacity-60"
-                style={{ width: 32, height: 32, background: edit ? t.accent : t.wash,
-                         transition: "background 220ms" }}
-                aria-label={edit ? tr("Done") : tr("Edit")}>
-          {edit ? <Check size={15} color={t.onAccent} strokeWidth={2.4} />
-                : <Edit3 size={14} color={t.sub} strokeWidth={1.9} />}
-        </button>
+      <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
+              className="w-full flex items-center gap-3.5 mb-4 text-left active:opacity-90"
+              style={{ minHeight: 60, padding: "0 20px", borderRadius: R.surface, background: t.accent }}>
+        <Plus size={19} color={t.onAccent} strokeWidth={2.3} />
+        <span className="flex-1" style={{ ...TYPE.subhead, fontSize: 16.5, color: t.onAccent }}>{tr("Log a lesson")}</span>
+      </button>
+      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+        {QUICK_ORDER.map((id) => {
+          const A = QUICK_ACTIONS[id];
+          const now = id === "attend" && liveLesson;
+          return (
+            <button key={id} data-tour={`quick-${id}`} onClick={() => { haptic(8); soft(); onRun(id); }}
+                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+              <A.Ico size={17} color={t.ink} strokeWidth={1.7} />
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>
+                {tr(A.label)}{now ? <span style={{ color: t.faint }}> · {liveLesson.who} · {tr("on now")}</span> : null}
+              </span>
+              <ChevronRight size={16} color={t.faint} strokeWidth={1.8} />
+            </button>
+          );
+        })}
       </div>
-
-      {!edit && (
-        <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
-                onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                className="w-full flex items-center gap-3.5 mb-2.5 text-left active:opacity-90"
-                style={{ height: 84, padding: "0 18px", borderRadius: 22, background: t.accent,
-                         willChange: "transform", boxShadow: `0 8px 22px ${t.accent}2E`,
-                         transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
-                         animation: "liftIn 400ms cubic-bezier(.22,1,.36,1) both" }}>
-          <span className="rounded-full flex items-center justify-center shrink-0"
-                style={{ width: 38, height: 38, background: "rgba(255,255,255,0.16)" }}>
-            <Plus size={19} color={t.onAccent} strokeWidth={2.4} />
-          </span>
-          <span className="flex-1" style={{ ...TYPE.subhead, fontSize: 17, color: t.onAccent }}>{tr("Log a lesson")}</span>
-          <ArrowRight size={16} color={t.onAccent} style={{ opacity: 0.7 }} strokeWidth={2} />
-        </button>
-      )}
-
-      <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
-        {items.map((it, i) => (
-          <span key={it.id} style={{ gridColumn: `span ${it.w}`,
-                       transition: "grid-column 260ms cubic-bezier(.22,1,.36,1)" }}>
-            <QuickTile it={it} i={i} edit={edit} held={held} liveLesson={liveLesson}
-                       onRun={onRun} grab={grab} drag={drag} drop={drop} resize={resize} />
-          </span>
-        ))}
-      </div>
-
-      {edit && (
-        <button onClick={() => { haptic(8); setLayout(QUICK_DEFAULT); }}
-                className="w-full py-4 mt-3 active:opacity-50"
-                style={{ ...TYPE.small, color: t.faint }}>{tr("Reset layout")}</button>
-      )}
     </>
   );
 }
@@ -9546,6 +9350,8 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                         onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight }) {
   const t = useT();
   const [a, setA] = useState(0);
+  const [menu, setMenu] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const list = items || [];
   const current = list[Math.min(a, Math.max(0, list.length - 1))];
   /* things set alongside this lesson: within half an hour of it being logged */
@@ -9556,149 +9362,131 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
   const tipHere = live
     ? tips.find((x) => x.playerId && x.playerId === lesson.playerId && near(x)) || null
     : (lesson.tip ? { title: lesson.tip } : null);
-  const when = lesson.iso ? new Date(lesson.iso).toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" }) : (lesson.date || `${lesson.d} ${lesson.m}`);
+  /* the day it happened — a day, not a moment, so it never reads as the evening before */
+  const when = lesson.iso ? localDate(lesson.iso).toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" }) : (lesson.date || `${lesson.d} ${lesson.m}`);
   const withWhom = role === "coach" ? playerName : coachName;
   const first = (n) => (n || "").split(" ")[0];
-  const doneCount = drillsHere.filter((d) => d.done).length;
+  const hair = `0.5px solid ${HAIR(t.ink, 0.1)}`;
 
-  const Section = ({ label, children, tour, accent }) => (
-    <div data-tour={tour} className="mb-3 px-5 py-4" style={{ borderRadius: R.surface, background: accent ? `${t.accent}12` : t.surface,
-                                                             boxShadow: accent ? "none" : ELEV.rest, border: accent ? `1px solid ${t.accent}2A` : "none" }}>
-      <div className="mb-2" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: accent ? t.accent : t.faint }}>{label}</div>
-      {children}
-    </div>
-  );
-  const Action = ({ label, onPress, primary, Icon, tour }) => (
-    <button data-tour={tour} onClick={() => { hapticCommit(); soft(); onPress(); }} className="w-full flex-1 min-w-0 flex items-center justify-center gap-2 active:opacity-75"
-            style={{ minHeight: 50, borderRadius: R.control, background: primary ? t.accent : t.surface,
-                     border: primary ? "none" : `0.5px solid ${HAIR(t.ink, 0.16)}`, boxShadow: primary ? `0 8px 22px ${t.accent}26` : "none",
-                     ...TYPE.small, fontWeight: 600, color: primary ? t.onAccent : t.ink }}>
-      {Icon && <Icon size={15} strokeWidth={2} color={primary ? t.onAccent : t.sub} />}{label}
+  /* everything rare — edit, remove a clip, delete — behind one "…" */
+  const menuRows = [
+    onEdit && { key: "edit", label: tr("Edit"), onTap: () => { setMenu(false); onEdit(); } },
+    onRemoveMedia && current && current.id && { key: "remove", danger: confirmRemove,
+      label: confirmRemove ? tr("Remove it? Tap again") : `${tr("Remove this")} ${current.type === "audio" ? tr("voice note") : current.type === "photo" ? tr("photo") : tr("clip")}`,
+      onTap: () => { if (!confirmRemove) { hapticWarn(); setConfirmRemove(true); return; } setMenu(false); setConfirmRemove(false); onRemoveMedia(current); if (a > 0) setA(a - 1); } },
+    onDelete && { key: "delete", label: tr("Delete this lesson"), danger: true, onTap: () => { setMenu(false); onDelete(); } },
+  ].filter(Boolean);
+  const more = menuRows.length > 0 && (
+    <button onClick={() => { haptic(6); setMenu((v) => !v); setConfirmRemove(false); }} aria-label={tr("More")} aria-expanded={menu} className="p-2 active:opacity-50">
+      <span className="flex gap-0.5">{[0, 1, 2].map((i) => <span key={i} className="rounded-full" style={{ width: 4, height: 4, background: t.ink }} />)}</span>
     </button>
   );
 
+  const Label = ({ children, tour }) => <div data-tour={tour} className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</div>;
+
   return (
     <SwipeBack onBack={pop}>
-      <Screen bare onBack={pop} right={extraTitleRight}>
+      <Screen bare onBack={pop} right={<>{extraTitleRight}{more}</>}>
         {banner}
-        <div className="px-6">
-          {/* the media, first and large */}
+        {menu && (
+          <div className="absolute" style={{ top: 50, right: 14, zIndex: 40, minWidth: 220, borderRadius: R.surface, background: t.surface, boxShadow: ELEV.float, overflow: "hidden" }}>
+            {menuRows.map((r, i) => (
+              <button key={r.key} onClick={() => { haptic(7); r.onTap(); }} className="w-full px-5 text-left active:opacity-60"
+                      style={{ minHeight: 50, borderBottom: i < menuRows.length - 1 ? hair : "none", ...TYPE.body, color: r.danger ? DANGER : t.ink }}>{r.label}</button>
+            ))}
+          </div>
+        )}
+        <div className="px-6" onClick={() => { if (menu) setMenu(false); }}>
+          {/* what this is */}
+          <div className="mb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+            <span className="block truncate" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              {when}{groupLesson ? ` · ${tr("Group")}` : ""}{withWhom ? ` · ${withWhom}` : ""}
+            </span>
+            <h1 className="mt-2" style={{ ...TYPE.hero, fontSize: 30, lineHeight: 1.04, letterSpacing: "-0.03em", color: t.ink }}>{lesson.focus}</h1>
+            {lesson.subs && lesson.subs.length > 0 && <p className="mt-1.5" style={{ ...TYPE.small, color: t.sub }}>{lesson.subs.join(" · ")}</p>}
+          </div>
+
+          {/* the clip, and the others as thumbnails — the ring says which */}
           {loading ? (
-            <div className="mb-5"><Bone h={262} r={22} /></div>
+            <div className="mb-6"><Bone h={262} r={22} /></div>
           ) : list.length > 0 ? (
-            <div className="mb-5" data-tour="lesson-clip" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+            <div className="mb-6" data-tour="lesson-clip" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) 60ms both" }}>
               <LessonStage item={current} onAnnotate={onAnnotate} />
               {list.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto mt-3 pb-1" style={{ scrollbarWidth: "none" }}>
                   {list.map((it, i) => <MediaThumb key={it.id || i} item={it} index={i} on={i === a} onPick={setA} />)}
                 </div>
               )}
-              {onRemoveMedia && current && current.id && (
-                <button onClick={() => { haptic(8); onRemoveMedia(current); if (a > 0) setA(a - 1); }}
-                        className="mt-2 inline-flex items-center gap-1.5 active:opacity-50"
-                        style={{ ...TYPE.caption, fontWeight: 600, color: t.faint }}>
-                  <X size={11} strokeWidth={2.4} />{tr("Remove this")} {current.type === "audio" ? tr("voice note") : current.type === "photo" ? tr("photo") : tr("clip")}
-                </button>
-              )}
-              {list.length > 1 && <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{a + 1} / {list.length} · {current.type === "audio" ? tr("Voice note") : current.type === "photo" ? tr("Photo") : tr("Clip")}</p>}
             </div>
           ) : null}
 
-          {/* the facts */}
-          <div className="mb-6" style={{ animation: "fadeUp 480ms cubic-bezier(.22,1,.36,1) 60ms both" }}>
-            <span className="flex items-center gap-2 flex-wrap" style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>
-              <span>{when}</span>
-              <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: t.hair }} />
-              <span>{groupLesson ? `${tr("Group")} · ${lesson.who || ""}` : tr("Private")}</span>
-              {withWhom && (<>
-                <span className="rounded-full" style={{ width: 2.5, height: 2.5, background: t.hair }} />
-                <span>{withWhom}</span>
-              </>)}
-            </span>
-            <h1 className="mt-2.5" style={{ ...TYPE.hero, fontSize: 32, lineHeight: 1.02, letterSpacing: "-0.03em", color: t.ink }}>{lesson.focus}</h1>
-            {lesson.subs && lesson.subs.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {lesson.subs.map((sb) => <span key={sb} className="px-2.5 py-1" style={{ borderRadius: R.pill, background: t.wash, ...TYPE.caption, color: t.sub }}>{sb}</span>)}
-              </div>
-            )}
-          </div>
-
-          <Section label={role === "coach" ? tr("Your notes") : `${tr("Notes from")} ${first(coachName) || tr("your coach")}`} tour="lesson-notes">
+          {/* the notes */}
+          <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
+            <Label>{role === "coach" ? tr("Notes") : `${first(coachName) || tr("Coach")}'s ${tr("notes")}`}</Label>
             {lesson.note
               ? <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{lesson.note}</p>
-              : <p style={{ ...TYPE.small, color: t.faint }}>{tr("No notes on this one.")}</p>}
-          </Section>
+              : <p style={{ ...TYPE.small, color: t.faint }}>{tr("None on this one")}</p>}
+          </div>
 
           {tipHere && (
-            <Section label={tr("Work on next")} accent tour="lesson-tip">
-              <p style={{ fontFamily: display, fontSize: 19, letterSpacing: "-0.015em", lineHeight: 1.3, color: t.ink }}>{tipHere.title}</p>
+            <div className="py-5" data-tour="lesson-tip" style={{ borderTop: hair }}>
+              <Label>{tr("Next")}</Label>
+              <p style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.02em", lineHeight: 1.3, color: t.ink }}>{tipHere.title}</p>
               {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
-            </Section>
+            </div>
           )}
 
           {drillsHere.length > 0 && (
-            <Section label={`${tr("Drills set")}${live ? ` · ${doneCount} ${tr("of")} ${drillsHere.length} ${tr("done")}` : ""}`} tour="lesson-drills">
-              {drillsHere.map((d, i) => (
-                <button key={d.id} onClick={() => { haptic(6); onGoDrills && onGoDrills(); }} className="w-full flex items-center gap-3 text-left active:opacity-60"
-                        style={{ minHeight: 44, borderTop: i ? `0.5px solid ${HAIR(t.ink, 0.1)}` : "none" }}>
-                  <span className="rounded-full flex items-center justify-center shrink-0"
-                        style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : HAIR(t.ink, 0.3)}`, background: d.done ? STEADY : "transparent" }}>
-                    {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
-                  </span>
-                  <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
-                  {onGoDrills && <ChevronRight size={14} color={t.faint} />}
-                </button>
-              ))}
-            </Section>
+            <div className="py-5" data-tour="lesson-drills" style={{ borderTop: hair }}>
+              <Label>{tr("Drills")}</Label>
+              {drillsHere.map((d, i) => {
+                const Tag = onGoDrills ? "button" : "div";
+                return (
+                  <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
+                       style={{ minHeight: 44, borderTop: i ? hair : "none" }}>
+                    <span className="rounded-full flex items-center justify-center shrink-0"
+                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : HAIR(t.ink, 0.3)}`, background: d.done ? STEADY : "transparent" }}>
+                      {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
+                    </span>
+                    <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
+                    {onGoDrills && <ChevronRight size={14} color={t.faint} />}
+                  </Tag>
+                );
+              })}
+            </div>
           )}
 
           {attendance && (
-            <Section label={tr("On the day")}>
-              <span className="flex items-center gap-2">
-                {attendance === "in"
-                  ? <><Check size={15} color={STEADY} strokeWidth={2.4} /><span style={{ ...TYPE.body, color: t.ink }}>{tr("Marked present")}</span></>
-                  : <><X size={15} color={DANGER} strokeWidth={2.4} /><span style={{ ...TYPE.body, color: t.ink }}>{tr("Marked absent")}</span></>}
-              </span>
-            </Section>
+            <div className="py-5 flex items-center gap-2" style={{ borderTop: hair }}>
+              {attendance === "in" ? <Check size={15} color={STEADY} strokeWidth={2.4} /> : <X size={15} color={DANGER} strokeWidth={2.4} />}
+              <span style={{ ...TYPE.body, color: t.ink }}>{attendance === "in" ? tr("Present") : tr("Absent")}</span>
+            </div>
           )}
 
           {onRate && lesson.ratingRequested && (
-            <Section label={`${first(coachName) || tr("Your coach")} ${tr("asked")}`} accent>
+            <div className="py-5" style={{ borderTop: hair }}>
               <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="flex items-center gap-1.5 active:opacity-50" style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>
-                {tr("Leave a rating")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
+                {first(coachName) || tr("Your coach")} {tr("asked for a rating")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
               </button>
-            </Section>
+            </div>
           )}
 
-          {/* One thing to do next, then the rest side by side. Four
-              full-width buttons in a stack said nothing was the point. */}
-          <div className="flex flex-col gap-2 mt-6" data-tour="lesson-next">
+          {/* one thing to do, and one more */}
+          <div className="flex flex-col gap-2 mt-4" data-tour="lesson-next" style={{ borderTop: hair, paddingTop: 20 }}>
             {role === "coach" ? (<>
-              {onSetDrills && <Action primary label={tr("Set drills from this lesson")} Icon={ListChecks} onPress={onSetDrills} />}
+              {onSetDrills && <Button onClick={onSetDrills}>{tr("Set drills from this lesson")}</Button>}
               <div className="flex gap-2">
-                {onMessage && <Action label={first(playerName) ? `${tr("Message")} ${first(playerName)}` : tr("Message")} Icon={MessageCircle} onPress={onMessage} />}
-                {onLogAnother && <Action label={tr("Log another")} Icon={Plus} onPress={onLogAnother} />}
-                {onEdit && <Action label={tr("Edit")} Icon={Edit3} onPress={onEdit} tour="lesson-edit" />}
+                {onMessage && <Button tone="quiet" onClick={onMessage}>{first(playerName) ? `${tr("Message")} ${first(playerName)}` : tr("Message")}</Button>}
+                {onLogAnother && <Button tone="quiet" onClick={onLogAnother}>{tr("Log another")}</Button>}
               </div>
             </>) : (<>
-              {onMessage && !juvenile && <Action primary label={`${tr("Message")} ${first(coachName) || tr("your coach")}`} Icon={MessageCircle} onPress={onMessage} />}
-              {(onBook || (onGoDrills && !drillsHere.length)) && !juvenile && (
-                <div className="flex gap-2">
-                  {onBook && <Action label={tr("Book again")} Icon={CalendarDays} onPress={onBook} />}
-                  {onGoDrills && !drillsHere.length && <Action label={tr("Your drills")} Icon={ListChecks} onPress={onGoDrills} />}
-                </div>
-              )}
+              {onMessage && !juvenile && <Button onClick={onMessage}>{`${tr("Message")} ${first(coachName) || tr("your coach")}`}</Button>}
+              {onBook && !juvenile && <Button tone="quiet" onClick={onBook}>{tr("Book again")}</Button>}
             </>)}
             {onDownload && (
               <button data-tour="lesson-save" onClick={() => { haptic(8); onDownload(list); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
                       style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: t.sub }}>
                 <Download size={14} color={t.sub} strokeWidth={2} />{tr("Download lesson log")}
-              </button>
-            )}
-            {onDelete && (
-              <button onClick={() => { haptic(8); onDelete(); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
-                      style={{ minHeight: 44, ...TYPE.caption, fontWeight: 600, color: DANGER }}>
-                <Trash2 size={13} color={DANGER} strokeWidth={2} />{tr("Delete this lesson")}
               </button>
             )}
           </div>
@@ -9955,30 +9743,11 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   );
 }
 
-/* THE COACH'S DAY.
-
-   Three things in order, and nothing else: what is waiting on them,
-   what is happening today, and the two or three actions they came in
-   to do.
-
-   WAITING ON YOU is every duty the app knows about, each as one line
-   with the answer on it — someone asking to join, someone asking for a
-   lesson, messages unanswered, lessons never written up, players
-   drifting away. They were spread across four screens before, so the
-   only way to find out whether anything needed doing was to go and
-   look on each of them.
-
-   TODAY is every lesson in time order on one card, with the verb on the
-   row: Log what has finished, Register what is running, tap ahead to
-   see who is next.
-
-   Last, their own numbers: this week, the hours it comes to, the season
-   so far. A row of buttons sat here — log, register, diary — and every
-   one of them is already on the plus, so it was a second copy of the
-   control centre taking up the bottom of the home screen. Three figures
-   is what belongs at the end of a day. */
+/* THE COACH'S DAY. One card if someone is asking for a lesson; then
+   today's lessons, what is coming, and what has no other home — all as
+   plain rows under one-word eyebrows. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
-                      roster, drifting = 0, unread = 0, toWriteUp = [], stats = null, upcoming = [],
+                      roster, drifting = 0, toWriteUp = [], upcoming = [],
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onAccept, onDecline, onInvite, push, go }) {
   const t = useT();
@@ -10012,72 +9781,34 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         <h1 style={{ fontFamily: display, fontSize: 27, letterSpacing: "-0.03em", color: t.ink }}>{dateLine}</h1>
         <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{dayLine}</p>
 
-        {/* someone asking for a lesson — answered here, not two taps away */}
+        {/* the one card: someone asking for a lesson, answered here */}
         {asks.length > 0 && (
-          <div className="mb-2.5" style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest, overflow: "hidden" }}>
+          <div className="mb-6" style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest, overflow: "hidden" }}>
             {asks.map((r, i) => (
               <div key={r.id} className="px-5 py-4"
-                   style={{ borderBottom: i === asks.length - 1 ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                            animation: `fadeUp 300ms cubic-bezier(.22,1,.36,1) ${i * 50}ms both` }}>
+                   style={{ borderBottom: i === asks.length - 1 ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
                 <div className="flex items-center gap-3.5">
-                  <Avatar name={r.who} size={32} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
+                  <Avatar name={r.who} size={34} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
-                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                      {r.d} {monthName(r.m)} · {r.time}
-                    </span>
+                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Asked for")} {r.d} {monthName(r.m)} · {r.time}</span>
                   </span>
                 </div>
-                <div className="flex gap-2 mt-3 pl-11">
-                  <button onClick={() => { haptic(9); onDecline && onDecline(r); }} className="px-4 active:opacity-60"
-                          style={{ minHeight: 40, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.2)}`,
-                                   ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("Decline")}</button>
+                <div className="flex items-center gap-2 mt-3 pl-12">
                   <button onClick={() => { hapticCommit(); onAccept && onAccept(r); }} className="flex-1 active:opacity-75"
-                          style={{ minHeight: 40, borderRadius: R.control, background: STEADY,
-                                   ...TYPE.small, fontWeight: 500, color: t.onAccent }}>{tr("Accept")}</button>
+                          style={{ minHeight: 42, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>{tr("Accept")}</button>
+                  <button onClick={() => { haptic(9); onDecline && onDecline(r); }} className="px-4 active:opacity-60"
+                          style={{ minHeight: 42, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Decline")}</button>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Loose ends — a lesson not written up, a message waiting, a
-            player drifting — as one quiet list. Three tinted strips with
-            filled icons shouted over the day itself. */}
-        {((requests || []).length > 0 || toWriteUp.length > 0 || unread > 0 || drifting > 0) && (
-          <div className="mb-2.5" style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest, overflow: "hidden",
-                                           animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
-            {[
-              (requests || []).length > 0 && { key: "join", tone: CAUTION, tour: "today-requests",
-                label: requests.length === 1 ? `${requests[0].name} ${tr("asked to join you")}` : `${requests.length} ${tr("asking to join you")}`,
-                onTap: () => push("requests") },
-              toWriteUp.length > 0 && { key: "write", tone: t.accent, tour: "today-writeup",
-                label: toWriteUp.length === 1 ? `${toWriteUp[0].who} · ${tr("still to write up")}` : `${toWriteUp.length} ${tr("lessons still to write up")}`,
-                sub: toWriteUp.length === 1 ? `${toWriteUp[0].d} ${monthName(toWriteUp[0].m)}` : null,
-                onTap: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-              unread > 0 && { key: "unread", tone: STEADY, label: unread === 1 ? tr("One message unread") : `${unread} ${tr("messages unread")}`,
-                onTap: () => (onMessages ? onMessages() : go("messages")) },
-              drifting > 0 && { key: "drift", tone: DANGER, label: `${drifting} ${drifting === 1 ? tr("person is drifting") : tr("people are drifting")}`,
-                onTap: () => push("atrisk") },
-            ].filter(Boolean).map((row, i, arr) => (
-              <button key={row.key} data-tour={row.tour} onClick={() => { haptic(8); soft(); row.onTap(); }}
-                      className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-60"
-                      style={{ minHeight: 56, borderBottom: i < arr.length - 1 ? `0.5px solid ${HAIR(t.ink, 0.12)}` : "none" }}>
-                <span className="rounded-full shrink-0" style={{ width: 8, height: 8, background: row.tone }} />
-                <span className="flex-1 min-w-0">
-                  <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{row.label}</span>
-                  {row.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{row.sub}</span>}
-                </span>
-                <ChevronRight size={15} color={t.faint} />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ---- the day ---- */}
-        {list.length > 0 && (
-          <div className="mt-4" style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest, overflow: "hidden",
-                       animation: "contentRise 500ms cubic-bezier(.22,1,.36,1) both" }}>
+        {/* ---- today ---- */}
+        {list.length > 0 && (<>
+          <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Today")}</div>
+          <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
             {list.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
               const row = (
@@ -10096,34 +9827,50 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                 : <div key={l.id || i} data-tour={l === marked ? "today-next" : undefined}>{row}</div>;
             })}
           </div>
-        )}
+        </>)}
 
-        {/* ---- the next few days ---- the bookings after today, so a
-            light day still shows what is coming and the evening glance
-            has something to tell. Each row opens the diary. */}
-        {upcoming.length > 0 && (
-          <div className="mt-6">
-            <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Coming up")}</div>
-            <div style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest, overflow: "hidden",
-                          animation: "contentRise 500ms cubic-bezier(.22,1,.36,1) 60ms both" }}>
-              {upcoming.map((b, i) => (
-                <button key={b.id || i} onClick={() => { haptic(8); soft(); go("calendar"); }}
-                        className="w-full flex items-center gap-3 px-4 text-left active:opacity-60"
-                        style={{ minHeight: 60, borderBottom: i < upcoming.length - 1 ? `0.5px solid ${HAIR(t.ink, 0.12)}` : "none" }}>
-                  <span className="shrink-0" style={{ width: 66, ...TYPE.eyebrow, fontSize: 9, color: t.faint, lineHeight: 1.6, whiteSpace: "nowrap" }}>
-                    {b.dayLabel}<br />{b.time}
-                  </span>
-                  <Avatar name={b.who} size={30} src={avatarFor(b)} />
+        {/* ---- coming up: the bookings after today, in the same rows ---- */}
+        {upcoming.length > 0 && (<>
+          <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Coming up")}</div>
+          <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+            {upcoming.map((b, i) => (
+              <DayRow key={b.id || i} l={b} variant="ahead" last={i === upcoming.length - 1} avatar={avatarFor(b)}
+                      until={b.dayLabel} onPeek={() => go("calendar")} />
+            ))}
+          </div>
+        </>)}
+
+        {/* ---- also: what has no other home, as plain rows ---- */}
+        {(() => {
+          const rows = [
+            (requests || []).length > 0 && { key: "join", tour: "today-requests",
+              label: requests.length === 1 ? `${requests[0].name} ${tr("asked to join you")}` : `${requests.length} ${tr("asking to join you")}`,
+              onTap: () => push("requests") },
+            toWriteUp.length > 0 && { key: "write", tour: "today-writeup",
+              label: toWriteUp.length === 1 ? `${toWriteUp[0].who} · ${tr("still to write up")}` : `${toWriteUp.length} ${tr("lessons still to write up")}`,
+              sub: toWriteUp.length === 1 ? `${toWriteUp[0].d} ${monthName(toWriteUp[0].m)}` : null,
+              onTap: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
+            drifting > 0 && { key: "drift", label: `${drifting} ${drifting === 1 ? tr("person is drifting") : tr("people are drifting")}`, onTap: () => push("atrisk") },
+            events.length > 0 && { key: "event", label: events[0].name, sub: events[0].when || events[0].date || null, onTap: () => push("events") },
+          ].filter(Boolean);
+          if (!rows.length) return null;
+          return (<>
+            <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Also")}</div>
+            <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+              {rows.map((row) => (
+                <button key={row.key} data-tour={row.tour} onClick={() => { haptic(8); soft(); row.onTap(); }}
+                        className="w-full flex items-center gap-3.5 text-left active:opacity-60"
+                        style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
                   <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{b.who}</span>
-                    {b.group && <span className="block" style={{ ...TYPE.caption, color: t.faint }}>{tr("Group")}</span>}
+                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{row.label}</span>
+                    {row.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{row.sub}</span>}
                   </span>
-                  <ChevronRight size={16} color={t.faint} strokeWidth={1.8} />
+                  <ChevronRight size={15} color={t.faint} />
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          </>);
+        })()}
 
         {/* nobody yet: the only thing worth doing is getting someone in */}
         {(roster || []).length === 0 && (
@@ -10134,37 +9881,6 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               {tr("Invite a player")}
             </button>
           </div>
-        )}
-
-        {/* their own coaching, in three figures */}
-        {stats && (roster || []).length > 0 && (
-          <div className="flex mt-3 px-5 py-4" data-tour="today-stats"
-               style={{ borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest,
-                        animation: "contentRise 500ms cubic-bezier(.22,1,.36,1) both" }}>
-            {[[stats.week, tr("this week")], [`${stats.hours}h`, tr("taught")], [stats.season, tr("this season")]].map(([v, k], i) => (
-              <span key={k} className="flex-1" style={{ borderLeft: i ? `0.5px solid ${HAIR(t.ink, 0.14)}` : "none",
-                           paddingLeft: i ? 14 : 0 }}>
-                <span className="block" style={{ ...TYPE.figure, fontSize: 22, color: t.ink }}>{v}</span>
-                <span className="block mt-1" style={{ ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{k}</span>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* the nearest thing they are all working towards */}
-        {events.length > 0 && (
-          <button onClick={() => { haptic(7); soft(); push("events"); }}
-                  className="w-full flex items-center gap-3.5 px-5 mt-2.5 text-left active:opacity-60"
-                  style={{ minHeight: 58, borderRadius: R.surface, background: t.surface, boxShadow: ELEV.rest }}>
-            <Trophy size={16} color={t.accent} strokeWidth={1.7} />
-            <span className="flex-1 min-w-0">
-              <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{events[0].name}</span>
-              {(events[0].when || events[0].date) && (
-                <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{events[0].when || events[0].date}</span>
-              )}
-            </span>
-            <ChevronRight size={14} color={t.faint} />
-          </button>
         )}
 
         <div style={{ height: 26 }} />
@@ -14208,9 +13924,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      The walkthrough renders a second Nosca inside the real one, and it
      must not write into the real key, so it keeps its own copy in
      memory. Both hooks always run; only the pair used changes. */
-  const [savedQuick, setSavedQuick] = useDeviceSetting("quickLayout", QUICK_DEFAULT);
-  const [demoQuick, setDemoQuick] = useState(QUICK_DEFAULT);
-  const [quickLayout, setQuickLayout] = sc ? [demoQuick, setDemoQuick] : [savedQuick, setSavedQuick];
   /* A term's worth of registers, so the attendance screen has
      something to show before anyone takes one. */
   const [registers, setRegisters] = useState(() => {
@@ -16080,14 +15793,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   asks={data ? liveAsks : freshAccount ? [] : askedFor}
                   events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])}
                   drifting={atRisk(roster, mySeriesLive, live, bookedAhead).length}
-                  unread={unread}
                   upcoming={upcomingForCoach}
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
-                  onMessages={() => go("messages")}
-                  stats={liveStats ? { week: liveStats.weekDone, hours: liveStats.weekHours, season: liveStats.seasonDone }
-                                   : freshAccount ? { week: 0, hours: 0, season: 0 }
-                                   : { week: 11, hours: 9, season: 210 }}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
                   onNoShow={markNoShow}
                   onPeek={(b) => { setPeek(b); setSheet("peek"); }}
@@ -16371,8 +16079,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               }, 180);
                                             }}
                                             close={() => setSheet(null)} />
-            : sheet === "quick" ? <QuickMenu layout={quickLayout} setLayout={setQuickLayout}
-                                            liveLesson={liveNow}
+            : sheet === "quick" ? <QuickMenu liveLesson={liveNow}
                                             onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
                                             onRun={(id) => {
                                               const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
