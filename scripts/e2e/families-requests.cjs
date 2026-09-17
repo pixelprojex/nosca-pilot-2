@@ -196,11 +196,12 @@ const leaks = [];
       const jf = rpc("join_family")[0];
       check("(e) Join calls join_family with the code and the caller is in", !!jf && jf.args.p_code === famCode && db.profiles[IDS.dara].family_id === db.profiles[IDS.adult].family_id, JSON.stringify(jf && jf.args));
       check("(e) the family trigger told the other member (kind family)", db.notifications.some((n) => n.user_id === IDS.adult && n.kind === "family" && /Dara Kelly joined your family/.test(n.title)), JSON.stringify(db.notifications.filter((n) => n.kind === "family").map((n) => n.title)));
+      /* joining lands on the family itself, with the moment it earns */
+      await page.waitForTimeout(1900);
       const t1 = await leak("dara family screen"); await shot("18-dara-joined");
-      check("(e) the Family screen lists both adults", t1.includes("Cian Murphy") && t1.includes("Dara Kelly (you)") && t1.includes("2 people"), t1.slice(0, 240));
-      await click(page, "Dashboard", 900);
+      check("(e) joining lands on the family dashboard, two people in it", t1.includes("The Murphys") && t1.includes("2 people"), t1.slice(0, 240));
       const people = page.locator('[data-tour="family-people"]');
-      const t2 = await leak("dara dashboard"); await shot("19-dara-dashboard");
+      const t2 = t1; await shot("19-dara-dashboard");
       check("(e) the dashboard shows both faces under In the family and has no young players", (await people.count()) === 1 && /Cian/.test(await people.innerText()) && /You/.test(await people.innerText()) && t2.includes("No young players yet"), t2.slice(0, 240));
       await tap(page, '[data-tour="family-settings"]', 900);
       await click(page, "Leave the family", 500);
@@ -225,7 +226,8 @@ const leaks = [];
       check("(f) the junior's row shows her name and her next lesson from the database", kt.includes("Saoirse") && /10:00 am/.test(kt), kt);
       await kid.click(); await page.waitForTimeout(900);
       const kidScreen = M.norm(await M.rootText(page));
-      check("(f) her own screen carries the coach, Next, Last lesson and To practise", kidScreen.includes("with Niamh Byrne") && /NEXT .*10:00 am/i.test(kidScreen) && kidScreen.includes("Grip · 28 AUG") && kidScreen.includes("1 drill"), kidScreen.slice(0, 260));
+      /* the last lesson is the first row of the list below, not a row of its own */
+      check("(f) her own screen carries the coach, Next, To practise and the lessons", kidScreen.includes("with Niamh Byrne") && /NEXT .*10:00 am/i.test(kidScreen) && !kidScreen.includes("LAST LESSON") && /28 AUG\s*Grip/.test(kidScreen) && kidScreen.includes("1 drill"), kidScreen.slice(0, 260));
       check("(f) Book a lesson is live because her coach has hours", await page.getByRole("button", { name: "Book a lesson", exact: true }).isEnabled(), kidScreen.slice(0, 160));
       await page.getByRole("button", { name: "Book a lesson", exact: true }).click(); await page.waitForTimeout(900);
       const t1 = await leak("parent book for"); await shot("22-parent-book-for");
@@ -269,10 +271,10 @@ const leaks = [];
       const t1 = await leak("junior family"); await shot("26-junior-family");
       const people = page.locator('[data-tour="family-people"]');
       check("(g) the junior's dashboard shows who is in it and nothing to book", (await people.count()) === 1 && /Orla/.test(await people.innerText()) && /You/.test(await people.innerText()) && (await page.locator('[data-tour="family-kid"]').count()) === 0 && (await byText(page, "Book a lesson").count()) === 0 && !t1.includes("Message coach"), t1.slice(0, 240));
-      check("(g) …and says what the adults can do", t1.includes("The adults here can see your lessons"), t1.slice(0, 240));
+      check("(g) …with no Next up card and no sentence of explanation", !t1.includes("Next up") && !t1.includes("The adults here can see your lessons") && t1.includes("Coming up"), t1.slice(0, 240));
       await tap(page, '[data-tour="family-settings"]', 900);
       const t2 = await leak("junior family screen"); await shot("27-junior-family-screen");
-      check("(g) the junior's Family screen has no code, no rename and no Leave", !t2.includes("Family code") && !t2.includes("KEL7Y2") && !t2.includes("Leave the family") && !t2.includes("Name the family") && t2.includes("Who's in it") && t2.includes("Ask an adult in your family to change anything here"), t2.slice(0, 240));
+      check("(g) the junior's Family screen has no code, no rename and no Leave", !t2.includes("Family code") && !t2.includes("KEL7Y2") && !t2.includes("Leave the family") && !t2.includes("Name the family") && t2.includes("Who's in it") && !t2.includes("Ask an adult"), t2.slice(0, 240));
       await ctx.close();
     }
   } catch (e) {

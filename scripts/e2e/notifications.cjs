@@ -14,7 +14,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d", eoin: "00000000-0000-4000-8000-000000e01e01" };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const LESSON = { new: "10000000-0000-4000-8000-00000000ae01", old: "10000000-0000-4000-8000-00000000ae02" };
-const N = { lesson: "aa000000-0000-4000-8000-0000000000a1", message: "aa000000-0000-4000-8000-0000000000a2", booking: "aa000000-0000-4000-8000-0000000000a3" };
+const N = { lesson: "aa000000-0000-4000-8000-0000000000a1", message: "aa000000-0000-4000-8000-0000000000a2", booking: "aa000000-0000-4000-8000-0000000000a3", booking2: "aa000000-0000-4000-8000-0000000000a4" };
 const ago = (mins) => new Date(Date.now() - mins * 60000).toISOString();
 
 function freshDb() {
@@ -84,29 +84,33 @@ const { check, results, summary } = M.checker("notifications");
       const t3 = await text(); await shot("04-adult-thread-from-alert");
       /* the notification carries the player's id; the thread is the one with their coach */
       check("(a) tapping a message notification opens the player's real thread with the coach (not an empty one)", t3.includes("Niamh Byrne") && t3.includes("See you Tuesday at nine.") && !t3.includes("No messages yet") && (await page.locator('input[placeholder="Message"]').count()) === 1, t3.slice(0, 200));
-      check("(a) …and marks that one read", readPatches().length === 2 && readPatches()[1].query.includes(N.message) && db.notifications.find((n) => n.id === N.message).read_at, JSON.stringify(readPatches().map((p) => p.query)));
+      check("(a) …and marks that one read", readPatches().some((p) => p.query.includes(N.message)) && db.notifications.find((n) => n.id === N.message).read_at, JSON.stringify(readPatches().map((p) => p.query)));
+      /* the bell reads itself: closing the list marks what it showed as read */
+      check("(a) leaving the list marks the rest read, so the bell counts nothing", db.notifications.filter((n) => n.user_id === IDS.adult && !n.read_at).length === 0 && (await M.bellCount(page)) === 0, JSON.stringify(readPatches().map((p) => p.query)));
       await ctx.close();
     }
 
-    /* ---------- (b) one left: Dismiss marks it, a fresh open shows nothing, Clear all deletes ---------- */
+    /* ---------- (b) one new thing: Dismiss marks it, a fresh open shows nothing, Clear all deletes ---------- */
     {
+      /* a booking confirmed while they were away */
+      M.addNotification(db, { id: N.booking2, userId: IDS.adult, kind: "booking", title: "Lesson confirmed", body: "Thu 24 Sep · 10:00 am", data: { screen: "calendar", id: "b1" }, createdAt: ago(1) });
       const { ctx, page, text, shot } = await boot("adult");
       const t0 = await text(); await shot("05-adult-catchup-one");
       check("(b) the next open shows only what is still unread", (await catchup(page).count()) === 1 && t0.includes("One thing happened") && t0.includes("Lesson confirmed") && !t0.includes("Lesson logged"), t0.slice(0, 200));
       await click(page, "Dismiss", 1000);
       const p = readPatches().slice(-1)[0];
-      check("(b) Dismiss PATCHes read_at for everything unread", !!p && p.body.read_at && p.query.includes(N.booking) && p.query.includes("read_at=is.null") && p.n === 1 && db.notifications.filter((n) => n.user_id === IDS.adult && !n.read_at).length === 0, p ? p.query : "no PATCH");
+      check("(b) Dismiss PATCHes read_at for everything unread", !!p && p.body.read_at && p.query.includes(N.booking2) && p.query.includes("read_at=is.null") && p.n === 1 && db.notifications.filter((n) => n.user_id === IDS.adult && !n.read_at).length === 0, p ? p.query : "no PATCH");
       check("(b) the bell reads 0", (await M.bellCount(page)) === 0 && (await page.locator('[aria-label="Alerts"] span').count()) === 0, String(await M.bellCount(page)));
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page, { carryOn: false });
       const t1 = await text(); await shot("06-adult-no-catchup");
       check("(b) a fresh open with nothing unread shows no catch-up", (await catchup(page).count()) === 0 && !t1.includes("While you were away"), t1.slice(0, 120));
       await tap(page, '[aria-label="Alerts"]', 900);
       const t2 = await text();
-      check("(b) the list still holds the three, now read, with Clear all", (await alertRows(page).count()) === 3 && (await byText(page, "Clear all").count()) === 1, t2.slice(0, 200));
+      check("(b) the list still holds the four, now read, with Clear all", (await alertRows(page).count()) === 4 && (await byText(page, "Clear all").count()) === 1, t2.slice(0, 200));
       await click(page, "Clear all", 1200);
       const del = db.deletes.find((d) => d.table === "notifications");
       const t3 = await text(); await shot("07-adult-cleared");
-      check("(b) Clear all DELETEs the person's notifications and the list says All clear", !!del && del.query.includes(`user_id=eq.${IDS.adult}`) && del.rows.length === 3 && db.notifications.filter((n) => n.user_id === IDS.adult).length === 0 && t3.includes("All clear"), del ? del.query : "no DELETE");
+      check("(b) Clear all DELETEs the person's notifications and the list says All clear", !!del && del.query.includes(`user_id=eq.${IDS.adult}`) && del.rows.length === 4 && db.notifications.filter((n) => n.user_id === IDS.adult).length === 0 && t3.includes("All clear"), del ? del.query : "no DELETE");
       check("(b) nobody else's rows went with them", db.notifications.some((n) => n.user_id === IDS.coach), String(db.notifications.length));
       await ctx.close();
     }

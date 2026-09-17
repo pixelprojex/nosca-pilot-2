@@ -180,6 +180,44 @@ seeded data and no account.
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
 - **Only tips. No goals.** Competitions are the goals.
+- **Logging a lesson is five questions, one a page.** Who · what did
+  you work on · how did it go (note, clip, photo, voice, rating) ·
+  drills to set · one thing to remember. The first two are required,
+  the rest are skippable, and the header reads `n / 5`. `publish()`
+  writes the lesson first and only then sets the drills and the tip for
+  every recipient (each attendee of a group) and raises the burst; a
+  failed write is said, never celebrated. Add a question by adding a
+  page, never by widening one.
+- **A player's diary knows the coach's taken times, never whose.**
+  `coach_busy_slots(p_player)` is a security-definer function returning
+  date, time and length of the coach's requested and confirmed
+  bookings for the next 90 days, excluding the asker's own; the booking
+  rows themselves stay unreadable. `useNoscaData` exposes `busySlots`
+  (mine) and `busyByPlayer` (per child), and the diary merges them into
+  the day with `withBusy()` before drawing free slots.
+- **Chat lists conversations, and the plus starts one.** The list is
+  every thread with a message, unread first then newest; a coach's
+  picker leads with "Everyone", which is the broadcast. Nothing else sits
+  above the list — the weather call-off lives in the diary on the day.
+- **The bell reads itself.** Opening the list shows Today and Earlier
+  with the unread ones in ink; tapping one marks it, and closing the
+  list marks the rest read. The right-hand button is "Mark all read"
+  while anything is unread and "Clear all" after. The away card's
+  Dismiss is the same mark-all.
+- **The feed is ours.** A full-bleed clip, a right-hand column of round
+  buttons (sound only for a video, open, the coach's face), a glass
+  panel bottom-left (focus in display type, one tag line, the note cut
+  to a line with "more"), a 2px progress bar. References are for
+  example only; nothing is copied.
+- **Rows, not cards, and one accent action a screen.** Roster, Drifting,
+  Chat, Coming up, the family's people, the bell: hairline rows with an
+  avatar, a name and one grey line. A search field appears only when
+  the list is long (Roster: more than eight). Settings rows carry a
+  `sub` only when it holds a value (the coach's name, the address),
+  never a sentence explaining the label.
+- **Routes carry ids.** `player:`, `history:` and `archive:` take the
+  roster id; `byKey()` in Nosca resolves a name from an older entry
+  point. Two players with one name are two files.
 - **The walkthrough is the app.** Each tour step renders a second
   `<Nosca showcase={…}>` (harness data, inert, scaled) and rings a real
   control found by its `data-tour` attribute. Add a step by adding the

@@ -256,8 +256,8 @@ const leaks = [];
       await tap(page, '[aria-label="Your profile"]');
       const you0 = await leak("coach you"); await shot("29-coach-you");
       check("(i) Paperwork, Connections, Subscription, Branding, sporting record are absent for a real coach", !you0.includes("Paperwork") && !you0.includes("Connections") && !you0.includes("Subscription") && !you0.includes("Branding") && !you0.includes("sporting record") && !you0.includes("Personal details"), you0.slice(0, 300));
-      check("(i) Help centre is offered when a support address is configured", you0.includes("Help centre"), you0.slice(0, 300));
-      check("(f) the top card leads to the profile (Photo, details, account)", (await page.locator('[data-tour="settings-profile"]').count()) === 1 && you0.includes("Photo, details, account"), you0.slice(0, 200));
+      check("(i) Contact us is offered, with the configured address, when one is set", you0.includes("Contact us") && you0.includes("help@nosca.ie") && !you0.includes("Help centre"), you0.slice(0, 300));
+      check("(f) the top card leads to the profile", (await page.locator('[data-tour="settings-profile"]').count()) === 1, you0.slice(0, 200));
       await tap(page, '[data-tour="settings-profile"]', 900);
       const t11 = await leak("coach profile"); await shot("30-coach-profile");
       const nameVal = await page.locator('input[aria-label="Name"]').inputValue();
@@ -275,7 +275,7 @@ const leaks = [];
       await page.fill('input[aria-label="Club or academy"]', "Hollow Lane GC");
       await tap(page, '[data-tour="profile-save"]', 2000);
       const pp = last(db.patches, "profiles");
-      check("(f) Save PATCHes profiles with name, date_of_birth and club, on the person's own row", !!pp && pp.body.name === "Niamh Byrne-Walsh" && pp.body.sport === "golf" && pp.body.date_of_birth === "1985-07-24" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
+      check("(f) Save PATCHes profiles with name, date_of_birth and club, never a coach's sport, on the person's own row", !!pp && pp.body.name === "Niamh Byrne-Walsh" && !("sport" in pp.body) && pp.body.date_of_birth === "1985-07-24" && pp.body.club === "Hollow Lane GC" && pp.query.includes(`id=eq.${IDS.coach}`) && pp.n === 1, JSON.stringify(pp));
       const t12 = await text(); await shot("31-coach-profile-saved");
       check("(f) saving keeps the person on Your profile with the new values and the age worked out", t12.includes("Your profile") && t12.includes("Saved") === false || t12.includes("Your profile"), t12.slice(0, 120));
       check("(f) the database row now carries the change", db.profiles[IDS.coach].name === "Niamh Byrne-Walsh" && db.profiles[IDS.coach].sport === "golf" && db.profiles[IDS.coach].date_of_birth === "1985-07-24", JSON.stringify(db.profiles[IDS.coach]));
@@ -342,9 +342,9 @@ const leaks = [];
       const t15 = await leak("coach reviews"); await shot("37-coach-reviews");
       check("(i) Reviews shows the coach's real review, not testimonials", t15.includes("Cian Murphy") && t15.includes("Brilliant with the short game.") && t15.includes("5.0 · 1 reviews") && !t15.includes("Marcus T."), t15.slice(0, 200));
       await back(page);
-      await click(page, "Help centre");
-      const t17 = await leak("coach help"); await shot("38-coach-help");
-      check("(i) Help has no FAQ stubs and points at the configured address", !t17.includes("How do I connect") && t17.includes("help@nosca.ie") && t17.includes("Report a problem"), t17.slice(0, 200));
+      /* one row, straight to the mail app: no Help screen between */
+      const contact = page.locator('[data-tour="settings-contact"]');
+      check("(i) Contact us is one row carrying the address, and no FAQ screen sits behind it", (await contact.count()) === 1 && /help@nosca\.ie/.test(await contact.innerText()) && !(await page.locator("body").innerText()).includes("How do I connect"), (await contact.count()) ? await contact.innerText() : "no row");
       await ctx.close();
     }
 

@@ -35,6 +35,10 @@ function freshDb() {
   M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.adult, body: "Grand, see you at four." });
   M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.coach, body: "Saoirse hit the ball beautifully today." });
   M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.parent, body: "Thanks Niamh — can she come Friday instead?" });
+  /* the bell: two from today, one older and read */
+  M.addNotification(db, { userId: IDS.coach, kind: "booking", title: "Cian Murphy asked for Friday 9:00 am", body: null, data: { screen: "calendar" } });
+  M.addNotification(db, { userId: IDS.coach, kind: "message", title: "Orla Kelly replied for Saoirse", body: "Thanks Niamh — can she come Friday instead?", data: { screen: "messages" } });
+  M.addNotification(db, { userId: IDS.coach, kind: "request", title: "Eoin Walsh asked to join you", body: null, data: { screen: "requests" }, readAt: `${ago(2)}T09:00:00Z`, createdAt: `${ago(2)}T08:30:00Z` });
   return db;
 }
 
@@ -82,13 +86,15 @@ function freshDb() {
       await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c18-setup-2");
       await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c19-setup-3");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap('[aria-label="Alerts"]', 900); await shot("c22-alerts");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("c20-chat-list");
       await text("Saoirse Kelly", 900); await shot("c21-thread-junior");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");
       await tap('[aria-label="Lessons"]'); await shot("a2-lessons");
-      await tap('[data-tour="lesson-card"], [data-tour="lesson-row"], [data-tour="lesson-clip"]', 900); await shot("a3-lesson-view");
+      await tap('[data-tour="feed-open"], [data-tour="lesson-card"], [data-tour="lesson-row"]', 900); await shot("a3-lesson-view");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Diary"]'); await shot("a4-diary");
       await tap('[data-tour="agenda-book"]', 700); await shot("a5-request-sheet");

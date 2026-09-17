@@ -33,6 +33,13 @@ const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate(
 
 /* tiny real files, served for signed and public URLs */
 const MP4 = Buffer.from("AAAAGGZ0eXBpc29tAAAAAGlzb21tcDQxAAAACGZyZWU=", "base64");   // ftyp + free boxes
+/* A real two-second clip (VP8 in WebM, recorded from a canvas by
+   mkclip in the session scratchpad), so the feed's autoplay, sound and
+   progress are exercised on something that actually plays. Chromium
+   has no H.264, so the .mp4 paths are answered with this and its true
+   type; a <video> follows the Content-Type, not the file name. */
+let CLIP = null;
+try { CLIP = require("fs").readFileSync(require("path").join(__dirname, "fixtures", "clip.webm")); } catch (e) { CLIP = null; }
 const WEBM = Buffer.from("GkXfo0AgQoaBAUL3gQFC8oEEQvOBCEKChHdlYm1Ch4ECQoWBAhhTgGcBAAAAAAAB", "base64");
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR42mNk+M9Qz8DAwMAAAA0BAgD8A9wJAAAAAElFTkSuQmCC", "base64"); // 2×2
 
@@ -354,7 +361,7 @@ async function attach(page, db, opts = {}) {
         return json(200, paths.map((pth) => (canSee(pth)
           ? { error: null, path: pth, signedURL: `/object/sign/${bucket}/${pth}?token=t-${pth.split("/").pop()}` }
           : { error: "Either the object does not exist or you do not have access to it", path: pth, signedURL: null }))); }
-      if (rest.startsWith("sign/") && method === "GET") { return bytes(/\.mp4$/.test(p) ? MP4 : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, /\.mp4$/.test(p) ? "video/mp4" : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
+      if (rest.startsWith("sign/") && method === "GET") { return bytes(/\.mp4$/.test(p) ? (CLIP || MP4) : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, /\.mp4$/.test(p) ? (CLIP ? "video/webm" : "video/mp4") : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
       if (rest.startsWith("public/") && method === "GET") return bytes(PNG, "image/png");
       if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }
       const [bucket, ...more] = rest.split("/"); const objPath = more.join("/");
@@ -441,6 +448,15 @@ async function attach(page, db, opts = {}) {
         const who = args.p_player; let coachId = null;
         if (!who || who === meId) coachId = mine.coach_id; else if (S.looked.includes(who)) coachId = (db.profiles[who] || {}).coach_id;
         return json(200, (coachId && db.prefs[coachId] && db.prefs[coachId].availability) || {});
+      }
+      /* the coach's taken times reach another player as times only — the
+         same shape as the function in nosca.sql */
+      if (fn === "coach_busy_slots") {
+        const who = args.p_player; let coachId = null;
+        if (!who || who === meId) coachId = mine.coach_id; else if (S.looked.includes(who)) coachId = (db.profiles[who] || {}).coach_id;
+        const asker = who || meId;
+        return json(200, coachId ? db.bookings.filter((b) => b.coach_id === coachId && b.player_id !== asker && (b.status === "requested" || b.status === "confirmed"))
+          .map((b) => ({ booking_date: b.booking_date, start_time: b.start_time, duration: b.duration })) : []);
       }
       if (fn === "delete_my_account") {
         Object.values(db.profiles).forEach((x) => { if (x.coach_id === meId) x.coach_id = null; });

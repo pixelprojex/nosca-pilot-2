@@ -341,4 +341,18 @@ update public.bookings set status = 'confirmed' where id = :'bk';
 rollback;
 select (status = 'cancelled') as ok from public.bookings where id = :'bk' \gset
 \if :ok \echo PASS a player cannot confirm a booking (the error above is the refusal) \else \echo FAIL player changed a booking to confirmed \endif
+-- the coach's taken times reach another player as times, never as names
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', (current_date + 20)::date, '09:00', 45, 'private', 'confirmed') returning id as busybk \gset
+commit;
+insert into auth.users (id, email, raw_user_meta_data) values ('99999999-9999-4999-8999-999999999999', 'player3@example.ie', jsonb_build_object('role','player','name','Player Three','sport','golf','account_type','adult','date_of_birth','1996-01-01','coach_code', (select invite_code from public.profiles where id = '77777777-7777-4777-8777-777777777777')));
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+select public.respond_to_request((select id from public.coach_requests where player_id = '99999999-9999-4999-8999-999999999999' and status = 'pending'), true);
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"99999999-9999-4999-8999-999999999999","role":"authenticated"}', true) \gset _
+select (count(*) = 1) as ok1 from public.coach_busy_slots() where booking_date = (current_date + 20)::date and start_time = '09:00' \gset
+select (count(*) = 0) as ok2 from public.bookings where id = :'busybk' \gset
+rollback;
+\if :ok1 \echo PASS another player of the same coach sees the taken time through coach_busy_slots \else \echo FAIL coach_busy_slots did not hand back the taken time \endif
+\if :ok2 \echo PASS …and still cannot read whose booking it is \else \echo FAIL a booking row leaked to a different player \endif
 \echo === done
