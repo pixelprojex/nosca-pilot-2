@@ -5243,23 +5243,30 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
 
       {/* what this is: the focus, the day, the coach, the note — on glass */}
       <div className="absolute" style={{ left: 16, right: 78, bottom: 108, zIndex: 25 }}>
-        <button onClick={() => { haptic(6); setMore((v) => !v); }} className="w-full text-left active:opacity-90"
-                style={{ padding: "14px 16px 12px", borderRadius: 18, background: "rgba(10,13,14,0.38)",
-                         backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-                         border: "0.5px solid rgba(255,255,255,0.12)",
-                         animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
-          <span className="block" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
-            {lesson.focus}
-          </span>
-          <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-            {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}
-          </span>
-          {lesson.note && (
-            <span className="flex items-baseline gap-2 mt-2" style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>
-              <span className={`min-w-0 ${more ? "" : "truncate"}`}>{lesson.note}</span>
-              {!more && lesson.note.length > 44 && <span className="shrink-0" style={{ color: "rgba(255,255,255,0.55)" }}>{tr("more")}</span>}
+        {/* the title opens the lesson; the note unfolds only when there is
+            more of it — a tap that changed nothing was a dead end */}
+        <div className="w-full text-left"
+             style={{ padding: "14px 16px 12px", borderRadius: 18, background: "rgba(10,13,14,0.38)",
+                      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                      border: "0.5px solid rgba(255,255,255,0.12)",
+                      animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
+          <button onClick={() => { haptic(6); onOpen && onOpen(); }} className="block w-full text-left active:opacity-80">
+            <span className="block" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
+              {lesson.focus}
             </span>
-          )}
+            <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}
+            </span>
+          </button>
+          {lesson.note && (lesson.note.length > 44 ? (
+            <button onClick={() => { haptic(6); setMore((v) => !v); }} className="flex items-baseline gap-2 mt-2 w-full text-left active:opacity-80"
+                    style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>
+              <span className={`min-w-0 ${more ? "" : "truncate"}`}>{lesson.note}</span>
+              <span className="shrink-0" style={{ color: "rgba(255,255,255,0.55)" }}>{more ? tr("less") : tr("more")}</span>
+            </button>
+          ) : (
+            <span className="block mt-2" style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>{lesson.note}</span>
+          ))}
           {items.length > 1 && (
             <span className="flex items-center gap-1.5 mt-3" aria-label={`${frame + 1} ${tr("of")} ${items.length}`}>
               {items.map((it, i) => (
@@ -5270,7 +5277,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
               ))}
             </span>
           )}
-        </button>
+        </div>
         {/* how far through the clip */}
         {current && current.type === "video" && (
           <div className="mt-2.5 mx-1" aria-hidden="true" style={{ height: 2, borderRadius: 1, background: "rgba(255,255,255,0.22)", overflow: "hidden" }}>
