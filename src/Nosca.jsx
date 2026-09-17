@@ -5250,7 +5250,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                       backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
                       border: "0.5px solid rgba(255,255,255,0.12)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
-          <button onClick={() => { haptic(6); onOpen && onOpen(); }} className="block w-full text-left active:opacity-80">
+          <button onClick={open} className="block w-full text-left active:opacity-80">
             <span className="block" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
               {lesson.focus}
             </span>
