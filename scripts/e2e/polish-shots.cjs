@@ -70,10 +70,10 @@ function freshDb() {
       await tap('[aria-label="Your profile"]'); await shot("c7-you");
       await page.getByRole("button", { name: /^Drills/ }).first().click(); await page.waitForTimeout(800); await shot("c8-drill-library");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
-      await tap('[aria-label="Add"]', 700); await shot("c9-plus");
-      await page.locator("[data-sheet]").getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800); await shot("c10-wizard-1");
-      await text("Cian Murphy", 300); await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(600); await shot("c11-wizard-2");
-      await text("Short game", 300); await page.getByRole("button", { name: "Continue" }).first().click().catch(() => {}); await page.waitForTimeout(600); await shot("c12-wizard-3");
+      await tap('[data-tour="quick"]', 900); await shot("c9-log");
+      await text("Cian Murphy", 400); await shot("c10-log-who");
+      await text("Chipping", 400); await shot("c11-log-worked-on");
+      await text("Add a note, clip, photo or voice", 500); await shot("c12-log-note");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Roster"]'); await tap('[data-tour="roster-row"]'); await tap('[data-tour="player-lessons"] button', 900); await shot("c13-lesson-view-coach");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);

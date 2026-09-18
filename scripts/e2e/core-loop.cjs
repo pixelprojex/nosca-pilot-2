@@ -153,9 +153,10 @@ const leaks = [];
       check("(c) Message everyone posts one row per roster player", !!bc && bc.rows.length === 2 && bc.rows.every((x) => x.sender_id === IDS.coach && x.body === "Range is closed Friday.") && new Set(bc.rows.map((x) => x.player_id)).size === 2, JSON.stringify(bc && bc.rows.map((x) => x.player_id)));
 
       /* (d) attendance */
-      await tap(page, '[aria-label="Today"]'); await tap(page, '[aria-label="Add"]');
-      await leak("coach quick menu");
-      await byText(page, "Attendance").click(); await page.waitForTimeout(800);
+      /* the register lives on the lesson: diary row → peek → Register */
+      await tap(page, '[aria-label="Diary"]');
+      await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(800);
+      await tap(page, '[data-tour="peek-register"]', 900);
       const t4 = await leak("coach attendance"); await shot("coach-attendance");
       /* the sheet's own text: Today sits behind it, and a lesson merely
          asked for is answered there, so the page carries "4:00 pm" even
@@ -171,38 +172,29 @@ const leaks = [];
 
       /* Live capture sheet: real day, holding pile */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
-      await tap(page, '[aria-label="Add"]');
-      await byText(page, "Live capture").click(); await page.waitForTimeout(800);
+      await tap(page, '[aria-label="Diary"]');
+      await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(800);
+      await byText(page, "Capture").click(); await page.waitForTimeout(800);
       const t5 = await leak("coach live capture"); await shot("coach-live-capture");
       check("(5) Live capture files under today's real bookings or nobody", /filing under/i.test(t5) && t5.includes("Cian Murphy · 9:00 am") && t5.includes("Saoirse Kelly · 10:30 am") && t5.includes("Nobody yet"), t5.slice(0, 200));
 
-      /* (e) log a lesson with a typed note */
+      /* (e) log a lesson with a typed note — one screen, no pages */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
-      await tap(page, '[aria-label="Add"]');
-      await page.locator("[data-sheet]").getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
-      const tw0 = await leak("wizard who"); await shot("coach-wizard-who");
-      check("(e) the first page asks who and when, and never for a time nothing stores", tw0.includes("Date") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0, tw0.slice(0, 200));
+      await tap(page, '[data-tour="quick"]', 900);
+      const tw0 = await leak("log"); await shot("coach-log");
+      check("(e) the plus opens the log: who, stage, worked on and a date row, never a time", tw0.includes("Who") && tw0.includes("Stage") && tw0.includes("Worked on") && tw0.includes("Date") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0 && !/\d \/ \d/.test(tw0), tw0.slice(0, 260));
+      check("(e) the stage is golf's real ladder — Handicap Index and the Passport levels — not an invented one", tw0.includes("Handicap Index") && tw0.includes("Passport") && !tw0.includes("Long game"), tw0.slice(0, 260));
       await byText(page, "Cian Murphy").click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      /* five questions, one a page: who · what · how it went · drills · a tip */
-      const t6 = await leak("wizard what"); await shot("coach-wizard-what");
-      check("(e) the second page asks what was worked on, as chips, and nothing else", t6.includes("What did you work on?") && t6.includes("Short game") && t6.includes("2 / 5") && !t6.includes("Clip") && (await page.locator("textarea").count()) === 0, t6.slice(0, 300));
-      await page.getByRole("button", { name: "Short game", exact: true }).click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
-      const t7 = await leak("wizard how it went"); await shot("coach-wizard-how");
-      check("(e) the third page takes a typed note, a clip, a photo or a voice note, with no device readout", t7.includes("How did it go?") && t7.includes("3 / 5") && (await page.locator('textarea[placeholder="What happened, in a line or two"]').count()) === 1 && t7.includes("Clip") && t7.includes("Photo") && t7.includes("Voice") && !/TrackMan|Serve radar|Launch|Tap to record/i.test(t7), t7.slice(0, 300));
+      await page.getByRole("button", { name: "Chipping", exact: true }).click(); await page.waitForTimeout(300);
+      check("(e) the note and clips stay folded until asked for", (await page.locator("textarea").count()) === 0 && (await page.locator('input[type="file"]').count()) === 1, String(await page.locator("textarea").count()));
+      await byText(page, "Add a note, clip, photo or voice").click(); await page.waitForTimeout(400);
+      const t7 = await leak("log unfolded"); await shot("coach-log-note");
+      check("(e) unfolded: a typed note, Clip, Photo and Voice, with no device readout", (await page.locator('textarea[placeholder="What happened, in a line or two"]').count()) === 1 && t7.includes("Clip") && t7.includes("Photo") && t7.includes("Voice") && !/TrackMan|Serve radar|Launch|Tap to record/i.test(t7), t7.slice(0, 300));
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Worked on tempo from a hundred yards.");
-      /* one way forward per page: Continue until the last one, which is
-         the Publish. */
-      for (let i = 0; i < 4; i++) {
-        const pub = page.getByRole("button", { name: "Publish", exact: true });
-        if (await pub.count()) { await pub.first().click(); break; }
-        await page.getByRole("button", { name: "Continue" }).first().click();
-        await page.waitForTimeout(400);
-      }
+      await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(1500);
       const lp = db.posts.find((x) => x.table === "lessons"); const lrow = lp && lp.rows[0];
-      check("(e) the lessons insert carries today's date and the typed note only", !!lrow && lrow.lesson_date === TODAY && lrow.notes === "Worked on tempo from a hundred yards." && lrow.focus === "Short game" && lrow.player_id === IDS.adult && lrow.coach_id === IDS.coach, JSON.stringify(lrow));
+      check("(e) the lessons insert carries today's date and the typed note only", !!lrow && lrow.lesson_date === TODAY && lrow.notes === "Worked on tempo from a hundred yards." && lrow.focus === "Chipping" && lrow.player_id === IDS.adult && lrow.coach_id === IDS.coach, JSON.stringify(lrow));
       check("(e) the lesson trigger told the player (kind lesson, screen lesson, the new id)", db.notifications.some((n) => n.user_id === IDS.adult && n.kind === "lesson" && n.data.screen === "lesson" && lrow && n.data.id === lrow.id), JSON.stringify(db.notifications.filter((n) => n.kind === "lesson")));
       const t8 = await leak("published burst"); await shot("coach-burst");
       check("(e) the burst offers no seeded 'Log next' or rating pretence", !t8.includes("Dan Okafor") && !t8.includes("4 left"), t8.slice(0, 200));
@@ -232,11 +224,10 @@ const leaks = [];
 
       /* (h) two files, one refused by the storage limit, retried from Today */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
-      await tap(page, '[aria-label="Add"]');
-      await page.locator("[data-sheet]").getByRole("button", { name: /log a lesson|log lesson/i }).first().click(); await page.waitForTimeout(800);
+      await tap(page, '[data-tour="quick"]', 900);
       await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
+      await byText(page, "Add a note, clip, photo or voice").click(); await page.waitForTimeout(400);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Two clips attached.");
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "swing.mp4", mimeType: "video/mp4", buffer: M.MP4 },
@@ -244,13 +235,8 @@ const leaks = [];
       ]);
       await page.waitForTimeout(600);
       const th0 = await text(); await shot("coach-wizard-two-files");
-      check("(h) both files are listed on the media step", th0.includes("swing.mp4") && th0.includes("big-clip.mp4"), th0.slice(0, 200));
-      for (let i = 0; i < 4; i++) {
-        const pub = page.getByRole("button", { name: "Publish", exact: true });
-        if (await pub.count()) { await pub.first().click(); break; }
-        await page.getByRole("button", { name: "Continue" }).first().click();
-        await page.waitForTimeout(400);
-      }
+      check("(h) both files are listed under the note", th0.includes("swing.mp4") && th0.includes("big-clip.mp4"), th0.slice(0, 200));
+      await page.getByRole("button", { name: "Log it", exact: true }).click();
       /* the burst plays 2.6 s; the uploads have long finished by then */
       await page.waitForTimeout(4200);
       const strip = page.locator('[data-tour="upload-status"]');
@@ -281,11 +267,10 @@ const leaks = [];
       const before = db.uploads.filter((u) => u.bucket === "media").length;
       /* the plus, then Log a lesson — Today's empty state is gone now
          that this coach has something to log */
-      await M.tap(page, '[data-tour="quick"]', 700);
-      await M.tap(page, '[data-tour="quick-log"]', 900);
+      await M.tap(page, '[data-tour="quick"]', 900);
       await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
+      await byText(page, "Add a note, clip, photo or voice").click(); await page.waitForTimeout(400);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "Three captures, all called the same thing.");
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
@@ -293,12 +278,7 @@ const leaks = [];
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
       ]);
       await page.waitForTimeout(600);
-      for (let i = 0; i < 4; i++) {
-        const pub = page.getByRole("button", { name: "Publish", exact: true });
-        if (await pub.count()) { await pub.first().click(); break; }
-        await page.getByRole("button", { name: "Continue" }).first().click();
-        await page.waitForTimeout(400);
-      }
+      await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(4600);
       const sameUps = db.uploads.filter((u) => u.bucket === "media").slice(before);
       const samePaths = sameUps.map((u) => u.path);
@@ -371,21 +351,15 @@ const leaks = [];
       M.addUser(ndb, { id: TWIN, email: "twin@t.ie" });
       M.addProfile(ndb, { id: TWIN, role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1990-01-01" });
       const { ctx, page } = await boot("coach", ndb);
-      await M.tap(page, '[data-tour="quick"]', 700);
-      await M.tap(page, '[data-tour="quick-log"]', 900);
+      await M.tap(page, '[data-tour="quick"]', 900);
       const rows = page.locator('button:has-text("Cian Murphy")');
       check("(j) both people called Cian Murphy are offered, not one", (await rows.count()) === 2, String(await rows.count()));
       /* the SECOND one — the one a name lookup would never reach */
       await rows.nth(1).click(); await page.waitForTimeout(300);
-      await page.getByRole("button", { name: "Continue" }).click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
+      await byText(page, "Add a note, clip, photo or voice").click(); await page.waitForTimeout(400);
       await page.fill('textarea[placeholder="What happened, in a line or two"]', "The other Cian.");
-      for (let i = 0; i < 4; i++) {
-        const pub = page.getByRole("button", { name: "Publish", exact: true });
-        if (await pub.count()) { await pub.first().click(); break; }
-        await page.getByRole("button", { name: "Continue" }).first().click();
-        await page.waitForTimeout(400);
-      }
+      await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(1500);
       const lp = ndb.posts.filter((x) => x.table === "lessons").pop();
       const lrow = lp && lp.rows[0];

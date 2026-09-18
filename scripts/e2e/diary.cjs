@@ -207,11 +207,9 @@ const leaks = [];
       await shot("21-coach-practice-edited");
 
       /* (d) competitions */
-      /* Today only draws a fold that has something in it, so a coach with
-         no competitions reaches Ahead from the plus menu */
-      await tap(page, '[aria-label="Today"]');
-      await tap(page, '[data-tour="quick"]', 700);
-      await click(page, "Competition");
+      /* competitions live in the diary, beside hours and recurring */
+      await tap(page, '[aria-label="Diary"]');
+      await tap(page, '[data-tour="cal-events"]', 800);
       const t6 = await leak("coach events"); await shot("22-coach-events-empty");
       check("(d) Ahead lists no seeded events for a real coach", !t6.includes("Club Championship") && !t6.includes("Captain's Prize") && t6.includes("Nothing coming up"), t6.slice(0, 200));
       await tap(page, '[aria-label="Add"]');

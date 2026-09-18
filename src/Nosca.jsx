@@ -59,15 +59,15 @@ const PLANS = [
    lesson. Kept in one place so the calendar block, the home prompt and
    the profile all say the same thing. */
 const PLAYER_FILE = {
-  "Marcus Tran":  { done: 12, lastFocus: "Short game", lastOn: "14 Jun",
+  "Marcus Tran":  { done: 12, lastFocus: "Chipping", lastOn: "14 Jun",
                     tip: "Trust the shallow", note: "Prefers mornings" },
-  "Priya Ellis":  { done: 8,  lastFocus: "Driving", lastOn: "02 Jun",
+  "Priya Ellis":  { done: 8,  lastFocus: "Full swing", lastOn: "02 Jun",
                     tip: "Tempo over speed", note: "Pays in cash" },
   "Dan Okafor":   { done: 5,  lastFocus: "Putting", lastOn: "18 May",
                     tip: "Same routine every putt", note: "New to the game" },
-  "Sofia Reyes":  { done: 3,  lastFocus: "Long game", lastOn: "04 May",
+  "Sofia Reyes":  { done: 3,  lastFocus: "Full swing", lastOn: "04 May",
                     tip: "Commit to the shape", note: "" },
-  "Tom Beckett":  { done: 1,  lastFocus: "Short game", lastOn: "20 Apr",
+  "Tom Beckett":  { done: 1,  lastFocus: "Chipping", lastOn: "20 Apr",
                     tip: null, note: "Left-handed" },
 };
 /* Whether this tree is a real, signed-in account. While true, every seed
@@ -211,15 +211,15 @@ const BREATHNACH = {
   /* What Shane and Conor have actually been doing with them. */
   history: {
     "Eoin Breathnach": [
-      { d: "18 Jul", focus: "Short game", note: "Bump and run from a tight lie.", videos: 2 },
-      { d: "04 Jul", focus: "Driving",    note: "Held the finish. Cleanest strike in months.", videos: 1 },
-      { d: "20 Jun", focus: "Long game",  note: "Five iron from 180. Trap it.", videos: 2 },
+      { d: "18 Jul", focus: "Chipping", note: "Bump and run from a tight lie.", videos: 2 },
+      { d: "04 Jul", focus: "Full swing",    note: "Held the finish. Cleanest strike in months.", videos: 1 },
+      { d: "20 Jun", focus: "Full swing",  note: "Five iron from 180. Trap it.", videos: 2 },
       { d: "06 Jun", focus: "Putting",    note: "Pace on the long ones.", videos: 0 },
       { d: "23 May", focus: "On course",  note: "Played nine. Course management.", videos: 1 },
     ],
     "Gráinne O'Donnell": [
       { d: "21 Jul", focus: "Serve",   note: "Second serve with more shape.", videos: 1 },
-      { d: "14 Jul", focus: "Net play", note: "Doubles positioning with Conor feeding.", videos: 2 },
+      { d: "14 Jul", focus: "Net game", note: "Doubles positioning with Conor feeding.", videos: 2 },
       { d: "07 Jul", focus: "Return",  note: "Split-step timing.", videos: 0 },
     ],
     "Fionn Breathnach": [
@@ -376,120 +376,153 @@ const hadLessons = (cfg, live) => (live ? [] : (cfg?.lessons || []));
 export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
-    label: "Golf", tagline: "Swing, short game, course play",
+    label: "Golf", tagline: "Full swing, short game, on course",
     theme: { ink: "#14180F", sub: "#5A6350", faint: "#A8AE9C", hair: "#EDEAE1",
              page: "#FFFFFF", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#8C6D28", accent: "#8C6D28", onAccent: "#FFFFFF" },
+    /* the ladder a coach places a player on before anything else —
+       verified against the governing bodies (see CLAUDE.md) */
+    stages: [
+      { id: "none", label: "No handicap yet" },
+      { id: "start", label: "Passport · Start", group: "Junior Golf Passport" },
+      { id: "learn", label: "Passport · Learn", group: "Junior Golf Passport" },
+      { id: "play", label: "Passport · Play", group: "Junior Golf Passport" },
+      { id: "sixes", label: "GolfSixes" },
+      { id: "hi", label: "Handicap Index", input: true, tag: "HI", hint: "e.g. 18.4" },
+    ],
+    extras: [],
+    formats: ["Lesson", "Playing lesson", "Group clinic", "Short game clinic", "Junior class", "Camp", "TrackMan session", "Video analysis", "Custom fitting", "Get into Golf", "GolfSixes"],
     focus: [
-      { id: "driving", label: "Driving",    subs: ["Tee shots", "Distance", "Accuracy", "Setup"] },
-      { id: "long",    label: "Long game",  subs: ["Irons", "Hybrids", "Fairway woods", "Ball striking"] },
-      { id: "short",   label: "Short game", subs: ["Chipping", "Pitching", "Bunker play", "Distance control"] },
-      { id: "putting", label: "Putting",    subs: ["Stroke", "Green reading", "Lag putting", "Short putts"] },
-      { id: "course",  label: "On course",  subs: ["Strategy", "Club selection", "Course management", "Mental game"] },
+      { id: "swing", label: "Full swing", subs: ["Driver", "Fairway woods", "Hybrids", "Irons", "Wedges", "Ball striking", "Setup"] },
+      { id: "pitch", label: "Pitching", subs: ["Distance control", "Trajectory", "Spin"] },
+      { id: "chip", label: "Chipping", subs: ["Contact", "Landing spot", "Club choice"] },
+      { id: "bunker", label: "Bunker play", subs: ["Greenside", "Fairway bunker", "Plugged lies"] },
+      { id: "putt", label: "Putting", subs: ["Stroke", "Green reading", "Pace", "Short putts"] },
+      { id: "course", label: "On course", subs: ["Playing lesson", "Course management", "Strategy", "Club selection"] },
+      { id: "mental", label: "Mental game", subs: ["Routine", "Commitment", "Pressure"] },
+      { id: "fitness", label: "Fitness", subs: ["Mobility", "Speed", "Stability"] },
+      { id: "fitting", label: "Custom fitting", subs: ["Driver", "Irons", "Putter"] },
     ],
     angles: ["Face-on", "Down the line", "Overhead", "Slow motion"],
     drills: [
-      { t: "Alignment stick gate", d: "Two sticks at the shaft plane. 20 balls.", focus: "driving" },
-      { t: "Ladder drill",         d: "60, 80, 100 yd. Ten each, note the carry.", focus: "short" },
-      { t: "Putting gate",         d: "Six feet, tees just wider than the head.", focus: "putting" },
-      { t: "Half swings",          d: "Waist to waist with a 7-iron.", focus: "long" },
-      { t: "Two-tee bunker drill", d: "Enter the sand behind the back tee.", focus: "short" },
-      { t: "Clock putting",        d: "Six balls at 3, 6 and 9 feet, all the way round.", focus: "putting" },
-      { t: "Impact bag",           d: "Twenty hits. Feel the lag into the bag, not the arms.", focus: "long" },
-      { t: "Nine-shot ladder",     d: "Draw, straight, fade — low, mid, high with one club.", focus: "course" },
-      { t: "One-club nine",        d: "Play nine holes with a 7-iron only.", focus: "course" },
-      { t: "Towel under both arms",d: "Twenty half swings, keep the towel in.", focus: "driving" },
+      { t: "Gate drill", d: "Two tees just wider than the putter head. Three feet, then back to ten.", focus: "putt" },
+      { t: "Clock drill", d: "Six balls at 3, 6 and 9 feet, all the way round.", focus: "putt" },
+      { t: "3-6-9 putting", d: "Three putts from each; start again if one misses.", focus: "putt" },
+      { t: "Ladder drill", d: "60, 80, 100 yards, ten balls each. Note the carry.", focus: "pitch" },
+      { t: "Towel drill", d: "Land every chip on the towel.", focus: "chip" },
+      { t: "One-handed chipping", d: "Trail hand only, twenty balls.", focus: "chip" },
+      { t: "Line drill", d: "Draw a line in the sand; enter behind it every time.", focus: "bunker" },
+      { t: "Alignment-stick drill", d: "Stick along the target line at setup. Twenty balls.", focus: "swing" },
+      { t: "Towel under both arms", d: "Twenty half swings, keep the towel in.", focus: "swing" },
+      { t: "Feet-together drill", d: "Balance through impact. Twenty with a 7-iron.", focus: "swing" },
+      { t: "Headcover drill", d: "Headcover outside the ball; miss it on the way down.", focus: "swing" },
+      { t: "Step drill", d: "Step into the shot for sequencing. Ten swings.", focus: "swing" },
     ],
     tipLibrary: [
-      { t: "Trust the shallow",    d: "The shaft gets shallower at the top — keep trusting it rather than steepening back up to save it.", focus: "driving" },
-      { t: "Tempo over speed",     d: "You're at your best with a slower backswing. Chasing extra yards costs more than it gives.", focus: "driving" },
-      { t: "Finish balanced",      d: "Hold the finish for a full three count — rushing off the ball is costing solid contact.", focus: "long" },
-      { t: "Let the putter fall",  d: "Pendulum from the shoulders, not the wrists — let gravity do the work on the stroke.", focus: "putting" },
-      { t: "Commit to the number", d: "Once you've picked the club, commit fully — indecision is the real distance killer.", focus: "course" },
-      { t: "Widen the stance in the wind", d: "A wider base holds up better when it's blowing — don't fight it standing tall.", focus: "course" },
+      { t: "Trust the shallow",    d: "The shaft gets shallower at the top — keep trusting it rather than steepening back up to save it.", focus: "swing" },
+      { t: "Tempo over speed",     d: "You're at your best with a slower backswing. Chasing extra yards costs more than it gives.", focus: "swing" },
+      { t: "Finish balanced",      d: "Hold the finish for a full three count — rushing off the ball is costing solid contact.", focus: "pitch" },
+      { t: "Let the putter fall",  d: "Pendulum from the shoulders, not the wrists — let gravity do the work on the stroke.", focus: "bunker" },
+      { t: "Commit to the number", d: "Once you've picked the club, commit fully — indecision is the real distance killer.", focus: "putt" },
+      { t: "Widen the stance in the wind", d: "A wider base holds up better when it's blowing — don't fight it standing tall.", focus: "putt" },
     ],
     statCatalog: [
-      { id: "handicap", l: "Handicap", u: "", manual: true },
-      { id: "drive",    l: "Drive",    u: "yd" },
-      { id: "greens",   l: "Greens",   u: "%" },
-      { id: "putts",    l: "Putts",    u: "/rnd" },
-      { id: "upDown",   l: "Up & down", u: "%" },
+      { id: "handicap", l: "Handicap Index", u: "", manual: true },
       { id: "fairways", l: "Fairways", u: "%" },
-      { id: "scramble", l: "Scrambling", u: "%" },
-      { id: "prox",     l: "Proximity", u: "ft" },
+      { id: "greens", l: "GIR", u: "%" },
+      { id: "putts", l: "Putts", u: "/rnd" },
+      { id: "upDown", l: "Up & down", u: "%" },
+      { id: "sgTee", l: "SG: Off the tee", u: "" },
+      { id: "sgApp", l: "SG: Approach", u: "" },
+      { id: "sgAround", l: "SG: Around the green", u: "" },
+      { id: "sgPutt", l: "SG: Putting", u: "" },
     ],
-    statValues: {
-      handicap: { v: "12.4" }, drive: { v: "248", m: "+11" }, greens: { v: "42", m: "+7" },
-      putts: { v: "33", m: "−2" }, upDown: { v: "58", m: "+5" }, fairways: { v: "64", m: "+3" },
-      scramble: { v: "47", m: "+9" }, prox: { v: "28", m: "−4" },
-    },
-    defaultStats: ["drive", "greens", "putts"],
+    statValues: { handicap: { v: "18.4" }, fairways: { v: "64", m: "+3" }, greens: { v: "42", m: "+7" }, putts: { v: "33", m: "−2" }, upDown: { v: "58", m: "+5" }, sgTee: { v: "−0.4" }, sgApp: { v: "−1.1" }, sgAround: { v: "+0.2" }, sgPutt: { v: "−0.6" } },
+    defaultStats: ["fairways", "greens", "putts"],
     chart: { label: "Scoring average", note: "Lower is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [94,93,91,90,89,88] },
     transcript: "Good session. Most of it went on distance control from inside a hundred yards, and your contact is far more consistent now. Keep the ladder drill going before we meet again — sixty, eighty, a hundred, ten balls each, and write down the carry.",
     lessons: [
-      { id:1, focus:"Short game", focusId:"short", subs:["Distance control","Pitching"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Putting",    focusId:"putting", subs:["Green reading","Lag putting"], d:"31", m:"MAY", type:"Private", videos:1 },
-      { id:3, focus:"Driving",    focusId:"driving", subs:["Accuracy","Setup"],           d:"17", m:"MAY", type:"Group",   videos:3 },
-      { id:4, focus:"Long game",  focusId:"long",   subs:["Irons","Ball striking"],      d:"03", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Short game", focusId:"short", subs:["Bunker play"],                d:"19", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Short game", focusId:"short", subs:[], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Short game", focusId:"short", subs:[], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Short game", focusId:"short", subs:[], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Short game", focusId:"short", subs:[], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Short game", focusId:"short", subs:[], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Short game", focusId:"short", subs:[], d:"24", m:"FEB", type:"Private", videos:1 },
-      { id:12, focus:"Short game", focusId:"short", subs:[], d:"11", m:"FEB", type:"Group", videos:2 },
-      { id:13, focus:"Short game", focusId:"short", subs:[], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Short game", focusId:"short", subs:[], d:"16", m:"JAN", type:"Private", videos:0 },
-      { id:15, focus:"Short game", focusId:"short", subs:[], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Short game", focusId:"short", subs:[], d:"18", m:"DEC", type:"Private", videos:2 },
-      { id:17, focus:"Short game", focusId:"short", subs:[], d:"06", m:"DEC", type:"Private", videos:3 },
-      { id:18, focus:"Short game", focusId:"short", subs:[], d:"22", m:"NOV", type:"Group", videos:0 },
-      { id:19, focus:"Short game", focusId:"short", subs:[], d:"08", m:"NOV", type:"Private", videos:1 },
-      { id:20, focus:"Short game", focusId:"short", subs:[], d:"25", m:"OCT", type:"Private", videos:2 },
+      { id:1, focus:"Full swing", focusId:"swing", subs:["HI 18.4", "Driver", "Fairway woods"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Pitching", focusId:"pitch", subs:["HI 18.4", "Distance control", "Trajectory"], d:"31", m:"MAY", type:"Private", videos:1 },
+      { id:3, focus:"Chipping", focusId:"chip", subs:["HI 18.4", "Contact", "Landing spot"], d:"17", m:"MAY", type:"Group", videos:3 },
+      { id:4, focus:"Bunker play", focusId:"bunker", subs:["HI 18.4", "Greenside", "Fairway bunker"], d:"03", m:"MAY", type:"Private", videos:2 },
+      { id:5, focus:"Putting", focusId:"putt", subs:["HI 18.4", "Stroke", "Green reading"], d:"19", m:"APR", type:"Private", videos:1 },
+      { id:6, focus:"On course", focusId:"course", subs:["HI 18.4"], d:"28", m:"APR", type:"Group", videos:0 },
+      { id:7, focus:"Mental game", focusId:"mental", subs:["HI 18.4"], d:"14", m:"APR", type:"Private", videos:1 },
+      { id:8, focus:"Fitness", focusId:"fitness", subs:["HI 18.4"], d:"02", m:"APR", type:"Private", videos:2 },
+      { id:9, focus:"Custom fitting", focusId:"fitting", subs:["HI 18.4"], d:"21", m:"MAR", type:"Group", videos:3 },
+      { id:10, focus:"Full swing", focusId:"swing", subs:["HI 18.4"], d:"09", m:"MAR", type:"Private", videos:0 },
+      { id:11, focus:"Pitching", focusId:"pitch", subs:["HI 18.4"], d:"24", m:"FEB", type:"Private", videos:2 },
+      { id:12, focus:"Chipping", focusId:"chip", subs:["HI 18.4"], d:"11", m:"FEB", type:"Group", videos:1 },
+      { id:13, focus:"Bunker play", focusId:"bunker", subs:["HI 18.4"], d:"29", m:"JAN", type:"Private", videos:3 },
+      { id:14, focus:"Putting", focusId:"putt", subs:["HI 18.4"], d:"16", m:"JAN", type:"Private", videos:2 },
+      { id:15, focus:"On course", focusId:"course", subs:["HI 18.4"], d:"04", m:"JAN", type:"Group", videos:1 },
+      { id:16, focus:"Mental game", focusId:"mental", subs:["HI 18.4"], d:"18", m:"DEC", type:"Private", videos:0 },
+      { id:17, focus:"Fitness", focusId:"fitness", subs:["HI 18.4"], d:"06", m:"DEC", type:"Private", videos:1 },
+      { id:18, focus:"Custom fitting", focusId:"fitting", subs:["HI 18.4"], d:"22", m:"NOV", type:"Group", videos:2 },
+      { id:19, focus:"Full swing", focusId:"swing", subs:["HI 18.4"], d:"08", m:"NOV", type:"Private", videos:3 },
+      { id:20, focus:"Pitching", focusId:"pitch", subs:["HI 18.4"], d:"25", m:"OCT", type:"Private", videos:0 },
     ],
   },
   tennis: {
     noun: "player", nouns: "players",
-    label: "Tennis", tagline: "Serve, groundstrokes, match play",
+    label: "Tennis", tagline: "Serve, return, rally, net",
     theme: { ink: "#0A2222", sub: "#476865", faint: "#96ADA9", hair: "#E1EDEB",
              page: "#FFFFFF", surface: "#FFFFFF", wash: "#E8F1EE", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+    /* the ladder a coach places a player on before anything else —
+       verified against the governing bodies (see CLAUDE.md) */
+    stages: [
+      { id: "red", label: "Red ball · U8" },
+      { id: "orange", label: "Orange ball · U9" },
+      { id: "green", label: "Green ball · U10" },
+      { id: "yellow", label: "Yellow ball" },
+      { id: "wtn", label: "WTN", input: true, tag: "WTN", hint: "40 beginner → 1" },
+    ],
+    extras: [
+      { id: "level", label: "Tournament level", options: ["Level 1", "Level 2", "Level 3", "Level 4", "Level 5", "Level 6", "Level 7"] },
+    ],
+    formats: ["Individual", "Group", "Squad", "Cardio Tennis", "Tennis Xpress", "Match play", "Tournament"],
     focus: [
-      { id:"serve",  label:"Serve",         subs:["First serve","Second serve","Placement","Toss"] },
-      { id:"ground", label:"Groundstrokes", subs:["Forehand","Backhand","Topspin","Slice"] },
-      { id:"net",    label:"Net play",      subs:["Volleys","Overheads","Approach","Drop shots"] },
-      { id:"move",   label:"Movement",      subs:["Footwork","Recovery","Split step","Court coverage"] },
-      { id:"match",  label:"Match play",    subs:["Tactics","Point construction","Mental game","Return"] },
+      { id: "serve", label: "Serve", subs: ["First serve", "Second serve", "Toss", "Placement"] },
+      { id: "return", label: "Return", subs: ["First-serve return", "Second-serve return", "Chip and charge"] },
+      { id: "fh", label: "Forehand", subs: ["Topspin", "Slice", "Inside-out", "Contact point"] },
+      { id: "bh", label: "Backhand", subs: ["Two-handed", "One-handed", "Slice", "Contact point"] },
+      { id: "net", label: "Net game", subs: ["Volley", "Smash", "Approach", "Drop shot", "Lob"] },
+      { id: "rally", label: "Rally", subs: ["Depth", "Height over the net", "Direction", "Consistency"] },
+      { id: "move", label: "Movement", subs: ["Split step", "Footwork", "Recovery", "Court coverage"] },
+      { id: "match", label: "Match play", subs: ["Tactics", "Point construction", "Physical", "Mental"] },
     ],
     angles: ["Behind baseline", "Side on", "Court level", "Slow motion"],
     drills: [
-      { t: "Shadow serve",      d: "Twenty reps. Toss and reach, no ball.", focus: "serve" },
-      { t: "Cross-court rally", d: "Twenty in a row, backhand only.", focus: "ground" },
-      { t: "Split-step ladder", d: "Three sets of ten.", focus: "move" },
-      { t: "Volley wall taps",  d: "Two minutes continuous, soft hands.", focus: "net" },
-      { t: "Serve targets",     d: "Ten to each corner, first serve only.", focus: "serve" },
-      { t: "Approach and volley", d: "Ten short balls, approach then close.", focus: "net" },
-      { t: "Down-the-line pattern", d: "Fifteen cross-court, finish down the line.", focus: "ground" },
-      { t: "Second serve spin",  d: "Twenty kick serves, high bounce target.", focus: "serve" },
-      { t: "Return blocks",      d: "Twenty returns, block deep, no backswing.", focus: "match" },
-      { t: "Recovery sprints",   d: "Corner to corner, ten reps, full recovery each time.", focus: "move" },
+      { t: "Wall rally", d: "Chalk a net line; twenty in a row.", focus: "rally" },
+      { t: "Shadow swings", d: "Twenty forehands, twenty backhands, no ball.", focus: "fh" },
+      { t: "Serve targets", d: "Call T, body or wide. Ten serves, half in.", focus: "serve" },
+      { t: "Serve from the service line", d: "Ten serves, then step back.", focus: "serve" },
+      { t: "Ball toss", d: "Toss and catch without moving the feet. Twenty.", focus: "serve" },
+      { t: "Tap-ups", d: "Both racket faces, chopper grip. Fifty.", focus: "fh" },
+      { t: "Volley over a chair", d: "Soft hands, twenty each side.", focus: "net" },
+      { t: "Racket throw", d: "Overarm at a stood-up racket. Ten.", focus: "serve" },
+      { t: "X drill", d: "Cones on the corners, recover to the centre each time.", focus: "move" },
+      { t: "Shuttles", d: "Side-steps and skips, three sets.", focus: "move" },
+      { t: "Split step", d: "Split on every feed. Twenty balls.", focus: "move" },
+      { t: "Mini rally with a partner", d: "Service boxes only, thirty in a row.", focus: "rally" },
     ],
     tipLibrary: [
       { t: "Get the toss out front", d: "A hand's width in front of your front foot lets you swing up through it, not down.", focus: "serve" },
-      { t: "Split step on contact", d: "Time the split to their contact, not your own movement — reacting, not guessing.", focus: "move" },
-      { t: "Finish the backhand high", d: "Let the follow-through finish above the shoulder — it's what keeps the ball down.", focus: "ground" },
-      { t: "Take the return early", d: "Step in and take it on the rise — staying back gives them time to recover.", focus: "match" },
-      { t: "Racquet head speed, not arm speed", d: "The power comes from a loose wrist through contact, not muscling the shot.", focus: "ground" },
-      { t: "Play the percentages at 30-30", d: "Big points aren't the time to go for lines — find the middle of the box.", focus: "match" },
+      { t: "Split step on contact", d: "Time the split to their contact, not your own movement — reacting, not guessing.", focus: "bh" },
+      { t: "Finish the backhand high", d: "Let the follow-through finish above the shoulder — it's what keeps the ball down.", focus: "return" },
+      { t: "Take the return early", d: "Step in and take it on the rise — staying back gives them time to recover.", focus: "net" },
+      { t: "Racquet head speed, not arm speed", d: "The power comes from a loose wrist through contact, not muscling the shot.", focus: "return" },
+      { t: "Play the percentages at 30-30", d: "Big points aren't the time to go for lines — find the middle of the box.", focus: "net" },
     ],
     statCatalog: [
-      { id: "wtn",     l: "WTN",       u: "", manual: true },
-      { id: "serve",   l: "1st serve", u: "%" },
-      { id: "winners", l: "Winners",   u: "/set" },
-      { id: "errors",  l: "Errors",    u: "/set" },
-      { id: "aces",    l: "Aces",      u: "/match" },
-      { id: "matches", l: "Matches",   u: "played" },
-      { id: "breaks",  l: "Break pts", u: "won %" },
-      { id: "netpts",  l: "Net points", u: "won %" },
+      { id: "wtn", l: "WTN", u: "", manual: true },
+      { id: "serve", l: "1st serve", u: "%" },
+      { id: "winners", l: "Winners", u: "/set" },
+      { id: "errors", l: "Errors", u: "/set" },
+      { id: "aces", l: "Aces", u: "/match" },
+      { id: "matches", l: "Matches", u: "played" },
+      { id: "breaks", l: "Break pts", u: "won %" },
+      { id: "netpts", l: "Net points", u: "won %" },
     ],
     statValues: {
       wtn: { v: "11.2" }, serve: { v: "58", m: "+10" }, winners: { v: "14", m: "+4" },
@@ -500,314 +533,392 @@ export const SPORTS = {
     chart: { label: "First serve percentage", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [48,50,51,54,56,58] },
     transcript: "Good session. Most of it went on the first serve — your toss is landing in the same spot now and you're getting up into the ball instead of pushing it. Keep the shadow serve going before we meet again: twenty reps, no ball, just the toss and the reach.",
     lessons: [
-      { id:1, focus:"Serve",         focusId:"serve", subs:["First serve","Toss"],    d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Groundstrokes", focusId:"ground", subs:["Backhand","Topspin"],    d:"02", m:"JUN", type:"Private", videos:1 },
-      { id:3, focus:"Net play",      focusId:"net", subs:["Volleys","Approach"],    d:"18", m:"MAY", type:"Group",   videos:3 },
-      { id:4, focus:"Movement",      focusId:"move", subs:["Split step","Recovery"], d:"04", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Match play",    focusId:"match", subs:["Point construction"],    d:"20", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Groundstrokes", focusId:"ground", subs:[], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Groundstrokes", focusId:"ground", subs:[], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Groundstrokes", focusId:"ground", subs:[], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Groundstrokes", focusId:"ground", subs:[], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Groundstrokes", focusId:"ground", subs:[], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Groundstrokes", focusId:"ground", subs:[], d:"24", m:"FEB", type:"Private", videos:1 },
-      { id:12, focus:"Groundstrokes", focusId:"ground", subs:[], d:"11", m:"FEB", type:"Group", videos:2 },
-      { id:13, focus:"Groundstrokes", focusId:"ground", subs:[], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Groundstrokes", focusId:"ground", subs:[], d:"16", m:"JAN", type:"Private", videos:0 },
-      { id:15, focus:"Groundstrokes", focusId:"ground", subs:[], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Groundstrokes", focusId:"ground", subs:[], d:"18", m:"DEC", type:"Private", videos:2 },
-      { id:17, focus:"Groundstrokes", focusId:"ground", subs:[], d:"06", m:"DEC", type:"Private", videos:3 },
-      { id:18, focus:"Groundstrokes", focusId:"ground", subs:[], d:"22", m:"NOV", type:"Group", videos:0 },
-      { id:19, focus:"Groundstrokes", focusId:"ground", subs:[], d:"08", m:"NOV", type:"Private", videos:1 },
-      { id:20, focus:"Groundstrokes", focusId:"ground", subs:[], d:"25", m:"OCT", type:"Private", videos:2 },
+      { id:1, focus:"Serve", focusId:"serve", subs:["Yellow ball", "First serve", "Second serve"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Return", focusId:"return", subs:["Yellow ball", "First-serve return", "Second-serve return"], d:"31", m:"MAY", type:"Private", videos:1 },
+      { id:3, focus:"Forehand", focusId:"fh", subs:["Yellow ball", "Topspin", "Slice"], d:"17", m:"MAY", type:"Group", videos:3 },
+      { id:4, focus:"Backhand", focusId:"bh", subs:["Yellow ball", "Two-handed", "One-handed"], d:"03", m:"MAY", type:"Private", videos:2 },
+      { id:5, focus:"Net game", focusId:"net", subs:["Yellow ball", "Volley", "Smash"], d:"19", m:"APR", type:"Private", videos:1 },
+      { id:6, focus:"Rally", focusId:"rally", subs:["Yellow ball"], d:"28", m:"APR", type:"Group", videos:0 },
+      { id:7, focus:"Movement", focusId:"move", subs:["Yellow ball"], d:"14", m:"APR", type:"Private", videos:1 },
+      { id:8, focus:"Match play", focusId:"match", subs:["Yellow ball"], d:"02", m:"APR", type:"Private", videos:2 },
+      { id:9, focus:"Serve", focusId:"serve", subs:["Yellow ball"], d:"21", m:"MAR", type:"Group", videos:3 },
+      { id:10, focus:"Return", focusId:"return", subs:["Yellow ball"], d:"09", m:"MAR", type:"Private", videos:0 },
+      { id:11, focus:"Forehand", focusId:"fh", subs:["Yellow ball"], d:"24", m:"FEB", type:"Private", videos:2 },
+      { id:12, focus:"Backhand", focusId:"bh", subs:["Yellow ball"], d:"11", m:"FEB", type:"Group", videos:1 },
+      { id:13, focus:"Net game", focusId:"net", subs:["Yellow ball"], d:"29", m:"JAN", type:"Private", videos:3 },
+      { id:14, focus:"Rally", focusId:"rally", subs:["Yellow ball"], d:"16", m:"JAN", type:"Private", videos:2 },
+      { id:15, focus:"Movement", focusId:"move", subs:["Yellow ball"], d:"04", m:"JAN", type:"Group", videos:1 },
+      { id:16, focus:"Match play", focusId:"match", subs:["Yellow ball"], d:"18", m:"DEC", type:"Private", videos:0 },
+      { id:17, focus:"Serve", focusId:"serve", subs:["Yellow ball"], d:"06", m:"DEC", type:"Private", videos:1 },
+      { id:18, focus:"Return", focusId:"return", subs:["Yellow ball"], d:"22", m:"NOV", type:"Group", videos:2 },
+      { id:19, focus:"Forehand", focusId:"fh", subs:["Yellow ball"], d:"08", m:"NOV", type:"Private", videos:3 },
+      { id:20, focus:"Backhand", focusId:"bh", subs:["Yellow ball"], d:"25", m:"OCT", type:"Private", videos:0 },
     ],
   },
   rowing: {
     noun: "rower", nouns: "rowers",
-    label: "Rowing", tagline: "Catch, drive, rhythm",
+    label: "Rowing", tagline: "Technique, rhythm, racing, erg",
     theme: { ink: "#10222E", sub: "#4E6473", faint: "#93A6B2", hair: "#E2EAEF",
              page: "#FFFFFF", surface: "#FFFFFF", wash: "#E9F1F5", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+    /* the ladder a coach places a player on before anything else —
+       verified against the governing bodies (see CLAUDE.md) */
+    stages: [
+      { id: "j13", label: "J13", group: "Junior" },
+      { id: "j14", label: "J14", group: "Junior" },
+      { id: "j15", label: "J15", group: "Junior" },
+      { id: "j16", label: "J16", group: "Junior" },
+      { id: "j18a", label: "J18A", group: "Junior" },
+      { id: "j18b", label: "J18B", group: "Junior" },
+      { id: "novice", label: "Novice", group: "Grade" },
+      { id: "club2", label: "Club 2", group: "Grade" },
+      { id: "club1", label: "Club 1", group: "Grade" },
+      { id: "inter", label: "Intermediate", group: "Grade" },
+      { id: "senior", label: "Senior", group: "Grade" },
+      { id: "masters", label: "Masters", group: "Grade" },
+    ],
+    extras: [
+      { id: "disc", label: "Discipline", options: ["Sweep", "Sculling", "Bow side", "Stroke side", "Lightweight"] },
+      { id: "boat", label: "Boat", options: ["1x", "2x", "4x", "4x+", "2-", "2+", "4-", "4+", "8+"] },
+    ],
+    formats: ["Water", "Erg", "S&C", "Circuits", "Cross-training", "Race"],
     focus: [
-      { id: "catch",  label: "Catch",    subs: ["Blade entry", "Reach", "Timing", "Connection"] },
-      { id: "drive",  label: "Drive",    subs: ["Leg drive", "Sequencing", "Body swing", "Power"] },
-      { id: "finish", label: "Finish",   subs: ["Extraction", "Tap down", "Hands away", "Clean release"] },
-      { id: "rhythm", label: "Rhythm",   subs: ["Ratio", "Slide control", "Stroke rate", "Crew timing"] },
-      { id: "race",   label: "Race craft", subs: ["Starts", "Pacing", "Steering", "Mental game"] },
+      { id: "technique", label: "Technique", subs: ["Catch", "Drive", "Finish", "Recovery", "Blade work", "Balance"] },
+      { id: "rhythm", label: "Rhythm & rating", subs: ["Ratio", "Rate", "Sequencing", "Length"] },
+      { id: "racing", label: "Racing", subs: ["Starts", "Pieces", "Pacing", "Steering"] },
+      { id: "erg", label: "Erg", subs: ["2k test", "5k", "30 min r20", "UT2", "UT1", "AT", "TR", "AN"] },
+      { id: "sc", label: "S&C", subs: ["Weights", "Circuits", "Core", "Cross-training"] },
     ],
     angles: ["Side on", "Bow mounted", "From the launch", "Slow motion"],
     drills: [
-      { t: "Pause at the finish", d: "Ten strokes, hold two seconds each.", focus: "finish" },
-      { t: "Square blade rowing", d: "Five minutes, no feathering.", focus: "catch" },
-      { t: "Legs only",           d: "Bottom quarter of the slide, twenty strokes.", focus: "drive" },
-      { t: "Ratio pyramid",       d: "18, 20, 22, 20, 18 spm. Two minutes each.", focus: "rhythm" },
-      { t: "Feet out",            d: "Two minutes. Stay connected through the finish.", focus: "finish" },
-      { t: "Pick drill",          d: "Arms, arms and body, half slide, full slide.", focus: "drive" },
-      { t: "Cutting the cake",    d: "Blade just off the water, ten strokes.", focus: "catch" },
-      { t: "Pause at the catch",  d: "Ten strokes, hold at full compression.", focus: "catch" },
-      { t: "Race starts",         d: "Five strokes short, build to race pace.", focus: "race" },
-      { t: "Negative split piece",d: "Two by ten minutes, faster in the second half.", focus: "race" },
+      { t: "Pause drill", d: "Pause at the finish, then arms away, then body over. Twenty each.", focus: "technique" },
+      { t: "Cut the cake", d: "Air strokes at the catch, ten each side.", focus: "technique" },
+      { t: "Square blades", d: "Two minutes, no feather.", focus: "technique" },
+      { t: "Roll-ups", d: "Ten from the finish, blades square early.", focus: "technique" },
+      { t: "Feet out", d: "Five minutes, feet out of the shoes.", focus: "technique" },
+      { t: "Front stops", d: "Two minutes at the catch.", focus: "technique" },
+      { t: "Legs only", d: "Twenty strokes, arms and body still.", focus: "technique" },
+      { t: "Arms only", d: "Twenty strokes from the finish.", focus: "technique" },
+      { t: "Arms and body", d: "Twenty, then add the slide.", focus: "technique" },
+      { t: "Half slide", d: "Two minutes at half slide, then full.", focus: "rhythm" },
+      { t: "30 min UT2 r20", d: "Steady, rate capped at 20.", focus: "erg" },
+      { t: "3×20 min r18–20", d: "Three pieces, two minutes off.", focus: "erg" },
+      { t: "2k test", d: "Full test, log the split.", focus: "erg" },
+      { t: "5k", d: "Log the split and rate.", focus: "erg" },
     ],
     tipLibrary: [
-      { t: "Hands away before the body", d: "Let the hands clear the knees before you start to swing — sequencing, not speed.", focus: "finish" },
-      { t: "Send, don't rush",   d: "Match the recovery speed to the boat's run — rushing up the slide checks it.", focus: "rhythm" },
-      { t: "Square early",       d: "Roll the blade square well before the catch, not as you enter — smooths the stroke.", focus: "catch" },
-      { t: "Drive with the legs first", d: "Legs, then back, then arms — the order matters more than the effort.", focus: "drive" },
-      { t: "Relax the grip",     d: "A tight grip on the recovery is costing you the connection at the catch.", focus: "catch" },
-      { t: "Breathe with the stroke", d: "One breath per stroke keeps the rhythm honest, especially over longer pieces.", focus: "rhythm" },
+      { t: "Hands away before the body", d: "Let the hands clear the knees before you start to swing — sequencing, not speed.", focus: "racing" },
+      { t: "Send, don't rush",   d: "Match the recovery speed to the boat's run — rushing up the slide checks it.", focus: "erg" },
+      { t: "Square early",       d: "Roll the blade square well before the catch, not as you enter — smooths the stroke.", focus: "technique" },
+      { t: "Drive with the legs first", d: "Legs, then back, then arms — the order matters more than the effort.", focus: "rhythm" },
+      { t: "Relax the grip",     d: "A tight grip on the recovery is costing you the connection at the catch.", focus: "technique" },
+      { t: "Breathe with the stroke", d: "One breath per stroke keeps the rhythm honest, especially over longer pieces.", focus: "erg" },
     ],
     statCatalog: [
-      { id: "twok",   l: "2k time",  u: "", manual: true },
-      { id: "split",  l: "Split",    u: "/500m" },
-      { id: "rate",   l: "Rate",     u: "spm" },
-      { id: "dist",   l: "Distance", u: "km/wk" },
-      { id: "drag",   l: "Drag",     u: "factor" },
-      { id: "sess",   l: "Sessions", u: "/wk" },
-      { id: "hr",     l: "Avg HR",   u: "bpm" },
-      { id: "power",  l: "Watts",    u: "avg" },
+      { id: "twok", l: "2k time", u: "", manual: true },
+      { id: "split", l: "Split", u: "/500m" },
+      { id: "rate", l: "Rate", u: "spm" },
+      { id: "dist", l: "Distance", u: "km/wk" },
+      { id: "watts", l: "Watts", u: "avg" },
+      { id: "drag", l: "Drag factor", u: "" },
+      { id: "sess", l: "Sessions", u: "/wk" },
+      { id: "hr", l: "Avg HR", u: "bpm" },
     ],
-    statValues: { twok: { v: "7:12" }, split: { v: "1:58", m: "−4s" }, rate: { v: "24", m: "+2" },
-                  dist: { v: "62", m: "+8" }, drag: { v: "118" }, sess: { v: "5", m: "+1" },
-                  hr: { v: "162", m: "−4" }, power: { v: "241", m: "+12" } },
+    statValues: { twok: { v: "7:12" }, split: { v: "1:58", m: "−4s" }, rate: { v: "22", m: "+1" }, dist: { v: "46", m: "+8" }, watts: { v: "218", m: "+12" }, drag: { v: "128" }, sess: { v: "6" }, hr: { v: "148", m: "−3" } },
     defaultStats: ["split", "rate", "dist"],
     chart: { label: "2k split", note: "Lower is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [126,124,123,121,119,118] },
     transcript: "Good session. Most of it went on the catch — you're getting the blade in before the legs go now, instead of the other way round. Keep the square blade work going before we meet again, five minutes at a low rate.",
     lessons: [
-      { id:1, focus:"Catch",      focusId:"catch",  subs:["Blade entry","Timing"],   d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Rhythm",     focusId:"rhythm", subs:["Ratio","Slide control"],  d:"02", m:"JUN", type:"Group",   videos:1 },
-      { id:3, focus:"Drive",      focusId:"drive",  subs:["Leg drive","Sequencing"], d:"18", m:"MAY", type:"Private", videos:3 },
-      { id:4, focus:"Race craft", focusId:"race",   subs:["Starts","Pacing"],        d:"04", m:"MAY", type:"Group",   videos:2 },
-      { id:5, focus:"Finish",     focusId:"finish", subs:["Extraction"],             d:"20", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Race craft", focusId:"race", subs:[], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Race craft", focusId:"race", subs:[], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Race craft", focusId:"race", subs:[], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Race craft", focusId:"race", subs:[], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Race craft", focusId:"race", subs:[], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Race craft", focusId:"race", subs:[], d:"24", m:"FEB", type:"Private", videos:1 },
-      { id:12, focus:"Race craft", focusId:"race", subs:[], d:"11", m:"FEB", type:"Group", videos:2 },
-      { id:13, focus:"Race craft", focusId:"race", subs:[], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Race craft", focusId:"race", subs:[], d:"16", m:"JAN", type:"Private", videos:0 },
-      { id:15, focus:"Race craft", focusId:"race", subs:[], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Race craft", focusId:"race", subs:[], d:"18", m:"DEC", type:"Private", videos:2 },
-      { id:17, focus:"Race craft", focusId:"race", subs:[], d:"06", m:"DEC", type:"Private", videos:3 },
-      { id:18, focus:"Race craft", focusId:"race", subs:[], d:"22", m:"NOV", type:"Group", videos:0 },
-      { id:19, focus:"Race craft", focusId:"race", subs:[], d:"08", m:"NOV", type:"Private", videos:1 },
-      { id:20, focus:"Race craft", focusId:"race", subs:[], d:"25", m:"OCT", type:"Private", videos:2 },
+      { id:1, focus:"Technique", focusId:"technique", subs:["J16", "Catch", "Drive"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16", "Ratio", "Rate"], d:"31", m:"MAY", type:"Private", videos:1 },
+      { id:3, focus:"Racing", focusId:"racing", subs:["J16", "Starts", "Pieces"], d:"17", m:"MAY", type:"Group", videos:3 },
+      { id:4, focus:"Erg", focusId:"erg", subs:["J16", "2k test", "5k"], d:"03", m:"MAY", type:"Private", videos:2 },
+      { id:5, focus:"S&C", focusId:"sc", subs:["J16", "Weights", "Circuits"], d:"19", m:"APR", type:"Private", videos:1 },
+      { id:6, focus:"Technique", focusId:"technique", subs:["J16"], d:"28", m:"APR", type:"Group", videos:0 },
+      { id:7, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"14", m:"APR", type:"Private", videos:1 },
+      { id:8, focus:"Racing", focusId:"racing", subs:["J16"], d:"02", m:"APR", type:"Private", videos:2 },
+      { id:9, focus:"Erg", focusId:"erg", subs:["J16"], d:"21", m:"MAR", type:"Group", videos:3 },
+      { id:10, focus:"S&C", focusId:"sc", subs:["J16"], d:"09", m:"MAR", type:"Private", videos:0 },
+      { id:11, focus:"Technique", focusId:"technique", subs:["J16"], d:"24", m:"FEB", type:"Private", videos:2 },
+      { id:12, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"11", m:"FEB", type:"Group", videos:1 },
+      { id:13, focus:"Racing", focusId:"racing", subs:["J16"], d:"29", m:"JAN", type:"Private", videos:3 },
+      { id:14, focus:"Erg", focusId:"erg", subs:["J16"], d:"16", m:"JAN", type:"Private", videos:2 },
+      { id:15, focus:"S&C", focusId:"sc", subs:["J16"], d:"04", m:"JAN", type:"Group", videos:1 },
+      { id:16, focus:"Technique", focusId:"technique", subs:["J16"], d:"18", m:"DEC", type:"Private", videos:0 },
+      { id:17, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"06", m:"DEC", type:"Private", videos:1 },
+      { id:18, focus:"Racing", focusId:"racing", subs:["J16"], d:"22", m:"NOV", type:"Group", videos:2 },
+      { id:19, focus:"Erg", focusId:"erg", subs:["J16"], d:"08", m:"NOV", type:"Private", videos:3 },
+      { id:20, focus:"S&C", focusId:"sc", subs:["J16"], d:"25", m:"OCT", type:"Private", videos:0 },
     ],
   },
   squash: {
     noun: "player", nouns: "players",
-    label: "Squash", tagline: "Length, volley, movement",
+    label: "Squash", tagline: "Drives, volleys, front court, movement",
     theme: { ink: "#241A14", sub: "#6B584C", faint: "#AC9C90", hair: "#EFE7E0",
              page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B5562E", accent: "#B5562E", onAccent: "#FFFFFF" },
+    /* the ladder a coach places a player on before anything else —
+       verified against the governing bodies (see CLAUDE.md) */
+    stages: [
+      { id: "blue", label: "Blue dot" },
+      { id: "red", label: "Red dot" },
+      { id: "single", label: "Single yellow" },
+      { id: "double", label: "Double yellow" },
+      { id: "lvl", label: "SquashLevels", input: true, tag: "Level", hint: "1000 is average" },
+    ],
+    extras: [
+      { id: "age", label: "Age group", options: ["U11", "U13", "U15", "U17", "U19"] },
+    ],
+    formats: ["Individual", "Group", "Junior", "Squad", "Club night", "Conditioned games", "Match play", "Solo", "Pairs"],
     focus: [
-      { id: "length",  label: "Length",     subs: ["Drives", "Depth", "Width", "Height"] },
-      { id: "volley",  label: "Volley",     subs: ["Interception", "Straight volley", "Volley drop", "Cross-court"] },
-      { id: "move",    label: "Movement",   subs: ["T position", "Lunge", "Recovery", "Split step"] },
-      { id: "short",   label: "Short game", subs: ["Drop shot", "Boast", "Kill", "Trickle boast"] },
-      { id: "match",   label: "Match play", subs: ["Tactics", "Serve", "Return", "Pressure"] },
+      { id: "drives", label: "Drives", subs: ["Straight drive", "Cross-court", "Length", "Width"] },
+      { id: "volleys", label: "Volleys", subs: ["Straight volley", "Cross-court volley", "Taking it early"] },
+      { id: "serve", label: "Serve & return", subs: ["Serve", "Return of serve"] },
+      { id: "front", label: "Front court", subs: ["Drop", "Boast", "Lob", "Kill"] },
+      { id: "move", label: "Movement", subs: ["Ghosting", "The T", "Footwork"] },
+      { id: "tactics", label: "Tactics", subs: ["Length & width", "Pressure", "Court craft"] },
+      { id: "physical", label: "Physical & mental", subs: ["Fitness", "Mental"] },
+      { id: "games", label: "Games", subs: ["Conditioned games", "Match play", "Solo practice"] },
     ],
     angles: ["Back wall", "Side on", "Court level", "Slow motion"],
     drills: [
-      { t: "Solo drives",       d: "Fifty each side, back of the service box.", focus: "length" },
-      { t: "Boast drive drive", d: "Ten minutes, swap after five.", focus: "short" },
-      { t: "Ghosting",          d: "Six corners, three sets of ninety seconds.", focus: "move" },
-      { t: "Figure of eight",   d: "Two minutes continuous volleying.", focus: "volley" },
-      { t: "Length target",     d: "Twenty balls past the service line.", focus: "length" },
-      { t: "Serve and length",  d: "Ten serves, each followed by a length return.", focus: "match" },
-      { t: "Kill shot practice",d: "Twenty from mid-court, low and hard.", focus: "short" },
-      { t: "Cross-court volleys", d: "Two minutes, both hands, no floor bounce.", focus: "volley" },
-      { t: "Conditioned game — length only", d: "First to eleven, length shots only.", focus: "match" },
-      { t: "Front-back ghosting", d: "Six reps, boast corner to back corner.", focus: "move" },
+      { t: "Straight drives", d: "Solo, twenty in a row each side.", focus: "drives" },
+      { t: "Boast and drive", d: "Solo: boast, then drive the return.", focus: "front" },
+      { t: "Drop–drive", d: "Two length drives, then a drop from behind the short line.", focus: "front" },
+      { t: "Lob", d: "Solo, straight and cross-court.", focus: "front" },
+      { t: "Boast–drive pairs", d: "Front player drives, back player boasts.", focus: "front" },
+      { t: "Cross-court length pairs", d: "Twenty each, then swap.", focus: "drives" },
+      { t: "Drive, drop, drive, boast, drop, drive", d: "The six-shot sequence, in pairs.", focus: "games" },
+      { t: "Figure of 8 volleys", d: "Two minutes continuous.", focus: "volleys" },
+      { t: "Side-to-side volleys", d: "Straight and cross-court, two minutes.", focus: "volleys" },
+      { t: "Drives down the middle line", d: "Solo, thirty balls.", focus: "drives" },
+      { t: "Above, above, below", d: "Pairs driving pattern, five minutes.", focus: "drives" },
+      { t: "Ghosting: four corners", d: "Six stations, sets of twelve.", focus: "move" },
     ],
     tipLibrary: [
-      { t: "Get back to the T",  d: "Recovery to the T after every shot, not just the good ones.", focus: "move" },
-      { t: "Watch the ball onto the racquet", d: "Eyes on contact, not the opponent — mishits come from looking up early.", focus: "length" },
-      { t: "Hit with height, not just pace", d: "A higher length ball buys more recovery time than a flat hard one.", focus: "length" },
-      { t: "Take the racquet back early", d: "Early preparation is what's giving you the extra split second on the volley.", focus: "volley" },
-      { t: "Vary the pace, not just the length", d: "A slower ball disrupts their rhythm more than raw pace does.", focus: "match" },
-      { t: "Stay low through the lunge", d: "Bend the knee, not the back — it's saving your reach on the wide ball.", focus: "move" },
+      { t: "Get back to the T",  d: "Recovery to the T after every shot, not just the good ones.", focus: "serve" },
+      { t: "Watch the ball onto the racquet", d: "Eyes on contact, not the opponent — mishits come from looking up early.", focus: "drives" },
+      { t: "Hit with height, not just pace", d: "A higher length ball buys more recovery time than a flat hard one.", focus: "drives" },
+      { t: "Take the racquet back early", d: "Early preparation is what's giving you the extra split second on the volley.", focus: "volleys" },
+      { t: "Vary the pace, not just the length", d: "A slower ball disrupts their rhythm more than raw pace does.", focus: "move" },
+      { t: "Stay low through the lunge", d: "Bend the knee, not the back — it's saving your reach on the wide ball.", focus: "serve" },
     ],
     statCatalog: [
-      { id: "rank",    l: "Ranking",  u: "", manual: true },
-      { id: "length",  l: "Length",   u: "%" },
-      { id: "winners", l: "Winners",  u: "/game" },
-      { id: "errors",  l: "Errors",   u: "/game" },
-      { id: "matches", l: "Matches",  u: "played" },
-      { id: "rallies", l: "Rallies",  u: "won %" },
-      { id: "tpos",    l: "T position", u: "%" },
-      { id: "lets",    l: "Lets",     u: "/game" },
+      { id: "level", l: "SquashLevels", u: "", manual: true },
+      { id: "division", l: "League division", u: "", manual: true },
+      { id: "box", l: "Box position", u: "", manual: true },
+      { id: "rank", l: "Irish ranking", u: "", manual: true },
+      { id: "matches", l: "Matches", u: "played" },
+      { id: "won", l: "Won", u: "%" },
     ],
-    statValues: { rank: { v: "142" }, length: { v: "61", m: "+9" }, winners: { v: "8", m: "+3" },
-                  errors: { v: "11", m: "−4" }, matches: { v: "14", m: "+4" }, rallies: { v: "54", m: "+6" },
-                  tpos: { v: "68", m: "+8" }, lets: { v: "2.1", m: "−0.8" } },
-    defaultStats: ["length", "winners", "errors"],
+    statValues: { level: { v: "1240", m: "+60" }, division: { v: "3" }, box: { v: "2" }, rank: { v: "142" }, matches: { v: "14" }, won: { v: "64", m: "+8" } },
+    defaultStats: ["level", "matches", "won"],
     chart: { label: "Length accuracy", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [48,51,53,56,59,61] },
     transcript: "Good session. Most of it went on length — you're getting the ball behind the service line far more often, which is buying you the T. Keep the solo drives going before we meet again, fifty each side.",
     lessons: [
-      { id:1, focus:"Length",     focusId:"length", subs:["Drives","Depth"],        d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Volley",     focusId:"volley", subs:["Interception"],          d:"02", m:"JUN", type:"Private", videos:1 },
-      { id:3, focus:"Movement",   focusId:"move",   subs:["T position","Lunge"],    d:"18", m:"MAY", type:"Group",   videos:3 },
-      { id:4, focus:"Short game", focusId:"short",  subs:["Drop shot","Boast"],     d:"04", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Match play", focusId:"match",  subs:["Tactics"],               d:"20", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Short game", focusId:"short", subs:[], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Match play", focusId:"match", subs:[], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Short game", focusId:"short", subs:[], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Match play", focusId:"match", subs:[], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Short game", focusId:"short", subs:[], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Match play", focusId:"match", subs:[], d:"24", m:"FEB", type:"Private", videos:1 },
-      { id:12, focus:"Short game", focusId:"short", subs:[], d:"11", m:"FEB", type:"Group", videos:2 },
-      { id:13, focus:"Match play", focusId:"match", subs:[], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Short game", focusId:"short", subs:[], d:"16", m:"JAN", type:"Private", videos:0 },
-      { id:15, focus:"Match play", focusId:"match", subs:[], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Short game", focusId:"short", subs:[], d:"18", m:"DEC", type:"Private", videos:2 },
-      { id:17, focus:"Match play", focusId:"match", subs:[], d:"06", m:"DEC", type:"Private", videos:3 },
-      { id:18, focus:"Short game", focusId:"short", subs:[], d:"22", m:"NOV", type:"Group", videos:0 },
-      { id:19, focus:"Match play", focusId:"match", subs:[], d:"08", m:"NOV", type:"Private", videos:1 },
-      { id:20, focus:"Short game", focusId:"short", subs:[], d:"25", m:"OCT", type:"Private", videos:2 },
+      { id:1, focus:"Drives", focusId:"drives", subs:["Double yellow", "Straight drive", "Cross-court"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Volleys", focusId:"volleys", subs:["Double yellow", "Straight volley", "Cross-court volley"], d:"31", m:"MAY", type:"Private", videos:1 },
+      { id:3, focus:"Serve & return", focusId:"serve", subs:["Double yellow", "Serve", "Return of serve"], d:"17", m:"MAY", type:"Group", videos:3 },
+      { id:4, focus:"Front court", focusId:"front", subs:["Double yellow", "Drop", "Boast"], d:"03", m:"MAY", type:"Private", videos:2 },
+      { id:5, focus:"Movement", focusId:"move", subs:["Double yellow", "Ghosting", "The T"], d:"19", m:"APR", type:"Private", videos:1 },
+      { id:6, focus:"Tactics", focusId:"tactics", subs:["Double yellow"], d:"28", m:"APR", type:"Group", videos:0 },
+      { id:7, focus:"Physical & mental", focusId:"physical", subs:["Double yellow"], d:"14", m:"APR", type:"Private", videos:1 },
+      { id:8, focus:"Games", focusId:"games", subs:["Double yellow"], d:"02", m:"APR", type:"Private", videos:2 },
+      { id:9, focus:"Drives", focusId:"drives", subs:["Double yellow"], d:"21", m:"MAR", type:"Group", videos:3 },
+      { id:10, focus:"Volleys", focusId:"volleys", subs:["Double yellow"], d:"09", m:"MAR", type:"Private", videos:0 },
+      { id:11, focus:"Serve & return", focusId:"serve", subs:["Double yellow"], d:"24", m:"FEB", type:"Private", videos:2 },
+      { id:12, focus:"Front court", focusId:"front", subs:["Double yellow"], d:"11", m:"FEB", type:"Group", videos:1 },
+      { id:13, focus:"Movement", focusId:"move", subs:["Double yellow"], d:"29", m:"JAN", type:"Private", videos:3 },
+      { id:14, focus:"Tactics", focusId:"tactics", subs:["Double yellow"], d:"16", m:"JAN", type:"Private", videos:2 },
+      { id:15, focus:"Physical & mental", focusId:"physical", subs:["Double yellow"], d:"04", m:"JAN", type:"Group", videos:1 },
+      { id:16, focus:"Games", focusId:"games", subs:["Double yellow"], d:"18", m:"DEC", type:"Private", videos:0 },
+      { id:17, focus:"Drives", focusId:"drives", subs:["Double yellow"], d:"06", m:"DEC", type:"Private", videos:1 },
+      { id:18, focus:"Volleys", focusId:"volleys", subs:["Double yellow"], d:"22", m:"NOV", type:"Group", videos:2 },
+      { id:19, focus:"Serve & return", focusId:"serve", subs:["Double yellow"], d:"08", m:"NOV", type:"Private", videos:3 },
+      { id:20, focus:"Front court", focusId:"front", subs:["Double yellow"], d:"25", m:"OCT", type:"Private", videos:0 },
     ],
   },
   padel: {
     noun: "player", nouns: "players",
-    label: "Padel", tagline: "Walls, net play, pairs",
+    label: "Padel", tagline: "Net game, overheads, walls",
     theme: { ink: "#1E1830", sub: "#5C5473", faint: "#A199B4", hair: "#E9E5F0",
              page: "#FFFFFF", surface: "#FFFFFF", wash: "#EFEBF7", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+    /* the ladder a coach places a player on before anything else —
+       verified against the governing bodies (see CLAUDE.md) */
+    stages: [
+      { id: "beginner", label: "Beginner" },
+      { id: "improver", label: "Improver" },
+      { id: "intermediate", label: "Intermediate" },
+      { id: "advanced", label: "Advanced" },
+      { id: "competition", label: "Competition" },
+      { id: "lvl", label: "Level", input: true, tag: "Level", hint: "0 to 7, e.g. 3.5" },
+    ],
+    extras: [
+      { id: "age", label: "Age group", options: ["U12", "U14", "U16", "U18"] },
+    ],
+    formats: ["Private", "Pair", "Group", "Clinic", "Match play", "Americano", "Junior", "Camp"],
     focus: [
-      { id: "walls",  label: "Wall play",     subs: ["Back wall", "Side wall", "Double wall", "Defensive lob"] },
-      { id: "serve",  label: "Serve & return", subs: ["Underarm serve", "Placement", "Return depth", "Positioning"] },
-      { id: "net",    label: "Net play",      subs: ["Volleys", "Bandeja", "Víbora", "Smash"] },
-      { id: "ground", label: "Groundstrokes", subs: ["Forehand", "Backhand", "Lob", "Chiquita"] },
-      { id: "pairs",  label: "Pair play",     subs: ["Positioning", "Communication", "Point construction", "Pressure"] },
+      { id: "net", label: "Net game", subs: ["Volleys", "Net position", "Transitions"] },
+      { id: "overhead", label: "Overheads", subs: ["Bandeja", "Víbora", "Smash"] },
+      { id: "lob", label: "Lob", subs: ["Defensive lob", "Attacking lob"] },
+      { id: "wall", label: "Back wall", subs: ["Off the back wall", "Side wall", "Double wall"] },
+      { id: "chiquita", label: "Chiquita", subs: ["Placement", "Approach"] },
+      { id: "serve", label: "Serve & return", subs: ["Serve", "Return", "Serve & volley"] },
+      { id: "defence", label: "Defence & tactics", subs: ["Back-court defence", "Tactics", "Footwork"] },
+      { id: "match", label: "Match play", subs: ["Points", "Pairs", "Americano"] },
     ],
     angles: ["Behind the glass", "Side on", "Court level", "Slow motion"],
     drills: [
-      { t: "Wall rebound rally", d: "Twenty off the back glass, no volley.", focus: "walls" },
-      { t: "Bandeja repetition", d: "Thirty, alternating deep and short.", focus: "net" },
-      { t: "Lob and recover",    d: "Ten lobs, sprint back to the net each time.", focus: "ground" },
-      { t: "Chiquita drill",     d: "Twenty low balls to their feet.", focus: "ground" },
-      { t: "Pair shadowing",     d: "Five minutes moving as a unit, no ball.", focus: "pairs" },
-      { t: "Serve and move",     d: "Ten serves, follow each one in to the net.", focus: "serve" },
-      { t: "Víbora repetition",  d: "Twenty, alternating sides.", focus: "net" },
-      { t: "Double wall defence",d: "Fifteen off the back and side glass together.", focus: "walls" },
-      { t: "Smash and recover",  d: "Ten overheads, reset position after each one.", focus: "net" },
-      { t: "Two-against-one pressure", d: "Three minutes, rotate the pair every point.", focus: "pairs" },
+      { t: "Wall volleys", d: "Solo, close to the glass. Two minutes.", focus: "net" },
+      { t: "Back-glass rebounds", d: "Solo, let it come off the glass and lift.", focus: "wall" },
+      { t: "Back-wall defence", d: "Partner feeds hard into the glass; lift it back.", focus: "wall" },
+      { t: "Lob–bandeja rotation", d: "Lob from the back, bandeja and recover.", focus: "overhead" },
+      { t: "Bandeja consistency", d: "Nine of ten lobs put away as bandejas.", focus: "overhead" },
+      { t: "Víbora progressions", d: "Five progressions, ten each.", focus: "overhead" },
+      { t: "Volley duel", d: "Four at the net, soft hands.", focus: "net" },
+      { t: "Drive or lob v net player", d: "Volley the drive, bandeja the lob, recover.", focus: "net" },
+      { t: "Lob to take the net", d: "Lob, move up as a pair.", focus: "lob" },
+      { t: "Bandeja or víbora?", d: "Pick the overhead by the incoming ball.", focus: "overhead" },
+      { t: "Serve & first volley", d: "Serve, come in, volley deep.", focus: "serve" },
+      { t: "Chiquita to the feet", d: "Low and slow to the net player's feet.", focus: "chiquita" },
     ],
     tipLibrary: [
-      { t: "Let the ball drop for the bandeja", d: "Don't rush it — let it come down to shoulder height before playing it soft.", focus: "net" },
-      { t: "Use the walls, don't fight them", d: "Read the rebound early rather than turning your back to it.", focus: "walls" },
-      { t: "Chiquita to bring them forward", d: "The soft low ball at their feet pulls them out of position more than any big hit.", focus: "ground" },
-      { t: "Communicate before the point", d: "Call the ball early and often — most net errors are two players going for the same shot.", focus: "pairs" },
-      { t: "Serve to set up the point", d: "It doesn't need to be a winner — it needs to get you to the net first.", focus: "serve" },
-      { t: "Defensive lob height", d: "When in trouble, get real height on it — a flat lob is a free smash for them.", focus: "walls" },
+      { t: "Let the ball drop for the bandeja", d: "Don't rush it — let it come down to shoulder height before playing it soft.", focus: "lob" },
+      { t: "Use the walls, don't fight them", d: "Read the rebound early rather than turning your back to it.", focus: "net" },
+      { t: "Chiquita to bring them forward", d: "The soft low ball at their feet pulls them out of position more than any big hit.", focus: "wall" },
+      { t: "Communicate before the point", d: "Call the ball early and often — most net errors are two players going for the same shot.", focus: "chiquita" },
+      { t: "Serve to set up the point", d: "It doesn't need to be a winner — it needs to get you to the net first.", focus: "overhead" },
+      { t: "Defensive lob height", d: "When in trouble, get real height on it — a flat lob is a free smash for them.", focus: "net" },
     ],
     statCatalog: [
-      { id: "level",   l: "Level",     u: "", manual: true },
-      { id: "bandeja", l: "Bandeja",   u: "%" },
-      { id: "lobs",    l: "Lobs won",  u: "%" },
-      { id: "errors",  l: "Errors",    u: "/set" },
-      { id: "net",     l: "Net points", u: "won %" },
-      { id: "matches", l: "Matches",   u: "played" },
-      { id: "smash",   l: "Smash",     u: "won %" },
-      { id: "walls",   l: "Wall shots", u: "%" },
+      { id: "level", l: "Level", u: "0–7", manual: true },
+      { id: "matches", l: "Matches", u: "played" },
+      { id: "won", l: "Won", u: "%" },
+      { id: "netpts", l: "Net points", u: "won %" },
+      { id: "partners", l: "Partners", u: "" },
     ],
-    statValues: { level: { v: "3.5" }, bandeja: { v: "64", m: "+11" }, lobs: { v: "58", m: "+7" },
-                  errors: { v: "9", m: "−3" }, net: { v: "62", m: "+8" }, matches: { v: "16", m: "+5" },
-                  smash: { v: "71", m: "+9" }, walls: { v: "66", m: "+10" } },
-    defaultStats: ["bandeja", "lobs", "net"],
+    statValues: { level: { v: "3.5" }, matches: { v: "12" }, won: { v: "58", m: "+6" }, netpts: { v: "61", m: "+5" }, partners: { v: "3" } },
+    defaultStats: ["level", "matches", "won"],
     chart: { label: "Net points won", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [48,51,54,57,60,62] },
     transcript: "Good session. Most of it went on the bandeja — you're holding the net instead of getting pushed back, and the contact point is much more consistent. Keep the repetition drill going before we meet again, thirty of them.",
     lessons: [
-      { id:1, focus:"Net play",      focusId:"net",    subs:["Bandeja"],                d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Wall play",     focusId:"walls",  subs:["Back wall"],              d:"02", m:"JUN", type:"Private", videos:1 },
-      { id:3, focus:"Pair play",     focusId:"pairs",  subs:["Positioning"],            d:"18", m:"MAY", type:"Group",   videos:3 },
-      { id:4, focus:"Groundstrokes", focusId:"ground", subs:["Lob","Chiquita"],         d:"04", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Serve & return", focusId:"serve", subs:["Placement"],              d:"20", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Groundstrokes", focusId:"ground", subs:[], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Serve & return", focusId:"serve", subs:[], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Groundstrokes", focusId:"ground", subs:[], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Serve & return", focusId:"serve", subs:[], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Groundstrokes", focusId:"ground", subs:[], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Serve & return", focusId:"serve", subs:[], d:"24", m:"FEB", type:"Private", videos:1 },
-      { id:12, focus:"Groundstrokes", focusId:"ground", subs:[], d:"11", m:"FEB", type:"Group", videos:2 },
-      { id:13, focus:"Serve & return", focusId:"serve", subs:[], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Groundstrokes", focusId:"ground", subs:[], d:"16", m:"JAN", type:"Private", videos:0 },
-      { id:15, focus:"Serve & return", focusId:"serve", subs:[], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Groundstrokes", focusId:"ground", subs:[], d:"18", m:"DEC", type:"Private", videos:2 },
-      { id:17, focus:"Serve & return", focusId:"serve", subs:[], d:"06", m:"DEC", type:"Private", videos:3 },
-      { id:18, focus:"Groundstrokes", focusId:"ground", subs:[], d:"22", m:"NOV", type:"Group", videos:0 },
-      { id:19, focus:"Serve & return", focusId:"serve", subs:[], d:"08", m:"NOV", type:"Private", videos:1 },
-      { id:20, focus:"Groundstrokes", focusId:"ground", subs:[], d:"25", m:"OCT", type:"Private", videos:2 },
+      { id:1, focus:"Net game", focusId:"net", subs:["Intermediate", "Volleys", "Net position"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Overheads", focusId:"overhead", subs:["Intermediate", "Bandeja", "Víbora"], d:"31", m:"MAY", type:"Private", videos:1 },
+      { id:3, focus:"Lob", focusId:"lob", subs:["Intermediate", "Defensive lob", "Attacking lob"], d:"17", m:"MAY", type:"Group", videos:3 },
+      { id:4, focus:"Back wall", focusId:"wall", subs:["Intermediate", "Off the back wall", "Side wall"], d:"03", m:"MAY", type:"Private", videos:2 },
+      { id:5, focus:"Chiquita", focusId:"chiquita", subs:["Intermediate", "Placement", "Approach"], d:"19", m:"APR", type:"Private", videos:1 },
+      { id:6, focus:"Serve & return", focusId:"serve", subs:["Intermediate"], d:"28", m:"APR", type:"Group", videos:0 },
+      { id:7, focus:"Defence & tactics", focusId:"defence", subs:["Intermediate"], d:"14", m:"APR", type:"Private", videos:1 },
+      { id:8, focus:"Match play", focusId:"match", subs:["Intermediate"], d:"02", m:"APR", type:"Private", videos:2 },
+      { id:9, focus:"Net game", focusId:"net", subs:["Intermediate"], d:"21", m:"MAR", type:"Group", videos:3 },
+      { id:10, focus:"Overheads", focusId:"overhead", subs:["Intermediate"], d:"09", m:"MAR", type:"Private", videos:0 },
+      { id:11, focus:"Lob", focusId:"lob", subs:["Intermediate"], d:"24", m:"FEB", type:"Private", videos:2 },
+      { id:12, focus:"Back wall", focusId:"wall", subs:["Intermediate"], d:"11", m:"FEB", type:"Group", videos:1 },
+      { id:13, focus:"Chiquita", focusId:"chiquita", subs:["Intermediate"], d:"29", m:"JAN", type:"Private", videos:3 },
+      { id:14, focus:"Serve & return", focusId:"serve", subs:["Intermediate"], d:"16", m:"JAN", type:"Private", videos:2 },
+      { id:15, focus:"Defence & tactics", focusId:"defence", subs:["Intermediate"], d:"04", m:"JAN", type:"Group", videos:1 },
+      { id:16, focus:"Match play", focusId:"match", subs:["Intermediate"], d:"18", m:"DEC", type:"Private", videos:0 },
+      { id:17, focus:"Net game", focusId:"net", subs:["Intermediate"], d:"06", m:"DEC", type:"Private", videos:1 },
+      { id:18, focus:"Overheads", focusId:"overhead", subs:["Intermediate"], d:"22", m:"NOV", type:"Group", videos:2 },
+      { id:19, focus:"Lob", focusId:"lob", subs:["Intermediate"], d:"08", m:"NOV", type:"Private", videos:3 },
+      { id:20, focus:"Back wall", focusId:"wall", subs:["Intermediate"], d:"25", m:"OCT", type:"Private", videos:0 },
     ],
   },
   equestrian: {
     noun: "rider", nouns: "riders",
-    label: "Equestrian", tagline: "Dressage and show jumping",
+    label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
     theme: { ink: "#241A1D", sub: "#6A585D", faint: "#AB9AA0", hair: "#EEE6E8",
              page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4EBEE", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+    /* the ladder a coach places a player on before anything else —
+       verified against the governing bodies (see CLAUDE.md) */
+    stages: [
+      { id: "leadrein", label: "Lead rein", group: "Riding school" },
+      { id: "offlead", label: "Off the lead rein", group: "Riding school" },
+      { id: "novice", label: "Novice", group: "Riding school" },
+      { id: "inter", label: "Intermediate", group: "Riding school" },
+      { id: "advanced", label: "Advanced", group: "Riding school" },
+      { id: "e", label: "E", group: "Pony Club test" },
+      { id: "d", label: "D", group: "Pony Club test" },
+      { id: "dplus", label: "D+", group: "Pony Club test" },
+      { id: "c", label: "C", group: "Pony Club test" },
+      { id: "cplus", label: "C+", group: "Pony Club test" },
+      { id: "b", label: "B", group: "Pony Club test" },
+      { id: "h", label: "H", group: "Pony Club test" },
+      { id: "bplus", label: "B+", group: "Pony Club test" },
+      { id: "a", label: "A", group: "Pony Club test" },
+    ],
+    extras: [
+      { id: "dressage", label: "Dressage", options: ["Intro", "Prelim", "Novice", "Elementary", "Medium", "Adv Medium", "Advanced", "PSG", "Inter I", "Inter II", "Grand Prix"] },
+      { id: "height", label: "Height", options: ["60cm", "70cm", "80cm", "90cm", "1m", "1.10m", "1.20m", "1.30m"] },
+      { id: "eventing", label: "Eventing", options: ["EI80", "EI90", "EI100", "EI105", "EI110", "EI115", "EI120"] },
+    ],
+    formats: ["Private", "Semi-private", "Group", "Lead rein", "Lunge", "Hack", "Clinic", "Rally", "Camp", "Competition"],
+    mount: { label: "Horse or pony", prefix: "on " },
     focus: [
-      { id: "flat",     label: "Flatwork",   subs: ["Rhythm", "Contact", "Straightness", "Transitions"] },
-      { id: "dressage", label: "Dressage",   subs: ["Test accuracy", "Centre line", "Halt", "Movements"] },
-      { id: "jumping",  label: "Jumping",    subs: ["Approach", "Take-off", "Release", "Landing"] },
-      { id: "course",   label: "Course craft", subs: ["Striding", "Turns", "Related distances", "Pace"] },
-      { id: "position", label: "Rider position", subs: ["Seat", "Leg", "Hands", "Balance"] },
+      { id: "flat", label: "Flatwork", subs: ["Walk", "Trot", "Canter", "Transitions", "Contact", "Bend", "Lateral work"] },
+      { id: "dressage", label: "Dressage", subs: ["Test riding", "Centre line", "Circles & serpentines", "Accuracy"] },
+      { id: "poles", label: "Pole work", subs: ["Trotting poles", "Canter poles", "Cavaletti"] },
+      { id: "grid", label: "Gridwork", subs: ["Placing pole", "Cross", "One stride", "Related distances"] },
+      { id: "sj", label: "Showjumping", subs: ["Course work", "Related distances", "Turns", "Rhythm"] },
+      { id: "xc", label: "Cross-country", subs: ["Schooling", "Ditches & water", "Banks", "Undulating ground"] },
+      { id: "hack", label: "Hacking", subs: ["Road sense", "Open ground"] },
+      { id: "lunge", label: "Lunge", subs: ["Lunge lesson", "Long reining"] },
+      { id: "seat", label: "Position & seat", subs: ["Rising trot", "Light seat", "Without stirrups", "Balance"] },
+      { id: "care", label: "Horse care", subs: ["Tacking up", "Grooming", "Feeding", "Yard"] },
     ],
     angles: ["Side on", "Head on", "Arena corner", "Slow motion"],
     drills: [
-      { t: "Transitions on a circle", d: "Walk-trot every eight strides, both reins.", focus: "flat" },
-      { t: "Grid work",               d: "Placing pole, cross, one stride, upright.", focus: "jumping" },
-      { t: "Poles on a circle",       d: "Four poles, twenty metre circle, keep the rhythm.", focus: "flat" },
-      { t: "Shoulder-in",             d: "Long side, both reins, three times each.", focus: "flat" },
-      { t: "Halt and salute",         d: "Down the centre line, ten times.", focus: "dressage" },
-      { t: "No-stirrup work",         d: "Five minutes rising and sitting trot, both reins.", focus: "position" },
-      { t: "Related distances",       d: "Five and six strides between two fences, count out loud.", focus: "course" },
-      { t: "Turn on the forehand",    d: "Both reins, focus on quiet hands throughout.", focus: "position" },
-      { t: "Related distance course", d: "Four fences on related lines, hold the canter.", focus: "course" },
-      { t: "Test movements in order", d: "Ride the test from memory, no letters called.", focus: "dressage" },
+      { t: "Transitions every 10 strides", d: "Walk–trot–walk, then trot–canter–trot.", focus: "flat" },
+      { t: "20m circles", d: "Both reins, rhythm first.", focus: "flat" },
+      { t: "Serpentines", d: "Three loops, change the bend over the centre line.", focus: "flat" },
+      { t: "Without stirrups", d: "Ten minutes in trot.", focus: "seat" },
+      { t: "Light seat", d: "Two laps in canter.", focus: "seat" },
+      { t: "Trotting poles", d: "Five poles, keep the rhythm.", focus: "poles" },
+      { t: "Canter poles & cavaletti", d: "Four poles, then raise them.", focus: "poles" },
+      { t: "Gridwork: placing pole, cross, one stride", d: "Build it up in three goes.", focus: "grid" },
+      { t: "Related distances", d: "Four and five strides, count out loud.", focus: "sj" },
+      { t: "Centre line, halt and salute", d: "Straight, square, still.", focus: "dressage" },
+      { t: "Riding on undulating ground", d: "Walk and trot, seat out of the saddle.", focus: "xc" },
+      { t: "Leg yield", d: "From the centre line to the track, both ways.", focus: "flat" },
     ],
     tipLibrary: [
       { t: "Ride from back to front", d: "Inside leg to outside rein — contact should follow from the hind leg, not the hands.", focus: "flat" },
-      { t: "Look up and ahead",  d: "Eyes to where you're going, not down at the fence — the horse follows where you look.", focus: "jumping" },
+      { t: "Look up and ahead",  d: "Eyes to where you're going, not down at the fence — the horse follows where you look.", focus: "poles" },
       { t: "Soft hands, following the motion", d: "The elbow should give with the horse's mouth, not brace against it.", focus: "flat" },
-      { t: "Ride the corners properly", d: "Use every corner to rebalance — cutting them costs the quality of what's next.", focus: "course" },
-      { t: "Keep the leg on after the jump", d: "Don't drop the contact on landing — stay in balance and keep riding forward.", focus: "jumping" },
+      { t: "Ride the corners properly", d: "Use every corner to rebalance — cutting them costs the quality of what's next.", focus: "grid" },
+      { t: "Keep the leg on after the jump", d: "Don't drop the contact on landing — stay in balance and keep riding forward.", focus: "poles" },
       { t: "Rhythm before accuracy", d: "A rushed, uneven stride will beat you every time — rhythm first, then the lines.", focus: "dressage" },
     ],
     statCatalog: [
-      { id: "score",   l: "Dressage", u: "%", manual: true },
-      { id: "clears",  l: "Clears",   u: "%" },
-      { id: "faults",  l: "Faults",   u: "/round" },
-      { id: "comps",   l: "Events",   u: "entered" },
-      { id: "hours",   l: "Schooling", u: "hrs/wk" },
-      { id: "jumpoff", l: "Jump-offs", u: "reached" },
-      { id: "time",    l: "Time faults", u: "/round" },
-      { id: "height",  l: "Height",    u: "cm" },
+      { id: "test", l: "Test level", u: "", manual: true },
+      { id: "score", l: "Dressage", u: "%" },
+      { id: "height", l: "Height jumped", u: "", manual: true },
+      { id: "clears", l: "Clear rounds", u: "%" },
+      { id: "faults", l: "Faults", u: "/round" },
     ],
-    statValues: { score: { v: "66.4" }, clears: { v: "58", m: "+12" }, faults: { v: "3.2", m: "−1.8" },
-                  comps: { v: "9", m: "+3" }, hours: { v: "6", m: "+1" }, jumpoff: { v: "5", m: "+2" },
-                  time: { v: "0.4", m: "−0.9" }, height: { v: "115", m: "+10" } },
+    statValues: { test: { v: "Prelim" }, score: { v: "66.4", m: "+2.1" }, height: { v: "90cm" }, clears: { v: "58", m: "+12" }, faults: { v: "4.2", m: "−1.5" } },
     defaultStats: ["score", "clears", "faults"],
     chart: { label: "Dressage score", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [61,62,63,64,65,66] },
     transcript: "Good session. Most of it went on straightness through the corners — she's not falling in on the left rein nearly as much now. Keep the shoulder-in going before we meet again, three times each way.",
     lessons: [
-      { id:1, focus:"Flatwork",       focusId:"flat",     subs:["Straightness","Contact"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Dressage",       focusId:"dressage", subs:["Centre line","Halt"],     d:"02", m:"JUN", type:"Private", videos:1 },
-      { id:3, focus:"Jumping",        focusId:"jumping",  subs:["Approach","Take-off"],    d:"18", m:"MAY", type:"Group",   videos:3 },
-      { id:4, focus:"Course craft",   focusId:"course",   subs:["Striding","Turns"],       d:"04", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Rider position", focusId:"position", subs:["Seat","Balance"],         d:"20", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Rider position", focusId:"position", subs:[], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Rider position", focusId:"position", subs:[], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Rider position", focusId:"position", subs:[], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Rider position", focusId:"position", subs:[], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Rider position", focusId:"position", subs:[], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Rider position", focusId:"position", subs:[], d:"24", m:"FEB", type:"Private", videos:1 },
-      { id:12, focus:"Rider position", focusId:"position", subs:[], d:"11", m:"FEB", type:"Group", videos:2 },
-      { id:13, focus:"Rider position", focusId:"position", subs:[], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Rider position", focusId:"position", subs:[], d:"16", m:"JAN", type:"Private", videos:0 },
-      { id:15, focus:"Rider position", focusId:"position", subs:[], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Rider position", focusId:"position", subs:[], d:"18", m:"DEC", type:"Private", videos:2 },
-      { id:17, focus:"Rider position", focusId:"position", subs:[], d:"06", m:"DEC", type:"Private", videos:3 },
-      { id:18, focus:"Rider position", focusId:"position", subs:[], d:"22", m:"NOV", type:"Group", videos:0 },
-      { id:19, focus:"Rider position", focusId:"position", subs:[], d:"08", m:"NOV", type:"Private", videos:1 },
-      { id:20, focus:"Rider position", focusId:"position", subs:[], d:"25", m:"OCT", type:"Private", videos:2 },
+      { id:1, focus:"Flatwork", focusId:"flat", subs:["C", "on Bracken", "Walk", "Trot"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Dressage", focusId:"dressage", subs:["C", "on Corrib Lad", "Test riding", "Centre line"], d:"31", m:"MAY", type:"Private", videos:1 },
+      { id:3, focus:"Pole work", focusId:"poles", subs:["C", "on Willow", "Trotting poles", "Canter poles"], d:"17", m:"MAY", type:"Group", videos:3 },
+      { id:4, focus:"Gridwork", focusId:"grid", subs:["C", "on Bracken", "Placing pole", "Cross"], d:"03", m:"MAY", type:"Private", videos:2 },
+      { id:5, focus:"Showjumping", focusId:"sj", subs:["C", "on Corrib Lad", "Course work", "Related distances"], d:"19", m:"APR", type:"Private", videos:1 },
+      { id:6, focus:"Cross-country", focusId:"xc", subs:["C", "on Willow"], d:"28", m:"APR", type:"Group", videos:0 },
+      { id:7, focus:"Hacking", focusId:"hack", subs:["C", "on Bracken"], d:"14", m:"APR", type:"Private", videos:1 },
+      { id:8, focus:"Lunge", focusId:"lunge", subs:["C", "on Corrib Lad"], d:"02", m:"APR", type:"Private", videos:2 },
+      { id:9, focus:"Position & seat", focusId:"seat", subs:["C", "on Willow"], d:"21", m:"MAR", type:"Group", videos:3 },
+      { id:10, focus:"Horse care", focusId:"care", subs:["C", "on Bracken"], d:"09", m:"MAR", type:"Private", videos:0 },
+      { id:11, focus:"Flatwork", focusId:"flat", subs:["C", "on Corrib Lad"], d:"24", m:"FEB", type:"Private", videos:2 },
+      { id:12, focus:"Dressage", focusId:"dressage", subs:["C", "on Willow"], d:"11", m:"FEB", type:"Group", videos:1 },
+      { id:13, focus:"Pole work", focusId:"poles", subs:["C", "on Bracken"], d:"29", m:"JAN", type:"Private", videos:3 },
+      { id:14, focus:"Gridwork", focusId:"grid", subs:["C", "on Corrib Lad"], d:"16", m:"JAN", type:"Private", videos:2 },
+      { id:15, focus:"Showjumping", focusId:"sj", subs:["C", "on Willow"], d:"04", m:"JAN", type:"Group", videos:1 },
+      { id:16, focus:"Cross-country", focusId:"xc", subs:["C", "on Bracken"], d:"18", m:"DEC", type:"Private", videos:0 },
+      { id:17, focus:"Hacking", focusId:"hack", subs:["C", "on Corrib Lad"], d:"06", m:"DEC", type:"Private", videos:1 },
+      { id:18, focus:"Lunge", focusId:"lunge", subs:["C", "on Willow"], d:"22", m:"NOV", type:"Group", videos:2 },
+      { id:19, focus:"Position & seat", focusId:"seat", subs:["C", "on Bracken"], d:"08", m:"NOV", type:"Private", videos:3 },
+      { id:20, focus:"Horse care", focusId:"care", subs:["C", "on Corrib Lad"], d:"25", m:"OCT", type:"Private", videos:0 },
     ],
   },
 };
@@ -908,7 +1019,7 @@ const COACHES = {
 /* Interface strings. Keys are deliberately few and heavily reused, so a
    new language is one block rather than a scattered hunt. */
 export const STRINGS = {
-  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Roster", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Publish", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
+  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Roster", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Log it", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
 };
 
 
@@ -3074,7 +3185,7 @@ function NewLessonArrival({ lesson, coach, onOpen }) {
    of sessions were, and anything they're building towards. Everything
    else was noise. */
 function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], lessonCount,
-                      onProfile, onLog, onNoShow, onCancel, onWeather, onCapture, onHistory, onEditComp, close }) {
+                      onProfile, onLog, onNoShow, onCancel, onWeather, onCapture, onRegister, onHistory, onEditComp, close }) {
   const t = useT();
   const live = useLive();
   const f = fileFor(booking.who, live);
@@ -3082,8 +3193,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
   const focus = agreed || f.tip;
 
   const lessons = (past || (live ? [] : null) || f.recent || [   /* a real account never falls through to the seeded list */
-    { d: "14 Jun", focus: "Short game", note: "Cleaner contact off a tight lie." },
-    { d: "31 May", focus: "Driving",    note: "Tempo over speed." },
+    { d: "14 Jun", focus: "Chipping", note: "Cleaner contact off a tight lie." },
+    { d: "31 May", focus: "Full swing",    note: "Tempo over speed." },
     { d: "17 May", focus: "Putting",    note: "Same routine every putt." },
   ]).slice(0, 2);
 
@@ -3171,10 +3282,11 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       <div className="flex mt-3" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}`, paddingTop: 12 }}>
         {[{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null },
           { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null },
+          onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
           { Ico: CalendarDays, lbl: tr("Move"),    act: onCancel,   tone: null },
           { Ico: Radio,        lbl: tr("Weather"), act: onWeather,  tone: DANGER },
-          { Ico: X,            lbl: tr("No show"), act: onNoShow,   tone: DANGER }].map(({ Ico, lbl, act, tone }) => (
-          <button key={lbl} onClick={() => { haptic(7); soft(); act && act(); }}
+          { Ico: X,            lbl: tr("No show"), act: onNoShow,   tone: DANGER }].filter(Boolean).map(({ Ico, lbl, act, tone, tour }) => (
+          <button key={lbl} data-tour={tour} onClick={() => { haptic(7); soft(); act && act(); }}
                   onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.94)"; }}
                   onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                   onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -3522,13 +3634,14 @@ const TOUR = {
     { area: "Today", title: "Your day", body: "Lessons in order. Tap one for the brief.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
     { area: "Today", title: "Lessons to log", body: "One tap logs it while it's fresh. Swipe it away if nobody came.", path: "Today → a finished lesson", target: "today-justdone", state: { stack: ["today"] } },
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "The plus", body: "Logging, attendance, live capture, drills — all start here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "Who and when", body: "A player or a group, and the day it happened.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
-    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → How did it go", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
-    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → Drills to set", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
-    { area: "Log a lesson", title: "Publish", body: "The lesson, clips, drills and takeaway arrive together.", path: "Log a lesson → One thing to remember", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 4 } },
-    { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
-    { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
+    { area: "Log a lesson", title: "The plus", body: "One tap logs a lesson. Everything else lives where it belongs.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
+    { area: "Log a lesson", title: "Who", body: "Tap a face, or a group. Today's people come first.", path: "Plus", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
+    { area: "Log a lesson", title: "Their stage", body: "The ladder your sport really uses, remembered from last time.", path: "Plus → Stage", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
+    { area: "Log a lesson", title: "What you worked on", body: "One tap or two. The detail under it is optional.", path: "Plus → Worked on", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
+    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Plus → Add a note, clip, photo or voice", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
+    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Plus → Set drills or a tip", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
+    { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Plus → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
+    { area: "During a lesson", title: "Register", body: "Mark who turned up from the lesson that is on now.", path: "Now → the lesson on now → Register", target: "day-register", state: { stack: ["today"] } },
     { area: "Diary", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "Diary → Your hours", target: "cal-hours", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Recurring lessons", body: "Standing weekly slots, booked out for the whole run.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Book in the diary", body: "Tap a free slot to book someone; tap a booking to log or cancel it.", path: "Diary → free slot", target: "agenda-book", state: { stack: ["calendar"] } },
@@ -4321,61 +4434,6 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
    can be dragged into whatever order suits — the Control Centre idea,
    because no two coaches reach for the same thing second. */
 /* what the plus menu offers, by id */
-const QUICK_ACTIONS = {
-  attend:  { Ico: Check,         label: "Attendance" },
-  capture: { Ico: Camera,        label: "Live capture" },
-  tip:     { Ico: Lightbulb,     label: "Set a tip" },
-  drills:  { Ico: ListChecks,    label: "Set drills" },
-  player:  { Ico: UserPlus,      label: "Add player" },
-  group:   { Ico: Users,         label: "New group" },
-  message: { Ico: MessageCircle, label: "Message" },
-  comp:    { Ico: Trophy,        label: "Competition" },
-};
-/* The plus menu: the one thing a coach does a dozen times a day as the
-   accent button, then eight plain rows in a fixed order. It used to be
-   a grid of tinted tiles with a hold-to-drag, tap-to-resize edit mode
-   and a stored layout — Control Centre on a sheet opened to log a
-   lesson. */
-const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
-function QuickMenu({ liveLesson, onLog, onRun }) {
-  const t = useT();
-  return (
-    <>
-      <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
-              className="w-full flex items-center gap-3.5 mb-4 text-left active:opacity-90"
-              style={{ minHeight: 60, padding: "0 20px", borderRadius: R.surface, background: t.accent }}>
-        <Plus size={19} color={t.onAccent} strokeWidth={2.3} />
-        <span className="flex-1" style={{ ...TYPE.subhead, fontSize: 16.5, color: t.onAccent }}>{tr("Log a lesson")}</span>
-      </button>
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-        {QUICK_ORDER.map((id) => {
-          const A = QUICK_ACTIONS[id];
-          const now = id === "attend" && liveLesson;
-          return (
-            <button key={id} data-tour={`quick-${id}`} onClick={() => { haptic(8); soft(); onRun(id); }}
-                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-              <A.Ico size={17} color={t.ink} strokeWidth={1.7} />
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>
-                {tr(A.label)}{now ? <span style={{ color: t.faint }}> · {liveLesson.who} · {tr("on now")}</span> : null}
-              </span>
-              <ChevronRight size={16} color={t.faint} strokeWidth={1.8} />
-            </button>
-          );
-        })}
-      </div>
-    </>
-  );
-}
-
-
-/* SOMETHING YOU CANNOT MISS
-
-   A rained-off lesson is the one message that must not sit unread
-   behind a badge — someone will otherwise drive to a flooded range.
-   So it takes the whole screen on open, states the fact in a sentence,
-   and offers the one thing worth doing about it. Used for the same
-   class of event: a lesson logged, a new coach, a group you've joined. */
 const ANNOUNCE = {
   weather:  { Ico: Radio,         tone: "danger",  eyebrow: "Called off" },
   logged:   { Ico: Library,       tone: "steady",  eyebrow: "New lesson" },
@@ -4384,7 +4442,6 @@ const ANNOUNCE = {
   cancelled:{ Ico: CalendarDays,  tone: "danger",  eyebrow: "Cancelled" },
   comp:     { Ico: Trophy,        tone: "caution", eyebrow: "Coming up" },
 };
-
 function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
   const t = useT();
   const cfg = ANNOUNCE[kind] || ANNOUNCE.logged;
@@ -5149,7 +5206,7 @@ function Round({ label, onTap, children, solid, tour }) {
   );
 }
 
-const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho }) {
+const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho, cfg }) {
   const t = useT();
   const live = useLive();
   const [frame, setFrame] = useState(0);
@@ -5255,7 +5312,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
               {lesson.focus}
             </span>
             <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}
+              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
             </span>
           </button>
           {lesson.note && (lesson.note.length > 44 ? (
@@ -5289,7 +5346,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   );
 });
 
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho }) {
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg }) {
   const [active, setActive] = useState(0);
   const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
   const wrap = useRef(null);
@@ -5340,7 +5397,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
            style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
                     WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
         {lessons.map((l, i) => (
-          <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active}
+          <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active} cfg={cfg}
                     near={Math.abs(i - active) <= 1} onNeed={onNeed}
                     media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} showWho={showWho} />
         ))}
@@ -8987,7 +9044,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
       }
       return sim;
     };
-    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho}
+    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg}
                        view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
@@ -9253,7 +9310,7 @@ function LessonStage({ item, onAnnotate }) {
   );
 }
 
-function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson, banner,
+function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson, banner, cfg,
                         onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight }) {
   const t = useT();
   const [a, setA] = useState(0);
@@ -9310,7 +9367,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               {when}{groupLesson ? ` · ${tr("Group")}` : ""}{withWhom ? ` · ${withWhom}` : ""}
             </span>
             <h1 className="mt-2" style={{ ...TYPE.hero, fontSize: 30, lineHeight: 1.04, letterSpacing: "-0.03em", color: t.ink }}>{lesson.focus}</h1>
-            {lesson.subs && lesson.subs.length > 0 && <p className="mt-1.5" style={{ ...TYPE.small, color: t.sub }}>{lesson.subs.join(" · ")}</p>}
+            <LessonTags lesson={lesson} cfg={cfg} className="mt-2.5" />
           </div>
 
           {/* the clip, and the others as thumbnails — the ring says which */}
@@ -9430,7 +9487,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
   }
   if (!l) return null;
   return (
-    <LessonDetail lesson={l} role="player" live={live} coachName={l.coach || conn?.coach || ""} items={items} loading={live && media === null && count > 0}
+    <LessonDetail lesson={l} role="player" live={live} cfg={cfg} coachName={l.coach || conn?.coach || ""} items={items} loading={live && media === null && count > 0}
                   drills={drills || []} tips={tips || []} attendance={attendanceFor && !fresh ? attendanceFor(l) : attendance} juvenile={juvenile} groupLesson={l.type === "Group"}
                   /* the harness keeps the control so the walkthrough can point at it; it saves offline there */
                   onDownload={live ? (its) => onDownload && onDownload(l, its) : () => toggleSave && toggleSave(l.id)}
@@ -9446,7 +9503,7 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
   const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
   const items = live ? (media || []) : cfg.angles.slice(0, lesson.videos || 1).map((angle) => ({ type: "sim", angle }));
   return (
-    <LessonDetail banner={banner} lesson={live ? lesson : { ...lesson, note: lesson.note || cfg.transcript }} role="coach" live={live} playerName={name} items={items}
+    <LessonDetail banner={banner} lesson={live ? lesson : { ...lesson, note: lesson.note || cfg.transcript }} role="coach" live={live} cfg={cfg} playerName={name} items={items}
                   loading={live && media === null && count > 0} drills={drills || []} tips={tips || []} attendance={attendance} groupLesson={lesson.type === "Group"}
                   onSetDrills={() => assignDrills(lesson.playerId || name, lesson.focusId)} onMessage={() => push("thread:" + (lesson.playerId || name))}
                   onLogAnother={() => { if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }}
@@ -9633,7 +9690,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
       <div className="w-full flex items-center gap-3.5 pr-4" style={frame}>
         <button onClick={() => { haptic(7); soft(); onPeek(l); }}
                 className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50">{body}</button>
-        <button onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 px-3.5 active:opacity-70"
+        <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 px-3.5 active:opacity-70"
                 style={{ minHeight: 36, borderRadius: R.control, background: t.accent,
                          ...TYPE.caption, fontWeight: 600, color: t.onAccent }}>{tr("Register")}</button>
       </div>
@@ -9811,16 +9868,71 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
    Continues to write up a lesson that takes a coach ninety seconds to
    remember. A coach arriving from a booking already tells us who and
    when, so they land on the second page. */
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, showGuide, onDismissGuide, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt, library, tipPrompts }) {
+/* LOG A LESSON — one screen.
+
+   A coach mid-lesson picks up the phone, does one thing in seconds and
+   puts it down. So the log is one scroll, not a walk: who (already
+   ticked from the booking), the stage they are at (remembered from
+   last time), what was worked on, and Log it. A note, a clip, drills
+   and a tip are one row each that unfold only if wanted. Nothing here
+   is a page you have to get through.
+
+   The stage and the mount ride along as tags on the lesson (`subs`),
+   so nothing changes in the database: `stageOf()` and `mountOf()` read
+   them back wherever a lesson is shown. */
+const STAGE_INPUT_SEP = " ";
+function stageTag(cfg, id, value) {
+  const st = (cfg.stages || []).find((x) => x.id === id);
+  if (!st) return null;
+  return st.input ? (value ? `${st.tag}${STAGE_INPUT_SEP}${String(value).trim()}` : null) : st.label;
+}
+function stageOf(cfg, lesson) {
+  const subs = (lesson && lesson.subs) || [];
+  for (const st of (cfg && cfg.stages) || []) {
+    const hit = subs.find((x) => (st.input ? String(x).startsWith(`${st.tag}${STAGE_INPUT_SEP}`) : x === st.label));
+    if (hit) return hit;
+  }
+  return null;
+}
+function extraOf(cfg, lesson) {
+  const subs = (lesson && lesson.subs) || [];
+  return ((cfg && cfg.extras) || []).flatMap((ex) => ex.options.filter((o) => subs.includes(o)));
+}
+function mountOf(lesson) {
+  const hit = ((lesson && lesson.subs) || []).find((x) => String(x).startsWith("on "));
+  return hit ? hit.slice(3) : null;
+}
+/* the tags a lesson carries that are not the stage, the extras or the mount */
+function areaSubsOf(cfg, lesson) {
+  const stage = stageOf(cfg, lesson), extras = extraOf(cfg, lesson), mount = mountOf(lesson);
+  return ((lesson && lesson.subs) || []).filter((x) => x !== stage && !extras.includes(x) && (!mount || x !== `on ${mount}`));
+}
+
+function StagePill({ label, small }) {
+  const t = useT();
+  if (!label) return null;
+  return (
+    <span className="inline-flex items-center px-2.5 shrink-0" style={{ minHeight: small ? 20 : 24, borderRadius: R.pill, background: `${t.accent}14`,
+                     ...TYPE.caption, fontSize: small ? 10.5 : 11.5, fontWeight: 600, color: t.accent, whiteSpace: "nowrap" }}>{label}</span>
+  );
+}
+function LessonTags({ lesson, cfg, className = "" }) {
+  const t = useT();
+  const stage = stageOf(cfg, lesson), extras = extraOf(cfg, lesson), mount = mountOf(lesson), areas = areaSubsOf(cfg, lesson);
+  if (!stage && !extras.length && !mount && !areas.length) return null;
+  return (
+    <div className={`flex flex-wrap items-center gap-x-2 gap-y-1.5 ${className}`}>
+      {stage && <StagePill label={stage} />}
+      {extras.map((x) => <StagePill key={x} label={x} />)}
+      {areas.length > 0 && <span style={{ ...TYPE.small, color: t.sub }}>{areas.join(" · ")}</span>}
+      {mount && <span style={{ ...TYPE.small, color: t.sub }}>{tr("on")} {mount}</span>}
+    </div>
+  );
+}
+
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt, library, tipPrompts, lastFor, todayIds }) {
   const t = useT(); const L = useL();
   const live = useLive();
-
-  /* PEOPLE, NOT NAMES. Everything here used to be a display name, so
-     two players called the same thing were one person to the wizard
-     and the lesson landed on whichever the roster listed first. The
-     pool is rows now and `who` holds the rows that were ticked; the
-     harness has no ids, so its rows are { id: name, name } and it
-     behaves exactly as before. */
   const POOL_W = (livePlayers ?? PLAYERS).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
   const seedWho = prefill
     ? (prefill.kind && prefill.kind.startsWith("Group")
@@ -9828,27 +9940,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
         : [prefill.who])
     : [];
   const known = POOL_W.filter((r) => seedWho.includes(r.name));
-
-  /* A lesson logged from a real booking already carries its day, so
-     the date sits on the first page only when nothing anchors it —
-     the plus button, or "log another" from a lesson already written. */
   const needsDate = !prefill || prefill.m == null;
-  const startStep = known.length && !needsDate ? 1 : 0;
-  /* One question a page. Two dense pages confused everyone who was
-     shown them; five short ones read at a glance, and the caption says
-     how far there is to go. */
-  const titles = [tr("Who was it?"), tr("What did you work on?"), tr("How did it go?"), tr("Drills to set?"), tr("One thing to remember?")];
-  const optional = [false, false, true, true, true];
-  const STEPS = titles.length;
-  /* `startAt` is the walkthrough's: it shows one step of the wizard,
-     inert, without walking there. Clamped, so a tour entry left
-     pointing at a page that no longer exists shows the last one
-     rather than a blank heading over nothing. */
-  const [step, setStep] = useState(Math.min(startAt ?? startStep, STEPS - 1));
-  /* The demo's TODAY is a fixed date for the design harness. A real
-     log, with nothing booked to anchor it, should default to the
-     actual day it's being written on — not July the 24th, whenever
-     that happens to be. */
   const realToday = new Date();
   const [logY, setLogY] = useState(realToday.getFullYear());
   const [logM, setLogM] = useState(prefill?.m ?? (realToday.getMonth() + 1));
@@ -9857,6 +9949,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [pickedGroup, setPickedGroup] = useState(prefill && prefill.kind && prefill.kind.startsWith("Group") ? prefill.who : null);
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState([]);
+  const [subPick, setSubPick] = useState([]);
   const [customDraft, setCustomDraft] = useState(""); const [custom, setCustom] = useState([]);
   const [rec, setRec] = useState("idle"); const [secs, setSecs] = useState(0); const [note, setNote] = useState(null);
   const [videos, setVideos] = useState([]); const [cam, setCam] = useState(false);
@@ -9865,12 +9958,34 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [nextTip, setNextTip] = useState("");
   const [showWaiting, setShowWaiting] = useState(false);
   const [wantRating, setWantRating] = useState(false);
+  /* the two rows that unfold: the walkthrough opens the one it rings */
+  const [openNote, setOpenNote] = useState((startAt ?? 0) === 2);
+  const [openNext, setOpenNext] = useState((startAt ?? 0) >= 3);
 
-  /* A real voice note: the microphone, a file, and nothing invented.
-     It uploads with the lesson as audio; the typed note is separate.
-     Media comes from the camera or a real file picker the same way. */
+  /* THE STAGE — remembered from the person's last lesson, one tap to
+     change. `lastFor` is { [playerId]: { stage, extras, mount } } read
+     from their real lessons; the harness has none and starts blank. */
+  const stages = cfg.stages || [];
+  const extras = cfg.extras || [];
+  const remembered = (r) => (lastFor && r && lastFor[r.id]) || null;
+  const [stage, setStage] = useState(null);         // a stage id
+  const [stageVal, setStageVal] = useState("");     // the value for an input stage
+  const [extraPick, setExtraPick] = useState([]);   // option labels
+  const [mount, setMount] = useState("");
+  const [mountDraft, setMountDraft] = useState("");
+  const [stageTouched, setStageTouched] = useState(false);
+  useEffect(() => {
+    if (stageTouched) return;
+    const r = remembered(who[0]);
+    if (!r) return;
+    const st = stages.find((x) => (x.input ? String(r.stage || "").startsWith(`${x.tag}${STAGE_INPUT_SEP}`) : x.label === r.stage));
+    if (st) { setStage(st.id); if (st.input) setStageVal(String(r.stage).slice(st.tag.length + 1)); }
+    if (r.extras && r.extras.length) setExtraPick(r.extras);
+    if (r.mount) setMount(r.mount);
+  }, [who, lastFor]);
+
   const cap = useCapture();
-  const [voice, setVoice] = useState(null);            // { file, secs, url }
+  const [voice, setVoice] = useState(null);
   const fileInput = useRef(null);
   const startVoice = async () => {
     haptic(14);
@@ -9904,22 +10019,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     });
     if (files.length) { hapticSuccess(); soft(); }
   };
-
-
-  /* Anything filmed or noted outside the wizard — via the plus menu's
-     Live capture, or "Capture during the lesson" from the player's own
-     sheet — waits here under their name until pulled into a write-up. */
   const [pulled, setPulled] = useState([]);
-  /* Anything captured for a named player, plus anything captured with
-     nobody chosen yet — that pile belongs to whoever is being logged
-     next, which is exactly what a coach filming between lessons
-     expects. */
   const waiting = [...who.map((r) => r.name), "__unassigned"].flatMap((name) => (captured[name] || [])
     .filter((it) => !pulled.some((p) => p.id === it.id))
     .map((it) => ({ ...it, from: name === "__unassigned" ? tr("Captured earlier") : name })));
-
-  /* Videos, photos and anything pulled in, held in one list so the
-     slide renders one shape regardless of where it came from. */
   const items = [
     ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name })),
     ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
@@ -9949,10 +10052,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const first = ((who[0] || {}).name || "").split(" ")[0];
   const [ownDrill, setOwnDrill] = useState("");
   const [extraDrills, setExtraDrills] = useState([]);
-  /* The chips come from the coach's own library — the same drills the
-     Set-drills sheet offers — with the ones that match the chosen focus
-     first. Each title once: a drill that matches the focus and also sits
-     at the top of the library used to appear twice. */
   const recommended = useMemo(() => {
     const pool = library || cfg.drills || [];
     const seen = new Set(), out = [];
@@ -9964,165 +10063,213 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     }
     return out;
   }, [library, cfg, focus]);
-
   useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
-  /* the harness's pretend transcription — never on a real account */
   useEffect(() => { if (rec !== "working" || live) return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg, live]);
 
-  const chosen = cfg.focus.filter((f) => focus.includes(f.id)).map((f) => f.label).concat(custom);
+  const chosenAreas = cfg.focus.filter((f) => focus.includes(f.id));
+  const chosen = chosenAreas.map((f) => f.label).concat(custom);
   const group = who.length > 1 || !!pickedGroup;
   const nouns = cfg.nouns;
   const tog = (arr, set, v) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
-
   const matches = POOL_W.filter((r) => r.name.toLowerCase().includes(q.trim().toLowerCase()));
-  const canAdvance = [who.length > 0, chosen.length > 0, true, true, true][step];
+  /* today's people first, then the rest of the roster */
+  const ordered = [...matches.filter((r) => (todayIds || []).includes(r.id)), ...matches.filter((r) => !(todayIds || []).includes(r.id))];
+  const canLog = who.length > 0 && chosen.length > 0;
   const showReviewAsk = askReview && who.length === 1 && !pickedGroup
     && (lessonCounts ? (lessonCounts[who[0].id] || 0) === 0 : false);
+  const currentStage = stage ? stageTag(cfg, stage, stageVal) : null;
+  const tags = [currentStage, ...extraPick, ...subPick, mount.trim() ? `on ${mount.trim()}` : null].filter(Boolean);
+
   const finish = () => onPublish({
-    /* both: the names for anything that reads back as text, the ids
-       for everything that writes to the database */
     type: group ? "group" : "private", who: who.map((r) => r.name), whoIds: who.map((r) => r.id),
     groupName: pickedGroup, focus: chosen.join(" · "),
-    focusList: chosen, focusIds: focus, custom, subs: [],   // the wizard has no sub-focus picker
+    focusList: chosen, focusIds: focus, custom, subs: tags,
     note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
     nextDrills, nextTip, wantRating, y: logY, m: logM, d: logD, pulled,
   });
+  const submit = () => { if (!canLog) return; hapticCommit(); finish(); };
 
-  const back = () => (step === 0 || (step === startStep && known.length) ? onCancel() : setStep(step - 1));
-  const next = () => { haptic(8); if (step === STEPS - 1) { hapticCommit(); finish(); } else setStep(step + 1); };
-  const whoLine = pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : who.map((r) => r.name.split(" ")[0]).join(", ");
   const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
-  const chip = (on) => ({ minHeight: 44, borderRadius: R.pill, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.16)}`,
-                          fontFamily: ui, fontSize: 14, fontWeight: 600, color: on ? "#fff" : t.ink, transition: "background 180ms, border-color 180ms" });
+  const chip = (on, small) => ({ minHeight: small ? 34 : 42, borderRadius: R.pill, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.16)}`,
+                                 fontFamily: ui, fontSize: small ? 12.5 : 14, fontWeight: 600, color: on ? "#fff" : t.ink, transition: "background 180ms, border-color 180ms" });
+  const Section = ({ label, children, sub }) => (
+    <div className="px-6 mb-7">
+      <div className="mb-3 flex items-baseline gap-2">
+        <span style={{ ...TYPE.eyebrow, color: t.faint }}>{label}</span>
+        {sub && <span style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
+      </div>
+      {children}
+    </div>
+  );
+  const Fold = ({ label, open, onOpen, tour, children }) => (
+    <div className="px-6 mb-2">
+      <button data-tour={tour} onClick={() => { haptic(6); onOpen(!open); }} className="w-full flex items-center gap-3 text-left active:opacity-60"
+              style={{ minHeight: 56, borderTop: hair, borderBottom: open ? "none" : hair }}>
+        <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+        <ChevronDown size={15} color={t.faint} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 220ms" }} />
+      </button>
+      {open && <div className="pb-5" style={{ borderBottom: hair }}>{children}</div>}
+    </div>
+  );
+  const groupsOf = (list) => { const out = []; for (const x of list) { const g = x.group || ""; const last = out[out.length - 1]; if (last && last.group === g) last.items.push(x); else out.push({ group: g, items: [x] }); } return out; };
 
   return (
-    <SwipeBack onBack={back}>
+    <SwipeBack onBack={onCancel}>
       <div className="flex flex-col h-full relative" style={{ background: t.page }}>
         <div className="flex items-center px-1.5 shrink-0" style={{ height: 48 }}>
-          <button onClick={() => { haptic(); back(); }} aria-label={L.back} className="p-2 active:opacity-40"><ChevronLeft size={24} color={t.ink} strokeWidth={2} /></button>
-          <span className="flex-1 text-center" style={{ ...TYPE.caption, color: t.faint }}>{step + 1} / {STEPS}</span>
-          <span className="flex justify-end pr-4" style={{ width: 72 }}>
-            {optional[step] && step < STEPS - 1 && <TextBtn color={t.sub} onClick={() => { haptic(6); setStep(step + 1); }}>{tr("Skip")}</TextBtn>}
-          </span>
+          <button onClick={() => { haptic(); onCancel(); }} aria-label={L.back} className="p-2 active:opacity-40"><X size={22} color={t.ink} strokeWidth={2} /></button>
+          <span className="flex-1 text-center" style={{ ...TYPE.subhead, color: t.ink }}>{tr("Log a lesson")}</span>
+          <span style={{ width: 41 }} />
         </div>
 
-        <div className="flex-1 overflow-y-auto pt-5">
-          <h1 className="px-6" style={{ fontFamily: display, fontSize: 30, lineHeight: 1.05, letterSpacing: "-0.034em", color: t.ink,
-                     animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>{titles[step]}</h1>
-          {step > 0 && whoLine && <p className="px-6 mt-2" style={{ ...TYPE.small, color: t.faint }}>{whoLine}</p>}
-          <div style={{ height: 22 }} />
-
-          {/* ---------- 1 · who ---------- */}
-          {step === 0 && (<>
+        <input ref={fileInput} type="file" multiple className="hidden"
+               onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+        <div className="flex-1 overflow-y-auto pt-4">
+          {/* ---------- who ---------- */}
+          <Section label={tr("Who")} sub={pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : null}>
             {POOL_W.length > 8 && (
-              <div className="px-6 mb-4">
-                <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-                  <Search size={15} color={t.faint} />
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
-                         style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
-                     : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
-                </div>
+              <div className="flex items-center gap-2.5 px-4 mb-3" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
+                <Search size={15} color={t.faint} />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
+                       style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+                   : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
               </div>
             )}
-            <div className="px-6">
-              <div style={{ borderTop: hair }}>
-                {!q && (groups || []).map((g) => {
-                  const on = pickedGroup === g.name;
-                  return (
-                    <button key={g.id} onClick={() => { hapticCommit(); soft(); if (on) { setPickedGroup(null); setWho([]); }
-                                            else { setPickedGroup(g.name);
-                                                   const ids = g.memberIds && g.memberIds.length ? g.memberIds : null;
-                                                   setWho(POOL_W.filter((r) => (ids ? ids.includes(r.id) : (g.members || []).includes(r.name)))); } }}
-                            className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 60, borderBottom: hair }}>
-                      <Avatar name={g.name} size={36} group />
-                      <span className="flex-1 min-w-0">
-                        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{g.name}</span>
-                        <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{g.members.length} {nouns}</span>
-                      </span>
-                      <span className="flex items-center justify-center shrink-0"
-                            style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent" }}>
-                        {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
-                      </span>
-                    </button>
-                  );
-                })}
-                {matches.length === 0 ? (
-                  <p className="py-8 text-center" style={{ ...TYPE.body, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”` : tr("No players yet")}</p>
-                ) : matches.map((pl, pi) => {
-                  const on = who.some((r) => r.id === pl.id);
-                  return (
-                    <button key={pl.id} data-tour={pi === 0 ? "wiz-who" : undefined}
-                            onClick={() => { haptic(6); setPickedGroup(null); setWho(on ? who.filter((r) => r.id !== pl.id) : [...who, pl]); }}
-                            className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 60, borderBottom: hair }}>
-                      <Avatar name={pl.name} size={36} src={avatarUrl(pl.avatarPath)} />
-                      <span className="flex-1 truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
-                      <span className="flex items-center justify-center shrink-0"
-                            style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent" }}>
-                        {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
-                      </span>
-                    </button>
-                  );
-                })}
-                {/* nothing booked anchors this one, so the day is asked here — one row, today unless changed */}
-                {needsDate && (
-                  <label data-tour="wiz-when" className="w-full flex items-center gap-3.5" style={{ minHeight: 60, borderBottom: hair }}>
-                    <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Date")}</span>
-                    <input type="date"
-                           value={`${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`}
-                           max={`${realToday.getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, "0")}-${String(realToday.getDate()).padStart(2, "0")}`}
-                           onChange={(e) => { const parts = e.target.value.split("-"); if (parts.length === 3) { setLogY(Number(parts[0])); setLogM(Number(parts[1])); setLogD(Number(parts[2])); } }}
-                           className="outline-none text-right" style={{ fontFamily: ui, fontSize: 15, color: t.sub, background: "transparent" }} />
-                  </label>
-                )}
-              </div>
-              <div style={{ height: 26 }} />
+            <div className="flex flex-wrap gap-2">
+              {!q && (groups || []).map((g) => {
+                const on = pickedGroup === g.name;
+                return (
+                  <button key={g.id} aria-pressed={on} onClick={() => { hapticCommit(); soft(); if (on) { setPickedGroup(null); setWho([]); }
+                                          else { setPickedGroup(g.name);
+                                                 const ids = g.memberIds && g.memberIds.length ? g.memberIds : null;
+                                                 setWho(POOL_W.filter((r) => (ids ? ids.includes(r.id) : (g.members || []).includes(r.name)))); } }}
+                          className="px-3.5 flex items-center gap-2 active:opacity-60" style={chip(on)}>
+                    <Avatar name={g.name} size={22} group />{g.name}
+                  </button>
+                );
+              })}
+              {ordered.map((pl, pi) => {
+                const on = who.some((r) => r.id === pl.id);
+                return (
+                  <button key={pl.id} data-tour={pi === 0 ? "wiz-who" : undefined} aria-pressed={on}
+                          onClick={() => { haptic(6); setPickedGroup(null); setWho(on ? who.filter((r) => r.id !== pl.id) : [...who, pl]); }}
+                          className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60" style={chip(on)}>
+                    <Avatar name={pl.name} size={28} src={avatarUrl(pl.avatarPath)} />{pl.name}
+                  </button>
+                );
+              })}
+              {ordered.length === 0 && <p className="py-4" style={{ ...TYPE.small, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”` : tr("No players yet")}</p>}
             </div>
-          </>)}
+            {needsDate && (
+              <label data-tour="wiz-when" className="w-full flex items-center gap-3.5 mt-3" style={{ minHeight: 52, borderTop: hair, borderBottom: hair }}>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Date")}</span>
+                <input type="date"
+                       value={`${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`}
+                       max={`${realToday.getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, "0")}-${String(realToday.getDate()).padStart(2, "0")}`}
+                       onChange={(e) => { const parts = e.target.value.split("-"); if (parts.length === 3) { setLogY(Number(parts[0])); setLogM(Number(parts[1])); setLogD(Number(parts[2])); } }}
+                       className="outline-none text-right" style={{ fontFamily: ui, fontSize: 15, color: t.sub, background: "transparent" }} />
+              </label>
+            )}
+          </Section>
 
-          {/* ---------- 2 · what was worked on ---------- */}
-          {step === 1 && (
-            <div className="px-6">
-              <div className="flex flex-wrap gap-2" data-tour="wiz-focus">
-                {cfg.focus.map((f) => {
-                  const on = focus.includes(f.id);
-                  return <button key={f.id} aria-pressed={on} onClick={() => { haptic(6); tog(focus, setFocus, f.id); }} className="px-4 active:opacity-60" style={chip(on)}>{f.label}</button>;
-                })}
-                {custom.map((c) => (
-                  <span key={c} className="px-3.5 flex items-center gap-2" style={chip(true)}>
-                    {c}<button onClick={() => { haptic(6); setCustom(custom.filter((x) => x !== c)); }} aria-label={`Remove ${c}`}><X size={12} color="rgba(255,255,255,0.7)" /></button>
-                  </span>
+          {/* ---------- stage: the sport's real ladder, remembered ---------- */}
+          {stages.length > 0 && (
+            <Section label={tr("Stage")} sub={!stageTouched && stage && who[0] && remembered(who[0]) ? tr("as last time") : null}>
+              <div data-tour="wiz-stage" className="flex flex-col gap-3">
+                {groupsOf(stages).map((gr) => (
+                  <div key={gr.group || "_"}>
+                    {gr.group && <div className="mb-1.5" style={{ ...TYPE.caption, color: t.faint }}>{gr.group}</div>}
+                    <div className="flex flex-wrap gap-2">
+                      {gr.items.map((st) => {
+                        const on = stage === st.id;
+                        return (
+                          <button key={st.id} aria-pressed={on} onClick={() => { haptic(6); setStageTouched(true); setStage(on ? null : st.id); }}
+                                  className="px-3.5 active:opacity-60" style={chip(on, true)}>
+                            {st.input && on && stageVal ? `${st.tag} ${stageVal}` : st.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {stage && (stages.find((x) => x.id === stage) || {}).input && (
+                  <input value={stageVal} onChange={(e) => setStageVal(e.target.value)} inputMode="decimal" autoFocus={!stageVal}
+                         placeholder={(stages.find((x) => x.id === stage) || {}).hint || ""}
+                         className="w-full outline-none px-4" style={{ minHeight: 46, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
+                )}
+                {extras.map((ex) => (
+                  <div key={ex.id}>
+                    <div className="mb-1.5" style={{ ...TYPE.caption, color: t.faint }}>{ex.label}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {ex.options.map((o) => {
+                        const on = extraPick.includes(o);
+                        return <button key={o} aria-pressed={on} onClick={() => { haptic(6); setStageTouched(true); setExtraPick(on ? extraPick.filter((x) => x !== o) : [...extraPick.filter((x) => !ex.options.includes(x)), o]); }}
+                                       className="px-3.5 active:opacity-60" style={chip(on, true)}>{o}</button>;
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
-              <div className="flex items-center gap-2 mt-5">
-                <div className="flex-1"><VoiceInput value={customDraft} onChange={setCustomDraft} ph={tr("Something else")} /></div>
-                <button onClick={() => { if (customDraft.trim()) { haptic(10); setCustom([...custom, customDraft.trim()]); setCustomDraft(""); } }}
-                        disabled={!customDraft.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
-                        style={{ width: 54, minHeight: 54, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}><Plus size={17} color="#fff" strokeWidth={2.1} /></button>
-              </div>
-              <div style={{ height: 26 }} />
-            </div>
+            </Section>
           )}
 
-          {/* ---------- 3 · how it went: the note, and anything filmed ---------- */}
-          {step === 2 && (
-            <div className="px-6">
-              <input ref={fileInput} type="file" multiple className="hidden"
-                     onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+          {/* ---------- what was worked on ---------- */}
+          <Section label={tr("Worked on")}>
+            <div className="flex flex-wrap gap-2" data-tour="wiz-focus">
+              {cfg.focus.map((f) => {
+                const on = focus.includes(f.id);
+                return <button key={f.id} aria-pressed={on} onClick={() => { haptic(6); tog(focus, setFocus, f.id); if (on) setSubPick(subPick.filter((x) => !f.subs.includes(x))); }} className="px-4 active:opacity-60" style={chip(on)}>{f.label}</button>;
+              })}
+              {custom.map((c) => (
+                <span key={c} className="px-3.5 flex items-center gap-2" style={chip(true)}>
+                  {c}<button onClick={() => { haptic(6); setCustom(custom.filter((x) => x !== c)); }} aria-label={`Remove ${c}`}><X size={12} color="rgba(255,255,255,0.7)" /></button>
+                </span>
+              ))}
+            </div>
+            {chosenAreas.some((f) => f.subs && f.subs.length) && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {chosenAreas.flatMap((f) => f.subs || []).map((sb) => {
+                  const on = subPick.includes(sb);
+                  return <button key={sb} aria-pressed={on} onClick={() => { haptic(5); tog(subPick, setSubPick, sb); }} className="px-3 active:opacity-60" style={chip(on, true)}>{sb}</button>;
+                })}
+              </div>
+            )}
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex-1"><VoiceInput value={customDraft} onChange={setCustomDraft} ph={tr("Something else")} /></div>
+              <button onClick={() => { if (customDraft.trim()) { haptic(10); setCustom([...custom, customDraft.trim()]); setCustomDraft(""); } }}
+                      disabled={!customDraft.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
+                      style={{ width: 46, minHeight: 46, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}><Plus size={16} color="#fff" strokeWidth={2.1} /></button>
+            </div>
+          </Section>
+
+          {/* ---------- the horse or pony, where the sport has one ---------- */}
+          {cfg.mount && (
+            <Section label={cfg.mount.label}>
+              <div className="flex items-center gap-2">
+                <div className="flex-1"><VoiceInput value={mount} onChange={(v) => { setStageTouched(true); setMount(v); }} ph={tr("Name")} /></div>
+                {mount && <button onClick={() => { haptic(6); setMount(""); }} aria-label={tr("Clear")} className="p-2 active:opacity-50"><X size={15} color={t.faint} /></button>}
+              </div>
+            </Section>
+          )}
+
+          {/* ---------- a note, a clip, a photo, a voice note: one row, unfolds ---------- */}
+          <Fold label={items.length || note || voice ? `${tr("Note and clips")} · ${[note ? tr("note") : null, voice ? tr("voice") : null, items.length ? `${items.length} ${items.length === 1 ? tr("file") : tr("files")}` : null].filter(Boolean).join(", ")}` : tr("Add a note, clip, photo or voice")} open={openNote} onOpen={setOpenNote} tour="wiz-notes">
+            <div className="pt-4">
               {live ? (
-                <div data-tour="wiz-notes"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} /></div>
+                <VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={3} ph={tr("What happened, in a line or two")} />
               ) : (<>
                 {rec === "idle" && !note && (
-                  <button data-tour="wiz-notes" onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex items-center justify-center gap-3 active:opacity-70"
-                          style={{ minHeight: 96, borderRadius: R.surface, background: t.wash }}>
-                    <span className="rounded-full flex items-center justify-center" style={{ width: 44, height: 44, background: t.ink }}><Mic size={18} color="#fff" strokeWidth={1.6} /></span>
+                  <button onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex items-center justify-center gap-3 active:opacity-70"
+                          style={{ minHeight: 80, borderRadius: R.surface, background: t.wash }}>
+                    <span className="rounded-full flex items-center justify-center" style={{ width: 40, height: 40, background: t.ink }}><Mic size={17} color="#fff" strokeWidth={1.6} /></span>
                     <span style={{ ...TYPE.body, color: t.ink }}>{tr("Tap to record")}</span>
                   </button>
                 )}
                 {rec === "recording" && (
-                  <div className="flex flex-col items-center justify-center" style={{ minHeight: 150, borderRadius: R.surface, background: t.wash }}>
-                    <div style={{ fontFamily: display, fontSize: 34, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
-                    <button onClick={() => { haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-4" style={{ width: 54, height: 54, background: DANGER }} aria-label={tr("Stop")}><Square size={18} color="#fff" /></button>
+                  <div className="flex flex-col items-center justify-center" style={{ minHeight: 130, borderRadius: R.surface, background: t.wash }}>
+                    <div style={{ fontFamily: display, fontSize: 32, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
+                    <button onClick={() => { haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-4" style={{ width: 50, height: 50, background: DANGER }} aria-label={tr("Stop")}><span className="rounded-sm" style={{ width: 16, height: 16, background: "#fff" }} /></button>
                   </div>
                 )}
                 {rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
@@ -10133,9 +10280,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   </Card>
                 )}
               </>)}
-
-              {/* a clip, a photo, a voice note: three plain ways in */}
-              <div className="grid gap-2 mt-4" data-tour="wiz-media" style={{ gridTemplateColumns: `repeat(${waiting.length ? 4 : 3}, minmax(0, 1fr))` }}>
+              <div className="grid gap-2 mt-3" data-tour="wiz-media" style={{ gridTemplateColumns: `repeat(${waiting.length ? 4 : 3}, minmax(0, 1fr))` }}>
                 {[
                   live ? { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") }
                        : { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
@@ -10147,21 +10292,20 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   waiting.length ? { id: "live", label: `${tr("Captured")} · ${waiting.length}`, Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, on: showWaiting } : null,
                 ].filter(Boolean).map((o) => (
                   <button key={o.id} onClick={o.act} className="flex flex-col items-center justify-center gap-1.5 active:opacity-70"
-                          style={{ minHeight: 68, borderRadius: R.control, background: o.on ? t.ink : t.wash, transition: "background 180ms" }}>
-                    <o.Icon size={17} color={o.on ? "#fff" : t.ink} strokeWidth={1.7} />
+                          style={{ minHeight: 60, borderRadius: R.control, background: o.on ? t.ink : t.wash, transition: "background 180ms" }}>
+                    <o.Icon size={16} color={o.on ? "#fff" : t.ink} strokeWidth={1.7} />
                     <span className="truncate px-1" style={{ ...TYPE.caption, fontWeight: 600, color: o.on ? "#fff" : t.ink }}>{o.label}</span>
                   </button>
                 ))}
               </div>
               {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
-
               {showWaiting && waiting.length > 0 && (
-                <div className="mt-4" style={{ borderTop: hair }}>
+                <div className="mt-3" style={{ borderTop: hair }}>
                   {waiting.map((it) => {
                     const label = it.kind === "video" ? tr("Clip") : it.kind === "voice" ? tr("Voice note") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo");
                     const Ico = it.kind === "video" ? Play : it.kind === "voice" ? Mic : it.kind === "note" ? Edit3 : Tag;
                     return (
-                      <button key={it.id} onClick={() => pull(it)} className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 54, borderBottom: hair }}>
+                      <button key={it.id} onClick={() => pull(it)} className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 52, borderBottom: hair }}>
                         <Ico size={15} color={t.sub} strokeWidth={1.8} />
                         <span className="flex-1 min-w-0">
                           <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
@@ -10173,9 +10317,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   })}
                 </div>
               )}
-
               {live && voice && (
-                <div className="flex items-center gap-3 mt-4" style={{ minHeight: 54, borderTop: hair, borderBottom: hair }}>
+                <div className="flex items-center gap-3 mt-3" style={{ minHeight: 52, borderTop: hair, borderBottom: hair }}>
                   <Mic size={15} color={t.sub} strokeWidth={1.8} />
                   <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")} · {Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
                   <audio src={voice.url} controls preload="metadata" style={{ height: 32, maxWidth: 150 }} />
@@ -10183,7 +10326,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 </div>
               )}
               {items.length > 0 && (
-                <div className="flex flex-col gap-2.5 mt-4">
+                <div className="flex flex-col gap-2.5 mt-3">
                   {items.map((it, i) => (
                     <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
                               onAnnotate={live ? null : () => onAnnotate && onAnnotate(it.angle)}
@@ -10192,55 +10335,49 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   ))}
                 </div>
               )}
-              <div style={{ height: 26 }} />
             </div>
-          )}
+          </Fold>
 
-          {/* ---------- 4 · drills ---------- */}
-          {step === 3 && (
-            <div className="px-6">
+          {/* ---------- what next: drills, a tip, a rating ask — one row, unfolds ---------- */}
+          <Fold label={nextDrills.length || nextTip ? `${tr("What next")} · ${[nextDrills.length ? `${nextDrills.length} ${nextDrills.length === 1 ? tr("drill") : tr("drills")}` : null, nextTip ? tr("a tip") : null].filter(Boolean).join(", ")}` : tr("Set drills or a tip")} open={openNext} onOpen={setOpenNext} tour="wiz-next-row">
+            <div className="pt-4">
+              <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("To practise")}</div>
               <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
                 {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d) => {
                   const on = nextDrills.includes(d.t);
-                  return <button key={d.t} aria-pressed={on} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }} className="px-4 active:opacity-60" style={chip(on)}>{d.t}</button>;
+                  return <button key={d.t} aria-pressed={on} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }} className="px-3.5 active:opacity-60" style={chip(on, true)}>{d.t}</button>;
                 })}
               </div>
-              <div className="flex gap-2 mt-5">
+              <div className="flex gap-2 mt-3">
                 <div className="flex-1"><VoiceInput value={ownDrill} onChange={setOwnDrill} ph={tr("Add your own")} /></div>
                 <button onClick={() => { const v = ownDrill.trim(); if (!v) return;
                           hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill("");
                           onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); }}
                         disabled={!ownDrill.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
-                        style={{ width: 54, minHeight: 54, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}>
-                  <Plus size={17} color="#fff" strokeWidth={2.1} />
+                        style={{ width: 46, minHeight: 46, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}>
+                  <Plus size={16} color="#fff" strokeWidth={2.1} />
                 </button>
               </div>
-              <div style={{ height: 26 }} />
-            </div>
-          )}
-
-          {/* ---------- 5 · the one thing ---------- */}
-          {step === 4 && (
-            <div className="px-6">
+              <div className="mt-5 mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("One thing to remember")}</div>
               <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip} ph={tipPrompts && tipPrompts[0] ? tipPrompts[0] : tr("One sentence")} /></div>
-              <div className="flex flex-wrap gap-2 mt-4">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {(tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp) => (
-                  <button key={tp} aria-pressed={nextTip === tp} onClick={() => { haptic(6); soft(); setNextTip(tp); }} className="px-3.5 active:opacity-60" style={{ ...chip(nextTip === tp), minHeight: 40, fontSize: 13, fontWeight: 500 }}>{tp}</button>
+                  <button key={tp} aria-pressed={nextTip === tp} onClick={() => { haptic(6); soft(); setNextTip(nextTip === tp ? "" : tp); }} className="px-3.5 active:opacity-60" style={chip(nextTip === tp, true)}>{tp}</button>
                 ))}
               </div>
               {showReviewAsk && (
-                <div className="flex items-center gap-3 mt-7" style={{ minHeight: 56, borderTop: hair, borderBottom: hair }}>
+                <div className="flex items-center gap-3 mt-5" style={{ minHeight: 52, borderTop: hair }}>
                   <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Ask")} {first} {tr("for a rating")}</span>
                   <Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />
                 </div>
               )}
-              <div style={{ height: 26 }} />
             </div>
-          )}
+          </Fold>
+          <div style={{ height: 30 }} />
         </div>
 
         <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: hair }}>
-          <div data-tour="wiz-next"><Button tone="ink" disabled={!canAdvance} onClick={next}>{step === STEPS - 1 ? L.publish : L.continue}</Button></div>
+          <div data-tour="wiz-next"><Button disabled={!canLog} onClick={submit}>{L.publish}</Button></div>
         </div>
         {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
       </div>
@@ -10248,7 +10385,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   );
 }
 
-function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCount = 0 }) {
+function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCount = 0, stageFor }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
   const [tab, setTab] = useState(nounTitle); const [q, setQ] = useState("");
@@ -10289,7 +10426,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCo
             {list.length === 0 ? (
               <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("Nobody yet. The plus shares your code.")}</p>
             ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
-                <Avatar name={r.name} size={40} />, r.name, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`))}
+                <Avatar name={r.name} size={40} />, r.name, [stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · ")))}
             {lessonCount > 0 && row("archive", "roster-archive", () => { haptic(7); soft(); push("archive"); },
                 <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><Library size={16} color={t.sub} strokeWidth={1.7} /></span>,
                 tr("All lessons"), `${lessonCount}`)}
@@ -10310,7 +10447,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCo
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, tip, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -10323,8 +10460,8 @@ function RosterPlayer({ name, tip, sportTool, seriesFor, onRecurring, pop, push,
   /* their private lessons and the group sessions they were marked at */
   const real = live ? (lessons || []).filter((l) => (player ? (l.playerId === player.id || (l.attendeeIds || []).includes(player.id)) : l.who === name)) : null;
   const past = real ? real : (f.lessons || [
-    { d: "14 Jun", focus: f.lastFocus || "Short game", note: "Contact much cleaner off a tighter lie." },
-    { d: "31 May", focus: "Driving", note: "Tempo over speed. Held the finish." },
+    { d: "14 Jun", focus: f.lastFocus || "Chipping", note: "Contact much cleaner off a tighter lie." },
+    { d: "31 May", focus: "Full swing", note: "Tempo over speed. Held the finish." },
     { d: "17 May", focus: "Putting", note: "Same routine every putt." },
   ]);
   /* The last few, then the whole archive behind one button. Five was a
@@ -10337,7 +10474,7 @@ function RosterPlayer({ name, tip, sportTool, seriesFor, onRecurring, pop, push,
      lesson_attendees records who was there, so the coach's count and
      the player's own agree. */
   const meta = live
-    ? [`${f.done} ${f.done === 1 ? tr("lesson") : tr("lessons")}`,
+    ? [stage, `${f.done} ${f.done === 1 ? tr("lesson") : tr("lessons")}`,
        daysSince != null ? (daysSince === 0 ? tr("last today") : `${tr("last")} ${daysSince}d ${tr("ago")}`) : tr("none yet"),
        r.junior ? tr("Under 18") : null].filter(Boolean).join(" · ")
     : `${f.done} ${tr("lessons")} · ${tr("last")} ${r.last}d`;
@@ -12012,26 +12149,21 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       })()}
 
       {role === "coach" && (
-        <div className="px-6 mb-4">
-          <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
-                  onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                  onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-80"
-                  style={{ minHeight: 66, borderRadius: R.surface, background: `${t.accent}0F`,
-                           border: `1px solid ${t.accent}1C`, willChange: "transform",
-                           transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
-                           animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
-            <span className="rounded-full flex items-center justify-center shrink-0"
-                  style={{ width: 38, height: 38, background: t.accent }}>
-              <CalendarDays size={17} color={t.onAccent} strokeWidth={2.1} />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Recurring lessons")}</span>
-              <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Standing slots you keep each week")}</span>
-            </span>
-            <ChevronRight size={16} color={t.accent} />
-          </button>
+        <div className="px-6 mb-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+          {[
+            { id: "recurring", tour: "cal-recurring", label: tr("Recurring lessons"), sub: tr("Standing slots you keep each week"), Icon: CalendarDays, act: () => onRecurring && onRecurring() },
+            { id: "events", tour: "cal-events", label: tr("Competitions"), sub: tr("What your players are building towards"), Icon: Trophy, act: () => push("events") },
+          ].map((r) => (
+            <button key={r.id} data-tour={r.tour} onClick={() => { haptic(9); soft(); r.act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+              <r.Icon size={17} color={t.sub} strokeWidth={1.7} />
+              <span className="flex-1 min-w-0">
+                <span className="block" style={{ ...TYPE.body, color: t.ink }}>{r.label}</span>
+                <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{r.sub}</span>
+              </span>
+              <ChevronRight size={15} color={t.faint} />
+            </button>
+          ))}
         </div>
       )}
 
@@ -14142,9 +14274,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      agreed focus for a player they have never met, on Today, on the
      booking peek and on the lesson peek. */
   const [focusReqs, setFocusReqs] = useState(account ? [] : [
-    { who: "Priya Ellis", focus: "Short game", note: "Losing shots around the green." },
+    { who: "Priya Ellis", focus: "Chipping", note: "Losing shots around the green." },
   ]);
-  const [agreedFocus, setAgreedFocus] = useState(account ? {} : { "Marcus Tran": "Driving" });
+  const [agreedFocus, setAgreedFocus] = useState(account ? {} : { "Marcus Tran": "Full swing" });
   const settleFocus = (req, focus) => {
     setFocusReqs((v) => v.filter((x) => x !== req));
     setAgreedFocus((m) => ({ ...m, [req.who]: focus }));
@@ -14336,14 +14468,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   });
   const [tips, setTips] = useState({
     "1:golf": [
-      { id: 2, title: "Trust the shallow", body: "The shaft is getting shallower at the top — keep trusting it rather than steepening back up to save a shot.", focus: "Short game", date: "14 Jun", weeksAgo: 5 },
-      { id: 1, title: "Tempo over speed", body: "You're at your best with a slower backswing. Chasing extra yards is costing more than it gives.", focus: "Driving", date: "31 May", weeksAgo: 9 },
+      { id: 2, title: "Trust the shallow", body: "The shaft is getting shallower at the top — keep trusting it rather than steepening back up to save a shot.", focus: "Chipping", date: "14 Jun", weeksAgo: 5 },
+      { id: 1, title: "Tempo over speed", body: "You're at your best with a slower backswing. Chasing extra yards is costing more than it gives.", focus: "Full swing", date: "31 May", weeksAgo: 9 },
     ],
     "2:tennis": [{ id: 1, title: "First serve percentage", body: "Sixty per cent of first serves in beats four aces and eight faults. Take a little off it.", focus: "Serve", date: "14 Jun", weeksAgo: 2 }],
     "1:tennis": [{ id: 1, title: "First serve percentage", body: "Sixty per cent of first serves in beats four aces and eight faults. Take a little off it.", focus: "Serve", date: "14 Jun", weeksAgo: 2 }],
     "1:rowing": [{ id: 1, title: "Ratio, not rate", body: "You're rushing the slide at anything above 22. Let the boat run — one count down, two counts back.", focus: "Rhythm", date: "14 Jun", weeksAgo: 1 }],
     "1:squash": [{ id: 1, title: "Take the T back every time", body: "You're winning the rally then standing still. Straight back to the T after every shot, no exceptions.", focus: "Movement", date: "14 Jun", weeksAgo: 3 }],
-    "1:padel": [{ id: 1, title: "Bandeja, don't smash", body: "When the lob goes over your head, bandeja and hold the net. The smash is losing you the position.", focus: "Net play", date: "14 Jun", weeksAgo: 1 }],
+    "1:padel": [{ id: 1, title: "Bandeja, don't smash", body: "When the lob goes over your head, bandeja and hold the net. The smash is losing you the position.", focus: "Net game", date: "14 Jun", weeksAgo: 1 }],
     "1:equestrian": [{ id: 1, title: "Ride the corners", body: "You're cutting the corner before the short side, so she falls in. Use the whole arena and she'll straighten herself.", focus: "Flatwork", date: "14 Jun", weeksAgo: 2 }],
   });
   const [selectedStats, setSelectedStats] = useState({});
@@ -14518,7 +14650,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mineOnly = (list) => (list || []).filter((l) => !account || l.playerId === account.id || (l.attendeeIds || []).includes(account.id));
   /* the coach's archive is everything they gave; anyone else's is their own */
   const archive = data ? (role === "coach" ? taught(data.lessons) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
-  const base = inApp ? cfg.theme : NEUTRAL;
+  /* ONE SYSTEM. The sport never colours the app: paper, ink, the brand
+     green and the four semantic colours are the same in golf and padel,
+     and a sport shows only as a small tag where a coach has more than
+     one. Six tinted apps read as six apps bolted together. */
+  const base = NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
   const screen = stack[stack.length - 1];
@@ -14624,6 +14760,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     .map((b) => b.playerId)) : null;
   const myGroups = data ? ((data.prefs && data.prefs.groups) || []) : freshAccount ? [] : (groups[coachSport] || []);
   const myLibrary = library[coachSport] || [];
+  /* WHAT EACH PERSON WAS LAST LOGGED AT: the stage, the extras and the
+     mount from their newest lesson, so the log opens on it and the
+     coach changes it only when it has changed. Read from the tags on
+     the lesson row — nothing extra is stored. */
+  const lastFor = useMemo(() => {
+    if (!data) return null;
+    const out = {};
+    for (const l of taught(data.lessons)) {
+      const ids = l.playerId ? [l.playerId] : (l.attendeeIds || []);
+      for (const id of ids) {
+        if (out[id]) continue;   // lessons are newest first
+        const stage = stageOf(cfg, l);
+        const extrasHit = extraOf(cfg, l);
+        const mount = mountOf(l);
+        if (stage || extrasHit.length || mount) out[id] = { stage, extras: extrasHit, mount };
+      }
+    }
+    return out;
+  }, [data, cfg]);
   /* The coach's next three confirmed lessons after today, for the home
      screen. "Tomorrow" is said as such; further out, the day and date. */
   const upcomingForCoach = data ? (() => {
@@ -15160,7 +15315,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const tabs = role === "coach"
     /* a coach's family, if they have one, lives under You — the bar is
        already five wide and the roster is the thing they open all day */
-    ? [{ id: "today", icon: Home, label: tr("Today") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Roster") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+    ? [{ id: "today", icon: Home, label: tr("Now") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Players") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
     : (data && account && account.accountType === "parent")
       /* a parent's home is the family: their children's lessons are
          the lessons, the diary is the children's, chat is with the
@@ -15300,6 +15455,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pname = pl ? pl.name : pkey;
     body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
                         player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
+                        stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
   /* A coach searches their own drill library; anyone else searches the
@@ -15367,7 +15523,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               /* a real account's own drills live on its preferences; the removal goes there too */
                                               if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
-  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} lessonCount={archive.length} />;
+  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} lessonCount={archive.length} stageFor={lastFor} />;
   } else if (screen.startsWith("history:")) {
     const hkey = screen.slice("history:".length);
     const hp = data ? byKey(hkey) : null;
@@ -15664,7 +15820,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} showGuide={firstRun} onDismissGuide={() => setFirstRun(false)} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
+      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} lastFor={lastFor} todayIds={data ? (todayList || []).map((b) => b.playerId).filter(Boolean) : []} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
     }[screen] || coachToday;
   } else if (!conn) {
     body = (
@@ -15792,8 +15948,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               ["Player offered a new time", () => { setRole("player"); setRescheduleFor("Thursday 5:30 pm"); setStack(["home"]); setSheet("reschedule"); }],
               ["Lesson waiting to be logged", () => { setRole("coach"); setStack(["today"]); }],
               ["Logging — attendance first", () => { setRole("coach"); setPrefill({ who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: "Private" }); setStack(["log"]); }],
-              ["Just published — drills and a tip", () => { setRole("coach"); setPublished({ type: "private", who: ["Marcus Tran"], focus: "Short game", focusIds: ["short"], subs: [], videos: [], note: null, attend: "showed" }); setStack(["published"]); }],
-              ["Focus suggestion to approve", () => { setRole("coach"); setFocusReqs([{ who: "Priya Ellis", focus: "Short game", note: "Losing shots around the green." }]); setStack(["today"]); }],
+              ["Just published — drills and a tip", () => { setRole("coach"); setPublished({ type: "private", who: ["Marcus Tran"], focus: "Chipping", focusIds: ["chip"], subs: [], videos: [], note: null, attend: "showed" }); setStack(["published"]); }],
+              ["Focus suggestion to approve", () => { setRole("coach"); setFocusReqs([{ who: "Priya Ellis", focus: "Chipping", note: "Losing shots around the green." }]); setStack(["today"]); }],
               ["Player suggesting a focus", () => { setRole("player"); setStack(["home"]); setSheet("suggest"); }],
               ["Player rating a lesson", () => { setRole("player"); setStack(["home"]); setSheet("rate"); }],
               ["Brand-new player", () => { setRole("player"); setFreshAccount(true); setStack(["home"]); }],
@@ -15810,15 +15966,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               ["Called off — rain", () => setAnnounce({ kind: "weather", title: tr("Tonight is off"),
                  body: tr("The range is flooded. Shane has offered Thursday at the same time."),
                  actionLabel: tr("Take Thursday"), action: () => { setAnnounce(null); hapticSuccess(); chime(); } })],
-              ["A lesson landed", () => setAnnounce({ kind: "logged", title: tr("Short game"),
+              ["A lesson landed", () => setAnnounce({ kind: "logged", title: tr("Chipping"),
                  body: tr("Shane has written up this morning. Three clips."),
                  actionLabel: tr("Watch it"), action: () => { setAnnounce(null); setStack(["lesson"]); } })],
               ["Walkthrough — coach", () => { setRole("coach"); setTour(true); }],
               ["Walkthrough — player", () => { setRole("player"); setTour(true); }],
               ["Walkthrough — parent", () => { setRole("player"); setProfiles([{ id: 1, name: "Marcus Tran", age: null }, { id: 2, name: "Ellie Tran", age: 14 }]); setTour(true); }],
               ["Walkthrough — under 18", () => { setRole("player"); setJuvenile(true); setTour(true); }],
-              ["Player: new lesson lands", () => { setRole("player"); setArrival({ focus: "Short game", videos: 2 }); }],
-              ["Coach: lesson published", () => { setRole("coach"); setLogged(3); setBurst({ who: ["Marcus Tran"], focus: "Short game", videos: [1, 2], nextDrills: ["Ladder drill"], nextTip: "Trust the shallow" }); }],
+              ["Player: new lesson lands", () => { setRole("player"); setArrival({ focus: "Chipping", videos: 2 }); }],
+              ["Coach: lesson published", () => { setRole("coach"); setLogged(3); setBurst({ who: ["Marcus Tran"], focus: "Chipping", videos: [1, 2], nextDrills: ["Ladder drill"], nextTip: "Trust the shallow" }); }],
             ].map(([label, act]) => (
               <button key={label} onClick={() => { haptic(8); soft(); setCeleb(null); setSplash(false); act(); setScenarios(false); }}
                       className="w-full text-left px-3 py-2.5 active:opacity-60"
@@ -15912,7 +16068,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
           {!bare && !familyGuide && (
             <TabBar tabs={tabs} theme={theme} dark={dark}
-                    onSelect={(id) => { if (id === "quick") { hapticCommit(); soft(); setSheet("quick"); return; } go(id); }}
+                    onSelect={(id) => { if (id === "quick") { hapticCommit(); soft(); setPrefill(null); go("log"); return; } go(id); }}
                     /* go() resets the stack to a single tab id; push() only ever
                        adds on top of it. So stack[0] is always the tab a
                        navigation branch began from — correct at any depth,
@@ -15936,19 +16092,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               }, 180);
                                             }}
                                             close={() => setSheet(null)} />
-            : sheet === "quick" ? <QuickMenu liveLesson={liveNow}
-                                            onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
-                                            onRun={(id) => {
-                                              const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
-                                              if (id === "attend")  return later(() => { setAttendFor(null); setSheet("attend"); });
-                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
-                                              if (id === "tip")     { setPickFor("tip");    return later(() => setSheet("pickWho")); }
-                                              if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
-                                              if (id === "player")  return later(() => setSheet("invite"));
-                                              if (id === "group")   return later(() => setSheet("newGroup"));
-                                              if (id === "message") return later(() => setSheet("newThread"));
-                                              if (id === "comp")    { setSheet(null); push("events"); }
-                                            }} />
             : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
@@ -16053,6 +16196,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                  booking; the older capture screen with its invented readings is the harness's */
                                               if (data) { const bk = peek; setTimeout(() => { setCaptureFor(bk); setSheet("capture"); }, 180); }
                                               else push("capture:" + peek.who); }}
+                                            onRegister={() => { const bk = peek; setSheet(null); setTimeout(() => { setAttendFor(bk); setSheet("attend"); }, 180); }}
                                             onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setCancelBk(peek); setSheet("cancel"); }}
                                             close={() => setSheet(null)} />
               : sheet === "editDay" && editDay ? <EditDay day={editDay} slots={ALL_TIMES} duration={duration}
