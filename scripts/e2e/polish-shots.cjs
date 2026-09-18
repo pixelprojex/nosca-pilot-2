@@ -63,7 +63,7 @@ function freshDb() {
       await shot("c1-today");
       await tap('[aria-label="Diary"]'); await shot("c2-diary");
       await tap('[data-tour="cal-hours"]', 700); await shot("c3-hours"); await tap('[aria-label="Back"]');
-      await tap('[aria-label="Roster"]'); await shot("c4-roster");
+      await tap('[aria-label="Players"]'); await shot("c4-roster");
       await tap('[data-tour="roster-row"]'); await shot("c5-player-file");
       await text("Set tip", 700) || await tap('[data-tour="player-actions"] button:nth-child(2)', 700); await shot("c6-tip-sheet");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
@@ -75,7 +75,7 @@ function freshDb() {
       await text("Chipping", 400); await shot("c11-log-worked-on");
       await text("Add a note, clip, photo or voice", 500); await shot("c12-log-note");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
-      await tap('[aria-label="Roster"]'); await tap('[data-tour="roster-row"]'); await tap('[data-tour="player-lessons"] button', 900); await shot("c13-lesson-view-coach");
+      await tap('[aria-label="Players"]'); await tap('[data-tour="roster-row"]'); await tap('[data-tour="player-lessons"] button', 900); await shot("c13-lesson-view-coach");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Diary"]'); await tap('[data-tour="agenda-book"], [data-tour="cal-open"]', 700); await shot("c14-book-sheet");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);

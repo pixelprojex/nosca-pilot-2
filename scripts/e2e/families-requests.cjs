@@ -110,7 +110,7 @@ const leaks = [];
       const t2 = await leak("coach after accept"); await shot("06-coach-accepted");
       check("(b) the request leaves the list and the coach is told", t2.includes("Nothing waiting") || t2.includes("added to your roster"), t2.slice(0, 200));
       /* Roster carries the new player and, for the junior, who looks after her */
-      await tap(page, '[aria-label="Roster"]');
+      await tap(page, '[aria-label="Players"]');
       const t3 = await leak("coach roster"); await shot("07-coach-roster");
       check("(b) the accepted player is on the roster", t3.includes("Eoin Walsh") && t3.includes("Saoirse Kelly") && t3.includes("Cian Murphy"), t3.slice(0, 240));
       await page.locator('[data-tour="roster-row"], button', { hasText: "Saoirse Kelly" }).first().click(); await page.waitForTimeout(900);
