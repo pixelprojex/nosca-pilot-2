@@ -1019,7 +1019,7 @@ const COACHES = {
 /* Interface strings. Keys are deliberately few and heavily reused, so a
    new language is one block rather than a scattered hunt. */
 export const STRINGS = {
-  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Players", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Log it", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
+  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Roster", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Log it", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
 };
 
 
@@ -3551,25 +3551,26 @@ const TOUR = {
     { area: "Today", title: "Your day", body: "Lessons in order. Tap one for the brief.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
     { area: "Today", title: "Lessons to log", body: "One tap logs it while it's fresh. Swipe it away if nobody came.", path: "Today → a finished lesson", target: "today-justdone", state: { stack: ["today"] } },
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "The plus", body: "One tap logs a lesson. Everything else lives where it belongs.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
+    { area: "Log a lesson", title: "The plus", body: "Logging, attendance, live capture, drills — all start here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
     { area: "Log a lesson", title: "Who", body: "Tap a face, or a group. Today's people come first.", path: "Plus", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
     { area: "Log a lesson", title: "Their stage", body: "The ladder your sport really uses, remembered from last time.", path: "Plus → Stage", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
     { area: "Log a lesson", title: "What you worked on", body: "One tap or two. The detail under it is optional.", path: "Plus → Worked on", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
     { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Plus → Add a note, clip, photo or voice", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
     { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Plus → Set drills or a tip", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
     { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Plus → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
-    { area: "During a lesson", title: "Register", body: "Open the lesson and mark who turned up.", path: "Now → a lesson → Register", target: "peek-register", state: { stack: ["today"], sheet: "peek", peek: TOUR_PEEK } },
+    { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
+    { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
     { area: "Diary", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "Diary → Your hours", target: "cal-hours", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Recurring lessons", body: "Standing weekly slots, booked out for the whole run.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Book in the diary", body: "Tap a free slot to book someone; tap a booking to log or cancel it.", path: "Diary → free slot", target: "agenda-book", state: { stack: ["calendar"] } },
-    { area: "Players", title: "Players", body: "Everyone you coach. The plus shares your code.", path: "Tab bar → Players", target: "tab-roster", state: { stack: ["roster"] } },
-    { area: "Players", title: "A player's file", body: "Their lessons, newest first, the moment you open them. Message or set drills below.", path: "Players → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
-    { area: "Players", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Players → Groups", target: "roster-tab", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Roster", body: "Everyone you coach. The plus shares your code.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
+    { area: "Roster", title: "A player's file", body: "Their lessons, newest first, the moment you open them. Message or set drills below.", path: "Roster → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
+    { area: "Roster", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
     { area: "Chat", title: "Chat", body: "A thread with every player. A junior's parent reads theirs.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
     { area: "Chat", title: "Start a conversation", body: "The plus writes to one player, or to everyone at once.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
     { area: "Alerts", title: "Alerts", body: "Requests, bookings, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
     { area: "You", title: "Your profile", body: "Photo, details, club and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Players.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Roster.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
     { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["today", "you"] } },
   ],
   player: [
@@ -4351,6 +4352,105 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
    can be dragged into whatever order suits — the Control Centre idea,
    because no two coaches reach for the same thing second. */
 /* what the plus menu offers, by id */
+const QUICK_ACTIONS = {
+  attend:  { Ico: Check,         label: "Attendance" },
+  capture: { Ico: Camera,        label: "Live capture" },
+  tip:     { Ico: Lightbulb,     label: "Set a tip" },
+  drills:  { Ico: ListChecks,    label: "Set drills" },
+  player:  { Ico: UserPlus,      label: "Add player" },
+  group:   { Ico: Users,         label: "New group" },
+  message: { Ico: MessageCircle, label: "Message" },
+  comp:    { Ico: Trophy,        label: "Competition" },
+};
+/* The plus menu: the one thing a coach does a dozen times a day as the
+   accent button, then eight plain rows in a fixed order. It used to be
+   a grid of tinted tiles with a hold-to-drag, tap-to-resize edit mode
+   and a stored layout — Control Centre on a sheet opened to log a
+   lesson. */
+const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
+function QuickMenu({ liveLesson, onLog, onRun }) {
+  const t = useT();
+  return (
+    <>
+      <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
+              className="w-full flex items-center gap-3.5 mb-4 text-left active:opacity-90"
+              style={{ minHeight: 60, padding: "0 20px", borderRadius: R.surface, background: t.accent }}>
+        <Plus size={19} color={t.onAccent} strokeWidth={2.3} />
+        <span className="flex-1" style={{ ...TYPE.subhead, fontSize: 16.5, color: t.onAccent }}>{tr("Log a lesson")}</span>
+      </button>
+      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+        {QUICK_ORDER.map((id) => {
+          const A = QUICK_ACTIONS[id];
+          const now = id === "attend" && liveLesson;
+          return (
+            <button key={id} data-tour={`quick-${id}`} onClick={() => { haptic(8); soft(); onRun(id); }}
+                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+              <A.Ico size={17} color={t.ink} strokeWidth={1.7} />
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>
+                {tr(A.label)}{now ? <span style={{ color: t.faint }}> · {liveLesson.who} · {tr("on now")}</span> : null}
+              </span>
+              <ChevronRight size={16} color={t.faint} strokeWidth={1.8} />
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+
+
+/* WHO IS THIS FOR
+
+   Anything a coach sets — a tip, drills, a standing lesson — has to
+   name a person first. Setting it against whoever happens to be top of
+   the roster is worse than useless. Search included, because a coach
+   with sixty players should not scroll. */
+function PickPerson({ roster, title, sub, onPick, close }) {
+  const t = useT();
+  const [q, setQ] = useState("");
+  const list = (roster || []).filter((r) => !q || r.name.toLowerCase().includes(q.toLowerCase()));
+
+  return (
+    <>
+      <h2 style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      {sub && <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
+
+      <div className="flex items-center gap-2.5 px-4 mb-4"
+           style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
+        <Search size={15} color={t.faint} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
+               className="flex-1 bg-transparent outline-none"
+               style={{ ...TYPE.body, color: t.ink }} />
+      </div>
+
+      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}`, maxHeight: 320, overflowY: "auto" }}>
+        {list.length === 0 ? (
+          <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name.")}</p>
+        ) : list.map((r, i) => (
+          <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
+                  className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                  style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
+                           animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
+            <Avatar name={r.name} size={34} />
+            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
+            <ChevronRight size={14} color={t.faint} />
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+
+/* SOMETHING YOU CANNOT MISS
+
+   A rained-off lesson is the one message that must not sit unread
+   behind a badge — someone will otherwise drive to a flooded range.
+   So it takes the whole screen on open, states the fact in a sentence,
+   and offers the one thing worth doing about it. Used for the same
+   class of event: a lesson logged, a new coach, a group you've joined. */
 const ANNOUNCE = {
   weather:  { Ico: Radio,         tone: "danger",  eyebrow: "Called off" },
   logged:   { Ico: Library,       tone: "steady",  eyebrow: "New lesson" },
@@ -11321,6 +11421,80 @@ function ImportRoster({ close, say, noun, nouns, code }) {
 
 /* Multi-stage group creator: name → members → weekly schedule.
    Submitting spins up recurring bookings and a group chat thread. */
+/* A coach making a group. They run it — adding, removing and setting
+   the group's own drills — which is why the group is created
+   from their side and never a player's. */
+function CreateGroup({ roster, nouns, onCreate, close, say }) {
+  const t = useT();
+  const [name, setName] = useState("");
+  const [members, setMembers] = useState([]);
+  const [day, setDay] = useState(5);
+  const [time, setTime] = useState("2:00 pm");
+  const [weeks, setWeeks] = useState(6);
+  const toggle = (n) => { haptic(6); soft(); setMembers(members.includes(n) ? members.filter((x) => x !== n) : [...members, n]); };
+
+  return (
+    <>
+      <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New group")}</h2>
+      <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
+
+      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+        {members.length ? `${members.length} ${nouns}` : tr("Members")}
+      </div>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {roster.map((r, i) => {
+          const on = members.includes(r.name);
+          return (
+            <button key={r.id || r.name} onClick={() => { haptic(9); soft(); toggle(r.name); }} className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
+                    style={{ minHeight: 42, borderRadius: R.pill, background: on ? t.ink : t.surface,
+                             border: `1px solid ${on ? t.ink : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
+              <Avatar name={r.name} size={30} />
+              <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{r.name.split(" ")[0]}</span>
+              {on && <Check size={12} color={STEADY} strokeWidth={2.1} />}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
+      <div className="flex gap-1.5 mb-3">
+        {DAY_NAMES.map((d, i) => {
+          const on = day === i;
+          return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
+                          style={{ minHeight: 42, borderRadius: R.control, background: on ? STEADY : t.wash,
+                                   fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.onAccent : t.sub,
+                                   transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{d.slice(0, 2)}</button>);
+        })}
+      </div>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {ALL_TIMES.slice(0, 6).map((tm) => {
+          const on = time === tm;
+          return (<button key={tm} onClick={() => { haptic(5); setTime(tm); }} className="px-3.5 active:opacity-60"
+                          style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.accent : t.wash,
+                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{tm}</button>);
+        })}
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("How many weeks")}</span>
+        <span className="flex items-center gap-3">
+          <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
+          <span style={{ fontFamily: display, fontSize: 22, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
+          <button onClick={() => { haptic(5); setWeeks(Math.min(20, weeks + 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
+        </span>
+      </div>
+
+      <Button disabled={!name.trim() || members.length < 2}
+              onClick={() => { onCreate({ name: name.trim(), members, day, time, weeks }); close(); }}>
+        {tr("Create group")}
+      </Button>
+      <p className="mt-3 text-center" style={{ ...TYPE.caption, color: t.faint }}>{tr("You'll manage it")}</p>
+    </>
+  );
+}
+
+
 const DRILL_SECONDS = (text) => {
   const m = /(\d+)\s*(second|sec|minute|min)/i.exec(text || "");
   if (!m) return null;
@@ -12023,21 +12197,26 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       })()}
 
       {role === "coach" && (
-        <div className="px-6 mb-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-          {[
-            { id: "recurring", tour: "cal-recurring", label: tr("Recurring lessons"), sub: tr("Standing slots you keep each week"), Icon: CalendarDays, act: () => onRecurring && onRecurring() },
-            { id: "events", tour: "cal-events", label: tr("Competitions"), sub: tr("What your players are building towards"), Icon: Trophy, act: () => push("events") },
-          ].map((r) => (
-            <button key={r.id} data-tour={r.tour} onClick={() => { haptic(9); soft(); r.act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-              <r.Icon size={17} color={t.sub} strokeWidth={1.7} />
-              <span className="flex-1 min-w-0">
-                <span className="block" style={{ ...TYPE.body, color: t.ink }}>{r.label}</span>
-                <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{r.sub}</span>
-              </span>
-              <ChevronRight size={15} color={t.faint} />
-            </button>
-          ))}
+        <div className="px-6 mb-4">
+          <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
+                  onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
+                  onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                  className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-80"
+                  style={{ minHeight: 66, borderRadius: R.surface, background: `${t.accent}0F`,
+                           border: `1px solid ${t.accent}1C`, willChange: "transform",
+                           transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
+                           animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
+            <span className="rounded-full flex items-center justify-center shrink-0"
+                  style={{ width: 38, height: 38, background: t.accent }}>
+              <CalendarDays size={17} color={t.onAccent} strokeWidth={2.1} />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Recurring lessons")}</span>
+              <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Standing slots you keep each week")}</span>
+            </span>
+            <ChevronRight size={16} color={t.accent} />
+          </button>
         </div>
       )}
 
@@ -13781,6 +13960,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* which lesson the register was opened for, so tapping Register on a
      row lands on that lesson rather than the sheet's own guess */
   const [attendFor, setAttendFor] = useState(null);
+  const [pickFor, setPickFor] = useState(null);   // what we are choosing a player for
   const [captureItems, setCaptureItems] = useState([]);
   const [prefs, setPrefsLocal] = useState(sc && sc.logView ? { ...PREF_DEFAULTS, logView: sc.logView } : PREF_DEFAULTS);
   /* With a real account, preferences live in the database. The setter
@@ -14523,11 +14703,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mineOnly = (list) => (list || []).filter((l) => !account || l.playerId === account.id || (l.attendeeIds || []).includes(account.id));
   /* the coach's archive is everything they gave; anyone else's is their own */
   const archive = data ? (role === "coach" ? taught(data.lessons) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
-  /* ONE SYSTEM. The sport never colours the app: paper, ink, the brand
-     green and the four semantic colours are the same in golf and padel,
-     and a sport shows only as a small tag where a coach has more than
-     one. Six tinted apps read as six apps bolted together. */
-  const base = NEUTRAL;
+  const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
   const screen = stack[stack.length - 1];
@@ -15188,7 +15364,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const tabs = role === "coach"
     /* a coach's family, if they have one, lives under You — the bar is
        already five wide and the roster is the thing they open all day */
-    ? [{ id: "today", icon: Home, label: tr("Now") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Players") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+    ? [{ id: "today", icon: Home, label: tr("Today") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Roster") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
     : (data && account && account.accountType === "parent")
       /* a parent's home is the family: their children's lessons are
          the lessons, the diary is the children's, chat is with the
@@ -15941,7 +16117,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
           {!bare && !familyGuide && (
             <TabBar tabs={tabs} theme={theme} dark={dark}
-                    onSelect={(id) => { if (id === "quick") { hapticCommit(); soft(); setPrefill(null); go("log"); return; } go(id); }}
+                    onSelect={(id) => { if (id === "quick") { hapticCommit(); soft(); setSheet("quick"); return; } go(id); }}
                     /* go() resets the stack to a single tab id; push() only ever
                        adds on top of it. So stack[0] is always the tab a
                        navigation branch began from — correct at any depth,
@@ -15954,7 +16130,31 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           )}
 
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
-            {sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
+            {sheet === "pickWho" ? <PickPerson roster={roster}
+                                            title={pickFor === "tip" ? tr("Set a tip") : tr("Set drills")}
+                                            sub={tr("Who is it for?")}
+                                            onPick={(r) => {
+                                              setSheet(null);
+                                              setTimeout(() => {
+                                                if (pickFor === "tip") { setAssignTo(r); setSheet("tip"); }
+                                                else openAssignDrills(r);
+                                              }, 180);
+                                            }}
+                                            close={() => setSheet(null)} />
+            : sheet === "quick" ? <QuickMenu liveLesson={liveNow}
+                                            onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
+                                            onRun={(id) => {
+                                              const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
+                                              if (id === "attend")  return later(() => { setAttendFor(null); setSheet("attend"); });
+                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
+                                              if (id === "tip")     { setPickFor("tip");    return later(() => setSheet("pickWho")); }
+                                              if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
+                                              if (id === "player")  return later(() => setSheet("invite"));
+                                              if (id === "group")   return later(() => setSheet("newGroup"));
+                                              if (id === "message") return later(() => setSheet("newThread"));
+                                              if (id === "comp")    { setSheet(null); push("events"); }
+                                            }} />
+            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
@@ -16174,6 +16374,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onSend={(f, n) => { setFocusReqs((v) => [...v, { who: activeProfile.name, focus: f, note: n }]);
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
+              : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
+                                            onCreate={(g) => { if (data) { createGroup(g); return; }
+                                              setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
+                                              done(tr("Group created"), `${g.name} · ${g.members.length}`); }}
+                                            close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             /* a real thread is found by id; the harness's seeded

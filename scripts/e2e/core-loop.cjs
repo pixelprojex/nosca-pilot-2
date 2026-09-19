@@ -201,7 +201,7 @@ const leaks = [];
       await page.waitForTimeout(2800);
 
       /* (g) Roster → the player's real file */
-      await tap(page, '[aria-label="Players"]');
+      await tap(page, '[aria-label="Roster"]');
       const tr0 = await leak("coach roster"); await shot("coach-roster");
       check("(g) the roster row carries the real lesson count", (await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).innerText()).includes("3 lessons") && /\b1 lesson\b(?!s)/.test(tr0), tr0.slice(0, 240));
       await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
@@ -312,7 +312,7 @@ const leaks = [];
 
       {
         const { ctx, page, leak } = await boot("coach", gdb);
-        await tap(page, '[aria-label="Players"]', 900);
+        await tap(page, '[aria-label="Roster"]', 900);
         const row = page.locator('[data-tour="roster-row"]').filter({ hasText: "Cian Murphy" }).first();
         const rowText = (await row.count()) ? M.norm(await row.innerText()) : "";
         /* two private in the fixture, plus the squad they were marked at */
