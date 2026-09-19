@@ -44,7 +44,7 @@ Object.keys(allowedFor).forEach((r) => {
 /* the screens added with families, requests, notifications and the profile — each must be reached and read clean */
 const TARGETS = {
   coach: [["requests", ['[data-tour="today-requests"]'], /Requests/], ["alerts", ['[aria-label="Alerts"]'], /Alerts/], ["you", ['[aria-label="Your profile"]'], /Sign out/], ["profile", ['[aria-label="Your profile"]', '[data-tour="settings-profile"]'], /Your profile/],
-          ["player", ['[aria-label="Roster"]', '[data-tour="roster-row"]'], /lessons/i], ["notifications", ['[aria-label="Your profile"]', '[data-tour="settings-notifications"]'], /Notifications/]],
+          ["player", ['[aria-label="Players"]', '[data-tour="roster-row"]'], /lessons/i], ["notifications", ['[aria-label="Your profile"]', '[data-tour="settings-notifications"]'], /Notifications/]],
   /* the header is the person's own account now; Family is a tab, and the
      family's own settings are the gear on it (or You → Family when there
      is no family yet) */

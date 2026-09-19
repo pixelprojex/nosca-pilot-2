@@ -180,14 +180,43 @@ seeded data and no account.
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
 - **Only tips. No goals.** Competitions are the goals.
-- **Logging a lesson is five questions, one a page.** Who · what did
-  you work on · how did it go (note, clip, photo, voice, rating) ·
-  drills to set · one thing to remember. The first two are required,
-  the rest are skippable, and the header reads `n / 5`. `publish()`
-  writes the lesson first and only then sets the drills and the tip for
-  every recipient (each attendee of a group) and raises the burst; a
-  failed write is said, never celebrated. Add a question by adding a
-  page, never by widening one.
+- **The one behaviour: a coach picks up the phone mid-lesson, does one
+  thing in seconds, puts it down.** Every coach screen is judged
+  against that. The raised plus does one thing — it opens the log. The
+  old plus menu is gone; what it held lives where it belongs: register
+  and capture on the lesson (the row that is on now, and the peek
+  sheet), drills and tips on the player file, a new player on Players,
+  a message on Chat, competitions in the diary.
+- **Logging a lesson is one screen.** Who (chips, today's people first,
+  pre-ticked from a booking) · Stage · Worked on · then two rows that
+  unfold only if wanted (note, clip, photo, voice · drills, a tip, the
+  rating ask) · **Log it**. Nothing is a page to get through.
+  `publish()` writes the lesson first and only then sets the drills and
+  the tip for every recipient (each attendee of a group) and raises the
+  burst; a failed write is said, never celebrated.
+- **Every sport's taxonomy is the real one, verified against the
+  governing body — never invented.** `SPORTS[x].stages` is the ladder a
+  coach places a player on before anything else (tennis Red · Orange ·
+  Green · Yellow then WTN; golf Handicap Index and the Passport levels;
+  rowing J13–J18B and Novice → Senior; squash the ball dot; padel a 0–7
+  level; equestrian Pony Club tests and riding-school stages), `extras`
+  the second axis where one exists (boat, dressage level, fence
+  height), `focus` what was worked on, `drills` the practice a coach
+  sets, `statCatalog` the measures. Sources and the terms a real coach
+  would flag are in the sweep report; do not "improve" a label without
+  a source.
+- **The stage rides on the lesson as a tag.** `subs` carries the stage
+  label (or `HI 18.4` / `WTN 22` / `Level 3.5` for an input stage), any
+  extras, the chosen sub-areas, and `on <horse>` for a rider; nothing
+  changed in the database. `stageOf()`, `extraOf()`, `mountOf()` and
+  `areaSubsOf()` read them back; `lastFor` remembers each player's last
+  stage so the log opens on it. A riding lesson without the horse on it
+  is the biggest tell to a riding coach.
+- **One palette for the whole app.** `NEUTRAL` (paper, ink, three
+  greys, the brand green, four semantic colours) is the theme inside a
+  sport as well as before one. The sport never colours the app; a
+  sport shows as a tag where a coach has more than one. Six tinted apps
+  read as six apps bolted together.
 - **A player's diary knows the coach's taken times, never whose.**
   `coach_busy_slots(p_player)` is a security-definer function returning
   date, time and length of the coach's requested and confirmed

@@ -163,7 +163,7 @@ const leaks = [];
       check("(a) the accepted lesson is in the coach's diary", (await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).count()) > 0, t2.slice(0, 200));
 
       /* (c) drills from the roster */
-      await tap(page, '[aria-label="Roster"]');
+      await tap(page, '[aria-label="Players"]');
       await page.locator('[data-tour="roster-row"]').first().click(); await page.waitForTimeout(900);
       const t3 = await leak("coach player file"); await shot("17-coach-player");
       check("(c) the player file is the real person with no borrowed history", t3.includes("Cian Murphy") && !t3.includes("Short game") && t3.includes("Nothing logged for Cian yet"), t3.slice(0, 200));
@@ -207,11 +207,9 @@ const leaks = [];
       await shot("21-coach-practice-edited");
 
       /* (d) competitions */
-      /* Today only draws a fold that has something in it, so a coach with
-         no competitions reaches Ahead from the plus menu */
-      await tap(page, '[aria-label="Today"]');
-      await tap(page, '[data-tour="quick"]', 700);
-      await click(page, "Competition");
+      /* competitions live in the diary, beside hours and recurring */
+      await tap(page, '[aria-label="Diary"]');
+      await tap(page, '[data-tour="cal-events"]', 800);
       const t6 = await leak("coach events"); await shot("22-coach-events-empty");
       check("(d) Ahead lists no seeded events for a real coach", !t6.includes("Club Championship") && !t6.includes("Captain's Prize") && t6.includes("Nothing coming up"), t6.slice(0, 200));
       await tap(page, '[aria-label="Add"]');
@@ -323,7 +321,7 @@ const leaks = [];
       await back(page); await back(page); await back(page);
 
       /* (h) invite routes */
-      await tap(page, '[aria-label="Roster"]');
+      await tap(page, '[aria-label="Players"]');
       await page.locator("button", { hasText: "QW7X2M" }).first().click(); await page.waitForTimeout(900);
       const t14 = await text(); await shot("36-coach-invite-routes");
       const link = `${BASE}/?join=QW7X2M`;
