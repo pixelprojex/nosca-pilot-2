@@ -832,9 +832,9 @@ export const SPORTS = {
     stages: [
       { id: "leadrein", label: "Lead rein", group: "Riding school" },
       { id: "offlead", label: "Off the lead rein", group: "Riding school" },
-      { id: "novice", label: "Novice", group: "Riding school" },
-      { id: "inter", label: "Intermediate", group: "Riding school" },
-      { id: "advanced", label: "Advanced", group: "Riding school" },
+      { id: "walktrot", label: "Walk & trot", group: "Riding school" },
+      { id: "canter", label: "Cantering", group: "Riding school" },
+      { id: "jumping", label: "Jumping", group: "Riding school" },
       { id: "e", label: "E", group: "Pony Club test" },
       { id: "d", label: "D", group: "Pony Club test" },
       { id: "dplus", label: "D+", group: "Pony Club test" },
@@ -2035,88 +2035,6 @@ function VideoCompare({ cfg, lessons, onClose }) {
     </>
   );
 }
-
-/* A coach making a group. They run it — adding, removing and setting
-   the group's own drills — which is why the group is created
-   from their side and never a player's. */
-function CreateGroup({ roster, nouns, onCreate, close, say }) {
-  const t = useT();
-  const [name, setName] = useState("");
-  const [members, setMembers] = useState([]);
-  const [day, setDay] = useState(5);
-  const [time, setTime] = useState("2:00 pm");
-  const [weeks, setWeeks] = useState(6);
-  const toggle = (n) => { haptic(6); soft(); setMembers(members.includes(n) ? members.filter((x) => x !== n) : [...members, n]); };
-
-  return (
-    <>
-      <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New group")}</h2>
-      <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
-
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
-        {members.length ? `${members.length} ${nouns}` : tr("Members")}
-      </div>
-      <div className="flex flex-wrap gap-2 mb-5">
-        {roster.map((r, i) => {
-          const on = members.includes(r.name);
-          return (
-            <button key={r.id || r.name} onClick={() => { haptic(9); soft(); toggle(r.name); }} className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
-                    style={{ minHeight: 42, borderRadius: R.pill, background: on ? t.ink : t.surface,
-                             border: `1px solid ${on ? t.ink : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
-                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
-              <Avatar name={r.name} size={30} />
-              <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{r.name.split(" ")[0]}</span>
-              {on && <Check size={12} color={STEADY} strokeWidth={2.1} />}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
-      <div className="flex gap-1.5 mb-3">
-        {DAY_NAMES.map((d, i) => {
-          const on = day === i;
-          return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
-                          style={{ minHeight: 42, borderRadius: R.control, background: on ? STEADY : t.wash,
-                                   fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.onAccent : t.sub,
-                                   transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{d.slice(0, 2)}</button>);
-        })}
-      </div>
-      <div className="flex flex-wrap gap-2 mb-5">
-        {ALL_TIMES.slice(0, 6).map((tm) => {
-          const on = time === tm;
-          return (<button key={tm} onClick={() => { haptic(5); setTime(tm); }} className="px-3.5 active:opacity-60"
-                          style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.accent : t.wash,
-                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{tm}</button>);
-        })}
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("How many weeks")}</span>
-        <span className="flex items-center gap-3">
-          <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
-          <span style={{ fontFamily: display, fontSize: 22, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
-          <button onClick={() => { haptic(5); setWeeks(Math.min(20, weeks + 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
-        </span>
-      </div>
-
-      <Button disabled={!name.trim() || members.length < 2}
-              onClick={() => { onCreate({ name: name.trim(), members, day, time, weeks }); close(); }}>
-        {tr("Create group")}
-      </Button>
-      <p className="mt-3 text-center" style={{ ...TYPE.caption, color: t.faint }}>{tr("You'll manage it")}</p>
-    </>
-  );
-}
-
-/* Some drills are "two minutes continuous", not "twenty reps". Those
-   need a timer in the hand, not a stopwatch app in the other one. */
-const DRILL_SECONDS = (text) => {
-  const m = /(\d+)\s*(second|sec|minute|min)/i.exec(text || "");
-  if (!m) return null;
-  const n = Number(m[1]);
-  return /min/i.test(m[2]) ? n * 60 : n;
-};
 
 function DrillTimer({ seconds, onDone }) {
   const t = useT();
@@ -4498,57 +4416,6 @@ function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
   );
 }
 
-/* WHO IS THIS FOR
-
-   Anything a coach sets — a tip, drills, a standing lesson — has to
-   name a person first. Setting it against whoever happens to be top of
-   the roster is worse than useless. Search included, because a coach
-   with sixty players should not scroll. */
-function PickPerson({ roster, title, sub, onPick, close }) {
-  const t = useT();
-  const [q, setQ] = useState("");
-  const list = (roster || []).filter((r) => !q || r.name.toLowerCase().includes(q.toLowerCase()));
-
-  return (
-    <>
-      <h2 style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
-      {sub && <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
-
-      <div className="flex items-center gap-2.5 px-4 mb-4"
-           style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
-        <Search size={15} color={t.faint} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
-               className="flex-1 bg-transparent outline-none"
-               style={{ ...TYPE.body, color: t.ink }} />
-      </div>
-
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}`, maxHeight: 320, overflowY: "auto" }}>
-        {list.length === 0 ? (
-          <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name.")}</p>
-        ) : list.map((r, i) => (
-          <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
-                  className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                  style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                           animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
-            <Avatar name={r.name} size={34} />
-            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-            <ChevronRight size={14} color={t.faint} />
-          </button>
-        ))}
-      </div>
-    </>
-  );
-}
-
-/* ATTENDANCE
-
-   A register, not part of logging. Pick the lesson, mark each person
-   present or absent, submit. Once submitted it is done — a coach should
-   never have to remember whether they took the roll.
-
-   Deliberately separate from the lesson log: attendance is a record of
-   who turned up, which a club may need for insurance or subsidy, and it
-   has to stand on its own whether or not the lesson gets written up. */
 function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
   const t = useT();
   const soleLive = (lessons || []).filter((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5);
@@ -9973,15 +9840,16 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [mount, setMount] = useState("");
   const [mountDraft, setMountDraft] = useState("");
   const [stageTouched, setStageTouched] = useState(false);
+  const firstId = who.length ? who[0].id : null;
   useEffect(() => {
     if (stageTouched) return;
     const r = remembered(who[0]);
-    if (!r) return;
-    const st = stages.find((x) => (x.input ? String(r.stage || "").startsWith(`${x.tag}${STAGE_INPUT_SEP}`) : x.label === r.stage));
-    if (st) { setStage(st.id); if (st.input) setStageVal(String(r.stage).slice(st.tag.length + 1)); }
-    if (r.extras && r.extras.length) setExtraPick(r.extras);
-    if (r.mount) setMount(r.mount);
-  }, [who, lastFor]);
+    const st = r && stages.find((x) => (x.input ? String(r.stage || "").startsWith(`${x.tag}${STAGE_INPUT_SEP}`) : x.label === r.stage));
+    setStage(st ? st.id : null);
+    setStageVal(st && st.input ? String(r.stage).slice(st.tag.length + 1) : "");
+    setExtraPick(r && r.extras && r.extras.length ? r.extras : []);
+    setMount(r && r.mount ? r.mount : "");
+  }, [firstId, lastFor]);
 
   const cap = useCapture();
   const [voice, setVoice] = useState(null);
@@ -11453,6 +11321,13 @@ function ImportRoster({ close, say, noun, nouns, code }) {
 
 /* Multi-stage group creator: name → members → weekly schedule.
    Submitting spins up recurring bookings and a group chat thread. */
+const DRILL_SECONDS = (text) => {
+  const m = /(\d+)\s*(second|sec|minute|min)/i.exec(text || "");
+  if (!m) return null;
+  const n = Number(m[1]);
+  return /min/i.test(m[2]) ? n * 60 : n;
+};
+
 function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
   const t = useT();
   const [name, setName] = useState("");
@@ -14024,7 +13899,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     say(`${tr("Loading")} ${files.length}…`);
   };
 
-  const [pickFor, setPickFor] = useState(null);   // what we are choosing a player for
   const [playerComps, setPlayerComps] = useState({});   // added by the player, seen by their coach
   /* Real competitions, grouped by whose they are, so the lesson sheet
      and the player's own screen both read the same source. */
@@ -16080,18 +15954,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           )}
 
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
-            {sheet === "pickWho" ? <PickPerson roster={roster}
-                                            title={pickFor === "tip" ? tr("Set a tip") : tr("Set drills")}
-                                            sub={tr("Who is it for?")}
-                                            onPick={(r) => {
-                                              setSheet(null);
-                                              setTimeout(() => {
-                                                if (pickFor === "tip") { setAssignTo(r); setSheet("tip"); }
-                                                else openAssignDrills(r);
-                                              }, 180);
-                                            }}
-                                            close={() => setSheet(null)} />
-            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
+            {sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
@@ -16311,11 +16174,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onSend={(f, n) => { setFocusReqs((v) => [...v, { who: activeProfile.name, focus: f, note: n }]);
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
-              : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
-                                            onCreate={(g) => { if (data) { createGroup(g); return; }
-                                              setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
-                                              done(tr("Group created"), `${g.name} · ${g.members.length}`); }}
-                                            close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             /* a real thread is found by id; the harness's seeded
