@@ -9919,21 +9919,114 @@ const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); 
 const wizFirst = (name) => String(name || "").split(" ")[0];
 
 /* a one-line field that commits on Return and gives way when left empty */
-function InlineField({ ph, initial = "", onCommit, onCancel, autoFocus = true, hint = "done", height = 46, style }) {
+function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBlur = true, autoFocus = true, hint = "done", height = 46, style, label }) {
   const t = useT();
   const [v, setV] = useState(initial);
+  const done = useRef(false);   // one commit per field, however the field is left
+  const commit = () => { if (done.current) return; const x = v.trim(); if (x) { done.current = true; onCommit(x); } else if (onEmpty) { done.current = true; onEmpty(); } else onCancel && onCancel(); };
+  const keep = (e) => e.preventDefault();   // the mic and the clear button must not blur the field away
   return (
     <div className="flex items-center gap-2 px-4" style={{ minHeight: height, borderRadius: R.pill, background: t.wash, ...style }}>
-      <input value={v} autoFocus={autoFocus} placeholder={ph} enterKeyHint={hint}
+      <input value={v} autoFocus={autoFocus} placeholder={ph} aria-label={label || ph} enterKeyHint={hint}
              onChange={(e) => setV(e.target.value)}
-             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const x = v.trim(); if (x) onCommit(x); else onCancel && onCancel(); } if (e.key === "Escape") onCancel && onCancel(); }}
-             onBlur={() => { if (!v.trim()) onCancel && onCancel(); }}
-             className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-      <MicBtn size={28} onText={(txt) => setV(v ? `${v} ${txt}` : txt)} />
-      {v && <button onMouseDown={(e) => e.preventDefault()} onClick={() => { haptic(6); setV(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
+             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") onCancel && onCancel(); }}
+             onBlur={() => { if (done.current) return; if (v.trim()) { if (commitOnBlur) commit(); } else onCancel && onCancel(); }}
+             className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+      <span onMouseDown={keep} onPointerDown={keep} className="flex items-center"><MicBtn size={28} onText={(txt) => setV(v ? `${v} ${txt}` : txt)} /></span>
+      {v && <button onMouseDown={keep} onPointerDown={keep} onClick={() => { haptic(6); setV(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
     </div>
   );
 }
+
+/* the log's small parts live at module level so a keystroke on the log
+   never remounts them (a component defined inside a render is a new type
+   every render: its state is lost and its fade replays) */
+const WizCircle = ({ on }) => {
+  const t = useT();
+  return (
+    <span className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent", transition: "background 160ms, border-color 160ms" }}>
+      {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
+    </span>
+  );
+};
+const WizBar = ({ onBack, right, close }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center px-1.5 shrink-0" style={{ height: 48 }}>
+      <button onClick={() => { haptic(); onBack(); }} aria-label={close ? tr("Close") : tr("Back")} className="p-2 active:opacity-40">
+        {close ? <X size={22} color={t.ink} strokeWidth={2} /> : <ChevronLeft size={24} color={t.ink} strokeWidth={2} />}
+      </button>
+      <span className="flex-1" />
+      {right}
+    </div>
+  );
+};
+const WizHero = ({ children, sub }) => {
+  const t = useT();
+  return (
+    <div className="px-6 pt-3 pb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+      <h2 style={{ ...TYPE.hero, fontSize: 30, color: t.ink }}>{children}</h2>
+      {sub && <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
+    </div>
+  );
+};
+const WizLabel = ({ children, right }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center justify-between" style={{ marginTop: 20, marginBottom: 10 }}>
+      <span style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</span>{right}
+    </div>
+  );
+};
+const WizDocked = ({ children }) => {
+  const t = useT();
+  return <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}`, animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>;
+};
+const WizPersonRow = ({ pl, caption, tour, on, onName, onCircle }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center" style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+      <button data-tour={tour} onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
+        <Avatar name={pl.name} size={36} src={avatarUrl(pl.avatarPath)} />
+        <span className="flex-1 min-w-0">
+          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
+          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
+        </span>
+      </button>
+      <button onClick={onCircle} aria-label={on ? `${tr("Remove")} ${pl.name}` : `${tr("Add")} ${pl.name}`} aria-pressed={on} className="flex items-center justify-end active:opacity-50" style={{ minWidth: 48, minHeight: 48 }}><WizCircle on={on} /></button>
+    </div>
+  );
+};
+const WizGroupRow = ({ g, caption, on, onName, onCircle }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center" style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+      <button onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
+        <Avatar name={g.name} size={36} group />
+        <span className="flex-1 min-w-0">
+          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{g.name}</span>
+          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
+        </span>
+      </button>
+      <button onClick={onCircle} aria-label={on ? `${tr("Remove")} ${g.name}` : `${tr("Add")} ${g.name}`} aria-pressed={on} className="flex items-center justify-end active:opacity-50" style={{ minWidth: 48, minHeight: 48 }}><WizCircle on={on} /></button>
+    </div>
+  );
+};
+/* the Notes row: the label and value open the page, the mic beside the
+   chevron dictates in place — two sibling buttons, never one inside another */
+const WizNotesRow = ({ label, value, onOpen, onText, tour }) => {
+  const t = useT();
+  return (
+    <div data-tour={tour} className="w-full flex items-center gap-3.5 px-5" style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
+      <button onClick={() => { haptic(6); onOpen(); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62 }}>
+        <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, letterSpacing: "-0.005em", color: t.ink }}>{label}</span>
+        {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: t.sub, maxWidth: "58%" }}>{value}</span>}
+      </button>
+      <MicBtn size={28} onText={onText} />
+      <button onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="active:opacity-50 flex items-center" style={{ minHeight: 44 }}><ChevronRight size={17} color={t.faint} /></button>
+    </div>
+  );
+};
 
 function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, onSaveGroup }) {
   const t = useT(); const L = useL();
@@ -9947,13 +10040,15 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const prefGroup = prefill && prefill.kind && String(prefill.kind).startsWith("Group") ? ((groups || []).find((g) => g.name === prefill.who) || null) : null;
   const known = prefill
     ? (prefGroup ? membersOf(prefGroup)
-        : prefill.playerId && byId(prefill.playerId) ? [byId(prefill.playerId)]
-        : POOL_W.filter((r) => r.name === prefill.who))
+        : prefill.playerId ? (byId(prefill.playerId) ? [byId(prefill.playerId)] : [])   // a lost id never falls back to a namesake
+        : POOL_W.filter((r) => r.name === prefill.who).slice(0, 1))
     : [];
+  const prefIso = prefill && String(prefill.iso || prefill.date || "");
+  const prefYear = prefill && prefill.y ? prefill.y : /^\d{4}-\d\d-\d\d/.test(prefIso || "") ? Number(prefIso.slice(0, 4)) : null;
   const needsDate = !prefill || prefill.m == null;
   const real = new Date();
   const today = pinnedToday || { y: real.getFullYear(), m: real.getMonth() + 1, d: real.getDate() };
-  const [logY, setLogY] = useState(prefill && prefill.y ? prefill.y : today.y);
+  const [logY, setLogY] = useState(prefYear || today.y);
   const [logM, setLogM] = useState(prefill?.m ?? today.m);
   const [logD, setLogD] = useState(prefill?.d ?? today.d);
   const [who, setWho] = useState(known);
@@ -9961,12 +10056,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [view, setView] = useState(() => {
     const v = WIZ_VIEWS.includes(startView) ? startView : null;
     if (v) return v === "who" && known.length ? "main" : v;
-    return known.length || (prefill && prefill.kind && String(prefill.kind).startsWith("Group")) ? "main" : "who";
+    return known.length ? "main" : "who";   // a group the roster no longer knows is picked again by hand
   });
+  const cameFromMain = useRef(false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   /* ---------- worked on ---------- */
   const [focus, setFocus] = useState([]);
@@ -9997,22 +10093,27 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const stages = cfg.stages || [];
   const extras = cfg.extras || [];
   const remembered = (r) => (lastFor && r && lastFor[r.id]) || null;
-  const [stage, setStage] = useState(null);
-  const [stageVal, setStageVal] = useState("");
-  const [extraPick, setExtraPick] = useState([]);
-  const [mount, setMount] = useState("");
-  const [stageTouched, setStageTouched] = useState(false);
-  const whoKey = who.map((r) => r.id).join("|");
-  useEffect(() => {
-    if (stageTouched) return;
-    const mems = who.map(remembered).filter(Boolean);
+  const rememberedFor = (list) => {
+    const mems = list.map(remembered).filter(Boolean);
     const agree = mems.length && mems.every((m) => m.stage === mems[0].stage && (m.extras || []).join("|") === (mems[0].extras || []).join("|") && (m.mount || "") === (mems[0].mount || ""));
     const r = agree ? mems[0] : null;
     const st = r && stages.find((x) => (x.input ? String(r.stage || "").startsWith(`${x.tag}${STAGE_INPUT_SEP}`) : x.label === r.stage));
-    setStage(st ? st.id : null);
-    setStageVal(st && st.input ? String(r.stage).slice(st.tag.length + 1) : "");
-    setExtraPick(r && r.extras && r.extras.length ? r.extras : []);
-    setMount(r && r.mount ? r.mount : "");
+    return { stage: st ? st.id : null, stageVal: st && st.input ? String(r.stage).slice(st.tag.length + 1) : "", extras: r && r.extras && r.extras.length ? r.extras : [], mount: r && r.mount ? r.mount : "" };
+  };
+  const first0 = rememberedFor(known);
+  const [stage, setStage] = useState(first0.stage);
+  const [stageVal, setStageVal] = useState(first0.stageVal);
+  const [extraPick, setExtraPick] = useState(first0.extras);
+  const [mount, setMount] = useState(first0.mount);
+  const [stageTouched, setStageTouched] = useState(false);
+  const whoKey = who.map((r) => r.id).join("|");
+  const firstKey = useRef(whoKey); const firstMemory = useRef(lastFor);
+  useEffect(() => {
+    if (stageTouched) return;
+    if (whoKey === firstKey.current && lastFor === firstMemory.current) return;   // the first paint already carries it
+    firstKey.current = null;
+    const r = rememberedFor(who);
+    setStage(r.stage); setStageVal(r.stageVal); setExtraPick(r.extras); setMount(r.mount);
   }, [whoKey, lastFor]);
 
   /* ---------- capture (live) and the harness's pretend recorder ---------- */
@@ -10120,7 +10221,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     if (dt.getFullYear() === yd.getFullYear() && dt.getMonth() === yd.getMonth() && dt.getDate() === yd.getDate()) return tr("Yesterday");
     return `${WIZ_DAYS[dt.getDay()]} ${logD} ${WIZ_MONTHS[logM - 1]}${logY !== today.y ? ` ${logY}` : ""}`;
   })();
-  const dateLine = [group && who.length ? `${who.length} ${nouns}` : null, dayLabel, prefill && prefill.time ? prefill.time : null].filter(Boolean).join(" · ");
+  const dateLine = [who.length > 1 ? `${who.length} ${nouns}` : null, dayLabel, prefill && prefill.time ? prefill.time : null].filter(Boolean).join(" · ");
   const notesValue = (() => {
     const n = videos.length + photos.length + pulled.length;
     const parts = [note ? (note.length > 28 ? `${note.slice(0, 28).trim()}…` : note) : null, n ? `${n} ${n === 1 ? tr("clip") : tr("clips")}` : null, voice ? tr("voice") : null].filter(Boolean);
@@ -10188,15 +10289,25 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   }
   const topMatch = searching ? (sections[0] ? sections[0].items.find((it) => it.pl) : null) : null;
   const ticked = (pl) => who.some((r) => r.id === pl.id);
+  /* a saved group keeps its name while everyone ticked is still one of
+     its members (an absentee unticked is still the group's lesson);
+     someone from outside makes it an ad-hoc handful */
+  const keepGroup = (next) => { if (!pickedGroup) return null; const g = (groups || []).find((x) => x.name === pickedGroup); if (!g) return null; const ids = new Set(membersOf(g).map((m) => m.id)); return next.length && next.every((r) => ids.has(r.id)) ? pickedGroup : null; };
   const pickOne = (pl) => { hapticCommit(); soft(); setWho([pl]); setPickedGroup(null); setQ(""); setView("main"); };
-  const toggleOne = (pl) => { haptic(6); setPickedGroup(null); setWho(ticked(pl) ? who.filter((r) => r.id !== pl.id) : [...who, pl]); };
+  const toggleOne = (pl) => { haptic(6); const next = ticked(pl) ? who.filter((r) => r.id !== pl.id) : [...who, pl]; setPickedGroup(keepGroup(next)); setWho(next); };
   const nameTap = (pl) => { if (who.length === 0) pickOne(pl); else toggleOne(pl); };
+  const groupTicked = (g) => { const mems = membersOf(g); return mems.length > 0 && mems.every(ticked); };
   const groupTap = (g) => {
     const mems = membersOf(g);
     if (who.length === 0) { hapticCommit(); soft(); setWho(mems); setPickedGroup(g.name); setQ(""); setView("main"); return; }
-    haptic(6); setWho([...who, ...mems.filter((m) => !ticked(m))]); setPickedGroup(null);
+    groupCircle(g);
   };
-  const groupTicked = (g) => { const mems = membersOf(g); return mems.length > 0 && mems.every(ticked); };
+  const groupCircle = (g) => {
+    const mems = membersOf(g); haptic(6);
+    if (groupTicked(g)) { const ids = new Set(mems.map((m) => m.id)); setWho(who.filter((r) => !ids.has(r.id))); setPickedGroup(null); return; }
+    const next = [...who, ...mems.filter((m) => !ticked(m))];
+    setWho(next); setPickedGroup(who.length === 0 || next.length === mems.length ? g.name : null);
+  };
 
   /* ---------- looks ---------- */
   const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
@@ -10206,62 +10317,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                                      background: on ? (tint ? `${t.accent}14` : t.ink) : "transparent",
                                      border: `1px solid ${on ? (tint ? `${t.accent}55` : t.ink) : HAIR(t.ink, 0.12)}`,
                                      fontFamily: ui, fontSize: 12.5, fontWeight: on && tint ? 600 : 500, color: on ? (tint ? t.ink : t.page) : t.sub, transition: "background 180ms, border-color 180ms" });
-  const Circle = ({ on }) => (
-    <span className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent", transition: "background 160ms, border-color 160ms" }}>
-      {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
-    </span>
-  );
-  const Bar = ({ onBack, right, close }) => (
-    <div className="flex items-center px-1.5 shrink-0" style={{ height: 48 }}>
-      <button onClick={() => { haptic(); onBack(); }} aria-label={L.back} className="p-2 active:opacity-40">
-        {close ? <X size={22} color={t.ink} strokeWidth={2} /> : <ChevronLeft size={24} color={t.ink} strokeWidth={2} />}
-      </button>
-      <span className="flex-1" />
-      {right}
-    </div>
-  );
-  const Hero = ({ children, sub }) => (
-    <div className="px-6 pt-3 pb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
-      <h2 style={{ ...TYPE.hero, fontSize: 30, color: t.ink }}>{children}</h2>
-      {sub && <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
-    </div>
-  );
-  const Label = ({ children, right }) => (
-    <div className="flex items-center justify-between" style={{ marginTop: 20, marginBottom: 10 }}>
-      <span style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</span>{right}
-    </div>
-  );
-  const Docked = ({ children }) => (
-    <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: hair, animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>
-  );
-  const PersonRow = ({ pl, caption, tour, on, onName, onCircle }) => (
-    <div className="flex items-center" style={{ minHeight: 60, borderBottom: hair }}>
-      <button data-tour={tour} onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
-        <Avatar name={pl.name} size={36} src={avatarUrl(pl.avatarPath)} />
-        <span className="flex-1 min-w-0">
-          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
-          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
-        </span>
-      </button>
-      <button onClick={onCircle} aria-label={on ? `${tr("Remove")} ${pl.name}` : `${tr("Add")} ${pl.name}`} aria-pressed={on} className="pl-4 py-2 active:opacity-50"><Circle on={on} /></button>
-    </div>
-  );
-  const GroupRow = ({ g, caption, on, onName, onCircle }) => (
-    <div className="flex items-center" style={{ minHeight: 60, borderBottom: hair }}>
-      <button onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
-        <Avatar name={g.name} size={36} group />
-        <span className="flex-1 min-w-0">
-          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{g.name}</span>
-          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
-        </span>
-      </button>
-      <button onClick={onCircle} aria-label={`${tr("Add")} ${g.name}`} aria-pressed={on} className="pl-4 py-2 active:opacity-50"><Circle on={on} /></button>
-    </div>
-  );
+  const Circle = WizCircle, Bar = WizBar, Hero = WizHero, Label = WizLabel, Docked = WizDocked, PersonRow = WizPersonRow, GroupRow = WizGroupRow;
 
   const rungRefs = useRef({});
+  const rungInputs = useRef({});
   useEffect(() => { if (view !== "stage") return; const el = stage && rungRefs.current[stage]; if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" }); }, [view]);
-  const stageInputRef = useRef(null);
   const groupsOf = (list) => { const out = []; for (const x of list) { const g = x.group || ""; const last = out[out.length - 1]; if (last && last.group === g) last.items.push(x); else out.push({ group: g, items: [x] }); } return out; };
   const back = () => { haptic(6); setView("main"); };
   const later = (fn) => setTimeout(fn, 160);
@@ -10273,9 +10333,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   ================================================================ */
   if (view === "who") {
     return (
-      <SwipeBack key="who" onBack={() => (who.length ? setView("main") : onCancel())}>
+      <SwipeBack key="who" onBack={() => (who.length || cameFromMain.current ? setView("main") : onCancel())}>
         <div key="who" className="flex flex-col h-full relative" style={{ background: t.page }}>
-          <Bar onBack={() => (who.length ? setView("main") : onCancel())} />
+          <Bar onBack={() => (who.length || cameFromMain.current ? setView("main") : onCancel())} />
           <div className="flex-1 overflow-y-auto">
             <Hero>{tr("Who was it?")}</Hero>
             {POOL_W.length > 8 && (
@@ -10284,7 +10344,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   <Search size={15} color={t.faint} />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${tr("Search")} ${POOL_W.length} ${nouns}`} enterKeyHint="search"
                          onKeyDown={(e) => { if (e.key === "Enter" && topMatch) { e.preventDefault(); nameTap(topMatch.pl); } }}
-                         className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                         className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                   {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
                      : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
                 </div>
@@ -10306,7 +10366,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                         </React.Fragment>
                       );
                     }
-                    return <GroupRow key={it.key} g={it.g} caption={it.caption} on={groupTicked(it.g) && (pickedGroup === it.g.name || who.length > 0)} onName={() => groupTap(it.g)} onCircle={() => groupTap(it.g)} />;
+                    return <GroupRow key={it.key} g={it.g} caption={it.caption} on={groupTicked(it.g)} onName={() => groupTap(it.g)} onCircle={() => groupCircle(it.g)} />;
                   })}
                 </div>
               ))}
@@ -10341,7 +10401,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     const pickRung = (st) => {
       if (stage === st.id && !st.input) { haptic(6); setStageTouched(true); setStage(null); setStageVal(""); return; }
       haptic(8); setStageTouched(true); setStage(st.id);
-      if (st.input) { later(() => { const el = stageInputRef.current; if (el) { el.focus(); el.select(); } }); return; }
+      if (st.input) { const el = rungInputs.current[st.id]; if (el) { el.focus(); el.select(); } return; }   // inside the tap, so iOS raises the keyboard
       later(() => setView("main"));
     };
     return (
@@ -10362,11 +10422,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                           <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{st.label}</span>
                         </button>
                         {st.input ? (
-                          <input ref={on ? stageInputRef : null} value={on ? stageVal : ""} inputMode="decimal" enterKeyHint="done" placeholder={st.hint || ""}
+                          <input ref={(el) => { rungInputs.current[st.id] = el; }} value={on ? stageVal : ""} inputMode="decimal" enterKeyHint="done" placeholder={st.hint || ""} aria-label={st.label}
                                  onFocus={() => { if (!on) { setStageTouched(true); setStage(st.id); } }}
                                  onChange={(e) => { setStageTouched(true); setStage(st.id); setStageVal(e.target.value); }}
                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); setView("main"); } }}
-                                 className="outline-none text-right shrink-0" style={{ width: 96, minHeight: 40, padding: "0 10px", borderRadius: R.field, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink, fontVariantNumeric: "tabular-nums" }} />
+                                 className="outline-none text-right shrink-0" style={{ width: 96, minHeight: 40, padding: "0 10px", borderRadius: R.field, background: t.wash, fontFamily: ui, fontSize: 16, color: t.ink, fontVariantNumeric: "tabular-nums" }} />
                         ) : (
                           <button onClick={() => pickRung(st)} aria-label={st.label} className="py-2 active:opacity-50"><Circle on={on} /></button>
                         )}
@@ -10416,9 +10476,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   </div>
                 </>
               )}
-              <InlineField key={mount} ph={tr("Name")} initial={mount} autoFocus={mountChoices.length === 0} height={54}
+              <InlineField key={mount} ph={tr("Name")} label={cfg.mount.label} initial={mount} autoFocus={mountChoices.length === 0} height={54} commitOnBlur={false}
                            onCommit={(x) => { hapticCommit(); setStageTouched(true); setMount(x); setView("main"); }}
-                           onCancel={() => { if (mount) { setStageTouched(true); setMount(""); } }} />
+                           onEmpty={() => { haptic(6); setStageTouched(true); setMount(""); setView("main"); }} />
             </div>
           </div>
         </div>
@@ -10550,7 +10610,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               <div className="flex items-center gap-2 px-4 mt-3" style={{ minHeight: 54, borderRadius: R.pill, background: t.wash }}>
                 <input value={ownDrill} placeholder={tr("Add your own")} enterKeyHint="done" onChange={(e) => setOwnDrill(e.target.value)}
                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const v = ownDrill.trim(); if (v) addOwn(v); } }}
-                       className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                       aria-label={tr("Add your own")} className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                 <MicBtn size={28} onText={(txt) => setOwnDrill(ownDrill ? `${ownDrill} ${txt}` : txt)} />
                 {ownDrill.trim() && <button onClick={() => addOwn(ownDrill.trim())} className="active:opacity-50" style={{ ...TYPE.caption, fontWeight: 600, color: t.ink }}>{tr("Add")}</button>}
               </div>
@@ -10584,9 +10644,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
         <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
         <div className="flex-1 overflow-y-auto">
           <div className="px-6 pt-3" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
-            <button onClick={() => { haptic(6); setView("who"); }} className="w-full text-left active:opacity-60" style={{ minHeight: 44 }}
+            <button onClick={() => { haptic(6); cameFromMain.current = true; setView("who"); }} className="w-full text-left active:opacity-60" style={{ minHeight: 44 }}
                     onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
                     onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onPointerCancel={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                     onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}>
               <span className="inline-flex items-end gap-1.5" style={{ maxWidth: "100%" }}>
                 <span style={{ ...TYPE.hero, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{heroText}</span>
@@ -10605,8 +10666,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             </div>
             {who.length >= 3 && !pickedGroup && onSaveGroup && (
               savingGroup
-                ? <div className="mt-2"><InlineField ph={tr("Group name")} onCancel={() => setSavingGroup(false)}
-                    onCommit={async (name) => { const ok = await onSaveGroup({ name, members: who.map((r) => r.name), memberIds: who.map((r) => r.id) }); if (ok !== false) { hapticSuccess(); setPickedGroup(name); } setSavingGroup(false); }} /></div>
+                ? <div className="mt-2"><InlineField ph={tr("Group name")} commitOnBlur={false} onCancel={() => setSavingGroup(false)}
+                    onCommit={async (name) => { hapticSuccess(); const ok = await onSaveGroup({ name, members: who.map((r) => r.name), memberIds: who.map((r) => r.id) }); if (alive.current) { if (ok !== false) setPickedGroup(name); setSavingGroup(false); } }} /></div>
                 : <div className="mt-1"><TextBtn color={t.sub} onClick={() => setSavingGroup(true)}>{tr("Save as group")}</TextBtn></div>
             )}
           </div>
@@ -10631,7 +10692,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 </span>
               ))}
               {otherOpen
-                ? <div style={{ minWidth: 200, flex: "1 1 200px" }}><InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom([...custom, x]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} /></div>
+                ? <div style={{ minWidth: 200, flex: "1 1 200px" }}><InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom(custom.includes(x) ? custom : [...custom, x]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} /></div>
                 : <button onClick={() => { haptic(6); setOtherOpen(true); }} className="flex items-center gap-1.5 active:opacity-60" style={{ ...areaChip(false), color: t.sub, paddingLeft: 12 }}><Plus size={13} color={t.sub} strokeWidth={2} />{tr("Other")}</button>}
             </div>
             {chosenAreas.some((f) => f.subs && f.subs.length) && (
@@ -10645,8 +10706,8 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           </div>
 
           <div className="px-1" style={{ marginTop: 26 }}>
-            <Row label={tr("Notes")} value={notesValue} valueColor={t.sub} chevron tour="wiz-notes" onToggle={() => setView("notes")}
-                 right={<span onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} className="flex items-center"><MicBtn size={28} onText={(txt) => setNote((n) => (n ? `${n} ${txt}` : txt))} /></span>} />
+            <WizNotesRow label={tr("Notes")} value={notesValue} tour="wiz-notes" onOpen={() => setView("notes")}
+                         onText={(txt) => setNote(note ? `${note} ${txt}` : txt)} />
             <Row label={tr("What next")} value={nextValue} valueColor={t.sub} chevron tour="wiz-plan" onToggle={() => setView("next")} last={!showReviewAsk} />
             {showReviewAsk && (
               <Row label={`${tr("Ask")} ${first} ${tr("for a rating")}`} right={<Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />} last />
@@ -15157,7 +15218,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     for (const l of taught(data.lessons)) {
       for (const id of (l.playerId ? [l.playerId] : (l.attendeeIds || []))) {
         if (seen.has(id)) continue;
-        seen.add(id); out.push({ id, date: l.date || null });
+        seen.add(id); out.push({ id, date: l.iso || null });
         if (out.length === 5) return out;
       }
     }
@@ -16229,7 +16290,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
                          recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
                          onAddPlayer={() => setSheet("invite")} onSaveGroup={saveGroupQuick}
-                         onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); return publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startView={sc ? sc.wizardView : undefined} />,
+                         onPublish={async (l) => { const r = await publish(l); if (r !== false) { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); } return r; }} onCancel={() => { setPrefill(null); go("today"); }} startView={sc ? sc.wizardView : undefined} />,
     }[screen] || coachToday;
   } else if (!conn) {
     body = (
