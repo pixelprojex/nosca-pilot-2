@@ -7149,7 +7149,7 @@ function Sheet({ open, onClose, children }) {
   const up = () => { if (dy > 88) { haptic(); onClose(); } setDy(0); st.current = null; };
   return (
     <div className="absolute inset-0 z-40" style={{ pointerEvents: open ? "auto" : "none" }}>
-      <div onClick={() => { haptic(7); onClose && onClose(); }} className="absolute inset-0" style={{ background: "rgba(10,16,12,0.26)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
+      <div data-sheet-scrim onClick={() => { haptic(7); onClose && onClose(); }} className="absolute inset-0" style={{ background: "rgba(10,16,12,0.26)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
                        opacity: open ? 1 : 0, transition: "opacity 280ms" }} />
       <div className="absolute left-0 right-0 bottom-0 overflow-hidden"
            style={{ background: t.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, transform: `translateY(${open ? dy : 760}px)`,

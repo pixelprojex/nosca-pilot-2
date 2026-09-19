@@ -128,7 +128,8 @@ const leaks = [];
       await tap(page, '[data-tour="chat-new"]', 500);
       const tn = await text();
       check("(c) the plus offers Everyone and every player on the roster", tn.includes("Everyone") && tn.includes("Cian Murphy") && tn.includes("Saoirse Kelly"), tn.slice(0, 200));
-      await page.keyboard.press("Escape"); await page.locator("[data-sheet]").locator('[aria-label="Close"]').first().click().catch(() => {}); await page.waitForTimeout(500);
+      /* a sheet closes by tapping outside it, the way a coach closes one */
+      await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 } }); await page.waitForTimeout(600);
       await byText(page, "Cian Murphy").click(); await page.waitForTimeout(1000);
       const t2 = await leak("coach thread"); await shot("coach-thread");
       check("(c) opening the thread shows the mocked messages", t2.includes("See you Tuesday at nine.") && t2.includes("Grand, thanks Niamh."), t2.slice(0, 200));
@@ -153,7 +154,14 @@ const leaks = [];
       check("(c) Message everyone posts one row per roster player", !!bc && bc.rows.length === 2 && bc.rows.every((x) => x.sender_id === IDS.coach && x.body === "Range is closed Friday.") && new Set(bc.rows.map((x) => x.player_id)).size === 2, JSON.stringify(bc && bc.rows.map((x) => x.player_id)));
 
       /* (d) attendance */
-      /* the register lives on the lesson: diary row → peek → Register */
+      /* KNOWN GAP: this coach has no hours in the fixture, so the diary
+         draws no rows and the block below aborts before the register.
+         Giving the fixture hours shows the real defect underneath —
+         Register opened from a diary row lands on the register with no
+         lesson chosen and no names. Both are for a focused fix, not for
+         a visual pass; the register reached from Today still works. */
+      await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 4000 }).catch(() => {});
+      await page.waitForTimeout(500);
       await tap(page, '[aria-label="Diary"]');
       await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(800);
       await tap(page, '[data-tour="peek-register"]', 900);
