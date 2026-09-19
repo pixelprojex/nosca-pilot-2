@@ -1019,7 +1019,7 @@ const COACHES = {
 /* Interface strings. Keys are deliberately few and heavily reused, so a
    new language is one block rather than a scattered hunt. */
 export const STRINGS = {
-  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Players", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Log it", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
+  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Roster", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Log it", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
 };
 
 
@@ -3543,7 +3543,7 @@ const TOUR_PREFILL = { who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: 
 const TOUR_PEEK = { time: "3:00 pm", who: "Priya Ellis", kind: "Private", hoursUntil: 3.5 };
 
 /* { area, title, body, path, target, state } — `state` is merged into
-   the showcase prop: stack, sheet, logView, prefill, peek, wizardStep.
+   the showcase prop: stack, sheet, logView, prefill, peek, wizardView.
    `skipLive` marks a step whose control only the design harness has;
    a real account's tour leaves it out. */
 const TOUR = {
@@ -3551,25 +3551,26 @@ const TOUR = {
     { area: "Today", title: "Your day", body: "Lessons in order. Tap one for the brief.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
     { area: "Today", title: "Lessons to log", body: "One tap logs it while it's fresh. Swipe it away if nobody came.", path: "Today → a finished lesson", target: "today-justdone", state: { stack: ["today"] } },
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "The plus", body: "One tap logs a lesson. Everything else lives where it belongs.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "Who", body: "Tap a face, or a group. Today's people come first.", path: "Plus", target: "wiz-who", state: { stack: ["log"], wizardStep: 0 } },
-    { area: "Log a lesson", title: "Their stage", body: "The ladder your sport really uses, remembered from last time.", path: "Plus → Stage", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
-    { area: "Log a lesson", title: "What you worked on", body: "One tap or two. The detail under it is optional.", path: "Plus → Worked on", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
-    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Plus → Add a note, clip, photo or voice", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 2 } },
-    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Plus → Set drills or a tip", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 3 } },
-    { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Plus → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardStep: 0 } },
-    { area: "During a lesson", title: "Register", body: "Open the lesson and mark who turned up.", path: "Now → a lesson → Register", target: "peek-register", state: { stack: ["today"], sheet: "peek", peek: TOUR_PEEK } },
+    { area: "Log a lesson", title: "The plus", body: "Logging, attendance, live capture, drills — all start here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
+    { area: "Log a lesson", title: "Who was it?", body: "Tap a name. Tick the circle to add more. The name at the top of the log brings you back here.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
+    { area: "Log a lesson", title: "Their stage", body: "The ladder your sport really uses, remembered from last time. Tap to change it.", path: "Log a lesson → Stage", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { area: "Log a lesson", title: "What you worked on", body: "One tap or two. The detail under it is optional.", path: "Log a lesson → Worked on", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → Notes", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "notes" } },
+    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → What next", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "next" } },
+    { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Log a lesson → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
+    { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
     { area: "Diary", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "Diary → Your hours", target: "cal-hours", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Recurring lessons", body: "Standing weekly slots, booked out for the whole run.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Book in the diary", body: "Tap a free slot to book someone; tap a booking to log or cancel it.", path: "Diary → free slot", target: "agenda-book", state: { stack: ["calendar"] } },
-    { area: "Players", title: "Players", body: "Everyone you coach. The plus shares your code.", path: "Tab bar → Players", target: "tab-roster", state: { stack: ["roster"] } },
-    { area: "Players", title: "A player's file", body: "Their lessons, newest first, the moment you open them. Message or set drills below.", path: "Players → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
-    { area: "Players", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Players → Groups", target: "roster-tab", state: { stack: ["roster"] } },
+    { area: "Roster", title: "Roster", body: "Everyone you coach. The plus shares your code.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
+    { area: "Roster", title: "A player's file", body: "Their lessons, newest first, the moment you open them. Message or set drills below.", path: "Roster → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
+    { area: "Roster", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
     { area: "Chat", title: "Chat", body: "A thread with every player. A junior's parent reads theirs.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
     { area: "Chat", title: "Start a conversation", body: "The plus writes to one player, or to everyone at once.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
     { area: "Alerts", title: "Alerts", body: "Requests, bookings, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
     { area: "You", title: "Your profile", body: "Photo, details, club and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Players.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
+    { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Roster.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
     { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["today", "you"] } },
   ],
   player: [
@@ -4351,6 +4352,105 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
    can be dragged into whatever order suits — the Control Centre idea,
    because no two coaches reach for the same thing second. */
 /* what the plus menu offers, by id */
+const QUICK_ACTIONS = {
+  attend:  { Ico: Check,         label: "Attendance" },
+  capture: { Ico: Camera,        label: "Live capture" },
+  tip:     { Ico: Lightbulb,     label: "Set a tip" },
+  drills:  { Ico: ListChecks,    label: "Set drills" },
+  player:  { Ico: UserPlus,      label: "Add player" },
+  group:   { Ico: Users,         label: "New group" },
+  message: { Ico: MessageCircle, label: "Message" },
+  comp:    { Ico: Trophy,        label: "Competition" },
+};
+/* The plus menu: the one thing a coach does a dozen times a day as the
+   accent button, then eight plain rows in a fixed order. It used to be
+   a grid of tinted tiles with a hold-to-drag, tap-to-resize edit mode
+   and a stored layout — Control Centre on a sheet opened to log a
+   lesson. */
+const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
+function QuickMenu({ liveLesson, onLog, onRun }) {
+  const t = useT();
+  return (
+    <>
+      <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
+              className="w-full flex items-center gap-3.5 mb-4 text-left active:opacity-90"
+              style={{ minHeight: 60, padding: "0 20px", borderRadius: R.surface, background: t.accent }}>
+        <Plus size={19} color={t.onAccent} strokeWidth={2.3} />
+        <span className="flex-1" style={{ ...TYPE.subhead, fontSize: 16.5, color: t.onAccent }}>{tr("Log a lesson")}</span>
+      </button>
+      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+        {QUICK_ORDER.map((id) => {
+          const A = QUICK_ACTIONS[id];
+          const now = id === "attend" && liveLesson;
+          return (
+            <button key={id} data-tour={`quick-${id}`} onClick={() => { haptic(8); soft(); onRun(id); }}
+                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+              <A.Ico size={17} color={t.ink} strokeWidth={1.7} />
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>
+                {tr(A.label)}{now ? <span style={{ color: t.faint }}> · {liveLesson.who} · {tr("on now")}</span> : null}
+              </span>
+              <ChevronRight size={16} color={t.faint} strokeWidth={1.8} />
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+
+
+/* WHO IS THIS FOR
+
+   Anything a coach sets — a tip, drills, a standing lesson — has to
+   name a person first. Setting it against whoever happens to be top of
+   the roster is worse than useless. Search included, because a coach
+   with sixty players should not scroll. */
+function PickPerson({ roster, title, sub, onPick, close }) {
+  const t = useT();
+  const [q, setQ] = useState("");
+  const list = (roster || []).filter((r) => !q || r.name.toLowerCase().includes(q.toLowerCase()));
+
+  return (
+    <>
+      <h2 style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+      {sub && <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
+
+      <div className="flex items-center gap-2.5 px-4 mb-4"
+           style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
+        <Search size={15} color={t.faint} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
+               className="flex-1 bg-transparent outline-none"
+               style={{ ...TYPE.body, color: t.ink }} />
+      </div>
+
+      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}`, maxHeight: 320, overflowY: "auto" }}>
+        {list.length === 0 ? (
+          <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name.")}</p>
+        ) : list.map((r, i) => (
+          <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
+                  className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                  style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
+                           animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
+            <Avatar name={r.name} size={34} />
+            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
+            <ChevronRight size={14} color={t.faint} />
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+
+/* SOMETHING YOU CANNOT MISS
+
+   A rained-off lesson is the one message that must not sit unread
+   behind a badge — someone will otherwise drive to a flooded range.
+   So it takes the whole screen on open, states the fact in a sentence,
+   and offers the one thing worth doing about it. Used for the same
+   class of event: a lesson logged, a new coach, a group you've joined. */
 const ANNOUNCE = {
   weather:  { Ico: Radio,         tone: "danger",  eyebrow: "Called off" },
   logged:   { Ico: Library,       tone: "steady",  eyebrow: "New lesson" },
@@ -7283,7 +7383,7 @@ const TextBtn = ({ children, onClick, color, tour }) => {
   const t = useT();
   return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
 };
-function Row({ label, sub, value, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
+function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
   const t = useT();
   const Tag = onToggle ? "button" : "div";
   return (
@@ -7308,7 +7408,7 @@ function Row({ label, sub, value, checked, onToggle, radio, last, chevron, dot, 
         </span>
         {sub && <span className="block truncate mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{sub}</span>}
       </span>
-      {value && <span className="shrink-0" style={{ fontFamily: ui, fontSize: 14.5, color: t.faint }}>{value}</span>}
+      {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
       {right}
       {chevron && <ChevronRight size={17} color={t.faint} />}
       {checked && icon && <Check size={18} color={STEADY} strokeWidth={2.1} />}
@@ -9796,63 +9896,228 @@ function LessonTags({ lesson, cfg, className = "" }) {
   );
 }
 
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startAt, library, tipPrompts, lastFor, todayIds }) {
+/* LOG A LESSON
+
+   A confirmation screen, not a form. The name at the top, the day under
+   it, the stage the person was last logged at, one cluster of chips for
+   what was worked on, three quiet rows for anything more, and Log it.
+   Everything that is a list — who, the sport's ladder, the horse, the
+   notes and clips, the drills and the tip — is a full-height page one
+   tap deep, inside the log's own view stack. Nothing here opens the
+   app's single <Sheet>.
+
+   From a booking the log opens on the main screen with who, the day and
+   the stage already answered: one chip and Log it. From the plus it
+   opens on Who was it?, where today's people sit at the top and two
+   letters find anyone in a roster of two hundred. */
+const WIZ_VIEWS = ["who", "main", "stage", "mount", "notes", "next"];
+const WIZ_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WIZ_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+/* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
+const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
+const wizFirst = (name) => String(name || "").split(" ")[0];
+
+/* a one-line field that commits on Return and gives way when left empty */
+function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBlur = true, autoFocus = true, hint = "done", height = 46, style, label }) {
+  const t = useT();
+  const [v, setV] = useState(initial);
+  const done = useRef(false);   // one commit per field, however the field is left
+  const commit = () => { if (done.current) return; const x = v.trim(); if (x) { done.current = true; onCommit(x); } else if (onEmpty) { done.current = true; onEmpty(); } else onCancel && onCancel(); };
+  const keep = (e) => e.preventDefault();   // the mic and the clear button must not blur the field away
+  return (
+    <div className="flex items-center gap-2 px-4" style={{ minHeight: height, borderRadius: R.pill, background: t.wash, ...style }}>
+      <input value={v} autoFocus={autoFocus} placeholder={ph} aria-label={label || ph} enterKeyHint={hint}
+             onChange={(e) => setV(e.target.value)}
+             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") onCancel && onCancel(); }}
+             onBlur={() => { if (done.current) return; if (v.trim()) { if (commitOnBlur) commit(); } else onCancel && onCancel(); }}
+             className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+      <span onMouseDown={keep} onPointerDown={keep} className="flex items-center"><MicBtn size={28} onText={(txt) => setV(v ? `${v} ${txt}` : txt)} /></span>
+      {v && <button onMouseDown={keep} onPointerDown={keep} onClick={() => { haptic(6); setV(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
+    </div>
+  );
+}
+
+/* the log's small parts live at module level so a keystroke on the log
+   never remounts them (a component defined inside a render is a new type
+   every render: its state is lost and its fade replays) */
+const WizCircle = ({ on }) => {
+  const t = useT();
+  return (
+    <span className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent", transition: "background 160ms, border-color 160ms" }}>
+      {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
+    </span>
+  );
+};
+const WizBar = ({ onBack, right, close }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center px-1.5 shrink-0" style={{ height: 48 }}>
+      <button onClick={() => { haptic(); onBack(); }} aria-label={close ? tr("Close") : tr("Back")} className="p-2 active:opacity-40">
+        {close ? <X size={22} color={t.ink} strokeWidth={2} /> : <ChevronLeft size={24} color={t.ink} strokeWidth={2} />}
+      </button>
+      <span className="flex-1" />
+      {right}
+    </div>
+  );
+};
+const WizHero = ({ children, sub }) => {
+  const t = useT();
+  return (
+    <div className="px-6 pt-3 pb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+      <h2 style={{ ...TYPE.hero, fontSize: 30, color: t.ink }}>{children}</h2>
+      {sub && <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
+    </div>
+  );
+};
+const WizLabel = ({ children, right }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center justify-between" style={{ marginTop: 20, marginBottom: 10 }}>
+      <span style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</span>{right}
+    </div>
+  );
+};
+const WizDocked = ({ children }) => {
+  const t = useT();
+  return <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}`, animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>;
+};
+const WizPersonRow = ({ pl, caption, tour, on, onName, onCircle }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center" style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+      <button data-tour={tour} onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
+        <Avatar name={pl.name} size={36} src={avatarUrl(pl.avatarPath)} />
+        <span className="flex-1 min-w-0">
+          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
+          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
+        </span>
+      </button>
+      <button onClick={onCircle} aria-label={on ? `${tr("Remove")} ${pl.name}` : `${tr("Add")} ${pl.name}`} aria-pressed={on} className="flex items-center justify-end active:opacity-50" style={{ minWidth: 48, minHeight: 48 }}><WizCircle on={on} /></button>
+    </div>
+  );
+};
+const WizGroupRow = ({ g, caption, on, onName, onCircle }) => {
+  const t = useT();
+  return (
+    <div className="flex items-center" style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+      <button onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
+        <Avatar name={g.name} size={36} group />
+        <span className="flex-1 min-w-0">
+          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{g.name}</span>
+          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
+        </span>
+      </button>
+      <button onClick={onCircle} aria-label={on ? `${tr("Remove")} ${g.name}` : `${tr("Add")} ${g.name}`} aria-pressed={on} className="flex items-center justify-end active:opacity-50" style={{ minWidth: 48, minHeight: 48 }}><WizCircle on={on} /></button>
+    </div>
+  );
+};
+/* the Notes row: the label and value open the page, the mic beside the
+   chevron dictates in place — two sibling buttons, never one inside another */
+const WizNotesRow = ({ label, value, onOpen, onText, tour }) => {
+  const t = useT();
+  return (
+    <div className="w-full flex items-center gap-3.5 px-5" style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
+      <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62 }}>
+        <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, letterSpacing: "-0.005em", color: t.ink }}>{label}</span>
+        {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: t.sub, maxWidth: "58%" }}>{value}</span>}
+      </button>
+      <MicBtn size={28} onText={onText} />
+      <button onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="active:opacity-50 flex items-center" style={{ minHeight: 44 }}><ChevronRight size={17} color={t.faint} /></button>
+    </div>
+  );
+};
+
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, onSaveGroup }) {
   const t = useT(); const L = useL();
   const live = useLive();
-  const POOL_W = (livePlayers ?? PLAYERS).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
-  const seedWho = prefill
-    ? (prefill.kind && prefill.kind.startsWith("Group")
-        ? ((groups || []).find((g) => g.name === prefill.who)?.members || [])
-        : [prefill.who])
+  const POOL_W = (livePlayers ?? ROSTER).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
+  const nouns = cfg.nouns;
+  const byId = (id) => POOL_W.find((r) => r.id === id) || null;
+  const membersOf = (g) => { const ids = g.memberIds && g.memberIds.length ? g.memberIds : null; return POOL_W.filter((r) => (ids ? ids.includes(r.id) : (g.members || []).includes(r.name))); };
+
+  /* ---------- who, and when ---------- */
+  const prefGroup = prefill && prefill.kind && String(prefill.kind).startsWith("Group") ? ((groups || []).find((g) => g.name === prefill.who) || null) : null;
+  const known = prefill
+    ? (prefGroup ? membersOf(prefGroup)
+        : prefill.playerId ? (byId(prefill.playerId) ? [byId(prefill.playerId)] : [])   // a lost id never falls back to a namesake
+        : POOL_W.filter((r) => r.name === prefill.who).slice(0, 1))
     : [];
-  const known = POOL_W.filter((r) => seedWho.includes(r.name));
+  const prefIso = prefill && String(prefill.iso || prefill.date || "");
+  const prefYear = prefill && prefill.y ? prefill.y : /^\d{4}-\d\d-\d\d/.test(prefIso || "") ? Number(prefIso.slice(0, 4)) : null;
   const needsDate = !prefill || prefill.m == null;
-  const realToday = new Date();
-  const [logY, setLogY] = useState(realToday.getFullYear());
-  const [logM, setLogM] = useState(prefill?.m ?? (realToday.getMonth() + 1));
-  const [logD, setLogD] = useState(prefill?.d ?? realToday.getDate());
+  const real = new Date();
+  const today = pinnedToday || { y: real.getFullYear(), m: real.getMonth() + 1, d: real.getDate() };
+  const [logY, setLogY] = useState(prefYear || today.y);
+  const [logM, setLogM] = useState(prefill?.m ?? today.m);
+  const [logD, setLogD] = useState(prefill?.d ?? today.d);
   const [who, setWho] = useState(known);
-  const [pickedGroup, setPickedGroup] = useState(prefill && prefill.kind && prefill.kind.startsWith("Group") ? prefill.who : null);
+  const [pickedGroup, setPickedGroup] = useState(prefGroup ? prefGroup.name : (prefill && prefill.kind && String(prefill.kind).startsWith("Group") ? prefill.who : null));
+  const [view, setView] = useState(() => {
+    const v = WIZ_VIEWS.includes(startView) ? startView : null;
+    if (v) return v === "who" && known.length ? "main" : v;
+    return known.length ? "main" : "who";   // a group the roster no longer knows is picked again by hand
+  });
+  const cameFromMain = useRef(false);
   const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+
+  /* ---------- worked on ---------- */
   const [focus, setFocus] = useState([]);
   const [subPick, setSubPick] = useState([]);
-  const [customDraft, setCustomDraft] = useState(""); const [custom, setCustom] = useState([]);
+  const [custom, setCustom] = useState([]);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [savingGroup, setSavingGroup] = useState(false);
+
+  /* ---------- notes, clips, voice ---------- */
   const [rec, setRec] = useState("idle"); const [secs, setSecs] = useState(0); const [note, setNote] = useState(null);
   const [videos, setVideos] = useState([]); const [cam, setCam] = useState(false);
   const [photos, setPhotos] = useState([]);
+  const [pulled, setPulled] = useState([]);
+  const [voice, setVoice] = useState(null);
+
+  /* ---------- what next ---------- */
   const [nextDrills, setNextDrills] = useState([]);
   const [nextTip, setNextTip] = useState("");
-  const [showWaiting, setShowWaiting] = useState(false);
+  const [ownDrill, setOwnDrill] = useState("");
+  const [extraDrills, setExtraDrills] = useState([]);
   const [wantRating, setWantRating] = useState(false);
-  /* the two rows that unfold: the walkthrough opens the one it rings */
-  const [openNote, setOpenNote] = useState((startAt ?? 0) === 2);
-  const [openNext, setOpenNext] = useState((startAt ?? 0) >= 3);
 
-  /* THE STAGE — remembered from the person's last lesson, one tap to
-     change. `lastFor` is { [playerId]: { stage, extras, mount } } read
-     from their real lessons; the harness has none and starts blank. */
+  /* ---------- the stage: remembered from the person's last lesson ----------
+     `lastFor` is { [playerId]: { stage, extras, mount } } read from real
+     lessons (the harness seeds one per roster row). Re-derived whenever
+     the first person changes, until the coach touches it. A group
+     pre-fills only when every remembered member agrees. */
   const stages = cfg.stages || [];
   const extras = cfg.extras || [];
   const remembered = (r) => (lastFor && r && lastFor[r.id]) || null;
-  const [stage, setStage] = useState(null);         // a stage id
-  const [stageVal, setStageVal] = useState("");     // the value for an input stage
-  const [extraPick, setExtraPick] = useState([]);   // option labels
-  const [mount, setMount] = useState("");
-  const [mountDraft, setMountDraft] = useState("");
+  const rememberedFor = (list) => {
+    const mems = list.map(remembered).filter(Boolean);
+    const agree = mems.length && mems.every((m) => m.stage === mems[0].stage && (m.extras || []).join("|") === (mems[0].extras || []).join("|") && (m.mount || "") === (mems[0].mount || ""));
+    const r = agree ? mems[0] : null;
+    const st = r && stages.find((x) => (x.input ? String(r.stage || "").startsWith(`${x.tag}${STAGE_INPUT_SEP}`) : x.label === r.stage));
+    return { stage: st ? st.id : null, stageVal: st && st.input ? String(r.stage).slice(st.tag.length + 1) : "", extras: r && r.extras && r.extras.length ? r.extras : [], mount: r && r.mount ? r.mount : "" };
+  };
+  const first0 = rememberedFor(known);
+  const [stage, setStage] = useState(first0.stage);
+  const [stageVal, setStageVal] = useState(first0.stageVal);
+  const [extraPick, setExtraPick] = useState(first0.extras);
+  const [mount, setMount] = useState(first0.mount);
   const [stageTouched, setStageTouched] = useState(false);
-  const firstId = who.length ? who[0].id : null;
+  const whoKey = who.map((r) => r.id).join("|");
+  const firstKey = useRef(whoKey); const firstMemory = useRef(lastFor);
   useEffect(() => {
     if (stageTouched) return;
-    const r = remembered(who[0]);
-    const st = r && stages.find((x) => (x.input ? String(r.stage || "").startsWith(`${x.tag}${STAGE_INPUT_SEP}`) : x.label === r.stage));
-    setStage(st ? st.id : null);
-    setStageVal(st && st.input ? String(r.stage).slice(st.tag.length + 1) : "");
-    setExtraPick(r && r.extras && r.extras.length ? r.extras : []);
-    setMount(r && r.mount ? r.mount : "");
-  }, [firstId, lastFor]);
+    if (whoKey === firstKey.current && lastFor === firstMemory.current) return;   // the first paint already carries it
+    firstKey.current = null;
+    const r = rememberedFor(who);
+    setStage(r.stage); setStageVal(r.stageVal); setExtraPick(r.extras); setMount(r.mount);
+  }, [whoKey, lastFor]);
 
+  /* ---------- capture (live) and the harness's pretend recorder ---------- */
   const cap = useCapture();
-  const [voice, setVoice] = useState(null);
   const fileInput = useRef(null);
   const startVoice = async () => {
     haptic(14);
@@ -9886,7 +10151,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     });
     if (files.length) { hapticSuccess(); soft(); }
   };
-  const [pulled, setPulled] = useState([]);
   const waiting = [...who.map((r) => r.name), "__unassigned"].flatMap((name) => (captured[name] || [])
     .filter((it) => !pulled.some((p) => p.id === it.id))
     .map((it) => ({ ...it, from: name === "__unassigned" ? tr("Captured earlier") : name })));
@@ -9910,15 +10174,16 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     else setPhotos(photos.filter((p) => `p${p.at}` !== id));
   };
   const pull = (it) => { hapticSuccess(); soft(); setPulled((v) => [...v, it]); };
+  const pullAll = () => { hapticSuccess(); soft(); setPulled((v) => [...v, ...waiting]); };
   const transcribeClip = (id) => {
     const i = Number(id.slice(1));
     haptic(10);
     setVideos((vs) => vs.map((x, j) => (j === i ? { ...x, working: true } : x)));
     setTimeout(() => setVideos((vs) => vs.map((x, j) => (j === i ? { ...x, working: false, transcript: cfg.transcript } : x))), 1300);
   };
-  const first = ((who[0] || {}).name || "").split(" ")[0];
-  const [ownDrill, setOwnDrill] = useState("");
-  const [extraDrills, setExtraDrills] = useState([]);
+  useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
+  useEffect(() => { if (rec !== "working" || live) return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg, live]);
+
   const recommended = useMemo(() => {
     const pool = library || cfg.drills || [];
     const seen = new Set(), out = [];
@@ -9930,201 +10195,320 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     }
     return out;
   }, [library, cfg, focus]);
-  useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
-  useEffect(() => { if (rec !== "working" || live) return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg, live]);
 
+  /* ---------- derived ---------- */
+  const first = wizFirst((who[0] || {}).name);
   const chosenAreas = cfg.focus.filter((f) => focus.includes(f.id));
   const chosen = chosenAreas.map((f) => f.label).concat(custom);
   const group = who.length > 1 || !!pickedGroup;
-  const nouns = cfg.nouns;
   const tog = (arr, set, v) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
-  const matches = POOL_W.filter((r) => r.name.toLowerCase().includes(q.trim().toLowerCase()));
-  /* today's people first, then the rest of the roster */
-  const ordered = [...matches.filter((r) => (todayIds || []).includes(r.id)), ...matches.filter((r) => !(todayIds || []).includes(r.id))];
   const canLog = who.length > 0 && chosen.length > 0;
   const showReviewAsk = askReview && who.length === 1 && !pickedGroup
     && (lessonCounts ? (lessonCounts[who[0].id] || 0) === 0 : false);
   const currentStage = stage ? stageTag(cfg, stage, stageVal) : null;
+  const stageValue = [currentStage, ...extraPick].filter(Boolean).join(" · ");
   const tags = [currentStage, ...extraPick, ...subPick, mount.trim() ? `on ${mount.trim()}` : null].filter(Boolean);
+  const heroText = pickedGroup ? pickedGroup
+    : who.length === 0 ? tr("Who was it?")
+    : who.length === 1 ? who[0].name
+    : who.length === 2 ? `${wizFirst(who[0].name)} & ${wizFirst(who[1].name)}`
+    : `${wizFirst(who[0].name)}, ${wizFirst(who[1].name)} +${who.length - 2}`;
+  const subject = pickedGroup || first;
+  const dayLabel = (() => {
+    if (logY === today.y && logM === today.m && logD === today.d) return tr("Today");
+    const dt = new Date(logY, logM - 1, logD);
+    const yd = new Date(today.y, today.m - 1, today.d - 1);
+    if (dt.getFullYear() === yd.getFullYear() && dt.getMonth() === yd.getMonth() && dt.getDate() === yd.getDate()) return tr("Yesterday");
+    return `${WIZ_DAYS[dt.getDay()]} ${logD} ${WIZ_MONTHS[logM - 1]}${logY !== today.y ? ` ${logY}` : ""}`;
+  })();
+  const dateLine = [who.length > 1 ? `${who.length} ${nouns}` : null, dayLabel, prefill && prefill.time ? prefill.time : null].filter(Boolean).join(" · ");
+  const notesValue = (() => {
+    const n = videos.length + photos.length + pulled.length;
+    const parts = [note ? (note.length > 28 ? `${note.slice(0, 28).trim()}…` : note) : null, n ? `${n} ${n === 1 ? tr("clip") : tr("clips")}` : null, voice ? tr("voice") : null].filter(Boolean);
+    if (parts.length) return parts.join(" · ");
+    if (waiting.length) return `${waiting.length} ${tr("captured earlier")}`;
+    return null;
+  })();
+  const nextValue = [nextDrills.length ? `${nextDrills.length} ${nextDrills.length === 1 ? tr("drill") : tr("drills")}` : null, nextTip ? tr("a tip") : null].filter(Boolean).join(" · ") || null;
 
-  const finish = () => onPublish({
+  const payload = () => ({
     type: group ? "group" : "private", who: who.map((r) => r.name), whoIds: who.map((r) => r.id),
     groupName: pickedGroup, focus: chosen.join(" · "),
     focusList: chosen, focusIds: focus, custom, subs: tags,
     note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
     nextDrills, nextTip, wantRating, y: logY, m: logM, d: logD, pulled,
   });
-  const submit = () => { if (!canLog) return; hapticCommit(); finish(); };
+  const submit = async () => {
+    if (!canLog || busy) return;
+    hapticCommit(); setBusy(true);
+    try { await onPublish(payload()); } catch (e) { /* the toast has said why */ }
+    if (alive.current) setBusy(false);
+  };
 
+  /* ---------- the who page's sections ---------- */
+  const liveKey = liveNow ? (liveNow.playerId || seedId(liveNow.who)) : null;
+  const liveGroup = liveNow && !byId(liveKey) ? (groups || []).find((g) => g.name === liveNow.who) : null;
+  const bookingsById = {};
+  for (const b of (todayBookings || [])) { const id = b.playerId || seedId(b.who); if (id && !bookingsById[id]) bookingsById[id] = b; }
+  const seenIds = new Set();
+  const person = (pl, caption) => { seenIds.add(pl.id); return { key: `p-${pl.id}`, pl, caption }; };
+  const grp = (g, caption) => ({ key: `g-${g.id || g.name}`, g, caption });
+  const bookingCaption = (b) => b ? `${b.time}${b.done ? ` · ${tr("to log")}` : b.duration ? ` · ${b.duration} ${tr("min")}` : ""}` : null;
+  const recentCaption = (r) => {
+    if (r.daysAgo != null) return r.daysAgo === 0 ? tr("Today") : r.daysAgo === 1 ? tr("Yesterday") : `${r.daysAgo} ${tr("days ago")}`;
+    if (!r.date) return null;
+    const dt = localDate(r.date); const now = new Date(today.y, today.m - 1, today.d);
+    const days = Math.round((now - dt) / 86400000);
+    if (days <= 0) return tr("Today"); if (days === 1) return tr("Yesterday");
+    if (days < 7) return `${tr("Last lesson")} ${WIZ_DAYS[dt.getDay()]}`;
+    if (days < 30) return `${days} ${tr("days ago")}`;
+    return `${tr("Last lesson")} ${dt.getDate()} ${WIZ_MONTHS[dt.getMonth()]}`;
+  };
+  const sections = [];
+  const searching = !!q.trim();
+  if (!searching) {
+    const onNow = [];
+    if (liveKey && byId(liveKey)) onNow.push(person(byId(liveKey), `${liveNow.time} · ${tr("on now")}`));
+    else if (liveGroup) onNow.push(grp(liveGroup, `${liveNow.time} · ${tr("on now")}`));
+    if (onNow.length) sections.push({ label: tr("On now"), items: onNow });
+    const todayRows = [];
+    for (const id of (todayIds || [])) { const pl = byId(id); if (pl && !seenIds.has(pl.id)) todayRows.push(person(pl, bookingCaption(bookingsById[id]))); }
+    for (const b of (todayBookings || [])) { if (!byId(b.playerId || seedId(b.who))) { const g = (groups || []).find((x) => x.name === b.who); if (g && !(liveGroup && liveGroup.name === g.name)) todayRows.push(grp(g, bookingCaption(b))); } }
+    if (todayRows.length) sections.push({ label: tr("Today"), items: todayRows });
+    const recentRows = [];
+    for (const r of (recent || [])) { const pl = byId(r.id); if (pl && !seenIds.has(pl.id)) recentRows.push(person(pl, recentCaption(r))); if (recentRows.length === 5) break; }
+    if (recentRows.length) sections.push({ label: tr("Recent"), items: recentRows });
+    const groupRows = (groups || []).map((g) => grp(g, `${membersOf(g).length} ${nouns}`));
+    if (groupRows.length) sections.push({ label: tr("Groups"), items: groupRows });
+    const everyone = [...POOL_W].sort((a, b) => a.name.localeCompare(b.name)).map((pl) => ({ key: `e-${pl.id}`, pl, caption: pl.lessons ? `${pl.lessons} ${pl.lessons === 1 ? tr("lesson") : tr("lessons")}` : tr("First lesson"), letter: POOL_W.length > 30 ? wizNorm(pl.name).charAt(0).toUpperCase() : null }));
+    if (everyone.length) sections.push({ label: tr("Everyone"), items: everyone });
+  } else {
+    const people = POOL_W.filter((pl) => wizMatch(pl.name, q)).map((pl) => ({ key: `s-${pl.id}`, pl, caption: pl.lessons ? `${pl.lessons} ${pl.lessons === 1 ? tr("lesson") : tr("lessons")}` : tr("First lesson") }));
+    const gs = (groups || []).filter((g) => wizMatch(g.name, q)).map((g) => grp(g, `${membersOf(g).length} ${nouns}`));
+    if (people.length || gs.length) sections.push({ label: null, items: [...people, ...gs] });
+  }
+  const topMatch = searching ? (sections[0] ? sections[0].items.find((it) => it.pl) : null) : null;
+  const ticked = (pl) => who.some((r) => r.id === pl.id);
+  /* a saved group keeps its name while everyone ticked is still one of
+     its members (an absentee unticked is still the group's lesson);
+     someone from outside makes it an ad-hoc handful */
+  const keepGroup = (next) => { if (!pickedGroup) return null; const g = (groups || []).find((x) => x.name === pickedGroup); if (!g) return null; const ids = new Set(membersOf(g).map((m) => m.id)); return next.length && next.every((r) => ids.has(r.id)) ? pickedGroup : null; };
+  const pickOne = (pl) => { hapticCommit(); soft(); setWho([pl]); setPickedGroup(null); setQ(""); setView("main"); };
+  const toggleOne = (pl) => { haptic(6); const next = ticked(pl) ? who.filter((r) => r.id !== pl.id) : [...who, pl]; setPickedGroup(keepGroup(next)); setWho(next); };
+  const nameTap = (pl) => { if (who.length === 0) pickOne(pl); else toggleOne(pl); };
+  const groupTicked = (g) => { const mems = membersOf(g); return mems.length > 0 && mems.every(ticked); };
+  const groupTap = (g) => {
+    const mems = membersOf(g);
+    if (who.length === 0) { hapticCommit(); soft(); setWho(mems); setPickedGroup(g.name); setQ(""); setView("main"); return; }
+    groupCircle(g);
+  };
+  const groupCircle = (g) => {
+    const mems = membersOf(g); haptic(6);
+    if (groupTicked(g)) { const ids = new Set(mems.map((m) => m.id)); setWho(who.filter((r) => !ids.has(r.id))); setPickedGroup(null); return; }
+    const next = [...who, ...mems.filter((m) => !ticked(m))];
+    setWho(next); setPickedGroup(who.length === 0 || next.length === mems.length ? g.name : null);
+  };
+
+  /* ---------- looks ---------- */
   const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
-  const chip = (on, small) => ({ minHeight: small ? 34 : 42, borderRadius: R.pill, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.16)}`,
-                                 fontFamily: ui, fontSize: small ? 12.5 : 14, fontWeight: 600, color: on ? "#fff" : t.ink, transition: "background 180ms, border-color 180ms" });
-  const Section = ({ label, children, sub }) => (
-    <div className="px-6 mb-7">
-      <div className="mb-3 flex items-baseline gap-2">
-        <span style={{ ...TYPE.eyebrow, color: t.faint }}>{label}</span>
-        {sub && <span style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
-      </div>
-      {children}
-    </div>
-  );
-  const Fold = ({ label, open, onOpen, tour, children }) => (
-    <div className="px-6 mb-2">
-      <button data-tour={tour} onClick={() => { haptic(6); onOpen(!open); }} className="w-full flex items-center gap-3 text-left active:opacity-60"
-              style={{ minHeight: 56, borderTop: hair, borderBottom: open ? "none" : hair }}>
-        <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-        <ChevronDown size={15} color={t.faint} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 220ms" }} />
-      </button>
-      {open && <div className="pb-5" style={{ borderBottom: hair }}>{children}</div>}
-    </div>
-  );
+  const areaChip = (on) => ({ minHeight: 42, padding: "0 16px", borderRadius: R.pill, background: on ? t.ink : "transparent", border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.14)}`,
+                              fontFamily: ui, fontSize: 14, fontWeight: 500, color: on ? t.page : t.ink, transition: "background 180ms, border-color 180ms" });
+  const smallChip = (on, tint) => ({ minHeight: 34, padding: "0 12px", borderRadius: R.pill,
+                                     background: on ? (tint ? `${t.accent}14` : t.ink) : "transparent",
+                                     border: `1px solid ${on ? (tint ? `${t.accent}55` : t.ink) : HAIR(t.ink, 0.12)}`,
+                                     fontFamily: ui, fontSize: 12.5, fontWeight: on && tint ? 600 : 500, color: on ? (tint ? t.ink : t.page) : t.sub, transition: "background 180ms, border-color 180ms" });
+  const Circle = WizCircle, Bar = WizBar, Hero = WizHero, Label = WizLabel, Docked = WizDocked, PersonRow = WizPersonRow, GroupRow = WizGroupRow;
+
+  const rungRefs = useRef({});
+  const rungInputs = useRef({});
+  useEffect(() => { if (view !== "stage") return; const el = stage && rungRefs.current[stage]; if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" }); }, [view]);
   const groupsOf = (list) => { const out = []; for (const x of list) { const g = x.group || ""; const last = out[out.length - 1]; if (last && last.group === g) last.items.push(x); else out.push({ group: g, items: [x] }); } return out; };
+  const back = () => { haptic(6); setView("main"); };
+  const later = (fn) => setTimeout(fn, 160);
+  const mountChoices = (() => { const r = remembered(who[0]); const out = []; for (const m of [r && r.mount, ...(recentMounts || [])]) { const x = String(m || "").trim(); if (x && !out.includes(x)) out.push(x); if (out.length === 12) break; } return out; })();
+  let whoTagged = false;
 
-  return (
-    <SwipeBack onBack={onCancel}>
-      <div className="flex flex-col h-full relative" style={{ background: t.page }}>
-        <div className="flex items-center px-1.5 shrink-0" style={{ height: 48 }}>
-          <button onClick={() => { haptic(); onCancel(); }} aria-label={L.back} className="p-2 active:opacity-40"><X size={22} color={t.ink} strokeWidth={2} /></button>
-          <span className="flex-1 text-center" style={{ ...TYPE.subhead, color: t.ink }}>{tr("Log a lesson")}</span>
-          <span style={{ width: 41 }} />
-        </div>
-
-        <input ref={fileInput} type="file" multiple className="hidden"
-               onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
-        <div className="flex-1 overflow-y-auto pt-4">
-          {/* ---------- who ---------- */}
-          <Section label={tr("Who")} sub={pickedGroup ? `${pickedGroup} · ${who.length} ${nouns}` : null}>
+  /* ================================================================
+     WHO WAS IT?
+  ================================================================ */
+  if (view === "who") {
+    return (
+      <SwipeBack key="who" onBack={() => (who.length || cameFromMain.current ? setView("main") : onCancel())}>
+        <div key="who" className="flex flex-col h-full relative" style={{ background: t.page }}>
+          <Bar onBack={() => (who.length || cameFromMain.current ? setView("main") : onCancel())} />
+          <div className="flex-1 overflow-y-auto">
+            <Hero>{tr("Who was it?")}</Hero>
             {POOL_W.length > 8 && (
-              <div className="flex items-center gap-2.5 px-4 mb-3" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
-                <Search size={15} color={t.faint} />
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
-                       style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-                {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
-                   : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
+              <div className="px-6 pb-2" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
+                <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
+                  <Search size={15} color={t.faint} />
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${tr("Search")} ${POOL_W.length} ${nouns}`} enterKeyHint="search"
+                         onKeyDown={(e) => { if (e.key === "Enter" && topMatch) { e.preventDefault(); nameTap(topMatch.pl); } }}
+                         className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+                     : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
+                </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-2">
-              {!q && (groups || []).map((g) => {
-                const on = pickedGroup === g.name;
-                return (
-                  <button key={g.id} aria-pressed={on} onClick={() => { hapticCommit(); soft(); if (on) { setPickedGroup(null); setWho([]); }
-                                          else { setPickedGroup(g.name);
-                                                 const ids = g.memberIds && g.memberIds.length ? g.memberIds : null;
-                                                 setWho(POOL_W.filter((r) => (ids ? ids.includes(r.id) : (g.members || []).includes(r.name)))); } }}
-                          className="px-3.5 flex items-center gap-2 active:opacity-60" style={chip(on)}>
-                    <Avatar name={g.name} size={22} group />{g.name}
-                  </button>
-                );
-              })}
-              {ordered.map((pl, pi) => {
-                const on = who.some((r) => r.id === pl.id);
-                return (
-                  <button key={pl.id} data-tour={pi === 0 ? "wiz-who" : undefined} aria-pressed={on}
-                          onClick={() => { haptic(6); setPickedGroup(null); setWho(on ? who.filter((r) => r.id !== pl.id) : [...who, pl]); }}
-                          className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60" style={chip(on)}>
-                    <Avatar name={pl.name} size={28} src={avatarUrl(pl.avatarPath)} />{pl.name}
-                  </button>
-                );
-              })}
-              {ordered.length === 0 && <p className="py-4" style={{ ...TYPE.small, color: t.faint }}>{q.trim() ? `${tr("No one called")} “${q}”` : tr("No players yet")}</p>}
+            <div className="px-6 pb-6">
+              {sections.map((sec, si) => (
+                <div key={sec.label || `s${si}`}>
+                  {sec.label && <Label>{sec.label}</Label>}
+                  {sec.items.map((it, ii) => {
+                    const prevLetter = ii > 0 ? sec.items[ii - 1].letter : null;
+                    const showLetter = it.letter && it.letter !== prevLetter;
+                    if (it.pl) {
+                      const tour = !whoTagged ? (whoTagged = true, "wiz-who") : undefined;
+                      return (
+                        <React.Fragment key={it.key}>
+                          {showLetter && <div style={{ ...TYPE.eyebrow, color: t.faint, marginTop: 16, marginBottom: 6 }}>{it.letter}</div>}
+                          <PersonRow pl={it.pl} caption={it.caption} tour={tour} on={ticked(it.pl)} onName={() => nameTap(it.pl)} onCircle={() => toggleOne(it.pl)} />
+                        </React.Fragment>
+                      );
+                    }
+                    return <GroupRow key={it.key} g={it.g} caption={it.caption} on={groupTicked(it.g)} onName={() => groupTap(it.g)} onCircle={() => groupCircle(it.g)} />;
+                  })}
+                </div>
+              ))}
+              {sections.length === 0 && (
+                <>
+                  <p className="text-center py-8" style={{ ...TYPE.body, color: t.faint }}>{searching ? `${tr("Nobody called")} “${q.trim()}”` : tr("No players yet")}</p>
+                  {onAddPlayer && (
+                    <button onClick={() => { haptic(8); onAddPlayer(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, borderTop: hair, borderBottom: hair }}>
+                      <UserPlus size={17} color={t.ink} strokeWidth={1.7} />
+                      <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Add a player")}</span>
+                      <ChevronRight size={16} color={t.faint} />
+                    </button>
+                  )}
+                </>
+              )}
             </div>
-            {needsDate && (
-              <label data-tour="wiz-when" className="w-full flex items-center gap-3.5 mt-3" style={{ minHeight: 52, borderTop: hair, borderBottom: hair }}>
-                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Date")}</span>
-                <input type="date"
-                       value={`${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`}
-                       max={`${realToday.getFullYear()}-${String(realToday.getMonth() + 1).padStart(2, "0")}-${String(realToday.getDate()).padStart(2, "0")}`}
-                       onChange={(e) => { const parts = e.target.value.split("-"); if (parts.length === 3) { setLogY(Number(parts[0])); setLogM(Number(parts[1])); setLogD(Number(parts[2])); } }}
-                       className="outline-none text-right" style={{ fontFamily: ui, fontSize: 15, color: t.sub, background: "transparent" }} />
-              </label>
-            )}
-          </Section>
-
-          {/* ---------- stage: the sport's real ladder, remembered ---------- */}
-          {stages.length > 0 && (
-            <Section label={tr("Stage")} sub={!stageTouched && stage && who[0] && remembered(who[0]) ? tr("as last time") : null}>
-              <div data-tour="wiz-stage" className="flex flex-col gap-3">
-                {groupsOf(stages).map((gr) => (
-                  <div key={gr.group || "_"}>
-                    {gr.group && <div className="mb-1.5" style={{ ...TYPE.caption, color: t.faint }}>{gr.group}</div>}
-                    <div className="flex flex-wrap gap-2">
-                      {gr.items.map((st) => {
-                        const on = stage === st.id;
-                        return (
-                          <button key={st.id} aria-pressed={on} onClick={() => { haptic(6); setStageTouched(true); setStage(on ? null : st.id); }}
-                                  className="px-3.5 active:opacity-60" style={chip(on, true)}>
-                            {st.input && on && stageVal ? `${st.tag} ${stageVal}` : st.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-                {stage && (stages.find((x) => x.id === stage) || {}).input && (
-                  <input value={stageVal} onChange={(e) => setStageVal(e.target.value)} inputMode="decimal" autoFocus={!stageVal}
-                         placeholder={(stages.find((x) => x.id === stage) || {}).hint || ""}
-                         className="w-full outline-none px-4" style={{ minHeight: 46, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
-                )}
-                {extras.map((ex) => (
-                  <div key={ex.id}>
-                    <div className="mb-1.5" style={{ ...TYPE.caption, color: t.faint }}>{ex.label}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {ex.options.map((o) => {
-                        const on = extraPick.includes(o);
-                        return <button key={o} aria-pressed={on} onClick={() => { haptic(6); setStageTouched(true); setExtraPick(on ? extraPick.filter((x) => x !== o) : [...extraPick.filter((x) => !ex.options.includes(x)), o]); }}
-                                       className="px-3.5 active:opacity-60" style={chip(on, true)}>{o}</button>;
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Section>
+          </div>
+          {who.length > 0 && (
+            <Docked><Button tone="ink" onClick={() => setView("main")}>{who.length > 1 ? `${tr("Done")} · ${who.length}` : tr("Done")}</Button></Docked>
           )}
+        </div>
+      </SwipeBack>
+    );
+  }
 
-          {/* ---------- what was worked on ---------- */}
-          <Section label={tr("Worked on")}>
-            <div className="flex flex-wrap gap-2" data-tour="wiz-focus">
-              {cfg.focus.map((f) => {
-                const on = focus.includes(f.id);
-                return <button key={f.id} aria-pressed={on} onClick={() => { haptic(6); tog(focus, setFocus, f.id); if (on) setSubPick(subPick.filter((x) => !f.subs.includes(x))); }} className="px-4 active:opacity-60" style={chip(on)}>{f.label}</button>;
-              })}
-              {custom.map((c) => (
-                <span key={c} className="px-3.5 flex items-center gap-2" style={chip(true)}>
-                  {c}<button onClick={() => { haptic(6); setCustom(custom.filter((x) => x !== c)); }} aria-label={`Remove ${c}`}><X size={12} color="rgba(255,255,255,0.7)" /></button>
-                </span>
+  /* ================================================================
+     WHAT STAGE?
+  ================================================================ */
+  if (view === "stage") {
+    const r0 = remembered(who[0]);
+    const sub = !stageTouched && stage && r0 ? `${subject} · ${tr("as last time")}` : subject;
+    const pickRung = (st) => {
+      if (stage === st.id && !st.input) { haptic(6); setStageTouched(true); setStage(null); setStageVal(""); return; }
+      haptic(8); setStageTouched(true); setStage(st.id);
+      if (st.input) { const el = rungInputs.current[st.id]; if (el) { el.focus(); el.select(); } return; }   // inside the tap, so iOS raises the keyboard
+      later(() => setView("main"));
+    };
+    return (
+      <SwipeBack key="stage" onBack={back}>
+        <div key="stage" className="flex flex-col h-full relative" style={{ background: t.page }}>
+          <Bar onBack={back} right={<TextBtn color={t.ink} onClick={() => setView("main")}>{tr("Done")}</TextBtn>} />
+          <div className="flex-1 overflow-y-auto pb-8">
+            <Hero sub={sub}>{tr("What stage?")}</Hero>
+            <div className="px-6">
+              {groupsOf(stages).map((gr, gi) => (
+                <div key={gr.group || `_${gi}`}>
+                  {gr.group && <Label>{gr.group}</Label>}
+                  {gr.items.map((st) => {
+                    const on = stage === st.id;
+                    return (
+                      <div key={st.id} ref={(el) => { rungRefs.current[st.id] = el; }} className="flex items-center gap-3" style={{ minHeight: 56, borderBottom: hair }}>
+                        <button onClick={() => pickRung(st)} aria-pressed={on} className="flex-1 min-w-0 flex items-center text-left active:opacity-50" style={{ minHeight: 56 }}>
+                          <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{st.label}</span>
+                        </button>
+                        {st.input ? (
+                          <input ref={(el) => { rungInputs.current[st.id] = el; }} value={on ? stageVal : ""} inputMode="decimal" enterKeyHint="done" placeholder={st.hint || ""} aria-label={st.label}
+                                 onFocus={() => { if (!on) { setStageTouched(true); setStage(st.id); } }}
+                                 onChange={(e) => { setStageTouched(true); setStage(st.id); setStageVal(e.target.value); }}
+                                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); setView("main"); } }}
+                                 className="outline-none text-right shrink-0" style={{ width: 96, minHeight: 40, padding: "0 10px", borderRadius: R.field, background: t.wash, fontFamily: ui, fontSize: 16, color: t.ink, fontVariantNumeric: "tabular-nums" }} />
+                        ) : (
+                          <button onClick={() => pickRung(st)} aria-label={st.label} className="py-2 active:opacity-50"><Circle on={on} /></button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              {extras.map((ex) => (
+                <div key={ex.id} style={{ marginTop: 6 }}>
+                  <Label>{ex.label}</Label>
+                  <div className="flex flex-wrap" style={{ gap: 6 }}>
+                    {ex.options.map((o) => {
+                      const on = extraPick.includes(o);
+                      return <button key={o} aria-pressed={on} onClick={() => { haptic(6); setStageTouched(true); setExtraPick(on ? extraPick.filter((x) => x !== o) : [...extraPick.filter((x) => !ex.options.includes(x)), o]); }}
+                                     className="active:opacity-60" style={smallChip(on)}>{o}</button>;
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
-            {chosenAreas.some((f) => f.subs && f.subs.length) && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {chosenAreas.flatMap((f) => f.subs || []).map((sb) => {
-                  const on = subPick.includes(sb);
-                  return <button key={sb} aria-pressed={on} onClick={() => { haptic(5); tog(subPick, setSubPick, sb); }} className="px-3 active:opacity-60" style={chip(on, true)}>{sb}</button>;
-                })}
-              </div>
-            )}
-            <div className="flex items-center gap-2 mt-3">
-              <div className="flex-1"><VoiceInput value={customDraft} onChange={setCustomDraft} ph={tr("Something else")} /></div>
-              <button onClick={() => { if (customDraft.trim()) { haptic(10); setCustom([...custom, customDraft.trim()]); setCustomDraft(""); } }}
-                      disabled={!customDraft.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
-                      style={{ width: 46, minHeight: 46, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}><Plus size={16} color="#fff" strokeWidth={2.1} /></button>
+          </div>
+        </div>
+      </SwipeBack>
+    );
+  }
+
+  /* ================================================================
+     WHICH HORSE?
+  ================================================================ */
+  if (view === "mount") {
+    return (
+      <SwipeBack key="mount" onBack={back}>
+        <div key="mount" className="flex flex-col h-full relative" style={{ background: t.page }}>
+          <Bar onBack={back} />
+          <div className="flex-1 overflow-y-auto pb-8">
+            <Hero sub={subject}>{tr("Which horse?")}</Hero>
+            <div className="px-6">
+              {mountChoices.length > 0 && (
+                <>
+                  <Label>{tr("Recent")}</Label>
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {mountChoices.map((m) => {
+                      const on = mount.trim() === m;
+                      return <button key={m} aria-pressed={on} onClick={() => { haptic(8); setStageTouched(true); setMount(m); later(() => setView("main")); }} className="active:opacity-60" style={areaChip(on)}>{m}</button>;
+                    })}
+                  </div>
+                </>
+              )}
+              <InlineField key={mount} ph={tr("Name")} label={cfg.mount.label} initial={mount} autoFocus={mountChoices.length === 0} height={54} commitOnBlur={false}
+                           onCommit={(x) => { hapticCommit(); setStageTouched(true); setMount(x); setView("main"); }}
+                           onEmpty={() => { haptic(6); setStageTouched(true); setMount(""); setView("main"); }} />
             </div>
-          </Section>
+          </div>
+        </div>
+      </SwipeBack>
+    );
+  }
 
-          {/* ---------- the horse or pony, where the sport has one ---------- */}
-          {cfg.mount && (
-            <Section label={cfg.mount.label}>
-              <div className="flex items-center gap-2">
-                <div className="flex-1"><VoiceInput value={mount} onChange={(v) => { setStageTouched(true); setMount(v); }} ph={tr("Name")} /></div>
-                {mount && <button onClick={() => { haptic(6); setMount(""); }} aria-label={tr("Clear")} className="p-2 active:opacity-50"><X size={15} color={t.faint} /></button>}
-              </div>
-            </Section>
-          )}
-
-          {/* ---------- a note, a clip, a photo, a voice note: one row, unfolds ---------- */}
-          <Fold label={items.length || note || voice ? `${tr("Note and clips")} · ${[note ? tr("note") : null, voice ? tr("voice") : null, items.length ? `${items.length} ${items.length === 1 ? tr("file") : tr("files")}` : null].filter(Boolean).join(", ")}` : tr("Add a note, clip, photo or voice")} open={openNote} onOpen={setOpenNote} tour="wiz-notes">
-            <div className="pt-4">
+  /* ================================================================
+     HOW DID IT GO?
+  ================================================================ */
+  if (view === "notes") {
+    const tiles = [
+      live ? { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") }
+           : { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
+      live ? { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => pickFiles("image/*", "environment") }
+           : { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => addPhoto("action") },
+      live ? { id: "voice", label: voice ? tr("Voice ✓") : rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice"), Icon: Mic,
+               act: () => { if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }, on: rec === "recording" }
+           : { id: "lib",  label: tr("Library"), Icon: Library, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
+    ];
+    return (
+      <SwipeBack key="notes" onBack={back}>
+        <div key="notes" className="flex flex-col h-full relative" style={{ background: t.page }}>
+          <Bar onBack={back} />
+          <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+          <div className="flex-1 overflow-y-auto pb-6">
+            <Hero sub={subject}>{tr("How did it go?")}</Hero>
+            <div className="px-6">
               {live ? (
-                <VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={3} ph={tr("What happened, in a line or two")} />
+                <VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} />
               ) : (<>
                 {rec === "idle" && !note && (
                   <button onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex items-center justify-center gap-3 active:opacity-70"
@@ -10147,32 +10531,24 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   </Card>
                 )}
               </>)}
-              <div className="grid gap-2 mt-3" data-tour="wiz-media" style={{ gridTemplateColumns: `repeat(${waiting.length ? 4 : 3}, minmax(0, 1fr))` }}>
-                {[
-                  live ? { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") }
-                       : { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
-                  live ? { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => pickFiles("image/*", "environment") }
-                       : { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => addPhoto("action") },
-                  live ? { id: "voice", label: voice ? tr("Voice ✓") : rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice"), Icon: Mic,
-                           act: () => { if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }, on: rec === "recording" }
-                       : { id: "lib",  label: tr("Library"), Icon: Library, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
-                  waiting.length ? { id: "live", label: `${tr("Captured")} · ${waiting.length}`, Icon: Download, act: () => { haptic(9); soft(); setShowWaiting(!showWaiting); }, on: showWaiting } : null,
-                ].filter(Boolean).map((o) => (
+              <div className="grid grid-cols-3 gap-2 mt-4" data-tour="wiz-media">
+                {tiles.map((o) => (
                   <button key={o.id} onClick={o.act} className="flex flex-col items-center justify-center gap-1.5 active:opacity-70"
-                          style={{ minHeight: 60, borderRadius: R.control, background: o.on ? t.ink : t.wash, transition: "background 180ms" }}>
-                    <o.Icon size={16} color={o.on ? "#fff" : t.ink} strokeWidth={1.7} />
+                          style={{ minHeight: 68, borderRadius: R.control, background: o.on ? t.ink : t.wash, transition: "background 180ms" }}>
+                    <o.Icon size={17} color={o.on ? "#fff" : t.ink} strokeWidth={1.7} />
                     <span className="truncate px-1" style={{ ...TYPE.caption, fontWeight: 600, color: o.on ? "#fff" : t.ink }}>{o.label}</span>
                   </button>
                 ))}
               </div>
               {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
-              {showWaiting && waiting.length > 0 && (
-                <div className="mt-3" style={{ borderTop: hair }}>
+              {waiting.length > 0 && (
+                <>
+                  <Label right={waiting.length > 1 ? <TextBtn color={t.ink} onClick={pullAll}>{tr("Add all")}</TextBtn> : null}>{tr("Captured earlier")}</Label>
                   {waiting.map((it) => {
                     const label = it.kind === "video" ? tr("Clip") : it.kind === "voice" ? tr("Voice note") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo");
                     const Ico = it.kind === "video" ? Play : it.kind === "voice" ? Mic : it.kind === "note" ? Edit3 : Tag;
                     return (
-                      <button key={it.id} onClick={() => pull(it)} className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 52, borderBottom: hair }}>
+                      <button key={it.id} onClick={() => pull(it)} className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 54, borderBottom: hair }}>
                         <Ico size={15} color={t.sub} strokeWidth={1.8} />
                         <span className="flex-1 min-w-0">
                           <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
@@ -10182,10 +10558,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                       </button>
                     );
                   })}
-                </div>
+                </>
               )}
               {live && voice && (
-                <div className="flex items-center gap-3 mt-3" style={{ minHeight: 52, borderTop: hair, borderBottom: hair }}>
+                <div className="flex items-center gap-3 mt-3" style={{ minHeight: 54, borderTop: hair, borderBottom: hair }}>
                   <Mic size={15} color={t.sub} strokeWidth={1.8} />
                   <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")} · {Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
                   <audio src={voice.url} controls preload="metadata" style={{ height: 32, maxWidth: 150 }} />
@@ -10193,7 +10569,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 </div>
               )}
               {items.length > 0 && (
-                <div className="flex flex-col gap-2.5 mt-3">
+                <div className="flex flex-col gap-2.5 mt-4">
                   {items.map((it, i) => (
                     <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
                               onAnnotate={live ? null : () => onAnnotate && onAnnotate(it.angle)}
@@ -10203,48 +10579,145 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 </div>
               )}
             </div>
-          </Fold>
+          </div>
+          <Docked><Button tone="ink" onClick={() => setView("main")}>{tr("Done")}</Button></Docked>
+          {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
+        </div>
+      </SwipeBack>
+    );
+  }
 
-          {/* ---------- what next: drills, a tip, a rating ask — one row, unfolds ---------- */}
-          <Fold label={nextDrills.length || nextTip ? `${tr("What next")} · ${[nextDrills.length ? `${nextDrills.length} ${nextDrills.length === 1 ? tr("drill") : tr("drills")}` : null, nextTip ? tr("a tip") : null].filter(Boolean).join(", ")}` : tr("Set drills or a tip")} open={openNext} onOpen={setOpenNext} tour="wiz-next-row">
-            <div className="pt-4">
-              <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("To practise")}</div>
+  /* ================================================================
+     WHAT NEXT?
+  ================================================================ */
+  if (view === "next") {
+    const prompts = (tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4);
+    const addOwn = (v) => { hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill(""); onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); };
+    return (
+      <SwipeBack key="next" onBack={back}>
+        <div key="next" className="flex flex-col h-full relative" style={{ background: t.page }}>
+          <Bar onBack={back} />
+          <div className="flex-1 overflow-y-auto pb-6">
+            <Hero sub={subject}>{tr("What next?")}</Hero>
+            <div className="px-6">
+              <Label>{tr("Drills to set")}</Label>
               <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
                 {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d) => {
                   const on = nextDrills.includes(d.t);
-                  return <button key={d.t} aria-pressed={on} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }} className="px-3.5 active:opacity-60" style={chip(on, true)}>{d.t}</button>;
+                  return <button key={d.t} aria-pressed={on} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }} className="active:opacity-60" style={areaChip(on)}>{d.t}</button>;
                 })}
               </div>
-              <div className="flex gap-2 mt-3">
-                <div className="flex-1"><VoiceInput value={ownDrill} onChange={setOwnDrill} ph={tr("Add your own")} /></div>
-                <button onClick={() => { const v = ownDrill.trim(); if (!v) return;
-                          hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill("");
-                          onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); }}
-                        disabled={!ownDrill.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
-                        style={{ width: 46, minHeight: 46, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}>
-                  <Plus size={16} color="#fff" strokeWidth={2.1} />
-                </button>
+              <div className="flex items-center gap-2 px-4 mt-3" style={{ minHeight: 54, borderRadius: R.pill, background: t.wash }}>
+                <input value={ownDrill} placeholder={tr("Add your own")} enterKeyHint="done" onChange={(e) => setOwnDrill(e.target.value)}
+                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const v = ownDrill.trim(); if (v) addOwn(v); } }}
+                       aria-label={tr("Add your own")} className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+                <MicBtn size={28} onText={(txt) => setOwnDrill(ownDrill ? `${ownDrill} ${txt}` : txt)} />
+                {ownDrill.trim() && <button onClick={() => addOwn(ownDrill.trim())} className="active:opacity-50" style={{ ...TYPE.caption, fontWeight: 600, color: t.ink }}>{tr("Add")}</button>}
               </div>
-              <div className="mt-5 mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("One thing to remember")}</div>
-              <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip} ph={tipPrompts && tipPrompts[0] ? tipPrompts[0] : tr("One sentence")} /></div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {(tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4).map((tp) => (
-                  <button key={tp} aria-pressed={nextTip === tp} onClick={() => { haptic(6); soft(); setNextTip(nextTip === tp ? "" : tp); }} className="px-3.5 active:opacity-60" style={chip(nextTip === tp, true)}>{tp}</button>
-                ))}
-              </div>
-              {showReviewAsk && (
-                <div className="flex items-center gap-3 mt-5" style={{ minHeight: 52, borderTop: hair }}>
-                  <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Ask")} {first} {tr("for a rating")}</span>
-                  <Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />
+              <div style={{ height: 16 }} />
+              <Label>{tr("One thing to remember")}</Label>
+              <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip} ph={prompts[0] || tr("One sentence")} /></div>
+              {prompts.length > 0 && (
+                <div className="flex flex-wrap mt-3" style={{ gap: 6 }}>
+                  {prompts.map((tp) => (
+                    <button key={tp} aria-pressed={nextTip === tp} onClick={() => { haptic(6); soft(); setNextTip(nextTip === tp ? "" : tp); }} className="active:opacity-60" style={smallChip(nextTip === tp)}>{tp}</button>
+                  ))}
                 </div>
               )}
             </div>
-          </Fold>
+          </div>
+          <Docked><Button tone="ink" onClick={() => setView("main")}>{tr("Done")}</Button></Docked>
+        </div>
+      </SwipeBack>
+    );
+  }
+
+  /* ================================================================
+     THE LOG
+  ================================================================ */
+  const dateIso = `${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`;
+  const maxIso = `${today.y}-${String(today.m).padStart(2, "0")}-${String(today.d).padStart(2, "0")}`;
+  return (
+    <SwipeBack key="main" onBack={onCancel}>
+      <div key="main" className="flex flex-col h-full relative" style={{ background: t.page }}>
+        <Bar onBack={onCancel} close />
+        <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-6 pt-3" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+            <button onClick={() => { haptic(6); cameFromMain.current = true; setView("who"); }} className="w-full text-left active:opacity-60" style={{ minHeight: 44 }}
+                    onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
+                    onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onPointerCancel={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                    onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}>
+              <span className="inline-flex items-end gap-1.5" style={{ maxWidth: "100%" }}>
+                <span style={{ ...TYPE.hero, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{heroText}</span>
+                <ChevronDown size={16} color={t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
+              </span>
+            </button>
+            <div data-tour="wiz-when" className="relative flex items-center mt-1" style={{ minHeight: 32 }}>
+              <span style={{ ...TYPE.small, color: t.sub }}>{dateLine}</span>
+              {needsDate && <ChevronDown size={12} color={t.faint} strokeWidth={2} style={{ marginLeft: 4 }} />}
+              {needsDate && (
+                <input type="date" aria-label={tr("Date")} value={dateIso} max={maxIso}
+                       onClick={(e) => { try { if (e.currentTarget.showPicker) e.currentTarget.showPicker(); } catch (err) { /* the tap itself opens it */ } }}
+                       onChange={(e) => { const parts = e.target.value.split("-"); if (parts.length === 3 && parts[0]) { setLogY(Number(parts[0])); setLogM(Number(parts[1])); setLogD(Number(parts[2])); } }}
+                       className="absolute inset-0 w-full h-full" style={{ opacity: 0 }} />
+              )}
+            </div>
+            {who.length >= 3 && !pickedGroup && onSaveGroup && (
+              savingGroup
+                ? <div className="mt-2"><InlineField ph={tr("Group name")} commitOnBlur={false} onCancel={() => setSavingGroup(false)}
+                    onCommit={async (name) => { hapticSuccess(); const ok = await onSaveGroup({ name, members: who.map((r) => r.name), memberIds: who.map((r) => r.id) }); if (alive.current) { if (ok !== false) setPickedGroup(name); setSavingGroup(false); } }} /></div>
+                : <div className="mt-1"><TextBtn color={t.sub} onClick={() => setSavingGroup(true)}>{tr("Save as group")}</TextBtn></div>
+            )}
+          </div>
+
+          {(stages.length > 0 || cfg.mount) && (
+            <div className="px-1" style={{ marginTop: 22 }}>
+              {stages.length > 0 && <Row label={tr("Stage")} value={stageValue || null} valueColor={stageTouched ? t.ink : t.sub} chevron tour="wiz-stage" onToggle={() => setView("stage")} last={!cfg.mount} />}
+              {cfg.mount && <Row label={cfg.mount.label} value={mount.trim() || null} valueColor={stageTouched ? t.ink : t.sub} chevron onToggle={() => setView("mount")} last />}
+            </div>
+          )}
+
+          <div className="px-6" style={{ marginTop: 26 }}>
+            <div style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 12 }}>{tr("Worked on")}</div>
+            <div className="flex flex-wrap gap-2" data-tour="wiz-focus">
+              {cfg.focus.map((f) => {
+                const on = focus.includes(f.id);
+                return <button key={f.id} aria-pressed={on} onClick={() => { haptic(6); tog(focus, setFocus, f.id); if (on) setSubPick(subPick.filter((x) => !f.subs.includes(x))); }} className="active:opacity-60" style={areaChip(on)}>{f.label}</button>;
+              })}
+              {custom.map((c) => (
+                <span key={c} className="flex items-center gap-2" style={areaChip(true)}>
+                  {c}<button onClick={() => { haptic(6); setCustom(custom.filter((x) => x !== c)); }} aria-label={`${tr("Remove")} ${c}`}><X size={12} color="rgba(255,255,255,0.7)" /></button>
+                </span>
+              ))}
+              {otherOpen
+                ? <div style={{ minWidth: 200, flex: "1 1 200px" }}><InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom(custom.includes(x) ? custom : [...custom, x]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} /></div>
+                : <button onClick={() => { haptic(6); setOtherOpen(true); }} className="flex items-center gap-1.5 active:opacity-60" style={{ ...areaChip(false), color: t.sub, paddingLeft: 12 }}><Plus size={13} color={t.sub} strokeWidth={2} />{tr("Other")}</button>}
+            </div>
+            {chosenAreas.some((f) => f.subs && f.subs.length) && (
+              <div className="flex flex-wrap mt-3" style={{ gap: 6, animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
+                {chosenAreas.flatMap((f) => f.subs || []).map((sb) => {
+                  const on = subPick.includes(sb);
+                  return <button key={sb} aria-pressed={on} onClick={() => { haptic(5); tog(subPick, setSubPick, sb); }} className="active:opacity-60" style={smallChip(on, true)}>{sb}</button>;
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="px-1" style={{ marginTop: 26 }}>
+            <WizNotesRow label={tr("Notes")} value={notesValue} tour="wiz-notes" onOpen={() => setView("notes")}
+                         onText={(txt) => setNote(note ? `${note} ${txt}` : txt)} />
+            <Row label={tr("What next")} value={nextValue} valueColor={t.sub} chevron tour="wiz-plan" onToggle={() => setView("next")} last={!showReviewAsk} />
+            {showReviewAsk && (
+              <Row label={`${tr("Ask")} ${first} ${tr("for a rating")}`} right={<Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />} last />
+            )}
+          </div>
           <div style={{ height: 30 }} />
         </div>
 
         <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: hair }}>
-          <div data-tour="wiz-next"><Button disabled={!canLog} onClick={submit}>{L.publish}</Button></div>
+          <div data-tour="wiz-next" style={{ opacity: busy ? 0.6 : 1, transition: "opacity 160ms" }}><Button disabled={!canLog} onClick={submit}>{busy ? tr("Logging…") : L.publish}</Button></div>
         </div>
         {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
       </div>
@@ -11321,6 +11794,80 @@ function ImportRoster({ close, say, noun, nouns, code }) {
 
 /* Multi-stage group creator: name → members → weekly schedule.
    Submitting spins up recurring bookings and a group chat thread. */
+/* A coach making a group. They run it — adding, removing and setting
+   the group's own drills — which is why the group is created
+   from their side and never a player's. */
+function CreateGroup({ roster, nouns, onCreate, close, say }) {
+  const t = useT();
+  const [name, setName] = useState("");
+  const [members, setMembers] = useState([]);
+  const [day, setDay] = useState(5);
+  const [time, setTime] = useState("2:00 pm");
+  const [weeks, setWeeks] = useState(6);
+  const toggle = (n) => { haptic(6); soft(); setMembers(members.includes(n) ? members.filter((x) => x !== n) : [...members, n]); };
+
+  return (
+    <>
+      <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New group")}</h2>
+      <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
+
+      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+        {members.length ? `${members.length} ${nouns}` : tr("Members")}
+      </div>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {roster.map((r, i) => {
+          const on = members.includes(r.name);
+          return (
+            <button key={r.id || r.name} onClick={() => { haptic(9); soft(); toggle(r.name); }} className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
+                    style={{ minHeight: 42, borderRadius: R.pill, background: on ? t.ink : t.surface,
+                             border: `1px solid ${on ? t.ink : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
+              <Avatar name={r.name} size={30} />
+              <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{r.name.split(" ")[0]}</span>
+              {on && <Check size={12} color={STEADY} strokeWidth={2.1} />}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
+      <div className="flex gap-1.5 mb-3">
+        {DAY_NAMES.map((d, i) => {
+          const on = day === i;
+          return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
+                          style={{ minHeight: 42, borderRadius: R.control, background: on ? STEADY : t.wash,
+                                   fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.onAccent : t.sub,
+                                   transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{d.slice(0, 2)}</button>);
+        })}
+      </div>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {ALL_TIMES.slice(0, 6).map((tm) => {
+          const on = time === tm;
+          return (<button key={tm} onClick={() => { haptic(5); setTime(tm); }} className="px-3.5 active:opacity-60"
+                          style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.accent : t.wash,
+                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{tm}</button>);
+        })}
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("How many weeks")}</span>
+        <span className="flex items-center gap-3">
+          <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
+          <span style={{ fontFamily: display, fontSize: 22, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
+          <button onClick={() => { haptic(5); setWeeks(Math.min(20, weeks + 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
+        </span>
+      </div>
+
+      <Button disabled={!name.trim() || members.length < 2}
+              onClick={() => { onCreate({ name: name.trim(), members, day, time, weeks }); close(); }}>
+        {tr("Create group")}
+      </Button>
+      <p className="mt-3 text-center" style={{ ...TYPE.caption, color: t.faint }}>{tr("You'll manage it")}</p>
+    </>
+  );
+}
+
+
 const DRILL_SECONDS = (text) => {
   const m = /(\d+)\s*(second|sec|minute|min)/i.exec(text || "");
   if (!m) return null;
@@ -12023,21 +12570,26 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       })()}
 
       {role === "coach" && (
-        <div className="px-6 mb-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-          {[
-            { id: "recurring", tour: "cal-recurring", label: tr("Recurring lessons"), sub: tr("Standing slots you keep each week"), Icon: CalendarDays, act: () => onRecurring && onRecurring() },
-            { id: "events", tour: "cal-events", label: tr("Competitions"), sub: tr("What your players are building towards"), Icon: Trophy, act: () => push("events") },
-          ].map((r) => (
-            <button key={r.id} data-tour={r.tour} onClick={() => { haptic(9); soft(); r.act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-              <r.Icon size={17} color={t.sub} strokeWidth={1.7} />
-              <span className="flex-1 min-w-0">
-                <span className="block" style={{ ...TYPE.body, color: t.ink }}>{r.label}</span>
-                <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{r.sub}</span>
-              </span>
-              <ChevronRight size={15} color={t.faint} />
-            </button>
-          ))}
+        <div className="px-6 mb-4">
+          <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
+                  onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
+                  onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                  className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-80"
+                  style={{ minHeight: 66, borderRadius: R.surface, background: `${t.accent}0F`,
+                           border: `1px solid ${t.accent}1C`, willChange: "transform",
+                           transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
+                           animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
+            <span className="rounded-full flex items-center justify-center shrink-0"
+                  style={{ width: 38, height: 38, background: t.accent }}>
+              <CalendarDays size={17} color={t.onAccent} strokeWidth={2.1} />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Recurring lessons")}</span>
+              <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Standing slots you keep each week")}</span>
+            </span>
+            <ChevronRight size={16} color={t.accent} />
+          </button>
         </div>
       )}
 
@@ -13781,6 +14333,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* which lesson the register was opened for, so tapping Register on a
      row lands on that lesson rather than the sheet's own guess */
   const [attendFor, setAttendFor] = useState(null);
+  const [pickFor, setPickFor] = useState(null);   // what we are choosing a player for
   const [captureItems, setCaptureItems] = useState([]);
   const [prefs, setPrefsLocal] = useState(sc && sc.logView ? { ...PREF_DEFAULTS, logView: sc.logView } : PREF_DEFAULTS);
   /* With a real account, preferences live in the database. The setter
@@ -14523,11 +15076,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const mineOnly = (list) => (list || []).filter((l) => !account || l.playerId === account.id || (l.attendeeIds || []).includes(account.id));
   /* the coach's archive is everything they gave; anyone else's is their own */
   const archive = data ? (role === "coach" ? taught(data.lessons) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
-  /* ONE SYSTEM. The sport never colours the app: paper, ink, the brand
-     green and the four semantic colours are the same in golf and padel,
-     and a sport shows only as a small tag where a coach has more than
-     one. Six tinted apps read as six apps bolted together. */
-  const base = NEUTRAL;
+  const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
   const screen = stack[stack.length - 1];
@@ -14638,7 +15187,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      coach changes it only when it has changed. Read from the tags on
      the lesson row — nothing extra is stored. */
   const lastFor = useMemo(() => {
-    if (!data) return null;
+    if (!data) {
+      /* the harness: every seeded person was last logged at the sport's
+         newest seed lesson, so the log opens on a stage. Gated on !data —
+         nothing here reaches a real account. */
+      const l0 = (cfg.lessons || [])[0];
+      if (!l0) return null;
+      const seed = { stage: stageOf(cfg, l0), extras: extraOf(cfg, l0), mount: mountOf(l0) };
+      if (!seed.stage && !seed.extras.length && !seed.mount) return null;
+      return Object.fromEntries(ROSTER.map((r) => [r.id, seed]));
+    }
     const out = {};
     for (const l of taught(data.lessons)) {
       const ids = l.playerId ? [l.playerId] : (l.attendeeIds || []);
@@ -14650,6 +15208,26 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         if (stage || extrasHit.length || mount) out[id] = { stage, extras: extrasHit, mount };
       }
     }
+    return out;
+  }, [data, cfg]);
+  /* Who was logged most recently (five), and which horses, for the log's
+     Who and Which horse pages. The harness orders its roster by `last`. */
+  const recentForLog = useMemo(() => {
+    if (!data) return [...ROSTER].sort((a, b) => (a.last ?? 99) - (b.last ?? 99)).slice(0, 5).map((r) => ({ id: r.id, daysAgo: r.last ?? null }));
+    const out = []; const seen = new Set();
+    for (const l of taught(data.lessons)) {
+      for (const id of (l.playerId ? [l.playerId] : (l.attendeeIds || []))) {
+        if (seen.has(id)) continue;
+        seen.add(id); out.push({ id, date: l.iso || null });
+        if (out.length === 5) return out;
+      }
+    }
+    return out;
+  }, [data]);
+  const recentMounts = useMemo(() => {
+    const src = data ? taught(data.lessons) : (cfg.lessons || []);
+    const out = [];
+    for (const l of src) { const m = mountOf(l); if (m && !out.includes(m)) out.push(m); if (out.length === 6) break; }
     return out;
   }, [data, cfg]);
   /* The coach's next three confirmed lessons after today, for the home
@@ -14794,10 +15372,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          the people the coach just ticked. */
       const saved = isGroup ? (myGroups || []).find((g) => g.name === (l.groupName || named)) : null;
       const savedIds = saved && saved.memberIds && saved.memberIds.length ? saved.memberIds : null;
+      /* the wizard's ids win whenever it hands them — an unticked
+         absentee never receives the lesson; a saved group's members are
+         the fallback only when the log carried no ids */
       const attendeeIds = !isGroup ? []
-        : savedIds || (pickedIds.length ? pickedIds
-          : (saved && saved.members ? saved.members : names)
-              .map((n) => ((data.roster || []).find((r) => r.name === n) || {}).id).filter(Boolean));
+        : pickedIds.length ? pickedIds
+          : savedIds || (saved && saved.members ? saved.members : names)
+              .map((n) => ((data.roster || []).find((r) => r.name === n) || {}).id).filter(Boolean);
       /* The lesson was actually logged for whichever day the coach
          picked in the wizard's own date step — not necessarily today. */
       const year = l.y || new Date().getFullYear();
@@ -14820,7 +15401,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (!res || res.error || !res.lesson) {
         hapticWarn();
         say((res && res.error && res.error.message) || tr("Couldn't save the lesson"));
-        return;
+        return false;
       }
       const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
       lastLogged.current = { id: res.lesson.id, pending: false };
@@ -15001,6 +15582,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setActiveId(id); go("home"); say(`Connected with ${coachInfo.name}`);
   };
 
+  const saveGroupQuick = async (g) => {
+    if (data) {
+      const cur = (data.prefs && data.prefs.groups) || [];
+      if (cur.some((x) => (x.name || "").toLowerCase() === g.name.toLowerCase())) { hapticWarn(); say(tr("You already have a group with that name.")); return false; }
+      const rec = { id: `g-${Date.now()}`, name: g.name, members: g.members, memberIds: g.memberIds, createdAt: new Date().toISOString() };
+      const r1 = await data.saveGroups([...cur, rec]);
+      if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save the group.")); return false; }
+      return true;
+    }
+    setGroups((prev) => ({ ...prev, [coachSport]: [...(prev[coachSport] || []), { id: Date.now(), name: g.name, members: g.members, memberIds: g.memberIds, sport: coachSport }] }));
+    return true;
+  };
   const createGroup = async (g) => {
     if (data) {
       /* the picker hands over ids; resolving the names again would
@@ -15188,7 +15781,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const tabs = role === "coach"
     /* a coach's family, if they have one, lives under You — the bar is
        already five wide and the roster is the thing they open all day */
-    ? [{ id: "today", icon: Home, label: tr("Now") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Players") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+    ? [{ id: "today", icon: Home, label: tr("Today") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, { id: "quick", icon: Plus, raised: true }, { id: "roster", icon: Users, label: tr("Roster") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
     : (data && account && account.accountType === "parent")
       /* a parent's home is the family: their children's lessons are
          the lessons, the diary is the children's, chat is with the
@@ -15429,7 +16022,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
                          live={!!data} mediaFor={data ? data.lessonMedia : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
                          attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][seedId(cname)]) || null; })()}
-                         onDuplicate={(l) => { setPrefill({ who: l.who, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
+                         onDuplicate={(l) => { setPrefill({ who: l.who, playerId: l.playerId || null, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
                          onEdit={data ? (l) => { setEditLesson(l); setSheet("lessonEdit"); } : null}
                          onDelete={data ? (l) => { setEditLesson(l); setSheet("lessonDelete"); } : null}
                          onRemoveMedia={data ? async (l, item) => {
@@ -15693,7 +16286,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : null} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)} lastFor={lastFor} todayIds={data ? (todayList || []).map((b) => b.playerId).filter(Boolean) : []} onPublish={(l) => { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); publish(l); }} onCancel={() => { setPrefill(null); go("today"); }} startAt={sc ? sc.wizardStep : undefined} />,
+      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)}
+                         lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
+                         recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
+                         onAddPlayer={() => setSheet("invite")} onSaveGroup={saveGroupQuick}
+                         onPublish={async (l) => { const r = await publish(l); if (r !== false) { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); } return r; }} onCancel={() => { setPrefill(null); go("today"); }} startView={sc ? sc.wizardView : undefined} />,
     }[screen] || coachToday;
   } else if (!conn) {
     body = (
@@ -15941,7 +16538,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
           {!bare && !familyGuide && (
             <TabBar tabs={tabs} theme={theme} dark={dark}
-                    onSelect={(id) => { if (id === "quick") { hapticCommit(); soft(); setPrefill(null); go("log"); return; } go(id); }}
+                    onSelect={(id) => { if (id === "quick") { hapticCommit(); soft(); setSheet("quick"); return; } go(id); }}
                     /* go() resets the stack to a single tab id; push() only ever
                        adds on top of it. So stack[0] is always the tab a
                        navigation branch began from — correct at any depth,
@@ -15954,7 +16551,31 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           )}
 
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
-            {sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
+            {sheet === "pickWho" ? <PickPerson roster={roster}
+                                            title={pickFor === "tip" ? tr("Set a tip") : tr("Set drills")}
+                                            sub={tr("Who is it for?")}
+                                            onPick={(r) => {
+                                              setSheet(null);
+                                              setTimeout(() => {
+                                                if (pickFor === "tip") { setAssignTo(r); setSheet("tip"); }
+                                                else openAssignDrills(r);
+                                              }, 180);
+                                            }}
+                                            close={() => setSheet(null)} />
+            : sheet === "quick" ? <QuickMenu liveLesson={liveNow}
+                                            onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
+                                            onRun={(id) => {
+                                              const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
+                                              if (id === "attend")  return later(() => { setAttendFor(null); setSheet("attend"); });
+                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
+                                              if (id === "tip")     { setPickFor("tip");    return later(() => setSheet("pickWho")); }
+                                              if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
+                                              if (id === "player")  return later(() => setSheet("invite"));
+                                              if (id === "group")   return later(() => setSheet("newGroup"));
+                                              if (id === "message") return later(() => setSheet("newThread"));
+                                              if (id === "comp")    { setSheet(null); push("events"); }
+                                            }} />
+            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
@@ -16174,6 +16795,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onSend={(f, n) => { setFocusReqs((v) => [...v, { who: activeProfile.name, focus: f, note: n }]);
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
+              : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
+                                            onCreate={(g) => { if (data) { createGroup(g); return; }
+                                              setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
+                                              done(tr("Group created"), `${g.name} · ${g.members.length}`); }}
+                                            close={() => setSheet(null)} say={say} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             /* a real thread is found by id; the harness's seeded
