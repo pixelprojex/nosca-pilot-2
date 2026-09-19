@@ -9742,7 +9742,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                   <Avatar name={r.who} size={34} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
-                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Asked for")} {r.d} {monthName(r.m)} · {r.time}</span>
+                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{r.d} {monthName(r.m).slice(0, 3)} · {r.time}</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-3 pl-12">
@@ -10710,10 +10710,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* Six boxes, one tap each: the clip opens the camera itself, the
               note opens the page that is only a note. Nothing here is a
               sentence and nothing takes two taps to reach. */}
-          <div className="px-6" style={{ marginTop: 26 }} data-tour="wiz-media">
+          <div className="px-6" style={{ marginTop: 26 }}>
             <TileGrid>
               <ActTile tour="wiz-notes" Icon={Edit3} label={tr("Note")} dot={!!note} aria={notesValue ? `${tr("Note")} · ${notesValue}` : tr("Note")} onTap={() => setView("notes")} />
-              <ActTile Icon={Camera} label={tr("Clip")} count={videos.length}
+              <ActTile tour="wiz-media" Icon={Camera} label={tr("Clip")} count={videos.length}
                     onTap={() => (live ? pickFiles("video/*", "environment") : setCam(true))} />
               <ActTile Icon={ImageIcon} label={tr("Photo")} count={photos.length}
                     onTap={() => (live ? pickFiles("image/*", "environment") : addPhoto("action"))} />
@@ -11000,6 +11000,11 @@ function JuvenileJoin({ sport, onDone, onBack }) {
     </Frame>
   );
 }
+
+/* What kind of thing happened, as one icon. The bell is the fallback so
+   a kind nobody has taught this map still draws something. */
+const NOTIF_ICON = { booking: CalendarDays, request: UserPlus, message: MessageCircle, lesson: Library,
+                     weather: Radio, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Sparkles };
 
 /* Everything a coach has ever logged, searchable. Fifty players over a
    season is a lot of lessons to scroll, so search and filters carry it. */
@@ -13892,10 +13897,15 @@ function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family =
     const earlier = items.filter((n) => new Date(n.createdAt) < startOfToday);
     const Line = ({ n, i }) => (
       <SwipeRow key={n.id} deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
-        <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }} className="w-full flex items-start gap-3.5 px-1 text-left active:opacity-60"
+        <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }} className="w-full flex items-start gap-3 px-1 text-left active:opacity-60"
                 style={{ minHeight: 60, paddingTop: 13, paddingBottom: 13, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}`,
                          animation: `settle 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 10) * 30}ms both` }}>
-          <span className="rounded-full shrink-0" style={{ width: 7, height: 7, marginTop: 7, background: n.readAt ? "transparent" : t.accent }} />
+          {/* the kind, as an icon: unread tints it, read leaves it grey */}
+          {(() => { const K = NOTIF_ICON[n.kind] || Bell; return (
+            <span className="rounded-full flex items-center justify-center shrink-0"
+                  style={{ width: 34, height: 34, background: n.readAt ? t.wash : `${t.accent}1A` }}>
+              <K size={16} color={n.readAt ? t.faint : t.accent} strokeWidth={1.8} />
+            </span>); })()}
           <span className="flex-1 min-w-0">
             <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 500, color: t.ink }}>{n.title}</span>
             {n.body && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{n.body}</span>}
