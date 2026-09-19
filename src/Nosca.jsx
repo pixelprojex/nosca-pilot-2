@@ -10017,8 +10017,8 @@ const WizGroupRow = ({ g, caption, on, onName, onCircle }) => {
 const WizNotesRow = ({ label, value, onOpen, onText, tour }) => {
   const t = useT();
   return (
-    <div data-tour={tour} className="w-full flex items-center gap-3.5 px-5" style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
-      <button onClick={() => { haptic(6); onOpen(); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62 }}>
+    <div className="w-full flex items-center gap-3.5 px-5" style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
+      <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62 }}>
         <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, letterSpacing: "-0.005em", color: t.ink }}>{label}</span>
         {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: t.sub, maxWidth: "58%" }}>{value}</span>}
       </button>
