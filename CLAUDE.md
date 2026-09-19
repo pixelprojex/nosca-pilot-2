@@ -182,18 +182,33 @@ seeded data and no account.
 - **Only tips. No goals.** Competitions are the goals.
 - **The one behaviour: a coach picks up the phone mid-lesson, does one
   thing in seconds, puts it down.** Every coach screen is judged
-  against that. The raised plus does one thing — it opens the log. The
-  old plus menu is gone; what it held lives where it belongs: register
-  and capture on the lesson (the row that is on now, and the peek
-  sheet), drills and tips on the player file, a new player on Players,
-  a message on Chat, competitions in the diary.
-- **Logging a lesson is one screen.** Who (chips, today's people first,
-  pre-ticked from a booking) · Stage · Worked on · then two rows that
-  unfold only if wanted (note, clip, photo, voice · drills, a tip, the
-  rating ask) · **Log it**. Nothing is a page to get through.
-  `publish()` writes the lesson first and only then sets the drills and
-  the tip for every recipient (each attendee of a group) and raises the
-  burst; a failed write is said, never celebrated.
+  against that. The raised plus opens the plus menu: Log a lesson as
+  its accent row, then Attendance, Live capture, Set a tip, Set drills,
+  Add player, New group, Message and Competition as plain rows. It was
+  removed once in favour of "the plus opens the log" and the founder
+  wanted every row back the same day; the menu is the coach's muscle
+  memory. Register and capture are also on the lesson itself (the row
+  that is on now, the peek sheet), drills and tips on the player file.
+- **Logging a lesson is a confirmation screen, with the lists one tap
+  deep.** The log shows the name (tap it to change who), the day, the
+  Stage row reading exactly the tags that will be written (`HI 18.4`,
+  `Green ball · U10`), the Horse or pony row for equestrian, one chip
+  cluster for Worked on with the sub-areas underneath, then Notes,
+  What next and the first-lesson rating row, and **Log it**. Who was
+  it?, What stage?, Which horse?, How did it go? and What next? are
+  full-height pages inside the Wizard's own `view` state — never the
+  app's single `<Sheet>`, never chips for people. Who lists On now,
+  Today, Recent, Groups and Everyone A–Z with a search pill above eight
+  people (prefix on any word, diacritic-insensitive; Return picks the
+  top match); one tap on a name picks and returns, the circle ticks and
+  stays. A stage change is row then rung; the rung returns by itself.
+  The date reads Today / Yesterday / `Sat 19 Sep`, never a native
+  value; the transparent `<input type="date">` sits over that line
+  only when no booking anchored the day. From a booking: one chip and
+  Log it. `publish()` writes the lesson first and only then sets the
+  drills and the tip for every recipient (the wizard's ids win over a
+  saved group's members) and raises the burst; a failed write is said,
+  never celebrated, and Log it reads "Logging…" while the write runs.
 - **Every sport's taxonomy is the real one, verified against the
   governing body — never invented.** `SPORTS[x].stages` is the ladder a
   coach places a player on before anything else (tennis Red · Orange ·
@@ -212,11 +227,12 @@ seeded data and no account.
   `areaSubsOf()` read them back; `lastFor` remembers each player's last
   stage so the log opens on it. A riding lesson without the horse on it
   is the biggest tell to a riding coach.
-- **One palette for the whole app.** `NEUTRAL` (paper, ink, three
-  greys, the brand green, four semantic colours) is the theme inside a
-  sport as well as before one. The sport never colours the app; a
-  sport shows as a tag where a coach has more than one. Six tinted apps
-  read as six apps bolted together.
+- **The sport tints the app inside a sport; `NEUTRAL` before one.**
+  `const base = inApp ? cfg.theme : NEUTRAL` — paper, ink and the greys
+  are shared, the accent and wash are the sport's, and the four semantic
+  colours never change. It was collapsed to one palette once and the
+  founder called the result outrageous within the hour; the tint is the
+  approved look. The accent appears once a screen (the one action).
 - **A player's diary knows the coach's taken times, never whose.**
   `coach_busy_slots(p_player)` is a security-definer function returning
   date, time and length of the coach's requested and confirmed
