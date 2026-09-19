@@ -167,7 +167,7 @@ const leaks = [];
       await page.locator('[data-tour="roster-row"]').first().click(); await page.waitForTimeout(900);
       const t3 = await leak("coach player file"); await shot("17-coach-player");
       check("(c) the player file is the real person with no borrowed history", t3.includes("Cian Murphy") && !t3.includes("Short game") && t3.includes("Nothing logged for Cian yet"), t3.slice(0, 200));
-      await click(page, "Set drills");
+      await click(page, "Drills");
       const t4 = await text(); await shot("18-coach-assign");
       check("(c) the drill sheet is for that player", t4.includes("Drills for Cian"), t4.slice(0, 200));
       /* a real coach's library starts empty — the sports' starter drills are
@@ -176,8 +176,8 @@ const leaks = [];
       await page.locator("button", { hasText: /^Set \d drill/ }).first().click(); await page.waitForTimeout(1500);
       const d1 = last(db.posts, "drills");
       check("(c) Set drills POSTs a drill row per drill for the player", !!d1 && d1.rows.length >= 1 && d1.rows.every((r) => r.player_id === IDS.adult && r.coach_id === IDS.coach && r.title), JSON.stringify(d1 && d1.rows));
-      await click(page, "More");
-      await click(page, "What they're working on");
+      /* the tip is a tile on the player file now, not a row in the fold */
+      await page.locator('[data-tour="player-actions"] button[aria-label="Tip"]').first().click(); await page.waitForTimeout(700);
       await page.fill('input[placeholder="Short headline"]', "Tempo on the long irons");
       await click(page, "Set as their focus", 1500);
       const tp = last(db.posts, "tips");
@@ -293,7 +293,7 @@ const leaks = [];
       const hsrc = (await hdr.count()) ? await hdr.first().getAttribute("src") : null;
       const t13 = await text(); await shot("33-coach-header-avatar");
       check("(f) the header avatar renders an <img> from the same public URL", !!hsrc && hsrc === src, `${hsrc} · ${t13.slice(0, 100)}`);
-      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && t13.includes("Your week"), t13.slice(0, 80));
+      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && t13.includes("YOUR HOURS"), t13.slice(0, 80));
       /* password */
       await tap(page, '[aria-label="Your profile"]');
       const t13b = await text();
@@ -322,7 +322,8 @@ const leaks = [];
 
       /* (h) invite routes */
       await tap(page, '[aria-label="Roster"]');
-      await page.locator("button", { hasText: "QW7X2M" }).first().click(); await page.waitForTimeout(900);
+      /* the invite is the accent control on Roster, not a line of text */
+      await page.locator('button[aria-label="Invite"]').first().click(); await page.waitForTimeout(900);
       const t14 = await text(); await shot("36-coach-invite-routes");
       const link = `${BASE}/?join=QW7X2M`;
       check("(h) the invite sheet shows the real join link", t14.includes("localhost") && t14.includes("?join=QW7X2M") && t14.includes("QW7X2M"), t14.slice(0, 200));

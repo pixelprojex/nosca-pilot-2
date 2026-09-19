@@ -3555,7 +3555,7 @@ const TOUR = {
     { area: "Log a lesson", title: "Who was it?", body: "Tap a name. Tick the circle to add more. The name at the top of the log brings you back here.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
     { area: "Log a lesson", title: "Their stage", body: "The ladder your sport really uses, remembered from last time. Tap to change it.", path: "Log a lesson → Stage", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
     { area: "Log a lesson", title: "What you worked on", body: "One tap or two. The detail under it is optional.", path: "Log a lesson → Worked on", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "Clips and photos", body: "Film now or pick from your library. They upload with the lesson and land on the player's phone.", path: "Log a lesson → Notes", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "notes" } },
+    { area: "Log a lesson", title: "Clips and photos", body: "One tap films, photographs or dictates. They upload with the lesson and land on the player's phone.", path: "Log a lesson", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
     { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → What next", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "next" } },
     { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Log a lesson → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
     { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
@@ -4369,31 +4369,19 @@ const QUICK_ACTIONS = {
    lesson. */
 const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
 function QuickMenu({ liveLesson, onLog, onRun }) {
-  const t = useT();
   return (
     <>
-      <button data-tour="quick-log" onClick={() => { hapticCommit(); soft(); onLog(); }}
-              className="w-full flex items-center gap-3.5 mb-4 text-left active:opacity-90"
-              style={{ minHeight: 60, padding: "0 20px", borderRadius: R.surface, background: t.accent }}>
-        <Plus size={19} color={t.onAccent} strokeWidth={2.3} />
-        <span className="flex-1" style={{ ...TYPE.subhead, fontSize: 16.5, color: t.onAccent }}>{tr("Log a lesson")}</span>
-      </button>
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-        {QUICK_ORDER.map((id) => {
-          const A = QUICK_ACTIONS[id];
-          const now = id === "attend" && liveLesson;
-          return (
-            <button key={id} data-tour={`quick-${id}`} onClick={() => { haptic(8); soft(); onRun(id); }}
-                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-              <A.Ico size={17} color={t.ink} strokeWidth={1.7} />
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>
-                {tr(A.label)}{now ? <span style={{ color: t.faint }}> · {liveLesson.who} · {tr("on now")}</span> : null}
-              </span>
-              <ChevronRight size={16} color={t.faint} strokeWidth={1.8} />
-            </button>
-          );
-        })}
+      <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
+      <div className="mt-2.5">
+        <TileGrid cols={2}>
+          {QUICK_ORDER.map((id) => {
+            const A = QUICK_ACTIONS[id];
+            return <ActTile key={id} tour={`quick-${id}`} h={78} Icon={A.Ico} label={tr(A.label)}
+                         dot={id === "attend" && !!liveLesson}
+                         aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
+                         onTap={() => onRun(id)} />;
+          })}
+        </TileGrid>
       </div>
     </>
   );
@@ -7379,6 +7367,39 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
                      transition: "transform 140ms cubic-bezier(.22,1,.36,1), opacity 140ms", willChange: "transform", ...looks }}>{children}</button>
   );
 }
+/* THE TILE
+
+   A big box: an icon, one word under it, nothing else. A coach hits it
+   with a thumb, mid-lesson, without reading. What it holds rides in the
+   corner as a count, so the box never grows a sentence. Tiles replace
+   every list of actions that used to be rows of words. */
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 86 }) {
+  const t = useT();
+  const bg = tone === "accent" ? t.accent : on ? t.ink : t.wash;
+  const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
+  const press = (v) => (e) => { e.currentTarget.style.transform = v; };
+  return (
+    <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
+            onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
+            onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
+            className="relative w-full flex flex-col items-center justify-center gap-2 active:opacity-80"
+            style={{ minHeight: h, borderRadius: R.surface, background: bg, willChange: "transform",
+                     transition: "background 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
+      <Icon size={h >= 96 ? 25 : 22} color={fg} strokeWidth={1.7} />
+      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.005em", color: fg }}>{label}</span>
+      {count > 0 && (
+        <span className="absolute flex items-center justify-center rounded-full"
+              style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
+                       fontFamily: ui, fontSize: 11, fontWeight: 700, color: on ? t.ink : t.page }}>{count}</span>
+      )}
+      {dot && !count && <span className="absolute rounded-full" style={{ top: 12, right: 12, width: 7, height: 7, background: on ? "#fff" : t.accent }} />}
+    </button>
+  );
+}
+const TileGrid = ({ children, cols = 3 }) => (
+  <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>{children}</div>
+);
+
 const TextBtn = ({ children, onClick, color, tour }) => {
   const t = useT();
   return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
@@ -10490,15 +10511,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
      HOW DID IT GO?
   ================================================================ */
   if (view === "notes") {
-    const tiles = [
-      live ? { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => pickFiles("video/*", "environment") }
-           : { id: "rec",  label: tr("Clip"),  Icon: Camera,    act: () => { haptic(10); setCam(true); } },
-      live ? { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => pickFiles("image/*", "environment") }
-           : { id: "shot", label: tr("Photo"), Icon: ImageIcon, act: () => addPhoto("action") },
-      live ? { id: "voice", label: voice ? tr("Voice ✓") : rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice"), Icon: Mic,
-               act: () => { if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }, on: rec === "recording" }
-           : { id: "lib",  label: tr("Library"), Icon: Library, act: () => { haptic(8); setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }]); } },
-    ];
     return (
       <SwipeBack key="notes" onBack={back}>
         <div key="notes" className="flex flex-col h-full relative" style={{ background: t.page }}>
@@ -10508,7 +10520,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <Hero sub={subject}>{tr("How did it go?")}</Hero>
             <div className="px-6">
               {live ? (
-                <VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={4} ph={tr("What happened, in a line or two")} />
+                <VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={9} ph={tr("What happened, in a line or two")} />
               ) : (<>
                 {rec === "idle" && !note && (
                   <button onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex items-center justify-center gap-3 active:opacity-70"
@@ -10531,16 +10543,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   </Card>
                 )}
               </>)}
-              <div className="grid grid-cols-3 gap-2 mt-4" data-tour="wiz-media">
-                {tiles.map((o) => (
-                  <button key={o.id} onClick={o.act} className="flex flex-col items-center justify-center gap-1.5 active:opacity-70"
-                          style={{ minHeight: 68, borderRadius: R.control, background: o.on ? t.ink : t.wash, transition: "background 180ms" }}>
-                    <o.Icon size={17} color={o.on ? "#fff" : t.ink} strokeWidth={1.7} />
-                    <span className="truncate px-1" style={{ ...TYPE.caption, fontWeight: 600, color: o.on ? "#fff" : t.ink }}>{o.label}</span>
-                  </button>
-                ))}
-              </div>
-              {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
               {waiting.length > 0 && (
                 <>
                   <Label right={waiting.length > 1 ? <TextBtn color={t.ink} onClick={pullAll}>{tr("Add all")}</TextBtn> : null}>{tr("Captured earlier")}</Label>
@@ -10705,14 +10707,42 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             )}
           </div>
 
-          <div className="px-1" style={{ marginTop: 26 }}>
-            <WizNotesRow label={tr("Notes")} value={notesValue} tour="wiz-notes" onOpen={() => setView("notes")}
-                         onText={(txt) => setNote(note ? `${note} ${txt}` : txt)} />
-            <Row label={tr("What next")} value={nextValue} valueColor={t.sub} chevron tour="wiz-plan" onToggle={() => setView("next")} last={!showReviewAsk} />
-            {showReviewAsk && (
-              <Row label={`${tr("Ask")} ${first} ${tr("for a rating")}`} right={<Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />} last />
+          {/* Six boxes, one tap each: the clip opens the camera itself, the
+              note opens the page that is only a note. Nothing here is a
+              sentence and nothing takes two taps to reach. */}
+          <div className="px-6" style={{ marginTop: 26 }} data-tour="wiz-media">
+            <TileGrid>
+              <ActTile tour="wiz-notes" Icon={Edit3} label={tr("Note")} dot={!!note} aria={notesValue ? `${tr("Note")} · ${notesValue}` : tr("Note")} onTap={() => setView("notes")} />
+              <ActTile Icon={Camera} label={tr("Clip")} count={videos.length}
+                    onTap={() => (live ? pickFiles("video/*", "environment") : setCam(true))} />
+              <ActTile Icon={ImageIcon} label={tr("Photo")} count={photos.length}
+                    onTap={() => (live ? pickFiles("image/*", "environment") : addPhoto("action"))} />
+              {live ? (
+                <ActTile Icon={Mic} on={rec === "recording"} count={voice ? 1 : 0}
+                      label={rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice")}
+                      aria={tr("Voice note")}
+                      onTap={() => { if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }} />
+              ) : (
+                <ActTile Icon={Library} label={tr("Library")} onTap={() => setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }])} />
+              )}
+              <ActTile tour="wiz-plan" Icon={ListChecks} label={tr("Drills")} count={nextDrills.length} onTap={() => setView("next")} />
+              <ActTile Icon={Lightbulb} label={tr("Tip")} dot={!!nextTip} aria={nextValue ? `${tr("Tip")} · ${nextValue}` : tr("Tip")} onTap={() => setView("next")} />
+            </TileGrid>
+            {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
+            {waiting.length > 0 && (
+              <button onClick={() => { haptic(8); setView("notes"); }} className="w-full flex items-center gap-3 mt-3 active:opacity-60"
+                      style={{ minHeight: 52, borderTop: hair, borderBottom: hair }}>
+                <Download size={16} color={t.sub} strokeWidth={1.8} />
+                <span className="flex-1 text-left" style={{ ...TYPE.body, color: t.ink }}>{waiting.length} {tr("captured earlier")}</span>
+                <ChevronRight size={16} color={t.faint} />
+              </button>
             )}
           </div>
+          {showReviewAsk && (
+            <div className="px-1" style={{ marginTop: 18 }}>
+              <Row label={`${tr("Ask")} ${first} ${tr("for a rating")}`} right={<Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />} last />
+            </div>
+          )}
           <div style={{ height: 30 }} />
         </div>
 
@@ -10787,7 +10817,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCo
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, live, lessons, player, onOpenLesson, onAllLessons }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -10897,13 +10927,13 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
             </div>
           )}
 
-          <div className="flex gap-2.5 mb-6" data-tour="player-actions">
-            <button onClick={() => { haptic(8); push("thread:" + (r.id || name)); }} className="flex-1 active:opacity-60"
-                    style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                             ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message")}</button>
-            <button onClick={() => { hapticCommit(); assignDrills(r.id ? r : name, null); }} className="flex-1 active:opacity-75"
-                    style={{ minHeight: 48, borderRadius: R.control, background: t.accent,
-                             ...TYPE.small, fontWeight: 600, color: t.onAccent }}>{tr("Set drills")}</button>
+          <div className="mb-6" data-tour="player-actions">
+            <TileGrid cols={4}>
+              <ActTile Icon={MessageCircle} label={tr("Message")} onTap={() => push("thread:" + (r.id || name))} />
+              <ActTile Icon={Lightbulb} label={tr("Tip")} dot={!!f.tip} onTap={() => assignTip(r.id ? r : name, null)} />
+              <ActTile Icon={ListChecks} label={tr("Drills")} onTap={() => assignDrills(r.id ? r : name, null)} />
+              <ActTile Icon={Plus} label={tr("Log")} tone="accent" onTap={() => onLog && onLog(r.id ? r : { name })} />
+            </TileGrid>
           </div>
 
           {/* everything else, folded away */}
@@ -10918,8 +10948,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
             <div style={{ animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               {[[tr("Recurring lessons"), () => onRecurring(name)],
                 [tr("Progress"), () => push("history:" + (r.id || name))],
-                ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]]),
-                [tr("What they're working on"), () => assignTip(r.id ? r : name, null)]].map(([lbl, act]) => (
+                ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]])].map(([lbl, act]) => (
                 <button key={lbl} onClick={act} className="w-full flex items-center text-left active:opacity-50"
                         style={{ minHeight: 52, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
                   <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
@@ -12437,7 +12466,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const dayLabel = `${DAY_NAMES[dowOf(mo.idx, sel, cx)]} ${sel} ${mo.name.split(" ")[0]}`;
 
   return (
-    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "Your week" : conn ? `with ${conn.coach}` : ""}>
+    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}>
       {/* Who this is for. An adult in a family books for the children as
           well as themselves, so the person is picked first and the hours
           shown are that person's coach's. The request then carries the
@@ -12586,7 +12615,6 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             </span>
             <span className="flex-1 min-w-0">
               <span className="block" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Recurring lessons")}</span>
-              <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{tr("Standing slots you keep each week")}</span>
             </span>
             <ChevronRight size={16} color={t.accent} />
           </button>
@@ -13343,27 +13371,27 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
       { label: tr("Reviews"), icon: Sparkles, tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
       !live && { label: tr("Paperwork"), icon: ShieldCheck, tour: "settings-credentials", onTap: () => push("credentials") },
-      !live && { label: tr("Requests"), sub: tr("Players asking to join you"), icon: UserPlus, tour: "settings-requests", onTap: () => push("requests") },
+      !live && { label: tr("Requests"), icon: UserPlus, tour: "settings-requests", onTap: () => push("requests") },
       demo && { label: tr("Subscription"), sub: `${BRAND} ${plan?.name || "Coach"}`, icon: ShieldCheck, onTap: () => push("subscription") },
-      !live && { label: tr("Weekly availability"), sub: tr("Days and times you coach"), icon: CalendarDays, tour: "settings-availability", onTap: () => push("availability") },
+      !live && { label: tr("Weekly availability"), icon: CalendarDays, tour: "settings-availability", onTap: () => push("availability") },
       !live && { label: tr("Roster & groups"), sub: `${cfg.nouns} · ${tr("and recurring groups")}`, icon: Users, tour: "settings-roster", onTap: () => push("roster") },
       live && { label: tr("Set yourself up"), icon: ListChecks, onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
         ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", icon: Library, onTap: () => push("myLessons") }
-        : { label: tr("Take lessons yourself"), sub: tr("Join a coach with their code"), icon: UserPlus, onTap: () => push("takeLessons") }),
+        : { label: tr("Take lessons yourself"), icon: UserPlus, onTap: () => push("takeLessons") }),
       { label: tr("Drills"), icon: Library, tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
       { label: tr("Lesson logs"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
-      !live && { label: tr("Branding"), sub: tr("Logo, colour, club name"), icon: Palette, tour: "settings-branding", onTap: () => push("branding") },
+      !live && { label: tr("Branding"), icon: Palette, tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code & QR"), value: inviteCode || "——————", icon: QrCode, tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
       prefs && { label: tr("Take attendance"), keys: ["register", "attendance", "roll"], custom: chips(tr("Take attendance"), prefs.attendance || "all",
         [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v)) },
-      prefs && { label: tr("Ask for a review"), sub: tr("Once, after a player's first lesson"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
+      prefs && { label: tr("Ask for a review"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
       (!live || hasDependants) && { label: tr("This month"), icon: TrendingUp, tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
       { label: tr("Family"), sub: live ? (familyName || tr("Start or join one")) : tr("Everyone you manage, in one place"), icon: Users, tour: "settings-dashboard",
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
       live ? { label: tr("Your coach"), sub: hasCoach ? (conn?.coach || "") : tr("Ask to join one with their code"), icon: UserPlus, tour: "settings-family", onTap: () => hasCoach ? push("coachProfile") : sheet("family"), keys: ["join", "code"] }
-           : { label: tr("Coaches & profiles"), sub: tr("Add a young person or another coach"), icon: UserPlus, tour: "settings-family", onTap: () => sheet("family") },
+           : { label: tr("Coaches & profiles"), icon: UserPlus, tour: "settings-family", onTap: () => sheet("family") },
       { label: tr("Lesson logs"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "file", "save"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
@@ -13395,7 +13423,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       multiSport && { label: tr("Main sport"), sub: mainLabel, icon: Tag, onTap: () => onMainSport && onMainSport() },
       { label: tr("Personal details"), icon: User, tour: "settings-details", onTap: () => push("details") },
       { label: tr("Notifications"), icon: Bell, tour: "settings-notifications", onTap: () => push("notifications") },
-      role === "player" && { label: tr("Your sporting record"), sub: tr("What each coach can see"), icon: Library, tour: "settings-transfer", onTap: () => sheet("transfer") },
+      role === "player" && { label: tr("Your sporting record"), icon: Library, tour: "settings-transfer", onTap: () => sheet("transfer") },
       { label: tr("Connections"), icon: Radio, tour: "settings-sources", onTap: () => push("sources") },
       { label: tr("Data & permissions"), icon: ShieldCheck, tour: "settings-data", onTap: () => push("legal:data") },
     ] },
@@ -15923,7 +15951,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
-                        pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip} />;
+                        pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip}
+                        onLog={(who) => { setPrefill({ who: who.name || pname, playerId: who.id || (pl ? pl.id : null), kind: "Private" }); go("log"); }} />;
   /* A coach searches their own drill library; anyone else searches the
      drills set for them — myLibrary is a coach's, and is empty for a
      player, so the Drills group could never match anything for them
