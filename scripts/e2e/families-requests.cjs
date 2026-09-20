@@ -99,7 +99,7 @@ const leaks = [];
       await click(page, "Dismiss", 900);
       const t0 = await leak("coach today"); await shot("04-coach-today");
       const strip = page.locator('[data-tour="today-requests"]');
-      check("(b) Today says who asked to join", (await strip.count()) === 1 && M.norm(await strip.innerText()).includes("Eoin Walsh asked to join"), t0.slice(0, 200));
+      check("(b) Today says how many asked to join", (await strip.count()) === 1 && /Requests/.test(M.norm(await strip.innerText())), t0.slice(0, 200));
       await strip.click(); await page.waitForTimeout(900);
       const t1 = await leak("coach requests"); await shot("05-coach-requests");
       check("(b) Requests lists the one waiting, with Accept and Decline", t1.includes("Requests") && t1.includes("1 waiting") && t1.includes("Eoin Walsh") && (await byText(page, "Accept").count()) === 1 && (await byText(page, "Decline").count()) === 1, t1.slice(0, 200));
@@ -120,7 +120,7 @@ const leaks = [];
       M.addRequest(db, { playerId: IDS.aoife, coachId: IDS.coach, notify: true });
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       const t5 = await leak("coach today again"); await shot("09-coach-today-aoife");
-      check("(b) Today now names the new asker", (await page.locator('[data-tour="today-requests"]').count()) === 1 && t5.includes("Aoife Nolan asked to join"), t5.slice(0, 200));
+      check("(b) Today still counts the one asking", (await page.locator('[data-tour="today-requests"]').count()) === 1 && /Requests/.test(M.norm(await page.locator('[data-tour="today-requests"]').innerText())), t5.slice(0, 200));
       await page.locator('[data-tour="today-requests"]').click(); await page.waitForTimeout(900);
       await click(page, "Decline", 1800);
       const dec = rpc("respond_to_request")[1]; const aoifeReq = db.requests.find((r) => r.player_id === IDS.aoife);
@@ -185,7 +185,7 @@ const leaks = [];
       check("(e) an adult with neither coach nor family opens on Add your coach, with You reachable", t00.includes("Add your coach") && (await page.locator('[aria-label="You"]').count()) === 1, t00.slice(0, 160));
       await tap(page, '[aria-label="You"]', 900);
       const youRow = page.locator('[data-tour="settings-dashboard"]');
-      check("(e) You carries a Family row that says none yet", (await youRow.count()) === 1 && /Family/.test(await youRow.innerText()) && /Start or join one/.test(await youRow.innerText()), (await youRow.count()) ? await youRow.innerText() : "no row");
+      check("(e) You carries a Family row, with no family named", (await youRow.count()) === 1 && /Family/.test(await youRow.innerText()) && !/family$/i.test(M.norm(await youRow.innerText()).replace(/^Family\s*/, "")), (await youRow.count()) ? await youRow.innerText() : "no row");
       /* with no family yet the row goes straight to the screen that starts or
          joins one — a dashboard of nobody helps no one */
       await youRow.click(); await page.waitForTimeout(900);

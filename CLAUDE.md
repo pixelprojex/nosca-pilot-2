@@ -136,18 +136,21 @@ seeded data and no account.
   signing in on a new phone replayed the whole thing. Settings →
   Walkthrough is the way back to it.
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
-  screens, hours · drills · tips, chips not cards, a body that scrolls
+  screens, hours · drills · tips, grids and rows, a body that scrolls
   — remembered as `preferences.setup_done`, and reachable again from
-  Settings. Its live mode leaves out the stats step, because nothing
-  stores which stats a coach picked. It does not use `SignupShell`,
-  whose body deliberately does not scroll.
+  Settings. Nobody is asked which stats they track, in either mode:
+  nothing stores the answer, and a screen that asks and forgets is
+  worse than one that never asked. It does not use `SignupShell`, whose
+  body deliberately does not scroll.
 - **One drill library.** A live coach's drills are `custom_drills` in
   their preferences — what they picked in setup plus what they wrote —
-  held in `library[sport]`. The wizard's chips, the Set-drills sheet and
-  the Drills screen all read that one list; none of them reads the
-  sport's starter set directly (the wizard used to, and offered drills
-  the sheet had never heard of). The harness, with no account, seeds
-  the starter set into the library so every screen still has content.
+  held in `library[sport]`. The wizard, the Set-drills sheet and the
+  Drills screen all read that one list; none of them reads the sport's
+  starter set directly (the wizard used to, and offered drills the
+  sheet had never heard of). `myLibrary` falls back to the sport's
+  starter set while the list is empty, so a coach who skipped setup
+  still has drills to set — a read only, nothing is written to their
+  preferences. The harness, with no account, seeds the starter set in.
 - **A coach's sport never changes.** `profiles.sport` is what their
   invite code was handed out under. Another sport goes in
   `preferences.extra_sports`, and `activeSport` is which of them they
@@ -180,35 +183,54 @@ seeded data and no account.
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
 - **Only tips. No goals.** Competitions are the goals.
+- **One tile. A set you choose FROM is a grid of tiles; a named being
+  in a list is a row; a value already chosen is plain grey text.**
+  Nothing in between — the wrapping rails of round pills this replaced
+  were one control drawn eight ways, and most of them ran off the right
+  of the screen. `ActTile` (icon, one word, optional count or dot) in a
+  `TileGrid`; a hairline at rest so a grid reads as separate things,
+  ink when selected, the accent **once a screen** and only on the one
+  action. Five shared pickers cover every case: `TimeGrid`,
+  `PersonPicker`, `DrillPicker`, `FocusGrid`, `SportGrid`. Never wrap a
+  `TileGrid` in a `Card` — the tile is the surface. `R.pill` stays: the
+  tab bar, unread badges, avatars, search fields and the toggle knob
+  are legitimately pills.
 - **The one behaviour: a coach picks up the phone mid-lesson, does one
   thing in seconds, puts it down.** Every coach screen is judged
-  against that. The raised plus opens the plus menu: Log a lesson as
-  its accent row, then Attendance, Live capture, Set a tip, Set drills,
-  Add player, New group, Message and Competition as plain rows. It was
-  removed once in favour of "the plus opens the log" and the founder
-  wanted every row back the same day; the menu is the coach's muscle
-  memory. Register and capture are also on the lesson itself (the row
-  that is on now, the peek sheet), drills and tips on the player file.
-- **Logging a lesson is a confirmation screen, with the lists one tap
-  deep.** The log shows the name (tap it to change who), the day, the
-  Stage row reading exactly the tags that will be written (`HI 18.4`,
-  `Green ball · U10`), the Horse or pony row for equestrian, one chip
-  cluster for Worked on with the sub-areas underneath, then Notes,
-  What next and the first-lesson rating row, and **Log it**. Who was
-  it?, What stage?, Which horse?, How did it go? and What next? are
-  full-height pages inside the Wizard's own `view` state — never the
-  app's single `<Sheet>`, never chips for people. Who lists On now,
-  Today, Recent, Groups and Everyone A–Z with a search pill above eight
-  people (prefix on any word, diacritic-insensitive; Return picks the
-  top match); one tap on a name picks and returns, the circle ticks and
-  stays. A stage change is row then rung; the rung returns by itself.
-  The date reads Today / Yesterday / `Sat 19 Sep`, never a native
-  value; the transparent `<input type="date">` sits over that line
-  only when no booking anchored the day. From a booking: one chip and
-  Log it. `publish()` writes the lesson first and only then sets the
-  drills and the tip for every recipient (the wizard's ids win over a
-  saved group's members) and raises the burst; a failed write is said,
-  never celebrated, and Log it reads "Logging…" while the write runs.
+  against that. Three surfaces reach the same handlers and nothing is
+  ever taken away from one to feed another: the coach home's board (Log
+  · Register · Capture · Tip · Drills · Add player, always on screen);
+  the NOW block on the lesson that is actually running (Register ·
+  Capture · Log), rendered only when one is; and the raised plus, which
+  keeps all eight of `QUICK_ORDER` with Log a lesson as its accent
+  tile. The plus was removed once in favour of "the plus opens the log"
+  and the founder wanted every row back the same day. Register and
+  capture are also on the lesson itself (the peek sheet), drills and
+  tips on the player file.
+- **Logging a lesson is two screens: a face, then one page.** Who? is
+  faces — on now and today first, then the groups, then Everyone as
+  rows, with a search pill above eight people (prefix on any word,
+  diacritic-insensitive; Return picks the top match); one tap picks and
+  returns. Everything else is one scroll: the name and the day, the
+  level they are already on (`HI 18.4`, `Green ball · U10`) which is
+  touched only when it has changed and reads **`Set level` in the
+  accent** when there is none — and never blocks Log it; a grid of
+  icons for what was worked on, one per area in the sport's verified
+  taxonomy, with the sub-areas as a grid under it when exactly one is
+  picked; Video, Photo and Voice as three big boxes that open the
+  camera itself; everything captured mid-lesson already attached, a
+  swipe to the left taking one off for good; the note on the page, not
+  behind a tap; Drills and Tip opening in place as tick rows; and
+  **Log it**. The level and the horse are one page deep, inside the
+  Wizard's own `view` state — never the app's single `<Sheet>`. A
+  riding coach taps the horse from the ones they have been writing
+  down. The date reads Today / Yesterday / `Sat 19 Sep`, never a native
+  value; the transparent `<input type="date">` sits over that line only
+  when no booking anchored the day. From a booking: one tile and Log
+  it. `publish()` writes the lesson first and only then sets the drills
+  and the tip for every recipient (the wizard's ids win over a saved
+  group's members) and raises the burst; a failed write is said, never
+  celebrated, and Log it reads "Logging…" while the write runs.
 - **Every sport's taxonomy is the real one, verified against the
   governing body — never invented.** `SPORTS[x].stages` is the ladder a
   coach places a player on before anything else (tennis Red · Orange ·
@@ -259,7 +281,18 @@ seeded data and no account.
   avatar, a name and one grey line. A search field appears only when
   the list is long (Roster: more than eight). Settings rows carry a
   `sub` only when it holds a value (the coach's name, the address),
-  never a sentence explaining the label.
+  never a sentence explaining the label. A border is earned by the
+  bottom `Sheet`, the coach home's NOW block and the player's tip
+  block, and by nothing else.
+- **Settings is three shapes and no fourth.** Label and chevron; label,
+  a value on the right and a list that unfolds as rows with a tick; or
+  label and a toggle. No bespoke control ever lives inside the list.
+- **Chat is a list of people, so it is rows.** Do not tile it, the
+  thread, the alerts list, the roster or the Who page's Everyone
+  section. One unread signal a surface: a dot beside the time in the
+  list, the number only in the tab bar. A parent's own conversation and
+  their children's are two sections; the adult's name sits inside the
+  bubble it belongs to, never floating above it.
 - **Routes carry ids.** `player:`, `history:` and `archive:` take the
   roster id; `byKey()` in Nosca resolves a name from an older entry
   point. Two players with one name are two files.
