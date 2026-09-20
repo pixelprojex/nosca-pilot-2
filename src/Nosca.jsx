@@ -14782,7 +14782,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
         if (!up) return null;
         const dt = new Date(up.date);
-        return { ...up, when: `${DAY_NAMES[(dt.getDay() + 6) % 7].slice(0, 3)} ${up.d} ${MONTHS_FULL[up.m - 1]} · ${up.time}`,
+        /* short month: the row shows the whole value or it is not a value */
+        return { ...up, when: `${DAY_NAMES[(dt.getDay() + 6) % 7].slice(0, 3)} ${up.d} ${MONTHS_FULL[up.m - 1].slice(0, 3)} · ${up.time}`,
                  focus: up.status === "requested" ? tr("Requested") : null };
       })()
     : [...myBookings].sort((a, b) => a.m - b.m || a.d - b.d)[0];
