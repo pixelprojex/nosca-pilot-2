@@ -3317,6 +3317,7 @@ const TOUR = {
     { area: "Today", title: "Lessons to log", body: "One tap logs it while it's fresh. Swipe it away if nobody came.", path: "Today → a finished lesson", target: "today-justdone", state: { stack: ["today"] } },
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
     { area: "Today", title: "The board", body: "Log, register, capture, a tip, drills, a new player. Always here.", path: "Today", target: "today-board", state: { stack: ["today"] } },
+    { area: "Today", title: "Make it yours", body: "Keep what you use, drop what you don't, and choose how big it sits.", path: "You → Shortcuts", target: "settings-shortcuts", state: { stack: ["today", "you"] } },
     { area: "Log a lesson", title: "The plus", body: "The same six, and two more, from anywhere.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
     { area: "Log a lesson", title: "Who?", body: "A face, not a list. On now and today first; search when you have hundreds.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
     { area: "Log a lesson", title: "What you worked on", body: "Tap what you did. That is the whole lesson.", path: "Log a lesson", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
