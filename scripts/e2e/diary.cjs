@@ -322,8 +322,9 @@ const leaks = [];
 
       /* (h) invite routes */
       await tap(page, '[aria-label="Roster"]');
-      /* the invite is the accent control on Roster, not a line of text */
-      await page.locator('button[aria-label="Invite"]').first().click(); await page.waitForTimeout(900);
+      /* the invite is the accent tile on Roster, not a line of text and
+         no longer a second, unlabelled circle in the header */
+      await page.locator('[data-tour="roster-invite"]').first().click(); await page.waitForTimeout(900);
       const t14 = await text(); await shot("36-coach-invite-routes");
       const link = `${BASE}/?join=QW7X2M`;
       check("(h) the invite sheet shows the real join link", t14.includes("localhost") && t14.includes("?join=QW7X2M") && t14.includes("QW7X2M"), t14.slice(0, 200));

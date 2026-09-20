@@ -183,6 +183,16 @@ seeded data and no account.
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
 - **Only tips. No goals.** Competitions are the goals.
+- **Space is a scale, not a number at the call site.** `SPACE.tight`
+  between a label and the thing it labels, `SPACE.row` between two
+  controls doing the same job, `SPACE.block` between two different
+  things on a page, `SPACE.section` where the page changes subject.
+  Before this the gaps were written inline — 22 here, mt-3 there — and
+  the app read cramped in some places and loose in others, which is
+  worse than either. The type scale came down a step for the same
+  reason; nothing goes below 12px, which is the floor for a coach
+  reading a phone at arm's length on a range. Every screen's H1 is
+  `TYPE.screen`, one size, never `hero`.
 - **One tile. A set you choose FROM is a grid of tiles; a named being
   in a list is a row; a value already chosen is plain grey text.**
   Nothing in between — the wrapping rails of round pills this replaced
@@ -195,13 +205,35 @@ seeded data and no account.
   `TileGrid` in a `Card` — the tile is the surface. `R.pill` stays: the
   tab bar, unread badges, avatars, search fields and the toggle knob
   are legitimately pills.
+- **A tile's icon is optional, and usually wrong.** Where the word is
+  the whole meaning — a focus area, a level, an option — pass no `Icon`
+  and the label centres on its own. A table used to map each of the
+  fifty focus areas to a glyph: a lightning bolt for the golf swing, a
+  brain for the mental side, a heart for squash fitness. Every one had
+  to be invented, none meant anything to a coach, and together they
+  were the clearest tell that a machine laid the screen out. The icons
+  that stay are the plain ones a phone already uses — plus, tick,
+  camera, bell, calendar, chevron. No sparkles, no broadcast mast for
+  weather, no bookshelf for a lesson. Settings rows carry no glyph at
+  all, bar the red bin on Delete account, which is a warning rather
+  than decoration.
+- **Anything you can type, you can say.** Every field a person writes
+  words into carries dictation — through `VoiceInput`, `VoiceArea` or
+  `InlineField`, or as a `MicBtn` beside the input. The two exceptions
+  are a password and the six-character codes, where speech hands back
+  "Q W seven X two M" and the button would look broken. `MicBtn`
+  renders nothing where the browser has no speech recognition, so it is
+  safe to add anywhere.
 - **The one behaviour: a coach picks up the phone mid-lesson, does one
   thing in seconds, puts it down.** Every coach screen is judged
   against that. Three surfaces reach the same handlers and nothing is
   ever taken away from one to feed another: the coach home's board (Log
-  · Register · Capture · Tip · Drills · Add player, always on screen);
-  the NOW block on the lesson that is actually running (Register ·
-  Capture · Log), rendered only when one is; and the raised plus, which
+  · Register · Capture · Tip · Drills · Add player, always on screen,
+  and its verbs act on the lesson that is running when there is one —
+  there used to be a filled block above it carrying Register, Capture
+  and Log for that lesson, which put the word Register on the screen
+  three times); the day's own rows, where the live lesson is marked and
+  carries its register; and the raised plus, which
   keeps all eight of `QUICK_ORDER` with Log a lesson as its accent
   tile. The plus was removed once in favour of "the plus opens the log"
   and the founder wanted every row back the same day. Register and
@@ -215,9 +247,9 @@ seeded data and no account.
   level they are already on (`HI 18.4`, `Green ball · U10`) which is
   touched only when it has changed and reads **`Set level` in the
   accent** when there is none — and never blocks Log it; a grid of
-  icons for what was worked on, one per area in the sport's verified
-  taxonomy, with the sub-areas as a grid under it when exactly one is
-  picked; Video, Photo and Voice as three big boxes that open the
+  tiles for what was worked on, one per area in the sport's verified
+  taxonomy, carrying the word and no glyph, **one tap and done** — there
+  is no second grid of sub-areas underneath and no follow-up button; Video, Photo and Voice as three big boxes that open the
   camera itself; everything captured mid-lesson already attached, a
   swipe to the left taking one off for good; the note on the page, not
   behind a tap; Drills and Tip opening in place as tick rows; and
@@ -282,8 +314,7 @@ seeded data and no account.
   the list is long (Roster: more than eight). Settings rows carry a
   `sub` only when it holds a value (the coach's name, the address),
   never a sentence explaining the label. A border is earned by the
-  bottom `Sheet`, the coach home's NOW block and the player's tip
-  block, and by nothing else.
+  bottom `Sheet` and the player's tip block, and by nothing else.
 - **Settings is three shapes and no fourth.** Label and chevron; label,
   a value on the right and a list that unfolds as rows with a tick; or
   label and a toggle. No bespoke control ever lives inside the list.
