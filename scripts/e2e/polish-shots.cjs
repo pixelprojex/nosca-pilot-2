@@ -72,7 +72,7 @@ function freshDb() {
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[data-tour="quick"]', 900); await shot("c9-plus");
       await tap('[data-tour="quick-log"]', 900); await shot("c9-log-who");
-      await text("Cian Murphy", 500); await shot("c10-log");
+      await text("Cian", 500); await shot("c10-log");
       await text("Chipping", 400); await shot("c11-log-worked-on");
       await tap('[data-tour="wiz-drills"]', 500); await shot("c12-log-drills");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);

@@ -131,14 +131,6 @@ const CREDENTIALS = [
 
 /* The number each sport actually uses to describe a player. Ignoring
    these means a coach has to keep them somewhere else. */
-const RATINGS = {
-  golf:       { label: "Handicap",       body: "CONGU",     value: "11.4", lower: true,  confidence: 3, hint: "Lower is better" },
-  tennis:     { label: "UTR",            body: "Universal Tennis", value: "6.42", lower: false, confidence: 2, hint: "1 to 16.5" },
-  padel:      { label: "Level",          body: "Playtomic", value: "3.25", lower: false, confidence: 2, hint: "0 to 7, in quarters" },
-  squash:     { label: "Club rating",    body: "England Squash", value: "1,840", lower: false, confidence: 1, hint: "Points based" },
-  rowing:     { label: "2K split",       body: "Concept2",  value: "1:48.1", lower: true,  hint: "Per 500m" },
-  equestrian: { label: "Dressage avg",   body: "Last 5 tests", value: "66.4%", lower: false, hint: "Percentage" },
-};
 
 /* Lesson times a player has asked for, waiting on the coach. Distinct
    from SEED_REQUESTS below, which is people asking to join a roster. */
@@ -1064,14 +1056,6 @@ function darkify(theme) {
 
 /* Per-sport context captured on a lesson — the detail that actually
    matters to that sport and nowhere else. */
-const CONTEXTS = {
-  golf:       { label: "Where", options: ["Range", "On course", "Short game area", "Studio"] },
-  tennis:     { label: "Surface", options: ["Hard", "Clay", "Grass", "Indoor"] },
-  rowing:     { label: "Session", options: ["Water", "Erg", "Tank", "Land training"] },
-  squash:     { label: "Court", options: ["Glass back", "Standard", "Doubles"] },
-  padel:      { label: "Court", options: ["Indoor", "Outdoor", "Panoramic"] },
-  equestrian: { label: "Discipline", options: ["Flatwork", "Dressage test", "Show jumping", "Hacking"] },
-};
 
 export const ThemeCtx = createContext(NEUTRAL);
 export const useT = () => useContext(ThemeCtx);
@@ -3323,7 +3307,6 @@ const FRAME_W = 390, FRAME_H = 780;
 
 /* The one wizard prefill every logging step shares. */
 const TOUR_PREFILL = { who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: "Private" };
-const TOUR_PEEK = { time: "3:00 pm", who: "Priya Ellis", kind: "Private", hoursUntil: 3.5 };
 
 /* { area, title, body, path, target, state } — `state` is merged into
    the showcase prop: stack, sheet, logView, prefill, peek, wizardView.
@@ -3361,7 +3344,7 @@ const TOUR = {
     { area: "Start", title: "Your coach", body: "Enter their code to ask. They accept from their app, and you're told.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
     { area: "Home", title: "Home", body: "Your coach's tip, then booking, practice and your lessons.", path: "Tab bar → Home", target: "home-tip", state: { stack: ["home"] } },
     { area: "Home", title: "Request a lesson", body: "Pick from your coach's hours; they confirm.", path: "Home → Request a lesson", target: "home-request", state: { stack: ["home"] } },
-    { area: "Lessons", title: "Lessons", body: "Everything your coach logged, newest first. Feed, cards or list.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
+    { area: "Lessons", title: "Lessons", body: "Everything your coach logged, newest first. Feed or list.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
     { area: "Lessons", title: "Clips", body: "Every clip, photo and voice note they attached.", path: "Lessons → a lesson", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
     { area: "Lessons", title: "Download lesson log", body: "Keep a copy of any lesson as a file.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
     { area: "Drills", title: "Drills", body: "Tick them off; your coach sees it.", path: "Tab bar → Drills", target: "drill-row", state: { stack: ["practice"] } },
@@ -5037,10 +5020,13 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
    views read as equals wherever you meet them. */
 function ViewSwitch({ view, setView, onDark, tour }) {
   const t = useT();
+  /* Two views, not three. Cards and List were both "scroll your
+     lessons" — one with a big picture, one without — and a person
+     choosing between them is choosing nothing. The feed is the one
+     that is genuinely a different thing to do. */
   const opts = [
-    { id: "feed",  Ico: Play,       label: "Feed" },
-    { id: "cards", Ico: FileText,   label: "Cards" },
-    { id: "list",  Ico: ListChecks, label: "List" },
+    { id: "feed", Ico: Play,     label: "Feed" },
+    { id: "list", Ico: FileText, label: "List" },
   ];
   return (
     <div data-tour={tour} className="flex gap-1 p-1" style={{ borderRadius: R.pill,
@@ -5905,7 +5891,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
    and review prompt) or a control on the screen they affect (the log
    view's pill on Lessons). */
 const PREF_DEFAULTS = {
-  logView:    "feed",     // feed · cards · list
+  logView:    "feed",     // feed · list
   calView:    "list",     // list · grid
   notify:     "instant",  // instant · digest · quiet
   quietFrom:  "9:00 pm",
@@ -7736,33 +7722,10 @@ export function PickRole({ sport, path = "player", onPick, onBack }) {
 
 /* Which kind of player: an adult signing themselves up, a parent
    setting up for their child, or someone under 18 joining directly. */
-export function PickPlayerType({ onPick, onBack }) {
-  const L = STRINGS.en;
-  const [sel, setSel] = useState(null);
-  return (
-    <SignupShell onBack={onBack} title={tr("Player type")}
-                 footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      <Choice label={tr("Adult player")}    on={sel === "adult"}  onSelect={() => setSel("adult")} />
-      <Choice label={tr("Under 18")}        on={sel === "junior"} onSelect={() => setSel("junior")} delay={55} />
-      <Choice label={tr("Parent")}          on={sel === "parent"} onSelect={() => setSel("parent")} delay={110} />
-    </SignupShell>
-  );
-}
 
 /* Which kind of coach. This shapes what the account can do later, and
    eventually how it is billed — but nothing is charged during the
    pilot, so no pricing is shown or implied here. */
-export function PickCoachType({ onPick, onBack }) {
-  const L = STRINGS.en;
-  const [sel, setSel] = useState(null);
-  return (
-    <SignupShell onBack={onBack} title={tr("Coach type")}
-                 footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      <Choice label={tr("Head coach")}      on={sel === "head"}      onSelect={() => setSel("head")} />
-      <Choice label={tr("Assistant coach")} on={sel === "assistant"} onSelect={() => setSel("assistant")} delay={55} />
-    </SignupShell>
-  );
-}
 
 export function CreateAccount({ role, step = 3, onDone, onBack, busy }) {
   const t = useT(); const L = STRINGS.en;
@@ -8008,127 +7971,6 @@ function ConnectPlayer({ sport, onDone, onBack }) {
   );
 }
 
-/* ==================================================================
-   LESSON DECK
-================================================================== */
-const CARD_H = 292, CARD_STEP = CARD_H + 14;
-
-/* A LESSON, AT A GLANCE
-
-   The facts sit at the top in one band — focus, coach, when — then a
-   rule, then the first frame of whatever was filmed. Where there is no
-   footage the space isn't wasted or apologetic: it carries the mark
-   over a field of the sport's own colour. */
-function LessonCard({ lesson, onOpen, active, saved, media, live }) {
-  const t = useT();
-  const has = (lesson.videos || 0) > 0;
-
-  return (
-    <button onClick={() => { haptic(9); soft(); onOpen && onOpen(); }}
-            onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
-            onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-            onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-            className="w-full text-left overflow-hidden active:opacity-95"
-            style={{ height: CARD_H, borderRadius: R.surface, background: t.surface,
-                     boxShadow: active ? ELEV.raise : ELEV.rest, willChange: "transform",
-                     transition: "transform 160ms cubic-bezier(.34,1.56,.64,1), box-shadow 280ms" }}>
-
-      {/* the facts, in one band */}
-      <div className="px-5 pt-5 pb-4">
-        <div className="flex items-baseline gap-2.5 mb-2">
-          <span style={{ ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>
-            {lesson.d} {lesson.m}
-          </span>
-          <span className="rounded-full" style={{ width: 3, height: 3, background: t.hair }} />
-          <span style={{ ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>
-            {lesson.type === "Group" ? tr("Group") : tr("Private")}
-          </span>
-          <span className="flex-1" />
-          {saved && <Download size={12} color={t.faint} />}
-        </div>
-        <div className="truncate" style={{ ...TYPE.title, fontSize: 24, color: t.ink }}>{lesson.focus}</div>
-        {lesson.coach && (
-          <div className="mt-1.5 truncate" style={{ ...TYPE.small, color: t.faint }}>{lesson.coach}</div>
-        )}
-      </div>
-
-      {/* the rule */}
-      <div style={{ height: 0.5, background: HAIR(t.ink, 0.14) }} />
-
-      {/* the first frame, or the mark on the sport's colour */}
-      <div className="relative" style={{ height: CARD_H - 118 }}>
-        {media && media.type === "video" ? (
-          <video src={media.url} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full"
-                 style={{ objectFit: "cover", background: "#0B0F10" }} />
-        ) : media && media.type === "photo" ? (
-          <img src={media.url} alt="" className="absolute inset-0 w-full h-full"
-               style={{ objectFit: "cover", background: "#0B0F10" }} />
-        ) : has && !live ? (
-          <>
-            {/* a still: horizon band, ground, and the sport's light */}
-            <div className="absolute inset-0" style={{ background: "#121618" }} />
-            <div className="absolute" style={{ inset: 0,
-                   background: `linear-gradient(180deg, ${t.mark}30 0%, ${t.mark}10 46%, #0E1213 47%, #0B0F10 100%)` }} />
-            <div className="absolute" style={{ left: 0, right: 0, top: "47%", height: 1,
-                   background: `${t.mark}55` }} />
-            <div className="absolute" style={{ inset: 0,
-                   background: `radial-gradient(60% 45% at 50% 44%, ${t.mark}2E 0%, transparent 70%)` }} />
-            <span className="absolute inset-0 flex items-center justify-center">
-              <span className="rounded-full flex items-center justify-center"
-                    style={{ width: 52, height: 52,
-                             background: "rgba(255,255,255,0.14)",
-                             backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                             border: "1px solid rgba(255,255,255,0.22)",
-                             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3)" }}>
-                <Play size={18} color="#fff" style={{ marginLeft: 2 }} />
-              </span>
-            </span>
-          </>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center"
-               style={{ background: `radial-gradient(110% 80% at 50% 45%, ${t.mark}1C 0%, ${t.mark}08 70%)` }}>
-            <span style={{ opacity: 0.5, animation: "markBreathe 5s ease-in-out infinite" }}>
-              <Mark size={34} color={t.mark} />
-            </span>
-          </div>
-        )}
-
-        {/* How many files are on this lesson, over whatever the preview
-            turned out to be. `media` is the real count from
-            lessons_view; `videos` is the harness's. It used to sit
-            inside the drawn-still branch, so a real account — the only
-            one with real files — never saw it. */}
-        {(lesson.media ?? lesson.videos ?? 0) > 1 && (
-          <span className="absolute flex items-center gap-1 rounded-full px-2 py-1"
-                style={{ bottom: 12, right: 12, background: "rgba(0,0,0,0.45)",
-                         backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                         ...TYPE.caption, fontSize: 10, fontWeight: 600, color: "#fff" }}>
-            <ImageIcon size={10} strokeWidth={2.2} color="#fff" />
-            {lesson.media ?? lesson.videos}
-          </span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-function VDeck({ lessons, go, push, saved, liveMedia }) {
-  const t = useT(); const [a, setA] = useState(0);
-  return (
-    <>
-      <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-6"
-           onScroll={(e) => {
-             const n = Math.min(lessons.length - 1, Math.round(e.currentTarget.scrollTop / CARD_STEP));
-             if (n !== a) { setA(n); haptic(7); }   /* one tick per card as it lands */
-           }}
-           style={{ scrollbarWidth: "none", scrollSnapType: "y mandatory", overscrollBehaviorY: "contain" }}>
-        {lessons.map((l, i) => (<div key={l.id} className="snap-center" style={{ scrollSnapAlign: "center", scrollSnapStop: "always",
-                          paddingBottom: i === lessons.length - 1 ? 24 : 14 }}><LessonCard lesson={l} active={i === a} saved={saved.includes(l.id)} live={!!liveMedia} media={liveMedia && liveMedia[l.id] ? liveMedia[l.id].find((m) => m.type !== "audio") : null} onOpen={() => push(`lesson:${l.id}`)} /></div>))}
-      </div>
-      <div className="shrink-0 flex items-center justify-center gap-1.5 py-2.5">{lessons.map((l, i) => (<span key={l.id} className="rounded-full" style={{ width: 5, height: i === a ? 15 : 5, background: i === a ? t.ink : t.hair, transition: "height 200ms" }} />))}</div>
-    </>
-  );
-}
 
 /* ==================================================================
    FAMILY — profiles + coach connections in one switcher
@@ -8540,7 +8382,6 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, attendPct,
 function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false }) {
   const t = useT();
   const ready = useLoad();
-  const view = (prefs && prefs.logView) === "list" ? "List" : "Cards";
   const shown = lessons;
 
   /* Immersive is a different animal — it owns the screen, so it is not
@@ -8584,13 +8425,11 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
       </div>)}
 
       {!ready ? (
-        <div className="px-6"><Bone h={CARD_H} r={20} /></div>
+        <div className="px-6"><Bone h={220} r={20} /></div>
       ) : shown.length === 0 ? (
         <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
           {tr("No lessons yet.")}
         </p>
-      ) : view === "Cards" ? (
-        <VDeck lessons={shown} push={push} saved={saved} liveMedia={liveMedia} />
       ) : (
         <div className="px-6 pb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
           {shown.map((l, i) => (
@@ -10357,7 +10196,7 @@ function JuvenileJoin({ sport, onDone, onBack }) {
 /* What kind of thing happened, as one icon. The bell is the fallback so
    a kind nobody has taught this map still draws something. */
 const NOTIF_ICON = { booking: CalendarDays, request: UserPlus, message: MessageCircle, lesson: FileText,
-                     weather: Radio, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Sparkles };
+                     weather: CloudRain, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Star };
 
 /* Everything a coach has ever logged, searchable. Fifty players over a
    season is a lot of lessons to scroll, so search and filters carry it. */
@@ -12684,9 +12523,9 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       !live && { label: tr("Roster & groups"), icon: Users, tour: "settings-roster", onTap: () => push("roster") },
       live && { label: tr("Set yourself up"), icon: ListChecks, onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
-        ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", icon: Library, onTap: () => push("myLessons") }
+        ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", icon: FileText, onTap: () => push("myLessons") }
         : { label: tr("Take lessons yourself"), icon: UserPlus, onTap: () => push("takeLessons") }),
-      { label: tr("Drills"), icon: Library, tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
+      { label: tr("Drills"), icon: ListChecks, tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
       { label: tr("Lesson logs"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
       !live && { label: tr("Branding"), icon: Palette, tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code & QR"), value: inviteCode || "——————", icon: QrCode, tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
@@ -12718,7 +12557,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       multiSport && { label: tr("Main sport"), sub: mainLabel, icon: Tag, onTap: () => onMainSport && onMainSport() },
       { label: tr("Personal details"), icon: User, tour: "settings-details", onTap: () => push("details") },
       { label: tr("Notifications"), icon: Bell, tour: "settings-notifications", onTap: () => push("notifications") },
-      role === "player" && { label: tr("Your sporting record"), icon: Library, tour: "settings-transfer", onTap: () => sheet("transfer") },
+      role === "player" && { label: tr("Your sporting record"), icon: FileText, tour: "settings-transfer", onTap: () => sheet("transfer") },
       { label: tr("Connections"), icon: Radio, tour: "settings-sources", onTap: () => push("sources") },
       { label: tr("Data & permissions"), icon: ShieldCheck, tour: "settings-data", onTap: () => push("legal:data") },
     ] },
@@ -13170,132 +13009,116 @@ function PushPrompt({ userId, say }) {
   );
 }
 
-function NotifCentre({ role, isParent, kids = [], jobs = [], mine = [], family = [], onDo, pop, push, go, empty, items = null, onOpen, onClear, onClearAll, onMarkAllRead, userId, say }) {
-  const t = useT();
-  const [cleared, setCleared] = useState([]);
-  const live = (list) => list.filter((n) => !cleared.includes(n.id));
+/* THE ALERT LIST
 
-  /* A real account: one plain list of what happened, newest first,
-     Today and then Earlier. A line is the fact, a grey detail if there
-     is one, and the time; a dot means unread; a tap opens the thing;
-     a swipe clears it. One text button: Mark all read while anything is
-     unread, Clear all once nothing is. No kinds, no filters, no jobs —
-     the home screen carries what needs doing. */
-  const unreadNow = useRef(0);
-  useEffect(() => { unreadNow.current = (items || []).filter((n) => !n.readAt).length; }, [items]);
+   Two questions, in the order they are asked. What needs me, and what
+   happened. The first is a short section of rows carrying their own
+   Accept and Decline, because a notification you have to navigate away
+   from in order to answer is a to-do list wearing an inbox's clothes.
+   The second is the notifications table: Today, then Earlier, newest
+   first, a tap opens the thing and a swipe clears it.
+
+   There were two complete implementations in here — one for a real
+   account and a second, drawn differently, for the harness, with
+   coloured discs and count pills of the kind that were taken out of
+   every other screen. A screen that looks like two screens depending on
+   who is looking at it cannot be designed, so the harness now hands in
+   the same shape the database does and there is one list. */
+function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAll,
+                       onMarkAllRead, userId, say }) {
+  const t = useT();
+  const hair = `0.5px solid ${HAIR(t.ink, 0.1)}`;
+  const unread = items.filter((n) => !n.readAt).length;
+
   /* opening the bell is reading it: the dots stay while you look, and
      whatever was unread is marked read as you leave, so the badge does
      not need every row tapped */
-  useEffect(() => () => { if (items && unreadNow.current > 0 && onMarkAllRead) onMarkAllRead(); }, []);
-  if (items) {
-    const unread = items.filter((n) => !n.readAt).length;
-    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-    const today = items.filter((n) => new Date(n.createdAt) >= startOfToday);
-    const earlier = items.filter((n) => new Date(n.createdAt) < startOfToday);
-    const Line = ({ n, i }) => (
-      <SwipeRow key={n.id} deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
-        <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }} className="w-full flex items-start gap-3 px-1 text-left active:opacity-60"
-                style={{ minHeight: 60, paddingTop: 13, paddingBottom: 13, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}`,
-                         animation: `settle 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 10) * 30}ms both` }}>
-          {/* the kind, as a bare glyph: unread tints it, read leaves it
-              grey. Forty filled discs down one list was the round-box
-              complaint again, on a screen nobody named. */}
-          {(() => { const K = NOTIF_ICON[n.kind] || Bell; return (
-            <span className="flex items-center justify-center shrink-0" style={{ width: 24 }}>
-              <K size={18} color={n.readAt ? t.faint : t.accent} strokeWidth={1.7} />
-            </span>); })()}
-          <span className="flex-1 min-w-0">
-            <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 500, color: t.ink }}>{n.title}</span>
-            {n.body && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{n.body}</span>}
-          </span>
-          <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint, marginTop: 3 }}>{n.when}</span>
-        </button>
-      </SwipeRow>
-    );
-    const Group = ({ title, list, offset }) => list.length === 0 ? null : (
-      <div className="mb-7">
-        <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{title}</div>
-        <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>{list.map((n, i) => <Line key={n.id} n={n} i={i + offset} />)}</div>
-      </div>
-    );
-    return (
-      <SwipeBack onBack={pop}>
-        <Screen title={tr("Alerts")} onBack={pop}
-                right={items.length === 0 ? null
-                     : unread > 0 ? <TextBtn onClick={() => { haptic(6); onMarkAllRead && onMarkAllRead(); }}>{tr("Mark all read")}</TextBtn>
-                     : <TextBtn onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn>}>
-          <div className="px-6 pb-2" data-tour="alerts-list">
-            {userId && <PushPrompt userId={userId} say={say} />}
-            {items.length === 0 ? (
-              <div className="py-16 text-center">
-                <p style={{ ...TYPE.title, color: t.ink }}>{tr("All clear")}</p>
-                <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing new")}</p>
-              </div>
-            ) : (<>
-              <Group title={tr("Today")} list={today} offset={0} />
-              <Group title={tr("Earlier")} list={earlier} offset={today.length} />
-            </>)}
-          </div>
-        </Screen>
-      </SwipeBack>
-    );
-  }
+  const unreadNow = useRef(0);
+  useEffect(() => { unreadNow.current = items.filter((n) => !n.readAt).length; }, [items]);
+  useEffect(() => () => { if (unreadNow.current > 0 && onMarkAllRead) onMarkAllRead(); }, []);
 
-  const Item = ({ n, i }) => (
-    <SwipeRow deleteLabel={tr("Clear")} onDelete={() => setCleared((v) => [...v, n.id])}>
-      <button onClick={() => { haptic(8); soft(); if (n.go) n.go(); setCleared((v) => [...v, n.id]); }}
-              className="w-full flex items-start gap-3.5 px-5 py-4 text-left active:opacity-60"
-              style={{ animation: `settle 360ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>
-        <span className="rounded-full shrink-0" style={{ width: 7, height: 7, marginTop: 6,
-                       background: n.tone || t.hair }} />
+  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+  const today = items.filter((n) => !n.createdAt || new Date(n.createdAt) >= startOfToday);
+  const earlier = items.filter((n) => n.createdAt && new Date(n.createdAt) < startOfToday);
+
+  const Eyeb = ({ children }) => (
+    <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{children}</div>
+  );
+
+  const Line = ({ n }) => (
+    <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
+      <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }}
+              className="w-full flex items-start gap-3 px-1 text-left active:opacity-60"
+              style={{ minHeight: 52, paddingTop: 11, paddingBottom: 11, borderBottom: hair }}>
+        {/* the kind, as a bare glyph: unread darkens it, read leaves it
+            grey. Forty filled discs down one list was the round-box
+            complaint again, on a screen nobody had named. */}
+        {(() => { const K = NOTIF_ICON[n.kind] || Bell; return (
+          <span className="flex items-center justify-center shrink-0" style={{ width: 22, marginTop: 1 }}>
+            <K size={16} color={n.readAt ? t.faint : t.ink} strokeWidth={1.7} />
+          </span>); })()}
         <span className="flex-1 min-w-0">
-          <span className="block" style={{ ...TYPE.body, color: t.ink }}>{n.what}</span>
-          <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-            {n.who}{n.when ? ` · ${n.when}` : ""}
-          </span>
+          <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 600, color: t.ink }}>{n.title}</span>
+          {n.body && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{n.body}</span>}
         </span>
-        {n.count > 0 && (
-          <span className="rounded-full flex items-center justify-center shrink-0"
-                style={{ minWidth: 22, height: 22, padding: "0 7px", background: n.tone || t.wash,
-                         ...TYPE.caption, fontWeight: 500, color: n.tone ? "#fff" : t.sub }}>{n.count}</span>
-        )}
+        <span className="shrink-0 flex items-center gap-2" style={{ marginTop: 2 }}>
+          <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
+          {/* one unread signal a surface: the dot here, the number in the bar */}
+          {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.accent }} />}
+        </span>
       </button>
     </SwipeRow>
   );
 
-  const Block = ({ title, list }) => live(list).length === 0 ? null : (
-    <div className="mb-7">
-      {title && <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{title}</div>}
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-        {live(list).map((n, i) => <Item key={n.id} n={n} i={i} />)}
-      </div>
+  /* still a question, so it is answered here rather than somewhere else */
+  const Ask = ({ w }) => (
+    <div className="flex items-center gap-3 pr-1" style={{ minHeight: 60, borderBottom: hair }}>
+      <Avatar name={w.who} size={32} src={w.avatar} />
+      <span className="flex-1 min-w-0">
+        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{w.who}</span>
+        <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{w.what}</span>
+      </span>
+      <button onClick={() => { hapticCommit(); soft(); w.onAccept(); }} className="shrink-0 px-2 active:opacity-60"
+              style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Accept")}</button>
+      <button onClick={() => { haptic(7); w.onDecline(); }} className="shrink-0 px-2 active:opacity-60"
+              style={{ ...TYPE.small, fontWeight: 500, color: t.faint }}>{tr("Decline")}</button>
     </div>
   );
 
-  const total = live(jobs).length + live(mine).length + live(family).length;
-
+  const nothing = items.length === 0 && waiting.length === 0;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Alerts")} onBack={pop}
-              meta={total ? `${total} ${tr("waiting")}` : tr("All clear")}>
-        <div className="px-6 pb-2">
-          {total === 0 ? (
+              right={items.length === 0 ? null
+                   : unread > 0 ? <TextBtn onClick={() => { haptic(6); onMarkAllRead && onMarkAllRead(); }}>{tr("Mark all read")}</TextBtn>
+                   : <TextBtn onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn>}>
+        <div className="px-6 pb-4" data-tour="alerts-list">
+          {userId && <PushPrompt userId={userId} say={say} />}
+          {nothing ? (
             <div className="py-16 text-center">
-              <span className="rounded-full inline-flex items-center justify-center mb-5"
-                    style={{ width: 58, height: 58, background: t.wash, animation: "breathe 4s ease-in-out infinite" }}>
-                <Check size={23} color={STEADY} strokeWidth={2.1} />
-              </span>
               <p style={{ ...TYPE.title, color: t.ink }}>{tr("All clear")}</p>
+              <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing new")}</p>
             </div>
-          ) : (
-            <>
-              <Block list={jobs} />
-              {isParent ? (<>
-                <Block title={tr("You")} list={mine} />
-                <Block title={tr("Your family")} list={family} />
-              </>) : <Block list={mine} />}
-            </>
-          )}
+          ) : (<>
+            {waiting.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }}>
+                <Eyeb>{tr("Waiting on you")}</Eyeb>
+                <div style={{ borderTop: hair }}>{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
+              </div>
+            )}
+            {today.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }}>
+                <Eyeb>{tr("Today")}</Eyeb>
+                <div style={{ borderTop: hair }}>{today.map((n) => <Line key={n.id} n={n} />)}</div>
+              </div>
+            )}
+            {earlier.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }}>
+                <Eyeb>{tr("Earlier")}</Eyeb>
+                <div style={{ borderTop: hair }}>{earlier.map((n) => <Line key={n.id} n={n} />)}</div>
+              </div>
+            )}
+          </>)}
         </div>
       </Screen>
     </SwipeBack>
@@ -13691,7 +13514,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        default rather than leaving a segmented control with nothing
        selected. */
     setPrefsLocal({
-      logView: p.log_view ?? PREF_DEFAULTS.logView,
+      /* "cards" was a third view; a stored one reads as the list now */
+      logView: p.log_view === "cards" ? "list" : (p.log_view ?? PREF_DEFAULTS.logView),
       calView: p.cal_view ?? PREF_DEFAULTS.calView,
       notify: p.notify ?? PREF_DEFAULTS.notify,
       quietFrom: PREF_DEFAULTS.quietFrom,
@@ -15095,11 +14919,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* a parent's home is the family: their children's lessons are
          the lessons, the diary is the children's, chat is with the
          children's coaches */
-      ? [{ id: "family", icon: Users, label: tr("Family") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+      ? [{ id: "family", icon: Users, label: tr("Family") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
     : juvenile
       /* No messaging for an under-18 account. Deliberate: a child's
          contact with an adult coach runs through their parent. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : [])]
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : [])]
     : hasFamily
       /* Family stands in for Home — a parent's home IS the family view —
          so Lessons keeps its place rather than being pushed out. */
@@ -15109,8 +14933,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* Identical to a player's tabs — a parent has their own coaching
          and needs their own log. Family lives on the profile pill, which
          is already where you switch between people. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
-      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: Library, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
   /* the feed runs edge to edge, under the status bar */
   const bleed = inApp && screen === "log" && prefs.logView === "feed" && role !== "coach";
@@ -15264,35 +15088,43 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* The rows below already name every request, every ask and every
        lesson waiting, and each one is a door. A strip that counts the
        list under it is the screen saying the same thing twice. */
-    body = <NotifCentre role={role} jobs={[]} items={data.notifications || []} pop={pop} push={push} go={go}
+    /* Whatever is still a question gets answered on this screen. A join
+       request and a lesson ask both already have handlers; putting the
+       same two buttons here saves the trip to two other screens. */
+    const alertWaiting = role !== "coach" ? [] : [
+      ...(openRequests || []).map((r) => ({ id: `join-${r.id || r.name}`, who: r.name,
+            avatar: avatarUrl(r.avatarPath), what: tr("asking to join you"),
+            onAccept: () => acceptRequest(r), onDecline: () => declineRequest(r) })),
+      ...(liveAsks || []).map((r) => ({ id: `ask-${r.id}`, who: r.who,
+            avatar: avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath),
+            what: `${r.d} ${monthName(r.m).slice(0, 3)} · ${r.time}`,
+            onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setSheet("decline"); } })),
+    ];
+    body = <NotifCentre items={data.notifications || []} waiting={alertWaiting} pop={pop}
                         userId={account ? account.id : null} say={say}
                         onOpen={openNotification} onClear={(id) => data.clearNotification(id)}
                         onMarkAllRead={() => data.markNotificationsRead()}
                         onClearAll={async () => { const r = await data.clearNotifications(); if (r && r.error) { hapticWarn(); say(r.error.message); return; } say(tr("Cleared")); }} />;
   } else if (screen === "alerts") {
     const isParent = role !== "coach" && profiles.some((pf) => pf.age);
-    /* Coach: everything blocking someone else's week. */
+    /* The harness hands in exactly the shape the database does, so the
+       screen has one list and one row rather than a second design. */
     const jobs = role !== "coach" || freshAccount ? [] : [
-      openRequests.length && { id: "j1", what: tr("asking to join"), count: openRequests.length, tone: CAUTION, go: () => push("requests") },
-      checkIns.filter((x) => x.state === "waiting").length && { id: "j2", what: tr("clips to look at"), count: checkIns.filter((x) => x.state === "waiting").length, tone: CAUTION, go: () => push("checkins") },
-      lessonReqs.length && { id: "j3", what: tr("lesson requests"), count: lessonReqs.length, tone: CAUTION, go: () => go("today") },
-      atRisk(roster, mySeriesLive, live, bookedAhead).length && { id: "j4", what: tr("drifting"), count: atRisk(roster, mySeriesLive, live, bookedAhead).length, tone: DANGER, go: () => push("atrisk") },
-      focusReqs.length && { id: "j5", what: tr("focus to agree"), count: focusReqs.length, tone: CAUTION, go: () => go("today") },
-      (todayList || []).filter((l) => l.done).length && { id: "j6", what: tr("lessons to log"), count: (todayList || []).filter((l) => l.done).length, tone: DANGER, go: () => go("today") },
+      openRequests.length && { id: "j1", kind: "request", what: tr("asking to join"), count: openRequests.length, go: () => push("requests") },
+      checkIns.filter((x) => x.state === "waiting").length && { id: "j2", kind: "lesson", what: tr("clips to look at"), count: checkIns.filter((x) => x.state === "waiting").length, go: () => push("checkins") },
+      lessonReqs.length && { id: "j3", kind: "booking", what: tr("lesson requests"), count: lessonReqs.length, go: () => go("today") },
+      atRisk(roster, mySeriesLive, live, bookedAhead).length && { id: "j4", kind: "request", what: tr("drifting"), count: atRisk(roster, mySeriesLive, live, bookedAhead).length, go: () => push("atrisk") },
+      focusReqs.length && { id: "j5", kind: "tip", what: tr("focus to agree"), count: focusReqs.length, go: () => go("today") },
+      (todayList || []).filter((l) => l.done).length && { id: "j6", kind: "lesson", what: tr("lessons to log"), count: (todayList || []).filter((l) => l.done).length, go: () => go("today") },
     ].filter(Boolean);
-
-    /* Player or parent: what happened to them. */
-    const mine = freshAccount || role === "coach" ? [] :
-      (NOTIFS[role] || []).map((n, i) => ({ id: "m" + i, what: n.what || n.title, who: n.who, when: n.when,
-        tone: n.kind === "weather" ? DANGER : n.kind === "tip" ? STEADY : null }));
-
-    /* And, for a parent, the same again for the children — beneath a rule. */
-    const family = !isParent || freshAccount ? [] : (BREATHNACH.alerts || []).map((n, i) =>
-      ({ id: "f" + i, what: n.what, who: n.who, when: n.when,
-         tone: n.kind === "weather" ? DANGER : n.kind === "tip" ? STEADY : n.kind === "comp" ? CAUTION : null }));
-
-    body = <NotifCentre role={role} isParent={isParent} jobs={jobs} mine={mine} family={family}
-                        pop={pop} push={push} go={go} empty={freshAccount} />;
+    const seedAlerts = [
+      ...jobs.map((j) => ({ id: j.id, kind: j.kind, title: `${j.count} ${j.what}`, body: null, when: tr("Today"), readAt: null, go: j.go })),
+      ...(freshAccount || role === "coach" ? [] : (NOTIFS[role] || []).map((n, i) => ({
+        id: "m" + i, kind: n.kind, title: n.what || n.title, body: n.who || null, when: n.when, readAt: i > 1 ? true : null }))),
+      ...(!isParent || freshAccount ? [] : (BREATHNACH.alerts || []).map((n, i) => ({
+        id: "f" + i, kind: n.kind, title: n.what, body: n.who || null, when: n.when, readAt: true }))),
+    ];
+    body = <NotifCentre items={seedAlerts} pop={pop} onOpen={(n) => n.go && n.go()} />;
   } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} live={!!data}
                                                    onSave={data ? async (club) => { const res = await data.updateProfile({ club }); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null} />;
   } else if (screen === "library") { body = <DrillLibrary cfg={cfg} sport={coachSport} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => { setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }));
