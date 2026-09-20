@@ -4086,6 +4086,8 @@ function PickPerson({ roster, title, sub, onPick, close }) {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
                className="flex-1 bg-transparent outline-none"
                style={{ ...TYPE.body, color: t.ink }} />
+        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>
+           : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
       </div>
 
       <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}`, maxHeight: 320, overflowY: "auto" }}>
@@ -5618,8 +5620,11 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
             {!isJunior && (<>
               <Eyebrow>{tr("Start a family")}</Eyebrow>
               <Card tour="family-create" className="p-5 mb-8">
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Name it, if you like")} maxLength={40}
-                       className="w-full outline-none mb-4 px-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
+                <div className="flex items-center gap-2 mb-4 px-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash }}>
+                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Name it, if you like")} maxLength={40}
+                         className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                  <MicBtn onText={(txt) => setName(name ? `${name} ${txt}` : txt)} size={26} />
+                </div>
                 {err && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
                 <Button tone="ink" disabled={busy} onClick={create}>{busy ? "…" : tr("Create a family code")}</Button>
               </Card>
@@ -5667,8 +5672,11 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
             <Card className="mb-8">
               {renaming ? (
                 <div className="px-5 py-4">
-                  <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={tr("Family name")} maxLength={40}
-                         className="w-full outline-none mb-3 px-4" style={{ minHeight: 46, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
+                  <div className="flex items-center gap-2 mb-3 px-4" style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
+                    <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={tr("Family name")} maxLength={40}
+                           className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                    <MicBtn onText={(txt) => setNewName(newName ? `${newName} ${txt}` : txt)} size={26} />
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => setRenaming(false)} className="flex-1 active:opacity-60" style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Cancel")}</button>
                     <button onClick={async () => { haptic(8); setBusy(true); const r = await onRename(newName); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } setRenaming(false); say && say(tr("Saved")); }}
@@ -6085,7 +6093,8 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
         <Search size={15} color={t.faint} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
                style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-        {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>}
+        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>
+           : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
       </div>
       {shown.length === 0 ? (
         <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</p>
@@ -7394,6 +7403,8 @@ export function Field({ label, value, onChange, ph, type = "text", Icon, autoFoc
                  onChange={(e) => onChange(e.target.value)} className="w-full outline-none"
                  style={{ fontFamily: ui, fontSize: 16.5, color: bad ? DANGER : t.ink, background: "transparent" }} />
         </span>
+        {/* a name or a club can be said; a password never is */}
+        {type !== "password" && !reveal && <MicBtn size={28} onText={(txt) => onChange(value ? `${value} ${txt}` : txt)} />}
         {reveal && value.length > 0 && (
           <button onClick={() => { haptic(6); setShown(!shown); }} className="shrink-0 active:opacity-50 p-1"
                   aria-label={shown ? "Hide password" : "Show password"}>
@@ -10128,7 +10139,8 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCo
             <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
               <Search size={15} color={t.faint} />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-              {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
+              {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+                 : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
             </div>
           )}
           <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
@@ -11526,6 +11538,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
                 <input value={draft[d.id] ?? d.t} onChange={(e) => setDraft((x) => ({ ...x, [d.id]: e.target.value }))} onBlur={() => rename(d)}
                        onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="flex-1 min-w-0 outline-none"
                        style={{ fontFamily: ui, fontSize: 14, color: t.ink, background: "transparent" }} aria-label={tr("Drill name")} />
+                <MicBtn size={26} onText={(txt) => setDraft((x) => { const was = x[d.id] ?? d.t; return { ...x, [d.id]: was ? `${was} ${txt}` : txt }; })} />
                 <button onClick={async () => { const res = onRemoveDrill ? await onRemoveDrill(d.id) : null; if (res && res.error) { say && say(res.error.message); return; } hapticWarn(); }}
                         className="p-2 active:opacity-50" aria-label={tr("Remove")}><Trash2 size={15} color={DANGER} /></button>
               </div>
@@ -11720,8 +11733,11 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                           onToggle={(label) => { haptic(6); const sl = slots.find((x) => span(x, duration) === label); setSlots(slots.filter((x) => x !== sl)); }} />
               </div>
               <div className="flex gap-2">
-                <input value={newSlot} onChange={(e) => setNewSlot(e.target.value)} placeholder="e.g. 6:30 pm" className="flex-1 outline-none rounded-2xl px-4"
-                       style={{ minHeight: 48, background: t.wash, fontFamily: ui, fontSize: 15, color: t.ink }} />
+                <div className="flex-1 min-w-0 flex items-center gap-2 rounded-2xl px-4" style={{ minHeight: 48, background: t.wash }}>
+                  <input value={newSlot} onChange={(e) => setNewSlot(e.target.value)} placeholder="e.g. 6:30 pm" className="flex-1 min-w-0 outline-none"
+                         style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                  <MicBtn onText={(txt) => setNewSlot(txt)} size={26} />
+                </div>
                 <button onClick={() => { if (newSlot.trim()) { haptic(10); setSlots([...slots, newSlot.trim()]); setNewSlot(""); } }}
                         disabled={!newSlot.trim()} className="rounded-2xl px-5 active:opacity-60 disabled:opacity-25"
                         style={{ minHeight: 48, background: t.accent, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.onAccent }}>{tr("Add")}</button>
@@ -12381,7 +12397,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
           </Card></div>
         )}
         <Eyebrow>{tr("Club or academy name")}</Eyebrow>
-        <div className="px-6 mb-6"><Card><div className="px-5 py-4"><input value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder={tr("Your club")} className="w-full outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} /></div></Card></div>
+        <div className="px-6 mb-6"><Card><div className="px-5 py-4 flex items-center gap-2"><input value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder={tr("Your club")} className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} /><MicBtn onText={(txt) => setClubName(clubName ? `${clubName} ${txt}` : txt)} size={26} /></div></Card></div>
         {!live && (<>
           <Eyebrow>{tr("Accent colour")}</Eyebrow>
           <div className="px-6 mb-6"><Card>{SWATCHES.map((s, i) => (
@@ -12503,8 +12519,11 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   const field = (label, key, extra = {}) => (
     <div key={key} className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
       <div style={{ ...TYPE.caption, color: t.faint }}>{label}</div>
-      <input value={f[key]} onChange={(e) => setF({ ...f, [key]: e.target.value })} aria-label={label} className="w-full outline-none mt-1"
-             style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} {...extra} />
+      <div className="flex items-center gap-2 mt-1">
+        <input value={f[key]} onChange={(e) => setF({ ...f, [key]: e.target.value })} aria-label={label} className="flex-1 min-w-0 outline-none"
+               style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} {...extra} />
+        <MicBtn size={26} onText={(txt) => setF({ ...f, [key]: f[key] ? `${f[key]} ${txt}` : txt })} />
+      </div>
     </div>
   );
   const age = f.dob ? (() => { const b = localDate(f.dob), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return isNaN(a) ? null : a; })() : null;
@@ -12583,6 +12602,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
               <div style={{ ...TYPE.caption, color: t.faint }}>{role === "coach" ? tr("About you — players see this") : tr("About you — your coach sees this")}</div>
               <textarea value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value.slice(0, 280) })} rows={3} className="w-full outline-none resize-none mt-1"
                         style={{ fontFamily: ui, fontSize: 15.5, lineHeight: 1.5, color: t.ink, background: "transparent" }} placeholder={role === "coach" ? tr("Twelve years coaching, mostly short game.") : tr("Left-hander, playing since 2021.")} />
+              <div className="flex justify-end"><MicBtn size={28} onText={(txt) => setF({ ...f, bio: (f.bio ? `${f.bio} ${txt}` : txt).slice(0, 280) })} /></div>
             </div>
           </Card>
           {err && <p className="px-2 mb-4" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
@@ -12749,7 +12769,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
             <Search size={15} color={t.faint} strokeWidth={2} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search settings")} aria-label={tr("Search settings")}
                    className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.faint} strokeWidth={2} /></button>}
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.faint} strokeWidth={2} /></button>
+               : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
           </div>
         </div>
 
@@ -12804,8 +12825,13 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
           <Card className="mb-5">{Object.keys(f).map((k, i, arr) => (
             <div key={k} className="px-5 py-3.5" style={{ borderBottom: i === arr.length - 1 ? "none" : `1px solid ${t.hair}` }}>
               <div style={{ ...TYPE.caption, color: t.faint }}>{tr(k)}</div>
-              {k === "Bio" ? (<textarea value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} rows={3} className="w-full outline-none resize-none mt-1" style={{ fontFamily: ui, fontSize: 15.5, lineHeight: 1.5, color: t.ink, background: "transparent" }} />)
-                          : (<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} aria-label={tr(k)} className="w-full outline-none mt-1" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />)}
+              <div className={k === "Bio" ? "" : "flex items-center gap-2 mt-1"}>
+                {k === "Bio" ? (<textarea value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} rows={3} className="w-full outline-none resize-none mt-1" style={{ fontFamily: ui, fontSize: 15.5, lineHeight: 1.5, color: t.ink, background: "transparent" }} />)
+                            : (<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} aria-label={tr(k)} className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />)}
+                <div className={k === "Bio" ? "flex justify-end" : ""}>
+                  <MicBtn size={26} onText={(txt) => setF({ ...f, [k]: f[k] ? `${f[k]} ${txt}` : txt })} />
+                </div>
+              </div>
             </div>
           ))}</Card>
           {me && me.email && (
@@ -13057,6 +13083,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
         <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-3" style={{ borderBottom: `1px solid ${t.hair}` }}>
           <div className="flex-1 flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
             <Search size={17} color={t.faint} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            <MicBtn onText={(txt) => setQ(q ? `${q} ${txt}` : txt)} size={26} />
             {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={16} color={t.faint} /></button>}
             <MicBtn onText={(txt) => setQ(txt)} size={30} />
           </div>
@@ -13423,9 +13450,12 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
       <div className="mb-4">
         <TimeGrid cols={2} times={options} picked={focus} onToggle={setFocus} />
       </div>
-      <input value={focus} onChange={(e) => { setFocus(e.target.value); setErr(""); }} aria-label={tr("Focus")}
-             className="w-full outline-none px-4 mb-4" placeholder={tr("Or type it")}
-             style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15.5, color: t.ink }} />
+      <div className="flex items-center gap-2 px-4 mb-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash }}>
+        <input value={focus} onChange={(e) => { setFocus(e.target.value); setErr(""); }} aria-label={tr("Focus")}
+               className="flex-1 min-w-0 outline-none" placeholder={tr("Or type it")}
+               style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
+        <MicBtn onText={(txt) => { setFocus(txt); setErr(""); }} size={26} />
+      </div>
 
       <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("The day it happened")}</div>
       <input type="date" value={date || ""} onChange={(e) => setDate(e.target.value)} aria-label={tr("Lesson date")}
