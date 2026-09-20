@@ -2155,17 +2155,31 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                   </div>
                 );
 
-                /* the row is the button: the time span in ink, and a tap asks for it */
-                return (
-                  <button key={h} data-tour="agenda-book" onClick={() => { hapticCommit(); soft(); onBookInto(day, h, kind); }}
-                          className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 52, ...line }}>
-                    <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink, fontVariantNumeric: "tabular-nums" }}>{span(h, duration)}</span>
-                    {kind === "group" && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Group")}</span>}
-                    <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{role === "coach" ? tr("Book") : tr("Request")}</span>
-                  </button>
-                );
+                /* a free hour is a cell in the grid below, not a row
+                   whose only content is the word Book */
+                return null;
               })}
             </div>
+
+            {(() => {
+              const free = rows.filter((h) => {
+                const bk = day.booked.find((b) => b.time === h);
+                if (bk && isCoach) return false;
+                if (day.blockedHere.includes(h)) return false;
+                const kind = slotKinds[`${day.m}-${day.d}-${h}`] || "either";
+                if (role !== "coach" && kind === "group") return false;
+                if (role === "player" && juvenile) return false;
+                return true;
+              });
+              if (!free.length) return null;
+              return (
+                <div className="px-4 pt-3 pb-4">
+                  <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{free.length} {tr("free")}</div>
+                  <TimeGrid tour="agenda-book" cols={3} times={free.map((h) => span(h, duration))} picked={null}
+                            onToggle={(lbl) => { const h = free.find((x) => span(x, duration) === lbl); if (h) onBookInto(day, h, slotKinds[`${day.m}-${day.d}-${h}`] || "either"); }} />
+                </div>
+              );
+            })()}
           </div>
         );
       })}
@@ -7557,16 +7571,9 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
 
         {now === "hours" && (<>
           <Label>{tr("Days")}</Label>
-          <div className="flex gap-1.5">
-            {DAY_NAMES.map((d, i) => {
-              const on = days.includes(i);
-              return (
-                <button key={d} aria-pressed={on} onClick={() => togg(days, setDays, i)} className="flex-1 active:opacity-60"
-                        style={{ height: 44, borderRadius: R.control, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.16)}`,
-                                 fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub, transition: "background 180ms" }}>{d.slice(0, 2)}</button>
-              );
-            })}
-          </div>
+          <TimeGrid cols={7} times={DAY_NAMES.map((d) => d.slice(0, 2))}
+                    picked={DAY_NAMES.filter((_, i) => days.includes(i)).map((d) => d.slice(0, 2))}
+                    onToggle={(ab) => togg(days, setDays, DAY_NAMES.findIndex((d) => d.slice(0, 2) === ab))} />
           <Label>{tr("Lesson length")}</Label>
           <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d} min`)} picked={`${dur} min`}
                     onToggle={(x) => setDur(Number(String(x).replace(" min", "")))} />
@@ -12631,13 +12638,14 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
      Every row in Settings is one of three shapes and this is the second
      of them. */
   const [openPick, setOpenPick] = useState(null);
-  const choice = (id, label, value, options, onPick) => {
+  const choice = (id, label, value, options, onPick, Ico) => {
     const cur = options.find((o) => o.id === value) || options[0];
     const isOpen = openPick === id;
     return (
       <div>
         <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }}
-                className="w-full flex items-center gap-3 px-5 text-left active:opacity-50" style={{ minHeight: 62 }}>
+                className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 62 }}>
+          {Ico && <I C={Ico} />}
           <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, color: t.ink }}>{label}</span>
           <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
           <ChevronRight size={16} color={t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
@@ -12646,8 +12654,9 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           <div style={{ background: t.wash }}>
             {options.map((o) => (
               <button key={o.id} aria-pressed={value === o.id} onClick={() => { haptic(6); onPick(o.id); setOpenPick(null); }}
-                      className="w-full flex items-center gap-3 px-5 text-left active:opacity-50"
+                      className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50"
                       style={{ minHeight: 50, borderTop: `1px solid ${t.hair}` }}>
+                {Ico && <span className="shrink-0" style={{ width: 17 }} />}
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
                 {value === o.id && <Check size={15} color={t.accent} strokeWidth={2.4} />}
               </button>
@@ -12684,7 +12693,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       !live && { label: tr("Branding"), icon: Palette, tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code & QR"), value: inviteCode || "——————", icon: QrCode, tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
       prefs && { label: tr("Take attendance"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Take attendance"), prefs.attendance || "all",
-        [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v)) },
+        [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v), Check) },
       prefs && { label: tr("Ask for a review"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
       (!live || hasDependants) && { label: tr("This month"), icon: TrendingUp, tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
@@ -12698,7 +12707,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     { title: L.appearance, tour: "settings-appearance", rows: [
       { label: L.darkMode, tour: "settings-dark", right: T(dark, setDark), keys: ["theme", "night"] },
       live && (startOptions || []).length > 1 && { label: tr("Opens on"), keys: ["start", "home", "first screen"],
-        custom: choice("startOn", tr("Opens on"), startOn || "auto", startOptions, setStartOn) },
+        custom: choice("startOn", tr("Opens on"), startOn || "auto", startOptions, setStartOn, Home) },
       { label: L.sound, right: T(soundState, setSoundState, (v) => { setSoundOn(v); if (v) chime(); }), keys: ["tones", "audio", "mute"] },
       { label: L.haptics, right: T(hapticsOn, setHapticsOn, setHapticsEnabled), keys: ["vibrate", "vibration", "feedback", "tap"] },
       { label: tr("Reduce motion"), right: T(reduceMotion, setReduceMotion), keys: ["animation", "animations"] },
