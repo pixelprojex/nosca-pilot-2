@@ -8,12 +8,11 @@ import { supabase } from "./lib/supabase";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home,
-  Library, Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode,
-  Share2, Delete, Lock, Mail, Apple, Camera, Image as ImageIcon, ChevronDown, Search,
-  Receipt, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag,
-  Phone, Paperclip, Clock, ListChecks, Download, Palette, TrendingUp, Eye, Minimize2,
-  Lightbulb, Volume2, VolumeX, UserPlus, Radio, Edit3, Trophy, Award, Star,
-  CloudRain, Copy, Settings2, BellOff, Repeat, Circle, Heart
+  Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
+  Delete, Lock, Mail, Camera, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
+  HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
+  ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus,
+  Edit3, Trophy, Star, CloudRain, Copy, Settings2, BellOff
 } from "lucide-react";
 
 /* ==================================================================
@@ -923,7 +922,7 @@ export const SPORTS = {
 ================================================================== */
 const TOOLS = {
   golf: {
-    id: "yardage", label: "Yardage book", icon: "Tag",
+    id: "yardage", label: "Yardage book",
     blurb: "Your carry with every club",
     columns: ["Club", "Carry", "Total"],
     rows: [["Driver","248","271"],["3 wood","215","233"],["5 iron","178","186"],
@@ -932,7 +931,7 @@ const TOOLS = {
     note: "Measured on the launch monitor. Update after a fitting.",
   },
   tennis: {
-    id: "matches", label: "Match log", icon: "Trophy",
+    id: "matches", label: "Match log",
     blurb: "Results and what decided them",
     columns: ["Opponent", "Score", "Result"],
     rows: [["R. Kavanagh","6–4 3–6 7–5","Won"],["M. Byrne","4–6 2–6","Lost"],
@@ -941,7 +940,7 @@ const TOOLS = {
     note: "Your coach sees these and can spot the pattern across a season.",
   },
   rowing: {
-    id: "ergs", label: "Erg tests", icon: "TrendingUp",
+    id: "ergs", label: "Erg tests",
     blurb: "Every test piece, in order",
     columns: ["Piece", "Time", "Split"],
     rows: [["2k","7:12.4","1:48.1"],["5k","19:04.2","1:54.4"],["30r20","8,240m","1:49.0"],
@@ -950,7 +949,7 @@ const TOOLS = {
     note: "Drag factor and date are recorded with each piece.",
   },
   squash: {
-    id: "ladder", label: "Ladder & matches", icon: "TrendingUp",
+    id: "ladder", label: "Ladder & matches",
     blurb: "Where you sit at the club",
     columns: ["Opponent", "Score", "Result"],
     rows: [["D. Fitzgerald","11–8 11–6 9–11 11–7","Won"],["A. Kelly","7–11 9–11 11–13","Lost"],
@@ -959,7 +958,7 @@ const TOOLS = {
     note: "Club ladder position updates when you record a result.",
   },
   padel: {
-    id: "partners", label: "Partners", icon: "Users",
+    id: "partners", label: "Partners",
     blurb: "Who you play with, and how it goes",
     columns: ["Partner", "Played", "Won"],
     rows: [["Jack Whelan","14","9"],["Marta Ruiz","8","6"],["Diego Sanz","5","2"]],
@@ -967,7 +966,7 @@ const TOOLS = {
     note: "Padel is a pairs game — form depends on who's beside you.",
   },
   equestrian: {
-    id: "horses", label: "Horses", icon: "Award",
+    id: "horses", label: "Horses",
     blurb: "Each horse, and how they go",
     columns: ["Horse", "Age", "Working on"],
     rows: [["Bracken","9","Straightness on the left rein"],
@@ -2661,7 +2660,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
   const isNote = item.kind === "note";
   const label = isVideo ? item.angle : isData ? cap.device
     : isVoice ? (item.name || tr("Voice note")) : isNote ? (item.text || tr("Note")) : (item.name || tr("Photo"));
-  const Icon = isVideo ? Play : isData ? Receipt : isVoice ? Mic : isNote ? Edit3 : Tag;
+  const Icon = isVideo ? Play : isData ? ImageIcon : isVoice ? Mic : isNote ? Edit3 : Paperclip;
   /* a real file shows its own first frame or the photo itself; the
      object URL lives exactly as long as this row does */
   const file = item.file || null;
@@ -9938,7 +9937,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 }
 
 
-function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCount = 0, stageFor }) {
+function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 0, stageFor }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
   const [tab, setTab] = useState(nounTitle); const [q, setQ] = useState("");
@@ -9958,20 +9957,18 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCo
     </button>
   );
   return (
-    <Screen title={L.roster} meta={`${all.length} ${nouns} · ${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}`} right={right}
-            /* the code is the invite: one control, and it opens the share sheet */
-            action={<button onClick={() => { hapticCommit(); soft(); sheet("import"); }}
-                            className="rounded-full flex items-center justify-center active:opacity-70 disabled:opacity-40"
-                            style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("Invite")} disabled={!code && !!roster}>
-                      <UserPlus size={18} color={t.onAccent} strokeWidth={2} />
-                    </button>}>
-      <div className="px-6 mb-4">
+    /* There was a filled accent circle in the header that opened the same
+       share sheet as the Add player tile two centimetres below it — the
+       same action twice, and two accents on a screen that is allowed one.
+       The tile stays, because it says what it does. */
+    <Screen title={L.roster} meta={`${all.length} ${nouns} · ${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}`} right={right}>
+      <div className="px-6" style={{ marginBottom: SPACE.row }}>
         <TileGrid cols={2}>
-          <ActTile tour="roster-invite" h={78} tone="accent" Icon={UserPlus} label={tr("Add player")} onTap={() => sheet("import")} />
-          <ActTile h={78} Icon={Users} label={tr("New group")} onTap={() => sheet("newGroup")} />
+          <ActTile tour="roster-invite" tone="accent" Icon={UserPlus} label={tr("Add player")} onTap={() => sheet("import")} />
+          <ActTile Icon={Users} label={tr("New group")} onTap={() => sheet("newGroup")} />
         </TileGrid>
       </div>
-      <div className="px-6 mb-4"><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
+      <div className="px-6" style={{ marginBottom: SPACE.block }}><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
       <div className="px-6 pb-2">
         {tab === nounTitle ? (<>
           {searchable && (
@@ -9984,7 +9981,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCo
           )}
           <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
             {list.length === 0 ? (
-              <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("Nobody yet. The plus shares your code.")}</p>
+              <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("Nobody yet. Add player shares your code.")}</p>
             ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
                 <Avatar name={r.name} size={40} />, r.name, [stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · ")))}
             {lessonCount > 0 && row("archive", "roster-archive", () => { haptic(7); soft(); push("archive"); },
@@ -11362,7 +11359,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
           <ChevronRight size={17} color={t.faint} />
         </button>
       </div>
-      <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
+      <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
       <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet.")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
         <div key={r.id}>
@@ -11911,7 +11908,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
                       className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
                       style={{ minHeight: 54, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-                <Radio size={16} color={t.sub} strokeWidth={1.6} />
+                <CloudRain size={16} color={t.sub} strokeWidth={1.6} />
                 <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>
                   {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
                 </span>
@@ -12946,7 +12943,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
             ))}</div>
           </div>) : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
           ) : (<>
-            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<Library size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
+            {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<FileText size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
             {drills.length > 0 && (<><Eyebrow>{tr("Drills")}</Eyebrow><div className="px-6 mb-6"><Card>{drills.map((d, i) => (<Row key={d.t} label={d.t} sub={d.d || null} chevron icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} last={i === drills.length - 1} onToggle={() => go("practice")} />))}</Card></div></>)}
             {people.length > 0 && (<><Eyebrow>{tr("Players")}</Eyebrow><div className="px-6 mb-6"><Card>{people.map((r, i) => (<Row key={r.id || r.name} label={r.name} sub={`${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}${r.since ? ` · ${tr("since")} ${r.since}` : ""}`} chevron icon={<Avatar name={r.name} size={38} />} last={i === people.length - 1} onToggle={() => push("player:" + (r.id || r.name))} />))}</Card></div></>)}
@@ -15150,7 +15147,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               /* a real account's own drills live on its preferences; the removal goes there too */
                                               if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
-  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} noun={cfg.noun} nouns={cfg.nouns} code={inviteShown} lessonCount={archive.length} stageFor={lastFor} />;
+  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} nouns={cfg.nouns} lessonCount={archive.length} stageFor={lastFor} />;
   } else if (screen.startsWith("history:")) {
     const hkey = screen.slice("history:".length);
     const hp = data ? byKey(hkey) : null;
@@ -15626,7 +15623,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           {offline && inApp && (
             <div className="shrink-0 relative z-30 flex items-center gap-2.5 px-6 py-2"
                  style={{ background: CAUTION, animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
-              <Radio size={13} color="#fff" strokeWidth={2.1} />
+              <CloudRain size={13} color="#fff" strokeWidth={2.1} />
               <span className="flex-1" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: "#fff" }}>
                 {tr("Offline — recording and mark-up still work")}
               </span>
