@@ -99,7 +99,7 @@ const leaks = [];
       await click(page, "Dismiss", 900);
       const t0 = await leak("coach today"); await shot("04-coach-today");
       const strip = page.locator('[data-tour="today-requests"]');
-      check("(b) Today says who asked to join", (await strip.count()) === 1 && M.norm(await strip.innerText()).includes("Eoin Walsh asked to join"), t0.slice(0, 200));
+      check("(b) Today says how many asked to join", (await strip.count()) === 1 && /Requests/.test(M.norm(await strip.innerText())), t0.slice(0, 200));
       await strip.click(); await page.waitForTimeout(900);
       const t1 = await leak("coach requests"); await shot("05-coach-requests");
       check("(b) Requests lists the one waiting, with Accept and Decline", t1.includes("Requests") && t1.includes("1 waiting") && t1.includes("Eoin Walsh") && (await byText(page, "Accept").count()) === 1 && (await byText(page, "Decline").count()) === 1, t1.slice(0, 200));

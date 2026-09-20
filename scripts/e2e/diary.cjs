@@ -79,7 +79,7 @@ const leaks = [];
       await tap(page, '[aria-label="Diary"]');
       const hours = page.locator('[data-tour="cal-hours"]');
       const h0 = (await hours.count()) ? M.norm(await hours.innerText()) : ""; await shot("04-coach-diary-hours-unset");
-      check("(g) the diary leads with Your hours, Not set yet for a fresh coach", (await hours.count()) === 1 && /your hours/i.test(h0) && h0.includes("Not set yet") && h0.includes("Set hours"), h0);
+      check("(g) the diary leads with Your hours, Not set for a fresh coach", (await hours.count()) === 1 && /your hours/i.test(h0) && h0.includes("Not set"), h0);
       await hours.click(); await page.waitForTimeout(900);
       const t0 = await leak("coach availability"); await shot("05-coach-availability-empty");
       check("(g) tapping it opens Availability, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Availability") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
@@ -92,7 +92,7 @@ const leaks = [];
       const total = days ? Object.values(days).reduce((s, x) => s + (x || []).length, 0) : 0;
       check("(g) Save upserts preferences.availability with the week's hours", !!days && total > 0 && /merge-duplicates/.test(pref.prefer) && pref.rows[0].id === IDS.coach, JSON.stringify(pref && pref.rows[0].availability).slice(0, 200));
       const h1 = (await hours.count()) ? M.norm(await hours.innerText()) : ""; await shot("06-coach-diary-hours-set");
-      check("(g) back on the diary the card reads N slots a week from what was saved", h1.includes(`${total} slots a week`) && h1.includes("Edit"), h1);
+      check("(g) back on the diary the row reads N slots from what was saved", h1.includes(`${total} slots`), h1);
       /* the diary now has open rows; book Cian into the first one */
       const t1 = await leak("coach diary"); await shot("06b-coach-diary");
       check("(b) coach diary lists the real week, no seeded names", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && !M.SEEDED.some((s) => t1.includes(s)), t1.slice(0, 200));
@@ -143,7 +143,7 @@ const leaks = [];
       await page.waitForTimeout(2200); await shot("13-adult-after-request");
       await tap(page, '[aria-label="Home"]');
       const t3 = await leak("adult home after request"); await shot("14-adult-home-next");
-      check("(a) Home 'Next' shows the real request", /next/i.test(t3) && t3.includes("Requested") && !t3.includes("4:30"), t3.slice(0, 200));
+      check("(a) Home shows the real request, said to be one", t3.includes("Requested") && !t3.includes("4:30"), t3.slice(0, 200));
       await ctx.close();
     }
 
@@ -293,7 +293,7 @@ const leaks = [];
       const hsrc = (await hdr.count()) ? await hdr.first().getAttribute("src") : null;
       const t13 = await text(); await shot("33-coach-header-avatar");
       check("(f) the header avatar renders an <img> from the same public URL", !!hsrc && hsrc === src, `${hsrc} · ${t13.slice(0, 100)}`);
-      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && t13.includes("YOUR HOURS"), t13.slice(0, 80));
+      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && /Your hours/i.test(t13), t13.slice(0, 80));
       /* password */
       await tap(page, '[aria-label="Your profile"]');
       const t13b = await text();

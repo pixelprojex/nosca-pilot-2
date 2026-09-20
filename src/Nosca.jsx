@@ -1021,7 +1021,7 @@ const COACHES = {
 /* Interface strings. Keys are deliberately few and heavily reused, so a
    new language is one block rather than a scattered hunt. */
 export const STRINGS = {
-  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Roster", chats:"Messages", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Log it", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
+  en: { today:"Today", calendar:"Calendar", log:"Log", roster:"Roster", chats:"Chat", home:"Home", lessons:"Lessons", practice:"Practice", family:"Family", you:"You", settings:"Settings", search:"Search", alerts:"Alerts", save:"Save", cancel:"Cancel", done:"Done", skip:"Skip", continue:"Continue", publish:"Log it", back:"Back", language:"Language", region:"Country", appearance:"Appearance", darkMode:"Dark mode", textSize:"Text size", sound:"Sound", haptics:"Haptics", logLesson:"Log lesson", workingOn:"Working on", nextLesson:"Next lesson", players:"players", showOriginal:"Show original", showTranslation:"Show translation", translatedFor:"Translated for you", whereAreYou:"Country", yourLanguage:"Your language", yourSport:"Your sport", whichAreYou:"Which are you?", coach:"Coach", player:"Player", whoIsItFor:"Who is it for?", forMe:"It's for me", forMyChild:"It's for my child", imUnder18:"I'm under 18", yourDetails:"Your details", fullName:"Full name", email:"Email", mobile:"Mobile", password:"Password", dateOfBirth:"Date of birth", haveAccount:"Have an account?", signIn:"Sign in", getStarted:"Begin", teachAndEarn:"You teach and get paid", takeLessons:"You take lessons — always free", manageChild:"You manage someone under 18", parentSetUp:"A parent has already set you up", overEighteen:"You're 18 or over" },
 };
 
 
@@ -2198,20 +2198,8 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Offer another time")}</h2>
       
-      <div className="flex flex-wrap gap-2 mb-6">
-        {slots.map((sl, i) => {
-          const on = offer === sl;
-          return (
-            <button key={sl} onClick={() => { haptic(7); soft(); setOffer(on ? null : sl); }} className="px-3.5 active:opacity-60"
-                    style={{ minHeight: 44, borderRadius: R.pill, background: on ? t.accent : t.surface,
-                             border: `1px solid ${on ? t.accent : t.hair}`, fontFamily: ui, fontSize: 13,
-                             fontWeight: 600, color: on ? t.onAccent : t.sub,
-                             transition: "background 220ms cubic-bezier(.22,1,.36,1)",
-                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
-              {span(sl, duration)}
-            </button>
-          );
-        })}
+      <div className="mb-6">
+        <TimeGrid cols={3} times={slots} picked={offer} onToggle={(sl) => setOffer(offer === sl ? null : sl)} />
       </div>
       <Button tone="danger" onClick={() => { hapticWarn(); decline(); onDone({ reason, note, offer }); close(); }}>
         {offer ? tr("Cancel and offer this time") : tr("Cancel the lesson")}
@@ -2421,13 +2409,8 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
               <VoiceInput value={name} onChange={setName} ph={tr("Name")} autoFocus />
 
               <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Kind")}</div>
-              <div className="flex flex-wrap gap-2">
-                {[tr("Competition"), tr("Tournament"), tr("Match"), tr("Regatta"), tr("Trial")].map((k) => (
-                  <button key={k} onClick={() => { haptic(6); soft(); setKind(k); }} className="px-3.5 active:opacity-60"
-                          style={{ minHeight: 38, borderRadius: R.pill, background: kind === k ? t.accent : t.wash,
-                                   ...TYPE.small, fontWeight: 500, color: kind === k ? t.onAccent : t.sub }}>{k}</button>
-                ))}
-              </div>
+              <TimeGrid cols={3} times={[tr("Competition"), tr("Tournament"), tr("Match"), tr("Regatta"), tr("Trial")]}
+                        picked={kind} onToggle={setKind} />
 
               <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Date")}</div>
               <div className="flex gap-2">
@@ -2441,13 +2424,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
               </div>
 
               <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
-              <div className="flex flex-wrap gap-2">
-                {ALL_TIMES.filter((_, i) => i % 2 === 0).slice(0, 6).map((tm) => (
-                  <button key={tm} onClick={() => { haptic(6); setTime(tm); }} className="px-3 active:opacity-60"
-                          style={{ minHeight: 38, borderRadius: R.pill, background: time === tm ? t.accent : t.wash,
-                                   ...TYPE.small, fontWeight: 500, color: time === tm ? t.onAccent : t.sub }}>{tm}</button>
-                ))}
-              </div>
+              <TimeGrid times={ALL_TIMES.filter((_, i) => i % 2 === 0).slice(0, 6)} picked={time} onToggle={setTime} />
 
               <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Where")}</div>
               <VoiceInput value={where} onChange={setWhere} ph={tr("Club or venue")} />
@@ -3258,16 +3235,12 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                                 {d.slice(0, 2)}</button>);
                     })}
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {["Weekly", "Fortnightly", "Monthly"].map((f) => {
-                      const on = String(x.freq || "Weekly").toLowerCase() === f.toLowerCase();
-                      return (<button key={f} onClick={() => { haptic(5); soft(); onEdit(x, { freq: f }); }}
-                                      className="px-3 active:opacity-60"
-                                      style={{ minHeight: 34, borderRadius: R.pill, background: on ? t.accent : t.wash,
-                                               fontFamily: ui, fontSize: 11.5, fontWeight: 600,
-                                               color: on ? "#fff" : t.sub, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{tr(f)}</button>);
-                    })}
-                    <span className="flex-1" />
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="flex-1">
+                      <Segmented options={["Weekly", "Fortnightly", "Monthly"].map(tr)}
+                                 value={tr(["Weekly", "Fortnightly", "Monthly"].find((f) => String(x.freq || "Weekly").toLowerCase() === f.toLowerCase()) || "Weekly")}
+                                 onChange={(lbl) => onEdit(x, { freq: ["Weekly", "Fortnightly", "Monthly"].find((f) => tr(f) === lbl) })} />
+                    </span>
                     {/* an end date is not kept for a real account yet, so the two are not offered */}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
@@ -4261,12 +4234,9 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
         </p>
 
         {who.length > 1 && (
-          <div className="flex gap-2 mb-4">
-            {[["in", tr("All present"), STEADY], ["out", tr("All absent"), DANGER]].map(([v, lbl, tone]) => (
-              <button key={v} onClick={() => all(v)} className="px-3.5 active:opacity-60"
-                      style={{ minHeight: 34, borderRadius: R.pill, border: `0.5px solid ${tone}44`,
-                               ...TYPE.caption, fontWeight: 500, color: tone }}>{lbl}</button>
-            ))}
+          <div className="flex gap-5 mb-4">
+            <TextBtn color={STEADY} onClick={() => all("in")}>{tr("All present")}</TextBtn>
+            <TextBtn color={DANGER} onClick={() => all("out")}>{tr("All absent")}</TextBtn>
           </div>
         )}
 
@@ -4483,18 +4453,18 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
         {lessons && lessons.length > 0 && (
           <div className="mb-4">
             <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Filing under")}</div>
-            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
               {[...lessons, null].map((l) => {
                 const on = l ? !!(chosen && chosen.who === l.who && chosen.time === l.time) : !chosen;
                 return (
-                  <button key={l ? l.time + l.who : "none"} disabled={live}
+                  <button key={l ? l.time + l.who : "none"} disabled={live} aria-pressed={on}
                           onClick={() => { haptic(6); onChoose && onChoose(l); }}
-                          className="px-3.5 shrink-0 active:opacity-60"
-                          style={{ minHeight: 34, borderRadius: R.pill,
-                                   background: on ? t.accent : "transparent",
-                                   border: `0.5px solid ${on ? t.accent : HAIR(t.ink, 0.2)}`,
-                                   ...TYPE.caption, fontWeight: 500, color: on ? t.onAccent : t.sub }}>
-                    {l ? `${l.who} · ${l.time}` : tr("Nobody yet")}
+                          className="w-full flex items-center gap-3 text-left active:opacity-60"
+                          style={{ minHeight: 50, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}`, opacity: live ? 0.5 : 1 }}>
+                    <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>
+                      {l ? `${l.who} · ${l.time}` : tr("Nobody yet")}
+                    </span>
+                    {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
                   </button>
                 );
               })}
@@ -5778,30 +5748,28 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
             action={<button data-tour="family-settings" onClick={() => { haptic(6); onSettings && onSettings(); }} className="shrink-0 rounded-full flex items-center justify-center active:opacity-50" style={{ width: 38, height: 38, background: t.wash }} aria-label={tr("Family settings")}><Settings2 size={16} color={t.sub} strokeWidth={1.8} /></button>}>
       {!ready ? <HomeSkeleton /> : (
         <div className="px-6">
-          {/* the one thing happening next, for anyone in the house */}
+          {/* the one thing happening next, for anyone in the house —
+              two lines, no border around them */}
           {next && (
-            <Card className="p-5 mb-7" tour="family-next">
-              <div style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{tr("Next up")}</div>
-              <p className="mt-2" style={{ ...TYPE.hero, fontSize: 26, lineHeight: 1.05, letterSpacing: "-0.02em", color: t.ink }}>
+            <div className="mb-6" data-tour="family-next">
+              <div style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Next up")}</div>
+              <p className="mt-1.5" style={{ ...TYPE.title, color: t.ink }}>
                 {first(nameOf(next.playerId)) || first(next.who) || tr("Lesson")}
               </p>
-              <p className="mt-1.5" style={{ ...TYPE.small, color: next.status === "requested" ? CAUTION : t.sub }}>
+              <p className="mt-1" style={{ ...TYPE.small, color: next.status === "requested" ? CAUTION : t.sub }}>
                 {fmtDay(next.date)} · {next.time}{next.status === "requested" ? ` · ${tr("waiting on the coach")}` : ""}
               </p>
-            </Card>
+            </div>
           )}
 
           {!isJunior && dependants.length > 0 && (<>
             <Eyebrow>{tr("Young players")}</Eyebrow>
-            <Card className="px-5 mb-7">
+            <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
               {dependants.map((k, i) => <KidRow key={k.id} k={k} i={i} last={i === dependants.length - 1} />)}
-            </Card>
+            </div>
           </>)}
           {!isJunior && dependants.length === 0 && (
-            <div className="mb-7 px-5 py-5" style={{ borderRadius: R.surface, background: t.wash }}>
-              <p style={{ ...TYPE.body, color: t.ink }}>{tr("No young players yet")}</p>
-              <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tr("A child who signs up with your family code appears here.")}</p>
-            </div>
+            <p className="mb-6 py-6 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No young players yet")}</p>
           )}
 
           {rest.length > 0 && (<>
@@ -6063,18 +6031,8 @@ function RateLesson({ focus, coach, onDone, close }) {
         })}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-5">
-        {tags.map((tg, i) => {
-          const on = picked.includes(tg);
-          return (
-            <button key={tg} onClick={() => { haptic(6); setPicked(on ? picked.filter((x) => x !== tg) : [...picked, tg]); }}
-                    className="px-3.5 active:opacity-60"
-                    style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.ink : t.surface,
-                             border: `1px solid ${on ? t.ink : t.hair}`, fontFamily: ui, fontSize: 12.5,
-                             fontWeight: 600, color: on ? "#fff" : t.sub,
-                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>{tg}</button>
-          );
-        })}
+      <div className="mb-5">
+        <TimeGrid cols={2} times={tags} picked={picked} onToggle={(tg) => setPicked(picked.includes(tg) ? picked.filter((x) => x !== tg) : [...picked, tg])} />
       </div>
 
       <div className="mb-5"><VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Anything else? Optional.")} /></div>
@@ -6133,7 +6091,7 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
 /* The player says what they'd like to work on next; the coach confirms
    or changes it. Agreed focus is what both then see against the
    booking, so nobody turns up guessing. */
-function SuggestFocus({ cfg, onSend, close }) {
+function SuggestFocus({ cfg, sport, onSend, close }) {
   const t = useT();
   const [pick, setPick] = useState(null);
   const [note, setNote] = useState("");
@@ -6141,18 +6099,8 @@ function SuggestFocus({ cfg, onSend, close }) {
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("Next time")}</h2>
       
-      <div className="flex flex-wrap gap-2 mb-5">
-        {cfg.focus.map((f, i) => {
-          const on = pick === f.id;
-          return (
-            <button key={f.id} onClick={() => { haptic(7); soft(); setPick(f.id); }} className="px-4 active:opacity-60"
-                    style={{ minHeight: 44, borderRadius: R.pill, background: on ? t.accent : t.surface,
-                             border: `1px solid ${on ? t.accent : t.hair}`, fontFamily: ui, fontSize: 13.5,
-                             fontWeight: 600, color: on ? t.onAccent : t.sub,
-                             transition: "background 220ms cubic-bezier(.22,1,.36,1), transform 220ms cubic-bezier(.34,1.56,.64,1)", transform: on ? "scale(1.03)" : "scale(1)",
-                             animation: `fadeUp 360ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>{f.label}</button>
-          );
-        })}
+      <div className="mb-5">
+        <FocusGrid sport={sport} areas={cfg.focus} picked={[pick]} onToggle={setPick} />
       </div>
       <div className="mb-5"><VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Anything specific? Optional.")} /></div>
       <Button disabled={!pick} onClick={() => { onSend(cfg.focus.find((f) => f.id === pick).label, note); close(); }}>
@@ -6269,19 +6217,9 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
         {lesson} {tr("won't go ahead. Pick a new time that suits you.")}
       </p>
-      <div className="flex flex-wrap gap-2 mb-6">
-        {slots.map((sl, i) => {
-          const on = sel === sl;
-          return (
-            <button key={sl} onClick={() => { haptic(7); soft(); setSel(sl); }} className="px-3.5 active:opacity-60"
-                    style={{ minHeight: 44, borderRadius: R.pill, background: on ? t.accent : t.surface,
-                             border: `1px solid ${on ? t.accent : t.hair}`, fontFamily: ui, fontSize: 13,
-                             fontWeight: 600, color: on ? t.onAccent : t.sub,
-                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
-              {span(sl, duration)}
-            </button>
-          );
-        })}
+      <div className="mb-6">
+        <TimeGrid cols={3} times={slots.map((sl) => span(sl, duration))} picked={sel ? span(sel, duration) : null}
+                  onToggle={(lbl) => setSel(slots.find((sl) => span(sl, duration) === lbl))} />
       </div>
       <Button disabled={!sel} onClick={() => { onPick(sel); close(); }}>{tr("Take this time")}</Button>
       <button onClick={close} className="w-full mt-3 py-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>
@@ -8394,21 +8332,8 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       {mySports.length > 1 && (
         <>
           <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Main sport")}</div>
-          <div className="flex flex-wrap gap-2 mb-5">
-            {mySports.map((sp) => {
-              const on = (main || mySports[0]) === sp;
-              return (
-                <button key={sp} onClick={() => { haptic(6); soft(); onSetMain && onSetMain(sp); }}
-                        className="px-4 active:opacity-60"
-                        style={{ minHeight: 42, borderRadius: R.pill,
-                                 background: on ? SPORTS[sp].theme.accent : t.wash,
-                                 ...TYPE.small, fontWeight: 500,
-                                 color: on ? SPORTS[sp].theme.onAccent : t.sub,
-                                 transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
-                  {SPORTS[sp].label}
-                </button>
-              );
-            })}
+          <div className="mb-5">
+            <SportGrid ids={mySports} picked={main || mySports[0]} onPick={(sp) => onSetMain && onSetMain(sp)} />
           </div>
         </>
       )}
@@ -8480,24 +8405,28 @@ function TipsHistory({ cfg, tips, pop }) {
     </SwipeBack>
   );
 }
-function TipBody({ focusLabel, prompts, onSet, close }) {
+function TipBody({ prompts, onSet, close }) {
   const t = useT();
   const [title, setTitle] = useState(""); const [body, setBody] = useState("");
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("What are they working on?")}</h2>
-      <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>Sits at the top of their home until you replace it. Filed under {focusLabel}.</p>
+      {/* the word is TIP: the same word here, on the player's home, on
+          the notification and on the lesson */}
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Tip")}</h2>
       {prompts && prompts.length > 0 && !title && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="mb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
           {prompts.map((pr) => (
-            <button key={pr} onClick={() => { haptic(6); setTitle(pr); }} className="px-3.5 active:opacity-60"
-                    style={{ minHeight: 36, borderRadius: R.surface, background: t.wash, fontFamily: ui, fontSize: 12.5, color: t.sub }}>{pr}</button>
+            <button key={pr} onClick={() => { haptic(6); setTitle(pr); }}
+                    className="w-full flex items-center text-left active:opacity-60"
+                    style={{ minHeight: 46, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{pr}</span>
+            </button>
           ))}
         </div>
       )}
-      <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("Short headline")} /></div>
-      <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={3} ph={tr("One or two sentences")} /></div>
-      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() }); close(); }}>{tr("Set as their focus")}</Button>
+      <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("One line")} /></div>
+      <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={2} ph={tr("Anything more")} /></div>
+      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() }); close(); }}>{tr("Set the tip")}</Button>
     </>
   );
 }
@@ -9163,7 +9092,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
 
           <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
             {[[tr("Everyone's diary"), () => go("calendar")],
-              [tr("Messages"), () => go("messages")],
+              [tr("Chat"), () => go("messages")],
               [tr("This month"), () => push("digest")]].map(([lbl, act], i) => (
               <button key={lbl} data-tour={["family-diary", "family-messages", "family-month"][i]} onClick={() => { haptic(7); soft(); act(); }}
                       className="w-full flex items-center text-left active:opacity-50"
@@ -9352,7 +9281,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Asking")}</div>
           <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
             {asks.map((r, i) => (
-              <div key={r.id} data-tour={i === 0 ? "today-requests" : undefined} className="flex items-center gap-3 pr-1"
+              <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
                    style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
                 <Avatar name={r.who} size={34} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
                 <span className="flex-1 min-w-0">
@@ -9387,7 +9316,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {/* ---- also: a number on a tile, never a sentence to read ---- */}
         {(() => {
           const tiles = [
-            (requests || []).length > 0 && { key: "join", Ico: UserPlus,
+            (requests || []).length > 0 && { key: "join", tour: "today-requests", Ico: UserPlus,
               label: tr("Requests"), count: requests.length, onTap: () => push("requests") },
             toWriteUp.length > 0 && { key: "write", tour: "today-writeup", Ico: Edit3,
               label: tr("To write up"), count: toWriteUp.length, onTap: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
@@ -10606,13 +10535,9 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       </div>
 
       <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
-      <div className="flex flex-wrap gap-2 mb-5">
-        {slots.map((sl) => {
-          const on = time === sl;
-          return (<button key={sl} onClick={() => { haptic(5); setTime(sl); }} className="px-3.5 active:opacity-60"
-                          style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.accent : t.wash,
-                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{span(sl, duration)}</button>);
-        })}
+      <div className="mb-5">
+        <TimeGrid cols={3} times={slots.map((sl) => span(sl, duration))} picked={time ? span(time, duration) : null}
+                  onToggle={(lbl) => setTime(slots.find((sl) => span(sl, duration) === lbl))} />
       </div>
 
       <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("How often")}</div>
@@ -11277,20 +11202,10 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
         {members.length ? `${members.length} ${nouns}` : tr("Members")}
       </div>
-      <div className="flex flex-wrap gap-2 mb-5">
-        {roster.map((r, i) => {
-          const on = members.includes(r.name);
-          return (
-            <button key={r.id || r.name} onClick={() => { haptic(9); soft(); toggle(r.name); }} className="pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
-                    style={{ minHeight: 42, borderRadius: R.pill, background: on ? t.ink : t.surface,
-                             border: `1px solid ${on ? t.ink : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
-                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
-              <Avatar name={r.name} size={30} />
-              <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{r.name.split(" ")[0]}</span>
-              {on && <Check size={12} color={STEADY} strokeWidth={2.1} />}
-            </button>
-          );
-        })}
+      <div className="mb-5">
+        <PersonPicker people={roster.map((r) => ({ id: r.id || r.name, name: r.name }))}
+                      picked={roster.filter((r) => members.includes(r.name)).map((r) => r.id || r.name)}
+                      onToggle={(pl) => toggle(pl.name)} />
       </div>
 
       <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
@@ -11303,13 +11218,8 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
                                    transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{d.slice(0, 2)}</button>);
         })}
       </div>
-      <div className="flex flex-wrap gap-2 mb-5">
-        {ALL_TIMES.slice(0, 6).map((tm) => {
-          const on = time === tm;
-          return (<button key={tm} onClick={() => { haptic(5); setTime(tm); }} className="px-3.5 active:opacity-60"
-                          style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.accent : t.wash,
-                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{tm}</button>);
-        })}
+      <div className="mb-5">
+        <TimeGrid cols={3} times={ALL_TIMES.slice(0, 6)} picked={time} onToggle={setTime} />
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -11356,7 +11266,6 @@ function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("New group")}</h2>
-      <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("A recurring slot and a shared chat, in one go.")}</p>
 
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("e.g. Saturday clinic")} autoFocus /></div>
 
@@ -11747,7 +11656,6 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
     <>
       <div className="flex items-center gap-1 mb-1 -ml-2">{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>)}
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
-      {labels.length > 0 && <p className="mb-4 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>From what you just covered — {labels.join(" and ")}.</p>}
 
       {recommended.length > 0 && (<>
         <Eyebrow>{tr("Recommended")}</Eyebrow>
@@ -12647,51 +12555,35 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
             {role === "coach" ? (
               <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
                 <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Sports you coach")}</div>
-                <div className="flex flex-wrap gap-2" data-tour="profile-sport">
-                  {(sports && sports.length ? sports : [f.sport]).map((id) => {
-                    const sp = SPORTS[id]; if (!sp) return null;
-                    const on = (activeSport || f.sport) === id;
-                    const isMain = id === f.sport;
-                    return (
-                      <button key={id} onClick={() => { haptic(6); onPickSport && onPickSport(id); }} className="flex items-center gap-1.5 px-3.5 active:opacity-60"
-                              style={{ minHeight: 36, borderRadius: R.pill, background: on ? sp.theme.accent : t.wash,
-                                       ...TYPE.caption, fontWeight: 600, color: on ? sp.theme.onAccent : t.sub }}>
-                        {sp.label}{isMain ? ` · ${tr("main")}` : ""}
-                        {!isMain && onRemoveSport && (
-                          <span onClick={(e) => { e.stopPropagation(); haptic(8); onRemoveSport(id); }} aria-label={tr("Remove")}>
-                            <X size={11} color={on ? sp.theme.onAccent : t.faint} strokeWidth={2.4} />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                <div data-tour="profile-sport">
+                  <SportGrid ids={sports && sports.length ? sports : [f.sport]} picked={activeSport || f.sport}
+                             onPick={(id) => onPickSport && onPickSport(id)} />
                 </div>
                 {onAddSport && Object.keys(SPORTS).filter((id) => !(sports || [f.sport]).includes(id)).length > 0 && (
                   <>
                     <div className="mt-3.5 mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Add another")}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(SPORTS).filter(([id]) => !(sports || [f.sport]).includes(id)).map(([id, sp]) => (
-                        <button key={id} onClick={() => { hapticCommit(); onAddSport(id); }} className="px-3.5 active:opacity-60"
-                                style={{ minHeight: 34, borderRadius: R.pill, background: "transparent",
-                                         border: `1px solid ${HAIR(t.ink, 0.18)}`, ...TYPE.caption, fontWeight: 600, color: t.sub }}>
-                          + {sp.label}
-                        </button>
-                      ))}
-                    </div>
+                    <SportGrid ids={Object.keys(SPORTS).filter((id) => !(sports || [f.sport]).includes(id))} picked={null}
+                               onPick={(id) => { hapticCommit(); onAddSport(id); }} />
                   </>
+                )}
+                {onRemoveSport && (sports || []).filter((id) => id !== f.sport).length > 0 && (
+                  <div className="mt-3.5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                    {(sports || []).filter((id) => id !== f.sport).map((id) => (
+                      <button key={id} onClick={() => { haptic(8); onRemoveSport(id); }}
+                              className="w-full flex items-center gap-3 text-left active:opacity-60"
+                              style={{ minHeight: 48, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Remove")} {SPORTS[id].label}</span>
+                        <X size={14} color={t.faint} strokeWidth={2.2} />
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             ) : (
               <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
                 <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Main sport")}</div>
-                <div className="flex flex-wrap gap-2" data-tour="profile-sport">
-                  {Object.entries(SPORTS).map(([id, sp]) => {
-                    const on = f.sport === id;
-                    return (
-                      <button key={id} onClick={() => { haptic(6); setF({ ...f, sport: id }); }} className="px-3.5 active:opacity-60"
-                              style={{ minHeight: 36, borderRadius: R.pill, background: on ? sp.theme.accent : t.wash, ...TYPE.caption, fontWeight: 600, color: on ? sp.theme.onAccent : t.sub }}>{sp.label}</button>
-                    );
-                  })}
+                <div data-tour="profile-sport">
+                  <SportGrid ids={Object.keys(SPORTS)} picked={f.sport} onPick={(id) => setF({ ...f, sport: id })} />
                 </div>
               </div>
             )}
@@ -13541,15 +13433,8 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
       <p className="mb-5" style={{ ...TYPE.caption, color: t.faint }}>{lesson.who} · {lesson.d} {lesson.m}</p>
 
       <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Focus")}</div>
-      <div className="flex flex-wrap gap-2 mb-4">
-        {options.map((o) => {
-          const on = focus === o;
-          return (
-            <button key={o} onClick={() => { haptic(6); setFocus(o); }} className="px-3.5 active:opacity-60"
-                    style={{ minHeight: 38, borderRadius: R.pill, background: on ? t.accent : t.wash,
-                             ...TYPE.small, fontWeight: 600, color: on ? t.onAccent : t.sub }}>{o}</button>
-          );
-        })}
+      <div className="mb-4">
+        <TimeGrid cols={2} times={options} picked={focus} onToggle={setFocus} />
       </div>
       <input value={focus} onChange={(e) => { setFocus(e.target.value); setErr(""); }} aria-label={tr("Focus")}
              className="w-full outline-none px-4 mb-4" placeholder={tr("Or type it")}
@@ -15274,7 +15159,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }[flow];
   } else if (juvenile && (screen === "messages" || screen.startsWith("thread:"))) {
     body = (
-      <Screen title={tr("Messages")} right={slimRight}>
+      <Screen title={tr("Chat")} right={slimRight}>
         <div className="px-6">
           <div className="py-12 text-center">
             <span className="rounded-full flex items-center justify-center mx-auto mb-5" style={{ width: 54, height: 54, background: theme.wash }}>
@@ -16029,8 +15914,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "invite" ? <InviteBody code={inviteShown} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
-              : sheet === "tip" ? <TipBody focusLabel={assignFocus || (cfg.focus[0] || {}).label}
-                                            prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
+              : sheet === "tip" ? <TipBody prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
                                             onSet={doSetTip} close={() => setSheet(null)} />
               : sheet === "group" ? <GroupCreate livePlayers={data ? data.roster : null} cfg={cfg} coachSport={coachSport} onCreate={createGroup} close={() => setSheet(null)} />
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} 
@@ -16176,7 +16060,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onConfirm={callOff} close={() => { setCallOffFor(null); setSheet(null); }} />
               : sheet === "reschedule" ? <RescheduleOffer lesson={rescheduleFor || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
                                             onPick={(sl) => { setCalledOff(null); done(tr("Rebooked"), sl); }} close={() => setSheet(null)} />
-              : sheet === "suggest" ? <SuggestFocus cfg={cfg}
+              : sheet === "suggest" ? <SuggestFocus cfg={cfg} sport={sport}
                                             onSend={(f, n) => { setFocusReqs((v) => [...v, { who: activeProfile.name, focus: f, note: n }]);
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
