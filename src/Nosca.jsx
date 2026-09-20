@@ -10492,6 +10492,11 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
      button, so a coach with six hundred lessons opens this as fast as
      one with six. */
   const page = shown.slice(0, shownCount);
+  /* The same rule the roster uses: a control for narrowing a list is
+     offered when the list needs narrowing. Three filter rows and a
+     search field over a player's four lessons is a filing cabinet in
+     front of a postcard. */
+  const sift = lessons.length > 8;
   useEffect(() => { setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, forPlayer]);
 
   /* Grouped by month AND year — two Julys a year apart are two headings,
@@ -10506,10 +10511,13 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={forPlayer || tr("All lessons")} onBack={pop}
-              meta={shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
-                                                    : `${shown.length} ${tr("of")} ${lessons.length}`}>
-        <div className="px-6 mb-3">
+      {/* "Cian Murphy" over a screen you reached from "Cian Murphy" told
+          nobody where they had got to. */}
+      <Screen title={tr("Lessons")} onBack={pop}
+              meta={[forPlayer || null,
+                     shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
+                                                     : `${shown.length} ${tr("of")} ${lessons.length}`].filter(Boolean).join(" · ")}>
+        {sift && (<div className="px-6 mb-3">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
             <Search size={16} color={t.faint} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={forPlayer ? tr("Search what you covered") : `Search ${nouns} or what you covered`}
@@ -10517,7 +10525,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
             {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
           </div>
-        </div>
+        </div>)}
 
         {forPlayer && onClearPlayer && (
           <button onClick={() => { haptic(6); onClearPlayer(); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
@@ -10528,11 +10536,13 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           </button>
         )}
 
-        <div className="mb-2">
-          <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
-          <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
-          {!forPlayer && <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />}
-        </div>
+        {sift && (
+          <div className="mb-2">
+            <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
+            <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
+            {!forPlayer && <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />}
+          </div>
+        )}
 
         <div className="px-6 pb-2 mt-2">
           {shown.length === 0 ? (

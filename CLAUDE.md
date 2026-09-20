@@ -224,6 +224,25 @@ seeded data and no account.
   "Q W seven X two M" and the button would look broken. `MicBtn`
   renders nothing where the browser has no speech recognition, so it is
   safe to add anywhere.
+- **A grid fills its rows.** `evenCols(n)` picks the column count so a
+  four-tile grid goes two by two rather than three and a widow. Any
+  grid whose length varies with the data uses it.
+- **A control for narrowing a list appears when the list needs
+  narrowing.** The roster's search above eight people, and the lesson
+  archive's search and three filter rows above eight lessons. Three
+  filter rows over a player's four lessons is a filing cabinet in front
+  of a postcard.
+- **The board and the plus are one list of actions, and the coach owns
+  it.** `COACH_ACTIONS` is the nine, each with one name and one glyph —
+  never "Register" on one surface and "Attendance" on the other.
+  `BOARD_ORDER` and `QUICK_ORDER` are the defaults; what a coach keeps
+  rides on `preferences.layout` as `{ board, boardCols, quick }` and is
+  read through `pickLayout`, which drops an id it does not recognise
+  rather than drawing a blank tile. The editor is `LayoutEditor`,
+  reached from under the board, from the foot of the plus sheet, and
+  from Settings. The last remaining action cannot be removed. The save
+  also goes to `localStorage`, so a project whose SQL has not been
+  re-run still does what the coach asked.
 - **The one behaviour: a coach picks up the phone mid-lesson, does one
   thing in seconds, puts it down.** Every coach screen is judged
   against that. Three surfaces reach the same handlers and nothing is
@@ -308,6 +327,20 @@ seeded data and no account.
   panel bottom-left (focus in display type, one tag line, the note cut
   to a line with "more"), a 2px progress bar. References are for
   example only; nothing is copied.
+- **The coach's day is two lists, not one.** *To log* is everything
+  finished and not written up — today's, then the days before that were
+  never written up — and every row carries Log. Below it is what is
+  still to come, with the live one marked. One list where a lesson at
+  nine this morning and one at five this evening were the same row was
+  the thing the founder could not read.
+- **A player's file opens on their history.** The first thing on it is a
+  block the size of the thing it leads to: the number of lessons, when
+  the last one was, and the whole archive behind it. Nothing above it,
+  and the header does not repeat those two facts in small grey type.
+- **A player's home leads with when they are next on**, at the size the
+  coach's date is. The board comes before the tip, because the loudest
+  thing on the screen should be something to do; the tip is a bordered
+  block, never a filled slab of the accent.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: hairline rows with an
   avatar, a name and one grey line. A search field appears only when
@@ -356,7 +389,13 @@ seeded data and no account.
 
 ## Database
 
-`supabase/nosca.sql` is the only SQL file. It sets up a fresh project
+`supabase/nosca.sql` is the only SQL file. Adding a column is one
+`alter table … add column if not exists` line beside the others, and
+`supabase/test/run.sh` must pass before it ships; the project itself
+only picks it up when the file is re-run in the SQL editor, so anything
+that writes a new column degrades gracefully until then
+(`preferences.layout` keeps the coach's board on the device).
+ It sets up a fresh project
 and upgrades an existing one, and is safe to run again — every
 statement is idempotent, nothing in it deletes an account (the wipe at
 the top is commented out). Every policy, function, foreign key and
