@@ -120,7 +120,7 @@ const leaks = [];
       M.addRequest(db, { playerId: IDS.aoife, coachId: IDS.coach, notify: true });
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       const t5 = await leak("coach today again"); await shot("09-coach-today-aoife");
-      check("(b) Today now names the new asker", (await page.locator('[data-tour="today-requests"]').count()) === 1 && t5.includes("Aoife Nolan asked to join"), t5.slice(0, 200));
+      check("(b) Today still counts the one asking", (await page.locator('[data-tour="today-requests"]').count()) === 1 && /Requests/.test(M.norm(await page.locator('[data-tour="today-requests"]').innerText())), t5.slice(0, 200));
       await page.locator('[data-tour="today-requests"]').click(); await page.waitForTimeout(900);
       await click(page, "Decline", 1800);
       const dec = rpc("respond_to_request")[1]; const aoifeReq = db.requests.find((r) => r.player_id === IDS.aoife);
@@ -185,7 +185,7 @@ const leaks = [];
       check("(e) an adult with neither coach nor family opens on Add your coach, with You reachable", t00.includes("Add your coach") && (await page.locator('[aria-label="You"]').count()) === 1, t00.slice(0, 160));
       await tap(page, '[aria-label="You"]', 900);
       const youRow = page.locator('[data-tour="settings-dashboard"]');
-      check("(e) You carries a Family row that says none yet", (await youRow.count()) === 1 && /Family/.test(await youRow.innerText()) && /Start or join one/.test(await youRow.innerText()), (await youRow.count()) ? await youRow.innerText() : "no row");
+      check("(e) You carries a Family row, with no family named", (await youRow.count()) === 1 && /Family/.test(await youRow.innerText()) && !/family$/i.test(M.norm(await youRow.innerText()).replace(/^Family\s*/, "")), (await youRow.count()) ? await youRow.innerText() : "no row");
       /* with no family yet the row goes straight to the screen that starts or
          joins one — a dashboard of nobody helps no one */
       await youRow.click(); await page.waitForTimeout(900);

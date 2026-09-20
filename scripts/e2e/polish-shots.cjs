@@ -90,7 +90,7 @@ function freshDb() {
       await tap('[aria-label="Alerts"]', 900); await shot("c22-alerts");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("c20-chat-list");
-      await text("Saoirse Kelly", 900); await shot("c21-thread-junior");
+      await page.locator('[data-tour="chat-row"]').first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("c21-thread-junior");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");
@@ -112,6 +112,6 @@ function freshDb() {
     { const { ctx, page, shot, tap } = await boot("junior");
       await shot("j1-home"); await tap('[aria-label="Family"]'); await shot("j2-family");
       await ctx.close(); }
-  } finally { await browser.close(); M.stopServer(server); }
+  } catch (e) { notes.push(`ABORTED: ${String(e).slice(0, 220)}`); } finally { await browser.close(); M.stopServer(server); }
   console.log("polish shots written to", outDir, notes.join(" "));
 })();

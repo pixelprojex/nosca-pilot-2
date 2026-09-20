@@ -2175,7 +2175,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
               return (
                 <div className="px-4 pt-3 pb-4">
                   <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{free.length} {tr("free")}</div>
-                  <TimeGrid tour="agenda-book" cols={3} times={free.map((h) => span(h, duration))} picked={null}
+                  <TimeGrid cellTour="agenda-book" cols={3} times={free.map((h) => span(h, duration))} picked={null}
                             onToggle={(lbl) => { const h = free.find((x) => span(x, duration) === lbl); if (h) onBookInto(day, h, slotKinds[`${day.m}-${day.d}-${h}`] || "either"); }} />
                 </div>
               );
@@ -7016,15 +7016,15 @@ const HomeRow = ({ label, value, tone, onPress, tour }) => {
    on every one of them. */
 
 /* times: four to a row, lining figures so the columns line up */
-const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, disabled }) => {
+const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled }) => {
   const t = useT();
   const has = (x) => (Array.isArray(picked) ? picked.includes(x) : picked === x);
   return (
     <div data-tour={tour} className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-      {times.map((x) => {
+      {times.map((x, i) => {
         const on = has(x), off = disabled && disabled.includes(x);
         return (
-          <button key={x} aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
+          <button key={x} data-tour={i === 0 ? cellTour : undefined} aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
                   className="active:opacity-70"
                   style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : t.wash,
                            border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.07)}`, opacity: off ? 0.35 : 1,
@@ -8447,10 +8447,8 @@ function TipBody({ prompts, onSet, close }) {
 
    Everything under it is one line each, with air. The whole screen
    reads in about three seconds. */
-function PlayerHome({ cfg, conn, activeProfile, lessons, go, push, onTick, fresh, right, nextBooking, attendPct,
-                      practice, saved, tip, tool, pack, sheetRate, sheetSuggest, agreed,
-                      onRequest, calledOff, onReschedule, notice, onAcceptOffer, onDismissNotice, nextEvent, sport,
-                      juvenile }) {
+function PlayerHome({ conn, lessons, go, push, right, nextBooking, attendPct,
+                      practice, tip, onRequest, nextEvent, juvenile }) {
   const t = useT();
   const ready = useLoad();
   const todo = practice.filter((x) => !x.done);

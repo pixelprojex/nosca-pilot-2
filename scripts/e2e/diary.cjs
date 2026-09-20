@@ -178,10 +178,10 @@ const leaks = [];
       check("(c) Set drills POSTs a drill row per drill for the player", !!d1 && d1.rows.length >= 1 && d1.rows.every((r) => r.player_id === IDS.adult && r.coach_id === IDS.coach && r.title), JSON.stringify(d1 && d1.rows));
       /* the tip is a tile on the player file now, not a row in the fold */
       await page.locator('[data-tour="player-actions"] button[aria-label="Tip"]').first().click(); await page.waitForTimeout(700);
-      await page.fill('input[placeholder="Short headline"]', "Tempo on the long irons");
-      await click(page, "Set as their focus", 1500);
+      await page.fill('input[placeholder="One line"]', "Tempo on the long irons");
+      await click(page, "Set the tip", 1500);
       const tp = last(db.posts, "tips");
-      check("(c) Set as their focus POSTs a tip for the player, no canned body", !!tp && tp.rows[0].player_id === IDS.adult && tp.rows[0].title === "Tempo on the long irons" && !(tp.rows[0].body || "").includes("Keep at what"), JSON.stringify(tp && tp.rows[0]));
+      check("(c) Set the tip POSTs a tip for the player, no canned body", !!tp && tp.rows[0].player_id === IDS.adult && tp.rows[0].title === "Tempo on the long irons" && !(tp.rows[0].body || "").includes("Keep at what"), JSON.stringify(tp && tp.rows[0]));
       await shot("19-coach-after-tip");
       /* (c) the Practice screen: real roster, real completion, rename + remove */
       await back(page);
