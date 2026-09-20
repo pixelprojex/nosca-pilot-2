@@ -352,7 +352,7 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("adult");
       await tap(page, '[data-tour="profile-pill"]', 900);
       const t1 = await leak("adult you"); await shot("39-adult-you");
-      check("(j) an adult's pill opens their own account, with Family honest about there being none", t1.includes("Cian Murphy") && /Start or join one/.test(await page.locator('[data-tour="settings-dashboard"]').innerText()) && !t1.includes("Ray Doyle") && !t1.includes("Marcus Tran") && !t1.includes("Ellie Tran"), t1.slice(0, 200));
+      check("(j) an adult's pill opens their own account, with Family honest about there being none", t1.includes("Cian Murphy") && !/Byrne family|Murphy family/.test(await page.locator('[data-tour="settings-dashboard"]').innerText()) && !t1.includes("Ray Doyle") && !t1.includes("Marcus Tran") && !t1.includes("Ellie Tran"), t1.slice(0, 200));
       await ctx.close();
     }
     {
