@@ -13,7 +13,10 @@ import {
   Receipt, Banknote, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck,
   ExternalLink, Tag, Phone, Paperclip, Clock, ListChecks, Download, Palette, Zap,
   TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Edit3, Trophy, Award, Star, CloudRain,
-  Copy, Settings2, BellOff, Layers
+  Copy, Settings2, BellOff, Layers,
+  Target, Waves, Activity, Flag, Mountain, Footprints, Shield, Gauge, Dumbbell, Repeat,
+  CornerDownRight, ArrowUpRight, Rows3, Grid2x2, Circle, Route, Heart, Brain, Trees,
+  ChevronsRight, ChevronsLeft, RotateCw, Medal, Compass,
 } from "lucide-react";
 
 /* ==================================================================
@@ -3552,11 +3555,11 @@ const TOUR = {
     { area: "Today", title: "Lessons to log", body: "One tap logs it while it's fresh. Swipe it away if nobody came.", path: "Today → a finished lesson", target: "today-justdone", state: { stack: ["today"] } },
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
     { area: "Log a lesson", title: "The plus", body: "Logging, attendance, live capture, drills — all start here.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "Who was it?", body: "Tap a name. Tick the circle to add more. The name at the top of the log brings you back here.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
-    { area: "Log a lesson", title: "Their stage", body: "The ladder your sport really uses, remembered from last time. Tap to change it.", path: "Log a lesson → Stage", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "What you worked on", body: "One tap or two. The detail under it is optional.", path: "Log a lesson → Worked on", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "Clips and photos", body: "One tap films, photographs or dictates. They upload with the lesson and land on the player's phone.", path: "Log a lesson", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "Drills to set", body: "What they practise until next time. They tick them off; you see it.", path: "Log a lesson → What next", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "next" } },
+    { area: "Log a lesson", title: "Who?", body: "A face, not a list. On now and today first; search when you have hundreds.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
+    { area: "Log a lesson", title: "What you worked on", body: "Tap what you did. That is the whole lesson.", path: "Log a lesson", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { area: "Log a lesson", title: "Their level", body: "Already set to the level they are on. Tap it only when it has changed.", path: "Log a lesson", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { area: "Log a lesson", title: "Video, photo, voice", body: "One tap opens the camera. Anything you captured mid-lesson is already on it — swipe left to take one off.", path: "Log a lesson", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { area: "Log a lesson", title: "Drills and the tip", body: "What they practise until next time, and the one line they remember.", path: "Log a lesson", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
     { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Log a lesson → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
     { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
     { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
@@ -7327,8 +7330,7 @@ function VoiceArea({ value, onChange, ph, rows = 3 }) {
     <div className="rounded-2xl px-4 py-1" style={{ background: t.wash }}>
       <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={ph}
                 className="w-full outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
-      <div className="flex items-center justify-between pb-2">
-        <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{speechCtor() ? tr("Type or talk") : ""}</span>
+      <div className="flex items-center justify-end pb-2">
         <MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} />
       </div>
     </div>
@@ -7367,6 +7369,30 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
                      transition: "transform 140ms cubic-bezier(.22,1,.36,1), opacity 140ms", willChange: "transform", ...looks }}>{children}</button>
   );
 }
+/* AN ICON FOR EVERY THING A COACH WORKS ON
+
+   The areas are the verified taxonomy in SPORTS[x].focus — this only
+   gives each one a face, so the log is a grid of pictures rather than a
+   wrap of words. Keyed sport:id because `serve` means one thing in
+   tennis and another in squash. */
+const FOCUS_ICON = {
+  "golf:swing": Zap,        "golf:pitch": TrendingUp,  "golf:chip": CornerDownRight, "golf:bunker": Waves,
+  "golf:putt": Target,      "golf:course": Flag,       "golf:mental": Brain,         "golf:fitness": Dumbbell,
+  "golf:fitting": Settings2,
+  "tennis:serve": ArrowUpRight, "tennis:return": Repeat, "tennis:fh": ChevronsRight, "tennis:bh": ChevronsLeft,
+  "tennis:net": Grid2x2,    "tennis:rally": Activity,  "tennis:move": Footprints,    "tennis:match": Trophy,
+  "rowing:technique": Waves, "rowing:rhythm": Gauge,   "rowing:racing": Flag,        "rowing:erg": Activity,
+  "rowing:sc": Dumbbell,
+  "squash:drives": Zap,     "squash:volleys": ArrowUpRight, "squash:serve": Repeat,  "squash:front": CornerDownRight,
+  "squash:move": Footprints, "squash:tactics": Brain,  "squash:physical": Heart,     "squash:games": Trophy,
+  "padel:net": Grid2x2,     "padel:overhead": ArrowUpRight, "padel:lob": TrendingUp, "padel:wall": Square,
+  "padel:chiquita": CornerDownRight, "padel:serve": Repeat, "padel:defence": Shield, "padel:match": Trophy,
+  "equestrian:flat": Circle, "equestrian:dressage": Medal, "equestrian:poles": Rows3, "equestrian:grid": Grid2x2,
+  "equestrian:sj": TrendingUp, "equestrian:xc": Mountain, "equestrian:hack": Trees,  "equestrian:lunge": RotateCw,
+  "equestrian:seat": User,  "equestrian:care": Heart,
+};
+const focusIcon = (sport, id) => FOCUS_ICON[`${sport}:${id}`] || Compass;
+
 /* THE TILE
 
    A big box: an icon, one word under it, nothing else. A coach hits it
@@ -7377,15 +7403,17 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   const t = useT();
   const bg = tone === "accent" ? t.accent : on ? t.ink : t.wash;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
+  /* a hairline, so nine tiles read as nine things and not one wash */
+  const edge = tone === "accent" || on ? "transparent" : HAIR(t.ink, 0.07);
   const press = (v) => (e) => { e.currentTarget.style.transform = v; };
   return (
     <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
             onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
             onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
             className="relative w-full flex flex-col items-center justify-center gap-2 active:opacity-80"
-            style={{ minHeight: h, borderRadius: R.surface, background: bg, willChange: "transform",
-                     transition: "background 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
-      <Icon size={h >= 96 ? 25 : 22} color={fg} strokeWidth={1.7} />
+            style={{ minHeight: h, borderRadius: R.surface, background: bg, border: `1px solid ${edge}`, willChange: "transform",
+                     transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
+      <Icon size={h >= 96 ? 26 : h >= 72 ? 24 : 20} color={fg} strokeWidth={1.6} />
       <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.005em", color: fg }}>{label}</span>
       {count > 0 && (
         <span className="absolute flex items-center justify-center rounded-full"
@@ -7512,16 +7540,20 @@ function Spark({ chart, color }) {
     </div>
   );
 }
-const Avatar = ({ name, size = 44, group, tint, src }) => {
+const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const t = useT();
   const initials = (name || "").split(" ").map((x) => x[0]).filter(Boolean).slice(0, 2).join("");
+  /* a face on a wash tile would be wash on wash: `bg`/`fg` let the
+     surface underneath decide, so the disc always reads */
+  const disc = tint || bg || t.wash;
+  const mark = tint ? "#fff" : fg || t.sub;
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-          style={{ width: size, height: size, background: tint || t.wash,
+          style={{ width: size, height: size, background: disc,
                    fontFamily: display, fontSize: size * 0.36, fontWeight: 500,
-                   letterSpacing: "-0.02em", color: tint ? "#fff" : t.sub }}>
+                   letterSpacing: "-0.02em", color: mark }}>
       {src ? <img src={src} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} />
-        : group ? <Users size={size * 0.42} color={tint ? "#fff" : t.sub} /> : initials}
+        : group ? <Users size={size * 0.42} color={mark} /> : initials}
     </span>
   );
 };
@@ -9694,12 +9726,17 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   );
 }
 
-/* THE COACH'S DAY. One card if someone is asking for a lesson; then
-   today's lessons, what is coming, and what has no other home — all as
-   plain rows under one-word eyebrows. */
+/* THE COACH'S DAY
+
+   Four tiles at the top: log, capture, register, add someone. They are
+   the whole job and they are never more than one tap away, whatever
+   else is on the day. Then the day itself as rows — a diary reads as a
+   timeline, not as a wall of boxes — and everything else as tiles with
+   a number on them rather than a sentence to read. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
                       roster, drifting = 0, toWriteUp = [], upcoming = [],
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
+                      onLog, onCapture, onAttend, onAddPlayer,
                       onAccept, onDecline, onInvite, push, go }) {
   const t = useT();
   const list = today || [];
@@ -9730,7 +9767,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
       <div className="px-6 pt-3">
 
         <h1 style={{ fontFamily: display, fontSize: 27, letterSpacing: "-0.03em", color: t.ink }}>{dateLine}</h1>
-        <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{dayLine}</p>
+        <p className="mt-1 mb-4" style={{ ...TYPE.small, color: t.faint }}>{dayLine}</p>
+
+        {/* the four things a coach does, always here, always one tap */}
+        <div className="mb-6" data-tour="today-actions">
+          <TileGrid cols={4}>
+            <ActTile tone="accent" h={84} Icon={Plus} label={tr("Log")} onTap={() => onLog && onLog()} />
+            <ActTile h={84} Icon={Camera} label={tr("Capture")} onTap={() => onCapture && onCapture(liveNow)} />
+            <ActTile h={84} Icon={Check} label={tr("Register")} dot={!!liveNow} onTap={() => onAttend && onAttend(liveNow)} />
+            <ActTile h={84} Icon={UserPlus} label={tr("Add")} onTap={() => onAddPlayer && onAddPlayer()} />
+          </TileGrid>
+        </div>
 
         {/* the one card: someone asking for a lesson, answered here */}
         {asks.length > 0 && (
@@ -9791,36 +9838,27 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           </div>
         </>)}
 
-        {/* ---- also: what has no other home, as plain rows ---- */}
+        {/* ---- also: a number on a tile, never a sentence to read ---- */}
         {(() => {
-          const rows = [
-            (requests || []).length > 0 && { key: "join", tour: "today-requests",
-              label: requests.length === 1 ? `${requests[0].name} ${tr("asked to join you")}` : `${requests.length} ${tr("asking to join you")}`,
-              onTap: () => push("requests") },
-            toWriteUp.length > 0 && { key: "write", tour: "today-writeup",
-              label: toWriteUp.length === 1 ? `${toWriteUp[0].who} · ${tr("still to write up")}` : `${toWriteUp.length} ${tr("lessons still to write up")}`,
-              sub: toWriteUp.length === 1 ? `${toWriteUp[0].d} ${monthName(toWriteUp[0].m)}` : null,
-              onTap: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            drifting > 0 && { key: "drift", label: `${drifting} ${drifting === 1 ? tr("person is drifting") : tr("people are drifting")}`, onTap: () => push("atrisk") },
-            events.length > 0 && { key: "event", label: events[0].name, sub: events[0].when || events[0].date || null, onTap: () => push("events") },
+          const tiles = [
+            (requests || []).length > 0 && { key: "join", tour: "today-requests", Ico: UserPlus,
+              label: tr("Requests"), count: requests.length, onTap: () => push("requests") },
+            toWriteUp.length > 0 && { key: "write", tour: "today-writeup", Ico: Edit3,
+              label: tr("To write up"), count: toWriteUp.length, onTap: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
+            drifting > 0 && { key: "drift", Ico: Clock, label: tr("Drifting"), count: drifting, onTap: () => push("atrisk") },
+            events.length > 0 && { key: "event", Ico: Trophy, label: tr("Competitions"), count: events.length, onTap: () => push("events") },
           ].filter(Boolean);
-          if (!rows.length) return null;
-          return (<>
-            <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Also")}</div>
-            <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-              {rows.map((row) => (
-                <button key={row.key} data-tour={row.tour} onClick={() => { haptic(8); soft(); row.onTap(); }}
-                        className="w-full flex items-center gap-3.5 text-left active:opacity-60"
-                        style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{row.label}</span>
-                    {row.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{row.sub}</span>}
-                  </span>
-                  <ChevronRight size={15} color={t.faint} />
-                </button>
-              ))}
+          if (!tiles.length) return null;
+          return (
+            <div className="mb-6">
+              <TileGrid>
+                {tiles.map((x) => (
+                  <ActTile key={x.key} tour={x.tour} h={82} Icon={x.Ico} label={x.label} count={x.count}
+                           aria={`${x.label} · ${x.count}`} onTap={x.onTap} />
+                ))}
+              </TileGrid>
             </div>
-          </>);
+          );
         })()}
 
         {/* nobody yet: the only thing worth doing is getting someone in */}
@@ -9849,24 +9887,12 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
 
 
 
-/* Three pages: who it was with and when, what happened, what's next.
-   It was eight — a page each for the date, the focus, the note, the
-   media, the drills, the takeaway and a single toggle — which is seven
-   Continues to write up a lesson that takes a coach ninety seconds to
-   remember. A coach arriving from a booking already tells us who and
-   when, so they land on the second page. */
-/* LOG A LESSON — one screen.
+/* THE STAGE RIDES ON THE LESSON
 
-   A coach mid-lesson picks up the phone, does one thing in seconds and
-   puts it down. So the log is one scroll, not a walk: who (already
-   ticked from the booking), the stage they are at (remembered from
-   last time), what was worked on, and Log it. A note, a clip, drills
-   and a tip are one row each that unfold only if wanted. Nothing here
-   is a page you have to get through.
-
-   The stage and the mount ride along as tags on the lesson (`subs`),
-   so nothing changes in the database: `stageOf()` and `mountOf()` read
-   them back wherever a lesson is shown. */
+   A player's level, the second axis where the sport has one, and the
+   horse a rider was on are tags on the lesson (`subs`), so nothing
+   changed in the database: `stageOf()`, `extraOf()` and `mountOf()`
+   read them back wherever a lesson is shown. */
 const STAGE_INPUT_SEP = " ";
 function stageTag(cfg, id, value) {
   const st = (cfg.stages || []).find((x) => x.id === id);
@@ -9916,28 +9942,6 @@ function LessonTags({ lesson, cfg, className = "" }) {
     </div>
   );
 }
-
-/* LOG A LESSON
-
-   A confirmation screen, not a form. The name at the top, the day under
-   it, the stage the person was last logged at, one cluster of chips for
-   what was worked on, three quiet rows for anything more, and Log it.
-   Everything that is a list — who, the sport's ladder, the horse, the
-   notes and clips, the drills and the tip — is a full-height page one
-   tap deep, inside the log's own view stack. Nothing here opens the
-   app's single <Sheet>.
-
-   From a booking the log opens on the main screen with who, the day and
-   the stage already answered: one chip and Log it. From the plus it
-   opens on Who was it?, where today's people sit at the top and two
-   letters find anyone in a roster of two hundred. */
-const WIZ_VIEWS = ["who", "main", "stage", "mount", "notes", "next"];
-const WIZ_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const WIZ_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-/* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
-const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
-const wizFirst = (name) => String(name || "").split(" ")[0];
 
 /* a one-line field that commits on Return and gives way when left empty */
 function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBlur = true, autoFocus = true, hint = "done", height = 46, style, label }) {
@@ -10003,53 +10007,49 @@ const WizDocked = ({ children }) => {
   const t = useT();
   return <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}`, animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>;
 };
-const WizPersonRow = ({ pl, caption, tour, on, onName, onCircle }) => {
-  const t = useT();
-  return (
-    <div className="flex items-center" style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-      <button data-tour={tour} onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
-        <Avatar name={pl.name} size={36} src={avatarUrl(pl.avatarPath)} />
-        <span className="flex-1 min-w-0">
-          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
-          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
-        </span>
-      </button>
-      <button onClick={onCircle} aria-label={on ? `${tr("Remove")} ${pl.name}` : `${tr("Add")} ${pl.name}`} aria-pressed={on} className="flex items-center justify-end active:opacity-50" style={{ minWidth: 48, minHeight: 48 }}><WizCircle on={on} /></button>
-    </div>
-  );
-};
-const WizGroupRow = ({ g, caption, on, onName, onCircle }) => {
-  const t = useT();
-  return (
-    <div className="flex items-center" style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-      <button onClick={onName} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 60 }}>
-        <Avatar name={g.name} size={36} group />
-        <span className="flex-1 min-w-0">
-          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{g.name}</span>
-          {caption && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{caption}</span>}
-        </span>
-      </button>
-      <button onClick={onCircle} aria-label={on ? `${tr("Remove")} ${g.name}` : `${tr("Add")} ${g.name}`} aria-pressed={on} className="flex items-center justify-end active:opacity-50" style={{ minWidth: 48, minHeight: 48 }}><WizCircle on={on} /></button>
-    </div>
-  );
-};
-/* the Notes row: the label and value open the page, the mic beside the
-   chevron dictates in place — two sibling buttons, never one inside another */
-const WizNotesRow = ({ label, value, onOpen, onText, tour }) => {
-  const t = useT();
-  return (
-    <div className="w-full flex items-center gap-3.5 px-5" style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
-      <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62 }}>
-        <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, letterSpacing: "-0.005em", color: t.ink }}>{label}</span>
-        {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: t.sub, maxWidth: "58%" }}>{value}</span>}
-      </button>
-      <MicBtn size={28} onText={onText} />
-      <button onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="active:opacity-50 flex items-center" style={{ minHeight: 44 }}><ChevronRight size={17} color={t.faint} /></button>
-    </div>
-  );
-};
+/* LOG A LESSON
 
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, onSaveGroup }) {
+   Two screens. Who, then everything else on one page.
+
+   The page is tiles: what was worked on across the top as a grid of
+   icons, then video, photo and voice as three boxes that open the
+   camera itself, then drills and the tip. The level is not asked for —
+   it is what the player is already on, shown as a tag and changed only
+   if it has changed. Anything captured during the lesson is already
+   attached; a swipe to the left takes one off.
+
+   No wrapping rows of pills, no page to reach a note, no question a
+   coach has to read twice. */
+const WIZ_VIEWS = ["who", "main", "stage"];
+const WIZ_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WIZ_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+/* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
+const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
+const wizFirst = (name) => String(name || "").split(" ")[0];
+
+/* a face is a tile too: the picture, the first name, nothing else */
+function FaceTile({ person, group, caption, on, onTap, tour }) {
+  const t = useT();
+  const press = (v) => (e) => { e.currentTarget.style.transform = v; };
+  return (
+    <button data-tour={tour} aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
+            onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
+            onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
+            className="relative flex flex-col items-center justify-center gap-2 active:opacity-80"
+            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : t.wash,
+                     border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.07)}`, willChange: "transform",
+                     transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
+      <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
+              bg={on ? "rgba(255,255,255,0.18)" : t.page} fg={on ? "#fff" : t.sub} />
+      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
+      {caption && <span className="truncate px-2" style={{ ...TYPE.caption, fontSize: 10.5, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption}</span>}
+      {on && <span className="absolute rounded-full flex items-center justify-center" style={{ top: 8, right: 8, width: 18, height: 18, background: "#fff" }}><Check size={11} color={t.ink} strokeWidth={3} /></span>}
+    </button>
+  );
+}
+
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer }) {
   const t = useT(); const L = useL();
   const live = useLive();
   const POOL_W = (livePlayers ?? ROSTER).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
@@ -10061,56 +10061,52 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const prefGroup = prefill && prefill.kind && String(prefill.kind).startsWith("Group") ? ((groups || []).find((g) => g.name === prefill.who) || null) : null;
   const known = prefill
     ? (prefGroup ? membersOf(prefGroup)
-        : prefill.playerId ? (byId(prefill.playerId) ? [byId(prefill.playerId)] : [])   // a lost id never falls back to a namesake
+        : prefill.playerId ? (byId(prefill.playerId) ? [byId(prefill.playerId)] : [])
         : POOL_W.filter((r) => r.name === prefill.who).slice(0, 1))
     : [];
-  const prefIso = prefill && String(prefill.iso || prefill.date || "");
-  const prefYear = prefill && prefill.y ? prefill.y : /^\d{4}-\d\d-\d\d/.test(prefIso || "") ? Number(prefIso.slice(0, 4)) : null;
   const needsDate = !prefill || prefill.m == null;
   const real = new Date();
   const today = pinnedToday || { y: real.getFullYear(), m: real.getMonth() + 1, d: real.getDate() };
+  const prefIso = prefill && String(prefill.iso || prefill.date || "");
+  const prefYear = prefill && prefill.y ? prefill.y : /^\d{4}-\d\d-\d\d/.test(prefIso || "") ? Number(prefIso.slice(0, 4)) : null;
   const [logY, setLogY] = useState(prefYear || today.y);
   const [logM, setLogM] = useState(prefill?.m ?? today.m);
   const [logD, setLogD] = useState(prefill?.d ?? today.d);
   const [who, setWho] = useState(known);
-  const [pickedGroup, setPickedGroup] = useState(prefGroup ? prefGroup.name : (prefill && prefill.kind && String(prefill.kind).startsWith("Group") ? prefill.who : null));
+  const [pickedGroup, setPickedGroup] = useState(prefGroup ? prefGroup.name : null);
   const [view, setView] = useState(() => {
     const v = WIZ_VIEWS.includes(startView) ? startView : null;
     if (v) return v === "who" && known.length ? "main" : v;
-    return known.length ? "main" : "who";   // a group the roster no longer knows is picked again by hand
+    return known.length ? "main" : "who";
   });
-  const cameFromMain = useRef(false);
   const [q, setQ] = useState("");
+  const [adding, setAdding] = useState(false);   // the who page was opened to add someone, not to start over
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
-  /* ---------- worked on ---------- */
+  /* ---------- what was worked on ---------- */
   const [focus, setFocus] = useState([]);
   const [subPick, setSubPick] = useState([]);
   const [custom, setCustom] = useState([]);
   const [otherOpen, setOtherOpen] = useState(false);
-  const [savingGroup, setSavingGroup] = useState(false);
 
-  /* ---------- notes, clips, voice ---------- */
+  /* ---------- what was taken during it ---------- */
   const [rec, setRec] = useState("idle"); const [secs, setSecs] = useState(0); const [note, setNote] = useState(null);
   const [videos, setVideos] = useState([]); const [cam, setCam] = useState(false);
   const [photos, setPhotos] = useState([]);
-  const [pulled, setPulled] = useState([]);
   const [voice, setVoice] = useState(null);
 
-  /* ---------- what next ---------- */
+  /* ---------- what happens next ---------- */
   const [nextDrills, setNextDrills] = useState([]);
   const [nextTip, setNextTip] = useState("");
+  const [drillsOpen, setDrillsOpen] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
   const [ownDrill, setOwnDrill] = useState("");
   const [extraDrills, setExtraDrills] = useState([]);
   const [wantRating, setWantRating] = useState(false);
 
-  /* ---------- the stage: remembered from the person's last lesson ----------
-     `lastFor` is { [playerId]: { stage, extras, mount } } read from real
-     lessons (the harness seeds one per roster row). Re-derived whenever
-     the first person changes, until the coach touches it. A group
-     pre-fills only when every remembered member agrees. */
+  /* ---------- the level: what the player is already on ---------- */
   const stages = cfg.stages || [];
   const extras = cfg.extras || [];
   const remembered = (r) => (lastFor && r && lastFor[r.id]) || null;
@@ -10131,13 +10127,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const firstKey = useRef(whoKey); const firstMemory = useRef(lastFor);
   useEffect(() => {
     if (stageTouched) return;
-    if (whoKey === firstKey.current && lastFor === firstMemory.current) return;   // the first paint already carries it
+    if (whoKey === firstKey.current && lastFor === firstMemory.current) return;
     firstKey.current = null;
     const r = rememberedFor(who);
     setStage(r.stage); setStageVal(r.stageVal); setExtraPick(r.extras); setMount(r.mount);
   }, [whoKey, lastFor]);
 
-  /* ---------- capture (live) and the harness's pretend recorder ---------- */
+  /* ---------- capture ---------- */
   const cap = useCapture();
   const fileInput = useRef(null);
   const startVoice = async () => {
@@ -10172,14 +10168,12 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     });
     if (files.length) { hapticSuccess(); soft(); }
   };
-  const waiting = [...who.map((r) => r.name), "__unassigned"].flatMap((name) => (captured[name] || [])
-    .filter((it) => !pulled.some((p) => p.id === it.id))
-    .map((it) => ({ ...it, from: name === "__unassigned" ? tr("Captured earlier") : name })));
-  const items = [
-    ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name })),
-    ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
-    ...pulled.map((it) => ({ ...it, id: `c${it.id}` })),
-  ];
+  /* WHAT WAS CAPTURED DURING THE LESSON IS ALREADY ON IT. A coach who
+     filmed two swings mid-lesson should not have to go and fetch them;
+     they are attached, and a swipe to the left takes one off. */
+  const pulled = [...who.map((r) => r.name), "__unassigned"].flatMap((name) => (captured[name] || [])
+    .map((it) => ({ ...it, from: name === "__unassigned" ? null : name })));
+  const forget = (ids) => setCaptured((c) => { const out = {}; for (const k of Object.keys(c)) out[k] = (c[k] || []).filter((x) => !ids.has(x.id)); return out; });
   const addPhoto = (kind) => {
     haptic(10); soft();
     const at = Date.now();
@@ -10189,21 +10183,20 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
       hapticSuccess(); soft();
     }, 1300);
   };
-  const removeItem = (id) => {
-    if (id.startsWith("v")) setVideos(videos.filter((_, i) => `v${i}` !== id));
-    else if (id.startsWith("c")) setPulled(pulled.filter((it) => `c${it.id}` !== id));
-    else setPhotos(photos.filter((p) => `p${p.at}` !== id));
-  };
-  const pull = (it) => { hapticSuccess(); soft(); setPulled((v) => [...v, it]); };
-  const pullAll = () => { hapticSuccess(); soft(); setPulled((v) => [...v, ...waiting]); };
-  const transcribeClip = (id) => {
-    const i = Number(id.slice(1));
-    haptic(10);
-    setVideos((vs) => vs.map((x, j) => (j === i ? { ...x, working: true } : x)));
-    setTimeout(() => setVideos((vs) => vs.map((x, j) => (j === i ? { ...x, working: false, transcript: cfg.transcript } : x))), 1300);
+  const items = [
+    ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name })),
+    ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
+    ...pulled.map((it) => ({ ...it, id: `c${it.id}`, capturedId: it.id })),
+    ...(voice ? [{ id: "voice", kind: "voice", secs: voice.secs, url: voice.url }] : []),
+  ];
+  const removeItem = (it) => {
+    haptic(9);
+    if (it.id === "voice") { if (voice && voice.url) URL.revokeObjectURL(voice.url); setVoice(null); return; }
+    if (it.capturedId != null) { forget(new Set([it.capturedId])); return; }
+    if (it.id.startsWith("v")) setVideos(videos.filter((_, i) => `v${i}` !== it.id));
+    else setPhotos(photos.filter((p) => `p${p.at}` !== it.id));
   };
   useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
-  useEffect(() => { if (rec !== "working" || live) return; const x = setTimeout(() => { setRec("done"); setNote(cfg.transcript); haptic(14); }, 1200); return () => clearTimeout(x); }, [rec, cfg, live]);
 
   const recommended = useMemo(() => {
     const pool = library || cfg.drills || [];
@@ -10212,29 +10205,27 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
       const k = String(d.t || "").trim().toLowerCase();
       if (!k || seen.has(k)) continue;
       seen.add(k); out.push(d);
-      if (out.length === 6) break;
+      if (out.length === 8) break;
     }
     return out;
   }, [library, cfg, focus]);
 
   /* ---------- derived ---------- */
-  const first = wizFirst((who[0] || {}).name);
+  const firstName = wizFirst((who[0] || {}).name);
   const chosenAreas = cfg.focus.filter((f) => focus.includes(f.id));
   const chosen = chosenAreas.map((f) => f.label).concat(custom);
   const group = who.length > 1 || !!pickedGroup;
-  const tog = (arr, set, v) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const canLog = who.length > 0 && chosen.length > 0;
   const showReviewAsk = askReview && who.length === 1 && !pickedGroup
     && (lessonCounts ? (lessonCounts[who[0].id] || 0) === 0 : false);
   const currentStage = stage ? stageTag(cfg, stage, stageVal) : null;
-  const stageValue = [currentStage, ...extraPick].filter(Boolean).join(" · ");
+  const stageValue = [currentStage, ...extraPick, mount.trim() ? `${cfg.mount ? "" : ""}${mount.trim()}` : null].filter(Boolean).join(" · ");
   const tags = [currentStage, ...extraPick, ...subPick, mount.trim() ? `on ${mount.trim()}` : null].filter(Boolean);
   const heroText = pickedGroup ? pickedGroup
-    : who.length === 0 ? tr("Who was it?")
+    : who.length === 0 ? tr("Who?")
     : who.length === 1 ? who[0].name
     : who.length === 2 ? `${wizFirst(who[0].name)} & ${wizFirst(who[1].name)}`
-    : `${wizFirst(who[0].name)}, ${wizFirst(who[1].name)} +${who.length - 2}`;
-  const subject = pickedGroup || first;
+    : `${wizFirst(who[0].name)} +${who.length - 1}`;
   const dayLabel = (() => {
     if (logY === today.y && logM === today.m && logD === today.d) return tr("Today");
     const dt = new Date(logY, logM - 1, logD);
@@ -10242,129 +10233,73 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     if (dt.getFullYear() === yd.getFullYear() && dt.getMonth() === yd.getMonth() && dt.getDate() === yd.getDate()) return tr("Yesterday");
     return `${WIZ_DAYS[dt.getDay()]} ${logD} ${WIZ_MONTHS[logM - 1]}${logY !== today.y ? ` ${logY}` : ""}`;
   })();
-  const dateLine = [who.length > 1 ? `${who.length} ${nouns}` : null, dayLabel, prefill && prefill.time ? prefill.time : null].filter(Boolean).join(" · ");
-  const notesValue = (() => {
-    const n = videos.length + photos.length + pulled.length;
-    const parts = [note ? (note.length > 28 ? `${note.slice(0, 28).trim()}…` : note) : null, n ? `${n} ${n === 1 ? tr("clip") : tr("clips")}` : null, voice ? tr("voice") : null].filter(Boolean);
-    if (parts.length) return parts.join(" · ");
-    if (waiting.length) return `${waiting.length} ${tr("captured earlier")}`;
-    return null;
-  })();
-  const nextValue = [nextDrills.length ? `${nextDrills.length} ${nextDrills.length === 1 ? tr("drill") : tr("drills")}` : null, nextTip ? tr("a tip") : null].filter(Boolean).join(" · ") || null;
+  const whenLine = [dayLabel, prefill && prefill.time ? prefill.time : null].filter(Boolean).join(" · ");
 
   const payload = () => ({
     type: group ? "group" : "private", who: who.map((r) => r.name), whoIds: who.map((r) => r.id),
     groupName: pickedGroup, focus: chosen.join(" · "),
     focusList: chosen, focusIds: focus, custom, subs: tags,
-    note: note || (live ? null : videos.map((v) => v.transcript).filter(Boolean).join(" ") || null), videos, photos, secs, voice,
-    nextDrills, nextTip, wantRating, y: logY, m: logM, d: logD, pulled,
+    note, videos, photos, secs, voice,
+    nextDrills, nextTip, wantRating, y: logY, m: logM, d: logD,
+    pulled: pulled.map(({ from, ...it }) => it),
   });
   const submit = async () => {
     if (!canLog || busy) return;
     hapticCommit(); setBusy(true);
-    try { await onPublish(payload()); } catch (e) { /* the toast has said why */ }
+    let ok = false;
+    try { ok = (await onPublish(payload())) !== false; } catch (e) { ok = false; /* the toast has said why */ }
+    /* what went onto the lesson comes off the clipboard: otherwise the
+       next lesson with the same player quietly carries today's clips */
+    if (ok && pulled.length) forget(new Set(pulled.map((it) => it.id)));
     if (alive.current) setBusy(false);
   };
 
-  /* ---------- the who page's sections ---------- */
-  const liveKey = liveNow ? (liveNow.playerId || seedId(liveNow.who)) : null;
-  const liveGroup = liveNow && !byId(liveKey) ? (groups || []).find((g) => g.name === liveNow.who) : null;
-  const bookingsById = {};
-  for (const b of (todayBookings || [])) { const id = b.playerId || seedId(b.who); if (id && !bookingsById[id]) bookingsById[id] = b; }
-  const seenIds = new Set();
-  const person = (pl, caption) => { seenIds.add(pl.id); return { key: `p-${pl.id}`, pl, caption }; };
-  const grp = (g, caption) => ({ key: `g-${g.id || g.name}`, g, caption });
-  const bookingCaption = (b) => b ? `${b.time}${b.done ? ` · ${tr("to log")}` : b.duration ? ` · ${b.duration} ${tr("min")}` : ""}` : null;
-  const recentCaption = (r) => {
-    if (r.daysAgo != null) return r.daysAgo === 0 ? tr("Today") : r.daysAgo === 1 ? tr("Yesterday") : `${r.daysAgo} ${tr("days ago")}`;
-    if (!r.date) return null;
-    const dt = localDate(r.date); const now = new Date(today.y, today.m - 1, today.d);
-    const days = Math.round((now - dt) / 86400000);
-    if (days <= 0) return tr("Today"); if (days === 1) return tr("Yesterday");
-    if (days < 7) return `${tr("Last lesson")} ${WIZ_DAYS[dt.getDay()]}`;
-    if (days < 30) return `${days} ${tr("days ago")}`;
-    return `${tr("Last lesson")} ${dt.getDate()} ${WIZ_MONTHS[dt.getMonth()]}`;
-  };
-  const sections = [];
-  const searching = !!q.trim();
-  if (!searching) {
-    const onNow = [];
-    if (liveKey && byId(liveKey)) onNow.push(person(byId(liveKey), `${liveNow.time} · ${tr("on now")}`));
-    else if (liveGroup) onNow.push(grp(liveGroup, `${liveNow.time} · ${tr("on now")}`));
-    if (onNow.length) sections.push({ label: tr("On now"), items: onNow });
-    const todayRows = [];
-    for (const id of (todayIds || [])) { const pl = byId(id); if (pl && !seenIds.has(pl.id)) todayRows.push(person(pl, bookingCaption(bookingsById[id]))); }
-    for (const b of (todayBookings || [])) { if (!byId(b.playerId || seedId(b.who))) { const g = (groups || []).find((x) => x.name === b.who); if (g && !(liveGroup && liveGroup.name === g.name)) todayRows.push(grp(g, bookingCaption(b))); } }
-    if (todayRows.length) sections.push({ label: tr("Today"), items: todayRows });
-    const recentRows = [];
-    for (const r of (recent || [])) { const pl = byId(r.id); if (pl && !seenIds.has(pl.id)) recentRows.push(person(pl, recentCaption(r))); if (recentRows.length === 5) break; }
-    if (recentRows.length) sections.push({ label: tr("Recent"), items: recentRows });
-    const groupRows = (groups || []).map((g) => grp(g, `${membersOf(g).length} ${nouns}`));
-    if (groupRows.length) sections.push({ label: tr("Groups"), items: groupRows });
-    const everyone = [...POOL_W].sort((a, b) => a.name.localeCompare(b.name)).map((pl) => ({ key: `e-${pl.id}`, pl, caption: pl.lessons ? `${pl.lessons} ${pl.lessons === 1 ? tr("lesson") : tr("lessons")}` : tr("First lesson"), letter: POOL_W.length > 30 ? wizNorm(pl.name).charAt(0).toUpperCase() : null }));
-    if (everyone.length) sections.push({ label: tr("Everyone"), items: everyone });
-  } else {
-    const people = POOL_W.filter((pl) => wizMatch(pl.name, q)).map((pl) => ({ key: `s-${pl.id}`, pl, caption: pl.lessons ? `${pl.lessons} ${pl.lessons === 1 ? tr("lesson") : tr("lessons")}` : tr("First lesson") }));
-    const gs = (groups || []).filter((g) => wizMatch(g.name, q)).map((g) => grp(g, `${membersOf(g).length} ${nouns}`));
-    if (people.length || gs.length) sections.push({ label: null, items: [...people, ...gs] });
-  }
-  const topMatch = searching ? (sections[0] ? sections[0].items.find((it) => it.pl) : null) : null;
+  /* ---------- the who page ---------- */
   const ticked = (pl) => who.some((r) => r.id === pl.id);
-  /* a saved group keeps its name while everyone ticked is still one of
-     its members (an absentee unticked is still the group's lesson);
-     someone from outside makes it an ad-hoc handful */
   const keepGroup = (next) => { if (!pickedGroup) return null; const g = (groups || []).find((x) => x.name === pickedGroup); if (!g) return null; const ids = new Set(membersOf(g).map((m) => m.id)); return next.length && next.every((r) => ids.has(r.id)) ? pickedGroup : null; };
-  const pickOne = (pl) => { hapticCommit(); soft(); setWho([pl]); setPickedGroup(null); setQ(""); setView("main"); };
-  const toggleOne = (pl) => { haptic(6); const next = ticked(pl) ? who.filter((r) => r.id !== pl.id) : [...who, pl]; setPickedGroup(keepGroup(next)); setWho(next); };
-  const nameTap = (pl) => { if (who.length === 0) pickOne(pl); else toggleOne(pl); };
-  const groupTicked = (g) => { const mems = membersOf(g); return mems.length > 0 && mems.every(ticked); };
-  const groupTap = (g) => {
+  const pickPerson = (pl) => {
+    if (adding) { const next = ticked(pl) ? who.filter((r) => r.id !== pl.id) : [...who, pl]; setPickedGroup(keepGroup(next)); setWho(next); haptic(7); return; }
+    setWho([pl]); setPickedGroup(null); setQ(""); setView("main");
+  };
+  const pickGroup = (g) => {
     const mems = membersOf(g);
-    if (who.length === 0) { hapticCommit(); soft(); setWho(mems); setPickedGroup(g.name); setQ(""); setView("main"); return; }
-    groupCircle(g);
+    if (adding) { setWho([...who, ...mems.filter((m) => !ticked(m))]); setPickedGroup(null); haptic(7); return; }
+    setWho(mems); setPickedGroup(g.name); setQ(""); setView("main");
   };
-  const groupCircle = (g) => {
-    const mems = membersOf(g); haptic(6);
-    if (groupTicked(g)) { const ids = new Set(mems.map((m) => m.id)); setWho(who.filter((r) => !ids.has(r.id))); setPickedGroup(null); return; }
-    const next = [...who, ...mems.filter((m) => !ticked(m))];
-    setWho(next); setPickedGroup(who.length === 0 || next.length === mems.length ? g.name : null);
+  const searching = !!q.trim();
+  const seen = new Set();
+  const take = (list) => list.filter((pl) => pl && !seen.has(pl.id) && (seen.add(pl.id), true));
+  const liveKey = liveNow ? (liveNow.playerId || seedId(liveNow.who)) : null;
+  const bookingFor = {};
+  for (const b of (todayBookings || [])) { const id = b.playerId || seedId(b.who); if (id && !bookingFor[id]) bookingFor[id] = b; }
+  const faces = searching
+    ? POOL_W.filter((pl) => wizMatch(pl.name, q))
+    : take([byId(liveKey), ...(todayIds || []).map(byId), ...(recent || []).map((r) => byId(r.id))]).slice(0, 9);
+  const faceCaption = (pl) => {
+    const b = bookingFor[pl.id];
+    if (b) return b.time;
+    if (pl.id === liveKey) return tr("on now");
+    return null;
   };
+  const groupTiles = searching ? (groups || []).filter((g) => wizMatch(g.name, q)) : (groups || []);
+  const rest = searching ? [] : POOL_W.filter((pl) => !seen.has(pl.id)).sort((a, b) => a.name.localeCompare(b.name));
 
-  /* ---------- looks ---------- */
   const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
-  const areaChip = (on) => ({ minHeight: 42, padding: "0 16px", borderRadius: R.pill, background: on ? t.ink : "transparent", border: `1px solid ${on ? t.ink : HAIR(t.ink, 0.14)}`,
-                              fontFamily: ui, fontSize: 14, fontWeight: 500, color: on ? t.page : t.ink, transition: "background 180ms, border-color 180ms" });
-  const smallChip = (on, tint) => ({ minHeight: 34, padding: "0 12px", borderRadius: R.pill,
-                                     background: on ? (tint ? `${t.accent}14` : t.ink) : "transparent",
-                                     border: `1px solid ${on ? (tint ? `${t.accent}55` : t.ink) : HAIR(t.ink, 0.12)}`,
-                                     fontFamily: ui, fontSize: 12.5, fontWeight: on && tint ? 600 : 500, color: on ? (tint ? t.ink : t.page) : t.sub, transition: "background 180ms, border-color 180ms" });
-  const Circle = WizCircle, Bar = WizBar, Hero = WizHero, Label = WizLabel, Docked = WizDocked, PersonRow = WizPersonRow, GroupRow = WizGroupRow;
-
-  const rungRefs = useRef({});
-  const rungInputs = useRef({});
-  useEffect(() => { if (view !== "stage") return; const el = stage && rungRefs.current[stage]; if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" }); }, [view]);
-  const groupsOf = (list) => { const out = []; for (const x of list) { const g = x.group || ""; const last = out[out.length - 1]; if (last && last.group === g) last.items.push(x); else out.push({ group: g, items: [x] }); } return out; };
   const back = () => { haptic(6); setView("main"); };
-  const later = (fn) => setTimeout(fn, 160);
-  const mountChoices = (() => { const r = remembered(who[0]); const out = []; for (const m of [r && r.mount, ...(recentMounts || [])]) { const x = String(m || "").trim(); if (x && !out.includes(x)) out.push(x); if (out.length === 12) break; } return out; })();
-  let whoTagged = false;
 
-  /* ================================================================
-     WHO WAS IT?
-  ================================================================ */
   if (view === "who") {
     return (
-      <SwipeBack key="who" onBack={() => (who.length || cameFromMain.current ? setView("main") : onCancel())}>
+      <SwipeBack key="who" onBack={() => (who.length ? setView("main") : onCancel())}>
         <div key="who" className="flex flex-col h-full relative" style={{ background: t.page }}>
-          <Bar onBack={() => (who.length || cameFromMain.current ? setView("main") : onCancel())} />
+          <WizBar onBack={() => (who.length ? setView("main") : onCancel())} close={!who.length} />
           <div className="flex-1 overflow-y-auto">
-            <Hero>{tr("Who was it?")}</Hero>
+            <WizHero>{adding ? tr("Who else?") : tr("Who?")}</WizHero>
             {POOL_W.length > 8 && (
-              <div className="px-6 pb-2" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
+              <div className="px-6 pb-3" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
                 <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
                   <Search size={15} color={t.faint} />
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${tr("Search")} ${POOL_W.length} ${nouns}`} enterKeyHint="search"
-                         onKeyDown={(e) => { if (e.key === "Enter" && topMatch) { e.preventDefault(); nameTap(topMatch.pl); } }}
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${tr("Search")} ${POOL_W.length}`} enterKeyHint="search"
+                         onKeyDown={(e) => { if (e.key === "Enter" && faces[0]) { e.preventDefault(); pickPerson(faces[0]); } }}
                          className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                   {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
                      : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
@@ -10372,26 +10307,33 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             )}
             <div className="px-6 pb-6">
-              {sections.map((sec, si) => (
-                <div key={sec.label || `s${si}`}>
-                  {sec.label && <Label>{sec.label}</Label>}
-                  {sec.items.map((it, ii) => {
-                    const prevLetter = ii > 0 ? sec.items[ii - 1].letter : null;
-                    const showLetter = it.letter && it.letter !== prevLetter;
-                    if (it.pl) {
-                      const tour = !whoTagged ? (whoTagged = true, "wiz-who") : undefined;
-                      return (
-                        <React.Fragment key={it.key}>
-                          {showLetter && <div style={{ ...TYPE.eyebrow, color: t.faint, marginTop: 16, marginBottom: 6 }}>{it.letter}</div>}
-                          <PersonRow pl={it.pl} caption={it.caption} tour={tour} on={ticked(it.pl)} onName={() => nameTap(it.pl)} onCircle={() => toggleOne(it.pl)} />
-                        </React.Fragment>
-                      );
-                    }
-                    return <GroupRow key={it.key} g={it.g} caption={it.caption} on={groupTicked(it.g)} onName={() => groupTap(it.g)} onCircle={() => groupCircle(it.g)} />;
-                  })}
-                </div>
-              ))}
-              {sections.length === 0 && (
+              {faces.length > 0 && (
+                <TileGrid>
+                  {faces.map((pl, i) => <FaceTile key={pl.id} person={pl} caption={faceCaption(pl)} on={ticked(pl)} tour={i === 0 ? "wiz-who" : undefined} onTap={() => pickPerson(pl)} />)}
+                </TileGrid>
+              )}
+              {groupTiles.length > 0 && (
+                <>
+                  <WizLabel>{tr("Groups")}</WizLabel>
+                  <TileGrid>
+                    {groupTiles.map((g) => <FaceTile key={g.id || g.name} person={g} group caption={`${membersOf(g).length}`} on={pickedGroup === g.name} onTap={() => pickGroup(g)} />)}
+                  </TileGrid>
+                </>
+              )}
+              {rest.length > 0 && (
+                <>
+                  <WizLabel>{tr("Everyone")}</WizLabel>
+                  {rest.map((pl) => (
+                    <button key={pl.id} onClick={() => pickPerson(pl)} aria-label={pl.name} aria-pressed={ticked(pl)}
+                            className="w-full flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 58, borderBottom: hair }}>
+                      <Avatar name={pl.name} size={34} src={avatarUrl(pl.avatarPath)} />
+                      <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
+                      {ticked(pl) && <Check size={16} color={t.accent} strokeWidth={2.4} />}
+                    </button>
+                  ))}
+                </>
+              )}
+              {faces.length === 0 && rest.length === 0 && groupTiles.length === 0 && (
                 <>
                   <p className="text-center py-8" style={{ ...TYPE.body, color: t.faint }}>{searching ? `${tr("Nobody called")} “${q.trim()}”` : tr("No players yet")}</p>
                   {onAddPlayer && (
@@ -10405,51 +10347,50 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               )}
             </div>
           </div>
-          {who.length > 0 && (
-            <Docked><Button tone="ink" onClick={() => setView("main")}>{who.length > 1 ? `${tr("Done")} · ${who.length}` : tr("Done")}</Button></Docked>
+          {adding && who.length > 0 && (
+            <WizDocked><Button tone="ink" onClick={() => { setAdding(false); setView("main"); }}>{`${tr("Done")} · ${who.length}`}</Button></WizDocked>
           )}
         </div>
       </SwipeBack>
     );
   }
 
-  /* ================================================================
-     WHAT STAGE?
-  ================================================================ */
+  /* ---------- the level, changed only when it has changed ---------- */
   if (view === "stage") {
-    const r0 = remembered(who[0]);
-    const sub = !stageTouched && stage && r0 ? `${subject} · ${tr("as last time")}` : subject;
+    const groupsOf = (list) => { const out = []; for (const x of list) { const g = x.group || ""; const last = out[out.length - 1]; if (last && last.group === g) last.items.push(x); else out.push({ group: g, items: [x] }); } return out; };
     const pickRung = (st) => {
       if (stage === st.id && !st.input) { haptic(6); setStageTouched(true); setStage(null); setStageVal(""); return; }
       haptic(8); setStageTouched(true); setStage(st.id);
-      if (st.input) { const el = rungInputs.current[st.id]; if (el) { el.focus(); el.select(); } return; }   // inside the tap, so iOS raises the keyboard
-      later(() => setView("main"));
+      if (st.input) { const el = document.getElementById(`rung-${st.id}`); if (el) { el.focus(); el.select(); } return; }
+      setTimeout(() => setView("main"), 150);
     };
     return (
       <SwipeBack key="stage" onBack={back}>
         <div key="stage" className="flex flex-col h-full relative" style={{ background: t.page }}>
-          <Bar onBack={back} right={<TextBtn color={t.ink} onClick={() => setView("main")}>{tr("Done")}</TextBtn>} />
+          <WizBar onBack={back} right={<TextBtn color={t.ink} onClick={() => setView("main")}>{tr("Done")}</TextBtn>} />
           <div className="flex-1 overflow-y-auto pb-8">
-            <Hero sub={sub}>{tr("What stage?")}</Hero>
+            <WizHero sub={pickedGroup || firstName}>{tr("Level")}</WizHero>
             <div className="px-6">
               {groupsOf(stages).map((gr, gi) => (
                 <div key={gr.group || `_${gi}`}>
-                  {gr.group && <Label>{gr.group}</Label>}
+                  {gr.group && <WizLabel>{gr.group}</WizLabel>}
                   {gr.items.map((st) => {
                     const on = stage === st.id;
                     return (
-                      <div key={st.id} ref={(el) => { rungRefs.current[st.id] = el; }} className="flex items-center gap-3" style={{ minHeight: 56, borderBottom: hair }}>
+                      <div key={st.id} className="flex items-center gap-3" style={{ minHeight: 56, borderBottom: hair }}>
                         <button onClick={() => pickRung(st)} aria-pressed={on} className="flex-1 min-w-0 flex items-center text-left active:opacity-50" style={{ minHeight: 56 }}>
                           <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{st.label}</span>
                         </button>
                         {st.input ? (
-                          <input ref={(el) => { rungInputs.current[st.id] = el; }} value={on ? stageVal : ""} inputMode="decimal" enterKeyHint="done" placeholder={st.hint || ""} aria-label={st.label}
+                          <input id={`rung-${st.id}`} value={on ? stageVal : ""} inputMode="decimal" enterKeyHint="done" placeholder={st.hint || ""} aria-label={st.label}
                                  onFocus={() => { if (!on) { setStageTouched(true); setStage(st.id); } }}
                                  onChange={(e) => { setStageTouched(true); setStage(st.id); setStageVal(e.target.value); }}
                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); setView("main"); } }}
-                                 className="outline-none text-right shrink-0" style={{ width: 96, minHeight: 40, padding: "0 10px", borderRadius: R.field, background: t.wash, fontFamily: ui, fontSize: 16, color: t.ink, fontVariantNumeric: "tabular-nums" }} />
+                                 className="outline-none text-right shrink-0" style={{ width: 96, minHeight: 40, padding: "0 10px", borderRadius: R.field,
+                                          background: on ? `${t.accent}14` : t.wash, border: `1px solid ${on ? `${t.accent}55` : "transparent"}`,
+                                          fontFamily: ui, fontSize: 16, fontWeight: on ? 600 : 400, color: t.ink, fontVariantNumeric: "tabular-nums" }} />
                         ) : (
-                          <button onClick={() => pickRung(st)} aria-label={st.label} className="py-2 active:opacity-50"><Circle on={on} /></button>
+                          <button onClick={() => pickRung(st)} aria-label={st.label} className="py-2 active:opacity-50"><WizCircle on={on} /></button>
                         )}
                       </div>
                     );
@@ -10457,49 +10398,25 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 </div>
               ))}
               {extras.map((ex) => (
-                <div key={ex.id} style={{ marginTop: 6 }}>
-                  <Label>{ex.label}</Label>
-                  <div className="flex flex-wrap" style={{ gap: 6 }}>
+                <div key={ex.id}>
+                  <WizLabel>{ex.label}</WizLabel>
+                  <TileGrid cols={3}>
                     {ex.options.map((o) => {
                       const on = extraPick.includes(o);
-                      return <button key={o} aria-pressed={on} onClick={() => { haptic(6); setStageTouched(true); setExtraPick(on ? extraPick.filter((x) => x !== o) : [...extraPick.filter((x) => !ex.options.includes(x)), o]); }}
-                                     className="active:opacity-60" style={smallChip(on)}>{o}</button>;
+                      return <ActTile key={o} h={56} Icon={on ? Check : Circle} label={o} on={on}
+                                      onTap={() => { setStageTouched(true); setExtraPick(on ? extraPick.filter((x) => x !== o) : [...extraPick.filter((x) => !ex.options.includes(x)), o]); }} />;
                     })}
-                  </div>
+                  </TileGrid>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </SwipeBack>
-    );
-  }
-
-  /* ================================================================
-     WHICH HORSE?
-  ================================================================ */
-  if (view === "mount") {
-    return (
-      <SwipeBack key="mount" onBack={back}>
-        <div key="mount" className="flex flex-col h-full relative" style={{ background: t.page }}>
-          <Bar onBack={back} />
-          <div className="flex-1 overflow-y-auto pb-8">
-            <Hero sub={subject}>{tr("Which horse?")}</Hero>
-            <div className="px-6">
-              {mountChoices.length > 0 && (
+              {cfg.mount && (
                 <>
-                  <Label>{tr("Recent")}</Label>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {mountChoices.map((m) => {
-                      const on = mount.trim() === m;
-                      return <button key={m} aria-pressed={on} onClick={() => { haptic(8); setStageTouched(true); setMount(m); later(() => setView("main")); }} className="active:opacity-60" style={areaChip(on)}>{m}</button>;
-                    })}
-                  </div>
+                  <WizLabel>{cfg.mount.label}</WizLabel>
+                  <InlineField key={mount} ph={tr("Name")} label={cfg.mount.label} initial={mount} autoFocus={false} height={54} commitOnBlur
+                               onCommit={(x) => { setStageTouched(true); setMount(x); }}
+                               onEmpty={() => { setStageTouched(true); setMount(""); }} />
                 </>
               )}
-              <InlineField key={mount} ph={tr("Name")} label={cfg.mount.label} initial={mount} autoFocus={mountChoices.length === 0} height={54} commitOnBlur={false}
-                           onCommit={(x) => { hapticCommit(); setStageTouched(true); setMount(x); setView("main"); }}
-                           onEmpty={() => { haptic(6); setStageTouched(true); setMount(""); setView("main"); }} />
             </div>
           </div>
         </div>
@@ -10508,242 +10425,174 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   }
 
   /* ================================================================
-     HOW DID IT GO?
-  ================================================================ */
-  if (view === "notes") {
-    return (
-      <SwipeBack key="notes" onBack={back}>
-        <div key="notes" className="flex flex-col h-full relative" style={{ background: t.page }}>
-          <Bar onBack={back} />
-          <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
-          <div className="flex-1 overflow-y-auto pb-6">
-            <Hero sub={subject}>{tr("How did it go?")}</Hero>
-            <div className="px-6">
-              {live ? (
-                <VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={9} ph={tr("What happened, in a line or two")} />
-              ) : (<>
-                {rec === "idle" && !note && (
-                  <button onClick={() => { haptic(14); setRec("recording"); setSecs(0); }} className="w-full flex items-center justify-center gap-3 active:opacity-70"
-                          style={{ minHeight: 80, borderRadius: R.surface, background: t.wash }}>
-                    <span className="rounded-full flex items-center justify-center" style={{ width: 40, height: 40, background: t.ink }}><Mic size={17} color="#fff" strokeWidth={1.6} /></span>
-                    <span style={{ ...TYPE.body, color: t.ink }}>{tr("Tap to record")}</span>
-                  </button>
-                )}
-                {rec === "recording" && (
-                  <div className="flex flex-col items-center justify-center" style={{ minHeight: 130, borderRadius: R.surface, background: t.wash }}>
-                    <div style={{ fontFamily: display, fontSize: 32, letterSpacing: "-0.02em", color: t.ink }}>{Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</div>
-                    <button onClick={() => { haptic(10); setRec("working"); }} className="rounded-full flex items-center justify-center mt-4" style={{ width: 50, height: 50, background: DANGER }} aria-label={tr("Stop")}><span className="rounded-sm" style={{ width: 16, height: 16, background: "#fff" }} /></button>
-                  </div>
-                )}
-                {rec === "working" && (<Card className="p-5"><Bone w="30%" h={10} mb={12} /><Bone mb={8} /><Bone w="70%" /></Card>)}
-                {note && (
-                  <Card className="p-5">
-                    <p style={{ fontFamily: display, fontSize: 15, lineHeight: 1.65, color: t.ink }}>{note}</p>
-                    <button onClick={() => { setRec("idle"); setNote(null); setSecs(0); }} className="mt-3 active:opacity-50" style={{ ...TYPE.caption, color: t.faint }}>{tr("Record again")}</button>
-                  </Card>
-                )}
-              </>)}
-              {waiting.length > 0 && (
-                <>
-                  <Label right={waiting.length > 1 ? <TextBtn color={t.ink} onClick={pullAll}>{tr("Add all")}</TextBtn> : null}>{tr("Captured earlier")}</Label>
-                  {waiting.map((it) => {
-                    const label = it.kind === "video" ? tr("Clip") : it.kind === "voice" ? tr("Voice note") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo");
-                    const Ico = it.kind === "video" ? Play : it.kind === "voice" ? Mic : it.kind === "note" ? Edit3 : Tag;
-                    return (
-                      <button key={it.id} onClick={() => pull(it)} className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 54, borderBottom: hair }}>
-                        <Ico size={15} color={t.sub} strokeWidth={1.8} />
-                        <span className="flex-1 min-w-0">
-                          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-                          {who.length > 1 && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{it.from}</span>}
-                        </span>
-                        <span style={{ ...TYPE.caption, fontWeight: 600, color: t.accent }}>{tr("Add")}</span>
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-              {live && voice && (
-                <div className="flex items-center gap-3 mt-3" style={{ minHeight: 54, borderTop: hair, borderBottom: hair }}>
-                  <Mic size={15} color={t.sub} strokeWidth={1.8} />
-                  <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Voice note")} · {Math.floor(voice.secs / 60)}:{String(voice.secs % 60).padStart(2, "0")}</span>
-                  <audio src={voice.url} controls preload="metadata" style={{ height: 32, maxWidth: 150 }} />
-                  <button onClick={() => { haptic(6); URL.revokeObjectURL(voice.url); setVoice(null); }} aria-label={tr("Remove")} className="p-1 active:opacity-50"><X size={14} color={t.faint} /></button>
-                </div>
-              )}
-              {items.length > 0 && (
-                <div className="flex flex-col gap-2.5 mt-4">
-                  {items.map((it, i) => (
-                    <MediaRow key={it.id} item={it} cfg={cfg} sport={sport} delay={i * 60}
-                              onAnnotate={live ? null : () => onAnnotate && onAnnotate(it.angle)}
-                              onTranscribe={live ? null : () => transcribeClip(it.id)}
-                              onRemove={() => removeItem(it.id)} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <Docked><Button tone="ink" onClick={() => setView("main")}>{tr("Done")}</Button></Docked>
-          {cam && !live && <CameraView angles={cfg.angles} onClose={() => setCam(false)} onCapture={(angle, sc) => { setVideos([...videos, { angle, secs: sc || 8 }]); setCam(false); }} />}
-        </div>
-      </SwipeBack>
-    );
-  }
-
-  /* ================================================================
-     WHAT NEXT?
-  ================================================================ */
-  if (view === "next") {
-    const prompts = (tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4);
-    const addOwn = (v) => { hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill(""); onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); };
-    return (
-      <SwipeBack key="next" onBack={back}>
-        <div key="next" className="flex flex-col h-full relative" style={{ background: t.page }}>
-          <Bar onBack={back} />
-          <div className="flex-1 overflow-y-auto pb-6">
-            <Hero sub={subject}>{tr("What next?")}</Hero>
-            <div className="px-6">
-              <Label>{tr("Drills to set")}</Label>
-              <div className="flex flex-wrap gap-2" data-tour="wiz-drills">
-                {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d) => {
-                  const on = nextDrills.includes(d.t);
-                  return <button key={d.t} aria-pressed={on} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }} className="active:opacity-60" style={areaChip(on)}>{d.t}</button>;
-                })}
-              </div>
-              <div className="flex items-center gap-2 px-4 mt-3" style={{ minHeight: 54, borderRadius: R.pill, background: t.wash }}>
-                <input value={ownDrill} placeholder={tr("Add your own")} enterKeyHint="done" onChange={(e) => setOwnDrill(e.target.value)}
-                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const v = ownDrill.trim(); if (v) addOwn(v); } }}
-                       aria-label={tr("Add your own")} className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
-                <MicBtn size={28} onText={(txt) => setOwnDrill(ownDrill ? `${ownDrill} ${txt}` : txt)} />
-                {ownDrill.trim() && <button onClick={() => addOwn(ownDrill.trim())} className="active:opacity-50" style={{ ...TYPE.caption, fontWeight: 600, color: t.ink }}>{tr("Add")}</button>}
-              </div>
-              <div style={{ height: 16 }} />
-              <Label>{tr("One thing to remember")}</Label>
-              <div data-tour="wiz-tip"><VoiceInput value={nextTip} onChange={setNextTip} ph={prompts[0] || tr("One sentence")} /></div>
-              {prompts.length > 0 && (
-                <div className="flex flex-wrap mt-3" style={{ gap: 6 }}>
-                  {prompts.map((tp) => (
-                    <button key={tp} aria-pressed={nextTip === tp} onClick={() => { haptic(6); soft(); setNextTip(nextTip === tp ? "" : tp); }} className="active:opacity-60" style={smallChip(nextTip === tp)}>{tp}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <Docked><Button tone="ink" onClick={() => setView("main")}>{tr("Done")}</Button></Docked>
-        </div>
-      </SwipeBack>
-    );
-  }
-
-  /* ================================================================
-     THE LOG
+     THE LOG — one page
   ================================================================ */
   const dateIso = `${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`;
   const maxIso = `${today.y}-${String(today.m).padStart(2, "0")}-${String(today.d).padStart(2, "0")}`;
+  const subs = chosenAreas.length === 1 ? (chosenAreas[0].subs || []) : [];
+  const prompts = (tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4);
+  const addOwnDrill = (v) => { hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill(""); onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); };
+
   return (
     <SwipeBack key="main" onBack={onCancel}>
       <div key="main" className="flex flex-col h-full relative" style={{ background: t.page }}>
-        <Bar onBack={onCancel} close />
+        <WizBar onBack={onCancel} close />
         <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
         <div className="flex-1 overflow-y-auto">
-          <div className="px-6 pt-3" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
-            <button onClick={() => { haptic(6); cameFromMain.current = true; setView("who"); }} className="w-full text-left active:opacity-60" style={{ minHeight: 44 }}
-                    onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
-                    onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onPointerCancel={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}>
-              <span className="inline-flex items-end gap-1.5" style={{ maxWidth: "100%" }}>
-                <span style={{ ...TYPE.hero, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{heroText}</span>
-                <ChevronDown size={16} color={t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
+
+          {/* who it was with, when, and the level they are on */}
+          <div className="px-6 pt-1" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
+            <div className="flex items-center gap-3">
+              <button onClick={() => { haptic(6); setAdding(false); setView("who"); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ minHeight: 44 }}>
+                <span className="flex items-end gap-1.5">
+                  <span className="truncate" style={{ ...TYPE.hero, color: t.ink }}>{heroText}</span>
+                  <ChevronDown size={16} color={t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
+                </span>
+              </button>
+              <button onClick={() => { haptic(6); setAdding(true); setView("who"); }} aria-label={tr("Add someone")}
+                      className="rounded-full flex items-center justify-center shrink-0 active:opacity-60"
+                      style={{ width: 38, height: 38, background: t.wash }}><Plus size={17} color={t.ink} strokeWidth={2} /></button>
+            </div>
+            <div className="flex items-center gap-2 mt-1.5" style={{ minHeight: 30 }}>
+              <span data-tour="wiz-when" className="relative flex items-center">
+                <span style={{ ...TYPE.small, color: t.sub }}>{whenLine}</span>
+                {needsDate && <ChevronDown size={12} color={t.faint} strokeWidth={2} style={{ marginLeft: 4 }} />}
+                {needsDate && (
+                  <input type="date" aria-label={tr("Date")} value={dateIso} max={maxIso}
+                         onClick={(e) => { try { if (e.currentTarget.showPicker) e.currentTarget.showPicker(); } catch (err) { /* the tap opens it */ } }}
+                         onChange={(e) => { const p = e.target.value.split("-"); if (p.length === 3 && p[0]) { setLogY(Number(p[0])); setLogM(Number(p[1])); setLogD(Number(p[2])); } }}
+                         className="absolute inset-0 w-full h-full" style={{ opacity: 0 }} />
+                )}
               </span>
-            </button>
-            <div data-tour="wiz-when" className="relative flex items-center mt-1" style={{ minHeight: 32 }}>
-              <span style={{ ...TYPE.small, color: t.sub }}>{dateLine}</span>
-              {needsDate && <ChevronDown size={12} color={t.faint} strokeWidth={2} style={{ marginLeft: 4 }} />}
-              {needsDate && (
-                <input type="date" aria-label={tr("Date")} value={dateIso} max={maxIso}
-                       onClick={(e) => { try { if (e.currentTarget.showPicker) e.currentTarget.showPicker(); } catch (err) { /* the tap itself opens it */ } }}
-                       onChange={(e) => { const parts = e.target.value.split("-"); if (parts.length === 3 && parts[0]) { setLogY(Number(parts[0])); setLogM(Number(parts[1])); setLogD(Number(parts[2])); } }}
-                       className="absolute inset-0 w-full h-full" style={{ opacity: 0 }} />
+              {stages.length > 0 && (
+                <>
+                  <span style={{ ...TYPE.small, color: t.faint }}>·</span>
+                  <button data-tour="wiz-stage" onClick={() => { haptic(6); setView("stage"); }} className="flex items-center gap-1 active:opacity-60" style={{ minHeight: 30 }}>
+                    <span style={{ ...TYPE.small, fontWeight: 600, color: stageValue ? t.accent : t.faint }}>{stageValue || tr("Level")}</span>
+                    <ChevronRight size={12} color={t.faint} strokeWidth={2} />
+                  </button>
+                </>
               )}
             </div>
-            {who.length >= 3 && !pickedGroup && onSaveGroup && (
-              savingGroup
-                ? <div className="mt-2"><InlineField ph={tr("Group name")} commitOnBlur={false} onCancel={() => setSavingGroup(false)}
-                    onCommit={async (name) => { hapticSuccess(); const ok = await onSaveGroup({ name, members: who.map((r) => r.name), memberIds: who.map((r) => r.id) }); if (alive.current) { if (ok !== false) setPickedGroup(name); setSavingGroup(false); } }} /></div>
-                : <div className="mt-1"><TextBtn color={t.sub} onClick={() => setSavingGroup(true)}>{tr("Save as group")}</TextBtn></div>
-            )}
           </div>
 
-          {(stages.length > 0 || cfg.mount) && (
-            <div className="px-1" style={{ marginTop: 22 }}>
-              {stages.length > 0 && <Row label={tr("Stage")} value={stageValue || null} valueColor={stageTouched ? t.ink : t.sub} chevron tour="wiz-stage" onToggle={() => setView("stage")} last={!cfg.mount} />}
-              {cfg.mount && <Row label={cfg.mount.label} value={mount.trim() || null} valueColor={stageTouched ? t.ink : t.sub} chevron onToggle={() => setView("mount")} last />}
+          {/* what was worked on — the only decision on the page */}
+          <div className="px-6" style={{ marginTop: 22 }}>
+            <div data-tour="wiz-focus">
+              <TileGrid>
+                {cfg.focus.map((f) => {
+                  const on = focus.includes(f.id);
+                  return <ActTile key={f.id} h={78} Icon={focusIcon(sport, f.id)} label={f.label} on={on}
+                                  onTap={() => { setFocus(on ? focus.filter((x) => x !== f.id) : [...focus, f.id]); if (on) setSubPick(subPick.filter((x) => !(f.subs || []).includes(x))); }} />;
+                })}
+                {custom.map((c) => (
+                  <ActTile key={c} h={78} Icon={Check} label={c} on onTap={() => { setCustom(custom.filter((x) => x !== c)); }} aria={`${tr("Remove")} ${c}`} />
+                ))}
+                {!otherOpen && <ActTile h={78} Icon={Plus} label={tr("Other")} onTap={() => setOtherOpen(true)} />}
+              </TileGrid>
+              {otherOpen && (
+                <div className="mt-2.5">
+                  <InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom(custom.includes(x) ? custom : [...custom, x]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} />
+                </div>
+              )}
             </div>
-          )}
-
-          <div className="px-6" style={{ marginTop: 26 }}>
-            <div style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 12 }}>{tr("Worked on")}</div>
-            <div className="flex flex-wrap gap-2" data-tour="wiz-focus">
-              {cfg.focus.map((f) => {
-                const on = focus.includes(f.id);
-                return <button key={f.id} aria-pressed={on} onClick={() => { haptic(6); tog(focus, setFocus, f.id); if (on) setSubPick(subPick.filter((x) => !f.subs.includes(x))); }} className="active:opacity-60" style={areaChip(on)}>{f.label}</button>;
-              })}
-              {custom.map((c) => (
-                <span key={c} className="flex items-center gap-2" style={areaChip(true)}>
-                  {c}<button onClick={() => { haptic(6); setCustom(custom.filter((x) => x !== c)); }} aria-label={`${tr("Remove")} ${c}`}><X size={12} color="rgba(255,255,255,0.7)" /></button>
-                </span>
-              ))}
-              {otherOpen
-                ? <div style={{ minWidth: 200, flex: "1 1 200px" }}><InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom(custom.includes(x) ? custom : [...custom, x]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} /></div>
-                : <button onClick={() => { haptic(6); setOtherOpen(true); }} className="flex items-center gap-1.5 active:opacity-60" style={{ ...areaChip(false), color: t.sub, paddingLeft: 12 }}><Plus size={13} color={t.sub} strokeWidth={2} />{tr("Other")}</button>}
-            </div>
-            {chosenAreas.some((f) => f.subs && f.subs.length) && (
-              <div className="flex flex-wrap mt-3" style={{ gap: 6, animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
-                {chosenAreas.flatMap((f) => f.subs || []).map((sb) => {
+            {subs.length > 0 && (
+              <div className="flex gap-2 mt-2.5 overflow-x-auto" style={{ scrollbarWidth: "none", animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
+                {subs.map((sb) => {
                   const on = subPick.includes(sb);
-                  return <button key={sb} aria-pressed={on} onClick={() => { haptic(5); tog(subPick, setSubPick, sb); }} className="active:opacity-60" style={smallChip(on, true)}>{sb}</button>;
+                  return (
+                    <button key={sb} aria-pressed={on} onClick={() => { haptic(5); setSubPick(on ? subPick.filter((x) => x !== sb) : [...subPick, sb]); }}
+                            className="shrink-0 px-3.5 active:opacity-60"
+                            style={{ minHeight: 38, borderRadius: R.control, background: on ? `${t.accent}1A` : t.wash,
+                                     border: `1px solid ${on ? `${t.accent}55` : "transparent"}`,
+                                     fontFamily: ui, fontSize: 13, fontWeight: on ? 600 : 500, color: t.ink }}>{sb}</button>
+                  );
                 })}
               </div>
             )}
           </div>
 
-          {/* Six boxes, one tap each: the clip opens the camera itself, the
-              note opens the page that is only a note. Nothing here is a
-              sentence and nothing takes two taps to reach. */}
-          <div className="px-6" style={{ marginTop: 26 }}>
+          {/* what was taken — one tap opens the camera itself */}
+          <div className="px-6" style={{ marginTop: 22 }}>
             <TileGrid>
-              <ActTile tour="wiz-notes" Icon={Edit3} label={tr("Note")} dot={!!note} aria={notesValue ? `${tr("Note")} · ${notesValue}` : tr("Note")} onTap={() => setView("notes")} />
-              <ActTile tour="wiz-media" Icon={Camera} label={tr("Clip")} count={videos.length}
-                    onTap={() => (live ? pickFiles("video/*", "environment") : setCam(true))} />
-              <ActTile Icon={ImageIcon} label={tr("Photo")} count={photos.length}
-                    onTap={() => (live ? pickFiles("image/*", "environment") : addPhoto("action"))} />
-              {live ? (
-                <ActTile Icon={Mic} on={rec === "recording"} count={voice ? 1 : 0}
-                      label={rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice")}
-                      aria={tr("Voice note")}
-                      onTap={() => { if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }} />
-              ) : (
-                <ActTile Icon={Library} label={tr("Library")} onTap={() => setVideos([...videos, { angle: cfg.angles[videos.length % cfg.angles.length], secs: 12 }])} />
-              )}
-              <ActTile tour="wiz-plan" Icon={ListChecks} label={tr("Drills")} count={nextDrills.length} onTap={() => setView("next")} />
-              <ActTile Icon={Lightbulb} label={tr("Tip")} dot={!!nextTip} aria={nextValue ? `${tr("Tip")} · ${nextValue}` : tr("Tip")} onTap={() => setView("next")} />
+              <ActTile tour="wiz-media" h={96} Icon={Camera} label={tr("Video")} count={videos.length}
+                       onTap={() => (live ? pickFiles("video/*", "environment") : setCam(true))} />
+              <ActTile h={96} Icon={ImageIcon} label={tr("Photo")} count={photos.length}
+                       onTap={() => (live ? pickFiles("image/*", "environment") : addPhoto("action"))} />
+              <ActTile h={96} Icon={Mic} on={rec === "recording"} count={voice ? 1 : 0}
+                       label={rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice")}
+                       aria={tr("Voice note")}
+                       onTap={() => { if (!live) { addPhoto("voice"); return; } if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }} />
             </TileGrid>
             {live && cap.error && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{cap.error}</p>}
-            {waiting.length > 0 && (
-              <button onClick={() => { haptic(8); setView("notes"); }} className="w-full flex items-center gap-3 mt-3 active:opacity-60"
-                      style={{ minHeight: 52, borderTop: hair, borderBottom: hair }}>
-                <Download size={16} color={t.sub} strokeWidth={1.8} />
-                <span className="flex-1 text-left" style={{ ...TYPE.body, color: t.ink }}>{waiting.length} {tr("captured earlier")}</span>
-                <ChevronRight size={16} color={t.faint} />
-              </button>
+
+            {/* everything on the lesson, including what was captured during it */}
+            {items.length > 0 && (
+              <div className="mt-3" style={{ borderTop: hair }}>
+                {items.map((it) => (
+                  <SwipeRow key={it.id} deleteLabel={tr("Remove")} onDelete={() => removeItem(it)}>
+                    <div className="flex items-center gap-3 px-1" style={{ minHeight: 54, borderBottom: hair, background: t.page }}>
+                      {(() => { const K = it.kind === "video" ? Play : it.kind === "voice" ? Mic : it.kind === "note" ? Edit3 : ImageIcon;
+                        return <K size={15} color={t.sub} strokeWidth={1.8} />; })()}
+                      <span className="flex-1 min-w-0">
+                        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>
+                          {it.kind === "video" ? tr("Video") : it.kind === "voice" ? tr("Voice note") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo")}
+                        </span>
+                        {(it.from || it.capturedId != null) && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{it.from ? `${tr("captured")} · ${wizFirst(it.from)}` : tr("captured earlier")}</span>}
+                      </span>
+                    </div>
+                  </SwipeRow>
+                ))}
+              </div>
+            )}
+
+            {/* the note is here, not behind a tap */}
+            <div className="mt-2.5"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={2} ph={tr("A line about it")} /></div>
+          </div>
+
+          {/* what they do until next time */}
+          <div className="px-6" style={{ marginTop: 22 }}>
+            <TileGrid cols={2}>
+              <ActTile tour="wiz-drills" Icon={ListChecks} label={tr("Drills")} count={nextDrills.length} on={drillsOpen} onTap={() => { setDrillsOpen(!drillsOpen); setTipOpen(false); }} />
+              <ActTile tour="wiz-tip" Icon={Lightbulb} label={tr("Tip")} dot={!!nextTip} on={tipOpen} onTap={() => { setTipOpen(!tipOpen); setDrillsOpen(false); }} />
+            </TileGrid>
+            {drillsOpen && (
+              <div className="mt-2.5" style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
+                <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                  {[...recommended, ...extraDrills.map((x) => ({ t: x }))].map((d) => {
+                    const on = nextDrills.includes(d.t);
+                    return (
+                      <button key={d.t} aria-pressed={on} onClick={() => { haptic(7); soft(); setNextDrills(on ? nextDrills.filter((x) => x !== d.t) : [...nextDrills, d.t]); }}
+                              className="shrink-0 px-4 active:opacity-60"
+                              style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.page : t.ink }}>{d.t}</button>
+                    );
+                  })}
+                </div>
+                <div className="mt-2.5"><InlineField ph={tr("Add your own")} onCommit={addOwnDrill} onCancel={() => {}} autoFocus={false} /></div>
+              </div>
+            )}
+            {tipOpen && (
+              <div className="mt-2.5" style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
+                <VoiceInput value={nextTip} onChange={setNextTip} ph={prompts[0] || tr("One sentence")} />
+                {prompts.length > 0 && (
+                  <div className="flex gap-2 mt-2.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                    {prompts.map((tp) => (
+                      <button key={tp} aria-pressed={nextTip === tp} onClick={() => { haptic(6); soft(); setNextTip(nextTip === tp ? "" : tp); }}
+                              className="shrink-0 px-4 active:opacity-60"
+                              style={{ minHeight: 44, borderRadius: R.control, background: nextTip === tp ? t.ink : t.wash, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: nextTip === tp ? t.page : t.ink }}>{tp}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {showReviewAsk && (
+              <div className="flex items-center gap-3 mt-4" style={{ minHeight: 52, borderTop: hair }}>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Ask")} {firstName} {tr("for a rating")}</span>
+                <Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />
+              </div>
             )}
           </div>
-          {showReviewAsk && (
-            <div className="px-1" style={{ marginTop: 18 }}>
-              <Row label={`${tr("Ask")} ${first} ${tr("for a rating")}`} right={<Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />} last />
-            </div>
-          )}
-          <div style={{ height: 30 }} />
+          <div style={{ height: 28 }} />
         </div>
 
         <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: hair }}>
@@ -10754,6 +10603,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     </SwipeBack>
   );
 }
+
 
 function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCount = 0, stageFor }) {
   const t = useT(); const L = useL();
@@ -15249,7 +15099,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return out;
   }, [data, cfg]);
   /* Who was logged most recently (five), and which horses, for the log's
-     Who and Which horse pages. The harness orders its roster by `last`. */
+     Who page and its Level page. The harness orders its roster by `last`. */
   const recentForLog = useMemo(() => {
     if (!data) return [...ROSTER].sort((a, b) => (a.last ?? 99) - (b.last ?? 99)).slice(0, 5).map((r) => ({ id: r.id, daysAgo: r.last ?? null }));
     const out = []; const seen = new Set();
@@ -15620,18 +15470,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setActiveId(id); go("home"); say(`Connected with ${coachInfo.name}`);
   };
 
-  const saveGroupQuick = async (g) => {
-    if (data) {
-      const cur = (data.prefs && data.prefs.groups) || [];
-      if (cur.some((x) => (x.name || "").toLowerCase() === g.name.toLowerCase())) { hapticWarn(); say(tr("You already have a group with that name.")); return false; }
-      const rec = { id: `g-${Date.now()}`, name: g.name, members: g.members, memberIds: g.memberIds, createdAt: new Date().toISOString() };
-      const r1 = await data.saveGroups([...cur, rec]);
-      if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save the group.")); return false; }
-      return true;
-    }
-    setGroups((prev) => ({ ...prev, [coachSport]: [...(prev[coachSport] || []), { id: Date.now(), name: g.name, members: g.members, memberIds: g.memberIds, sport: coachSport }] }));
-    return true;
-  };
   const createGroup = async (g) => {
     if (data) {
       /* the picker hands over ids; resolving the names again would
@@ -16318,6 +16156,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   onNoShow={markNoShow}
                   onPeek={(b) => { setPeek(b); setSheet("peek"); }}
                   onRegister={(b) => { setAttendFor(b); setSheet("attend"); }}
+                  onLog={() => { setPrefill(null); go("log"); }}
+                  onCapture={(bk) => { setCaptureFor(bk || liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); }}
+                  onAttend={(bk) => { setAttendFor(bk || null); setSheet("attend"); }}
+                  onAddPlayer={() => setSheet("invite")}
                   onAccept={acceptAsk}
                   onDecline={(r) => { setDeclining(r); setSheet("decline"); }}
                   onInvite={() => setSheet("invite")}
@@ -16328,7 +16170,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)}
                          lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
                          recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
-                         onAddPlayer={() => setSheet("invite")} onSaveGroup={saveGroupQuick}
+                         onAddPlayer={() => setSheet("invite")}
                          onPublish={async (l) => { const r = await publish(l); if (r !== false) { setPrefill(null); if (prefill) setUnlogged((v) => v.filter((x) => x !== prefill)); } return r; }} onCancel={() => { setPrefill(null); go("today"); }} startView={sc ? sc.wizardView : undefined} />,
     }[screen] || coachToday;
   } else if (!conn) {

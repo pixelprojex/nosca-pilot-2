@@ -74,7 +74,7 @@ function freshDb() {
       await tap('[data-tour="quick-log"]', 900); await shot("c9-log-who");
       await text("Cian Murphy", 500); await shot("c10-log");
       await text("Chipping", 400); await shot("c11-log-worked-on");
-      await tap('[data-tour="wiz-notes"]', 500); await shot("c12-log-notes");
+      await tap('[data-tour="wiz-drills"]', 500); await shot("c12-log-drills");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Roster"]'); await tap('[data-tour="roster-row"]'); await tap('[data-tour="player-lessons"] button', 900); await shot("c13-lesson-view-coach");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);

@@ -34,6 +34,8 @@ function freshDb() {
   M.addMedia(db, { lessonId: LESSON.old, kind: "audio", path: `${IDS.coach}/${LESSON.old}/2-note.webm`, createdAt: "2026-08-20T10:02:00Z" });
   M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.coach, body: "See you Tuesday at nine.", readAt: "2026-09-01T09:00:00Z", createdAt: "2026-09-01T08:00:00Z" });
   M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.adult, body: "Grand, thanks Niamh.", createdAt: "2026-09-01T08:30:00Z" });
+  /* hours, so the diary draws the day and a register can be reached from a row */
+  M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "10:30 am", "4:00 pm"], [0, 1, 2, 3, 4, 5, 6]) });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "9:00 am" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: TODAY, time: "10:30 am" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "4:00 pm", status: "requested" });
@@ -153,24 +155,23 @@ const leaks = [];
       const bc = db.posts.filter((x) => x.table === "messages").pop();
       check("(c) Message everyone posts one row per roster player", !!bc && bc.rows.length === 2 && bc.rows.every((x) => x.sender_id === IDS.coach && x.body === "Range is closed Friday.") && new Set(bc.rows.map((x) => x.player_id)).size === 2, JSON.stringify(bc && bc.rows.map((x) => x.player_id)));
 
-      /* (d) attendance */
-      /* KNOWN GAP: this coach has no hours in the fixture, so the diary
-         draws no rows and the block below aborts before the register.
-         Giving the fixture hours shows the real defect underneath —
-         Register opened from a diary row lands on the register with no
-         lesson chosen and no names. Both are for a focused fix, not for
-         a visual pass; the register reached from Today still works. */
+      /* (d) attendance, reached the way a coach reaches it: the diary
+         row for the lesson, then Register on its peek sheet */
       await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 4000 }).catch(() => {});
       await page.waitForTimeout(500);
       await tap(page, '[aria-label="Diary"]');
       await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(800);
       await tap(page, '[data-tour="peek-register"]', 900);
       const t4 = await leak("coach attendance"); await shot("coach-attendance");
-      /* the sheet's own text: Today sits behind it, and a lesson merely
-         asked for is answered there, so the page carries "4:00 pm" even
-         though the register must not */
+      /* Register on a lesson opens that lesson's register — no second
+         pick. "All lessons" is the way back to the day's list. */
       const sheet4 = await page.locator("[data-sheet]").first().innerText();
-      check("(d) Attendance lists today's real confirmed bookings by name", sheet4.includes("Cian Murphy") && sheet4.includes("9:00 am") && sheet4.includes("Saoirse Kelly") && sheet4.includes("10:30 am") && !sheet4.includes("4:00 pm"), sheet4.slice(0, 240));
+      check("(d) Register on a lesson opens that lesson's roll, already chosen", sheet4.includes("Cian Murphy") && sheet4.includes("9:00 am") && sheet4.includes("Present") && sheet4.includes("All lessons"), sheet4.slice(0, 240));
+      await page.getByRole("button", { name: "All lessons", exact: true }).first().click(); await page.waitForTimeout(500);
+      const sheet4b = await page.locator("[data-sheet]").first().innerText();
+      /* a lesson merely asked for is answered in the diary, so 4:00 pm
+         is not on the day's register list */
+      check("(d) All lessons lists today's real confirmed bookings by name", sheet4b.includes("Cian Murphy") && sheet4b.includes("9:00 am") && sheet4b.includes("Saoirse Kelly") && sheet4b.includes("10:30 am") && !sheet4b.includes("4:00 pm"), sheet4b.slice(0, 240));
       await page.locator("div.z-40").getByRole("button", { name: /Cian Murphy/ }).first().click(); await page.waitForTimeout(500);
       await page.locator("div.z-40").getByRole("button", { name: "Present", exact: true }).first().click(); await page.waitForTimeout(300);
       await page.getByRole("button", { name: /Submit register/ }).click(); await page.waitForTimeout(1200);
@@ -191,21 +192,18 @@ const leaks = [];
       await tap(page, '[data-tour="quick"]', 900);
       await tap(page, '[data-tour="quick-log"]', 900);
       const tw0 = await leak("log who"); await shot("coach-log-who");
-      check("(e) Log a lesson opens on Who was it?, today's person first, as rows not chips", tw0.includes("Who was it?") && /TODAY[\s\S]*Cian Murphy/.test(tw0) && (await page.locator('[data-tour="wiz-who"]').count()) === 1, tw0.slice(0, 260));
-      await byText(page, "Cian Murphy").click(); await page.waitForTimeout(500);
+      check("(e) Log a lesson opens on Who?, today's person as a face, searchable", tw0.includes("Who?") && tw0.includes("Cian") && (await page.locator('[data-tour="wiz-who"]').count()) === 1, tw0.slice(0, 260));
+      await page.locator('[data-tour="wiz-who"]').first().click(); await page.waitForTimeout(500);
       const tw1 = await leak("log"); await shot("coach-log");
-      check("(e) one tap on the name opens the log: the name, Today, a Stage row, Worked on, Notes, What next — never a raw date or a time", tw1.includes("Cian Murphy") && tw1.includes("Today") && tw1.includes("Stage") && tw1.includes("Worked on") && tw1.includes("Notes") && tw1.includes("What next") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0 && !/\d\d\/\d\d\/\d{4}|\d{4}-\d\d-\d\d/.test(tw1), tw1.slice(0, 260));
+      check("(e) one tap on a face opens the whole log: the name, Today, the level they are on, the areas, Video/Photo/Voice, a note, Drills and Tip — never a raw date or a time", tw1.includes("Cian Murphy") && tw1.includes("Today") && tw1.includes("Level") && tw1.includes("Chipping") && tw1.includes("Video") && tw1.includes("Photo") && tw1.includes("Voice") && tw1.includes("Drills") && tw1.includes("Tip") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0 && !/\d\d\/\d\d\/\d{4}|\d{4}-\d\d-\d\d/.test(tw1), tw1.slice(0, 300));
       await tap(page, '[data-tour="wiz-stage"]', 700);
-      const tws = await leak("stage page");
-      check("(e) the stage page is golf's real ladder — Handicap Index and the Passport levels — not an invented one", tws.includes("What stage?") && tws.includes("Handicap Index") && tws.includes("Passport") && !tws.includes("Long game"), tws.slice(0, 260));
+      const tws = await leak("level page");
+      check("(e) the level page is golf's real ladder — Handicap Index and the Passport levels — not an invented one", tws.includes("Level") && tws.includes("Handicap Index") && tws.includes("Passport") && !tws.includes("Long game"), tws.slice(0, 260));
       await tap(page, '[aria-label="Back"]', 500);
       await page.getByRole("button", { name: "Chipping", exact: true }).click(); await page.waitForTimeout(300);
-      check("(e) the note and clips sit one tap deep, not on the log", (await page.locator("textarea").count()) === 0 && (await page.locator('input[type="file"]').count()) === 1, String(await page.locator("textarea").count()));
-      await tap(page, '[data-tour="wiz-notes"]', 500);
-      const t7 = await leak("notes page"); await shot("coach-log-note");
-      check("(e) the Notes page: a typed note, Clip, Photo and Voice, with no device readout", (await page.locator('textarea[placeholder="What happened, in a line or two"]').count()) === 1 && t7.includes("Clip") && t7.includes("Photo") && t7.includes("Voice") && !/TrackMan|Serve radar|Launch|Tap to record/i.test(t7), t7.slice(0, 300));
-      await page.fill('textarea[placeholder="What happened, in a line or two"]', "Worked on tempo from a hundred yards.");
-      await page.getByRole("button", { name: "Done", exact: true }).click(); await page.waitForTimeout(400);
+      check("(e) the note is on the log itself, not behind a tap", (await page.locator('textarea[placeholder="A line about it"]').count()) === 1, String(await page.locator("textarea").count()));
+      await page.fill('textarea[placeholder="A line about it"]', "Worked on tempo from a hundred yards.");
+      await page.waitForTimeout(250); await shot("coach-log-note");
       await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(1500);
       const lp = db.posts.find((x) => x.table === "lessons"); const lrow = lp && lp.rows[0];
@@ -213,7 +211,9 @@ const leaks = [];
       check("(e) the lesson trigger told the player (kind lesson, screen lesson, the new id)", db.notifications.some((n) => n.user_id === IDS.adult && n.kind === "lesson" && n.data.screen === "lesson" && lrow && n.data.id === lrow.id), JSON.stringify(db.notifications.filter((n) => n.kind === "lesson")));
       const t8 = await leak("published burst"); await shot("coach-burst");
       check("(e) the burst offers no seeded 'Log next' or rating pretence", !t8.includes("Dan Okafor") && !t8.includes("4 left"), t8.slice(0, 200));
-      await page.waitForTimeout(2800);
+      /* it waits for a tap while it has a rating to offer */
+      await page.locator('[aria-live="polite"]').first().click({ position: { x: 20, y: 20 } }).catch(() => {});
+      await page.waitForTimeout(1200);
 
       /* (g) Roster → the player's real file */
       await tap(page, '[aria-label="Roster"]');
@@ -223,7 +223,8 @@ const leaks = [];
       const tg = await leak("coach player file"); await shot("coach-player-file");
       const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"])');
       const rowTexts = await fileRows.allInnerTexts();
-      check("(g) the player file lists that player's real lessons, newest first, with the count in the header", tg.includes("3 lessons") && rowTexts.length === 3 && /Short game/.test(rowTexts[0]) && /01 SEP|Short game/.test(rowTexts[1]) && /20 AUG/.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
+      /* the two seeded plus the one just logged, newest first */
+      check("(g) the player file lists that player's real lessons, newest first, with the count in the header", tg.includes("3 lessons") && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 AUG/.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
       check("(g) the file's rows are the coach's own — nothing seeded (14 Jun, Driving)", !tg.includes("14 Jun") && !tg.includes("Held the finish"), tg.slice(0, 200));
       /* the archive is one tap away whether or not there are more than
          the few shown — three lessons still get a way through to all */
@@ -240,21 +241,22 @@ const leaks = [];
       /* (h) two files, one refused by the storage limit, retried from Today */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
-      await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(500);
+      await page.locator('button[aria-label="Saoirse Kelly"]').first().click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
-      await tap(page, '[data-tour="wiz-notes"]', 500);
-      await page.fill('textarea[placeholder="What happened, in a line or two"]', "Two clips attached.");
+      await page.fill('textarea[placeholder="A line about it"]', "Two clips attached.");
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "swing.mp4", mimeType: "video/mp4", buffer: M.MP4 },
         { name: "big-clip.mp4", mimeType: "video/mp4", buffer: M.MP4 },
       ]);
       await page.waitForTimeout(600);
       const th0 = await text(); await shot("coach-wizard-two-files");
-      check("(h) both files are listed under the note", th0.includes("swing.mp4") && th0.includes("big-clip.mp4"), th0.slice(0, 200));
-      await page.getByRole("button", { name: "Done", exact: true }).click(); await page.waitForTimeout(400);
+      check("(h) both clips are on the lesson, two rows", (th0.match(/Video/g) || []).length >= 2, th0.slice(0, 200));
       await page.getByRole("button", { name: "Log it", exact: true }).click();
-      /* the burst plays 2.6 s; the uploads have long finished by then */
-      await page.waitForTimeout(4200);
+      /* the burst waits for a tap while it has a rating to offer; Today,
+         and the upload strip on it, is behind it until then */
+      await page.waitForTimeout(2600);
+      await page.locator('[aria-live="polite"]').first().click({ position: { x: 20, y: 20 } }).catch(() => {});
+      await page.waitForTimeout(1800);
       const strip = page.locator('[data-tour="upload-status"]');
       await strip.waitFor({ timeout: 6000 }).catch(() => {});
       const th1 = (await strip.count()) ? M.norm(await strip.innerText()) : ""; await shot("coach-upload-strip");
@@ -284,17 +286,15 @@ const leaks = [];
       /* the plus, then Log a lesson — Today's empty state is gone now
          that this coach has something to log */
       await M.tap(page, '[data-tour="quick"]', 900); await M.tap(page, '[data-tour="quick-log"]', 900);
-      await byText(page, "Saoirse Kelly").click(); await page.waitForTimeout(500);
+      await page.locator('button[aria-label="Saoirse Kelly"]').first().click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
-      await M.tap(page, '[data-tour="wiz-notes"]', 500);
-      await page.fill('textarea[placeholder="What happened, in a line or two"]', "Three captures, all called the same thing.");
+      await page.fill('textarea[placeholder="A line about it"]', "Three captures, all called the same thing.");
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
       ]);
       await page.waitForTimeout(600);
-      await page.getByRole("button", { name: "Done", exact: true }).click(); await page.waitForTimeout(400);
       await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(4600);
       const sameUps = db.uploads.filter((u) => u.bucket === "media").slice(before);
@@ -369,14 +369,12 @@ const leaks = [];
       M.addProfile(ndb, { id: TWIN, role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1990-01-01" });
       const { ctx, page } = await boot("coach", ndb);
       await M.tap(page, '[data-tour="quick"]', 900); await M.tap(page, '[data-tour="quick-log"]', 900);
-      const rows = page.locator('button:has-text("Cian Murphy")');
+      const rows = page.locator('button[aria-label="Cian Murphy"]');
       check("(j) both people called Cian Murphy are offered, not one", (await rows.count()) >= 2, String(await rows.count()));
       /* the LAST one — the second of that name in Everyone, which a name lookup would never reach */
       await rows.last().click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
-      await M.tap(page, '[data-tour="wiz-notes"]', 500);
-      await page.fill('textarea[placeholder="What happened, in a line or two"]', "The other Cian.");
-      await page.getByRole("button", { name: "Done", exact: true }).click(); await page.waitForTimeout(400);
+      await page.fill('textarea[placeholder="A line about it"]', "The other Cian.");
       await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(1500);
       const lp = ndb.posts.filter((x) => x.table === "lessons").pop();
