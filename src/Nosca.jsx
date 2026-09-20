@@ -12122,9 +12122,14 @@ function Thread({ role, name, isGroup, pop, say, live }) {
      line that is not mine and not the coach's is a parent's, and says
      so — it must never read as the child's or as the coach's. */
   const isCoachMsg = (m) => live && live.coachId ? m.senderId === live.coachId : !!m.fromCoach;
+  /* and whose thread this is. Without this the coach saw every line an
+     adult player wrote about themselves labelled "Cian · parent": not
+     mine and not the coach's was taken to mean somebody wrote it on
+     the player's behalf, when the player had written it. */
+  const isTheirs = (m) => !!(live && live.playerId && m.senderId === live.playerId);
   const msgs = live ? live.messages.map((m) => ({
     from: m.mine ? role : other, text: m.body, at: m.at, iso: m.iso, key: m.id,
-    via: !m.mine && !isCoachMsg(m) ? (((live.nameOf && live.nameOf(m.senderId)) ? `${live.nameOf(m.senderId).split(" ")[0]} · ${tr("parent")}` : tr("Parent"))) : null,
+    via: !m.mine && !isCoachMsg(m) && !isTheirs(m) ? (((live.nameOf && live.nameOf(m.senderId)) ? `${live.nameOf(m.senderId).split(" ")[0]} · ${tr("parent")}` : tr("Parent"))) : null,
     onBehalf: m.mine && role !== "coach" && !!live.child,
   })) : local;
   const [draft, setDraft] = useState(""); const [typing, setTyping] = useState(false); const [sending, setSending] = useState(false);

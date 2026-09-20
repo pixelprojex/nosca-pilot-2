@@ -29,6 +29,9 @@ function freshDb() {
   M.addFamily(db, { id: FAM, code: "KEL7Y2", createdBy: IDS.parent });
   person("coach", "coach@t.ie", { role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
   person("adult", "adult@t.ie", { role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1991-04-04" });
+  /* an adult writing in his own thread: the coach must read it as his,
+     not as somebody writing on his behalf */
+  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.adult, body: "Grand, see you at four." });
   person("dara", "dara@t.ie", { role: "player", name: "Dara Kelly", type: "adult", dob: "1989-02-02" });
   person("parent", "parent@t.ie", { role: "player", name: "Orla Kelly", type: "parent", familyId: FAM });
   person("junior", "junior@t.ie", { role: "player", name: "Saoirse Kelly", type: "junior", coachId: IDS.coach, familyId: FAM, dob: "2013-09-09" });
@@ -259,6 +262,29 @@ const leaks = [];
       check("(f) the message trigger told the coach", db.notifications.some((n) => n.user_id === IDS.coach && n.kind === "message" && n.title === "Orla Kelly"), JSON.stringify(db.notifications.filter((n) => n.kind === "message").map((n) => [n.user_id.slice(-4), n.title])));
       const t4 = await text();
       check("(f) the sent message appears in the thread", t4.includes("Can Saoirse move to Thursday?"), t4.slice(-200));
+      await ctx.close();
+    }
+
+    /* ---------- (f2) the coach reading both threads ---------- */
+    {
+      const { ctx, page, text, shot } = await boot("coach");
+      await tap(page, '[aria-label="Chat"]', 1200);
+      /* only the first row carries the tour id, so the rows are found
+         by the name on them */
+      /* the adult's own thread: his line is his */
+      await byText(page, "Cian Murphy").first().click(); await page.waitForTimeout(1200);
+      const t0 = await text(); await shot("24b-coach-thread-adult");
+      check("(f2) an adult's own message is not labelled as somebody else's",
+        t0.includes("Grand, see you at four.") && !/parent/i.test(t0), t0.slice(0, 220));
+      await M.back(page); await page.waitForTimeout(900);
+      /* the child's thread: the parent's line says whose it is */
+      await byText(page, "Saoirse Kelly").first().click(); await page.waitForTimeout(1200);
+      const t1 = await text(); await shot("24c-coach-thread-junior");
+      /* the coach cannot read a parent's profile through RLS, so the
+         line is labelled "Parent" rather than "Orla · parent". Either
+         is right; reading as the child's never is. */
+      check("(f2) a parent's message in a child's thread still says whose it is",
+        t1.includes("Can Saoirse move to Thursday?") && /(Orla · parent|Parent)/.test(t1) && !/Saoirse · /.test(t1), t1.slice(0, 260));
       await ctx.close();
     }
 
