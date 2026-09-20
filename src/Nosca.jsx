@@ -12,7 +12,7 @@ import {
   Share2, Delete, Lock, Mail, Apple, Camera, Image as ImageIcon, ChevronDown, Search,
   Receipt, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag,
   Phone, Paperclip, Clock, ListChecks, Download, Palette, TrendingUp, Eye, Minimize2,
-  Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Edit3, Trophy, Award, Star,
+  Lightbulb, Volume2, VolumeX, UserPlus, Radio, Edit3, Trophy, Award, Star,
   CloudRain, Copy, Settings2, BellOff, Repeat, Circle, Heart
 } from "lucide-react";
 
@@ -12506,7 +12506,6 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
   const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
   const [q, setQ] = useState("");
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
-  const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
 
   /* Every setting is a row in a group, so the list can be searched and
      nothing here is drawn twice. A row is { label, sub, value, icon,
@@ -12515,30 +12514,30 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
   const T = (on, set, extra) => <Toggle on={on} onChange={(v) => { set(v); extra && extra(v); }} />;
   const groups = [
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
-      { label: tr("Reviews"), icon: Star, tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
-      !live && { label: tr("Paperwork"), icon: ShieldCheck, tour: "settings-credentials", onTap: () => push("credentials") },
-      !live && { label: tr("Requests"), icon: UserPlus, tour: "settings-requests", onTap: () => push("requests") },
-      demo && { label: tr("Subscription"), sub: `${BRAND} ${plan?.name || "Coach"}`, icon: ShieldCheck, onTap: () => push("subscription") },
-      !live && { label: tr("Weekly availability"), icon: CalendarDays, tour: "settings-availability", onTap: () => push("availability") },
-      !live && { label: tr("Roster & groups"), icon: Users, tour: "settings-roster", onTap: () => push("roster") },
-      live && { label: tr("Set yourself up"), icon: ListChecks, onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
+      { label: tr("Reviews"), tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
+      !live && { label: tr("Paperwork"), tour: "settings-credentials", onTap: () => push("credentials") },
+      !live && { label: tr("Requests"), tour: "settings-requests", onTap: () => push("requests") },
+      demo && { label: tr("Subscription"), sub: `${BRAND} ${plan?.name || "Coach"}`, onTap: () => push("subscription") },
+      !live && { label: tr("Weekly availability"), tour: "settings-availability", onTap: () => push("availability") },
+      !live && { label: tr("Roster & groups"), tour: "settings-roster", onTap: () => push("roster") },
+      live && { label: tr("Set yourself up"), onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
-        ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", icon: FileText, onTap: () => push("myLessons") }
-        : { label: tr("Take lessons yourself"), icon: UserPlus, onTap: () => push("takeLessons") }),
-      { label: tr("Drills"), icon: ListChecks, tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
-      { label: tr("Lesson logs"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
-      !live && { label: tr("Branding"), icon: Palette, tour: "settings-branding", onTap: () => push("branding") },
-      { label: tr("Invite code & QR"), value: inviteCode || "——————", icon: QrCode, tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
+        ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", onTap: () => push("myLessons") }
+        : { label: tr("Take lessons yourself"), onTap: () => push("takeLessons") }),
+      { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
+      { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
+      !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
+      { label: tr("Invite code & QR"), value: inviteCode || "——————", tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
       prefs && { label: tr("Take attendance"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Take attendance"), prefs.attendance || "all",
         [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v), Check) },
       prefs && { label: tr("Ask for a review"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
-      (!live || hasDependants) && { label: tr("This month"), icon: CalendarDays, tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
-      { label: tr("Family"), sub: live ? (familyName || null) : null, icon: Users, tour: "settings-dashboard",
+      (!live || hasDependants) && { label: tr("This month"), tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
+      { label: tr("Family"), sub: live ? (familyName || null) : null, tour: "settings-dashboard",
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
-      live ? { label: tr("Your coach"), sub: hasCoach ? (conn?.coach || "") : null, icon: UserPlus, tour: "settings-family", onTap: () => hasCoach ? push("coachProfile") : sheet("family"), keys: ["join", "code"] }
-           : { label: tr("Coaches & profiles"), icon: UserPlus, tour: "settings-family", onTap: () => sheet("family") },
-      { label: tr("Lesson logs"), icon: Download, tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "file", "save"] },
+      live ? { label: tr("Your coach"), sub: hasCoach ? (conn?.coach || "") : null, tour: "settings-family", onTap: () => hasCoach ? push("coachProfile") : sheet("family"), keys: ["join", "code"] }
+           : { label: tr("Coaches & profiles"), tour: "settings-family", onTap: () => sheet("family") },
+      { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "file", "save"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
     { title: L.appearance, tour: "settings-appearance", rows: [
@@ -12550,32 +12549,32 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Reduce motion"), right: T(reduceMotion, setReduceMotion), keys: ["animation", "animations"] },
     ] },
     live ? { title: tr("Account"), rows: [
-      { label: tr("Notifications"), icon: Bell, tour: "settings-notifications", onTap: () => push("notifications"), keys: ["push", "alerts", "quiet", "phone"] },
-      { label: tr("Data & permissions"), icon: ShieldCheck, tour: "settings-data", onTap: () => push("legal:data"), keys: ["privacy", "export", "gdpr", "stored"] },
+      { label: tr("Notifications"), tour: "settings-notifications", onTap: () => push("notifications"), keys: ["push", "alerts", "quiet", "phone"] },
+      { label: tr("Data & permissions"), tour: "settings-data", onTap: () => push("legal:data"), keys: ["privacy", "export", "gdpr", "stored"] },
     ] } : { title: tr("Account"), tour: "settings-account", rows: [
-      { label: tr("Photo"), icon: Camera, tour: "settings-photo", onTap: () => onPhoto && onPhoto() },
-      multiSport && { label: tr("Main sport"), sub: mainLabel, icon: Tag, onTap: () => onMainSport && onMainSport() },
-      { label: tr("Personal details"), icon: User, tour: "settings-details", onTap: () => push("details") },
-      { label: tr("Notifications"), icon: Bell, tour: "settings-notifications", onTap: () => push("notifications") },
-      role === "player" && { label: tr("Your sporting record"), icon: FileText, tour: "settings-transfer", onTap: () => sheet("transfer") },
-      { label: tr("Connections"), icon: Radio, tour: "settings-sources", onTap: () => push("sources") },
-      { label: tr("Data & permissions"), icon: ShieldCheck, tour: "settings-data", onTap: () => push("legal:data") },
+      { label: tr("Photo"), tour: "settings-photo", onTap: () => onPhoto && onPhoto() },
+      multiSport && { label: tr("Main sport"), sub: mainLabel, onTap: () => onMainSport && onMainSport() },
+      { label: tr("Personal details"), tour: "settings-details", onTap: () => push("details") },
+      { label: tr("Notifications"), tour: "settings-notifications", onTap: () => push("notifications") },
+      role === "player" && { label: tr("Your sporting record"), tour: "settings-transfer", onTap: () => sheet("transfer") },
+      { label: tr("Connections"), tour: "settings-sources", onTap: () => push("sources") },
+      { label: tr("Data & permissions"), tour: "settings-data", onTap: () => push("legal:data") },
     ] },
     { title: tr("Support"), tour: "settings-support", rows: [
-      { label: tr("Walkthrough"), icon: Sparkles, tour: "settings-tour", onTap: () => onTour && onTour(), keys: ["tour", "guide", "how", "screens"] },
-      role !== "coach" && { label: tr("Attendance"), icon: Check, tour: "settings-attendance", onTap: () => push("attendance"), keys: ["record", "register"] },
+      { label: tr("Walkthrough"), tour: "settings-tour", onTap: () => onTour && onTour(), keys: ["tour", "guide", "how", "screens"] },
+      role !== "coach" && { label: tr("Attendance"), tour: "settings-attendance", onTap: () => push("attendance"), keys: ["record", "register"] },
       /* one row, straight to the mail app: a screen of two rows that
          each opened it was three taps for one thing */
-      (!live || SUPPORT_EMAIL) && { label: tr("Contact us"), sub: live ? SUPPORT_EMAIL : null, icon: Mail, tour: "settings-contact", keys: ["email", "support", "help", "problem", "faq"],
+      (!live || SUPPORT_EMAIL) && { label: tr("Contact us"), sub: live ? SUPPORT_EMAIL : null, tour: "settings-contact", keys: ["email", "support", "help", "problem", "faq"],
         onTap: () => { if (!live) { push("support"); return; } window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`${BRAND}: ${tr("a question")}`)}&body=${encodeURIComponent(`\n\n—\n${BRAND} ${VERSION}`)}`; } },
     ] },
     { title: tr("Legal"), tour: "settings-legal", rows: [
-      { label: tr("Terms of Service"), icon: FileText, tour: "settings-terms", onTap: () => push("legal:terms") },
-      { label: tr("Privacy Policy"), icon: FileText, tour: "settings-privacy", onTap: () => push("legal:privacy") },
-      { label: tr("Licences"), icon: FileText, tour: "settings-licences", onTap: () => push("legal:licences") },
+      { label: tr("Terms of Service"), tour: "settings-terms", onTap: () => push("legal:terms") },
+      { label: tr("Privacy Policy"), tour: "settings-privacy", onTap: () => push("legal:privacy") },
+      { label: tr("Licences"), tour: "settings-licences", onTap: () => push("legal:licences") },
     ] },
     { title: null, rows: [
-      { label: tr("Sign out"), icon: LogOut, tour: "settings-signout", onTap: restart, keys: ["log out", "logout"] },
+      { label: tr("Sign out"), tour: "settings-signout", onTap: restart, keys: ["log out", "logout"] },
       !live && { label: tr("Delete account"), danger: true, tour: "settings-delete", onTap: () => sheet("delete") },
     ] },
   ].filter(Boolean).map((g) => ({ ...g, rows: g.rows.filter(Boolean) }));
@@ -12624,7 +12623,12 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                 ? <div key={r.label} style={{ borderBottom: i === g.rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
                        last={i === g.rows.length - 1} right={r.right}
-                       icon={r.icon ? (r.danger ? <Trash2 size={17} color={DANGER} strokeWidth={1.6} /> : <I C={r.icon} />) : (r.danger ? <Trash2 size={17} color={DANGER} strokeWidth={1.6} /> : undefined)}
+                       /* No glyph on a settings row. Half the rows had one and
+                          half did not, which reads as an oversight rather than a
+                          system; and "Dark mode" needs a picture of nothing. The
+                          one exception is the row that deletes the account, where
+                          the red bin is a warning, not decoration. */
+                       icon={r.danger ? <Trash2 size={17} color={DANGER} strokeWidth={1.6} /> : undefined}
                        onToggle={r.onTap} />)}
             </Card></div>
           </React.Fragment>
@@ -13037,9 +13041,18 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   useEffect(() => { unreadNow.current = items.filter((n) => !n.readAt).length; }, [items]);
   useEffect(() => () => { if (unreadNow.current > 0 && onMarkAllRead) onMarkAllRead(); }, []);
 
+  /* Whatever is up top with an Accept on it does not also need a line
+     underneath saying the same thing happened. "Eoin Walsh asking to
+     join you" and "Eoin Walsh asked to join" on one screen is the app
+     talking to itself. */
+  const asked = waiting.map((w) => String(w.who || "").toLowerCase()).filter(Boolean);
+  const said = (n) => (n.kind === "request" || n.kind === "booking")
+    && asked.some((nm) => String(n.title || "").toLowerCase().includes(nm));
+  const list = items.filter((n) => !said(n));
+
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-  const today = items.filter((n) => !n.createdAt || new Date(n.createdAt) >= startOfToday);
-  const earlier = items.filter((n) => n.createdAt && new Date(n.createdAt) < startOfToday);
+  const today = list.filter((n) => !n.createdAt || new Date(n.createdAt) >= startOfToday);
+  const earlier = list.filter((n) => n.createdAt && new Date(n.createdAt) < startOfToday);
 
   const Eyeb = ({ children }) => (
     <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{children}</div>
@@ -13085,7 +13098,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
     </div>
   );
 
-  const nothing = items.length === 0 && waiting.length === 0;
+  const nothing = list.length === 0 && waiting.length === 0;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Alerts")} onBack={pop}

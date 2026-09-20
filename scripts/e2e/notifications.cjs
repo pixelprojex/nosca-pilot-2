@@ -126,13 +126,16 @@ const { check, results, summary } = M.checker("notifications");
       await M.back(page);
       await tap(page, '[aria-label="Alerts"]', 900);
       const t2 = await text(); await shot("10-coach-alerts");
-      /* the notification row IS the door — a strip above it counting the
-         same rows was the screen saying it twice */
-      const job = page.locator("button", { hasText: "Eoin Walsh asked to join" }).first();
-      check("(c) the alerts list names the person asking to join, once", (await job.count()) === 1 && !/asking to join you/.test(t2) && t2.includes("Eoin Walsh asked to join"), t2.slice(0, 240));
-      await job.click(); await page.waitForTimeout(900);
-      const t3 = await text();
-      check("(c) the row opens Requests", t3.includes("Requests") && t3.includes("Eoin Walsh"), t3.slice(0, 160));
+      /* the ask is answered on this screen. One row for the person,
+         carrying the two buttons; the notification that says the same
+         thing happened is suppressed while the row is there, so the
+         name is on the screen once. */
+      const named = (t2.match(/Eoin Walsh/g) || []).length;
+      check("(c) the alerts list names the person asking to join, once", named === 1 && /WAITING ON YOU/i.test(t2) && t2.includes("asking to join you"), t2.slice(0, 240));
+      check("(c) the row carries Accept and Decline", (await byText(page, "Accept").count()) === 1 && (await byText(page, "Decline").count()) === 1, t2.slice(0, 200));
+      await byText(page, "Accept").first().click(); await page.waitForTimeout(1400);
+      const t3 = await text(); await shot("10b-coach-alerts-accepted");
+      check("(c) accepting from the alerts list answers it there", !/WAITING ON YOU/i.test(t3) && db.requests.every((r) => r.status !== "pending"), `${t3.slice(0, 160)} · ${JSON.stringify(db.requests.map((r) => r.status))}`);
       await ctx.close();
     }
 
