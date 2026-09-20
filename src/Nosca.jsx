@@ -7,16 +7,13 @@ import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from
 import { supabase } from "./lib/supabase";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 import {
-  ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home, Library,
-  Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
-  Delete, Lock, Mail, Apple, Camera, Image as ImageIcon, ChevronDown, Search, Wallet,
-  Receipt, Banknote, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck,
-  ExternalLink, Tag, Phone, Paperclip, Clock, ListChecks, Download, Palette, Zap,
-  TrendingUp, Eye, Minimize2, Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Edit3, Trophy, Award, Star, CloudRain,
-  Copy, Settings2, BellOff, Layers,
-  Target, Waves, Activity, Flag, Mountain, Footprints, Shield, Gauge, Dumbbell, Repeat,
-  CornerDownRight, ArrowUpRight, Rows3, Grid2x2, Circle, Route, Heart, Brain, Trees,
-  ChevronsRight, ChevronsLeft, RotateCw, Medal, Compass,
+  ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home,
+  Library, Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode,
+  Share2, Delete, Lock, Mail, Apple, Camera, Image as ImageIcon, ChevronDown, Search,
+  Receipt, Bell, FileText, HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag,
+  Phone, Paperclip, Clock, ListChecks, Download, Palette, TrendingUp, Eye, Minimize2,
+  Sparkles, Lightbulb, Volume2, VolumeX, UserPlus, Radio, Edit3, Trophy, Award, Star,
+  CloudRain, Copy, Settings2, BellOff, Repeat, Circle, Heart
 } from "lucide-react";
 
 /* ==================================================================
@@ -1100,20 +1097,40 @@ export const ui = "'Switzer', 'Instrument Sans', ui-sans-serif, -apple-system, s
 export const TYPE = {
   /* Large sizes go LIGHTER, not heavier — that is the whole trick. A
      32px heading at weight 300 with tight tracking reads considered;
-     the same heading at 700 reads like a warning sign. */
-  hero:    { fontFamily: display, fontSize: 32, lineHeight: 1.05, letterSpacing: "-0.03em",  fontWeight: 300 },
+     the same heading at 700 reads like a warning sign.
+
+     Every size here came down a step, because the app read cramped: a
+     27px date over a 14.5px line over an 86px tile, all 10px apart, is
+     a lot of ink on a 390px screen. Smaller type is not the point —
+     the space it gives back is. Nothing went below 12px, which is the
+     floor for a coach reading a phone at arm's length on a range. */
+  hero:    { fontFamily: display, fontSize: 29, lineHeight: 1.06, letterSpacing: "-0.03em",  fontWeight: 300 },
   /* every screen's H1. Today used to hard-code its own 27 while Roster,
      Alerts and Drills used hero at 32, which is a good part of why the
      app read unfinished. hero is now sign-up and the player's tip. */
-  screen:  { fontFamily: display, fontSize: 27, lineHeight: 1.1,  letterSpacing: "-0.028em", fontWeight: 350 },
-  title:   { fontFamily: display, fontSize: 23, lineHeight: 1.16, letterSpacing: "-0.024em", fontWeight: 400 },
-  heading: { fontFamily: display, fontSize: 18, lineHeight: 1.28, letterSpacing: "-0.018em", fontWeight: 500 },
-  subhead: { fontFamily: display, fontSize: 15.5, lineHeight: 1.38, letterSpacing: "-0.012em", fontWeight: 500 },
-  figure:  { fontFamily: display, fontSize: 30, lineHeight: 1,    letterSpacing: "-0.035em", fontWeight: 300, fontVariantNumeric: "tabular-nums lining" },
-  body:    { fontFamily: ui,      fontSize: 14.5, lineHeight: 1.5, letterSpacing: "-0.005em", fontWeight: 400 },
-  small:   { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.45, letterSpacing: "-0.002em", fontWeight: 400 },
-  caption: { fontFamily: ui,      fontSize: 11, lineHeight: 1.4, fontWeight: 400 },
-  eyebrow: { fontFamily: ui,      fontSize: 9.5, letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 500 },
+  screen:  { fontFamily: display, fontSize: 24, lineHeight: 1.12, letterSpacing: "-0.026em", fontWeight: 350 },
+  title:   { fontFamily: display, fontSize: 20.5, lineHeight: 1.18, letterSpacing: "-0.022em", fontWeight: 400 },
+  heading: { fontFamily: display, fontSize: 16.5, lineHeight: 1.3, letterSpacing: "-0.016em", fontWeight: 500 },
+  subhead: { fontFamily: display, fontSize: 14.5, lineHeight: 1.4, letterSpacing: "-0.01em", fontWeight: 500 },
+  figure:  { fontFamily: display, fontSize: 27, lineHeight: 1,    letterSpacing: "-0.033em", fontWeight: 300, fontVariantNumeric: "tabular-nums lining" },
+  body:    { fontFamily: ui,      fontSize: 14, lineHeight: 1.5, letterSpacing: "-0.004em", fontWeight: 400 },
+  small:   { fontFamily: ui,      fontSize: 12, lineHeight: 1.45, letterSpacing: "-0.002em", fontWeight: 400 },
+  caption: { fontFamily: ui,      fontSize: 10.5, lineHeight: 1.4, fontWeight: 400 },
+  eyebrow: { fontFamily: ui,      fontSize: 9.5, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 500 },
+};
+
+/* Space as a system, so a screen breathes the same way everywhere.
+   Every gap between two unrelated things on a page is SPACE.block;
+   between a heading and the thing it names, SPACE.tight; between two
+   sections that are barely related, SPACE.section. Before this the
+   numbers were written at each call site — 22 here, 16 there, mt-3
+   somewhere else — and the result read cramped in some places and
+   loose in others, which is worse than either. */
+export const SPACE = {
+  tight:   10,   // a label and the thing it labels
+  row:     14,   // two controls doing the same job
+  block:   30,   // two different things on one page
+  section: 40,   // the page changes subject
 };
 
 /* Depth as a system. Three levels only — anything more and the screen
@@ -1448,18 +1465,6 @@ function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR)
   const own = mine.filter((b) => b.m === m && b.d === d).map((b) => b.time);
   return base.filter((t) => !taken.includes(t) && !off.includes(t) && !own.includes(t));
 }
-function earliestSlot(avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR) {
-  for (const mo of c.months) {
-    for (let d = 1; d <= mo.days; d++) {
-      if (isPast(mo.idx, d, c)) continue;
-      const times = openTimes(mo.idx, d, avail, blocked, mine, seedBooked, c);
-      if (times.length) return { m: mo.idx, d, time: times[0], month: mo.name.split(" ")[0] };
-    }
-  }
-  return null;
-}
-/* Walks forward day by day collecting the next N occurrences of a weekday —
-   powers recurring-group scheduling, months out if the range allows it. */
 /* Walks forward from today collecting occurrences, honouring the gap
    between them: weekly, fortnightly or monthly. */
 function seriesOccurrences(dowTarget, count, freq, fromM, fromD, c = HARNESS_CALENDAR) {
@@ -1501,14 +1506,14 @@ const NOTIFS = {
     { k: "booking",  icon: Calendar,   t: "Priya Ellis booked Wed 29 Jul", s: "5:30 pm · private", when: "9m", fresh: true },
     { k: "practice", icon: ListChecks, t: "Marcus completed the ladder drill", s: "3 of 3 done this week", when: "1h", fresh: true },
     { k: "video",    icon: Eye,        t: "Marcus watched 95% of your review", s: "Short game · 14 Jun", when: "2h", fresh: true },
-    { k: "risk",     icon: TrendingUp, t: "Dan Okafor hasn't booked in 21 days", s: "Consider a check-in", when: "Yesterday" },
-    { k: "milestone",icon: Sparkles,   t: "You've coached 100 lessons on Nosca", s: "Since February", when: "Wed" },
+    { k: "risk",     icon: Clock,      t: "Dan Okafor hasn't booked in 21 days", s: "Consider a check-in", when: "Yesterday" },
+    { k: "milestone",icon: Check,      t: "You've coached 100 lessons on Nosca", s: "Since February", when: "Wed" },
   ],
   player: [
-    { k: "lesson",   icon: Library,    t: "Ray published your short game review", s: "2 clips · 14 Jun", when: "20m", fresh: true },
+    { k: "lesson",   icon: FileText,   t: "Ray published your short game review", s: "2 clips · 14 Jun", when: "20m", fresh: true },
     { k: "practice", icon: ListChecks, t: "Two drills still to do this week", s: "Set by Ray", when: "3h" },
     { k: "booking",  icon: Calendar,   t: "Lesson tomorrow at 4:30 pm", s: "12°C, light wind", when: "Yesterday" },
-    { k: "milestone",icon: Sparkles,   t: "Handicap down to 12.4", s: "From 14.1 in February", when: "Mon" },
+    { k: "milestone",icon: Check,      t: "Handicap down to 12.4", s: "From 14.1 in February", when: "Mon" },
   ],
 };
 const NOTIF_CATS = {
@@ -2524,7 +2529,7 @@ function Credentials({ pop, say }) {
           {soon.length > 0 && (
             <Tile accent={CAUTION} className="px-5 py-4 mb-4">
               <div className="flex items-center gap-3">
-                <Radio size={16} color={CAUTION} strokeWidth={2} />
+                <Bell size={16} color={CAUTION} strokeWidth={2} />
                 <span className="flex-1" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.5, color: t.ink }}>
                   {tr("We'll remind you three months before each one runs out.")}
                 </span>
@@ -2823,7 +2828,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
                 style={{ bottom: 22, minHeight: 44, borderRadius: R.pill, border: "0.5px solid rgba(255,255,255,0.28)",
                          fontFamily: ui, fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,0.92)",
                          animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
-          <Sparkles size={13} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />
+          <Star size={13} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />
           {tr("Ask for a rating")}
         </button>
       )}
@@ -2983,7 +2988,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null },
           onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
           { Ico: CalendarDays, lbl: tr("Move"),    act: onCancel,   tone: null },
-          { Ico: Radio,        lbl: tr("Weather"), act: onWeather,  tone: DANGER },
+          { Ico: CloudRain,    lbl: tr("Weather"), act: onWeather,  tone: DANGER },
           { Ico: X,            lbl: tr("No show"), act: onNoShow,   tone: DANGER }].filter(Boolean).map(({ Ico, lbl, act, tone, tour }) => (
           <button key={lbl} data-tour={tour} onClick={() => { haptic(7); soft(); act && act(); }}
                   onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.94)"; }}
@@ -3133,8 +3138,8 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
             {[
               { label: tr("Film a clip"), sub: cfg.angles[0], Icon: Camera, act: () => add("video", cfg.angles[0]) },
               { label: tr("Second angle"), sub: cfg.angles[1] || cfg.angles[0], Icon: Camera, act: () => add("video", cfg.angles[1] || cfg.angles[0]) },
-              { label: cap.device, sub: tr("Photo of the screen"), Icon: Receipt, act: () => add("data") },
-              { label: tr("Action shot"), sub: tr("A position"), Icon: Tag, act: () => add("action") },
+              { label: cap.device, sub: tr("Photo of the screen"), Icon: ImageIcon, act: () => add("data") },
+              { label: tr("Action shot"), sub: tr("A position"), Icon: ImageIcon, act: () => add("action") },
             ].map((o, i) => (
               <button key={o.label} onClick={o.act}
                       onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
@@ -3641,7 +3646,7 @@ function Sources({ sport, pop, say }) {
               <div className="flex items-center gap-3.5">
                 <span className="rounded-xl flex items-center justify-center shrink-0"
                       style={{ width: 42, height: 42, background: src.on ? `${t.accent}0F` : t.wash }}>
-                  <Radio size={17} color={src.on ? t.accent : t.faint} strokeWidth={1.6} />
+                  <Bell size={17} color={src.on ? t.accent : t.faint} strokeWidth={1.6} />
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{src.name}</span>
@@ -4110,8 +4115,8 @@ function PickPerson({ roster, title, sub, onPick, close }) {
    and offers the one thing worth doing about it. Used for the same
    class of event: a lesson logged, a new coach, a group you've joined. */
 const ANNOUNCE = {
-  weather:  { Ico: Radio,         tone: "danger",  eyebrow: "Called off" },
-  logged:   { Ico: Library,       tone: "steady",  eyebrow: "New lesson" },
+  weather:  { Ico: CloudRain,     tone: "danger",  eyebrow: "Called off" },
+  logged:   { Ico: FileText,      tone: "steady",  eyebrow: "New lesson" },
   coach:    { Ico: UserPlus,      tone: "steady",  eyebrow: "New coach" },
   group:    { Ico: Users,         tone: "steady",  eyebrow: "Added to a group" },
   cancelled:{ Ico: CalendarDays,  tone: "danger",  eyebrow: "Cancelled" },
@@ -5032,7 +5037,7 @@ function ViewSwitch({ view, setView, onDark, tour }) {
   const t = useT();
   const opts = [
     { id: "feed",  Ico: Play,       label: "Feed" },
-    { id: "cards", Ico: Library,    label: "Cards" },
+    { id: "cards", Ico: FileText,   label: "Cards" },
     { id: "list",  Ico: ListChecks, label: "List" },
   ];
   return (
@@ -6115,7 +6120,7 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("Next time")}</h2>
       
       <div className="mb-5">
-        <FocusGrid sport={sport} areas={cfg.focus} picked={[pick]} onToggle={setPick} />
+        <FocusGrid areas={cfg.focus} picked={[pick]} onToggle={setPick} />
       </div>
       <div className="mb-5"><VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Anything specific? Optional.")} /></div>
       <Button disabled={!pick} onClick={() => { onSend(cfg.focus.find((f) => f.id === pick).label, note); close(); }}>
@@ -6144,7 +6149,7 @@ function WeatherCallOff({ day, bookings, duration, onConfirm, close, ahead }) {
     <>
       <div className="flex items-center gap-3 mb-4">
         <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: `${DANGER}14` }}>
-          <Radio size={18} color={DANGER} strokeWidth={2} />
+          <CloudRain size={18} color={DANGER} strokeWidth={2} />
         </span>
         <h2 style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Confirm")}</h2>
       </div>
@@ -6225,7 +6230,7 @@ function RescheduleOffer({ lesson, slots, duration, onPick, close }) {
     <>
       <div className="flex items-center gap-3 mb-4">
         <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}>
-          <Radio size={18} color={t.sub} strokeWidth={2} />
+          <CloudRain size={18} color={t.sub} strokeWidth={2} />
         </span>
         <h2 style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Called off for weather")}</h2>
       </div>
@@ -6336,18 +6341,12 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
 /* Nothing on today. Worth saying warmly rather than leaving a blank. */
 function FreeDay({ onSetHours }) {
   const t = useT();
+  /* A pulsing halo around a breathing sparkle, to say that nobody
+     booked. It is a quiet fact and it gets a quiet line. */
   return (
-    <div className="px-6 py-12 text-center" style={{ animation: "liftIn 480ms cubic-bezier(.22,1,.36,1) both" }}>
-      <span className="relative inline-flex items-center justify-center mb-6" style={{ width: 76, height: 76 }}>
-        <span className="absolute rounded-full" style={{ inset: 0, border: `1px solid ${t.accent}`, opacity: 0.25,
-                       animation: "haloOut 2.6s cubic-bezier(.2,.6,.3,1) infinite" }} />
-        <span className="rounded-full flex items-center justify-center" style={{ width: 60, height: 60, background: t.wash,
-                       animation: "breathe 4s ease-in-out infinite" }}>
-          <Sparkles size={24} color={t.accent} strokeWidth={1.6} />
-        </span>
-      </span>
-      <p style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.03em", color: t.ink }}>{tr("You're free today")}</p>
-      <p className="mt-2.5 mb-6" style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("Nothing booked. Enjoy it.")}</p>
+    <div className="px-6 py-14 text-center">
+      <p style={{ ...TYPE.title, color: t.ink }}>{tr("You're free today")}</p>
+      <p className="mt-2 mb-6" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing booked. Enjoy it.")}</p>
       <button onClick={onSetHours} className="active:opacity-50" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>
         {tr("Open more hours")}
       </button>
@@ -6667,11 +6666,11 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
       </div>
       <div className="flex-1 overflow-y-auto" onScroll={(e) => setY(e.currentTarget.scrollTop)}>
         {large && !bare && (
-          <div className="px-6 pb-10 pt-4 flex items-start gap-3 relative"
+          <div className="px-6 pb-9 pt-5 flex items-start gap-3 relative"
                style={{ opacity: y > 24 ? 0 : 1, transition: "opacity 180ms",
                         animation: "headerSettle 480ms cubic-bezier(.22,1,.36,1) both" }}>
             <span className="flex-1 min-w-0">
-              <h1 style={{ ...TYPE.hero, color: t.ink, marginLeft: -1.5,
+              <h1 style={{ ...TYPE.screen, color: t.ink, marginLeft: -1.5,
                             animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
               {meta && <p className="mt-2" style={{ ...TYPE.small, fontSize: 12.5, color: t.faint,
                               animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 70ms both" }}>{meta}</p>}
@@ -6940,23 +6939,13 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
    gives each one a face, so the log is a grid of pictures rather than a
    wrap of words. Keyed sport:id because `serve` means one thing in
    tennis and another in squash. */
-const FOCUS_ICON = {
-  "golf:swing": Zap,        "golf:pitch": TrendingUp,  "golf:chip": CornerDownRight, "golf:bunker": Waves,
-  "golf:putt": Target,      "golf:course": Flag,       "golf:mental": Brain,         "golf:fitness": Dumbbell,
-  "golf:fitting": Settings2,
-  "tennis:serve": ArrowUpRight, "tennis:return": Repeat, "tennis:fh": ChevronsRight, "tennis:bh": ChevronsLeft,
-  "tennis:net": Grid2x2,    "tennis:rally": Activity,  "tennis:move": Footprints,    "tennis:match": Trophy,
-  "rowing:technique": Waves, "rowing:rhythm": Gauge,   "rowing:racing": Flag,        "rowing:erg": Activity,
-  "rowing:sc": Dumbbell,
-  "squash:drives": Zap,     "squash:volleys": ArrowUpRight, "squash:serve": Repeat,  "squash:front": CornerDownRight,
-  "squash:move": Footprints, "squash:tactics": Brain,  "squash:physical": Heart,     "squash:games": Trophy,
-  "padel:net": Grid2x2,     "padel:overhead": ArrowUpRight, "padel:lob": TrendingUp, "padel:wall": Square,
-  "padel:chiquita": CornerDownRight, "padel:serve": Repeat, "padel:defence": Shield, "padel:match": Trophy,
-  "equestrian:flat": Circle, "equestrian:dressage": Medal, "equestrian:poles": Rows3, "equestrian:grid": Grid2x2,
-  "equestrian:sj": TrendingUp, "equestrian:xc": Mountain, "equestrian:hack": Trees,  "equestrian:lunge": RotateCw,
-  "equestrian:seat": User,  "equestrian:care": Heart,
-};
-const focusIcon = (sport, id) => FOCUS_ICON[`${sport}:${id}`] || Compass;
+/* There is no glyph for "Short game", "Chiquita" or "Dressage". There
+   was a table here that gave each of the fifty focus areas one anyway —
+   a lightning bolt for the golf swing, a brain for the mental side, a
+   heart for squash fitness. Every one of them had to be invented, none
+   of them meant anything to a coach, and together they were the single
+   clearest tell that a machine had laid the screen out. A focus is a
+   word. It is shown as a word. */
 
 /* THE TILE
 
@@ -6964,7 +6953,7 @@ const focusIcon = (sport, id) => FOCUS_ICON[`${sport}:${id}`] || Compass;
    with a thumb, mid-lesson, without reading. What it holds rides in the
    corner as a count, so the box never grows a sentence. Tiles replace
    every list of actions that used to be rows of words. */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 86 }) {
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76 }) {
   const t = useT();
   const bg = tone === "accent" ? t.accent : on ? t.ink : t.wash;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
@@ -6975,11 +6964,17 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
     <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
             onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
             onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
-            className="relative w-full flex flex-col items-center justify-center gap-2 active:opacity-80"
+            className="relative w-full flex flex-col items-center justify-center gap-1.5 active:opacity-80"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, border: `1px solid ${edge}`, willChange: "transform",
                      transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
-      <Icon size={h >= 96 ? 26 : h >= 72 ? 24 : 20} color={fg} strokeWidth={1.6} />
-      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.005em", color: fg }}>{label}</span>
+      {/* A tile does not need a glyph to be a tile. Where the word is
+          the whole meaning — the focus of a lesson, a sub-area — an
+          icon is a decoration that has to be invented, and invented
+          glyphs are exactly what makes an app look generated. Pass no
+          Icon and the label centres on its own. */}
+      {Icon && <Icon size={h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={1.6} />}
+      <span className={Icon ? "truncate px-2" : "px-2 text-center"}
+            style={{ fontFamily: ui, fontSize: Icon ? 12 : 13, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: 1.25, color: fg }}>{label}</span>
       {count > 0 && (
         <span className="absolute flex items-center justify-center rounded-full"
               style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
@@ -6990,7 +6985,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   );
 }
 const TileGrid = ({ children, cols = 3 }) => (
-  <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>{children}</div>
+  <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>{children}</div>
 );
 
 /* a fact and its value, on one line. A label over a value in two lines
@@ -7090,11 +7085,11 @@ const DrillPicker = ({ drills, picked, onToggle, tour }) => {
 };
 
 /* what was worked on: the sport's own areas, each with a face */
-const FocusGrid = ({ sport, areas, picked, onToggle, h = 78, cols = 3, tour }) => (
+const FocusGrid = ({ areas, picked, onToggle, h = 58, cols = 2, tour }) => (
   <div data-tour={tour}>
     <TileGrid cols={cols}>
       {areas.map((f) => (
-        <ActTile key={f.id} h={h} Icon={focusIcon(sport, f.id)} label={f.label}
+        <ActTile key={f.id} h={h} label={f.label}
                  on={(picked || []).includes(f.id)} onTap={() => onToggle(f.id)} />
       ))}
     </TileGrid>
@@ -8097,7 +8092,7 @@ function LessonCard({ lesson, onOpen, active, saved, media, live }) {
                 style={{ bottom: 12, right: 12, background: "rgba(0,0,0,0.45)",
                          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
                          ...TYPE.caption, fontSize: 10, fontWeight: 600, color: "#fff" }}>
-            <Layers size={10} strokeWidth={2.2} color="#fff" />
+            <ImageIcon size={10} strokeWidth={2.2} color="#fff" />
             {lesson.media ?? lesson.videos}
           </span>
         )}
@@ -8497,7 +8492,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, attendPct,
             <TileGrid>
               {!juvenile && onRequest && <ActTile tour="home-request" tone="accent" h={82} Icon={CalendarDays} label={tr("Book")} onTap={() => onRequest()} />}
               <ActTile tour="home-practice" h={82} Icon={ListChecks} label={tr("Practise")} count={todo.length} onTap={() => go("practice")} />
-              <ActTile tour="home-lessons" h={82} Icon={Library} label={tr("Lessons")} count={lessons.length} onTap={() => go("log")} />
+              <ActTile tour="home-lessons" Icon={FileText} label={tr("Lessons")} count={lessons.length} onTap={() => go("log")} />
               {juvenile && <ActTile h={82} Icon={Users} label={tr("Family")} onTap={() => go("family")} />}
             </TileGrid>
           </div>
@@ -8605,7 +8600,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
                   "2" is the same lie as one clip in the feed */}
               {(l.media ?? l.videos ?? 0) > 0 && (
                 <span className="flex items-center gap-1 shrink-0" style={{ ...TYPE.caption, color: STEADY }}>
-                  {(l.videos || 0) > 0 ? <Play size={11} color={STEADY} /> : <Layers size={11} color={STEADY} />}
+                  {(l.videos || 0) > 0 ? <Play size={11} color={STEADY} /> : <ImageIcon size={11} color={STEADY} />}
                   {l.media ?? l.videos}
                 </span>
               )}
@@ -9229,46 +9224,35 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
       <div className="px-6 pt-3">
 
         <h1 style={{ ...TYPE.screen, color: t.ink }}>{dateLine}</h1>
-        <p className="mt-1 mb-4" style={{ ...TYPE.small, color: t.faint }}>{dayLine}</p>
-
-        {/* ---- ON NOW: the lesson actually running, and the three things
-             done to it. The only filled surface on the screen, and it is
-             not rendered at all when nothing is on. ---- */}
-        {liveNow && (
-          <div data-tour="today-now" className="mb-5 p-5" style={{ borderRadius: R.surface, background: t.wash, border: `1px solid ${HAIR(t.ink, 0.07)}` }}>
-            <div className="flex items-center gap-3.5 mb-4">
-              <Avatar name={liveNow.who} size={44} src={avatarFor(liveNow)} bg={t.page} fg={t.sub} />
-              <span className="flex-1 min-w-0">
-                <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{liveNow.who}</span>
-                <span className="block truncate" style={{ ...TYPE.small, color: t.accent }}>{liveNow.time} · {tr("on now")}</span>
-              </span>
-            </div>
-            <TileGrid>
-              <ActTile h={78} Icon={Check} label={tr("Register")} onTap={() => onRegister && onRegister(liveNow)} />
-              <ActTile h={78} Icon={Camera} label={tr("Capture")} onTap={() => onCapture && onCapture(liveNow)} />
-              <ActTile h={78} tone="accent" Icon={Plus} label={tr("Log")} onTap={() => onLogFor && onLogFor(liveNow)} />
-            </TileGrid>
-          </div>
-        )}
+        <p style={{ ...TYPE.small, color: t.faint, marginTop: 4, marginBottom: SPACE.block }}>{dayLine}</p>
 
         {/* ---- THE BOARD: the six verbs, on the screen rather than one
              tap inside a sheet. Every one routes to the handler the plus
-             menu already uses, and the plus keeps all eight of its own. ---- */}
-        <div className="mb-6" data-tour="today-board">
+             menu already uses, and the plus keeps all eight of its own.
+
+             There used to be a filled block above this carrying Register,
+             Capture and Log for the lesson on now. It was these same three
+             verbs, forty pixels higher, and with the day's own row saying
+             "Now" underneath it the word Register appeared three times on
+             one screen. The block is gone; the board's verbs act on the
+             live lesson when there is one, so nothing takes an extra tap
+             and the screen has a third of its height back. ---- */}
+        <div data-tour="today-board" style={{ marginBottom: SPACE.block }}>
           <TileGrid>
-            <ActTile tone={liveNow ? "quiet" : "accent"} h={82} Icon={Plus} label={tr("Log")} count={toWriteUp.length} onTap={() => onLog && onLog()} />
-            <ActTile h={82} Icon={Check} label={tr("Register")} onTap={() => onAttend && onAttend(liveNow)} />
-            <ActTile h={82} Icon={Camera} label={tr("Capture")} onTap={() => onCapture && onCapture(liveNow)} />
-            <ActTile h={82} Icon={Lightbulb} label={tr("Tip")} onTap={() => onTip && onTip()} />
-            <ActTile h={82} Icon={ListChecks} label={tr("Drills")} onTap={() => onDrills && onDrills()} />
-            <ActTile h={82} Icon={UserPlus} label={tr("Add player")} onTap={() => onAddPlayer && onAddPlayer()} />
+            <ActTile tone={liveNow ? "quiet" : "accent"} Icon={Plus} label={tr("Log")} count={toWriteUp.length}
+                     onTap={() => (liveNow && onLogFor ? onLogFor(liveNow) : onLog && onLog())} />
+            <ActTile Icon={Check} label={tr("Register")} onTap={() => onAttend && onAttend(liveNow)} />
+            <ActTile Icon={Camera} label={tr("Capture")} onTap={() => onCapture && onCapture(liveNow)} />
+            <ActTile Icon={Lightbulb} label={tr("Tip")} onTap={() => onTip && onTip()} />
+            <ActTile Icon={ListChecks} label={tr("Drills")} onTap={() => onDrills && onDrills()} />
+            <ActTile Icon={UserPlus} label={tr("Add player")} onTap={() => onAddPlayer && onAddPlayer()} />
           </TileGrid>
         </div>
 
         {/* ---- today ---- */}
         {list.length > 0 && (<>
-          <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Today")}</div>
-          <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{tr("Today")}</div>
+          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
             {list.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
               const row = (
@@ -9292,8 +9276,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {/* ---- asking for a lesson: rows under the day, not a card above
              it. Accept and Decline are still one tap each. ---- */}
         {asks.length > 0 && (<>
-          <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Asking")}</div>
-          <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{tr("Asking")}</div>
+          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
             {asks.map((r, i) => (
               <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
                    style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
@@ -9571,7 +9555,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 
   /* ---------- what was worked on ---------- */
   const [focus, setFocus] = useState([]);
-  const [subPick, setSubPick] = useState([]);
   const [custom, setCustom] = useState([]);
   const [otherOpen, setOtherOpen] = useState(false);
 
@@ -9704,7 +9687,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     && (lessonCounts ? (lessonCounts[who[0].id] || 0) === 0 : false);
   const currentStage = stage ? stageTag(cfg, stage, stageVal) : null;
   const stageValue = [currentStage, ...extraPick, mount.trim() ? `${cfg.mount ? "" : ""}${mount.trim()}` : null].filter(Boolean).join(" · ");
-  const tags = [currentStage, ...extraPick, ...subPick, mount.trim() ? `on ${mount.trim()}` : null].filter(Boolean);
+  const tags = [currentStage, ...extraPick, mount.trim() ? `on ${mount.trim()}` : null].filter(Boolean);
   const heroText = pickedGroup ? pickedGroup
     : who.length === 0 ? tr("Who?")
     : who.length === 1 ? who[0].name
@@ -9887,7 +9870,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   <TileGrid cols={3}>
                     {ex.options.map((o) => {
                       const on = extraPick.includes(o);
-                      return <ActTile key={o} h={56} Icon={on ? Check : Circle} label={o} on={on}
+                      return <ActTile key={o} h={52} label={o} on={on}
                                       onTap={() => { setStageTouched(true); setExtraPick(on ? extraPick.filter((x) => x !== o) : [...extraPick.filter((x) => !ex.options.includes(x)), o]); }} />;
                     })}
                   </TileGrid>
@@ -9935,7 +9918,6 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   ================================================================ */
   const dateIso = `${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`;
   const maxIso = `${today.y}-${String(today.m).padStart(2, "0")}-${String(today.d).padStart(2, "0")}`;
-  const subs = chosenAreas.length === 1 ? (chosenAreas[0].subs || []) : [];
   const prompts = (tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4);
   const addOwnDrill = (v) => { hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill(""); onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); };
 
@@ -9987,43 +9969,45 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           </div>
 
           {/* what was worked on — the only decision on the page */}
-          <div className="px-6" style={{ marginTop: 22 }}>
+          {/* WHAT THEY WORKED ON — one tap and it is done.
+
+              This used to be a grid of glyphs where picking one opened a
+              second grid of its sub-areas underneath. Two decisions and a
+              page that grew as you used it, for a field a coach fills in
+              between two lessons. Tap Serve and the focus is Serve. The
+              tiles carry no icon either: "Serve", "Short game" and
+              "Dressage" have no glyph that anyone would recognise, so
+              every one of them had to be invented, and invented glyphs
+              are what make software look like it wrote itself. */}
+          <div className="px-6" style={{ marginTop: SPACE.block }}>
             <div data-tour="wiz-focus">
-              <TileGrid>
+              <TileGrid cols={2}>
                 {cfg.focus.map((f) => {
                   const on = focus.includes(f.id);
-                  return <ActTile key={f.id} h={78} Icon={focusIcon(sport, f.id)} label={f.label} on={on}
-                                  onTap={() => { setFocus(on ? focus.filter((x) => x !== f.id) : [...focus, f.id]); if (on) setSubPick(subPick.filter((x) => !(f.subs || []).includes(x))); }} />;
+                  return <ActTile key={f.id} h={58} label={f.label} on={on}
+                                  onTap={() => { setFocus(on ? [] : [f.id]); if (!on) setCustom([]); }} />;
                 })}
                 {custom.map((c) => (
-                  <ActTile key={c} h={78} Icon={Check} label={c} on onTap={() => { setCustom(custom.filter((x) => x !== c)); }} aria={`${tr("Remove")} ${c}`} />
+                  <ActTile key={c} h={58} label={c} on onTap={() => setCustom([])} aria={`${tr("Remove")} ${c}`} />
                 ))}
-                {!otherOpen && <ActTile h={78} Icon={Plus} label={tr("Other")} onTap={() => setOtherOpen(true)} />}
+                {!otherOpen && custom.length === 0 && <ActTile h={58} label={tr("Other")} onTap={() => setOtherOpen(true)} />}
               </TileGrid>
               {otherOpen && (
-                <div className="mt-2.5">
-                  <InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom(custom.includes(x) ? custom : [...custom, x]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} />
+                <div style={{ marginTop: SPACE.tight }}>
+                  <InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom([x]); setFocus([]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} />
                 </div>
               )}
             </div>
-            {subs.length > 0 && (
-              <div className="mt-2.5" style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
-                <TileGrid cols={2}>
-                  {subs.map((sb) => <ActTile key={sb} h={52} Icon={subPick.includes(sb) ? Check : Circle} label={sb} on={subPick.includes(sb)}
-                                             onTap={() => setSubPick(subPick.includes(sb) ? subPick.filter((x) => x !== sb) : [...subPick, sb])} />)}
-                </TileGrid>
-              </div>
-            )}
           </div>
 
           {/* what was taken — one tap opens the camera itself */}
-          <div className="px-6" style={{ marginTop: 22 }}>
+          <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid>
-              <ActTile tour="wiz-media" h={96} Icon={Camera} label={tr("Video")} count={videos.length}
+              <ActTile tour="wiz-media" h={88} Icon={Camera} label={tr("Video")} count={videos.length}
                        onTap={() => (live ? pickFiles("video/*", "environment") : setCam(true))} />
-              <ActTile h={96} Icon={ImageIcon} label={tr("Photo")} count={photos.length}
+              <ActTile h={88} Icon={ImageIcon} label={tr("Photo")} count={photos.length}
                        onTap={() => (live ? pickFiles("image/*", "environment") : addPhoto("action"))} />
-              <ActTile h={96} Icon={Mic} on={rec === "recording"} count={voice ? 1 : 0}
+              <ActTile h={88} Icon={Mic} on={rec === "recording"} count={voice ? 1 : 0}
                        label={rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice")}
                        aria={tr("Voice note")}
                        onTap={() => { if (!live) { addPhoto("voice"); return; } if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }} />
@@ -10051,11 +10035,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             )}
 
             {/* the note is here, not behind a tap */}
-            <div className="mt-2.5"><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={2} ph={tr("A line about it")} /></div>
+            <div style={{ marginTop: SPACE.row }}><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={2} ph={tr("A line about it")} /></div>
           </div>
 
           {/* what they do until next time */}
-          <div className="px-6" style={{ marginTop: 22 }}>
+          <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid cols={2}>
               <ActTile tour="wiz-drills" Icon={ListChecks} label={tr("Drills")} count={nextDrills.length} on={drillsOpen} onTap={() => { setDrillsOpen(!drillsOpen); setTipOpen(false); }} />
               <ActTile tour="wiz-tip" Icon={Lightbulb} label={tr("Tip")} dot={!!nextTip} on={tipOpen} onTap={() => { setTipOpen(!tipOpen); setDrillsOpen(false); }} />
@@ -10153,7 +10137,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, code, lessonCo
             ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
                 <Avatar name={r.name} size={40} />, r.name, [stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · ")))}
             {lessonCount > 0 && row("archive", "roster-archive", () => { haptic(7); soft(); push("archive"); },
-                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><Library size={16} color={t.sub} strokeWidth={1.7} /></span>,
+                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><FileText size={16} color={t.sub} strokeWidth={1.7} /></span>,
                 tr("All lessons"), `${lessonCount}`)}
           </div>
         </>) : (
@@ -10360,7 +10344,7 @@ function JuvenileJoin({ sport, onDone, onBack }) {
 
 /* What kind of thing happened, as one icon. The bell is the fallback so
    a kind nobody has taught this map still draws something. */
-const NOTIF_ICON = { booking: CalendarDays, request: UserPlus, message: MessageCircle, lesson: Library,
+const NOTIF_ICON = { booking: CalendarDays, request: UserPlus, message: MessageCircle, lesson: FileText,
                      weather: Radio, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Sparkles };
 
 /* Everything a coach has ever logged, searchable. Fifty players over a
@@ -11576,7 +11560,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
             <VoiceInput value={f.t} onChange={(v) => setF({ ...f, t: v })} ph={tr("Drill name")} autoFocus />
             <div className="mt-2"><VoiceArea value={f.d} onChange={(v) => setF({ ...f, d: v })} rows={2} ph={tr("How to do it")} /></div>
             <div className="mt-4">
-              <FocusGrid sport={sport} areas={cfg.focus} picked={[f.focus]} h={68} onToggle={(id) => setF({ ...f, focus: id })} />
+              <FocusGrid areas={cfg.focus} picked={[f.focus]} onToggle={(id) => setF({ ...f, focus: id })} />
             </div>
             <div className="mt-5"><Button disabled={!f.t.trim()} onClick={() => { addDrill({ t: f.t.trim(), d: f.d.trim() || "No notes", focus: f.focus, uses: 0 }); setF({ t: "", d: "", focus: cfg.focus[0].id }); setAdding(false); hapticSuccess(); chime(); say("Saved"); }}>{tr("Save to library")}</Button></div>
           </Card></div>
@@ -11772,7 +11756,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
    The grid stays quiet — only availability is signalled — and the times
    carry the weight, one per line, with the finish time always shown. */
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, aiPick, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -12031,19 +12015,6 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             {role === "coach" ? `${booked.length} booked · ${open.length} free` : readOnly ? "View only" : `${open.length} available`}
           </span>
         </div>
-
-        {/* AI suggestion — one line, not a panel */}
-        {role === "player" && aiPick && !myDay && !readOnly && (
-          <button onClick={() => { hapticCommit(); soft(); onBook(aiPick); }}
-                  className="w-full flex items-center gap-2.5 mb-4 text-left active:opacity-60"
-                  style={{ minHeight: 50, borderRadius: R.control, background: t.wash, paddingLeft: 14, paddingRight: 14 }}>
-            <Sparkles size={14} color={t.accent} strokeWidth={2} />
-            <span className="flex-1" style={{ fontFamily: ui, fontSize: 13.5, color: t.ink }}>
-              {aiPick.reason}
-            </span>
-            <span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Book")}</span>
-          </button>
-        )}
 
         {myDay && (
           <div className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
@@ -12685,7 +12656,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
   const T = (on, set, extra) => <Toggle on={on} onChange={(v) => { set(v); extra && extra(v); }} />;
   const groups = [
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
-      { label: tr("Reviews"), icon: Sparkles, tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
+      { label: tr("Reviews"), icon: Star, tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
       !live && { label: tr("Paperwork"), icon: ShieldCheck, tour: "settings-credentials", onTap: () => push("credentials") },
       !live && { label: tr("Requests"), icon: UserPlus, tour: "settings-requests", onTap: () => push("requests") },
       demo && { label: tr("Subscription"), sub: `${BRAND} ${plan?.name || "Coach"}`, icon: ShieldCheck, onTap: () => push("subscription") },
@@ -12703,7 +12674,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v), Check) },
       prefs && { label: tr("Ask for a review"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
-      (!live || hasDependants) && { label: tr("This month"), icon: TrendingUp, tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
+      (!live || hasDependants) && { label: tr("This month"), icon: CalendarDays, tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
       { label: tr("Family"), sub: live ? (familyName || null) : null, icon: Users, tour: "settings-dashboard",
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
       live ? { label: tr("Your coach"), sub: hasCoach ? (conn?.coach || "") : null, icon: UserPlus, tour: "settings-family", onTap: () => hasCoach ? push("coachProfile") : sheet("family"), keys: ["join", "code"] }
@@ -15070,12 +15041,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     g.members.includes(activeProfile?.name) || g.members.includes("Marcus Tran"));
   /* Suggests the next slot matching the time of day they usually book —
      a small thing, but it removes most of the scanning. */
-  const aiPick = (() => {
-    if (role !== "player" || freshAccount) return null;
-    const soonest = earliestSlot(myAvail, myBlocked, myBookings, mySeedBooked, calendar);
-    if (!soonest) return null;
-    return { ...soonest, reason: `${DAY_NAMES[dowOf(soonest.m, soonest.d, calendar)].slice(0, 3)} ${soonest.d} at ${soonest.time} — like your usual` };
-  })();
+  /* There was an "AI suggestion" row above the day here. It was the
+     earliest free slot — the same slot already drawn in the grid a
+     centimetre below it — with the words "like your usual" appended,
+     which was not true of anything it had looked at. A suggestion that
+     is neither a suggestion nor informed is a row to delete. */
   const practiceTodo = myPractice.filter((x) => !x.done).length;
   const hasFamily = data ? (data.dependants || []).length > 0 : profiles.some((pf) => pf.age);
   /* In a family at all — which is what earns the tab. Having someone to
@@ -15524,7 +15494,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
-                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} aiPick={bookFor ? null : aiPick} readOnly={juvenile && !bookFor}
+                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
