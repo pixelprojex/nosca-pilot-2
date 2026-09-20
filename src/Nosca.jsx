@@ -7102,7 +7102,7 @@ const FocusGrid = ({ sport, areas, picked, onToggle, h = 78, cols = 3, tour }) =
 );
 
 /* the sports, each as its own colour — a sport has no glyph, it has a mark */
-const SportGrid = ({ ids, picked, onPick, cols = 3, tour }) => {
+const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
   const t = useT();
   const press = (v) => (e) => { e.currentTarget.style.transform = v; };
   return (
@@ -7110,16 +7110,24 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour }) => {
       <TileGrid cols={cols}>
         {ids.map((id) => {
           const sp = SPORTS[id], on = picked === id;
+          /* the sport the invite code was handed out under is named as
+             the main one; it is never swapped, only added to */
+          const isMain = mainId === id;
           return (
-            <button key={id} aria-label={sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
+            <button key={id} aria-label={add ? `+ ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
                     onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
                     onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
-                    className="w-full flex flex-col items-center justify-center gap-2 active:opacity-80"
+                    className="relative w-full flex flex-col items-center justify-center gap-2 active:opacity-80"
                     style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.wash,
                              border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.07)}`, willChange: "transform",
                              transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
-              <span className="rounded-full" style={{ width: 20, height: 20, background: sp.theme.mark }} />
-              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{sp.label}</span>
+              {add
+                ? <Plus size={18} color={t.sub} strokeWidth={2} />
+                : <span className="rounded-full" style={{ width: 20, height: 20, background: sp.theme.mark }} />}
+              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>
+                {add ? `+ ${sp.label}` : sp.label}
+              </span>
+              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, fontSize: 9.5, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>· {tr("main")}</span>}
             </button>
           );
         })}
@@ -12562,13 +12570,13 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
               <div className="px-5 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
                 <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Sports you coach")}</div>
                 <div data-tour="profile-sport">
-                  <SportGrid ids={sports && sports.length ? sports : [f.sport]} picked={activeSport || f.sport}
+                  <SportGrid ids={sports && sports.length ? sports : [f.sport]} picked={activeSport || f.sport} mainId={f.sport}
                              onPick={(id) => onPickSport && onPickSport(id)} />
                 </div>
                 {onAddSport && Object.keys(SPORTS).filter((id) => !(sports || [f.sport]).includes(id)).length > 0 && (
                   <>
                     <div className="mt-3.5 mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Add another")}</div>
-                    <SportGrid ids={Object.keys(SPORTS).filter((id) => !(sports || [f.sport]).includes(id))} picked={null}
+                    <SportGrid add ids={Object.keys(SPORTS).filter((id) => !(sports || [f.sport]).includes(id))} picked={null}
                                onPick={(id) => { hapticCommit(); onAddSport(id); }} />
                   </>
                 )}
