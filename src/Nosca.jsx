@@ -12506,6 +12506,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
   const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
   const [q, setQ] = useState("");
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
+  const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
 
   /* Every setting is a row in a group, so the list can be searched and
      nothing here is drawn twice. A row is { label, sub, value, icon,
