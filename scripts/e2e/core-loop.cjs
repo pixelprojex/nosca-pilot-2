@@ -224,11 +224,13 @@ const leaks = [];
       const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"])');
       const rowTexts = await fileRows.allInnerTexts();
       /* the two seeded plus the one just logged, newest first */
-      check("(g) the player file lists that player's real lessons, newest first, with the count in the header", tg.includes("3 lessons") && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 AUG/.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
+      check("(g) the player file lists that player's real lessons, newest first, under the count that opens them all", /PAST LESSONS\s*3/.test(tg.replace(/\s+/g, " ")) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 AUG/.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
       check("(g) the file's rows are the coach's own — nothing seeded (14 Jun, Driving)", !tg.includes("14 Jun") && !tg.includes("Held the finish"), tg.slice(0, 200));
       /* the archive is one tap away whether or not there are more than
          the few shown — three lessons still get a way through to all */
-      check("(g) the whole archive is one button away", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /All lessons/.test(tg), tg.slice(0, 200));
+      /* the archive is the first thing on the file now, at the size of
+         the thing it opens, rather than a thin outline at the foot of a list */
+      check("(g) the whole archive is the first thing on the file", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /Past lessons/i.test(tg) && /last one/i.test(tg), tg.slice(0, 200));
       await fileRows.filter({ hasText: "Putting" }).first().click(); await page.waitForTimeout(1200);
       const t10 = await leak("coach lesson view"); await shot("coach-lesson-view");
       check("(g) tapping a row opens the coach lesson view by id with its real notes and media", t10.includes("Putting") && t10.includes("Pace on the long ones first.") && !t10.includes("Distance control") && (await page.locator("video[controls]").count()) === 1 && t10.includes("Download lesson log"), t10.slice(0, 240));
@@ -336,7 +338,7 @@ const leaks = [];
         check("(i) the coach's roster counts a group session for the players who were at it", /3 lessons/.test(rowText), rowText);
         await row.click(); await page.waitForTimeout(1200);
         const t = await leak("coach player file with a group");
-        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && t.includes("3 lessons") && !t.includes("private"), t.slice(0, 240));
+        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && /PAST LESSONS\s*3/.test(t.replace(/\s+/g, " ")) && !t.includes("private"), t.slice(0, 240));
         await ctx.close();
       }
       {
