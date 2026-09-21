@@ -5810,9 +5810,12 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
             action={<button data-tour="family-settings" onClick={() => { haptic(6); onSettings && onSettings(); }} className="shrink-0 rounded-full flex items-center justify-center active:opacity-50" style={{ width: 38, height: 38, background: t.wash }} aria-label={tr("Family settings")}><Settings2 size={16} color={t.sub} strokeWidth={1.8} /></button>}>
       {!ready ? <HomeSkeleton /> : (
         <div className="px-6">
-          {/* the one thing happening next, for anyone in the house —
-              two lines, no border around them */}
-          {next && (
+          {/* THE ONE THING HAPPENING NEXT, WHEN IT IS NOT ALREADY BELOW.
+              With one child in the house this block read "Saoirse · Wed
+              23 Sep · 10:00 am" and her row two inches under it read the
+              same two facts again. It earns its place once there is more
+              than one young player to be next. */}
+          {next && (isJunior || dependants.length > 1) && (
             <div className="mb-6" data-tour="family-next">
               <div style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Next up")}</div>
               <p className="mt-1.5" style={{ ...TYPE.title, color: t.ink }}>
@@ -5825,7 +5828,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
           )}
 
           {!isJunior && dependants.length > 0 && (<>
-            <Eyebrow>{tr("Young players")}</Eyebrow>
+            <RowHead>{tr("Young players")}</RowHead>
             <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
               {dependants.map((k, i) => <KidRow key={k.id} k={k} i={i} last={i === dependants.length - 1} />)}
             </div>
@@ -5835,7 +5838,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
           )}
 
           {rest.length > 0 && (<>
-            <Eyebrow>{tr("Coming up")}</Eyebrow>
+            <RowHead>{tr("Coming up")}</RowHead>
             <div className="mb-7" data-tour="family-upcoming" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
               {rest.map((b) => (
                 <div key={b.id} className="flex items-center gap-3 py-3" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
@@ -5851,7 +5854,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
           )}
 
           {/* who is in it — faces, not a table */}
-          <Eyebrow>{tr("In the family")}</Eyebrow>
+          <RowHead>{tr("In the family")}</RowHead>
           <div className="flex gap-4 overflow-x-auto pb-1 mb-7" data-tour="family-people" style={{ scrollbarWidth: "none" }}>
             {family.members.map((m) => (
               <span key={m.id} className="flex flex-col items-center shrink-0" style={{ width: 62 }}>
@@ -15528,6 +15531,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        found from the title without the database carrying one. */
     const faces = [
       ...(data.roster || []).map((r) => ({ name: r.name, path: r.avatarPath })),
+      /* somebody asking to join is not on the roster yet, and theirs is
+         the one line on this screen that is about a stranger */
+      ...(openRequests || []).map((r) => ({ name: r.name, path: r.avatarPath })),
       ...(coachName ? [{ name: coachName, path: (data.coach && data.coach.avatarPath) || null }] : []),
     ].filter((p) => p.name);
     /* And where the title names nobody, the kind does. A tip, a lesson,
