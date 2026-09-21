@@ -2438,7 +2438,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                     /* the real date, next year if that day has already passed */
                     const y = new Date().getFullYear() + (mo < T.m || (mo === T.m && d < T.d) ? 1 : 0);
                     const iso = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-                    const chk = new Date(iso);
+                    const chk = localDate(iso);
                     if (isNaN(chk.getTime()) || chk.getDate() !== d) { hapticWarn(); say(tr("That date isn't right.")); return; }
                     setBusy(true);
                     const res = onAdd ? await onAdd({ name: name.trim(), kind, venue: where.trim(), date: iso }) : { error: { message: tr("Not available.") } };
@@ -3317,6 +3317,7 @@ const TOUR = {
     { area: "Today", title: "Lessons to log", body: "One tap logs it while it's fresh. Swipe it away if nobody came.", path: "Today → a finished lesson", target: "today-justdone", state: { stack: ["today"] } },
     { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
     { area: "Today", title: "The board", body: "Log, register, capture, a tip, drills, a new player. Always here.", path: "Today", target: "today-board", state: { stack: ["today"] } },
+    { area: "Today", title: "Make it yours", body: "Keep what you use, drop what you don't, and choose how big it sits.", path: "You → Shortcuts", target: "settings-shortcuts", state: { stack: ["today", "you"] } },
     { area: "Log a lesson", title: "The plus", body: "The same six, and two more, from anywhere.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
     { area: "Log a lesson", title: "Who?", body: "A face, not a list. On now and today first; search when you have hundreds.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
     { area: "Log a lesson", title: "What you worked on", body: "Tap what you did. That is the whole lesson.", path: "Log a lesson", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
@@ -4009,37 +4010,62 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
    can be dragged into whatever order suits — the Control Centre idea,
    because no two coaches reach for the same thing second. */
 /* what the plus menu offers, by id */
-const QUICK_ACTIONS = {
-  attend:  { Ico: Check,         label: "Attendance" },
-  capture: { Ico: Camera,        label: "Live capture" },
-  tip:     { Ico: Lightbulb,     label: "Set a tip" },
-  drills:  { Ico: ListChecks,    label: "Set drills" },
+/* EVERYTHING A COACH CAN START, IN ONE PLACE
+
+   The home board and the plus menu used to be two hard-coded lists with
+   two different words for the same thing — "Register" on one,
+   "Attendance" on the other; "Tip" and "Set a tip". One action, one
+   name, one glyph, and both surfaces read this. It is also what the
+   edit screen lists, so a coach can take off what they never use. */
+const COACH_ACTIONS = {
+  log:     { Ico: Plus,          label: "Log" },
+  attend:  { Ico: Check,         label: "Register" },
+  capture: { Ico: Camera,        label: "Capture" },
+  tip:     { Ico: Lightbulb,     label: "Tip" },
+  drills:  { Ico: ListChecks,    label: "Drills" },
   player:  { Ico: UserPlus,      label: "Add player" },
   group:   { Ico: Users,         label: "New group" },
   message: { Ico: MessageCircle, label: "Message" },
   comp:    { Ico: Trophy,        label: "Competition" },
 };
-/* The plus menu: the one thing a coach does a dozen times a day as the
-   accent button, then eight plain rows in a fixed order. It used to be
-   a grid of tinted tiles with a hold-to-drag, tap-to-resize edit mode
-   and a stored layout — Control Centre on a sheet opened to log a
-   lesson. */
+const BOARD_ALL   = ["log", "attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
+const BOARD_ORDER = ["log", "attend", "capture", "tip", "drills", "player"];
 const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
-function QuickMenu({ liveLesson, onLog, onRun }) {
+
+/* What a coach chose to keep, in the order they chose, falling back to
+   the defaults for anything they have never touched. A stored id that
+   no longer exists is dropped rather than rendered as a blank tile. */
+function pickLayout(saved, fallback, all) {
+  const ok = (saved || []).filter((id) => (all || fallback).includes(id));
+  return ok.length ? ok : fallback;
+}
+
+/* A four-tile grid in three columns is a row of three and a widow. */
+const evenCols = (n) => (n <= 3 ? Math.max(n, 1) : n === 4 ? 2 : 3);
+
+function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
+  const t = useT();
+  const ids = pickLayout(order, QUICK_ORDER);
   return (
     <>
       <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-      <div className="mt-2.5">
+      <div style={{ marginTop: 12 }}>
         <TileGrid cols={2}>
-          {QUICK_ORDER.map((id) => {
-            const A = QUICK_ACTIONS[id];
-            return <ActTile key={id} tour={`quick-${id}`} h={78} Icon={A.Ico} label={tr(A.label)}
+          {ids.map((id) => {
+            const A = COACH_ACTIONS[id];
+            return <ActTile key={id} tour={`quick-${id}`} h={74} Icon={A.Ico} label={tr(A.label)}
                          dot={id === "attend" && !!liveLesson}
                          aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
                          onTap={() => onRun(id)} />;
           })}
         </TileGrid>
       </div>
+      {onEdit && (
+        <div className="flex justify-center" style={{ marginTop: 14 }}>
+          <button onClick={() => { haptic(6); soft(); onEdit(); }} className="px-2 py-1 active:opacity-50"
+                  style={{ ...TYPE.caption, color: t.faint }}>{tr("Edit this menu")}</button>
+        </div>
+      )}
     </>
   );
 }
@@ -6903,6 +6929,12 @@ const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
                   animation: `liftIn 440ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>{children}</div>);
 };
+/* A label over a list of rows. Eyebrow below carries the page's own
+   side padding; inside a column that already has it, use this. */
+const RowHead = ({ children }) => {
+  const t = useT();
+  return <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{children}</div>;
+};
 const Eyebrow = ({ children }) => {
   const t = useT();
   return (<div className="mb-3 px-6 mt-1" style={{ marginLeft: 1, fontFamily: ui, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: t.faint,
@@ -8310,52 +8342,64 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, attendPct,
   const todo = practice.filter((x) => !x.done);
   const tipText = typeof tip === "string" ? tip : (tip && (tip.title || tip.text)) || "";
   const tipBody = tip && tip.body;
+  /* The heading is when they are next on, the way the coach's heading is
+     the date. It was a thin grey row below the tiles — the one fact a
+     player opens the app for, in the smallest type on the screen. */
+  const when = nextBooking ? nextBooking.when : null;
+  const underWhen = nextBooking
+    ? [nextBooking.focus, conn && conn.coach ? `${tr("with")} ${conn.coach}` : null].filter(Boolean).join(" · ")
+    : (!juvenile && onRequest ? tr("Book one below") : tr("Your coach sets the next one"));
 
   return (
     <Screen bare right={right}>
       {!ready ? (
         <div className="px-6 pt-2"><Bone h={220} r={22} /></div>
       ) : (
-        <div className="px-6 pt-1">
+        <div className="px-6 pt-4">
+
+          {/* WHEN YOU ARE NEXT ON */}
+          <button data-tour="home-next" onClick={() => { haptic(7); soft(); go("calendar"); }}
+                  className="w-full text-left active:opacity-60" style={{ marginBottom: SPACE.block }}>
+            <span className="block" style={{ ...TYPE.screen, color: t.ink }}>{when || tr("No lesson booked")}</span>
+            <span className="block" style={{ ...TYPE.small, color: t.faint, marginTop: 4 }}>{underWhen}</span>
+          </button>
+
+          {/* the board: what a player came here to do */}
+          <div style={{ marginBottom: SPACE.block }}>
+            <TileGrid>
+              {!juvenile && onRequest && <ActTile tour="home-request" tone="accent" Icon={CalendarDays} label={tr("Book")} onTap={() => onRequest()} />}
+              <ActTile tour="home-practice" Icon={ListChecks} label={tr("Practise")} count={todo.length} onTap={() => go("practice")} />
+              <ActTile tour="home-lessons" Icon={FileText} label={tr("Lessons")} count={lessons.length} onTap={() => go("log")} />
+              {juvenile && <ActTile Icon={Users} label={tr("Family")} onTap={() => go("family")} />}
+            </TileGrid>
+          </div>
 
           {/* THE TIP. One line from the coach, the whole block a door
-              into what to do about it. It was a 500px slab with an
-              arrow in a disc explaining that it was tappable. */}
+              into what to do about it. It sits under the board rather
+              than over it: the loudest thing on a player's home should
+              not be something to read, it should be something to do. */}
           {tipText && (
             <button data-tour="home-tip" onClick={() => { hapticCommit(); soft(); push("tips"); }}
                     onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
                     onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                     onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                    className="w-full text-left relative overflow-hidden mb-6 px-6 py-6 active:opacity-95"
-                    style={{ borderRadius: R.surface, background: t.accent, willChange: "transform",
-                             transition: "transform 200ms cubic-bezier(.34,1.56,.64,1)",
-                             animation: "liftIn 460ms cubic-bezier(.22,1,.36,1) both" }}>
-              <span className="absolute" style={{ right: -18, top: -14, opacity: 0.09 }} aria-hidden="true">
-                <Mark size={110} color="#fff" />
-              </span>
-              <span className="relative block" style={{ ...TYPE.eyebrow, color: "rgba(255,255,255,0.65)" }}>{tr("Tip")}</span>
-              <span className="relative block mt-2.5" style={{ ...TYPE.title, color: t.onAccent }}>{tipText}</span>
-              {tipBody && <span className="relative block mt-2" style={{ ...TYPE.small, color: "rgba(255,255,255,0.72)" }}>{tipBody}</span>}
+                    className="w-full text-left relative overflow-hidden px-5 py-5 active:opacity-70"
+                    style={{ borderRadius: R.surface, background: t.surface, willChange: "transform",
+                             border: `1px solid ${HAIR(t.ink, 0.12)}`, marginBottom: SPACE.block,
+                             transition: "transform 200ms cubic-bezier(.34,1.56,.64,1)" }}>
+              {/* It was a filled slab of the accent with the mark
+                  watermarked into the corner — the loudest thing on the
+                  screen, and a second accent where a screen gets one.
+                  The border is what this block earns; the colour goes on
+                  the word, not the wall. */}
+              <span className="relative block" style={{ ...TYPE.eyebrow, color: t.accent }}>{tr("Tip from your coach")}</span>
+              <span className="relative block mt-2" style={{ ...TYPE.title, color: t.ink }}>{tipText}</span>
+              {tipBody && <span className="relative block mt-2" style={{ ...TYPE.small, color: t.sub }}>{tipBody}</span>}
             </button>
           )}
 
-          {/* the board: what a player came here to do */}
-          <div className="mb-6">
-            <TileGrid>
-              {!juvenile && onRequest && <ActTile tour="home-request" tone="accent" h={82} Icon={CalendarDays} label={tr("Book")} onTap={() => onRequest()} />}
-              <ActTile tour="home-practice" h={82} Icon={ListChecks} label={tr("Practise")} count={todo.length} onTap={() => go("practice")} />
-              <ActTile tour="home-lessons" Icon={FileText} label={tr("Lessons")} count={lessons.length} onTap={() => go("log")} />
-              {juvenile && <ActTile h={82} Icon={Users} label={tr("Family")} onTap={() => go("family")} />}
-            </TileGrid>
-          </div>
-
           {/* and the few facts worth a line each */}
           <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-            {nextBooking && (
-              /* a lesson only asked for says so — it is not in the diary yet */
-              <HomeRow tour="home-next" label={nextBooking.focus || tr("Next")} value={nextBooking.when}
-                       tone={nextBooking.focus ? t.sub : null} onPress={() => go("calendar")} />
-            )}
             {nextEvent && (
               <HomeRow tour="home-events" label={nextEvent.name} value={`${nextEvent.days}d`}
                        tone={nextEvent.days <= 7 ? CAUTION : null} onPress={() => push("events")} />
@@ -8508,7 +8552,7 @@ const mediaLabel = (it, i, all) => {
 const escapeHtml = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const longDate = (iso, fallback) => {
   if (!iso) return fallback || "";
-  const d = new Date(iso);
+  const d = localDate(iso);
   return isNaN(d) ? (fallback || "") : d.toLocaleDateString("en-IE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 };
 function lessonLogHtml({ lesson, coach, who, media = [], drills = [], tip }) {
@@ -9032,6 +9076,115 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   );
 }
 
+/* WHAT A COACH KEEPS
+
+   Two lists behind the same nine actions: the board on Today and the
+   plus menu. A tick keeps one, the arrows move it, and the board has a
+   size. The preview at the top is the real grid at the real size, so
+   nobody has to leave and come back to see what they did. The last
+   remaining action cannot be turned off — an empty board is not a
+   preference, it is a broken screen. */
+function LayoutEditor({ layout = {}, onSave, pop, say }) {
+  const t = useT();
+  const BOARD = tr("Home"), PLUS = tr("Plus");
+  const [tab, setTab] = useState(BOARD);
+  const onBoard = tab === BOARD;
+  const ids = onBoard ? pickLayout(layout.board, BOARD_ORDER, BOARD_ALL) : pickLayout(layout.quick, QUICK_ORDER);
+  const pool = onBoard ? BOARD_ALL : QUICK_ORDER;
+  const cols = layout.boardCols === 2 ? 2 : 3;
+  const write = (next) => onSave(onBoard ? { board: next } : { quick: next });
+  const toggle = (id) => {
+    const on = ids.includes(id);
+    if (on && ids.length === 1) { hapticWarn(); say && say(tr("Keep at least one")); return; }
+    haptic(8); soft();
+    write(on ? ids.filter((x) => x !== id) : [...ids, id]);
+  };
+  const move = (id, d) => {
+    const i = ids.indexOf(id), j = i + d;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    const next = ids.slice();
+    next.splice(j, 0, next.splice(i, 1)[0]);
+    haptic(6); soft(); write(next);
+  };
+  const hidden = pool.filter((id) => !ids.includes(id));
+  const arrow = (id, d, on) => (
+    <button onClick={() => move(id, d)} disabled={!on} aria-label={d < 0 ? `${tr("Move up")} ${tr(COACH_ACTIONS[id].label)}` : `${tr("Move down")} ${tr(COACH_ACTIONS[id].label)}`}
+            className="shrink-0 flex items-center justify-center active:opacity-50 disabled:opacity-20"
+            style={{ width: 34, height: 34 }}>
+      <ChevronDown size={16} color={t.sub} strokeWidth={2}
+                   style={{ transform: d < 0 ? "rotate(180deg)" : "none" }} />
+    </button>
+  );
+  const row = (id, showing) => {
+    const A = COACH_ACTIONS[id], i = ids.indexOf(id);
+    return (
+      <div key={id} className="flex items-center gap-3 pr-1" style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+        <A.Ico size={17} color={t.sub} strokeWidth={1.7} />
+        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr(A.label)}</span>
+        {showing && arrow(id, -1, i > 0)}
+        {showing && arrow(id, 1, i < ids.length - 1)}
+        <button onClick={() => toggle(id)} aria-label={`${showing ? tr("Remove") : tr("Add")} ${tr(A.label)}`}
+                className="shrink-0 flex items-center justify-center active:opacity-60" style={{ width: 36, height: 36 }}>
+          {showing ? <Minus size={17} color={t.faint} strokeWidth={2.2} /> : <Plus size={17} color={t.accent} strokeWidth={2.2} />}
+        </button>
+      </div>
+    );
+  };
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Shortcuts")} onBack={pop} meta={tr("What you keep, and where")}>
+        <div className="px-6 pb-6">
+          <div style={{ marginBottom: SPACE.block }}>
+            <Segmented options={[BOARD, PLUS]} value={tab} onChange={setTab} />
+          </div>
+
+          {/* the real grid, at the real size */}
+          <RowHead>{tr("Preview")}</RowHead>
+          <div style={{ marginBottom: SPACE.block, opacity: 0.999, pointerEvents: "none" }} aria-hidden="true">
+            <TileGrid cols={onBoard ? cols : 2}>
+              {ids.map((id) => {
+                const A = COACH_ACTIONS[id];
+                return <ActTile key={id} h={onBoard && cols === 2 ? 88 : 74} Icon={A.Ico} label={tr(A.label)}
+                                tone={onBoard && id === "log" ? "accent" : "quiet"} onTap={() => {}} />;
+              })}
+            </TileGrid>
+          </div>
+
+          {onBoard && (<>
+            <RowHead>{tr("Size")}</RowHead>
+            <div style={{ marginBottom: SPACE.block }}>
+              <TileGrid cols={2}>
+                <ActTile h={52} label={tr("Three across")} on={cols === 3} onTap={() => { haptic(8); onSave({ boardCols: 3 }); }} />
+                <ActTile h={52} label={tr("Two across")} on={cols === 2} onTap={() => { haptic(8); onSave({ boardCols: 2 }); }} />
+              </TileGrid>
+            </div>
+          </>)}
+
+          <RowHead>{tr("Showing")}</RowHead>
+          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+            {ids.map((id) => row(id, true))}
+          </div>
+
+          {hidden.length > 0 && (<>
+            <RowHead>{tr("Not showing")}</RowHead>
+            <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+              {hidden.map((id) => row(id, false))}
+            </div>
+          </>)}
+
+          <button onClick={() => { haptic(9); soft(); onSave(onBoard ? { board: BOARD_ORDER, boardCols: 3 } : { quick: QUICK_ORDER }); }}
+                  className="w-full active:opacity-60"
+                  style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
+                           ...TYPE.small, fontWeight: 600, color: t.sub }}>
+            {tr("Back to the default")}
+          </button>
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
+
 /* THE COACH'S DAY
 
    Four tiles at the top: log, capture, register, add someone. They are
@@ -9043,7 +9196,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                       roster, drifting = 0, toWriteUp = [], upcoming = [],
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onLog, onCapture, onAttend, onAddPlayer, onTip, onDrills, code,
-                      onAccept, onDecline, onInvite, push, go }) {
+                      onAccept, onDecline, onInvite, push, go,
+                      layout, onEditBoard, onAction }) {
   const t = useT();
   const list = today || [];
   const done = list.filter((l) => l.done);
@@ -9057,6 +9211,31 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
   /* the first one still to come, which is what carries the countdown */
   const nextUp = list.find((l) => !l.done && l !== liveNow && (l.hoursUntil ?? 9) > 0.5) || null;
   const marked = liveNow || nextUp;
+
+  /* The board is whatever this coach kept, in their order, at their size. */
+  const boardIds = pickLayout(layout && layout.board, BOARD_ORDER, BOARD_ALL);
+  const boardCols = (layout && layout.boardCols) === 2 ? 2 : 3;
+  const runAction = (id) => {
+    if (id === "log")     return liveNow && onLogFor ? onLogFor(liveNow) : onLog && onLog();
+    if (id === "attend")  return onAttend && onAttend(liveNow);
+    if (id === "capture") return onCapture && onCapture(liveNow);
+    if (id === "tip")     return onTip && onTip();
+    if (id === "drills")  return onDrills && onDrills();
+    if (id === "player")  return onAddPlayer && onAddPlayer();
+    return onAction && onAction(id);
+  };
+
+  /* WHAT IS BEHIND YOU AND WHAT IS AHEAD, as two lists rather than one.
+     A lesson at nine this morning and one at five this evening were the
+     same row in the same section, and the only thing separating them was
+     which had already happened. Today's finished lessons come first,
+     then the days before that were never written up. */
+  const toLog = [
+    ...list.filter((l) => l.done),
+    ...(toWriteUp || []).map((b) => ({
+      ...b, time: b.d && b.m ? `${b.d} ${monthName(b.m).slice(0, 3)}` : b.time })),
+  ];
+  const ahead = list.filter((l) => !l.done);
   const avatarFor = (l) => avatarUrl(((roster || []).find((r) => r.name === l.who) || {}).avatarPath);
   /* The day in one line under the date, so the shape of it is known
      before a single row is read. */
@@ -9075,62 +9254,92 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         <h1 style={{ ...TYPE.screen, color: t.ink }}>{dateLine}</h1>
         <p style={{ ...TYPE.small, color: t.faint, marginTop: 4, marginBottom: SPACE.block }}>{dayLine}</p>
 
-        {/* ---- THE BOARD: the six verbs, on the screen rather than one
-             tap inside a sheet. Every one routes to the handler the plus
-             menu already uses, and the plus keeps all eight of its own.
-
-             There used to be a filled block above this carrying Register,
-             Capture and Log for the lesson on now. It was these same three
-             verbs, forty pixels higher, and with the day's own row saying
-             "Now" underneath it the word Register appeared three times on
-             one screen. The block is gone; the board's verbs act on the
-             live lesson when there is one, so nothing takes an extra tap
-             and the screen has a third of its height back. ---- */}
-        <div data-tour="today-board" style={{ marginBottom: SPACE.block }}>
-          <TileGrid>
-            <ActTile tone={liveNow ? "quiet" : "accent"} Icon={Plus} label={tr("Log")} count={toWriteUp.length}
-                     onTap={() => (liveNow && onLogFor ? onLogFor(liveNow) : onLog && onLog())} />
-            <ActTile Icon={Check} label={tr("Register")} onTap={() => onAttend && onAttend(liveNow)} />
-            <ActTile Icon={Camera} label={tr("Capture")} onTap={() => onCapture && onCapture(liveNow)} />
-            <ActTile Icon={Lightbulb} label={tr("Tip")} onTap={() => onTip && onTip()} />
-            <ActTile Icon={ListChecks} label={tr("Drills")} onTap={() => onDrills && onDrills()} />
-            <ActTile Icon={UserPlus} label={tr("Add player")} onTap={() => onAddPlayer && onAddPlayer()} />
+        {/* ---- THE BOARD ----
+             The verbs, on the screen rather than one tap inside a sheet.
+             Whatever the coach kept, in the order they kept it, at the
+             size they chose. Every one routes to the handler the plus
+             menu already uses, and acts on the lesson that is running
+             when there is one. ---- */}
+        <div data-tour="today-board">
+          <TileGrid cols={boardCols}>
+            {boardIds.map((id) => {
+              const A = COACH_ACTIONS[id];
+              const accent = id === "log" && !liveNow;
+              return <ActTile key={id} tone={accent ? "accent" : "quiet"} h={boardCols === 2 ? 88 : 76}
+                              Icon={A.Ico} label={tr(A.label)}
+                              count={id === "log" ? toLog.length : 0}
+                              onTap={() => runAction(id)} />;
+            })}
           </TileGrid>
         </div>
+        {onEditBoard && (
+          <div className="flex justify-end" style={{ marginTop: 6, marginBottom: SPACE.block }}>
+            <button onClick={() => { haptic(6); soft(); onEditBoard(); }} className="px-1 py-1 active:opacity-50"
+                    style={{ ...TYPE.caption, color: t.faint }}>{tr("Edit shortcuts")}</button>
+          </div>
+        )}
+        {!onEditBoard && <div style={{ height: SPACE.block }} />}
 
-        {/* ---- today ---- */}
-        {list.length > 0 && (<>
-          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{tr("Today")}</div>
+        {/* ---- TO LOG ----
+             Everything finished and not written up: today's, then the
+             backlog. It used to be mixed into the day, so a lesson at
+             nine this morning and one at five this evening were the same
+             row with the same word on it, and the only difference was
+             which of them had already happened. ---- */}
+        {toLog.length > 0 && (<>
+          <RowHead>{tr("To log")} · {toLog.length}</RowHead>
           <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-            {list.map((l, i) => {
-              const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
-              const row = (
-                <DayRow l={l} variant={variant} emphasis={l === marked} last={i === list.length - 1}
-                        avatar={avatarFor(l)}
+            {toLog.slice(0, 4).map((l, i, a2) => (
+              <SwipeRow key={l.id || `tl${i}`} deleteLabel={tr("Don't log")} onDelete={() => onNoShow && onNoShow(l)}>
+                <div data-tour={i === 0 ? "today-justdone" : undefined}>
+                  <DayRow l={l} variant="log" last={i === a2.length - 1 && toLog.length <= 4}
+                          avatar={avatarFor(l)} until={l.dayLabel || null}
+                          onLogFor={(x) => onLogFor && onLogFor(x)} onPeek={(x) => onPeek && onPeek(x)} />
+                </div>
+              </SwipeRow>
+            ))}
+            {toLog.length > 4 && (
+              <button onClick={() => { haptic(7); soft(); onWriteUp ? onWriteUp() : push("unlogged"); }}
+                      className="w-full flex items-center pr-4 text-left active:opacity-60" style={{ minHeight: 50, paddingLeft: 20 }}>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.sub }}>{tr("All")} {toLog.length} {tr("to write up")}</span>
+                <ChevronRight size={14} color={t.faint} />
+              </button>
+            )}
+          </div>
+        </>)}
+
+        {/* ---- the rest of today, still to come ---- */}
+        {ahead.length > 0 && (<>
+          <RowHead>{liveNow ? tr("On now") : tr("Still to come")}</RowHead>
+          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+            {ahead.map((l, i) => (
+              <div key={l.id || `ah${i}`} data-tour={l === marked ? "today-next" : undefined}>
+                <DayRow l={l} variant={l === liveNow ? "now" : "ahead"} emphasis={l === marked}
+                        last={i === ahead.length - 1} avatar={avatarFor(l)}
                         until={l === liveNow ? tr("Now") : l === nextUp ? untilText(l.hoursUntil ?? 1) : null}
                         onLogFor={(x) => onLogFor && onLogFor(x)}
                         onPeek={(x) => onPeek && onPeek(x)}
                         onRegister={(x) => onRegister && onRegister(x)} />
-              );
-              /* a lesson that never happened is swiped away rather than logged */
-              return variant === "log"
-                ? <SwipeRow key={l.id || i} deleteLabel={tr("Don't log")} onDelete={() => onNoShow && onNoShow(l)}>
-                    <div data-tour={l === justDone ? "today-justdone" : undefined}>{row}</div>
-                  </SwipeRow>
-                : <div key={l.id || i} data-tour={l === marked ? "today-next" : undefined}>{row}</div>;
-            })}
+              </div>
+            ))}
           </div>
         </>)}
 
-        {/* ---- asking for a lesson: rows under the day, not a card above
-             it. Accept and Decline are still one tap each. ---- */}
+        {list.length === 0 && toLog.length === 0 && (roster || []).length > 0 && (
+          <p className="text-center" style={{ ...TYPE.small, color: t.faint, marginBottom: SPACE.block, paddingTop: 4, paddingBottom: 18 }}>
+            {tr("Nothing booked today.")}
+          </p>
+        )}
+
+        {/* ---- asking for a lesson: rows, because Accept and Decline
+             are one tap each and a number would cost three ---- */}
         {asks.length > 0 && (<>
-          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{tr("Asking")}</div>
+          <RowHead>{tr("Asking")} · {asks.length}</RowHead>
           <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-            {asks.map((r, i) => (
+            {asks.slice(0, 3).map((r, i) => (
               <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
-                   style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-                <Avatar name={r.who} size={34} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
+                   style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                <Avatar name={r.who} size={32} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
                 <span className="flex-1 min-w-0">
                   <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
                   <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{r.d} {monthName(r.m).slice(0, 3)} · {r.time}</span>
@@ -9142,40 +9351,38 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           </div>
         </>)}
 
-        {/* ---- coming up: three, then the diary ---- */}
+        {/* ---- next: one line, because the week is the diary's job.
+             Three rows of it here were the diary again, shorter. ---- */}
         {upcoming.length > 0 && (<>
-          <div className="mb-1 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Coming up")}</div>
-          <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-            {upcoming.slice(0, 3).map((b, i, a) => (
-              <DayRow key={b.id || i} l={b} variant="ahead" last={i === a.length - 1 && upcoming.length <= 3} avatar={avatarFor(b)}
-                      until={b.dayLabel} onPeek={() => go("calendar")} />
-            ))}
-            {upcoming.length > 3 && (
+          <RowHead>{tr("Next")}</RowHead>
+          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+            <DayRow l={upcoming[0]} variant="ahead" last={upcoming.length === 1}
+                    avatar={avatarFor(upcoming[0])} until={upcoming[0].dayLabel} onPeek={() => go("calendar")} />
+            {upcoming.length > 1 && (
               <button onClick={() => { haptic(7); soft(); go("calendar"); }} className="w-full flex items-center pr-4 text-left active:opacity-60"
-                      style={{ minHeight: 52, paddingLeft: 20 }}>
-                <span className="flex-1" style={{ ...TYPE.body, color: t.sub }}>{tr("All in the diary")}</span>
+                      style={{ minHeight: 50, paddingLeft: 20 }}>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.sub }}>{tr("The rest of the week")}</span>
                 <ChevronRight size={14} color={t.faint} />
               </button>
             )}
           </div>
         </>)}
 
-        {/* ---- also: a number on a tile, never a sentence to read ---- */}
+        {/* ---- also: a number on a tile, never a sentence to read, and
+             the grid fills its rows rather than leaving a widow ---- */}
         {(() => {
           const tiles = [
             (requests || []).length > 0 && { key: "join", tour: "today-requests", Ico: UserPlus,
               label: tr("Requests"), count: requests.length, onTap: () => push("requests") },
-            toWriteUp.length > 0 && { key: "write", tour: "today-writeup", Ico: Edit3,
-              label: tr("To write up"), count: toWriteUp.length, onTap: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
             drifting > 0 && { key: "drift", Ico: Clock, label: tr("Drifting"), count: drifting, onTap: () => push("atrisk") },
             events.length > 0 && { key: "event", Ico: Trophy, label: tr("Competitions"), count: events.length, onTap: () => push("events") },
           ].filter(Boolean);
           if (!tiles.length) return null;
           return (
-            <div className="mb-6">
-              <TileGrid>
+            <div style={{ marginBottom: SPACE.block }}>
+              <TileGrid cols={evenCols(tiles.length)}>
                 {tiles.map((x) => (
-                  <ActTile key={x.key} tour={x.tour} h={82} Icon={x.Ico} label={x.label} count={x.count}
+                  <ActTile key={x.key} tour={x.tour} Icon={x.Ico} label={x.label} count={x.count}
                            aria={`${x.label} · ${x.count}`} onTap={x.onTap} />
                 ))}
               </TileGrid>
@@ -10030,16 +10237,45 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
   /* Private lessons and the group sessions this player was marked at —
      lesson_attendees records who was there, so the coach's count and
      the player's own agree. */
+  /* The count and the last date belong to the block below, which says
+     them in a size you can read walking; repeating them up here was the
+     same two facts twice in one screenful. */
   const meta = live
-    ? [stage, `${f.done} ${f.done === 1 ? tr("lesson") : tr("lessons")}`,
-       daysSince != null ? (daysSince === 0 ? tr("last today") : `${tr("last")} ${daysSince}d ${tr("ago")}`) : tr("none yet"),
-       r.junior ? tr("Under 18") : null].filter(Boolean).join(" · ")
-    : `${f.done} ${tr("lessons")} · ${tr("last")} ${r.last}d`;
+    ? [stage, r.junior ? tr("Under 18") : null].filter(Boolean).join(" · ")
+    : stage || "";
 
   return (
     <SwipeBack onBack={pop}>
       <Screen title={name} onBack={pop} meta={meta}>
         <div className="px-6 pb-2">
+
+          {/* PAST LESSONS, AND NOTHING IN FRONT OF IT
+
+              A coach opening a player two minutes before a lesson wants
+              one thing: what happened last time. It used to be four
+              tiles, a note, an eyebrow and three rows down the page,
+              behind a thin outlined button at the foot of the list. It
+              is the first thing on the screen now, it is the size of the
+              thing it leads to, and it carries the two facts worth
+              knowing before you tap it. */}
+          <button data-tour="player-all-lessons"
+                  onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
+                  className="w-full flex items-center gap-4 text-left active:opacity-70"
+                  style={{ minHeight: 92, marginBottom: 12, padding: "0 20px", borderRadius: R.surface,
+                           background: t.wash, border: `1px solid ${HAIR(t.ink, 0.1)}` }}>
+            <span className="flex-1 min-w-0">
+              <span className="block" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Past lessons")}</span>
+              <span className="flex items-baseline gap-2.5" style={{ marginTop: 5 }}>
+                <span style={{ ...TYPE.figure, fontSize: 30, color: t.ink }}>{live ? f.done : past.length}</span>
+                <span className="truncate" style={{ ...TYPE.small, color: t.sub }}>
+                  {daysSince != null
+                    ? (daysSince === 0 ? tr("last one today") : `${tr("last one")} ${daysSince} ${daysSince === 1 ? tr("day ago") : tr("days ago")}`)
+                    : (live ? tr("none yet") : `${tr("last")} ${r.last}d ${tr("ago")}`)}
+                </span>
+              </span>
+            </span>
+            <ChevronRight size={19} color={t.sub} />
+          </button>
 
           {/* the four things a coach opened this file to do, before
               anything they have to read */}
@@ -10069,9 +10305,9 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
             </div>
           )}
 
-          {/* past lessons: the reason you opened this */}
+          {/* the last few, in full, under the control that opens them all */}
           <div className="mb-3 flex items-baseline justify-between">
-            <span style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Lessons")}</span>
+            <span style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Most recent")}</span>
           </div>
           <div className="mb-7" data-tour="player-lessons" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
             {live && past.length === 0 && (
@@ -10095,16 +10331,6 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                 <ChevronRight size={15} color={t.faint} style={{ marginTop: 4 }} />
               </button>
             ))}
-            {past.length > 0 && (
-              <button data-tour="player-all-lessons" onClick={() => { haptic(7); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
-                      className="w-full flex items-center justify-center gap-2 mt-3 active:opacity-70"
-                      style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
-                               ...TYPE.small, fontWeight: 600, color: t.ink }}>
-                {past.length > shown.length
-                  ? `${tr("View all")} ${past.length} ${tr("lessons")}`
-                  : tr("All lessons")}<ChevronRight size={14} color={t.faint} />
-              </button>
-            )}
           </div>
 
           {/* what is live right now — three lines, no cards */}
@@ -10266,6 +10492,11 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
      button, so a coach with six hundred lessons opens this as fast as
      one with six. */
   const page = shown.slice(0, shownCount);
+  /* The same rule the roster uses: a control for narrowing a list is
+     offered when the list needs narrowing. Three filter rows and a
+     search field over a player's four lessons is a filing cabinet in
+     front of a postcard. */
+  const sift = lessons.length > 8;
   useEffect(() => { setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, forPlayer]);
 
   /* Grouped by month AND year — two Julys a year apart are two headings,
@@ -10280,10 +10511,13 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={forPlayer || tr("All lessons")} onBack={pop}
-              meta={shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
-                                                    : `${shown.length} ${tr("of")} ${lessons.length}`}>
-        <div className="px-6 mb-3">
+      {/* "Cian Murphy" over a screen you reached from "Cian Murphy" told
+          nobody where they had got to. */}
+      <Screen title={tr("Lessons")} onBack={pop}
+              meta={[forPlayer || null,
+                     shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
+                                                     : `${shown.length} ${tr("of")} ${lessons.length}`].filter(Boolean).join(" · ")}>
+        {sift && (<div className="px-6 mb-3">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
             <Search size={16} color={t.faint} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={forPlayer ? tr("Search what you covered") : `Search ${nouns} or what you covered`}
@@ -10291,7 +10525,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
             {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
           </div>
-        </div>
+        </div>)}
 
         {forPlayer && onClearPlayer && (
           <button onClick={() => { haptic(6); onClearPlayer(); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
@@ -10302,11 +10536,13 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           </button>
         )}
 
-        <div className="mb-2">
-          <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
-          <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
-          {!forPlayer && <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />}
-        </div>
+        {sift && (
+          <div className="mb-2">
+            <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
+            <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
+            {!forPlayer && <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />}
+          </div>
+        )}
 
         <div className="px-6 pb-2 mt-2">
           {shown.length === 0 ? (
@@ -12527,6 +12763,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       live && (hasCoach
         ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", onTap: () => push("myLessons") }
         : { label: tr("Take lessons yourself"), onTap: () => push("takeLessons") }),
+      { label: tr("Shortcuts"), sub: tr("Your home board and the plus menu"), tour: "settings-shortcuts", onTap: () => push("layout"), keys: ["home", "board", "plus", "customise", "edit", "layout", "tiles"] },
       { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
@@ -14333,6 +14570,38 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      seeded one otherwise. It used to be empty for every real account,
      so the screen existed and never had anything in it. */
   const openUnlogged = data ? toWriteUp : freshAccount ? [] : unlogged;
+
+  /* WHAT THIS COACH KEEPS. The board on Today and the plus menu both
+     read it; live it rides on their preferences so it follows them to
+     another phone, and in the harness it is local state. A project that
+     has not had the newest nosca.sql run on it has no column for it —
+     that save fails, and rather than lose the change it is kept for
+     this device so the screen still does what they asked. */
+  const [demoLayout, setDemoLayout] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("nosca.layout") || "{}"); } catch (e) { return {}; }
+  });
+  const layout = data ? ((data.prefs && data.prefs.layout) || demoLayout) : demoLayout;
+  const saveLayout = async (patch) => {
+    const next = { ...layout, ...patch };
+    setDemoLayout(next);
+    try { localStorage.setItem("nosca.layout", JSON.stringify(next)); } catch (e) { /* private window */ }
+    if (data) await data.savePrefs({ layout: next });
+    return {};
+  };
+
+  /* One place that starts a coach action, whether the tap came from the
+     board, the plus menu or anywhere else. */
+  const runQuick = (id) => {
+    const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
+    if (id === "attend")  return later(() => { setAttendFor(null); setSheet("attend"); });
+    if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
+    if (id === "tip")     { setPickFor("tip");    return later(() => setSheet("pickWho")); }
+    if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
+    if (id === "player")  return later(() => setSheet("invite"));
+    if (id === "group")   return later(() => setSheet("newGroup"));
+    if (id === "message") return later(() => setSheet("newThread"));
+    if (id === "comp")    { setSheet(null); push("events"); }
+  };
   const bookedAhead = data ? new Set((liveBookingRows || [])
     .filter((b) => b.playerId && b.date >= isoOf(todayMD.m, todayMD.d) && b.status !== "cancelled" && b.status !== "weather")
     .map((b) => b.playerId)) : null;
@@ -14622,7 +14891,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         const up = myBookings.filter((b) => b.date >= todayIso)
           .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
         if (!up) return null;
-        const dt = new Date(up.date);
+        /* a booking's date is a day. new Date("2026-09-20") is midnight
+           UTC, which is the evening before on any phone west of
+           Greenwich, and the weekday printed here came out wrong. */
+        const dt = localDate(up.date);
         /* short month: the row shows the whole value or it is not a value */
         return { ...up, when: `${DAY_NAMES[(dt.getDay() + 6) % 7].slice(0, 3)} ${up.d} ${MONTHS_FULL[up.m - 1].slice(0, 3)} · ${up.time}`,
                  focus: up.status === "requested" ? tr("Requested") : null };
@@ -15305,6 +15577,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           onSave={(shapes, caps) => setAnnotations((a) => ({ ...a, [ang]: { shapes, caps } }))} pop={pop} say={say} />;
   } else if (screen === "requests") {
     body = <JoinRequests requests={openRequests} onAccept={acceptRequest} onDecline={declineRequest} pop={pop} nouns={cfg.nouns} />;
+  } else if (screen === "layout") {
+    body = <LayoutEditor layout={layout} onSave={saveLayout} pop={pop} say={say} />;
   } else if (screen === "unlogged") {
     body = <UnloggedLessons items={openUnlogged} onLog={(u) => { setPrefill(u); go("log"); }}
                             onDismiss={data ? null : (u) => { setUnlogged((v) => v.filter((x) => x !== u)); say("Removed"); }} pop={pop} />;
@@ -15417,6 +15691,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   onAccept={acceptAsk}
                   onDecline={(r) => { setDeclining(r); setSheet("decline"); }}
                   onInvite={() => setSheet("invite")}
+                  layout={layout} onAction={runQuick} onEditBoard={() => push("layout")}
                   push={push} go={go} />
     );
     body = {
@@ -15697,19 +15972,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               }, 180);
                                             }}
                                             close={() => setSheet(null)} />
-            : sheet === "quick" ? <QuickMenu liveLesson={liveNow}
+            : sheet === "quick" ? <QuickMenu liveLesson={liveNow} order={layout.quick}
                                             onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
-                                            onRun={(id) => {
-                                              const later = (fn) => { setSheet(null); setTimeout(fn, 180); };
-                                              if (id === "attend")  return later(() => { setAttendFor(null); setSheet("attend"); });
-                                              if (id === "capture") return later(() => { setCaptureFor(liveNow || (data ? null : TODAY_SCHEDULE[0])); setSheet("capture"); });
-                                              if (id === "tip")     { setPickFor("tip");    return later(() => setSheet("pickWho")); }
-                                              if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
-                                              if (id === "player")  return later(() => setSheet("invite"));
-                                              if (id === "group")   return later(() => setSheet("newGroup"));
-                                              if (id === "message") return later(() => setSheet("newThread"));
-                                              if (id === "comp")    { setSheet(null); push("events"); }
-                                            }} />
+                                            onEdit={() => { setSheet(null); setTimeout(() => push("layout"), 180); }}
+                                            onRun={runQuick} />
             : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;

@@ -271,6 +271,11 @@ alter table public.preferences add column if not exists extra_sports   text[] no
 -- The tips a coach gives over and over, keyed by sport, so the tip
 -- sheet offers their own words rather than only the starter set.
 alter table public.preferences add column if not exists custom_tips    jsonb not null default '{}'::jsonb;
+-- What a coach put on their home board and in the plus menu, and how
+-- wide the board is: { board: ["log","attend",…], boardCols: 2|3,
+-- quick: [...] }. Unknown ids are ignored when it is read back, so an
+-- action that is renamed or dropped never leaves a blank tile.
+alter table public.preferences add column if not exists layout         jsonb not null default '{}'::jsonb;
 -- Have they been through "set yourself up" — their hours, their drills,
 -- their tips. False until they finish it or skip it, so it is offered
 -- once rather than every time the app opens.
