@@ -67,17 +67,17 @@ const codeBoxes = M.codeBoxes;
 async function signIn(page, email, pass) {
   await page.goto(BASE, { waitUntil: "networkidle" });
   await btn(page, "Sign in").click();
-  await page.getByPlaceholder("you@example.ie").fill(email);
+  await page.getByLabel("Email", { exact: true }).fill(email);
   await page.locator('input[type="password"]').fill(pass);
   await btn(page, "Sign in").click();
 }
 /* the details step; `dob` only for a player */
 async function fillDetails(page, { name, email, phone, pass, dob }) {
   if (dob) { const [d, m, y] = dob; await page.getByPlaceholder("DD").fill(d); await page.getByPlaceholder("MM").fill(m); await page.getByPlaceholder("YYYY").fill(y); }
-  await page.getByPlaceholder("Ray Doyle").fill(name);
-  await page.getByPlaceholder("you@example.ie").fill(email);
-  if (phone) await page.getByPlaceholder("+353 87 123 4567").fill(phone);
-  await page.getByPlaceholder("At least 8 characters").fill(pass);
+  await page.getByLabel("Full name", { exact: true }).fill(name);
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  if (phone) await page.getByLabel("Mobile · optional", { exact: true }).fill(phone);
+  await page.getByLabel("Password", { exact: true }).fill(pass);
 }
 const pickChoice = async (page, label) => { await btn(page, label).click(); await btn(page, "Continue").click(); };
 const startCreate = async (page, who, sport) => { await page.goto(BASE, { waitUntil: "networkidle" }); await btn(page, "Create account").click(); await pickChoice(page, who); await pickChoice(page, sport); };
@@ -301,11 +301,11 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
     await scenario(browser, "09-forgot-password-then-recovery-link", async ({ page, db, shot, note }) => {
       await page.goto(BASE, { waitUntil: "networkidle" });
       await btn(page, "Sign in").click();
-      await page.getByPlaceholder("you@example.ie").fill("coach@example.ie");
+      await page.getByLabel("Email", { exact: true }).fill("coach@example.ie");
       await btn(page, "Forgot password?").click(); await page.waitForTimeout(300); await shot("forgot");
       let t = await rootText(page);
       if (!/Reset password/.test(t)) { note("FAIL no reset screen: " + t.slice(0, 100)); return; }
-      const prefilled = await page.getByPlaceholder("you@example.ie").inputValue();
+      const prefilled = await page.getByLabel("Email", { exact: true }).inputValue();
       if (prefilled !== "coach@example.ie") note("FAIL email not carried over to the reset screen");
       await btn(page, "Send reset link").click(); await page.waitForTimeout(800); await shot("inbox-reset");
       t = await rootText(page);
@@ -401,7 +401,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       const again = page.getByRole("button", { name: /Resend email · \d+s/ });
       if (!(await again.isDisabled())) note("FAIL resend not disabled during the cooldown");
       await btn(page, "I've confirmed — sign in").click(); await page.waitForTimeout(300);
-      const v = await page.getByPlaceholder("you@example.ie").inputValue();
+      const v = await page.getByLabel("Email", { exact: true }).inputValue();
       if (v !== "orla@example.ie") note("FAIL sign-in email not prefilled after confirming"); else note("sign-in prefilled with the address");
     }, { confirmEmail: true });
 
