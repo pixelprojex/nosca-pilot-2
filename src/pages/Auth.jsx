@@ -431,8 +431,10 @@ function SignInStep({ initialEmail, busy, err, onBack, onSubmit, onForgot, clear
                  type="email" autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" /></div>
           <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={(v) => { setPass(v); clearErr(); }}
                  type="password" ph="" reveal autoFocus={!!initialEmail} error={ePass} autoComplete="current-password" /></div>
-          <button onClick={() => { haptic(6); onForgot(email.trim().toLowerCase()); }} className="mt-5 active:opacity-50"
-                  style={{ minHeight: 40, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.ink }}>
+          {/* the least important control on the screen was the boldest
+              thing in the form, sitting under the password like a heading */}
+          <button onClick={() => { haptic(6); onForgot(email.trim().toLowerCase()); }} className="mt-4 active:opacity-50"
+                  style={{ minHeight: 40, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>
             {tr("Forgot password?")}
           </button>
         </div>
