@@ -2184,9 +2184,19 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
           </div>
         );
       })}
-      <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>
-        {role === "coach" ? tr("End of your hours") : tr("That's everything open")}
-      </p>
+      {/* THE FOOT OF THE DIARY IS A DOOR, NOT A SENTENCE. It read "End
+          of your hours" under the last day, which is a line telling you
+          what you can already see. The standing weekly slots belong
+          here, under the days they repeat through — they used to sit
+          above the List/Calendar toggle, first thing on the screen. */}
+      {role === "coach" ? (
+        <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
+                className="w-full flex items-center gap-3 px-6 text-left active:opacity-60"
+                style={{ minHeight: 56, marginTop: 10, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("Recurring lessons")}</span>
+          <ChevronRight size={15} color={t.faint} />
+        </button>
+      ) : <div style={{ height: 26 }} />}
       </div>
     </div>
   );
@@ -8887,13 +8897,17 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             </div>
           ) : null}
 
-          {/* the notes */}
-          <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
-            <Label>{role === "coach" ? tr("Notes") : `${first(coachName) || tr("Coach")}'s ${tr("notes")}`}</Label>
-            {lesson.note
-              ? <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{lesson.note}</p>
-              : <p style={{ ...TYPE.small, color: t.faint }}>{tr("None on this one")}</p>}
-          </div>
+          {/* THE NOTE, WHERE THERE IS ONE. A coach reading their own
+              lesson does not need the word "Notes" over their own
+              sentence; a player does need to be told whose it is. And a
+              section whose whole content is "None on this one" is a
+              heading and a denial where there could be nothing. */}
+          {lesson.note && (
+            <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
+              {role !== "coach" && <Label>{`${first(coachName) || tr("Coach")}'s ${tr("notes")}`}</Label>}
+              <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{lesson.note}</p>
+            </div>
+          )}
 
           {tipHere && (
             <div className="py-5" data-tour="lesson-tip" style={{ borderTop: hair }}>
@@ -10260,16 +10274,25 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
        share sheet as the Add player tile two centimetres below it — the
        same action twice, and two accents on a screen that is allowed one.
        The tile stays, because it says what it does. */
-    <Screen title={L.roster} meta={`${all.length} ${nouns} · ${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}`} right={right}>
+    /* "2 players · 0 groups" counted something that is not there. A meta
+       line carries values, and nought is not one. */
+    <Screen title={L.roster} right={right}
+            meta={[`${all.length} ${nouns}`, groups.length ? `${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}` : null].filter(Boolean).join(" · ")}>
       <div className="px-6" style={{ marginBottom: SPACE.row }}>
         <TileGrid cols={2}>
           <ActTile tour="roster-invite" tone="accent" Icon={UserPlus} label={tr("Add player")} onTap={() => sheet("import")} />
           <ActTile Icon={Users} label={tr("New group")} onTap={() => sheet("newGroup")} />
         </TileGrid>
       </div>
-      <div className="px-6" style={{ marginBottom: SPACE.block }}><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
+      {/* A TAB TO AN EMPTY LIST IS NOT A CHOICE. The Groups half was
+          there from the first player, with nothing behind it; New group
+          above is the way in, and the tabs appear once there is a second
+          list to switch to. */}
+      {groups.length > 0 && (
+        <div className="px-6" style={{ marginBottom: SPACE.block }}><Segmented tour="roster-tab" options={[nounTitle, "Groups"]} value={tab} onChange={setTab} /></div>
+      )}
       <div className="px-6 pb-2">
-        {tab === nounTitle ? (<>
+        {tab === nounTitle || groups.length === 0 ? (<>
           {searchable && (
             <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
               <Search size={15} color={t.faint} />
@@ -10283,10 +10306,20 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("Nobody yet. Add player shares your code.")}</p>
             ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
                 <Avatar name={r.name} size={40} />, r.name, [stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · ")))}
-            {lessonCount > 0 && row("archive", "roster-archive", () => { haptic(7); soft(); push("archive"); },
-                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><FileText size={16} color={t.sub} strokeWidth={1.7} /></span>,
-                tr("All lessons"), `${lessonCount}`)}
           </div>
+          {/* ALL LESSONS IS A ROUTE, NOT A PERSON. It sat in the column
+              of faces with a glyph in a disc the size of an avatar, so
+              it read as a third player called All lessons. */}
+          {lessonCount > 0 && (
+            <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
+                    className="w-full flex items-center gap-3 text-left active:opacity-50"
+                    style={{ minHeight: 56, marginTop: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}`,
+                             borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
+              <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
+              <ChevronRight size={15} color={t.faint} />
+            </button>
+          )}
         </>) : (
           <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
             {groups.map((g) => row(g.id, undefined, () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={40} group />, g.name,
@@ -10312,7 +10345,6 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
   const r = live ? (player || live.find((x) => x.name === name) || { name, lessons: 0 })
                  : (ROSTER.find((x) => x.name === name) || ROSTER[0]);
   const f = live ? { lessons: null, name, done: r.lessons || 0, tip: tip || null } : fileFor(name, !seeded);
-  const [more, setMore] = useState(false);
   /* their private lessons and the group sessions they were marked at */
   const real = live ? (lessons || []).filter((l) => (player ? (l.playerId === player.id || (l.attendeeIds || []).includes(player.id)) : l.who === name)) : null;
   const past = real ? real : (f.lessons || [
@@ -10397,10 +10429,10 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
             </div>
           )}
 
-          {/* the last few, in full, under the control that opens them all */}
-          <div className="mb-3 flex items-baseline justify-between">
-            <span style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Most recent")}</span>
-          </div>
+          {/* The last few, in full, under the block that opens them all.
+              They had an eyebrow reading "Most recent" over them, two
+              inches under a block reading "Past lessons" — the same idea
+              labelled twice on one screenful. */}
           <div className="mb-7" data-tour="player-lessons" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
             {live && past.length === 0 && (
               <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing logged for")} {name.split(" ")[0]} {tr("yet.")}</p>
@@ -10443,27 +10475,20 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
             </div>
           )}
 
-          {/* everything else, folded away */}
-          <button onClick={() => { haptic(6); setMore(!more); }}
-                  className="w-full flex items-center gap-2 py-3 active:opacity-50">
-            <span style={{ ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("More")}</span>
-            <ChevronDown size={13} color={t.faint}
-                         style={{ transform: more ? "rotate(180deg)" : "none", transition: "transform 240ms cubic-bezier(.22,1,.36,1)" }} />
-          </button>
-
-          {more && (
-            <div style={{ animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
-              {[[tr("Recurring lessons"), () => onRecurring(name)],
-                [tr("Progress"), () => push("history:" + (r.id || name))],
-                ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]])].map(([lbl, act]) => (
-                <button key={lbl} onClick={act} className="w-full flex items-center text-left active:opacity-50"
-                        style={{ minHeight: 52, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-                  <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                  <ChevronRight size={14} color={t.faint} />
-                </button>
-              ))}
-            </div>
-          )}
+          {/* WHAT IS LEFT IS ONE ROW, SO IT IS ONE ROW. A fold saying
+              "More" hid three: one of them, Progress, went to the same
+              archive the block at the top of this screen goes to, under
+              a second name. */}
+          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+            {[[tr("Recurring lessons"), () => onRecurring(name)],
+              ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]])].map(([lbl, act]) => (
+              <button key={lbl} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center text-left active:opacity-50"
+                      style={{ minHeight: 52, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+                <ChevronRight size={14} color={t.faint} />
+              </button>
+            ))}
+          </div>
           <div style={{ height: 26 }} />
         </div>
       </Screen>
@@ -11722,11 +11747,14 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
   const [f, setF] = useState({ t: "", d: "", focus: cfg.focus[0].id });
   const [filter, setFilter] = useState("All");
   const [open, setOpen] = useState(null);
-  const [sort, setSort] = useState("Most used");
 
   const chips = ["All", ...cfg.focus.map((x) => x.label)];
-  let shown = filter === "All" ? library : library.filter((d) => cfg.focus.find((f2) => f2.id === d.focus)?.label === filter);
-  shown = [...shown].sort((a, b) => sort === "Most used" ? (b.uses || 0) - (a.uses || 0) : a.t.localeCompare(b.t));
+  const shown = (filter === "All" ? library : library.filter((d) => cfg.focus.find((f2) => f2.id === d.focus)?.label === filter))
+    /* ONE WAY TO NARROW A LIST, NOT TWO. Over a dozen drills sat a
+       filter row and a Most used / A–Z switch, which is two controls to
+       read before the first drill. The order a coach wants is the one
+       they reach for most; the filter is what actually cuts the list. */
+    .slice().sort((a, b) => (b.uses || 0) - (a.uses || 0));
 
   return (
     <SwipeBack onBack={pop}>
@@ -11743,10 +11771,9 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
           </Card></div>
         )}
 
-        {library.length > 0 && (<>
-          <div className="mb-3"><FilterRow last label={tr("Worked on")} options={chips} value={filter} onChange={setFilter} /></div>
-          <div className="px-6 mb-4"><Segmented options={["Most used", "A–Z"]} value={sort} onChange={setSort} /></div>
-        </>)}
+        {library.length > 8 && (
+          <div className="mb-4"><FilterRow last label={tr("Worked on")} options={chips} value={filter} onChange={setFilter} /></div>
+        )}
 
         <div className="px-6 pb-2">
           {shown.length === 0 ? (
@@ -12067,17 +12094,6 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                   style={{ minHeight: 54, borderRadius: R.control, background: t.accent, paddingLeft: 18, paddingRight: 14 }}>
             <span className="flex-1 text-left" style={{ ...TYPE.body, fontWeight: 600, color: t.onAccent }}>{tr("Set the times you coach")}</span>
             <ChevronRight size={16} color={t.onAccent} />
-          </button>
-        </div>
-      )}
-
-      {role === "coach" && (
-        <div className="px-6 mb-4">
-          <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
-                  className="w-full flex items-center gap-3 text-left active:opacity-60"
-                  style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("Recurring lessons")}</span>
-            <ChevronRight size={15} color={t.faint} />
           </button>
         </div>
       )}
@@ -12835,7 +12851,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       live && (hasCoach
         ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", onTap: () => push("myLessons") }
         : { label: tr("Take lessons yourself"), onTap: () => push("takeLessons") }),
-      { label: tr("Shortcuts"), sub: tr("Your home board and the plus menu"), tour: "settings-shortcuts", onTap: () => push("layout"), keys: ["home", "board", "plus", "customise", "edit", "layout", "tiles"] },
+      { label: tr("Shortcuts"), tour: "settings-shortcuts", onTap: () => push("layout"), keys: ["home", "board", "plus", "customise", "edit", "layout", "tiles"] },
       { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
@@ -15514,10 +15530,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ...(data.roster || []).map((r) => ({ name: r.name, path: r.avatarPath })),
       ...(coachName ? [{ name: coachName, path: (data.coach && data.coach.avatarPath) || null }] : []),
     ].filter((p) => p.name);
+    /* And where the title names nobody, the kind does. A tip, a lesson,
+       a drill and a rating reach a player from one person — their coach
+       — so "Trust the shallow" wears their coach's face rather than a
+       bulb in a grey disc. A coach's own list keeps the glyph: theirs
+       come from everywhere. */
+    const FROM_COACH = ["tip", "lesson", "drill", "rating"];
     const faceFor = (n) => {
       const title = String(n.title || "");
       const hit = faces.find((p) => title.startsWith(p.name));
-      return hit ? { name: hit.name, src: avatarUrl(hit.path) } : null;
+      if (hit) return { name: hit.name, src: avatarUrl(hit.path) };
+      if (!data.isCoach && coachName && FROM_COACH.includes(n.kind)) {
+        return { name: coachName, src: avatarUrl((data.coach && data.coach.avatarPath) || null) };
+      }
+      return null;
     };
     body = <NotifCentre items={data.notifications || []} waiting={alertWaiting} pop={pop} faceFor={faceFor}
                         userId={account ? account.id : null} say={say}
@@ -16223,10 +16249,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
                       {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
                     </p>
-                    <div className="flex flex-col gap-2">
-                      {roster.map((r, i) => (
-                        <Tile key={r.id || r.name} className="px-4 py-3.5" delay={i * 45}
-                              onPress={async () => {
+                    {/* A NAMED BEING IN A LIST IS A ROW. This was a stack
+                        of cards, one card a player, which is the tile
+                        contract's other half being used for the wrong
+                        thing — and a fifty-player roster of them is
+                        fifty cards deep. */}
+                    <div style={{ borderTop: `0.5px solid ${HAIR(theme.ink, 0.12)}` }}>
+                      {roster.map((r) => (
+                        <button key={r.id || r.name}
+                              className="w-full flex items-center gap-3.5 text-left active:opacity-60"
+                              style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(theme.ink, 0.12)}` }}
+                              onClick={async () => {
+                                haptic(7); soft();
                                 if (data) {
                                   const res = await data.addBooking({ playerId: r.id, date: isoOf(bookSlot.day.m, bookSlot.day.d), time: bookSlot.time, duration });
                                   if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't book that.")); return; }
@@ -16238,12 +16272,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                   nx[coachSport][k] = [...(nx[coachSport][k] || []), { time: bookSlot.time, who: r.name, kind: "Private" }];
                                   return nx; });
                                 setSheet(null); done(tr("Booked"), `${r.name} · ${bookSlot.time}`); }}>
-                          <div className="flex items-center gap-3.5">
-                            <Avatar name={r.name} size={36} />
-                            <span className="flex-1" style={{ fontFamily: ui, fontSize: 15, color: theme.ink }}>{r.name}</span>
-                            <ChevronRight size={15} color={theme.faint} />
-                          </div>
-                        </Tile>
+                          <Avatar name={r.name} size={34} src={avatarUrl(r.avatarPath)} />
+                          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: theme.ink }}>{r.name}</span>
+                          <ChevronRight size={15} color={theme.faint} />
+                        </button>
                       ))}
                     </div>
                   </>

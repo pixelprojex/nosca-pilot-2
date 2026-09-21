@@ -296,7 +296,9 @@ const leaks = [];
       const hsrc = (await hdr.count()) ? await hdr.first().getAttribute("src") : null;
       const t13 = await text(); await shot("33-coach-header-avatar");
       check("(f) the header avatar renders an <img> from the same public URL", !!hsrc && hsrc === src, `${hsrc} · ${t13.slice(0, 100)}`);
-      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && /Your hours/i.test(t13), t13.slice(0, 80));
+      /* the foot of the diary used to read "End of your hours"; it is the
+         Recurring lessons row now, so the tab is named by its own title */
+      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && /Schedule/.test(t13) && /Calendar/.test(t13), t13.slice(0, 80));
       /* password */
       await tap(page, '[aria-label="Your profile"]');
       const t13b = await text();

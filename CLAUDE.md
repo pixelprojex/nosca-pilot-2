@@ -173,6 +173,12 @@ seeded data and no account.
   only synchronously within the user's tap; a `setTimeout`, even of 0,
   is outside it. `buzz()` fires its first beat at once. Call `haptic*()`
   before any `await`, and never from an effect expecting it to be felt.
+- **A screen's subtitle carries a value or it is not there.** `meta` is
+  a count, a name, a date — never a sentence restating the title, and
+  never a nought ("2 players · 0 groups"). The same goes for a Settings
+  row's `sub`, and for the foot of a list: the diary ended on "End of
+  your hours", which told a coach what they could already see, and
+  carries Recurring lessons there now.
 - **Settings is a list, not a page.** `Settings` builds `groups` of rows
   ({ label, sub, icon, onTap, right, tour, keys }) and renders them
   through one loop, so the search field filters everything and every
@@ -217,21 +223,28 @@ seeded data and no account.
   weather, no bookshelf for a lesson. Settings rows carry no glyph at
   all, bar the red bin on Delete account, which is a warning rather
   than decoration.
-- **Anything you can type, you can say.** Every field a person writes
-  words into carries dictation — through `VoiceInput`, `VoiceArea` or
-  `InlineField`, or as a `MicBtn` beside the input. The two exceptions
-  are a password and the six-character codes, where speech hands back
-  "Q W seven X two M" and the button would look broken. `MicBtn`
+- **Anything you can type in words, you can say.** Every field a person
+  writes words into carries dictation — through `VoiceInput`,
+  `VoiceArea` or `InlineField`, or as a `MicBtn` beside the input. The
+  exceptions are the machine formats: a password, the six-character
+  codes, an email address and a phone number, where speech hands back
+  "Q W seven X two M" or "at gmail dot com" and the button would look
+  broken. `Field` drops the mic for `type="password" | "email" | "tel"`
+  itself, so a form gets this right without thinking about it. `MicBtn`
   renders nothing where the browser has no speech recognition, so it is
   safe to add anywhere.
 - **A grid fills its rows.** `evenCols(n)` picks the column count so a
   four-tile grid goes two by two rather than three and a widow. Any
   grid whose length varies with the data uses it.
 - **A control for narrowing a list appears when the list needs
-  narrowing.** The roster's search above eight people, and the lesson
-  archive's search and three filter rows above eight lessons. Three
-  filter rows over a player's four lessons is a filing cabinet in front
-  of a postcard.
+  narrowing, and there is only ever one of them.** The roster's search
+  above eight people, the drill library's filter above eight drills, the
+  alert list's above a screenful, and the lesson archive's search and
+  three filter rows above eight lessons. Three filter rows over a
+  player's four lessons is a filing cabinet in front of a postcard, and
+  a filter row over a sort switch is two things to read before the first
+  row. A tab bar to a list that is empty is not a choice either — the
+  roster's Groups half appears with the first group.
 - **The board and the plus are one list of actions, and the coach owns
   it.** `COACH_ACTIONS` is the nine, each with one name and one glyph —
   never "Register" on one surface and "Attendance" on the other.
@@ -317,11 +330,20 @@ seeded data and no account.
   every thread with a message, unread first then newest; a coach's
   picker leads with "Everyone", which is the broadcast. Nothing else sits
   above the list — the weather call-off lives in the diary on the day.
-- **The bell reads itself.** Opening the list shows Today and Earlier
-  with the unread ones in ink; tapping one marks it, and closing the
-  list marks the rest read. The right-hand button is "Mark all read"
+- **The bell reads itself.** Opening the list shows Today, Yesterday and
+  Earlier with the unread ones in ink; tapping one marks it, and closing
+  the list marks the rest read. The right-hand button is "Mark all read"
   while anything is unread and "Clear all" after. The away card's
   Dismiss is the same mark-all.
+- **An alert is a face and a badge.** Whatever happened, happened
+  because of a person, and a face is read before any word beside it:
+  `faceFor` matches the name the title opens with, and falls back to the
+  coach for the kinds only a coach sends a player (`tip`, `lesson`,
+  `drill`, `rating`). The kind rides as a small glyph badged on the
+  corner of that face, so the line does not have to spell it out; where
+  nobody is named the glyph is the disc itself and there is no badge. A
+  filter over the list appears only past a screenful, like every other
+  narrowing control.
 - **The feed is ours.** A full-bleed clip, a right-hand column of round
   buttons (sound only for a video, open, the coach's face), a glass
   panel bottom-left (focus in display type, one tag line, the note cut
@@ -340,7 +362,13 @@ seeded data and no account.
 - **A player's home leads with when they are next on**, at the size the
   coach's date is. The board comes before the tip, because the loudest
   thing on the screen should be something to do; the tip is a bordered
-  block, never a filled slab of the accent.
+  block, never a filled slab of the accent. Under it the page is the
+  coach's page: *Coming up* is the rest of what is booked and *Recent
+  lessons* the last three with the way through to the rest, both as
+  `RowHead` over a column of hairline rows — the same two sections the
+  coach's day is built from. The two sides are read by the same
+  household; a shape that means one thing on one and another on the
+  other is a bug.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: hairline rows with an
   avatar, a name and one grey line. A search field appears only when
