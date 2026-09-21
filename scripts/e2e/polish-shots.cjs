@@ -62,7 +62,9 @@ function freshDb() {
     { const { ctx, page, shot, tap, text } = await boot("coach");
       await shot("c1-today");
       await tap('[aria-label="Diary"]'); await shot("c2-diary");
-      await tap('[data-tour="cal-hours"]', 700); await shot("c3-hours"); await tap('[aria-label="Back"]');
+      /* the hours prompt only shows while a coach has set none, so this
+         account reaches its hours the way it would every other day */
+      await tap('[data-tour="cal-recurring"]', 700); await shot("c3-recurring"); await tap('[aria-label="Back"]', 700);
       await tap('[aria-label="Roster"]'); await shot("c4-roster");
       await tap('[data-tour="roster-row"]'); await shot("c5-player-file");
       await text("Set tip", 700) || await tap('[data-tour="player-actions"] button:nth-child(2)', 700); await shot("c6-tip-sheet");

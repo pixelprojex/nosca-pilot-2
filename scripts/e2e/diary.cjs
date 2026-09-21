@@ -79,7 +79,10 @@ const leaks = [];
       await tap(page, '[aria-label="Diary"]');
       const hours = page.locator('[data-tour="cal-hours"]');
       const h0 = (await hours.count()) ? M.norm(await hours.innerText()) : ""; await shot("04-coach-diary-hours-unset");
-      check("(g) the diary leads with Your hours, Not set for a fresh coach", (await hours.count()) === 1 && /your hours/i.test(h0) && h0.includes("Not set"), h0);
+      /* "Your hours · 40 slots · 45 min" over a seven-bar chart of the
+         week is gone — the days below say it in full. What remains is the
+         one case worth a line: a coach who has set nothing. */
+      check("(g) a coach with no hours set is asked to set them", (await hours.count()) === 1 && /set the times you coach/i.test(h0), h0);
       await hours.click(); await page.waitForTimeout(900);
       const t0 = await leak("coach availability"); await shot("05-coach-availability-empty");
       check("(g) tapping it opens Availability, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Availability") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
@@ -91,8 +94,8 @@ const leaks = [];
       const days = pref && pref.rows[0].availability && pref.rows[0].availability.days;
       const total = days ? Object.values(days).reduce((s, x) => s + (x || []).length, 0) : 0;
       check("(g) Save upserts preferences.availability with the week's hours", !!days && total > 0 && /merge-duplicates/.test(pref.prefer) && pref.rows[0].id === IDS.coach, JSON.stringify(pref && pref.rows[0].availability).slice(0, 200));
-      const h1 = (await hours.count()) ? M.norm(await hours.innerText()) : ""; await shot("06-coach-diary-hours-set");
-      check("(g) back on the diary the row reads N slots from what was saved", h1.includes(`${total} slots`), h1);
+      await shot("06-coach-diary-hours-set");
+      check("(g) once they are set the prompt goes and the days carry the times", (await hours.count()) === 0 && (await page.locator('[data-tour="agenda-book"]').count()) > 0, `prompt=${await hours.count()} · total=${total}`);
       /* the diary now has open rows; book Cian into the first one */
       const t1 = await leak("coach diary"); await shot("06b-coach-diary");
       check("(b) coach diary lists the real week, no seeded names", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && !M.SEEDED.some((s) => t1.includes(s)), t1.slice(0, 200));
@@ -293,7 +296,9 @@ const leaks = [];
       const hsrc = (await hdr.count()) ? await hdr.first().getAttribute("src") : null;
       const t13 = await text(); await shot("33-coach-header-avatar");
       check("(f) the header avatar renders an <img> from the same public URL", !!hsrc && hsrc === src, `${hsrc} · ${t13.slice(0, 100)}`);
-      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && /Your hours/i.test(t13), t13.slice(0, 80));
+      /* the foot of the diary used to read "End of your hours"; it is the
+         Recurring lessons row now, so the tab is named by its own title */
+      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && /Schedule/.test(t13) && /Calendar/.test(t13), t13.slice(0, 80));
       /* password */
       await tap(page, '[aria-label="Your profile"]');
       const t13b = await text();

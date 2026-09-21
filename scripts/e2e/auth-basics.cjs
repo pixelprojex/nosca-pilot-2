@@ -54,16 +54,16 @@ const btn = (page, name) => page.getByRole("button", { name, exact: true });
 async function signIn(page, email, pass) {
   await page.goto(BASE, { waitUntil: "networkidle" });
   await btn(page, "Sign in").click();
-  await page.getByPlaceholder("you@example.ie").fill(email);
+  await page.getByLabel("Email", { exact: true }).fill(email);
   await page.locator('input[type="password"]').fill(pass);
   await btn(page, "Sign in").click();
 }
 async function fillDetails(page, { name, email, phone, pass, dob }) {
   if (dob) { const [d, m, y] = dob; await page.getByPlaceholder("DD").fill(d); await page.getByPlaceholder("MM").fill(m); await page.getByPlaceholder("YYYY").fill(y); }
-  await page.getByPlaceholder("Ray Doyle").fill(name);
-  await page.getByPlaceholder("you@example.ie").fill(email);
-  if (phone) await page.getByPlaceholder("+353 87 123 4567").fill(phone);
-  await page.getByPlaceholder("At least 8 characters").fill(pass);
+  await page.getByLabel("Full name", { exact: true }).fill(name);
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  if (phone) await page.getByLabel("Mobile · optional", { exact: true }).fill(phone);
+  await page.getByLabel("Password", { exact: true }).fill(pass);
 }
 const pickChoice = async (page, label) => { await btn(page, label).click(); await btn(page, "Continue").click(); };
 const startCreate = async (page, who, sport) => { await page.goto(BASE, { waitUntil: "networkidle" }); await btn(page, "Create account").click(); await pickChoice(page, who); await pickChoice(page, sport); };

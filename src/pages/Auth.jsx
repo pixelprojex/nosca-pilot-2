@@ -228,10 +228,10 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
         )}
 
         <div className={wantsDob ? "mt-5" : "mt-6"}>
-          <div ref={nameWrap}><Field label={tr("Full name")} value={name} onChange={setName} onBlur={() => mark("name")} ph={tr("Ray Doyle")} Icon={User} error={errName} autoComplete="name" /></div>
-          <div ref={emailWrap}><Field label={tr("Email")} value={email} onChange={setEmail} onBlur={() => mark("email")} ph="you@example.ie" Icon={Mail} type="email" error={errEmail} autoComplete="email" inputMode="email" /></div>
-          <Field label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} ph="+353 87 123 4567" Icon={Phone} type="tel" autoComplete="tel" inputMode="tel" />
-          <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} ph={`At least ${MIN_PASS} characters`} Icon={Lock} type="password" error={errPass} reveal autoComplete="new-password" /></div>
+          <div ref={nameWrap}><Field label={tr("Full name")} value={name} onChange={setName} onBlur={() => mark("name")} Icon={User} error={errName} autoComplete="name" /></div>
+          <div ref={emailWrap}><Field label={tr("Email")} value={email} onChange={setEmail} onBlur={() => mark("email")} Icon={Mail} type="email" error={errEmail} autoComplete="email" inputMode="email" /></div>
+          <Field label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} Icon={Phone} type="tel" autoComplete="tel" inputMode="tel" />
+          <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} Icon={Lock} type="password" error={errPass} reveal autoComplete="new-password" /></div>
         </div>
         <p className="mt-5 text-center pb-6" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: t.faint }}>
           By continuing you accept the {BRAND} Terms and Privacy Policy.
@@ -428,11 +428,13 @@ function SignInStep({ initialEmail, busy, err, onBack, onSubmit, onForgot, clear
         <Headline>{tr("Sign in")}</Headline>
         <div className="mt-8">
           <div ref={emailWrap}><Field label={tr("Email")} value={email} onChange={(v) => { setEmail(v); clearErr(); }}
-                 ph="you@example.ie" type="email" autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" /></div>
+                 type="email" autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" /></div>
           <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={(v) => { setPass(v); clearErr(); }}
                  type="password" ph="" reveal autoFocus={!!initialEmail} error={ePass} autoComplete="current-password" /></div>
-          <button onClick={() => { haptic(6); onForgot(email.trim().toLowerCase()); }} className="mt-5 active:opacity-50"
-                  style={{ minHeight: 40, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.ink }}>
+          {/* the least important control on the screen was the boldest
+              thing in the form, sitting under the password like a heading */}
+          <button onClick={() => { haptic(6); onForgot(email.trim().toLowerCase()); }} className="mt-4 active:opacity-50"
+                  style={{ minHeight: 40, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>
             {tr("Forgot password?")}
           </button>
         </div>
@@ -462,7 +464,7 @@ function ForgotStep({ initialEmail, busy, err, onBack, onSend }) {
         <Headline>{tr("Reset password")}</Headline>
         <Sub>{tr("We'll email you a link to set a new one.")}</Sub>
         <div className="mt-8" ref={wrap}>
-          <Field label={tr("Email")} value={email} onChange={setEmail} ph="you@example.ie" type="email"
+          <Field label={tr("Email")} value={email} onChange={setEmail} type="email"
                  autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" />
         </div>
       </div>
@@ -510,7 +512,7 @@ function SetPassword() {
           {email && <Sub>{email}</Sub>}
           <div className="mt-8">
             <div ref={w1}><Field label={tr("New password")} value={p1} onChange={setP1} onBlur={() => mark("p1")}
-                   ph={`At least ${MIN_PASS} characters`} Icon={Lock} type="password" reveal error={e1} autoFocus autoComplete="new-password" /></div>
+                   Icon={Lock} type="password" reveal error={e1} autoFocus autoComplete="new-password" /></div>
             <div ref={w2}><Field label={tr("Confirm password")} value={p2} onChange={setP2} onBlur={() => mark("p2")}
                    ph="" Icon={Lock} type="password" reveal error={e2} autoComplete="new-password" /></div>
           </div>
