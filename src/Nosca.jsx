@@ -3350,7 +3350,10 @@ const TOUR = {
     { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Log a lesson → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
     { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
     { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
-    { area: "Diary", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "Diary → Your hours", target: "cal-hours", state: { stack: ["calendar"] } },
+    /* The diary's hours block became a prompt that only shows while a
+       coach has set none, so there is nothing to ring once they have.
+       The row that is always there is the one in Settings. */
+    { area: "You", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "You → Your hours", target: "settings-availability", state: { stack: ["today", "you"] } },
     { area: "Diary", title: "Recurring lessons", body: "Standing weekly slots, booked out for the whole run.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
     { area: "Diary", title: "Book in the diary", body: "Tap a free slot to book someone; tap a booking to log or cancel it.", path: "Diary → free slot", target: "agenda-book", state: { stack: ["calendar"] } },
     { area: "Roster", title: "Roster", body: "Everyone you coach. Add player shares your code.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
@@ -7671,7 +7674,9 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
           <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d} min`)} picked={`${dur} min`}
                     onToggle={(x) => setDur(Number(String(x).replace(" min", "")))} />
           <Label>{tr("Start times")}</Label>
-          <TimeGrid times={slots} picked={times} onToggle={(sl) => togg(times, setTimes, sl)} />
+          {/* a grid fills its rows: five slots go three and two, not
+              four and a widow */}
+          <TimeGrid cols={evenCols(slots.length)} times={slots} picked={times} onToggle={(sl) => togg(times, setTimes, sl)} />
           <p className="mt-5" style={{ ...TYPE.small, color: t.faint }}>
             {times.length} {times.length === 1 ? tr("time") : tr("times")} · {days.length} {days.length === 1 ? tr("day") : tr("days")} · {dur} {tr("min")}
           </p>
@@ -12860,7 +12865,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code & QR"), value: inviteCode || "——————", tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
       prefs && { label: tr("Take attendance"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Take attendance"), prefs.attendance || "all",
-        [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v), Check) },
+        [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v)) },
       prefs && { label: tr("Ask for a review"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
       (!live || hasDependants) && { label: tr("This month"), tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
@@ -12874,7 +12879,10 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     { title: L.appearance, tour: "settings-appearance", rows: [
       { label: L.darkMode, tour: "settings-dark", right: T(dark, setDark), keys: ["theme", "night"] },
       live && (startOptions || []).length > 1 && { label: tr("Opens on"), keys: ["start", "home", "first screen"],
-        custom: choice("startOn", tr("Opens on"), startOn || "auto", startOptions, setStartOn, Home) },
+        /* SETTINGS ROWS CARRY NO GLYPH. Two of forty did — a tick on
+           Take attendance and a house on Opens on — which is the sort
+           of thing you only notice as a wobble in a straight line. */
+        custom: choice("startOn", tr("Opens on"), startOn || "auto", startOptions, setStartOn) },
       { label: L.sound, right: T(soundState, setSoundState, (v) => { setSoundOn(v); if (v) chime(); }), keys: ["tones", "audio", "mute"] },
       { label: L.haptics, right: T(hapticsOn, setHapticsOn, setHapticsEnabled), keys: ["vibrate", "vibration", "feedback", "tap"] },
       { label: tr("Reduce motion"), right: T(reduceMotion, setReduceMotion), keys: ["animation", "animations"] },
