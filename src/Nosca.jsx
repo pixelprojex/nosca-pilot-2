@@ -1176,16 +1176,34 @@ let _hapticEl = null;
 /* The pair is put in the document before it is first needed, so the
    very first tap of a session is felt too. */
 if (typeof document !== "undefined") {
-  const ensure = () => { if (document.body && !document.getElementById("nosca-haptic")) _iosTick(false); };
+  const ensure = () => { if (document.body) _iosTick(false); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ensure); else setTimeout(ensure, 0);
 }
+/* THE SWITCH HAS TO BE A SWITCH.
+
+   The haptic comes from iOS drawing and toggling a real switch control.
+   This pair had `appearance:none` on the input — which is the one
+   declaration that opts out of the native switch rendering — inside a
+   wrapper that was `width:0;height:0;overflow:hidden`, so the control
+   had no appearance and no box either. There was nothing for iOS to
+   animate, so there was nothing to feel, and every haptic in the app
+   had been doing nothing on an iPhone since.
+
+   It is rendered now: a real switch, one pixel, imperceptible but
+   present, behind everything and deaf to pointers. Nothing here may
+   become display:none, visibility:hidden, opacity:0 or appearance:none
+   again — each of those takes the feeling away. */
 const _iosTick = (fire = true) => {
   if (typeof document === "undefined") return false;
-  if (!_hapticEl) {
+  if (!_hapticEl || !_hapticEl.isConnected) {
+    const old = document.getElementById("nosca-haptic-wrap");
+    if (old) old.remove();
     const wrap = document.createElement("div");
+    wrap.id = "nosca-haptic-wrap";
     wrap.setAttribute("aria-hidden", "true");
-    wrap.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none";
-    wrap.innerHTML = '<input type="checkbox" switch id="nosca-haptic" style="appearance:none"><label for="nosca-haptic"></label>';
+    wrap.style.cssText = "position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0.001;pointer-events:none;z-index:-1";
+    wrap.innerHTML = '<input type="checkbox" switch id="nosca-haptic" style="width:1px;height:1px;margin:0">'
+                   + '<label for="nosca-haptic" data-haptic="tick" style="display:block;width:1px;height:1px"></label>';
     document.body.appendChild(wrap);
     _hapticEl = wrap.querySelector("label");
   }
@@ -1193,10 +1211,18 @@ const _iosTick = (fire = true) => {
   try { _hapticEl.click(); return true; } catch (e) { return false; }
 };
 
+/* navigator.vibrate returns false when the browser refused it — some
+   in-app browsers define the function and do nothing. Falling through
+   to the switch on a false is free, and is the difference between a
+   haptic and no haptic inside an embedded browser. */
+const _vibrate = (pattern) => {
+  try { return !!(navigator.vibrate && navigator.vibrate(pattern)); } catch (e) { return false; }
+};
+
 export const haptic = (ms = 8) => {
   if (!HAPTICS_ON) return;
   try {
-    if (navigator.vibrate) { navigator.vibrate(ms); return; }
+    if (_vibrate(ms)) return;
     _iosTick();
   } catch (e) {}
 };
@@ -1207,7 +1233,7 @@ export const haptic = (ms = 8) => {
 const buzz = (pattern) => {
   if (!HAPTICS_ON) return;
   try {
-    if (navigator.vibrate) { navigator.vibrate(pattern); return; }
+    if (_vibrate(pattern)) return;
     /* iOS only honours the switch trick inside the user's gesture, and a
        setTimeout — even of 0 — is outside it. Every pattern used to be
        scheduled that way, so nothing but the plain tap was ever felt on
@@ -1775,10 +1801,23 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   /* Before sign-up there is no sport, so the opening is the brand alone. */
   const branded = !sport;
   const cfg = SPORTS[sport] || null;
-  /* one palette: the opening is the brand whether or not a sport is
-     known — the sport tints nothing */
-  const accent = BRAND_PAPER;
-  const bg = BRAND_COLOUR;
+  /* THE OPENING IS THE SPORT'S, ONCE THERE IS A SPORT.
+
+     This had been collapsed to one palette — every sport opened on the
+     same bottle green, so the six were indistinguishable at the one
+     moment the app has your whole attention. CLAUDE.md's rule is that
+     the brand colour is "the splash BEFORE a sport", and that the sport
+     tints the app inside a sport; this is inside one. Each sport's ink
+     is its own near-black and each accent its own, so the six openings
+     are six different rooms.
+
+     The mark and the wordmark stay paper on all six — the accent
+     carries the light (the pool, the ripples, the orbit, the linking
+     arc, the rule) and never a word, because the sport accents sit
+     between 4:1 and 5:1 on their own ink and small tracked type has no
+     business being the thing that tests it. */
+  const accent = branded ? BRAND_PAPER : cfg.theme.accent;
+  const bg = branded ? BRAND_COLOUR : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 
   const HOLD = branded ? 5400 : 4000;
@@ -1852,7 +1891,7 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
                     animation: `trackFill 950ms cubic-bezier(.35,0,.15,1) ${T.rule}ms forwards` }} />
 
       <div style={{ position: "relative", marginTop: 24, fontFamily: ui, fontSize: 10.5, letterSpacing: "0.3em",
-                    textTransform: "uppercase", color: accent, opacity: 0,
+                    textTransform: "uppercase", color: branded ? accent : "rgba(244,246,243,0.82)", opacity: 0,
                     animation: `fadeUp 900ms cubic-bezier(.32,.72,0,1) ${T.sub}ms forwards` }}>
         {branded ? "Coaching that carries" : `${cfg.label} · ${roleLabel}`}
       </div>
