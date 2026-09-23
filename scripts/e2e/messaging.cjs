@@ -25,6 +25,8 @@ const IDS = {
   second: "00000000-0000-4000-8000-00000000cec0",
   parent: "00000000-0000-4000-8000-000000pa4e07",
   junior: "00000000-0000-4000-8000-00000000c41d",
+  /* a coach's own coach — join_coach() allows a coach to take lessons */
+  mentor: "00000000-0000-4000-8000-0000000men70",
 };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 
@@ -34,7 +36,9 @@ function freshDb() {
   const db = M.emptyDb();
   const person = (key, email, prof) => { M.addUser(db, { id: IDS[key], email }); return M.addProfile(db, { id: IDS[key], ...prof }); };
   M.addFamily(db, { id: FAM, code: "KEL7Y2", createdBy: IDS.parent });
-  person("coach",  "coach@t.ie",  { role: "coach",  name: "Niamh Byrne", inviteCode: "QW7X2M" });
+  person("mentor", "mentor@t.ie", { role: "coach",  name: "Declan Ryan", inviteCode: "ZZ9K1P" });
+  /* Niamh coaches, and takes lessons from Declan herself */
+  person("coach",  "coach@t.ie",  { role: "coach",  name: "Niamh Byrne", inviteCode: "QW7X2M", coachId: IDS.mentor });
   person("adult",  "adult@t.ie",  { role: "player", name: "Cian Murphy",   type: "adult",  coachId: IDS.coach, dob: "1991-04-04" });
   person("second", "second@t.ie", { role: "player", name: "Saoirse Kelly", type: "adult",  coachId: IDS.coach, dob: "1990-02-02" });
   person("parent", "parent@t.ie", { role: "player", name: "Orla Kelly",    type: "parent", familyId: FAM });
@@ -236,6 +240,27 @@ const between = (db, coachId, playerId) => msgs(db).filter((m) => m.coach_id ===
       await write(page, "Bring the wedge.");
       check("(h) …and it sends", msgs(db).length === before + 1 && msgs(db)[msgs(db).length - 1].body === "Bring the wedge.",
         JSON.stringify(msgs(db)[msgs(db).length - 1] || {}));
+      await ctx.close();
+    }
+
+    /* ---------- (j) a coach who is also somebody's player ---------- */
+    {
+      const { ctx, page, text, shot } = await boot("coach");
+      await openChat(page); await shot("17-coach-own-coach-list");
+      const t0 = await text();
+      check("(j) a coach who takes lessons has their own coach at the top of Chat", /Declan Ryan/.test(t0), t0.slice(0, 220));
+      await M.click(page, "Declan Ryan", 1200);
+      const before = msgs(db).length;
+      const ok = await write(page, "Can we look at my own short game Friday?");
+      const row = between(db, IDS.mentor, IDS.coach)[0];
+      /* addressed coach -> player, with the coach as the PLAYER of that
+         thread; { coach_id: me, player_id: me } is refused by Postgres */
+      check("(j) …and can write to them, as a player of theirs",
+        ok && !!row && row.coach_id === IDS.mentor && row.player_id === IDS.coach && row.sender_id === IDS.coach,
+        `${msgs(db).length - before} rows · ${JSON.stringify(row || msgs(db)[msgs(db).length - 1] || {})}`);
+      const selfAddressed = msgs(db).filter((m) => m.coach_id === m.player_id);
+      check("(j) …and no thread is ever addressed to one person twice", selfAddressed.length === 0, JSON.stringify(selfAddressed));
+      await shot("18-coach-own-coach-sent");
       await ctx.close();
     }
 

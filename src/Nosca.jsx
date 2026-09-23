@@ -1699,6 +1699,7 @@ const ShimmerCSS = () => (
     @keyframes converge{0%{transform:translateX(var(--from))}100%{transform:translateX(0)}}
     @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
     @keyframes dashRun{0%{stroke-dashoffset:0;opacity:0}10%{opacity:.5}85%{opacity:.5}100%{stroke-dashoffset:-108;opacity:0}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes tickIn{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
     @keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -1755,6 +1756,16 @@ const ShimmerCSS = () => (
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+    /* REDUCED MOTION LANDS THINGS INSTANTLY; IT DOES NOT ERASE THEM.
+       There was a second rule under this one — *{animation:none} — and
+       being last it won. Anything whose visible state is supplied by
+       its animation then never arrived, so a phone with Reduce Motion
+       turned on opened the app on a plain green rectangle and held it
+       there for five seconds: the mark, the wordmark, the rule and the
+       sport line are all drawn by keyframes. It also made every screen
+       in the app look deader than the code says it is. Duration of
+       0.01ms is the correct way to honour the preference — the element
+       is placed at its end state at once, and stays. */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -1763,7 +1774,7 @@ const ShimmerCSS = () => (
         scroll-behavior: auto !important;
       }
     }
-    @media (prefers-reduced-motion:reduce){*{animation:none!important}}`}</style>
+    `}</style>
 );
 function HomeSkeleton() {
   return (
@@ -8441,7 +8452,7 @@ function TipBody({ prompts, onSet, close }) {
    Everything under it is one line each, with air. The whole screen
    reads in about three seconds. */
 function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = [], attendPct,
-                      practice, tip, onRequest, nextEvent, juvenile }) {
+                      practice, tip, onRequest, nextEvent, juvenile, calledOff, onRebook }) {
   const t = useT();
   const ready = useLoad();
   const todo = practice.filter((x) => !x.done);
@@ -8504,6 +8515,30 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
               {tipBody && <span className="relative block mt-2" style={{ ...TYPE.small, color: t.sub }}>{tipBody}</span>}
             </button>
           )}
+
+          {/* CALLED OFF. The one thing on this screen that is not good
+              news, so it sits above the board where it cannot be
+              scrolled past, and carries the way to a new time rather
+              than only the bad news. */}
+          {/* the harness hands a plain string; a real account hands the
+              booking row it came from */}
+          {calledOff && (() => { const off = typeof calledOff === "string" ? { status: "weather", when: calledOff } : calledOff; return (
+            <button onClick={() => { haptic(9); soft(); onRebook ? onRebook() : go("calendar"); }}
+                    className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-70"
+                    style={{ minHeight: 68, borderRadius: R.surface, marginBottom: SPACE.block,
+                             background: `${DANGER}0F`, border: `1px solid ${HAIR(DANGER, 0.35)}` }}>
+              <CloudRain size={18} color={DANGER} strokeWidth={1.8} />
+              <span className="flex-1 min-w-0">
+                <span className="block" style={{ ...TYPE.eyebrow, color: DANGER }}>
+                  {off.status === "weather" ? tr("Called off") : tr("Cancelled")}
+                </span>
+                <span className="block truncate" style={{ ...TYPE.body, color: t.ink, marginTop: 2 }}>
+                  {off.when || [off.d && off.m ? `${off.d} ${off.m}` : null, off.time].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+              <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Rebook")}</span>
+            </button>
+          ); })()}
 
           {/* COMING UP — the rest of what is booked.
 
@@ -14318,6 +14353,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const savedHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
   const [slots, setSlots] = useState(savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots : ALL_TIMES);
   const [duration, setDuration] = useState((savedHours && Number(savedHours.duration)) || 45);
+  /* AND THEY FOLLOW WHAT WAS SAVED, NOT ONLY WHAT WAS THERE AT MOUNT.
+
+     These two were useState initialisers and nothing else, so they read
+     the account's hours once and never again. Set-yourself-up is an
+     overlay — Nosca does not remount when it closes — so a coach who
+     picked 8:00 and 9:00 and sixty minutes there came back to Settings
+     and saw all eight defaults and forty-five. That alone is only
+     wrong on screen; the damage is the next line, because writeAvail
+     sends `{ ...liveHours, days, duration, slots }`, so the moment
+     they toggled any day their real hours and lesson length were
+     overwritten with the built-in defaults. The same happened after
+     another device changed them and realtime reloaded prefs. */
+  const savedSlots = savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots.join("|") : "";
+  const savedDur = savedHours && Number(savedHours.duration) ? Number(savedHours.duration) : 0;
+  useEffect(() => { if (savedSlots) setSlots(savedSlots.split("|")); }, [savedSlots]);
+  useEffect(() => { if (savedDur) setDuration(savedDur); }, [savedDur]);
   const [recurrence, setRecurrence] = useState("once");
   /* A real day: several behind you and unlogged, several still ahead. */
   /* A full day, so the folds carry a realistic load. */
@@ -14657,6 +14708,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const coachName = account
     ? (role === "coach" ? account.name : (data && data.coachName) || "Your coach")
     : role === "coach" ? (coachSport === "tennis" ? "Luca Ferri" : "Ray Doyle") : (activeProfile?.name || "Marcus Tran");
+  /* AND WHO COACHES *ME*, which for a coach is not themselves. A coach
+     may take lessons of their own — join_coach() allows it — and the
+     row at the top of their Chat is that conversation. It was labelled
+     with `coachName`, which for a coach is their own name, so a coach
+     with a coach saw their own name and initials where their coach's
+     belonged. Null when nobody coaches me. */
+  const myCoachName = data ? (data.coachName || null) : (role === "coach" ? null : coachName);
   /* WHO IS SIGNED IN. Their own name, their own picture, their own
      settings — whatever their role, and whoever coaches them. */
   const myName = account ? account.name : (role === "coach" ? coachName : (activeProfile?.name || "Marcus Tran"));
@@ -14693,6 +14751,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const myBookings = data
     ? (liveBookingRows || []).filter((b) => b.playerId === account.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
     : bookings.filter((b) => b.connId === conn?.id);
+  /* A LESSON CALLED OFF IS NOT A LESSON THAT QUIETLY DISAPPEARS.
+
+     callOffDay() marks every booking of that day `weather` and the
+     trigger tells the player. On the player's phone the row simply
+     vanished from Coming up — myBookings keeps only requested and
+     confirmed — and their home said nothing, because the notice was
+     passed to PlayerHome as a `calledOff` prop the component does not
+     take, fed by state nothing ever set. The only trace was a line in
+     the bell with no way to a new time. It is read from the bookings
+     themselves now, so it is true by construction. */
+  const calledOffMine = data
+    ? (liveBookingRows || [])
+        .filter((b) => b.playerId === account.id && (b.status === "weather" || b.status === "cancelled")
+                       && b.date && b.date >= isoOf(todayMD.m, todayMD.d))
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0] || null
+    : null;
   /* A player's requests, waiting on the coach. */
   const liveAsks = data
     ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date }))
@@ -15016,9 +15090,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* anything the coach set alongside the lesson — for everyone who
          was there, not the first name on the list */
       const recipients = isGroup ? attendeeIds : (match?.id ? [match.id] : []);
-      for (const pid of recipients) {
-        for (const d of l.nextDrills || []) await data.setDrill(pid, typeof d === "string" ? d : d.t);
-        if (l.nextTip) await data.setTip(pid, l.nextTip, null);
+      /* two writes and one reload for the whole squad, not one of each
+         per drill per player — and a failure here is said, not buried
+         under the burst */
+      const extras = await data.setLessonExtras(recipients, l.nextDrills || [], l.nextTip || null);
+      if (extras && extras.error) {
+        hapticWarn();
+        say(extras.error.message || tr("The lesson saved; the drills didn't"));
       }
       if (prefill) setLoggedKeys((k) => new Set(k).add(lessonKey(prefill)));
       setBurst(lesson);
@@ -15264,7 +15342,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (role === "coach") {
       const rows = (data.roster || []).filter((r) => byId[r.id]).map((r) => row(r.id, r.name, r.junior ? tr("Under 18 · a parent replies") : "", { coachId: account.id, junior: !!r.junior }));
       /* a coach who takes lessons themselves has a coach of their own to talk to */
-      if (data.hasCoach && account && coachName) rows.unshift(row(account.id, coachName, tr("Your coach"), { kind: "own", coachId: null }));
+      if (data.hasCoach && account && myCoachName) rows.unshift(row(account.id, myCoachName, tr("Your coach"), { kind: "own", coachId: null }));
       return rows.sort(order);
     }
     const rows = [];
@@ -15505,13 +15583,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        their roster, a player to their coach, an adult on behalf of a
        child in their family. */
     const startable = row ? null : (() => {
+      /* my own conversation with my own coach, first — a coach may have
+         one too, and their own id is not on their own roster */
+      if (data.hasCoach && account && myCoachName && (threadKey === account.id || threadKey === myCoachName)) {
+        return { playerId: account.id, who: myCoachName, sub: tr("Your coach"), coachId: null, kind: "own" };
+      }
       if (role === "coach") {
         const r = (data.roster || []).find((x) => x.id === threadKey || x.name === threadKey);
         return r ? { playerId: r.id, who: r.name, sub: r.junior ? tr("Under 18 · a parent replies") : "",
                      coachId: account ? account.id : null, junior: !!r.junior } : null;
-      }
-      if (data.hasCoach && account && (threadKey === account.id || threadKey === coachName)) {
-        return { playerId: account.id, who: coachName, sub: tr("Your coach"), coachId: null, kind: "own" };
       }
       const kid = (data.dependants || []).find((f) => f.coachId && (f.id === threadKey || f.name === threadKey));
       return kid ? { playerId: kid.id, who: kid.coachName || tr("Their coach"),
@@ -15955,7 +16035,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); done(tr("Rebooked"), sl); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
+      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
       log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
@@ -15968,7 +16048,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); done(tr("Rebooked"), sl); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
   }
 
   return (
