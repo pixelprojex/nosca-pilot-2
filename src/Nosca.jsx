@@ -4165,8 +4165,16 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
         <span className="mt-1" style={{ ...TYPE.caption, fontSize: 9.5, color: "#fff" }}>{deleteLabel || tr("Remove")}</span>
       </button>
 
+      {/* THE SLIDING LAYER IS THE PAGE, NOT A SURFACE. Its job is to be
+          opaque — it has to hide the red Remove underneath it — and
+          while page and surface were both #FFFFFF that was the same
+          thing. On the sport's paper it is not: at t.surface every
+          swipeable row in the app became a white band sitting among
+          rows on the paper, which made "you can swipe this" look like
+          a different kind of object. It reads as the page until a
+          thumb actually moves it. */}
       <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-           style={{ transform: `translateX(${dx}px)`, background: t.surface,
+           style={{ transform: `translateX(${dx}px)`, background: t.page,
                     transition: st.current ? "none" : "transform 320ms cubic-bezier(.22,1,.36,1)",
                     touchAction: "pan-y" }}>
         {children}
