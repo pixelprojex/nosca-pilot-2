@@ -52,9 +52,15 @@ const { check, results, summary } = M.checker("shortcuts");
     /* --- into the editor from the home screen --- */
     await byText(page, "Edit shortcuts").first().click(); await page.waitForTimeout(1000);
     const t1 = await text(); await shot("02-editor");
-    check("(b) Edit shortcuts opens the editor with a preview, a size and both lists",
-      t1.includes("Shortcuts") && /PREVIEW/i.test(t1) && /SIZE/i.test(t1) && /SHOWING/i.test(t1) && /NOT SHOWING/i.test(t1), t1.slice(0, 220));
+    /* the board is the editor now — the real grid, arranged by moving
+       it, with a size control and the ones not showing underneath */
+    check("(b) Edit shortcuts opens the board itself, arrangeable, with a size and what is not showing",
+      t1.includes("Shortcuts") && /HOLD A TILE AND MOVE IT/i.test(t1) && /SIZE/i.test(t1) && /NOT SHOWING/i.test(t1)
+      && (await page.locator('[data-arrange="grid"]').count()) === 1, t1.slice(0, 240));
     check("(b) what is not on the board is offered", /New group/.test(t1) && /Competition/.test(t1), t1.slice(0, 220));
+    check("(b) every tile on the board is a handle, and carries its own way off",
+      (await page.locator('[data-arrange-id]').count()) === 6
+      && (await page.locator('button[aria-label="Remove Drills"]').count()) === 1, String(await page.locator('[data-arrange-id]').count()));
 
     /* --- take one off --- */
     await page.locator('button[aria-label="Remove Drills"]').first().click(); await page.waitForTimeout(700);
@@ -64,10 +70,33 @@ const { check, results, summary } = M.checker("shortcuts");
     await page.locator('button[aria-label="Add New group"]').first().click(); await page.waitForTimeout(700);
     check("(c) adding puts it at the end", savedLayout().board[savedLayout().board.length - 1] === "group", JSON.stringify(savedLayout().board));
 
-    /* --- move it up --- */
-    await page.locator('button[aria-label="Move up New group"]').first().click(); await page.waitForTimeout(700);
+    /* --- MOVE IT BY DRAGGING IT. A real pointer drag: press on the
+       tile, cross the 9px threshold, travel a whole cell back, let go. --- */
+    const before = savedLayout().board.slice();
+    const last = before[before.length - 1];
+    const from = await page.locator(`[data-arrange-id="${last}"] button`).first().boundingBox();
+    const target = await page.locator(`[data-arrange-id="${before[before.length - 2]}"] button`).first().boundingBox();
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from.x + from.width / 2 - 14, from.y + from.height / 2, { steps: 3 });
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 });
+    await page.waitForTimeout(160);
+    await page.mouse.up();
+    await page.waitForTimeout(800);
     const b2 = savedLayout().board;
-    check("(c) the arrows reorder", b2.indexOf("group") === b2.length - 2, JSON.stringify(b2));
+    check("(c) dragging a tile onto another moves it there",
+      b2.length === before.length && b2[b2.length - 2] === last && b2.join("|") !== before.join("|"),
+      `${before.join("|")}  ->  ${b2.join("|")}`);
+    await shot("03-dragged");
+
+    /* --- and a keyboard reaches the same place --- */
+    const kbBefore = savedLayout().board.slice();
+    await page.locator(`[data-arrange-id="${kbBefore[0]}"] button`).first().focus();
+    await page.keyboard.press("ArrowRight"); await page.waitForTimeout(700);
+    const kb = savedLayout().board;
+    check("(c) an arrow key moves a tile too, for anyone who cannot drag",
+      kb[1] === kbBefore[0] && kb[0] === kbBefore[1], `${kbBefore.join("|")}  ->  ${kb.join("|")}`);
+    await page.keyboard.press("ArrowLeft"); await page.waitForTimeout(700);
 
     /* --- two across --- */
     await byText(page, "Two across").first().click(); await page.waitForTimeout(700);
@@ -77,8 +106,13 @@ const { check, results, summary } = M.checker("shortcuts");
     /* --- and the board itself has changed --- */
     await M.back(page); await page.waitForTimeout(1200);
     const d1 = await boardLabels(page); await shot("04-board-changed");
-    check("(d) the board drops what was removed, keeps what was added, in order",
-      !d1.includes("Drills") && d1.includes("New group") && d1.indexOf("New group") === d1.length - 2, d1.join("|"));
+    check("(d) the board drops what was removed and keeps what was added",
+      !d1.includes("Drills") && d1.includes("New group"), d1.join("|"));
+    check("(d) …in the order the editor left it in",
+      d1.map((x) => x.toLowerCase().replace(/[^a-z]/g, "")).join("|")
+        === savedLayout().board.map((id) => ({ log: "log", attend: "register", capture: "capture", tip: "tip",
+             drills: "drills", player: "addplayer", group: "newgroup", message: "message", comp: "competition" })[id]).join("|"),
+      `${d1.join("|")} · ${savedLayout().board.join("|")}`);
     check("(d) and is two across", (await boardCols(page)) === 2, `cols=${await boardCols(page)}`);
     check("(d) the added action still does its job", (await page.locator('button[aria-label="New group"]').count()) === 1, d1.join("|"));
 
@@ -95,10 +129,15 @@ const { check, results, summary } = M.checker("shortcuts");
     await byText(page, "Home").first().click(); await page.waitForTimeout(700);
     for (const id of ["Log", "Register", "Capture", "Tip", "Add player", "New group"]) {
       const b = page.locator(`button[aria-label="Remove ${id}"]`).first();
-      if (await b.count()) { await b.click(); await page.waitForTimeout(350); }
+      if (await b.count() && await b.isEnabled()) { await b.click(); await page.waitForTimeout(350); }
     }
     const left = savedLayout().board;
     check("(f) the last one on the board cannot be taken off", left.length === 1, JSON.stringify(left));
+    /* and it says so before you try: the last tile's minus is dead, not
+       a button that refuses after the fact */
+    const lastMinus = page.locator("button[aria-label^='Remove ']").first();
+    check("(f) …and its minus is disabled rather than refusing after the tap",
+      (await lastMinus.count()) === 1 && !(await lastMinus.isEnabled()), String(await lastMinus.count()));
     await shot("06-one-left");
 
     /* --- and the default can be had back --- */

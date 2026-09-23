@@ -12,14 +12,9 @@ package-lock.json
 .claude/
 .e2e-out/
 
-# built by the e2e harness (npx vite build --outDir dist-m)
-dist-m/
-
-# mock-Supabase bundles the e2e suites run against
-dist-m/
-dist-f/
-dist-f*/
-dist-r*/
-dist-v*/
-dist-run*/
-dist-w*/
+# Mock-Supabase bundles the e2e suites run against. Every round built
+# its own (dist-m, dist-f, dist-r, dist-v, dist-w, dist-y, dist-z...)
+# and every round added another line here, and twice a bundle was
+# committed because the round's letter had not been added yet. One rule:
+# nothing whose name starts dist- belongs in the repository.
+dist-*/

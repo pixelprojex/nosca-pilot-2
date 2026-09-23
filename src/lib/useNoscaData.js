@@ -765,11 +765,18 @@ export function useNoscaData(profile) {
     return {};
   };
 
+  /* The last write in the file that did not .select(). An update RLS
+     refuses comes back as success with zero rows, so a junior ticking a
+     drill saw it tick and stay ticked until the next load put it back —
+     which is exactly the "toast and pretend" the app is not allowed. */
   const tickDrill = async (id, done) => {
     setDrills((v) => v.map((d) => (d.id === id ? { ...d, done } : d)));  // optimistic
-    const { error } = await supabase.from("drills").update({ done }).eq("id", id);
-    if (error) await load();                                            // put it back if it failed
-    return { error };
+    const { data: rows, error } = await supabase.from("drills").update({ done }).eq("id", id).select("id");
+    if (error || !rows || !rows.length) {
+      await load();                                                      // put it back
+      return { error: error || { message: "Couldn't change that one." } };
+    }
+    return {};
   };
 
   const setTip = async (playerId, title, body) => {
@@ -777,6 +784,38 @@ export function useNoscaData(profile) {
       .insert({ coach_id: profile.id, player_id: playerId, title, body: body || null });
     if (!error) await load();
     return { error };
+  };
+
+  /* EVERYTHING A LESSON SETS, FOR EVERYONE WHO WAS AT IT, IN TWO WRITES.
+
+     Logging a squad used to walk the attendees and, for each one, call
+     setDrill per drill and setTip — each of which awaits a full load()
+     of every table before the next one starts. Twelve players with
+     three drills each is forty-eight inserts and forty-eight reloads,
+     several hundred queries in strict series, with "Logging…" on the
+     button the whole time. On a phone on a slow connection that is
+     indistinguishable from a hang.
+
+     One insert into drills, one into tips, one reload. */
+  const setLessonExtras = async (playerIds, titles, tip) => {
+    const ids = (playerIds || []).filter(Boolean);
+    if (!ids.length) return {};
+    const drillRows = ids.flatMap((pid) => (titles || [])
+      .map((d) => (typeof d === "string" ? d : d && d.t))
+      .filter(Boolean)
+      .map((title) => ({ coach_id: profile.id, player_id: pid, title })));
+    const tipRows = tip ? ids.map((pid) => ({ coach_id: profile.id, player_id: pid, title: tip, body: null })) : [];
+    if (!drillRows.length && !tipRows.length) return {};
+    if (drillRows.length) {
+      const { error } = await supabase.from("drills").insert(drillRows);
+      if (error) return { error };
+    }
+    if (tipRows.length) {
+      const { error } = await supabase.from("tips").insert(tipRows);
+      if (error) return { error };
+    }
+    await load();
+    return {};
   };
 
   const takeRegister = async (label, marks) => {
@@ -802,7 +841,10 @@ export function useNoscaData(profile) {
      calculation in App.jsx so the two can never disagree. */
   const isJunior = (() => {
     if (isCoach || !profile?.date_of_birth) return false;
-    const b = new Date(profile.date_of_birth);
+    /* a date column is a day. new Date("2008-09-23") is midnight UTC —
+       the evening before west of Greenwich — so on a birthday this
+       disagreed with every other age check in the app. */
+    const b = localDate(profile.date_of_birth);
     const now = new Date();
     let age = now.getFullYear() - b.getFullYear();
     if (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) age--;
@@ -1068,24 +1110,37 @@ export function useNoscaData(profile) {
   /* A thread is one coach and one player. The coach names the player;
      a player writes in their own thread; a guardian may name someone
      in their family and writes to that person's coach. */
+  /* WHOSE THREAD IS THIS, not what role am I. A coach may also be
+     somebody's player — join_coach() allows it on purpose — and their
+     own conversation with their own coach sits at the top of their
+     Chat. This branched on isCoach first, so that row came out
+     addressed `{ coach_id: me, player_id: me }`: not a thread between
+     anybody, refused by all three arms of the insert policy, and shown
+     to the coach as a Postgres error. A coach writing to themselves is
+     a coach writing as a player. */
   const threadFor = (playerId) => {
-    if (isCoach) return { coach_id: profile.id, player_id: playerId };
+    if (isCoach && playerId && playerId !== profile.id) return { coach_id: profile.id, player_id: playerId };
     const kin = playerId && playerId !== profile.id ? dependants.find((f) => f.id === playerId) : null;
     if (kin) return { coach_id: kin.coachId, player_id: kin.id };
     return { coach_id: (links && links.coach) || profile.coach_id, player_id: profile.id };
   };
 
+  /* Postgres says "new row violates row-level security policy for table
+     \"messages\"". Nobody reading that learns anything they can act on,
+     and it was going straight into the toast. */
+  const cannotSend = { message: "That message didn't send. Check you're still with this coach." };
   const sendMessage = async (playerId, body) => {
     if (!isCoach && isJunior) {
       return { error: { message: "Messages with your coach are handled by your parent or guardian." } };
     }
-    const { error } = await supabase.from("messages").insert({
-      ...threadFor(playerId),
-      sender_id: profile.id,
-      body,
-    });
-    if (!error) await load();
-    return { error };
+    const thread = threadFor(playerId);
+    if (!thread.coach_id || !thread.player_id) {
+      return { error: { message: isCoach ? "Add them to your roster first." : "You don't have a coach yet." } };
+    }
+    const { error } = await supabase.from("messages").insert({ ...thread, sender_id: profile.id, body });
+    if (error) return { error: cannotSend };
+    await load();
+    return {};
   };
 
   /* One message to every player on the roster, as separate threads —
@@ -1095,8 +1150,9 @@ export function useNoscaData(profile) {
     const rows = roster.map((r) => ({ coach_id: profile.id, player_id: r.id, sender_id: profile.id, body }));
     if (!rows.length) return { error: { message: "Nobody on your roster yet." }, count: 0 };
     const { data: sent, error } = await supabase.from("messages").insert(rows).select("id");
-    if (!error) await load();
-    return { error, count: (sent || []).length };
+    if (error) return { error: cannotSend, count: 0 };
+    await load();
+    return { error: null, count: (sent || []).length };
   };
 
   /* Everything the other side sent in this thread, marked read. Local
@@ -1277,7 +1333,14 @@ export function useNoscaData(profile) {
           setNotifications((v) => (v.some((x) => x.id === n.id) ? v : [toNotification(n), ...v]));
           later();
         });
-      for (const table of ["lessons", "bookings", "messages", "coach_requests", "drills", "tips", "attendance_sessions", "profiles", "preferences"]) {
+      /* Every table load() reads. competitions, recurring, reviews and
+         families were read on every load and listened to on none, so a
+         competition added on one phone, a standing slot changed, a
+         review left or somebody joining the family did not reach the
+         other device until something else happened to cause a reload. */
+      for (const table of ["lessons", "bookings", "messages", "coach_requests", "drills", "tips",
+                           "attendance_sessions", "attendance_marks", "profiles", "preferences",
+                           "competitions", "recurring", "reviews", "families"]) {
         channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, later);
       }
       channel = channel.subscribe();
@@ -1421,7 +1484,7 @@ export function useNoscaData(profile) {
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
-    savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview,
+    savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview, setLessonExtras,
     joinCoach, respondToRequest, cancelRequest, leaveCoach,
     createFamily, joinFamily, renameFamily, leaveFamily,
     verifyPassword, deleteAccount, lookupCode,

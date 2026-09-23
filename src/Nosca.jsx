@@ -1176,16 +1176,34 @@ let _hapticEl = null;
 /* The pair is put in the document before it is first needed, so the
    very first tap of a session is felt too. */
 if (typeof document !== "undefined") {
-  const ensure = () => { if (document.body && !document.getElementById("nosca-haptic")) _iosTick(false); };
+  const ensure = () => { if (document.body) _iosTick(false); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ensure); else setTimeout(ensure, 0);
 }
+/* THE SWITCH HAS TO BE A SWITCH.
+
+   The haptic comes from iOS drawing and toggling a real switch control.
+   This pair had `appearance:none` on the input — which is the one
+   declaration that opts out of the native switch rendering — inside a
+   wrapper that was `width:0;height:0;overflow:hidden`, so the control
+   had no appearance and no box either. There was nothing for iOS to
+   animate, so there was nothing to feel, and every haptic in the app
+   had been doing nothing on an iPhone since.
+
+   It is rendered now: a real switch, one pixel, imperceptible but
+   present, behind everything and deaf to pointers. Nothing here may
+   become display:none, visibility:hidden, opacity:0 or appearance:none
+   again — each of those takes the feeling away. */
 const _iosTick = (fire = true) => {
   if (typeof document === "undefined") return false;
-  if (!_hapticEl) {
+  if (!_hapticEl || !_hapticEl.isConnected) {
+    const old = document.getElementById("nosca-haptic-wrap");
+    if (old) old.remove();
     const wrap = document.createElement("div");
+    wrap.id = "nosca-haptic-wrap";
     wrap.setAttribute("aria-hidden", "true");
-    wrap.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none";
-    wrap.innerHTML = '<input type="checkbox" switch id="nosca-haptic" style="appearance:none"><label for="nosca-haptic"></label>';
+    wrap.style.cssText = "position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0.001;pointer-events:none;z-index:-1";
+    wrap.innerHTML = '<input type="checkbox" switch id="nosca-haptic" style="width:1px;height:1px;margin:0">'
+                   + '<label for="nosca-haptic" data-haptic="tick" style="display:block;width:1px;height:1px"></label>';
     document.body.appendChild(wrap);
     _hapticEl = wrap.querySelector("label");
   }
@@ -1193,10 +1211,18 @@ const _iosTick = (fire = true) => {
   try { _hapticEl.click(); return true; } catch (e) { return false; }
 };
 
+/* navigator.vibrate returns false when the browser refused it — some
+   in-app browsers define the function and do nothing. Falling through
+   to the switch on a false is free, and is the difference between a
+   haptic and no haptic inside an embedded browser. */
+const _vibrate = (pattern) => {
+  try { return !!(navigator.vibrate && navigator.vibrate(pattern)); } catch (e) { return false; }
+};
+
 export const haptic = (ms = 8) => {
   if (!HAPTICS_ON) return;
   try {
-    if (navigator.vibrate) { navigator.vibrate(ms); return; }
+    if (_vibrate(ms)) return;
     _iosTick();
   } catch (e) {}
 };
@@ -1207,7 +1233,7 @@ export const haptic = (ms = 8) => {
 const buzz = (pattern) => {
   if (!HAPTICS_ON) return;
   try {
-    if (navigator.vibrate) { navigator.vibrate(pattern); return; }
+    if (_vibrate(pattern)) return;
     /* iOS only honours the switch trick inside the user's gesture, and a
        setTimeout — even of 0 — is outside it. Every pattern used to be
        scheduled that way, so nothing but the plain tap was ever felt on
@@ -1673,11 +1699,18 @@ const ShimmerCSS = () => (
     @keyframes converge{0%{transform:translateX(var(--from))}100%{transform:translateX(0)}}
     @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
     @keyframes dashRun{0%{stroke-dashoffset:0;opacity:0}10%{opacity:.5}85%{opacity:.5}100%{stroke-dashoffset:-108;opacity:0}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes tickIn{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
     @keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     @keyframes liftIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
     @keyframes slideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+    /* A SCREEN ARRIVES FROM THE SIDE IT CAME FROM. The app had no push
+       or pop transition at all — every screen cut straight in, which is
+       the single biggest reason it read as a set of pages rather than
+       an app. Tabs do not slide, because on iOS they never have. */
+    @keyframes pushIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes popIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
     @keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
     @keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
@@ -1729,6 +1762,16 @@ const ShimmerCSS = () => (
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+    /* REDUCED MOTION LANDS THINGS INSTANTLY; IT DOES NOT ERASE THEM.
+       There was a second rule under this one — *{animation:none} — and
+       being last it won. Anything whose visible state is supplied by
+       its animation then never arrived, so a phone with Reduce Motion
+       turned on opened the app on a plain green rectangle and held it
+       there for five seconds: the mark, the wordmark, the rule and the
+       sport line are all drawn by keyframes. It also made every screen
+       in the app look deader than the code says it is. Duration of
+       0.01ms is the correct way to honour the preference — the element
+       is placed at its end state at once, and stays. */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -1737,7 +1780,7 @@ const ShimmerCSS = () => (
         scroll-behavior: auto !important;
       }
     }
-    @media (prefers-reduced-motion:reduce){*{animation:none!important}}`}</style>
+    `}</style>
 );
 function HomeSkeleton() {
   return (
@@ -1775,10 +1818,23 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   /* Before sign-up there is no sport, so the opening is the brand alone. */
   const branded = !sport;
   const cfg = SPORTS[sport] || null;
-  /* one palette: the opening is the brand whether or not a sport is
-     known — the sport tints nothing */
-  const accent = BRAND_PAPER;
-  const bg = BRAND_COLOUR;
+  /* THE OPENING IS THE SPORT'S, ONCE THERE IS A SPORT.
+
+     This had been collapsed to one palette — every sport opened on the
+     same bottle green, so the six were indistinguishable at the one
+     moment the app has your whole attention. CLAUDE.md's rule is that
+     the brand colour is "the splash BEFORE a sport", and that the sport
+     tints the app inside a sport; this is inside one. Each sport's ink
+     is its own near-black and each accent its own, so the six openings
+     are six different rooms.
+
+     The mark and the wordmark stay paper on all six — the accent
+     carries the light (the pool, the ripples, the orbit, the linking
+     arc, the rule) and never a word, because the sport accents sit
+     between 4:1 and 5:1 on their own ink and small tracked type has no
+     business being the thing that tests it. */
+  const accent = branded ? BRAND_PAPER : cfg.theme.accent;
+  const bg = branded ? BRAND_COLOUR : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 
   const HOLD = branded ? 5400 : 4000;
@@ -1852,7 +1908,7 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
                     animation: `trackFill 950ms cubic-bezier(.35,0,.15,1) ${T.rule}ms forwards` }} />
 
       <div style={{ position: "relative", marginTop: 24, fontFamily: ui, fontSize: 10.5, letterSpacing: "0.3em",
-                    textTransform: "uppercase", color: accent, opacity: 0,
+                    textTransform: "uppercase", color: branded ? accent : "rgba(244,246,243,0.82)", opacity: 0,
                     animation: `fadeUp 900ms cubic-bezier(.32,.72,0,1) ${T.sub}ms forwards` }}>
         {branded ? "Coaching that carries" : `${cfg.label} · ${roleLabel}`}
       </div>
@@ -5318,6 +5374,7 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
   const submit = async () => {
     if (code.trim().length < 4) return;
     setBusy(true); setErr("");
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await onJoin(code);
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message); }
@@ -5427,6 +5484,7 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
   const join = async () => {
     if (!found || already || busy) return;
     setBusy(true); setErr("");
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = family ? await onJoinFamily(invite.code) : await onJoinCoach(invite.code);
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't join.")); return; }
@@ -5636,7 +5694,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
     if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
     chime();
   };
-  const join = async (c) => { setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
+  const join = async (c) => { hapticCommit(); setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
   const share = async () => {
     if (!code) return;
     haptic(8); soft();
@@ -7008,7 +7066,13 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
    with a thumb, mid-lesson, without reading. What it holds rides in the
    corner as a count, so the box never grows a sentence. Tiles replace
    every list of actions that used to be rows of words. */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76 }) {
+/* A TILE CAN ARRIVE. Round after round of simplification took the
+   entrance off everything, and the tile system that replaced the cards
+   never had one — so the busiest screens in the app snapped into
+   existence fully formed, which reads as a screenshot rather than an
+   app. `delay` is fed by TileGrid, which staggers its own children, so
+   a grid settles rather than appears. */
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0 }) {
   const t = useT();
   const bg = tone === "accent" ? t.accent : on ? t.ink : t.wash;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
@@ -7021,6 +7085,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
             className="relative w-full flex flex-col items-center justify-center gap-1.5 active:opacity-80"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, border: `1px solid ${edge}`, willChange: "transform",
+                     animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`,
                      transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -7039,8 +7104,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
     </button>
   );
 }
-const TileGrid = ({ children, cols = 3 }) => (
-  <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>{children}</div>
+/* and a grid deals its own tiles, 34ms apart, capped so a nine-tile
+   sheet does not become a wait */
+const TileGrid = ({ children, cols = 3, stagger = 34 }) => (
+  <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+    {stagger === 0 ? children : React.Children.map(children, (c, i) =>
+      (c && c.type === ActTile && c.props.delay == null)
+        ? React.cloneElement(c, { delay: Math.min(i, 8) * stagger })
+        : c)}
+  </div>
 );
 
 /* a fact and its value, on one line. A label over a value in two lines
@@ -8402,7 +8474,7 @@ function TipBody({ prompts, onSet, close }) {
    Everything under it is one line each, with air. The whole screen
    reads in about three seconds. */
 function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = [], attendPct,
-                      practice, tip, onRequest, nextEvent, juvenile }) {
+                      practice, tip, onRequest, nextEvent, juvenile, calledOff, onRebook }) {
   const t = useT();
   const ready = useLoad();
   const todo = practice.filter((x) => !x.done);
@@ -8465,6 +8537,30 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
               {tipBody && <span className="relative block mt-2" style={{ ...TYPE.small, color: t.sub }}>{tipBody}</span>}
             </button>
           )}
+
+          {/* CALLED OFF. The one thing on this screen that is not good
+              news, so it sits above the board where it cannot be
+              scrolled past, and carries the way to a new time rather
+              than only the bad news. */}
+          {/* the harness hands a plain string; a real account hands the
+              booking row it came from */}
+          {calledOff && (() => { const off = typeof calledOff === "string" ? { status: "weather", when: calledOff } : calledOff; return (
+            <button onClick={() => { haptic(9); soft(); onRebook ? onRebook() : go("calendar"); }}
+                    className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-70"
+                    style={{ minHeight: 68, borderRadius: R.surface, marginBottom: SPACE.block,
+                             background: `${DANGER}0F`, border: `1px solid ${HAIR(DANGER, 0.35)}` }}>
+              <CloudRain size={18} color={DANGER} strokeWidth={1.8} />
+              <span className="flex-1 min-w-0">
+                <span className="block" style={{ ...TYPE.eyebrow, color: DANGER }}>
+                  {off.status === "weather" ? tr("Called off") : tr("Cancelled")}
+                </span>
+                <span className="block truncate" style={{ ...TYPE.body, color: t.ink, marginTop: 2 }}>
+                  {off.when || [off.d && off.m ? `${off.d} ${off.m}` : null, off.time].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+              <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Rebook")}</span>
+            </button>
+          ); })()}
 
           {/* COMING UP — the rest of what is booked.
 
@@ -9034,7 +9130,13 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
   return (
     <LessonDetail banner={banner} lesson={live ? lesson : { ...lesson, note: lesson.note || cfg.transcript }} role="coach" live={live} cfg={cfg} playerName={name} items={items}
                   loading={live && media === null && count > 0} drills={drills || []} tips={tips || []} attendance={attendance} groupLesson={lesson.type === "Group"}
-                  onSetDrills={() => assignDrills(lesson.playerId || name, lesson.focusId)} onMessage={() => push("thread:" + (lesson.playerId || name))}
+                  onSetDrills={() => assignDrills(lesson.playerId || name, lesson.focusId)}
+                  /* A GROUP'S SEVERAL PEOPLE ARE NOT ONE CONVERSATION. This
+                     pushed thread:<the group's name>, which matches nobody, so
+                     Message on a group lesson opened a composer that could not
+                     send. Writing to a whole group is the broadcast, and that
+                     lives on the picker. The tile is simply not there. */
+                  onMessage={live && !lesson.playerId ? null : () => push("thread:" + (lesson.playerId || name))}
                   onLogAnother={() => { if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }}
                   onDownload={live && onDownload ? (its) => onDownload(lesson, its) : null}
                   onEdit={live && onEdit ? () => onEdit(lesson) : null}
@@ -9227,6 +9329,152 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
    nobody has to leave and come back to see what they did. The last
    remaining action cannot be turned off — an empty board is not a
    preference, it is a broken screen. */
+/* ==================================================================
+   ARRANGE BY DRAGGING THE THING ITSELF
+
+   The board was edited through a list: two chevrons and a minus per
+   row, three sections, and a preview of the grid somewhere above that
+   you could not touch. A coach reading it had to hold the mapping
+   between a row four down a list and a tile two across a grid in their
+   head. The board is the editor now — press a tile, it lifts, the
+   others flow out of its way, and where you let go is where it lives.
+
+   Hand-rolled on pointer events, because there is no drag library here
+   and iOS Safari is the target. The grid is uniform, so a tile's home
+   is its index: row = i / cols, col = i % cols. Nothing is reordered in
+   the DOM while a finger is down — each tile is translated to the slot
+   it WOULD hold, which is what makes the others glide rather than jump,
+   and means one commit at the end rather than a write per crossing.
+
+   `touch-action: none` on a tile stops iOS claiming the gesture for a
+   scroll; the page still scrolls from anywhere that is not a tile. The
+   drag begins after 9px of movement, so a plain tap still picks the
+   tile's own action (here, taking it off the board).
+================================================================== */
+function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accentId, h }) {
+  const t = useT();
+  const wrap = useRef(null);
+  const [drag, setDrag] = useState(null);      // { id, from, over, dx, dy }
+  const geo = useRef({ w: 0, h: 0, gap: 12 });
+
+  const measure = () => {
+    const el = wrap.current;
+    if (!el) return;
+    const box = el.getBoundingClientRect();
+    const gap = 12;
+    geo.current = { gap, w: (box.width - gap * (cols - 1)) / cols, h: h + 0 };
+  };
+
+  /* where the tile at array index i should sit while `from` is being
+     dragged over `over` — everything between them shuffles by one */
+  const slotOf = (i, from, over) => {
+    if (i === from) return over;
+    if (from < over && i > from && i <= over) return i - 1;
+    if (from > over && i >= over && i < from) return i + 1;
+    return i;
+  };
+  const offsetFor = (i) => {
+    if (!drag) return null;
+    const v = slotOf(i, drag.from, drag.over);
+    if (v === i) return null;
+    const { w, h: th, gap } = geo.current;
+    return { x: ((v % cols) - (i % cols)) * (w + gap),
+             y: (Math.floor(v / cols) - Math.floor(i / cols)) * (th + gap) };
+  };
+
+  const start = (e, id, i) => {
+    if (e.button != null && e.button !== 0) return;
+    measure();
+    const sx = e.clientX, sy = e.clientY;
+    const el = e.currentTarget;
+    let live = false;
+    const move = (ev) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!live) {
+        if (Math.abs(dx) + Math.abs(dy) < 9) return;
+        live = true;
+        haptic(12);                                  // inside the gesture, so it is felt
+        try { el.setPointerCapture(ev.pointerId); } catch (err) { /* older webkit */ }
+      }
+      const { w, h: th, gap } = geo.current;
+      const col = Math.round(((i % cols) * (w + gap) + dx) / (w + gap));
+      const row = Math.round((Math.floor(i / cols) * (th + gap) + dy) / (th + gap));
+      const over = Math.max(0, Math.min(ids.length - 1, row * cols + Math.max(0, Math.min(cols - 1, col))));
+      setDrag((d) => {
+        if (d && d.over !== over) haptic(6);
+        return { id, from: i, over, dx, dy };
+      });
+    };
+    const end = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", end);
+      el.removeEventListener("pointercancel", end);
+      setDrag((d) => {
+        if (d && live && d.over !== d.from) {
+          const next = ids.slice();
+          next.splice(d.over, 0, next.splice(d.from, 1)[0]);
+          hapticCommit(); soft(); onReorder(next);
+        }
+        return null;
+      });
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+  };
+
+  return (
+    <div ref={wrap} className="grid" data-arrange="grid"
+         style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {ids.map((id, i) => {
+        const A = COACH_ACTIONS[id];
+        const lifted = drag && drag.id === id;
+        const off = offsetFor(i);
+        const accent = id === accentId;
+        const bg = accent ? t.accent : t.wash;
+        const fg = accent ? t.onAccent : t.ink;
+        return (
+          <div key={id} data-arrange-id={id}
+               style={{ position: "relative", zIndex: lifted ? 5 : 1,
+                        transform: lifted ? `translate3d(${drag.dx}px, ${drag.dy}px, 0) scale(1.06)`
+                                 : off ? `translate3d(${off.x}px, ${off.y}px, 0)` : "none",
+                        transition: lifted ? "none" : "transform 220ms cubic-bezier(.22,1,.36,1)",
+                        willChange: "transform" }}>
+            {/* A DRAG IS NOT THE ONLY WAY IN. Arrow keys move a tile for
+                anyone on a keyboard or a switch control, who has no
+                gesture to make. */}
+            <button onPointerDown={(e) => start(e, id, i)}
+                    onKeyDown={(e) => {
+                      const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1
+                              : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+                      if (!d) return;
+                      e.preventDefault(); onNudge && onNudge(id, e.key === "ArrowDown" || e.key === "ArrowUp" ? d * cols : d);
+                    }}
+                    aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
+                    className="relative w-full flex flex-col items-center justify-center gap-1.5"
+                    style={{ minHeight: h, borderRadius: R.surface, background: bg, touchAction: "none",
+                             border: `1px solid ${accent ? "transparent" : HAIR(t.ink, 0.07)}`,
+                             boxShadow: lifted ? `0 14px 30px ${HAIR(t.ink, 0.22)}` : "none",
+                             opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
+              <A.Ico size={h >= 84 ? 22 : 19} color={fg} strokeWidth={1.6} />
+              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: fg }}>{tr(A.label)}</span>
+            </button>
+            {/* taking one off is on the tile, not four rows down a list */}
+            <button onClick={() => onRemove(id)} disabled={!canRemove}
+                    aria-label={`${tr("Remove")} ${tr(A.label)}`}
+                    className="absolute flex items-center justify-center active:opacity-60 disabled:opacity-25"
+                    style={{ top: -7, left: -7, width: 24, height: 24, borderRadius: 12, zIndex: 6,
+                             background: t.page, border: `1px solid ${HAIR(t.ink, 0.18)}`,
+                             opacity: drag ? 0 : 1, transition: "opacity 160ms" }}>
+              <Minus size={13} color={t.sub} strokeWidth={2.6} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function LayoutEditor({ layout = {}, onSave, pop, say }) {
   const t = useT();
   const BOARD = tr("Home"), PLUS = tr("Plus");
@@ -9243,36 +9491,19 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
     write(on ? ids.filter((x) => x !== id) : [...ids, id]);
   };
   const move = (id, d) => {
-    const i = ids.indexOf(id), j = i + d;
-    if (i < 0 || j < 0 || j >= ids.length) return;
+    const i = ids.indexOf(id);
+    if (i < 0) return;
+    /* a keyboard jump of a whole row lands on the end rather than
+       refusing, which is what a person expects from an arrow key */
+    const j = Math.max(0, Math.min(ids.length - 1, i + d));
+    if (j === i) return;
     const next = ids.slice();
     next.splice(j, 0, next.splice(i, 1)[0]);
     haptic(6); soft(); write(next);
   };
   const hidden = pool.filter((id) => !ids.includes(id));
-  const arrow = (id, d, on) => (
-    <button onClick={() => move(id, d)} disabled={!on} aria-label={d < 0 ? `${tr("Move up")} ${tr(COACH_ACTIONS[id].label)}` : `${tr("Move down")} ${tr(COACH_ACTIONS[id].label)}`}
-            className="shrink-0 flex items-center justify-center active:opacity-50 disabled:opacity-20"
-            style={{ width: 34, height: 34 }}>
-      <ChevronDown size={16} color={t.sub} strokeWidth={2}
-                   style={{ transform: d < 0 ? "rotate(180deg)" : "none" }} />
-    </button>
-  );
-  const row = (id, showing) => {
-    const A = COACH_ACTIONS[id], i = ids.indexOf(id);
-    return (
-      <div key={id} className="flex items-center gap-3 pr-1" style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-        <A.Ico size={17} color={t.sub} strokeWidth={1.7} />
-        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr(A.label)}</span>
-        {showing && arrow(id, -1, i > 0)}
-        {showing && arrow(id, 1, i < ids.length - 1)}
-        <button onClick={() => toggle(id)} aria-label={`${showing ? tr("Remove") : tr("Add")} ${tr(A.label)}`}
-                className="shrink-0 flex items-center justify-center active:opacity-60" style={{ width: 36, height: 36 }}>
-          {showing ? <Minus size={17} color={t.faint} strokeWidth={2.2} /> : <Plus size={17} color={t.accent} strokeWidth={2.2} />}
-        </button>
-      </div>
-    );
-  };
+  const gridCols = onBoard ? cols : 2;
+  const tileH = onBoard && cols === 2 ? 88 : 74;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Shortcuts")} onBack={pop}>
@@ -9281,21 +9512,24 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
             <Segmented options={[BOARD, PLUS]} value={tab} onChange={setTab} />
           </div>
 
-          {/* the real grid, at the real size */}
-          <RowHead>{tr("Preview")}</RowHead>
-          <div style={{ marginBottom: SPACE.block, opacity: 0.999, pointerEvents: "none" }} aria-hidden="true">
-            <TileGrid cols={onBoard ? cols : 2}>
-              {ids.map((id) => {
-                const A = COACH_ACTIONS[id];
-                return <ActTile key={id} h={onBoard && cols === 2 ? 88 : 74} Icon={A.Ico} label={tr(A.label)}
-                                tone={onBoard && id === "log" ? "accent" : "quiet"} onTap={() => {}} />;
-              })}
-            </TileGrid>
+          {/* THE BOARD IS THE EDITOR. Not a preview above a list of
+              rows with chevrons — the thing itself, at its real size,
+              rearranged by moving it. */}
+          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 9 }}>
+            {tr("Hold a tile and move it")}
+          </div>
+          <div style={{ marginBottom: SPACE.section }}>
+            <ArrangeGrid ids={ids} cols={gridCols} h={tileH}
+                         accentId={onBoard ? "log" : null}
+                         canRemove={ids.length > 1}
+                         onReorder={(next) => write(next)}
+                         onNudge={move}
+                         onRemove={(id) => toggle(id)} />
           </div>
 
           {onBoard && (<>
             <RowHead>{tr("Size")}</RowHead>
-            <div style={{ marginBottom: SPACE.block }}>
+            <div style={{ marginBottom: SPACE.section }}>
               <TileGrid cols={2}>
                 <ActTile h={52} label={tr("Three across")} on={cols === 3} onTap={() => { haptic(8); onSave({ boardCols: 3 }); }} />
                 <ActTile h={52} label={tr("Two across")} on={cols === 2} onTap={() => { haptic(8); onSave({ boardCols: 2 }); }} />
@@ -9303,15 +9537,16 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
             </div>
           </>)}
 
-          <RowHead>{tr("Showing")}</RowHead>
-          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-            {ids.map((id) => row(id, true))}
-          </div>
-
           {hidden.length > 0 && (<>
             <RowHead>{tr("Not showing")}</RowHead>
-            <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-              {hidden.map((id) => row(id, false))}
+            <div style={{ marginBottom: SPACE.section }}>
+              <TileGrid cols={gridCols}>
+                {hidden.map((id) => {
+                  const A = COACH_ACTIONS[id];
+                  return <ActTile key={id} h={tileH} Icon={A.Ico} label={tr(A.label)}
+                                  aria={`${tr("Add")} ${tr(A.label)}`} onTap={() => toggle(id)} />;
+                })}
+              </TileGrid>
             </div>
           </>)}
 
@@ -11704,6 +11939,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
   const rename = async (d) => {
     const v = (draft[d.id] ?? d.t).trim();
     if (!v || v === d.t) { setDraft((x) => ({ ...x, [d.id]: undefined })); return; }
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const r = onRenameDrill ? await onRenameDrill(d.id, v) : null;
     if (r && r.error) { say && say(r.error.message); return; }
     setDraft((x) => ({ ...x, [d.id]: undefined }));
@@ -12409,6 +12645,7 @@ function BroadcastBody({ nouns, say, close, onSend }) {
   const send = async () => {
     if (onSend) {
       setBusy(true);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await onSend(text.trim());
       setBusy(false);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send")); return; }
@@ -12553,6 +12790,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
   const save = async () => {
     if (onSave) {
       setBusy(true);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await onSave(clubName);
       setBusy(false);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
@@ -12994,6 +13232,7 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
   const save = async () => {
     if (onSave) {
       setBusy(true);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await onSave({ name: f.Name, phone: f.Phone, ...(role === "coach" ? { club: f.Club } : {}) });
       setBusy(false);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
@@ -13330,6 +13569,7 @@ function PushPrompt({ userId, say }) {
   /* one row, the height of an alert row: what it offers, and the answer */
   const turnOn = async () => {
     if (busy) return; setBusy(true);
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const r = await subscribePush(supabase, userId);
     setBusy(false);
     if (r && r.ok) { remember(); say && say(tr("This phone will be told")); setState("hidden"); }
@@ -13649,6 +13889,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
     if (busy) return;
     if (!focus.trim()) { setErr(tr("A lesson needs a focus.")); return; }
     setBusy(true); setErr("");
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await onSave({ focus, subs, note, date });
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't save that.")); return; }
@@ -14019,6 +14260,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   const acceptAsk = async (r) => {
     if (data) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.confirmBooking(r.id);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't confirm that.")); return; }
       hapticSuccess(); chime();
@@ -14222,6 +14464,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        coach's session, and the database tells them itself. A whole day
        goes in one write; a single lesson goes on its own. */
     if (data) {
+      hapticWarn();   /* calling a day off is felt as it is decided, not after the write */
       const day = callOffFor || todayMD;
       const res = scope === "day"
         ? await data.callOffDay(isoOf(day.m, day.d), "weather")
@@ -14279,6 +14522,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const savedHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
   const [slots, setSlots] = useState(savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots : ALL_TIMES);
   const [duration, setDuration] = useState((savedHours && Number(savedHours.duration)) || 45);
+  /* AND THEY FOLLOW WHAT WAS SAVED, NOT ONLY WHAT WAS THERE AT MOUNT.
+
+     These two were useState initialisers and nothing else, so they read
+     the account's hours once and never again. Set-yourself-up is an
+     overlay — Nosca does not remount when it closes — so a coach who
+     picked 8:00 and 9:00 and sixty minutes there came back to Settings
+     and saw all eight defaults and forty-five. That alone is only
+     wrong on screen; the damage is the next line, because writeAvail
+     sends `{ ...liveHours, days, duration, slots }`, so the moment
+     they toggled any day their real hours and lesson length were
+     overwritten with the built-in defaults. The same happened after
+     another device changed them and realtime reloaded prefs. */
+  const savedSlots = savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots.join("|") : "";
+  const savedDur = savedHours && Number(savedHours.duration) ? Number(savedHours.duration) : 0;
+  useEffect(() => { if (savedSlots) setSlots(savedSlots.split("|")); }, [savedSlots]);
+  useEffect(() => { if (savedDur) setDuration(savedDur); }, [savedDur]);
   const [recurrence, setRecurrence] = useState("once");
   /* A real day: several behind you and unlogged, several still ahead. */
   /* A full day, so the folds carry a realistic load. */
@@ -14493,6 +14752,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   const endSeries = async (rec) => {
     if (data) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const r = await data.removeRecurring(rec.id);
       if (r && r.error) { hapticWarn(); say(r.error.message || tr("Couldn't end that.")); return; }
       say(`${rec.who.split(" ")[0]}'s arrangement ended`); return;
@@ -14538,6 +14798,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const openWaitlist = freshAccount ? [] : waitlist;
   const acceptRequest = async (r) => {
     if (data && r.id) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.respondToRequest(r.id, true);
       if (res && res.error) { hapticWarn(); say(res.error.message); return; }
       hapticSuccess(); chime(); say(`${r.name.split(" ")[0]} ${tr("added to your roster")}`); return;
@@ -14546,6 +14807,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   const declineRequest = async (r) => {
     if (data && r.id) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.respondToRequest(r.id, false);
       if (res && res.error) { hapticWarn(); say(res.error.message); return; }
       hapticWarn(); decline(); say(tr("Declined")); return;
@@ -14611,6 +14873,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
   const screen = stack[stack.length - 1];
+  /* which way the last move went, so the incoming screen comes from the
+     side it came from. Every root tab shares one key, so switching tabs
+     neither slides nor remounts — a pushed screen gets its own. */
+  const depth = stack.length;
+  const lastDepth = useRef(depth);
+  const [pushDir, setPushDir] = useState(0);
+  useEffect(() => {
+    setPushDir(depth > lastDepth.current ? 1 : depth < lastDepth.current ? -1 : 0);
+    lastDepth.current = depth;
+  }, [depth]);
   /* THE COACH'S name — for a coach that is themselves, for a player the
      person coaching them. Never use this for "who is signed in": that is
      myName below. Passing coachName to the header avatar is what made
@@ -14618,6 +14890,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const coachName = account
     ? (role === "coach" ? account.name : (data && data.coachName) || "Your coach")
     : role === "coach" ? (coachSport === "tennis" ? "Luca Ferri" : "Ray Doyle") : (activeProfile?.name || "Marcus Tran");
+  /* AND WHO COACHES *ME*, which for a coach is not themselves. A coach
+     may take lessons of their own — join_coach() allows it — and the
+     row at the top of their Chat is that conversation. It was labelled
+     with `coachName`, which for a coach is their own name, so a coach
+     with a coach saw their own name and initials where their coach's
+     belonged. Null when nobody coaches me. */
+  const myCoachName = data ? (data.coachName || null) : (role === "coach" ? null : coachName);
   /* WHO IS SIGNED IN. Their own name, their own picture, their own
      settings — whatever their role, and whoever coaches them. */
   const myName = account ? account.name : (role === "coach" ? coachName : (activeProfile?.name || "Marcus Tran"));
@@ -14654,6 +14933,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const myBookings = data
     ? (liveBookingRows || []).filter((b) => b.playerId === account.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
     : bookings.filter((b) => b.connId === conn?.id);
+  /* A LESSON CALLED OFF IS NOT A LESSON THAT QUIETLY DISAPPEARS.
+
+     callOffDay() marks every booking of that day `weather` and the
+     trigger tells the player. On the player's phone the row simply
+     vanished from Coming up — myBookings keeps only requested and
+     confirmed — and their home said nothing, because the notice was
+     passed to PlayerHome as a `calledOff` prop the component does not
+     take, fed by state nothing ever set. The only trace was a line in
+     the bell with no way to a new time. It is read from the bookings
+     themselves now, so it is true by construction. */
+  const calledOffMine = data
+    ? (liveBookingRows || [])
+        .filter((b) => b.playerId === account.id && (b.status === "weather" || b.status === "cancelled")
+                       && b.date && b.date >= isoOf(todayMD.m, todayMD.d))
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0] || null
+    : null;
   /* A player's requests, waiting on the coach. */
   const liveAsks = data
     ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date }))
@@ -14839,6 +15134,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                               [coachSport]: [...out.tips.filter((x) => !had.includes(x)), ...had] };
       }
     }
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await data.savePrefs(patch);
     if (res && res.error) { hapticWarn(); say(res.error.message); return; }
     if (out) done(tr("You're set up"), tr("Hours, drills and tips saved"));
@@ -14977,9 +15273,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* anything the coach set alongside the lesson — for everyone who
          was there, not the first name on the list */
       const recipients = isGroup ? attendeeIds : (match?.id ? [match.id] : []);
-      for (const pid of recipients) {
-        for (const d of l.nextDrills || []) await data.setDrill(pid, typeof d === "string" ? d : d.t);
-        if (l.nextTip) await data.setTip(pid, l.nextTip, null);
+      /* two writes and one reload for the whole squad, not one of each
+         per drill per player — and a failure here is said, not buried
+         under the burst */
+      const extras = await data.setLessonExtras(recipients, l.nextDrills || [], l.nextTip || null);
+      if (extras && extras.error) {
+        hapticWarn();
+        say(extras.error.message || tr("The lesson saved; the drills didn't"));
       }
       if (prefill) setLoggedKeys((k) => new Set(k).add(lessonKey(prefill)));
       setBurst(lesson);
@@ -15008,6 +15308,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          a junior chosen on the family screen, the ask is theirs, into
          their coach's hours — whichever view of the diary it came from. */
       if (bookFor) return bookKid(bookFor, b);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
       hapticSuccess(); done(tr("Asked"), tr("Your coach will confirm.")); return;
@@ -15017,6 +15318,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const cancel = async (b) => {
     if (data) {
       if (!b || !b.id) return;
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.cancelBooking(b.id, "cancelled");
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't cancel that.")); return; }
       haptic(10); return;
@@ -15225,7 +15527,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (role === "coach") {
       const rows = (data.roster || []).filter((r) => byId[r.id]).map((r) => row(r.id, r.name, r.junior ? tr("Under 18 · a parent replies") : "", { coachId: account.id, junior: !!r.junior }));
       /* a coach who takes lessons themselves has a coach of their own to talk to */
-      if (data.hasCoach && account && coachName) rows.unshift(row(account.id, coachName, tr("Your coach"), { kind: "own", coachId: null }));
+      if (data.hasCoach && account && myCoachName) rows.unshift(row(account.id, myCoachName, tr("Your coach"), { kind: "own", coachId: null }));
       return rows.sort(order);
     }
     const rows = [];
@@ -15263,6 +15565,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return { id: "demo", code: "K7M2PQ", name: null, displayName: "Tran family", members };
   })() : null;
   const bookKid = async (kid, b) => {
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration });
     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
     hapticSuccess(); done(tr("Asked"), `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}`);
@@ -15455,7 +15758,34 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* a child's thread is listed under the coach's name but reached by
        the child's — from the family screen — so both names find it */
     const row = (liveThreads || []).find((c) => c.playerId === threadKey || c.who === threadKey || c.childName === threadKey);
-    const th = row ? (data.threads || []).find((x) => x.playerId === row.playerId) : null;
+    /* A CONVERSATION THAT HAS NOT HAPPENED YET IS STILL A CONVERSATION.
+       Chat lists every thread with a message — that is the rule, and it
+       stays. But this screen looked the person up in that same list, so
+       a coach who had never messaged anybody found every one of them
+       "not available", and the plus, the roster and the player file all
+       led to a composer whose send did nothing. The list is the history;
+       who you may write to is a different question, and the answer is
+       whoever the database would accept: a coach writes to anyone on
+       their roster, a player to their coach, an adult on behalf of a
+       child in their family. */
+    const startable = row ? null : (() => {
+      /* my own conversation with my own coach, first — a coach may have
+         one too, and their own id is not on their own roster */
+      if (data.hasCoach && account && myCoachName && (threadKey === account.id || threadKey === myCoachName)) {
+        return { playerId: account.id, who: myCoachName, sub: tr("Your coach"), coachId: null, kind: "own" };
+      }
+      if (role === "coach") {
+        const r = (data.roster || []).find((x) => x.id === threadKey || x.name === threadKey);
+        return r ? { playerId: r.id, who: r.name, sub: r.junior ? tr("Under 18 · a parent replies") : "",
+                     coachId: account ? account.id : null, junior: !!r.junior } : null;
+      }
+      const kid = (data.dependants || []).find((f) => f.coachId && (f.id === threadKey || f.name === threadKey));
+      return kid ? { playerId: kid.id, who: kid.coachName || tr("Their coach"),
+                     sub: `${tr("For")} ${kid.name.split(" ")[0]}`, coachId: kid.coachId,
+                     kind: "child", child: kid.name.split(" ")[0], childName: kid.name } : null;
+    })();
+    const open = row || startable;
+    const th = open ? (data.threads || []).find((x) => x.playerId === open.playerId) : null;
     /* names for anyone who might have written in this thread: the
        roster, the family's adults, and the coach */
     const nameOfId = Object.fromEntries([
@@ -15464,19 +15794,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ...((data.dependants || []).map((k) => [k.id, k.name])),
       ...(account ? [[account.id, account.name]] : []),
     ]);
-    const liveThread = row ? {
-      playerId: row.playerId, sub: row.sub, unread: th ? th.unread : 0, messages: th ? th.messages : [],
-      coachId: row.coachId || (th ? th.coachId : null), child: row.child || null, nameOf: (id) => nameOfId[id] || null,
-      send: (text) => data.sendMessage(row.playerId, text),
-      markRead: () => data.markRead(row.playerId),
-      onDetails: role === "coach" ? () => push("player:" + row.who)
-               : row.playerId === account.id ? () => push("coachProfile") : null,
+    const liveThread = open ? {
+      playerId: open.playerId, sub: open.sub, unread: th ? th.unread : 0, messages: th ? th.messages : [],
+      coachId: open.coachId || (th ? th.coachId : null), child: open.child || null, nameOf: (id) => nameOfId[id] || null,
+      send: (text) => data.sendMessage(open.playerId, text),
+      markRead: () => data.markRead(open.playerId),
+      onDetails: role === "coach" ? () => push("player:" + (open.playerId || open.who))
+               : open.playerId === account.id ? () => push("coachProfile") : null,
     } : {
       playerId: null, sub: "", unread: 0, messages: [],
       send: async () => ({ error: { message: tr("This conversation isn't available.") } }),
       markRead: () => {}, onDetails: null,
     };
-    body = <Thread role={role} name={row ? row.who : threadKey} pop={pop} say={say} live={liveThread} />;
+    body = <Thread role={role} name={open ? open.who : threadKey} pop={pop} say={say} live={liveThread} />;
   } else if (screen.startsWith("thread:")) {
     const threadName = screen.slice("thread:".length);
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
@@ -15891,7 +16221,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); done(tr("Rebooked"), sl); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
+      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
       log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
@@ -15904,7 +16234,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={calledOff} onReschedule={() => setSheet("reschedule")} notice={cancelNotice} onAcceptOffer={(sl) => { setCancelNotice(null); done(tr("Rebooked"), sl); }} onDismissNotice={() => setCancelNotice(null)} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
   }
 
   return (
@@ -16063,7 +16393,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <div className={`flex-1 overflow-hidden relative${reduceMotion ? " calm" : ""}`}>
             {familyGuide && inApp
               ? <FamilyGuide juvenile={juvenile} name={activeProfile?.name || signupName || "there"} onDone={() => setFamilyGuide(false)} />
-              : body}
+              : (
+                <div key={depth > 1 ? screen : "root"} className="h-full"
+                     style={{ animation: depth > 1 || pushDir < 0
+                       ? `${pushDir < 0 ? "popIn" : "pushIn"} 300ms cubic-bezier(.32,.72,0,1) both` : "none" }}>
+                  {body}
+                </div>
+              )}
           </div>
 
           {offline && inApp && (

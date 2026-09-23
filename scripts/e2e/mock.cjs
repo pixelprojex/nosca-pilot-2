@@ -507,7 +507,21 @@ async function attach(page, db, opts = {}) {
         if (table === "attendance_marks") return db.sessions.some((s) => s.id === r.session_id && s.coach_id === meId);
         if (table === "bookings") return S.isCoach ? r.coach_id === meId : (!S.iAmJunior && (r.status || "confirmed") === "requested" && (r.player_id === meId || S.looked.includes(r.player_id)) && r.coach_id === (db.profiles[r.player_id] || {}).coach_id);
         if (table === "competitions") return S.isCoach ? r.coach_id === meId : r.player_id === meId;
-        if (table === "messages") return r.sender_id === meId && !S.iAmJunior && (S.isCoach ? r.coach_id === meId : (r.player_id === meId || S.looked.includes(r.player_id)) && r.coach_id === (db.profiles[r.player_id] || {}).coach_id);
+        /* The three arms of "messages: send as yourself in your own
+           thread", as nosca.sql actually writes them. This used to let a
+           coach insert any row carrying their own coach_id, without
+           asking whether that player was theirs — so it accepted
+           { coach_id: me, player_id: me }, which Postgres refuses, and
+           the suites never saw that a coach who is also somebody's
+           player could not message their own coach. */
+        if (table === "messages") {
+          if (r.sender_id !== meId || S.iAmJunior) return false;
+          const coachOf = (pid) => (db.profiles[pid] || {}).coach_id || null;
+          if (S.isCoach && r.coach_id === meId && coachOf(r.player_id) === meId) return true;        // a coach, to one of theirs
+          if (r.player_id === meId && r.coach_id && r.coach_id === coachOf(meId)) return true;       // a player, to their coach
+          if (S.looked.includes(r.player_id) && r.coach_id === coachOf(r.player_id)) return true;    // an adult, for a child
+          return false;
+        }
         if (table === "preferences" || table === "push_subscriptions") return (r.id || r.user_id) === meId;
         if (table === "reviews") return r.player_id === meId && r.coach_id === mine.coach_id;
         if (table === "coach_requests" || table === "notifications" || table === "profiles" || table === "families") return false;   // functions and triggers only

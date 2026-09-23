@@ -1573,7 +1573,8 @@ declare t text;
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
     foreach t in array array['notifications','lessons','bookings','messages','coach_requests',
-                             'drills','tips','attendance_sessions','profiles','preferences'] loop
+                             'drills','tips','attendance_sessions','attendance_marks','profiles','preferences',
+                             'competitions','recurring','reviews','families'] loop
       if not exists (select 1 from pg_publication_tables
                      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
         execute format('alter publication supabase_realtime add table public.%I', t);
