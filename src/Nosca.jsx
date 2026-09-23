@@ -1200,6 +1200,11 @@ export const SPACE = {
 export const SHADE = (ink, rim = 0.92) => ({
   flat:   "none",
   rest:   `inset 0 1px 0 rgba(255,255,255,${rim}), 0 1px 1.5px ${HAIR(ink, 0.05)}, 0 3px 10px -2px ${HAIR(ink, 0.05)}`,
+  /* `rest` for something that is not white: same weight of shadow, no lit
+     rim. A 1px white line across the top of an accent-filled button is the
+     rim doing on a coloured fill what it was only ever meant to do on
+     paper. */
+  cast:   `0 1px 1.5px ${HAIR(ink, 0.07)}, 0 3px 10px -2px ${HAIR(ink, 0.09)}`,
   raise:  `inset 0 1px 0 rgba(255,255,255,${rim}), 0 1px 2px ${HAIR(ink, 0.06)}, 0 8px 20px -6px ${HAIR(ink, 0.10)}`,
   float:  `inset 0 1px 0 rgba(255,255,255,${rim * 0.9}), 0 2px 4px ${HAIR(ink, 0.07)}, 0 18px 40px -10px ${HAIR(ink, 0.16)}`,
   groove: `inset 0 1px 2px ${HAIR(ink, 0.07)}`,
@@ -7224,9 +7229,9 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   return (
     <button data-tour={tour} onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
             className="w-full disabled:opacity-20"
-            {...sink(t, solid ? (t.elev || ELEV).rest : "none")}
+            {...sink(t, solid ? (t.elev || ELEV).cast : "none")}
             style={{ minHeight: 54, borderRadius: R.surface, fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "0.015em",
-                     boxShadow: solid ? (t.elev || ELEV).rest : "none",
+                     boxShadow: solid ? (t.elev || ELEV).cast : "none",
                      transition: `transform ${MOTION.settle}ms ${MOTION.curve}, box-shadow ${MOTION.settle}ms, opacity ${MOTION.instant}ms`,
                      willChange: "transform", ...looks }}>{children}</button>
   );
