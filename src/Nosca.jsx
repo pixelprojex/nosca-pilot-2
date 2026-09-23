@@ -1059,10 +1059,6 @@ function darkify(theme) {
 export const ThemeCtx = createContext(NEUTRAL);
 export const useT = () => useContext(ThemeCtx);
 export const display = "'Cabinet Grotesk', ui-sans-serif, -apple-system, sans-serif";
-/* One editorial serif, used only for a single emphasised phrase inside a
-   heading — never for a whole block. Oura's technique; it is the thing
-   that makes a sentence feel written rather than generated. */
-const editorial = "'Zodiak', 'Cabinet Grotesk', ui-serif, Georgia, serif";
 export const ui = "'Switzer', 'Instrument Sans', ui-sans-serif, -apple-system, sans-serif";
 
 /* ------------------------------------------------------------------
@@ -1683,7 +1679,7 @@ function Bone({ w = "100%", h = 14, r = 8, mb = 0 }) {
   );
 }
 const ShimmerCSS = () => (
-  <style>{`@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@200,300,400,500,700,800,900&f[]=switzer@300,400,500,600,700&f[]=zodiak@300i,400i,500i&display=swap');
+  <style>{`
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
     @keyframes sp{to{transform:rotate(360deg)}}
     @keyframes bl{0%,60%,100%{opacity:.3}30%{opacity:1}}
@@ -1735,7 +1731,6 @@ const ShimmerCSS = () => (
     /* Choreography: the header settles first, then content rises under
        it. Staggering by role rather than by index is what stops a
        screen looking like a list of things that all arrived together. */
-    @keyframes headerSettle{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
     @keyframes joinLeft{0%{transform:translateX(-46px);opacity:0}55%{opacity:1}100%{transform:translateX(0);opacity:1}}
     @keyframes joinRight{0%{transform:translateX(46px);opacity:0}55%{opacity:1}100%{transform:translateX(0);opacity:1}}
     @keyframes contentRise{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
@@ -6774,8 +6769,7 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
       <div className="flex-1 overflow-y-auto" onScroll={(e) => setY(e.currentTarget.scrollTop)}>
         {large && !bare && (
           <div className="px-6 pb-9 pt-5 flex items-start gap-3 relative"
-               style={{ opacity: y > 24 ? 0 : 1, transition: "opacity 180ms",
-                        animation: "headerSettle 480ms cubic-bezier(.22,1,.36,1) both" }}>
+               style={{ opacity: y > 24 ? 0 : 1, transition: "opacity 180ms" }}>
             <span className="flex-1 min-w-0">
               <h1 style={{ ...TYPE.screen, color: t.ink, marginLeft: -1.5,
                             animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
@@ -7098,7 +7092,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
       {count > 0 && (
         <span className="absolute flex items-center justify-center rounded-full"
               style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
-                       fontFamily: ui, fontSize: 11, fontWeight: 700, color: on ? t.ink : t.page }}>{count}</span>
+                       fontFamily: ui, fontSize: 11, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
       )}
       {dot && !count && <span className="absolute rounded-full" style={{ top: 12, right: 12, width: 7, height: 7, background: on ? "#fff" : t.accent }} />}
     </button>
@@ -12820,7 +12814,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
         <div className="px-6 pb-2"><Card className="p-5">
           <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 10.5, letterSpacing: "0.13em", fontWeight: 600, color: t.faint }}>{tr("Preview — this is exactly what players see")}</div>
           <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
-            <Mark size={26} color={t.accent} /><span className="flex-1" style={{ fontFamily: display, fontSize: 17, color: "#fff" }}>{clubName || "Your club"}</span>
+            <Mark size={26} color={t.accent} /><span className="flex-1" style={{ ...TYPE.heading, color: t.ink }}>{clubName || "Your club"}</span>
             <span className="rounded-full px-3 py-1.5" style={{ background: t.accent, fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.onAccent }}>{tr("Request")}</span>
           </div>
         </Card></div>
@@ -13677,7 +13671,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {face && (
               <span className="absolute flex items-center justify-center"
                     style={{ right: -3, bottom: -3, width: 16, height: 16, borderRadius: 8,
-                             background: t.wash, boxShadow: `0 0 0 2px ${t.paper}` }}>
+                             background: t.wash, boxShadow: `0 0 0 2px ${t.page}` }}>
                 <K size={9} color={t.sub} strokeWidth={2.2} />
               </span>
             )}
@@ -13978,13 +13972,10 @@ function useTypefaces() {
     const pre = document.createElement("link");
     pre.rel = "preconnect"; pre.href = "https://api.fontshare.com"; pre.crossOrigin = "anonymous";
     document.head.appendChild(pre);
-    const link = document.createElement("link");
-    link.id = "nosca-type";
-    link.rel = "stylesheet";
-    /* Fraunces carries optical sizing and a soft axis; Instrument Sans
-       is the quieter companion. Both variable, one request each. */
-    link.href = "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@200,300,400,500,700,800,900&f[]=switzer@300,400,500,600,700&f[]=zodiak@300i,400i,500i&display=swap";
-    document.head.appendChild(link);
+    /* The stylesheet itself is in index.html, so it is in the markup the
+       phone parses before any of this runs. All this adds is the
+       preconnect, and the id so nothing does it twice. */
+    pre.id = "nosca-type";
   }, []);
 }
 
