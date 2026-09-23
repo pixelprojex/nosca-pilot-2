@@ -316,7 +316,6 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
    everywhere is what flattens an interface into a template. */
 export const R = {
   field:   6,    // inputs and time cells — crisp, typographic
-  chart:   3,    // bar and meter ends — field is too round on a 2.5px bar
   control: 10,   // buttons: firm, not bubbly
   surface: 16,   // cards and sheets hold content
   sheet:   22,   // the bottom sheet is the softest thing on screen
@@ -1124,8 +1123,6 @@ export const TYPE = {
   figureXL: { fontFamily: display, fontSize: 46, lineHeight: 0.92, letterSpacing: "-0.045em", fontWeight: 300, fontVariantNumeric: "tabular-nums lining" },
   figure:   { fontFamily: display, fontSize: 30, lineHeight: 0.94, letterSpacing: "-0.04em",  fontWeight: 300, fontVariantNumeric: "tabular-nums lining" },
   figureSm: { fontFamily: display, fontSize: 15.5, lineHeight: 1, letterSpacing: "-0.02em",   fontWeight: 500, fontVariantNumeric: "tabular-nums lining" },
-  /* the word welded under a figure. 12, because it is a word. */
-  unit:     { fontFamily: ui,      fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 },
 };
 
 /* Spread onto every number that is not already inside a figure token.
@@ -1158,8 +1155,6 @@ export const RULE = {
    name on Today, a name in the diary and a date on a player's file all
    begin on the same vertical line. */
 export const RAIL = 54;
-export const RAIL_GAP = 14;
-export const NAME_X = 24 + RAIL + RAIL_GAP;   // 92
 
 /* Four durations and no fifth, and the file's existing house curve —
    109 of its ~151 easing declarations already use it, so this names
@@ -1172,7 +1167,6 @@ export const MOTION = {
   move:    300,   // a sheet, a screen push, the tab pill
   draw:    420,   // the rule under an H1 — the only long one in the app
   curve:   "cubic-bezier(.22,1,.36,1)",
-  panel:   "cubic-bezier(.32,.72,0,1)",
 };
 
 /* Space as a system, so a screen breathes the same way everywhere.
@@ -7117,23 +7111,36 @@ function VoiceArea({ value, onChange, ph, rows = 3 }) {
    one animation on a parent — a fill-mode on the wrapper holds its
    own end state over the inline opacity in the cascade, which is
    exactly the bug `headerSettle` caused for as long as it existed. */
-const PageHead = ({ title, meta, action, tour, rule = true, pad = true }) => {
+const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap }) => {
   const t = useT();
-  return (
-    <div data-tour={tour} className={pad ? "px-6 pt-5" : ""}>
-      <div className="flex items-start gap-3">
+  /* Where the head itself is the way into a screen — the player's home
+     opens on when they are next on, and tapping it opens the diary —
+     the block IS the control, so it renders as one and the title drops
+     to a span. A button's content model is phrasing content: an <h1>
+     or a <div> inside it is invalid, and React builds the DOM through
+     createElement, so nothing corrects it on the way in. */
+  const Head = onTap ? "span" : "h1";
+  const Block = onTap ? "button" : "div";
+  const head = (
+    <>
+      <span className="flex items-start gap-3" style={{ display: "flex" }}>
         <span className="flex-1 min-w-0">
-          <h1 style={{ ...TYPE.screen, color: t.ink, marginLeft: -1.5,
-                       animation: `setIn 260ms ${MOTION.curve} both` }}>{title}</h1>
-          {meta && <p style={{ ...TYPE.lede, color: t.sub, marginTop: SPACE.tight,
-                               animation: `setIn 260ms ${MOTION.curve} 60ms both` }}>{meta}</p>}
+          <Head className="block" style={{ ...TYPE.screen, color: t.ink, marginLeft: -1.5, display: "block",
+                       animation: `setIn 260ms ${MOTION.curve} both` }}>{title}</Head>
+          {meta && <span className="block" style={{ ...TYPE.lede, color: t.sub, marginTop: SPACE.tight, display: "block",
+                               animation: `setIn 260ms ${MOTION.curve} 60ms both` }}>{meta}</span>}
         </span>
         {action}
-      </div>
-      {rule && <div style={{ marginTop: 16, marginLeft: -24, marginRight: -24,
+      </span>
+      {rule && <span className="block" style={{ display: "block", marginTop: 16, marginLeft: -24, marginRight: -24,
                              borderTop: RULE.major(t.ink), transformOrigin: "left",
                              animation: `ruleDraw ${MOTION.draw}ms ${MOTION.curve} 80ms both` }} />}
-    </div>
+    </>
+  );
+  return (
+    <Block data-tour={tour} onClick={onTap} className={`${pad ? "px-6 pt-5" : ""} ${onTap ? "w-full text-left active:opacity-60" : ""}`.trim()}>
+      {head}
+    </Block>
   );
 };
 
@@ -8690,10 +8697,10 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
         <div className="px-6 pt-4">
 
           {/* WHEN YOU ARE NEXT ON */}
-          <button data-tour="home-next" onClick={() => { haptic(7); soft(); go("calendar"); }}
-                  className="w-full text-left active:opacity-60" style={{ marginBottom: SPACE.block }}>
-            <PageHead pad={false} title={when || tr("No lesson booked")} meta={underWhen} />
-          </button>
+          <div style={{ marginBottom: SPACE.block }}>
+            <PageHead pad={false} tour="home-next" title={when || tr("No lesson booked")} meta={underWhen}
+                      onTap={() => { haptic(7); soft(); go("calendar"); }} />
+          </div>
 
           {/* the board: what a player came here to do */}
           <div style={{ marginBottom: SPACE.block }}>
