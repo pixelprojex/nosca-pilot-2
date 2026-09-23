@@ -9128,7 +9128,13 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
   return (
     <LessonDetail banner={banner} lesson={live ? lesson : { ...lesson, note: lesson.note || cfg.transcript }} role="coach" live={live} cfg={cfg} playerName={name} items={items}
                   loading={live && media === null && count > 0} drills={drills || []} tips={tips || []} attendance={attendance} groupLesson={lesson.type === "Group"}
-                  onSetDrills={() => assignDrills(lesson.playerId || name, lesson.focusId)} onMessage={() => push("thread:" + (lesson.playerId || name))}
+                  onSetDrills={() => assignDrills(lesson.playerId || name, lesson.focusId)}
+                  /* A GROUP'S SEVERAL PEOPLE ARE NOT ONE CONVERSATION. This
+                     pushed thread:<the group's name>, which matches nobody, so
+                     Message on a group lesson opened a composer that could not
+                     send. Writing to a whole group is the broadcast, and that
+                     lives on the picker. The tile is simply not there. */
+                  onMessage={live && !lesson.playerId ? null : () => push("thread:" + (lesson.playerId || name))}
                   onLogAnother={() => { if (onDuplicate) onDuplicate(lesson); else say("Duplicated — edit and publish"); }}
                   onDownload={live && onDownload ? (its) => onDownload(lesson, its) : null}
                   onEdit={live && onEdit ? () => onEdit(lesson) : null}
