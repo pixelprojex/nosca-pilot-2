@@ -1150,11 +1150,11 @@ export const RULE = {
 /* THE MEASURE. The leading column was 52 in one place, 58 in another,
    62 in a third and 64 in two more — five widths, all left-aligned, so
    no two colons in the app lined up. One right-aligned 54px column
-   now, sized on the widest real case ("18 Sep" at 15.5px Cabinet
-   tabular), so every figure column in the app ends at x = 78 and a
+   now, sized on the widest real case ("10:00 am" at 15.5px Cabinet
+   tabular), so every figure column in the app ends at x = 86 and a
    name on Today, a name in the diary and a date on a player's file all
    begin on the same vertical line. */
-export const RAIL = 54;
+export const RAIL = 62;
 
 /* Four durations and no fifth, and the file's existing house curve —
    109 of its ~151 easing declarations already use it, so this names
@@ -2399,7 +2399,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
                     className="w-full flex items-center gap-3 px-4 text-left"
                     style={{ minHeight: 52, borderRadius: R.control, background: on ? `${t.accent}0F` : t.surface,
                              border: `1px solid ${on ? `${t.accent}22` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex-1" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr(r)}</span>
               {on && <Check size={16} color={STEADY} strokeWidth={2.1} style={{ animation: "checkPop 420ms cubic-bezier(.28,1.4,.5,1) both" }} />}
             </button>
@@ -2486,7 +2486,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
                              background: on ? (r.sensitive ? `${DANGER}0D` : `${t.accent}0D`) : t.surface,
                              border: `1px solid ${on ? (r.sensitive ? `${DANGER}3A` : `${t.accent}3A`) : t.hair}`,
                              transition: "background 200ms, border-color 200ms",
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex items-center justify-center shrink-0"
                     style={{ width: 22, height: 22, borderRadius: R.control,
                              border: `1.5px solid ${on ? (r.sensitive ? DANGER : t.accent) : t.hair}`,
@@ -2580,7 +2580,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                       </button>}>
         <div className="px-6 pb-2">
           {adding && (
-            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
+            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
                    animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               <VoiceInput value={name} onChange={setName} ph={tr("Name")} autoFocus />
 
@@ -3089,7 +3089,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           <button key={i} onClick={() => { haptic(7); onHistory && onHistory(); }}
                   className="w-full flex items-baseline gap-4 py-3 text-left active:opacity-50"
                   style={{ borderBottom: RULE.hair(t.ink),
-                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
             <span className="shrink-0" style={{ width: 56, ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{l.m ? `${l.d} ${l.m}` : l.d}</span>
@@ -3227,7 +3227,7 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
               return (
                 <div key={h} className="flex items-center gap-3"
                      style={{ minHeight: 56, borderBottom: RULE.hair(t.ink),
-                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                   <button onClick={() => { if (!bk) { haptic(7); setMoving(h); } }}
                           className="shrink-0 text-left active:opacity-50"
                           style={{ width: 100, ...TYPE.figure, fontSize: 15, color: bk ? t.faint : t.ink }}>
@@ -3305,7 +3305,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
                       className="flex flex-col items-start justify-center gap-1.5 px-4 active:opacity-70"
                       style={{ minHeight: 96, borderRadius: R.surface, background: t.surface, border: `1px solid ${t.hair}`,
                                willChange: "transform", transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
-                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <o.Icon size={20} color={i < 2 ? t.accent : t.sub} strokeWidth={1.6} />
                 <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{o.label}</span>
                 <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 10.5, color: t.faint }}>{o.sub}</span>
@@ -3715,7 +3715,7 @@ function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
             full-width control is never clipped by a fraction of a pixel */}
         <div key={`s${i}`} className="relative overflow-hidden"
              style={{ width: FRAME_W * k, height: FRAME_H * k, boxSizing: "content-box", borderRadius: 26 * k + 8,
-                      border: `1px solid ${t.hair}`, boxShadow: ELEV.float, background: t.page,
+                      border: `1px solid ${t.hair}`, boxShadow: (t.elev || ELEV).float, background: t.page,
                       animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) both" }}>
           <div ref={frameRef} style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${k})`, transformOrigin: "top left", position: "relative" }}>
             <div inert="" aria-hidden="true" style={{ width: FRAME_W, height: FRAME_H, pointerEvents: "none" }}>
@@ -4118,8 +4118,8 @@ function DefaultSport({ name, mine, current, onPick, close }) {
                     style={{ minHeight: 74, borderRadius: R.surface,
                              background: on ? `${sp.theme.accent}12` : t.surface,
                              border: on ? `1px solid ${sp.theme.accent}44` : "1px solid transparent",
-                             boxShadow: on ? "none" : ELEV.rest,
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                             boxShadow: on ? "none" : (t.elev || ELEV).rest,
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />
               <span className="flex-1 min-w-0">
                 <span className="block" style={{ ...TYPE.subhead, color: t.ink }}>{sp.label}</span>
@@ -4290,7 +4290,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
           <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
                   className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                   style={{ minHeight: 62, borderBottom: RULE.hair(t.ink),
-                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             <Avatar name={r.name} size={34} />
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
             <ChevronRight size={14} color={t.trace || t.faint} />
@@ -4361,7 +4361,7 @@ function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
                   onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                   className="w-full flex items-center justify-center gap-2 mb-3 active:opacity-90"
                   style={{ minHeight: 56, borderRadius: R.control, background: t.accent, willChange: "transform",
-                           boxShadow: ELEV.raise, transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
+                           boxShadow: (t.elev || ELEV).raise, transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
                            ...TYPE.subhead, color: "#fff" }}>
             {actionLabel}
             <ArrowRight size={16} color="#fff" strokeWidth={2.1} />
@@ -4462,7 +4462,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
             return (
               <div key={r.id} className="flex items-center gap-3"
                    style={{ minHeight: 62, borderBottom: RULE.hair(t.ink),
-                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={32} />
                 <span className="flex-1 min-w-0 truncate"
                       style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink }}>{r.name}</span>
@@ -4535,7 +4535,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
             <button key={key} data-tour={i === 0 ? "attend-row" : undefined} onClick={() => open(l)}
                     className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                     style={{ minHeight: 66, borderBottom: RULE.hair(t.ink),
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <Rail>{l.time}</Rail>
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-2">
@@ -4579,7 +4579,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                       onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 58, borderBottom: RULE.hair(t.ink),
-                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={30} />
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
                 <ChevronRight size={14} color={t.trace || t.faint} />
@@ -4743,7 +4743,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
                   style={{ width: 68, height: 68, borderRadius: 999,
                            background: live ? DANGER : "#fff",
                            border: `3px solid ${live ? DANGER : t.ink}`,
-                           boxShadow: ELEV.raise,
+                           boxShadow: (t.elev || ELEV).raise,
                            transition: "background 200ms, border-radius 200ms" }}>
             {live && <span className="block mx-auto" style={{ width: 22, height: 22, borderRadius: 4, background: "#fff" }} />}
           </button>
@@ -5248,7 +5248,7 @@ function ViewSwitch({ view, setView, onDark, tour }) {
                   className="flex items-center gap-1.5 px-3.5 active:opacity-70"
                   style={{ minHeight: 34, borderRadius: R.pill,
                            background: on ? (onDark ? "rgba(255,255,255,0.92)" : t.surface) : "transparent",
-                           boxShadow: on && !onDark ? ELEV.rest : "none",
+                           boxShadow: on && !onDark ? (t.elev || ELEV).rest : "none",
                            transition: "background 220ms" }}>
             <o.Ico size={13} strokeWidth={2}
                    color={on ? (onDark ? "#111" : t.accent) : (onDark ? "rgba(255,255,255,0.7)" : t.faint)} />
@@ -5327,7 +5327,7 @@ function AttendanceScreen({ role, cfg, records, rule, pop }) {
                   {rows.map((r, i) => (
                     <div key={i} className="flex items-center gap-3.5 py-3.5"
                          style={{ borderBottom: RULE.hair(t.ink),
-                                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                       <span className="shrink-0" style={{ width: 54, ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>
                         {r.date}
                       </span>
@@ -6139,7 +6139,7 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
                    border: accent ? `1px solid ${accent}2E` : "1px solid transparent",
-                   boxShadow: accent ? "none" : ELEV.rest,
+                   boxShadow: accent ? "none" : (t.elev || ELEV).rest,
                    transition: "transform 140ms cubic-bezier(.22,1,.36,1)", willChange: "transform",
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>
       {/* one pass of light as it arrives, never again */}
@@ -7139,15 +7139,15 @@ const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap })
       <span className="flex items-start gap-3" style={{ display: "flex" }}>
         <span className="flex-1 min-w-0">
           <Head className="block" style={{ ...TYPE.screen, color: t.ink, marginLeft: -1.5, display: "block",
-                       animation: `setIn 260ms ${MOTION.curve} both` }}>{title}</Head>
+                       animation: `setIn 260ms ${MOTION.curve} backwards` }}>{title}</Head>
           {meta && <span className="block" style={{ ...TYPE.lede, color: t.sub, marginTop: SPACE.tight, display: "block",
-                               animation: `setIn 260ms ${MOTION.curve} 60ms both` }}>{meta}</span>}
+                               animation: `setIn 260ms ${MOTION.curve} 60ms backwards` }}>{meta}</span>}
         </span>
         {action}
       </span>
       {rule && <span className="block" style={{ display: "block", marginTop: 16, marginLeft: -24, marginRight: -24,
                              borderTop: RULE.major(t.ink), transformOrigin: "left",
-                             animation: `ruleDraw ${MOTION.draw}ms ${MOTION.curve} 80ms both` }} />}
+                             animation: `ruleDraw ${MOTION.draw}ms ${MOTION.curve} 80ms backwards` }} />}
     </>
   );
   return (
@@ -7195,13 +7195,13 @@ const Ruled = ({ children, foot = true, gutter = 24, className = "", style = {} 
    time being bigger than the person. */
 const Rail = ({ children, tone, style = {} }) => {
   const t = useT();
-  return <span className="shrink-0 text-right" style={{ width: RAIL, ...TYPE.figureSm, color: tone || t.sub, ...style }}>{children}</span>;
+  return <span className="shrink-0 text-right" style={{ width: RAIL, whiteSpace: "nowrap", ...TYPE.figureSm, color: tone || t.sub, ...style }}>{children}</span>;
 };
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
   return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
-                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms both`, ...style }}>{children}</div>);
+                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
    side padding; inside a column that already has it, use this. */
@@ -7274,7 +7274,7 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
 export const sink = (t, restShadow) => {
   const down = (e) => {
     e.currentTarget.style.transform = "scale(0.985)";
-    e.currentTarget.style.boxShadow = t.elev ? t.elev.press : ELEV.rest;
+    e.currentTarget.style.boxShadow = (t.elev || ELEV).press;
     e.currentTarget.style.transitionDuration = `${MOTION.instant}ms`;
   };
   const up = (e) => {
@@ -7299,7 +7299,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...sink(t, lift)}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
-                     animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms both`,
+                     animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -7849,7 +7849,7 @@ export function CodeBoxes({ value, onChange, onComplete, bad }) {
                           border: `1.5px solid ${bad ? DANGER : filled ? t.ink : t.hair}`,
                           fontFamily: display, fontSize: 22, letterSpacing: 0, color: t.ink,
                           transition: "border-color 200ms cubic-bezier(.22,1,.36,1)",
-                          animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }} />
+                          animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }} />
         );
       })}
     </div>
@@ -8925,7 +8925,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
             <button key={l.id} data-tour={i === 0 ? "log-row" : undefined} onClick={() => { haptic(8); soft(); push(`lesson:${l.id}`); }}
                     className="w-full flex items-center gap-4 text-left active:opacity-50"
                     style={{ minHeight: 64, borderBottom: RULE.hair(t.ink),
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <Rail>{l.d} {l.m}</Rail>
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-2">
@@ -9179,7 +9179,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
       <Screen bare onBack={pop} right={<>{extraTitleRight}{more}</>}>
         {banner}
         {menu && (
-          <div className="absolute" style={{ top: 50, right: 14, zIndex: 40, minWidth: 220, borderRadius: R.surface, background: t.surface, boxShadow: ELEV.float, overflow: "hidden" }}>
+          <div className="absolute" style={{ top: 50, right: 14, zIndex: 40, minWidth: 220, borderRadius: R.surface, background: t.surface, boxShadow: (t.elev || ELEV).float, overflow: "hidden" }}>
             {menuRows.map((r, i) => (
               <button key={r.key} onClick={() => { haptic(7); r.onTap(); }} className="w-full px-5 text-left active:opacity-60"
                       style={{ minHeight: 50, borderBottom: i < menuRows.length - 1 ? hair : "none", ...TYPE.body, color: r.danger ? DANGER : t.ink }}>{r.label}</button>
@@ -9404,7 +9404,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               style={{ minHeight: big ? 76 : 62, willChange: "transform",
                        borderRadius: big ? R.surface : 0,
                        background: big ? t.surface : "transparent",
-                       boxShadow: big ? ELEV.rest : "none",
+                       boxShadow: big ? (t.elev || ELEV).rest : "none",
                        borderLeft: big && rained ? `2.5px solid ${DANGER}` : "none",
                        borderBottom: big ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`,
                        marginBottom: big ? 8 : 0,
@@ -10901,7 +10901,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                       className="w-full flex items-start gap-4 text-left active:opacity-50"
                       style={{ minHeight: 76, paddingTop: 14, paddingBottom: 14,
                                borderBottom: RULE.hair(t.ink),
-                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Rail style={{ paddingTop: 3 }}>{live ? `${l.d} ${l.m}` : l.d}</Rail>
                 <span className="flex-1 min-w-0">
                   <span className="block" style={{ ...TYPE.subhead, color: t.ink }}>{l.focus}</span>
@@ -11818,7 +11818,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
           <button key={r.id} onClick={() => openRoute(r.id)} disabled={!joinCode}
                   className="flex flex-col items-center justify-center gap-2.5 active:opacity-60 disabled:opacity-30"
                   style={{ minHeight: 92, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             <r.Icon size={20} color={t.accent} strokeWidth={1.6} />
             <span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{r.label}</span>
           </button>
@@ -12109,7 +12109,7 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
               <button data-tour={i === 0 ? "drill-row" : undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
                       className="w-full flex items-start gap-3.5 px-5 py-4 text-left active:opacity-50"
                       style={{ borderBottom: i === items.length - 1 ? "none" : `1px solid ${t.hair}`,
-                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <span className="flex items-center justify-center shrink-0"
                       style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
                                background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
@@ -14829,6 +14829,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [firstRun, setFirstRun] = useState(true);
   const [annotations, setAnnotations] = useState({});
   const [dark, setDark] = useDeviceSetting("dark", false);
+  /* THE WAY OUT HAS TO OUTLIVE THE WAY IN. `dark` is remembered on the
+     device, and the Settings row that toggles it is not rendered while
+     the ~189 hard-coded #fff literals are unaudited — so anyone who
+     turned it on in an earlier build would open this one into dark mode
+     with no control anywhere to turn it off. Hiding a switch never
+     traps anyone in the state it set. */
+  useEffect(() => { if (dark) setDark(false); }, [dark, setDark]);
   const [hapticsOn, setHapticsOn] = useDeviceSetting("haptics", true);
   /* "auto" = the natural home for the account; otherwise a tab id */
   const [startOn, setStartOn] = useDeviceSetting("startOn", "auto");
