@@ -316,8 +316,9 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
    everywhere is what flattens an interface into a template. */
 export const R = {
   field:   6,    // inputs and time cells — crisp, typographic
-  control: 9,    // buttons: firm, not bubbly
-  surface: 14,   // cards and sheets hold content
+  chart:   3,    // bar and meter ends — field is too round on a 2.5px bar
+  control: 10,   // buttons: firm, not bubbly
+  surface: 16,   // cards and sheets hold content
   sheet:   22,   // the bottom sheet is the softest thing on screen
   pill:    999,  // only for actual pills
 };
@@ -331,8 +332,8 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    its mark are the brand colour — the one anchor Nosca has before a
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
-  ink: "#1A1815", sub: "#6B6560", faint: "#A39C93",
-  hair: "#E8E3DA", page: "#FFFFFF", surface: "#FFFFFF",
+  ink: "#1A1815", sub: "#55504C", faint: "#757069", trace: "#A39C93",
+  hair: "#E8E3DA", page: "#F7F5EF", surface: "#FFFFFF",
   wash: "#F2EDE4", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
@@ -367,8 +368,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#14180F", sub: "#5A6350", faint: "#A8AE9C", hair: "#EDEAE1",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#8C6D28", accent: "#8C6D28", onAccent: "#FFFFFF" },
+    theme: { ink: "#14180F", sub: "#4B5342", faint: "#6D7264", trace: "#A8AE9C", hair: "#EDEAE1",
+             page: "#F7F4EC", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#8C6D28", accent: "#8C6D28", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -456,8 +457,8 @@ export const SPORTS = {
   tennis: {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
-    theme: { ink: "#0A2222", sub: "#476865", faint: "#96ADA9", hair: "#E1EDEB",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#E8F1EE", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+    theme: { ink: "#0A2222", sub: "#375654", faint: "#5E7573", trace: "#96ADA9", hair: "#E1EDEB",
+             page: "#F2F7F5", surface: "#FFFFFF", wash: "#E8F1EE", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -548,8 +549,8 @@ export const SPORTS = {
   rowing: {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
-    theme: { ink: "#10222E", sub: "#4E6473", faint: "#93A6B2", hair: "#E2EAEF",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#E9F1F5", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+    theme: { ink: "#10222E", sub: "#3F5463", faint: "#617480", trace: "#93A6B2", hair: "#E2EAEF",
+             page: "#F2F7F9", surface: "#FFFFFF", wash: "#E9F1F5", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -643,8 +644,8 @@ export const SPORTS = {
   squash: {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
-    theme: { ink: "#241A14", sub: "#6B584C", faint: "#AC9C90", hair: "#EFE7E0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B5562E", accent: "#B5562E", onAccent: "#FFFFFF" },
+    theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
+             page: "#F9F3EF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B5562E", accent: "#B5562E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -729,8 +730,8 @@ export const SPORTS = {
   padel: {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
-    theme: { ink: "#1E1830", sub: "#5C5473", faint: "#A199B4", hair: "#E9E5F0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#EFEBF7", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+    theme: { ink: "#1E1830", sub: "#544C6A", faint: "#746C86", trace: "#A199B4", hair: "#E9E5F0",
+             page: "#F6F3FA", surface: "#FFFFFF", wash: "#EFEBF7", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -815,8 +816,8 @@ export const SPORTS = {
   equestrian: {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
-    theme: { ink: "#241A1D", sub: "#6A585D", faint: "#AB9AA0", hair: "#EEE6E8",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4EBEE", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+    theme: { ink: "#241A1D", sub: "#5D4C51", faint: "#7A6C71", trace: "#AB9AA0", hair: "#EEE6E8",
+             page: "#F9F3F5", surface: "#FFFFFF", wash: "#F4EBEE", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1048,8 +1049,8 @@ const useL = () => useContext(LangCtx);
 function darkify(theme) {
   return {
     ...theme,
-    ink: "#F2F4F3", sub: "#A6B0AE", faint: "#6D7876",
-    hair: "#232A2C", page: "#FFFFFF", surface: "#FFFFFF", wash: "#1C2325",
+    ink: "#F2F4F3", sub: "#A6B0AE", faint: "#8A9694", trace: "#6D7876",
+    hair: "#2A3234", page: "#101416", surface: "#1A2124", wash: "#12181A",
   };
 }
 
@@ -1106,20 +1107,37 @@ export const TYPE = {
    somewhere else — and the result read cramped in some places and
    loose in others, which is worse than either. */
 export const SPACE = {
+  knit:     6,   // inside one object — a figure and its unit
   tight:   10,   // a label and the thing it labels
   row:     14,   // two controls doing the same job
   block:   30,   // two different things on one page
   section: 40,   // the page changes subject
 };
 
-/* Depth as a system. Three levels only — anything more and the screen
-   stops having a clear surface. */
-export const ELEV = {
-  flat:  "none",
-  rest:  "0 1px 2px rgba(14,20,26,0.03), 0 2px 8px rgba(14,20,26,0.02)",
-  raise: "0 2px 6px rgba(14,20,26,0.04), 0 12px 28px rgba(14,20,26,0.05)",
-  float: "0 6px 16px rgba(14,20,26,0.06), 0 22px 48px rgba(14,20,26,0.08)",
-};
+/* Depth as a function of the palette, not a constant.
+
+   The page is now the sport's own paper and `surface` is white, so the
+   thing you can touch is the brightest thing on the screen. What makes
+   that read as an object rather than a shape is the `inset 0 1px 0`
+   white rim along its top edge — the light source, declared — over a
+   shadow keyed to that palette's own ink. rgba(14,20,26,…) was a
+   blue-black shadow cast on golf's warm paper by an equestrian card.
+   Nobody can name the difference; everybody feels it.
+
+   `groove` is below the page (an input, the Segmented track) and
+   `press` is an object held down, which is what gives a press its
+   physics: it sinks and loses its shadow rather than bouncing. */
+export const SHADE = (ink, rim = 0.92) => ({
+  flat:   "none",
+  rest:   `inset 0 1px 0 rgba(255,255,255,${rim}), 0 1px 1.5px ${HAIR(ink, 0.05)}, 0 3px 10px -2px ${HAIR(ink, 0.05)}`,
+  raise:  `inset 0 1px 0 rgba(255,255,255,${rim}), 0 1px 2px ${HAIR(ink, 0.06)}, 0 8px 20px -6px ${HAIR(ink, 0.10)}`,
+  float:  `inset 0 1px 0 rgba(255,255,255,${rim * 0.9}), 0 2px 4px ${HAIR(ink, 0.07)}, 0 18px 40px -10px ${HAIR(ink, 0.16)}`,
+  groove: `inset 0 1px 2px ${HAIR(ink, 0.07)}`,
+  press:  `inset 0 1px 3px ${HAIR(ink, 0.12)}`,
+});
+/* Every existing ELEV call site keeps working unchanged; the tinted
+   instance rides on the theme as `t.elev`. */
+export const ELEV = SHADE(NEUTRAL.ink);
 
 /* ==================================================================
    FEEDBACK — haptics + restrained sound. Sound is opt-out, synthesized
@@ -13109,7 +13127,6 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
     { title: L.appearance, tour: "settings-appearance", rows: [
-      { label: L.darkMode, tour: "settings-dark", right: T(dark, setDark), keys: ["theme", "night"] },
       live && (startOptions || []).length > 1 && { label: tr("Opens on"), keys: ["start", "home", "first screen"],
         /* SETTINGS ROWS CARRY NO GLYPH. Two of forty did — a tick on
            Take attendance and a house on Opens on — which is the sort
@@ -14862,7 +14879,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const archive = data ? (role === "coach" ? taught(data.lessons) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
   const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
-  const theme = dark && inApp ? darkify(tinted) : tinted;
+  /* Depth is computed AFTER darkify, so the dark palette gets a
+     dark-correct rim (0.06) instead of a white line across every card,
+     and memoised on its fields rather than built inline — the theme is
+     handed to every consumer, so a new object on every render is the
+     same defect as an unmemoised `account`. */
+  const theme = useMemo(() => {
+    const x = dark && inApp ? darkify(tinted) : tinted;
+    return { ...x, elev: SHADE(x.ink, dark && inApp ? 0.06 : 0.92) };
+  }, [base, swatch.accent, swatch.onAccent, dark, inApp]);
   const screen = stack[stack.length - 1];
   /* which way the last move went, so the incoming screen comes from the
      side it came from. Every root tab shares one key, so switching tabs
