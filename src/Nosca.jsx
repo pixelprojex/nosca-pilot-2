@@ -1705,6 +1705,12 @@ const ShimmerCSS = () => (
     @keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     @keyframes liftIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
     @keyframes slideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+    /* A SCREEN ARRIVES FROM THE SIDE IT CAME FROM. The app had no push
+       or pop transition at all — every screen cut straight in, which is
+       the single biggest reason it read as a set of pages rather than
+       an app. Tabs do not slide, because on iOS they never have. */
+    @keyframes pushIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes popIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
     @keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
     @keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
@@ -7058,7 +7064,13 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
    with a thumb, mid-lesson, without reading. What it holds rides in the
    corner as a count, so the box never grows a sentence. Tiles replace
    every list of actions that used to be rows of words. */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76 }) {
+/* A TILE CAN ARRIVE. Round after round of simplification took the
+   entrance off everything, and the tile system that replaced the cards
+   never had one — so the busiest screens in the app snapped into
+   existence fully formed, which reads as a screenshot rather than an
+   app. `delay` is fed by TileGrid, which staggers its own children, so
+   a grid settles rather than appears. */
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0 }) {
   const t = useT();
   const bg = tone === "accent" ? t.accent : on ? t.ink : t.wash;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
@@ -7071,6 +7083,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
             className="relative w-full flex flex-col items-center justify-center gap-1.5 active:opacity-80"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, border: `1px solid ${edge}`, willChange: "transform",
+                     animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`,
                      transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -7089,8 +7102,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
     </button>
   );
 }
-const TileGrid = ({ children, cols = 3 }) => (
-  <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>{children}</div>
+/* and a grid deals its own tiles, 34ms apart, capped so a nine-tile
+   sheet does not become a wait */
+const TileGrid = ({ children, cols = 3, stagger = 34 }) => (
+  <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+    {stagger === 0 ? children : React.Children.map(children, (c, i) =>
+      (c && c.type === ActTile && c.props.delay == null)
+        ? React.cloneElement(c, { delay: Math.min(i, 8) * stagger })
+        : c)}
+  </div>
 );
 
 /* a fact and its value, on one line. A label over a value in two lines
@@ -14834,6 +14854,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
   const theme = dark && inApp ? darkify(tinted) : tinted;
   const screen = stack[stack.length - 1];
+  /* which way the last move went, so the incoming screen comes from the
+     side it came from. Every root tab shares one key, so switching tabs
+     neither slides nor remounts — a pushed screen gets its own. */
+  const depth = stack.length;
+  const lastDepth = useRef(depth);
+  const [pushDir, setPushDir] = useState(0);
+  useEffect(() => {
+    setPushDir(depth > lastDepth.current ? 1 : depth < lastDepth.current ? -1 : 0);
+    lastDepth.current = depth;
+  }, [depth]);
   /* THE COACH'S name — for a coach that is themselves, for a player the
      person coaching them. Never use this for "who is signed in": that is
      myName below. Passing coachName to the header avatar is what made
@@ -16340,7 +16370,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <div className={`flex-1 overflow-hidden relative${reduceMotion ? " calm" : ""}`}>
             {familyGuide && inApp
               ? <FamilyGuide juvenile={juvenile} name={activeProfile?.name || signupName || "there"} onDone={() => setFamilyGuide(false)} />
-              : body}
+              : (
+                <div key={depth > 1 ? screen : "root"} className="h-full"
+                     style={{ animation: depth > 1 || pushDir < 0
+                       ? `${pushDir < 0 ? "popIn" : "pushIn"} 300ms cubic-bezier(.32,.72,0,1) both` : "none" }}>
+                  {body}
+                </div>
+              )}
           </div>
 
           {offline && inApp && (
