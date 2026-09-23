@@ -765,11 +765,18 @@ export function useNoscaData(profile) {
     return {};
   };
 
+  /* The last write in the file that did not .select(). An update RLS
+     refuses comes back as success with zero rows, so a junior ticking a
+     drill saw it tick and stay ticked until the next load put it back —
+     which is exactly the "toast and pretend" the app is not allowed. */
   const tickDrill = async (id, done) => {
     setDrills((v) => v.map((d) => (d.id === id ? { ...d, done } : d)));  // optimistic
-    const { error } = await supabase.from("drills").update({ done }).eq("id", id);
-    if (error) await load();                                            // put it back if it failed
-    return { error };
+    const { data: rows, error } = await supabase.from("drills").update({ done }).eq("id", id).select("id");
+    if (error || !rows || !rows.length) {
+      await load();                                                      // put it back
+      return { error: error || { message: "Couldn't change that one." } };
+    }
+    return {};
   };
 
   const setTip = async (playerId, title, body) => {
@@ -834,7 +841,10 @@ export function useNoscaData(profile) {
      calculation in App.jsx so the two can never disagree. */
   const isJunior = (() => {
     if (isCoach || !profile?.date_of_birth) return false;
-    const b = new Date(profile.date_of_birth);
+    /* a date column is a day. new Date("2008-09-23") is midnight UTC —
+       the evening before west of Greenwich — so on a birthday this
+       disagreed with every other age check in the app. */
+    const b = localDate(profile.date_of_birth);
     const now = new Date();
     let age = now.getFullYear() - b.getFullYear();
     if (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) age--;
@@ -1323,7 +1333,14 @@ export function useNoscaData(profile) {
           setNotifications((v) => (v.some((x) => x.id === n.id) ? v : [toNotification(n), ...v]));
           later();
         });
-      for (const table of ["lessons", "bookings", "messages", "coach_requests", "drills", "tips", "attendance_sessions", "profiles", "preferences"]) {
+      /* Every table load() reads. competitions, recurring, reviews and
+         families were read on every load and listened to on none, so a
+         competition added on one phone, a standing slot changed, a
+         review left or somebody joining the family did not reach the
+         other device until something else happened to cause a reload. */
+      for (const table of ["lessons", "bookings", "messages", "coach_requests", "drills", "tips",
+                           "attendance_sessions", "attendance_marks", "profiles", "preferences",
+                           "competitions", "recurring", "reviews", "families"]) {
         channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, later);
       }
       channel = channel.subscribe();

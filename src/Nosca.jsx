@@ -9301,6 +9301,152 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
    nobody has to leave and come back to see what they did. The last
    remaining action cannot be turned off — an empty board is not a
    preference, it is a broken screen. */
+/* ==================================================================
+   ARRANGE BY DRAGGING THE THING ITSELF
+
+   The board was edited through a list: two chevrons and a minus per
+   row, three sections, and a preview of the grid somewhere above that
+   you could not touch. A coach reading it had to hold the mapping
+   between a row four down a list and a tile two across a grid in their
+   head. The board is the editor now — press a tile, it lifts, the
+   others flow out of its way, and where you let go is where it lives.
+
+   Hand-rolled on pointer events, because there is no drag library here
+   and iOS Safari is the target. The grid is uniform, so a tile's home
+   is its index: row = i / cols, col = i % cols. Nothing is reordered in
+   the DOM while a finger is down — each tile is translated to the slot
+   it WOULD hold, which is what makes the others glide rather than jump,
+   and means one commit at the end rather than a write per crossing.
+
+   `touch-action: none` on a tile stops iOS claiming the gesture for a
+   scroll; the page still scrolls from anywhere that is not a tile. The
+   drag begins after 9px of movement, so a plain tap still picks the
+   tile's own action (here, taking it off the board).
+================================================================== */
+function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accentId, h }) {
+  const t = useT();
+  const wrap = useRef(null);
+  const [drag, setDrag] = useState(null);      // { id, from, over, dx, dy }
+  const geo = useRef({ w: 0, h: 0, gap: 12 });
+
+  const measure = () => {
+    const el = wrap.current;
+    if (!el) return;
+    const box = el.getBoundingClientRect();
+    const gap = 12;
+    geo.current = { gap, w: (box.width - gap * (cols - 1)) / cols, h: h + 0 };
+  };
+
+  /* where the tile at array index i should sit while `from` is being
+     dragged over `over` — everything between them shuffles by one */
+  const slotOf = (i, from, over) => {
+    if (i === from) return over;
+    if (from < over && i > from && i <= over) return i - 1;
+    if (from > over && i >= over && i < from) return i + 1;
+    return i;
+  };
+  const offsetFor = (i) => {
+    if (!drag) return null;
+    const v = slotOf(i, drag.from, drag.over);
+    if (v === i) return null;
+    const { w, h: th, gap } = geo.current;
+    return { x: ((v % cols) - (i % cols)) * (w + gap),
+             y: (Math.floor(v / cols) - Math.floor(i / cols)) * (th + gap) };
+  };
+
+  const start = (e, id, i) => {
+    if (e.button != null && e.button !== 0) return;
+    measure();
+    const sx = e.clientX, sy = e.clientY;
+    const el = e.currentTarget;
+    let live = false;
+    const move = (ev) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!live) {
+        if (Math.abs(dx) + Math.abs(dy) < 9) return;
+        live = true;
+        haptic(12);                                  // inside the gesture, so it is felt
+        try { el.setPointerCapture(ev.pointerId); } catch (err) { /* older webkit */ }
+      }
+      const { w, h: th, gap } = geo.current;
+      const col = Math.round(((i % cols) * (w + gap) + dx) / (w + gap));
+      const row = Math.round((Math.floor(i / cols) * (th + gap) + dy) / (th + gap));
+      const over = Math.max(0, Math.min(ids.length - 1, row * cols + Math.max(0, Math.min(cols - 1, col))));
+      setDrag((d) => {
+        if (d && d.over !== over) haptic(6);
+        return { id, from: i, over, dx, dy };
+      });
+    };
+    const end = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", end);
+      el.removeEventListener("pointercancel", end);
+      setDrag((d) => {
+        if (d && live && d.over !== d.from) {
+          const next = ids.slice();
+          next.splice(d.over, 0, next.splice(d.from, 1)[0]);
+          hapticCommit(); soft(); onReorder(next);
+        }
+        return null;
+      });
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+  };
+
+  return (
+    <div ref={wrap} className="grid" data-arrange="grid"
+         style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {ids.map((id, i) => {
+        const A = COACH_ACTIONS[id];
+        const lifted = drag && drag.id === id;
+        const off = offsetFor(i);
+        const accent = id === accentId;
+        const bg = accent ? t.accent : t.wash;
+        const fg = accent ? t.onAccent : t.ink;
+        return (
+          <div key={id} data-arrange-id={id}
+               style={{ position: "relative", zIndex: lifted ? 5 : 1,
+                        transform: lifted ? `translate3d(${drag.dx}px, ${drag.dy}px, 0) scale(1.06)`
+                                 : off ? `translate3d(${off.x}px, ${off.y}px, 0)` : "none",
+                        transition: lifted ? "none" : "transform 220ms cubic-bezier(.22,1,.36,1)",
+                        willChange: "transform" }}>
+            {/* A DRAG IS NOT THE ONLY WAY IN. Arrow keys move a tile for
+                anyone on a keyboard or a switch control, who has no
+                gesture to make. */}
+            <button onPointerDown={(e) => start(e, id, i)}
+                    onKeyDown={(e) => {
+                      const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1
+                              : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+                      if (!d) return;
+                      e.preventDefault(); onNudge && onNudge(id, e.key === "ArrowDown" || e.key === "ArrowUp" ? d * cols : d);
+                    }}
+                    aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
+                    className="relative w-full flex flex-col items-center justify-center gap-1.5"
+                    style={{ minHeight: h, borderRadius: R.surface, background: bg, touchAction: "none",
+                             border: `1px solid ${accent ? "transparent" : HAIR(t.ink, 0.07)}`,
+                             boxShadow: lifted ? `0 14px 30px ${HAIR(t.ink, 0.22)}` : "none",
+                             opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
+              <A.Ico size={h >= 84 ? 22 : 19} color={fg} strokeWidth={1.6} />
+              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: fg }}>{tr(A.label)}</span>
+            </button>
+            {/* taking one off is on the tile, not four rows down a list */}
+            <button onClick={() => onRemove(id)} disabled={!canRemove}
+                    aria-label={`${tr("Remove")} ${tr(A.label)}`}
+                    className="absolute flex items-center justify-center active:opacity-60 disabled:opacity-25"
+                    style={{ top: -7, left: -7, width: 24, height: 24, borderRadius: 12, zIndex: 6,
+                             background: t.page, border: `1px solid ${HAIR(t.ink, 0.18)}`,
+                             opacity: drag ? 0 : 1, transition: "opacity 160ms" }}>
+              <Minus size={13} color={t.sub} strokeWidth={2.6} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function LayoutEditor({ layout = {}, onSave, pop, say }) {
   const t = useT();
   const BOARD = tr("Home"), PLUS = tr("Plus");
@@ -9317,36 +9463,19 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
     write(on ? ids.filter((x) => x !== id) : [...ids, id]);
   };
   const move = (id, d) => {
-    const i = ids.indexOf(id), j = i + d;
-    if (i < 0 || j < 0 || j >= ids.length) return;
+    const i = ids.indexOf(id);
+    if (i < 0) return;
+    /* a keyboard jump of a whole row lands on the end rather than
+       refusing, which is what a person expects from an arrow key */
+    const j = Math.max(0, Math.min(ids.length - 1, i + d));
+    if (j === i) return;
     const next = ids.slice();
     next.splice(j, 0, next.splice(i, 1)[0]);
     haptic(6); soft(); write(next);
   };
   const hidden = pool.filter((id) => !ids.includes(id));
-  const arrow = (id, d, on) => (
-    <button onClick={() => move(id, d)} disabled={!on} aria-label={d < 0 ? `${tr("Move up")} ${tr(COACH_ACTIONS[id].label)}` : `${tr("Move down")} ${tr(COACH_ACTIONS[id].label)}`}
-            className="shrink-0 flex items-center justify-center active:opacity-50 disabled:opacity-20"
-            style={{ width: 34, height: 34 }}>
-      <ChevronDown size={16} color={t.sub} strokeWidth={2}
-                   style={{ transform: d < 0 ? "rotate(180deg)" : "none" }} />
-    </button>
-  );
-  const row = (id, showing) => {
-    const A = COACH_ACTIONS[id], i = ids.indexOf(id);
-    return (
-      <div key={id} className="flex items-center gap-3 pr-1" style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-        <A.Ico size={17} color={t.sub} strokeWidth={1.7} />
-        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr(A.label)}</span>
-        {showing && arrow(id, -1, i > 0)}
-        {showing && arrow(id, 1, i < ids.length - 1)}
-        <button onClick={() => toggle(id)} aria-label={`${showing ? tr("Remove") : tr("Add")} ${tr(A.label)}`}
-                className="shrink-0 flex items-center justify-center active:opacity-60" style={{ width: 36, height: 36 }}>
-          {showing ? <Minus size={17} color={t.faint} strokeWidth={2.2} /> : <Plus size={17} color={t.accent} strokeWidth={2.2} />}
-        </button>
-      </div>
-    );
-  };
+  const gridCols = onBoard ? cols : 2;
+  const tileH = onBoard && cols === 2 ? 88 : 74;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Shortcuts")} onBack={pop}>
@@ -9355,21 +9484,24 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
             <Segmented options={[BOARD, PLUS]} value={tab} onChange={setTab} />
           </div>
 
-          {/* the real grid, at the real size */}
-          <RowHead>{tr("Preview")}</RowHead>
-          <div style={{ marginBottom: SPACE.block, opacity: 0.999, pointerEvents: "none" }} aria-hidden="true">
-            <TileGrid cols={onBoard ? cols : 2}>
-              {ids.map((id) => {
-                const A = COACH_ACTIONS[id];
-                return <ActTile key={id} h={onBoard && cols === 2 ? 88 : 74} Icon={A.Ico} label={tr(A.label)}
-                                tone={onBoard && id === "log" ? "accent" : "quiet"} onTap={() => {}} />;
-              })}
-            </TileGrid>
+          {/* THE BOARD IS THE EDITOR. Not a preview above a list of
+              rows with chevrons — the thing itself, at its real size,
+              rearranged by moving it. */}
+          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 9 }}>
+            {tr("Hold a tile and move it")}
+          </div>
+          <div style={{ marginBottom: SPACE.section }}>
+            <ArrangeGrid ids={ids} cols={gridCols} h={tileH}
+                         accentId={onBoard ? "log" : null}
+                         canRemove={ids.length > 1}
+                         onReorder={(next) => write(next)}
+                         onNudge={move}
+                         onRemove={(id) => toggle(id)} />
           </div>
 
           {onBoard && (<>
             <RowHead>{tr("Size")}</RowHead>
-            <div style={{ marginBottom: SPACE.block }}>
+            <div style={{ marginBottom: SPACE.section }}>
               <TileGrid cols={2}>
                 <ActTile h={52} label={tr("Three across")} on={cols === 3} onTap={() => { haptic(8); onSave({ boardCols: 3 }); }} />
                 <ActTile h={52} label={tr("Two across")} on={cols === 2} onTap={() => { haptic(8); onSave({ boardCols: 2 }); }} />
@@ -9377,15 +9509,16 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
             </div>
           </>)}
 
-          <RowHead>{tr("Showing")}</RowHead>
-          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-            {ids.map((id) => row(id, true))}
-          </div>
-
           {hidden.length > 0 && (<>
             <RowHead>{tr("Not showing")}</RowHead>
-            <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
-              {hidden.map((id) => row(id, false))}
+            <div style={{ marginBottom: SPACE.section }}>
+              <TileGrid cols={gridCols}>
+                {hidden.map((id) => {
+                  const A = COACH_ACTIONS[id];
+                  return <ActTile key={id} h={tileH} Icon={A.Ico} label={tr(A.label)}
+                                  aria={`${tr("Add")} ${tr(A.label)}`} onTap={() => toggle(id)} />;
+                })}
+              </TileGrid>
             </div>
           </>)}
 
