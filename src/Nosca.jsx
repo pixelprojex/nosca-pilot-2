@@ -368,7 +368,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
     theme: { ink: "#14180F", sub: "#4B5342", faint: "#6D7264", trace: "#A8AE9C", hair: "#EDEAE1",
-             page: "#F7F4EC", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#8C6D28", accent: "#8C6D28", onAccent: "#FFFFFF" },
+             page: "#F7F4EC", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#896B27", accent: "#896B27", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -644,7 +644,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
     theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
-             page: "#F9F3EF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B5562E", accent: "#B5562E", onAccent: "#FFFFFF" },
+             page: "#F9F3EF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
