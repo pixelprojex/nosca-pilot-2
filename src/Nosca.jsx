@@ -1773,6 +1773,12 @@ function Bone({ w = "100%", h = 14, r = 8, mb = 0 }) {
 }
 const ShimmerCSS = () => (
   <style>{`
+    /* A list closes once. Its last row's own hairline would otherwise sit
+       directly on the 1px foot and close the list at 1.5px while its lid
+       stayed 1px. The rows carry their borders inline, so only !important
+       reaches them — one declaration, rather than a 'last' prop threaded
+       through DayRow, HomeRow and everything else that may end a list. */
+    .nsc-ruled > div > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
     @keyframes sp{to{transform:rotate(360deg)}}
@@ -2933,7 +2939,8 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-9" aria-live="polite"
          onClick={() => { if (waits) { haptic(6); onDone && onDone(); } }}
-         style={{ zIndex: 70, background: t.ink, animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease both" }}>
+         style={{ zIndex: 70, background: t.ink, opacity: 1,
+                  animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease backwards" }}>
       {/* shockwave out from the stamp */}
       <span className="absolute rounded-full" aria-hidden="true"
             style={{ width: 130, height: 130, border: `1px solid ${t.accent}`,
@@ -6195,8 +6202,8 @@ function Celebration({ label, sub, onDone, tone = "accent" }) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center" aria-live="polite"
-         style={{ zIndex: 70, background: `${t.page}F2`, backdropFilter: "blur(6px)",
-                  animation: "celebFade 1750ms ease both" }}>
+         style={{ zIndex: 70, background: `${t.page}F2`, backdropFilter: "blur(6px)", opacity: 1,
+                  animation: "celebFade 1750ms ease backwards" }}>
       {/* halo pushing out from the mark */}
       <span className="absolute rounded-full" aria-hidden="true"
             style={{ width: 150, height: 150, border: `1.5px solid ${colour}`,
@@ -7174,7 +7181,7 @@ const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap })
 const Ruled = ({ children, foot = true, gutter = 24, className = "", style = {} }) => {
   const t = useT();
   return (
-    <div className={`overflow-x-hidden ${className}`}
+    <div className={`nsc-ruled overflow-x-hidden ${className}`}
          style={{ marginLeft: -gutter, marginRight: -gutter, borderTop: RULE.section(t.ink),
                   borderBottom: foot ? RULE.section(t.ink) : "none", ...style }}>
       <div style={{ paddingLeft: gutter, paddingRight: gutter }}>{children}</div>
