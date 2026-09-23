@@ -9626,8 +9626,13 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
         const lifted = drag && drag.id === id;
         const off = offsetFor(i);
         const accent = id === accentId;
-        const bg = accent ? t.accent : t.wash;
+        /* The editor's tiles are the board's tiles. They were still
+           t.wash with a hairline — the old idiom — which on the sport's
+           paper is very nearly the page, so a coach editing the board
+           would see flat tiles beside the raised ones they are editing. */
+        const bg = accent ? t.accent : t.surface;
         const fg = accent ? t.onAccent : t.ink;
+        const E = t.elev || ELEV;
         return (
           <div key={id} data-arrange-id={id}
                style={{ position: "relative", zIndex: lifted ? 5 : 1,
@@ -9648,8 +9653,7 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
                     aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
                     className="relative w-full flex flex-col items-center justify-center gap-1.5"
                     style={{ minHeight: h, borderRadius: R.surface, background: bg, touchAction: "none",
-                             border: `1px solid ${accent ? "transparent" : HAIR(t.ink, 0.07)}`,
-                             boxShadow: lifted ? `0 14px 30px ${HAIR(t.ink, 0.22)}` : "none",
+                             boxShadow: lifted ? E.float : accent ? "none" : E.rest,
                              opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
               <A.Ico size={h >= 84 ? 22 : 19} color={fg} strokeWidth={1.6} />
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: fg }}>{tr(A.label)}</span>
