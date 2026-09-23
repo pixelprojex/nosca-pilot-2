@@ -5374,6 +5374,7 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
   const submit = async () => {
     if (code.trim().length < 4) return;
     setBusy(true); setErr("");
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await onJoin(code);
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message); }
@@ -5483,6 +5484,7 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
   const join = async () => {
     if (!found || already || busy) return;
     setBusy(true); setErr("");
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = family ? await onJoinFamily(invite.code) : await onJoinCoach(invite.code);
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't join.")); return; }
@@ -5692,7 +5694,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
     if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
     chime();
   };
-  const join = async (c) => { setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
+  const join = async (c) => { hapticCommit(); setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
   const share = async () => {
     if (!code) return;
     haptic(8); soft();
@@ -11937,6 +11939,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
   const rename = async (d) => {
     const v = (draft[d.id] ?? d.t).trim();
     if (!v || v === d.t) { setDraft((x) => ({ ...x, [d.id]: undefined })); return; }
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const r = onRenameDrill ? await onRenameDrill(d.id, v) : null;
     if (r && r.error) { say && say(r.error.message); return; }
     setDraft((x) => ({ ...x, [d.id]: undefined }));
@@ -12642,6 +12645,7 @@ function BroadcastBody({ nouns, say, close, onSend }) {
   const send = async () => {
     if (onSend) {
       setBusy(true);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await onSend(text.trim());
       setBusy(false);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send")); return; }
@@ -12786,6 +12790,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
   const save = async () => {
     if (onSave) {
       setBusy(true);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await onSave(clubName);
       setBusy(false);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
@@ -13227,6 +13232,7 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
   const save = async () => {
     if (onSave) {
       setBusy(true);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await onSave({ name: f.Name, phone: f.Phone, ...(role === "coach" ? { club: f.Club } : {}) });
       setBusy(false);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save that.")); return; }
@@ -13563,6 +13569,7 @@ function PushPrompt({ userId, say }) {
   /* one row, the height of an alert row: what it offers, and the answer */
   const turnOn = async () => {
     if (busy) return; setBusy(true);
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const r = await subscribePush(supabase, userId);
     setBusy(false);
     if (r && r.ok) { remember(); say && say(tr("This phone will be told")); setState("hidden"); }
@@ -13882,6 +13889,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
     if (busy) return;
     if (!focus.trim()) { setErr(tr("A lesson needs a focus.")); return; }
     setBusy(true); setErr("");
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await onSave({ focus, subs, note, date });
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't save that.")); return; }
@@ -14252,6 +14260,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   const acceptAsk = async (r) => {
     if (data) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.confirmBooking(r.id);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't confirm that.")); return; }
       hapticSuccess(); chime();
@@ -14455,6 +14464,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        coach's session, and the database tells them itself. A whole day
        goes in one write; a single lesson goes on its own. */
     if (data) {
+      hapticWarn();   /* calling a day off is felt as it is decided, not after the write */
       const day = callOffFor || todayMD;
       const res = scope === "day"
         ? await data.callOffDay(isoOf(day.m, day.d), "weather")
@@ -14742,6 +14752,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   const endSeries = async (rec) => {
     if (data) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const r = await data.removeRecurring(rec.id);
       if (r && r.error) { hapticWarn(); say(r.error.message || tr("Couldn't end that.")); return; }
       say(`${rec.who.split(" ")[0]}'s arrangement ended`); return;
@@ -14787,6 +14798,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const openWaitlist = freshAccount ? [] : waitlist;
   const acceptRequest = async (r) => {
     if (data && r.id) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.respondToRequest(r.id, true);
       if (res && res.error) { hapticWarn(); say(res.error.message); return; }
       hapticSuccess(); chime(); say(`${r.name.split(" ")[0]} ${tr("added to your roster")}`); return;
@@ -14795,6 +14807,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   const declineRequest = async (r) => {
     if (data && r.id) {
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.respondToRequest(r.id, false);
       if (res && res.error) { hapticWarn(); say(res.error.message); return; }
       hapticWarn(); decline(); say(tr("Declined")); return;
@@ -15121,6 +15134,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                               [coachSport]: [...out.tips.filter((x) => !had.includes(x)), ...had] };
       }
     }
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await data.savePrefs(patch);
     if (res && res.error) { hapticWarn(); say(res.error.message); return; }
     if (out) done(tr("You're set up"), tr("Hours, drills and tips saved"));
@@ -15294,6 +15308,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          a junior chosen on the family screen, the ask is theirs, into
          their coach's hours — whichever view of the diary it came from. */
       if (bookFor) return bookKid(bookFor, b);
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
       hapticSuccess(); done(tr("Asked"), tr("Your coach will confirm.")); return;
@@ -15303,6 +15318,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const cancel = async (b) => {
     if (data) {
       if (!b || !b.id) return;
+      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
       const res = await data.cancelBooking(b.id, "cancelled");
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't cancel that.")); return; }
       haptic(10); return;
@@ -15549,6 +15565,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return { id: "demo", code: "K7M2PQ", name: null, displayName: "Tran family", members };
   })() : null;
   const bookKid = async (kid, b) => {
+    hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration });
     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
     hapticSuccess(); done(tr("Asked"), `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}`);
