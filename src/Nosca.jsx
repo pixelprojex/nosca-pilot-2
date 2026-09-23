@@ -15455,7 +15455,32 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* a child's thread is listed under the coach's name but reached by
        the child's — from the family screen — so both names find it */
     const row = (liveThreads || []).find((c) => c.playerId === threadKey || c.who === threadKey || c.childName === threadKey);
-    const th = row ? (data.threads || []).find((x) => x.playerId === row.playerId) : null;
+    /* A CONVERSATION THAT HAS NOT HAPPENED YET IS STILL A CONVERSATION.
+       Chat lists every thread with a message — that is the rule, and it
+       stays. But this screen looked the person up in that same list, so
+       a coach who had never messaged anybody found every one of them
+       "not available", and the plus, the roster and the player file all
+       led to a composer whose send did nothing. The list is the history;
+       who you may write to is a different question, and the answer is
+       whoever the database would accept: a coach writes to anyone on
+       their roster, a player to their coach, an adult on behalf of a
+       child in their family. */
+    const startable = row ? null : (() => {
+      if (role === "coach") {
+        const r = (data.roster || []).find((x) => x.id === threadKey || x.name === threadKey);
+        return r ? { playerId: r.id, who: r.name, sub: r.junior ? tr("Under 18 · a parent replies") : "",
+                     coachId: account ? account.id : null, junior: !!r.junior } : null;
+      }
+      if (data.hasCoach && account && (threadKey === account.id || threadKey === coachName)) {
+        return { playerId: account.id, who: coachName, sub: tr("Your coach"), coachId: null, kind: "own" };
+      }
+      const kid = (data.dependants || []).find((f) => f.coachId && (f.id === threadKey || f.name === threadKey));
+      return kid ? { playerId: kid.id, who: kid.coachName || tr("Their coach"),
+                     sub: `${tr("For")} ${kid.name.split(" ")[0]}`, coachId: kid.coachId,
+                     kind: "child", child: kid.name.split(" ")[0], childName: kid.name } : null;
+    })();
+    const open = row || startable;
+    const th = open ? (data.threads || []).find((x) => x.playerId === open.playerId) : null;
     /* names for anyone who might have written in this thread: the
        roster, the family's adults, and the coach */
     const nameOfId = Object.fromEntries([
@@ -15464,19 +15489,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ...((data.dependants || []).map((k) => [k.id, k.name])),
       ...(account ? [[account.id, account.name]] : []),
     ]);
-    const liveThread = row ? {
-      playerId: row.playerId, sub: row.sub, unread: th ? th.unread : 0, messages: th ? th.messages : [],
-      coachId: row.coachId || (th ? th.coachId : null), child: row.child || null, nameOf: (id) => nameOfId[id] || null,
-      send: (text) => data.sendMessage(row.playerId, text),
-      markRead: () => data.markRead(row.playerId),
-      onDetails: role === "coach" ? () => push("player:" + row.who)
-               : row.playerId === account.id ? () => push("coachProfile") : null,
+    const liveThread = open ? {
+      playerId: open.playerId, sub: open.sub, unread: th ? th.unread : 0, messages: th ? th.messages : [],
+      coachId: open.coachId || (th ? th.coachId : null), child: open.child || null, nameOf: (id) => nameOfId[id] || null,
+      send: (text) => data.sendMessage(open.playerId, text),
+      markRead: () => data.markRead(open.playerId),
+      onDetails: role === "coach" ? () => push("player:" + (open.playerId || open.who))
+               : open.playerId === account.id ? () => push("coachProfile") : null,
     } : {
       playerId: null, sub: "", unread: 0, messages: [],
       send: async () => ({ error: { message: tr("This conversation isn't available.") } }),
       markRead: () => {}, onDetails: null,
     };
-    body = <Thread role={role} name={row ? row.who : threadKey} pop={pop} say={say} live={liveThread} />;
+    body = <Thread role={role} name={open ? open.who : threadKey} pop={pop} say={say} live={liveThread} />;
   } else if (screen.startsWith("thread:")) {
     const threadName = screen.slice("thread:".length);
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
