@@ -4167,7 +4167,13 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
   if (gone) return null;
 
   return (
-    <div className="relative overflow-hidden" style={{ borderBottom: RULE.hair(t.ink) }}>
+    /* The row inside owns the separator. All three things wrapped in a
+       SwipeRow — the day's lesson to log, an attached item, an alert —
+       draw their own `borderBottom: hair`, so this one doubled it in
+       every case: two 0.5px lines with nothing between them, which on
+       the coach's Today read as a bar under the one row that carries
+       an action. Same defect as the list foot, one level down. */
+    <div className="relative overflow-hidden">
       {/* what sits underneath */}
       <button onClick={() => { hapticWarn(); decline(); setGone(true); setTimeout(() => onDelete && onDelete(), 180); }}
               className="absolute inset-y-0 right-0 flex flex-col items-center justify-center active:opacity-80"
