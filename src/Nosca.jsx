@@ -2049,7 +2049,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
         <span className="flex-1 text-left truncate" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.sub }}>
           {lesson.d} {lesson.m}
         </span>
-        <ChevronDown size={12} color={t.faint} />
+        <ChevronDown size={12} color={t.trace || t.faint} />
       </button>
       <div className="relative overflow-hidden" style={{ borderRadius: R.control, aspectRatio: "3/4", background: "#191D1B" }}>
         <span className="absolute" style={{ left: 0, right: 0, top: `${pos}%`, height: 1, background: t.accent, opacity: 0.5 }} />
@@ -2280,9 +2280,15 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
                     <Rail tone={t.ink}>{h.replace(/ (am|pm)/, "")}</Rail>
-                    <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: isGroup ? GROUP : t.accent }} />
+                    {/* THE ACCENT APPEARS ONCE A SCREEN. This bar spent it
+                        on every booked row in the diary, and said nothing
+                        the time beside it does not: a booked hour is
+                        already set in t.ink while a free one is t.sub. It
+                        stays only for a group, where the colour is the one
+                        thing that tells a squad from a single lesson. */}
+                    {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{bk.who}</span>
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 );
 
@@ -2322,7 +2328,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                     <span className="flex-1 truncate" style={{ ...TYPE.small, color: t.faint }}>
                       {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : ""}
                     </span>
-                    <Plus size={15} color={t.faint} strokeWidth={2} />
+                    <Plus size={15} color={t.trace || t.faint} strokeWidth={2} />
                   </button>
                 );
               })}
@@ -2340,7 +2346,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                 className="w-full flex items-center gap-3 px-6 text-left active:opacity-60"
                 style={{ minHeight: 56, marginTop: 10, borderTop: RULE.section(t.ink) }}>
           <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("Recurring lessons")}</span>
-          <ChevronRight size={15} color={t.faint} />
+          <ChevronRight size={15} color={t.trace || t.faint} />
         </button>
       ) : <div style={{ height: 26 }} />}
       </div>
@@ -2538,7 +2544,7 @@ function EventCard({ event, sport, onPress, delay = 0 }) {
             </span>
           )}
         </span>
-        <ChevronRight size={15} color={t.faint} />
+        <ChevronRight size={15} color={t.trace || t.faint} />
       </div>
     </Tile>
   );
@@ -2866,7 +2872,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
           </button>
         )}
         <button onClick={onRemove} className="shrink-0 active:opacity-50 p-1.5" aria-label={tr("Remove")}>
-          <X size={14} color={t.faint} />
+          <X size={14} color={t.trace || t.faint} />
         </button>
       </div>
 
@@ -3235,7 +3241,7 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
                   </button>
                   {!bk && (
                     <button onClick={() => dropSlot(h)} className="shrink-0 p-2 active:opacity-50" aria-label={tr("Remove")}>
-                      <X size={15} color={t.faint} />
+                      <X size={15} color={t.trace || t.faint} />
                     </button>
                   )}
                 </div>
@@ -4262,11 +4268,11 @@ function PickPerson({ roster, title, sub, onPick, close }) {
 
       <div className="flex items-center gap-2.5 px-4 mb-4"
            style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
-        <Search size={15} color={t.faint} />
+        <Search size={15} color={t.trace || t.faint} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
                className="flex-1 bg-transparent outline-none"
                style={{ ...TYPE.body, color: t.ink }} />
-        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>
+        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.trace || t.faint} /></button>
            : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
       </div>
 
@@ -4280,7 +4286,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
             <Avatar name={r.name} size={34} />
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-            <ChevronRight size={14} color={t.faint} />
+            <ChevronRight size={14} color={t.trace || t.faint} />
           </button>
         ))}
       </div>
@@ -4539,7 +4545,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
               {reg
                 ? <Check size={16} color={STEADY} strokeWidth={2.4}
                          style={{ animation: "checkPop 380ms cubic-bezier(.28,1.4,.5,1) both" }} />
-                : <ChevronRight size={14} color={t.faint} />}
+                : <ChevronRight size={14} color={t.trace || t.faint} />}
             </button>
           );
         })}
@@ -4569,7 +4575,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms both` }}>
                 <Avatar name={r.name} size={30} />
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -5950,7 +5956,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
               mine.length > 0 ? `${mine.length} ${mine.length === 1 ? tr("lesson") : tr("lessons")}` : null].filter(Boolean).join(" · ")}
           </span>
         )}
-        <ChevronRight size={15} color={t.faint} />
+        <ChevronRight size={15} color={t.trace || t.faint} />
       </button>
     );
   };
@@ -6069,7 +6075,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
                   <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.d} {l.m}</span>
                   <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{l.focus}</span>
                   {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
-                  <ChevronRight size={13} color={t.faint} />
+                  <ChevronRight size={13} color={t.trace || t.faint} />
                 </button>
               ))}
             </Card>
@@ -6277,10 +6283,10 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
     <>
       <h2 className="mb-4" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New message")}</h2>
       <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 46, borderRadius: R.surface, background: t.wash }}>
-        <Search size={15} color={t.faint} />
+        <Search size={15} color={t.trace || t.faint} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
                style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>
+        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.trace || t.faint} /></button>
            : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
       </div>
       {shown.length === 0 ? (
@@ -6295,7 +6301,7 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
                 <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
                 {p.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{p.sub}</span>}
               </span>
-              <ChevronRight size={15} color={t.faint} />
+              <ChevronRight size={15} color={t.trace || t.faint} />
             </button>
           ))}
         </div>
@@ -6476,7 +6482,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             <span className="block" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: item.done ? t.accent : t.sub }}>
               {item.done ? tr("Log lesson") : hoursUntil == null ? "" : untilText(hoursUntil)}
             </span>
-            <ChevronDown size={15} color={t.faint} className="inline-block mt-1.5"
+            <ChevronDown size={15} color={t.trace || t.faint} className="inline-block mt-1.5"
                          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 260ms cubic-bezier(.22,1,.36,1)" }} />
           </span>
         </div>
@@ -6510,7 +6516,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                   <span className="block uppercase mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
                 </span>
-                <ChevronRight size={15} color={t.faint} />
+                <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
             )}
 
@@ -7313,7 +7319,7 @@ const HomeRow = ({ label, value, tone, onPress, tour }) => {
             style={{ minHeight: 58, borderBottom: RULE.hair(t.ink) }}>
       <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: tone || t.ink, maxWidth: "55%" }}>{value}</span>
-      <ChevronRight size={15} color={t.faint} />
+      <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
 };
@@ -7431,7 +7437,7 @@ const TimeList = ({ times, picked, onPick, tour }) => {
             <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? t.ink : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
-                : <Plus size={15} color={t.faint} strokeWidth={2} />}
+                : <Plus size={15} color={t.trace || t.faint} strokeWidth={2} />}
           </button>
         );
       })}
@@ -7503,7 +7509,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       </span>
       {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
       {right}
-      {chevron && <ChevronRight size={17} color={t.faint} />}
+      {chevron && <ChevronRight size={17} color={t.trace || t.faint} />}
       {checked && icon && <Check size={18} color={STEADY} strokeWidth={2.1} />}
     </Tag>
   );
@@ -8764,7 +8770,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                     <Rail>{b.time}</Rail>
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{b.day}</span>
                     {b.status === "requested" && <span className="shrink-0" style={{ ...TYPE.caption, color: CAUTION }}>{tr("Requested")}</span>}
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 ))}
               </div>
@@ -8800,7 +8806,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                           <Play size={11} color={STEADY} />{files}
                         </span>
                       )}
-                      <ChevronRight size={14} color={t.faint} />
+                      <ChevronRight size={14} color={t.trace || t.faint} />
                     </button>
                   );
                 })}
@@ -8811,7 +8817,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.faint }}>
                       {lessons.length} {tr("in all")}
                     </span>
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 )}
               </div>
@@ -8916,7 +8922,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
                 </span>
               )}
               {saved.includes(l.id) && <Download size={13} color={t.faint} />}
-              <ChevronRight size={14} color={t.faint} />
+              <ChevronRight size={14} color={t.trace || t.faint} />
             </button>
           ))}
         </div>
@@ -9217,7 +9223,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                       {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
                     </span>
                     <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
-                    {onGoDrills && <ChevronRight size={14} color={t.faint} />}
+                    {onGoDrills && <ChevronRight size={14} color={t.trace || t.faint} />}
                   </Tag>
                 );
               })}
@@ -9403,7 +9409,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               : `${f ? f.done : (counts && counts[p.id]) || 0} ${tr("lessons")}`}
           </span>
         </span>
-        <ChevronRight size={14} color={t.faint} />
+        <ChevronRight size={14} color={t.trace || t.faint} />
       </button>
     );
   };
@@ -9428,7 +9434,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
                       className="w-full flex items-center text-left active:opacity-50"
                       style={{ minHeight: 54, borderBottom: RULE.hair(t.ink) }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -9498,7 +9504,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
       {body}
       {variant === "log"
         ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Log")}</span>
-        : <ChevronRight size={14} color={t.faint} />}
+        : <ChevronRight size={14} color={t.trace || t.faint} />}
     </button>
   );
 }
@@ -9848,7 +9854,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
              tomorrow's first is the grey line at the foot. ---- */}
         {(todayRows.length > 0 || upcoming.length > 0) && (<>
           <RowHead>{tr("Today")}</RowHead>
-          <div style={{ marginBottom: SPACE.block, borderTop: RULE.section(t.ink) }}>
+          <Ruled style={{ marginBottom: SPACE.block }}>
             {todayRows.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
               const row = (
@@ -9877,10 +9883,10 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.faint }}>
                   {upcoming[0].dayLabel} · {upcoming[0].time} · {upcoming[0].who}
                 </span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             )}
-          </div>
+          </Ruled>
         </>)}
 
         {/* ---- WAITING ON YOU ----
@@ -9902,7 +9908,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           if (!asks.length && !jobs.length) return null;
           return (<>
             <RowHead>{tr("Waiting on you")}</RowHead>
-            <div style={{ marginBottom: SPACE.block, borderTop: RULE.section(t.ink) }}>
+            <Ruled style={{ marginBottom: SPACE.block }}>
               {asks.slice(0, 3).map((r, i) => (
                 <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
                      style={{ minHeight: 62, borderBottom: RULE.hair(t.ink) }}>
@@ -9918,7 +9924,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               {jobs.map((j) => (
                 <HomeRow key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
               ))}
-            </div>
+            </Ruled>
           </>);
         })()}
 
@@ -10014,7 +10020,7 @@ function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBl
              onBlur={() => { if (done.current) return; if (v.trim()) { if (commitOnBlur) commit(); } else onCancel && onCancel(); }}
              className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
       <span onMouseDown={keep} onPointerDown={keep} className="flex items-center"><MicBtn size={28} onText={(txt) => setV(v ? `${v} ${txt}` : txt)} /></span>
-      {v && <button onMouseDown={keep} onPointerDown={keep} onClick={() => { haptic(6); setV(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
+      {v && <button onMouseDown={keep} onPointerDown={keep} onClick={() => { haptic(6); setV(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>}
     </div>
   );
 }
@@ -10350,11 +10356,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             {POOL_W.length > 8 && (
               <div className="px-6 pb-3" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
                 <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-                  <Search size={15} color={t.faint} />
+                  <Search size={15} color={t.trace || t.faint} />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${tr("Search")} ${POOL_W.length}`} enterKeyHint="search"
                          onKeyDown={(e) => { if (e.key === "Enter" && faces[0]) { e.preventDefault(); pickPerson(faces[0]); } }}
                          className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
-                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
                      : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
                 </div>
               </div>
@@ -10393,7 +10399,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                     <button onClick={() => { haptic(8); onAddPlayer(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, borderTop: hair, borderBottom: hair }}>
                       <UserPlus size={17} color={t.ink} strokeWidth={1.7} />
                       <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Add a player")}</span>
-                      <ChevronRight size={16} color={t.faint} />
+                      <ChevronRight size={16} color={t.trace || t.faint} />
                     </button>
                   )}
                 </>
@@ -10520,7 +10526,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               <button onClick={() => { haptic(6); setAdding(false); setView("who"); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ minHeight: 44 }}>
                 <span className="flex items-end gap-1.5">
                   <span className="truncate" style={{ ...TYPE.hero, color: t.ink }}>{heroText}</span>
-                  <ChevronDown size={16} color={t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
+                  <ChevronDown size={16} color={t.trace || t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
                 </span>
               </button>
               <button onClick={() => { haptic(6); setAdding(true); setView("who"); }} aria-label={tr("Add someone")}
@@ -10530,7 +10536,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <div className="flex items-center gap-2 mt-1.5" style={{ minHeight: 30 }}>
               <span data-tour="wiz-when" className="relative flex items-center">
                 <span style={{ ...TYPE.small, color: t.sub }}>{whenLine}</span>
-                {needsDate && <ChevronDown size={12} color={t.faint} strokeWidth={2} style={{ marginLeft: 4 }} />}
+                {needsDate && <ChevronDown size={12} color={t.trace || t.faint} strokeWidth={2} style={{ marginLeft: 4 }} />}
                 {needsDate && (
                   <input type="date" aria-label={tr("Date")} value={dateIso} max={maxIso}
                          onClick={(e) => { try { if (e.currentTarget.showPicker) e.currentTarget.showPicker(); } catch (err) { /* the tap opens it */ } }}
@@ -10690,7 +10696,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
         {sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
       </span>
-      <ChevronRight size={15} color={t.faint} />
+      <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
   return (
@@ -10719,9 +10725,9 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
         {tab === nounTitle || groups.length === 0 ? (<>
           {searchable && (
             <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
-              <Search size={15} color={t.faint} />
+              <Search size={15} color={t.trace || t.faint} />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-              {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+              {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
                  : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
             </div>
           )}
@@ -10741,7 +10747,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
                              borderBottom: RULE.hair(t.ink) }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
               <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
-              <ChevronRight size={15} color={t.faint} />
+              <ChevronRight size={15} color={t.trace || t.faint} />
             </button>
           )}
         </>) : (
@@ -10881,7 +10887,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                     </span>
                   )}
                 </span>
-                <ChevronRight size={15} color={t.faint} style={{ marginTop: 4 }} />
+                <ChevronRight size={15} color={t.trace || t.faint} style={{ marginTop: 4 }} />
               </button>
             ))}
           </div>
@@ -10914,7 +10920,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               <button key={lbl} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center text-left active:opacity-50"
                       style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -10996,7 +11002,7 @@ function FilterRow({ options, value, onChange, label, last }) {
               style={{ minHeight: 52, borderTop: hair }}>
         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
         <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "55%" }}>{value}</span>
-        <ChevronRight size={15} color={t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+        <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
       </button>
       {open && (
         <div style={{ background: t.wash }}>
@@ -11065,10 +11071,10 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                                                      : `${shown.length} ${tr("of")} ${lessons.length}`].filter(Boolean).join(" · ")}>
         {sift && (<div className="px-6 mb-3">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
-            <Search size={16} color={t.faint} />
+            <Search size={16} color={t.trace || t.faint} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={forPlayer ? tr("Search what you covered") : `Search ${nouns} or what you covered`}
                    className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
           </div>
         </div>)}
@@ -11078,7 +11084,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                   style={{ minHeight: 52, borderTop: RULE.section(t.ink) }}>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Only")}</span>
             <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{forPlayer}</span>
-            <X size={14} color={t.faint} strokeWidth={2.2} />
+            <X size={14} color={t.trace || t.faint} strokeWidth={2.2} />
           </button>
         )}
 
@@ -11115,7 +11121,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                     </span>
                     {l.type === "Group" && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: GROUP }} />}
                     {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
-                    <ChevronRight size={15} color={t.faint} />
+                    <ChevronRight size={15} color={t.trace || t.faint} />
                   </button>
                 ))}
               </div>
@@ -11234,7 +11240,7 @@ function MyGroups({ groups, cfg, nouns, pop, push, say }) {
                       {DAY_NAMES[g.day]}s {g.time} · {g.members.length} {nouns}
                     </span>
                   </span>
-                  <ChevronRight size={16} color={t.faint} />
+                  <ChevronRight size={16} color={t.trace || t.faint} />
                 </button>
               ))}
             </div>
@@ -11294,7 +11300,7 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
                         color: ci === 0 ? t.ink : (ci === r.length - 1 && /lost/i.test(cell) ? DANGER : t.ink) }}>{cell}</span>
               ))}
               <button onClick={() => { haptic(6); onRemove(ri); }} className="active:opacity-50" style={{ width: 22 }} aria-label={tr("Remove")}>
-                <X size={13} color={t.faint} />
+                <X size={13} color={t.trace || t.faint} />
               </button>
             </div>
           ))}
@@ -11603,7 +11609,7 @@ function VideoAnnotate({ angle, transcript, onSave, pop, say }) {
             <Card className="mb-3">
               {captions.map((c, i) => (
                 <Row key={i} label={c.text} sub={c.at} last={i === captions.length - 1}
-                     right={<button onClick={() => { haptic(6); setCaptions(captions.filter((_, j) => j !== i)); }} aria-label={tr("Remove")}><X size={14} color={t.faint} /></button>} />
+                     right={<button onClick={() => { haptic(6); setCaptions(captions.filter((_, j) => j !== i)); }} aria-label={tr("Remove")}><X size={14} color={t.trace || t.faint} /></button>} />
               ))}
             </Card>
           )}
@@ -11801,7 +11807,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
                 style={{ minHeight: 56, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
           <Users size={17} color={t.sub} strokeWidth={1.6} />
           <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
-          <ChevronRight size={15} color={t.faint} />
+          <ChevronRight size={15} color={t.trace || t.faint} />
         </button>
       )}
     </>
@@ -11995,7 +12001,7 @@ function Subscription({ pop, say, plan }) {
             </button>
             <button onClick={() => say("Nothing to restore")} className="w-full flex items-center text-left active:opacity-50"
                     style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Restore purchases")}</span><ChevronRight size={15} color={t.faint} />
+              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Restore purchases")}</span><ChevronRight size={15} color={t.trace || t.faint} />
             </button>
           </div>
 
@@ -12139,7 +12145,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
         <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left active:opacity-70" style={{ background: t.surface, borderRadius: R.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
           <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
           <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 20, color: t.ink }}>{tr("Set drills")}</span><span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{tr("Choose who, and what they practise")}</span></span>
-          <ChevronRight size={17} color={t.faint} />
+          <ChevronRight size={17} color={t.trace || t.faint} />
         </button>
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
@@ -12222,7 +12228,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                           {focusLabel}{d.uses ? ` · ${tr("used")} ${d.uses}×` : ""}
                         </span>
                       </span>
-                      <ChevronDown size={16} color={t.faint} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+                      <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
                     </button>
                     {isOpen && (
                       <div className="px-5 pb-4" style={{ background: t.wash }}>
@@ -12339,7 +12345,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
             <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: t.wash }}><Clock size={15} color={t.sub} /></span>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min default</span></span>
-            <ChevronDown size={16} color={t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+            <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
           </button>
           {editSlots && (
             <Card className="p-5 mt-3">
@@ -12547,7 +12553,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                         {k.canBook ? `${tr("with")} ${k.coachName}` : k.coachId ? tr("their coach has set no times yet") : tr("no coach yet")}
                       </span>
                     </span>
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 ))}
               </Card>
@@ -12668,7 +12674,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                 <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>
                   {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
                 </span>
-                <ChevronRight size={15} color={t.faint} />
+                <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
             )}
 
@@ -12729,7 +12735,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                       {DAY_NAMES[r.day]}s {r.time} · {r.every || r.freq}{r.total ? ` · ${r.total - r.used} of ${r.total} left` : ""}
                     </span>
                   </span>
-                  <ChevronRight size={15} color={t.faint} />
+                  <ChevronRight size={15} color={t.trace || t.faint} />
                 </button>
               ))}
             </div>
@@ -12929,7 +12935,7 @@ function Thread({ role, name, isGroup, pop, say, live }) {
           <Avatar name={name} size={32} group={group} />
           <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : live && live.sub ? live.sub : role === "coach" ? "Player" : "Your coach"}</span></span>
           {(!live || live.onDetails) && (
-            <button onClick={() => { haptic(6); if (live) live.onDetails(); else say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.faint} /></button>
+            <button onClick={() => { haptic(6); if (live) live.onDetails(); else say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.trace || t.faint} /></button>
           )}
         </div>
         <div ref={feed} className="flex-1 overflow-y-auto px-4 pt-5 pb-3">
@@ -12988,7 +12994,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
       <Screen title={tr("Branding")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         {!live && (
           <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
-            <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.faint} /></div>
+            <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.trace || t.faint} /></div>
             <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>{tr("Upload your logo")}</span>
             <span className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>Square PNG, 512px or larger</span>
           </Card></div>
@@ -13174,7 +13180,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
                               className="w-full flex items-center gap-3 text-left active:opacity-60"
                               style={{ minHeight: 48, borderBottom: RULE.hair(t.ink) }}>
                         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Remove")} {SPORTS[id].label}</span>
-                        <X size={14} color={t.faint} strokeWidth={2.2} />
+                        <X size={14} color={t.trace || t.faint} strokeWidth={2.2} />
                       </button>
                     ))}
                   </div>
@@ -13243,7 +13249,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           {Ico && <I C={Ico} />}
           <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, color: t.ink }}>{label}</span>
           <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
-          <ChevronRight size={16} color={t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+          <ChevronRight size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
         </button>
         {isOpen && (
           <div style={{ background: t.wash }}>
@@ -13359,17 +13365,17 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                 ? <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.sub }}>{weekDone} {tr("this week")} · {seasonDone} {tr("this year")}</span>
                 : !live && <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.faint }}>{sub}</span>}
             </span>
-            <ChevronRight size={18} color={t.faint} />
+            <ChevronRight size={18} color={t.trace || t.faint} />
           </button>
         </div>
 
         {/* find it rather than scroll for it */}
         <div className="px-6 mb-6">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-            <Search size={15} color={t.faint} strokeWidth={2} />
+            <Search size={15} color={t.trace || t.faint} strokeWidth={2} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search settings")} aria-label={tr("Search settings")}
                    className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.faint} strokeWidth={2} /></button>
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.trace || t.faint} strokeWidth={2} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
           </div>
         </div>
@@ -13688,9 +13694,9 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
       <div className="flex flex-col h-full" style={{ background: t.page }}>
         <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-3" style={{ borderBottom: `1px solid ${t.hair}` }}>
           <div className="flex-1 flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
-            <Search size={17} color={t.faint} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            <Search size={17} color={t.trace || t.faint} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
             <MicBtn onText={(txt) => setQ(q ? `${q} ${txt}` : txt)} size={26} />
-            {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={16} color={t.faint} /></button>}
+            {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={16} color={t.trace || t.faint} /></button>}
             <MicBtn onText={(txt) => setQ(txt)} size={30} />
           </div>
           <TextBtn onClick={pop}>{tr("Cancel")}</TextBtn>
@@ -13985,7 +13991,7 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
           )}
           {!moving.length && (
             <button onClick={() => { haptic(5); onDismiss && onDismiss(); }} className="shrink-0 p-1 active:opacity-50" aria-label={tr("Dismiss")}>
-              <X size={13} color={t.faint} />
+              <X size={13} color={t.trace || t.faint} />
             </button>
           )}
         </div>
