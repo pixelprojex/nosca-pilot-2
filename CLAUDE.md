@@ -397,6 +397,21 @@ seeded data and no account.
   off-screen with pointer events off (Delete account and Live capture
   opened empty panels this way). Overlays that stay mounted while idle
   must set `pointer-events: none` (the toast strip swallowed taps).
+- **A fill-mode of `both` pins what it ends on, and beats an inline
+  style.** An animation that is filling wins over the element's own
+  `style=` in the cascade, forever, because `both` holds the 100%
+  frame after the animation ends. Three separate bugs in one round
+  were this: `headerSettle` ended at `opacity: 1` over an inline
+  `opacity: y > 24 ? 0 : 1`, so the large header never faded on
+  scroll; `setIn` ended at `transform: none` over the press's
+  `scale(0.985)`, so every tile in the app lost its movement and kept
+  only its shadow; and `celebFade` ends at `opacity: 0`, which under
+  Reduce Motion — where duration is forced to 0.01ms — held the
+  Celebration invisible for its whole 1750ms while it blocked every
+  tap. Use `backwards`: it applies the FROM frame during the delay
+  and releases the element afterwards, so the element's own style is
+  what remains. Anything whose visible state comes only from an
+  animation needs that state in its `style=` as well.
 - **Don't unmount the app on a refresh.** `loading` in `useNoscaData`
   is true for the first load only; the gate keeps `SignedIn` mounted
   while a profile refresh runs; `account` is memoised on its fields.

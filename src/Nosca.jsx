@@ -316,8 +316,8 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
    everywhere is what flattens an interface into a template. */
 export const R = {
   field:   6,    // inputs and time cells — crisp, typographic
-  control: 9,    // buttons: firm, not bubbly
-  surface: 14,   // cards and sheets hold content
+  control: 10,   // buttons: firm, not bubbly
+  surface: 16,   // cards and sheets hold content
   sheet:   22,   // the bottom sheet is the softest thing on screen
   pill:    999,  // only for actual pills
 };
@@ -331,8 +331,8 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    its mark are the brand colour — the one anchor Nosca has before a
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
-  ink: "#1A1815", sub: "#6B6560", faint: "#A39C93",
-  hair: "#E8E3DA", page: "#FFFFFF", surface: "#FFFFFF",
+  ink: "#1A1815", sub: "#55504C", faint: "#757069", trace: "#A39C93",
+  hair: "#E8E3DA", page: "#F7F5EF", surface: "#FFFFFF",
   wash: "#F2EDE4", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
@@ -367,8 +367,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#14180F", sub: "#5A6350", faint: "#A8AE9C", hair: "#EDEAE1",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#8C6D28", accent: "#8C6D28", onAccent: "#FFFFFF" },
+    theme: { ink: "#14180F", sub: "#4B5342", faint: "#6D7264", trace: "#A8AE9C", hair: "#EDEAE1",
+             page: "#F7F4EC", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#896B27", accent: "#896B27", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -456,8 +456,8 @@ export const SPORTS = {
   tennis: {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
-    theme: { ink: "#0A2222", sub: "#476865", faint: "#96ADA9", hair: "#E1EDEB",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#E8F1EE", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+    theme: { ink: "#0A2222", sub: "#375654", faint: "#5E7573", trace: "#96ADA9", hair: "#E1EDEB",
+             page: "#F2F7F5", surface: "#FFFFFF", wash: "#E8F1EE", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -548,8 +548,8 @@ export const SPORTS = {
   rowing: {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
-    theme: { ink: "#10222E", sub: "#4E6473", faint: "#93A6B2", hair: "#E2EAEF",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#E9F1F5", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+    theme: { ink: "#10222E", sub: "#3F5463", faint: "#617480", trace: "#93A6B2", hair: "#E2EAEF",
+             page: "#F2F7F9", surface: "#FFFFFF", wash: "#E9F1F5", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -643,8 +643,8 @@ export const SPORTS = {
   squash: {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
-    theme: { ink: "#241A14", sub: "#6B584C", faint: "#AC9C90", hair: "#EFE7E0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B5562E", accent: "#B5562E", onAccent: "#FFFFFF" },
+    theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
+             page: "#F9F3EF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -729,8 +729,8 @@ export const SPORTS = {
   padel: {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
-    theme: { ink: "#1E1830", sub: "#5C5473", faint: "#A199B4", hair: "#E9E5F0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#EFEBF7", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+    theme: { ink: "#1E1830", sub: "#544C6A", faint: "#746C86", trace: "#A199B4", hair: "#E9E5F0",
+             page: "#F6F3FA", surface: "#FFFFFF", wash: "#EFEBF7", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -815,8 +815,8 @@ export const SPORTS = {
   equestrian: {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
-    theme: { ink: "#241A1D", sub: "#6A585D", faint: "#AB9AA0", hair: "#EEE6E8",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F4EBEE", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+    theme: { ink: "#241A1D", sub: "#5D4C51", faint: "#7A6C71", trace: "#AB9AA0", hair: "#EEE6E8",
+             page: "#F9F3F5", surface: "#FFFFFF", wash: "#F4EBEE", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1048,8 +1048,8 @@ const useL = () => useContext(LangCtx);
 function darkify(theme) {
   return {
     ...theme,
-    ink: "#F2F4F3", sub: "#A6B0AE", faint: "#6D7876",
-    hair: "#232A2C", page: "#FFFFFF", surface: "#FFFFFF", wash: "#1C2325",
+    ink: "#F2F4F3", sub: "#A6B0AE", faint: "#8A9694", trace: "#6D7876",
+    hair: "#2A3234", page: "#101416", surface: "#1A2124", wash: "#12181A",
   };
 }
 
@@ -1059,10 +1059,6 @@ function darkify(theme) {
 export const ThemeCtx = createContext(NEUTRAL);
 export const useT = () => useContext(ThemeCtx);
 export const display = "'Cabinet Grotesk', ui-sans-serif, -apple-system, sans-serif";
-/* One editorial serif, used only for a single emphasised phrase inside a
-   heading — never for a whole block. Oura's technique; it is the thing
-   that makes a sentence feel written rather than generated. */
-const editorial = "'Zodiak', 'Cabinet Grotesk', ui-serif, Georgia, serif";
 export const ui = "'Switzer', 'Instrument Sans', ui-sans-serif, -apple-system, sans-serif";
 
 /* ------------------------------------------------------------------
@@ -1082,24 +1078,95 @@ export const TYPE = {
      32px heading at weight 300 with tight tracking reads considered;
      the same heading at 700 reads like a warning sign.
 
-     Every size here came down a step, because the app read cramped: a
-     27px date over a 14.5px line over an 86px tile, all 10px apart, is
-     a lot of ink on a 390px screen. Smaller type is not the point —
-     the space it gives back is. Nothing went below 12px, which is the
-     floor for a coach reading a phone at arm's length on a range. */
-  hero:    { fontFamily: display, fontSize: 29, lineHeight: 1.06, letterSpacing: "-0.03em",  fontWeight: 300 },
-  /* every screen's H1. Today used to hard-code its own 27 while Roster,
-     Alerts and Drills used hero at 32, which is a good part of why the
-     app read unfinished. hero is now sign-up and the player's tip. */
-  screen:  { fontFamily: display, fontSize: 24, lineHeight: 1.12, letterSpacing: "-0.026em", fontWeight: 350 },
-  title:   { fontFamily: display, fontSize: 20.5, lineHeight: 1.18, letterSpacing: "-0.022em", fontWeight: 400 },
-  heading: { fontFamily: display, fontSize: 16.5, lineHeight: 1.3, letterSpacing: "-0.016em", fontWeight: 500 },
-  subhead: { fontFamily: display, fontSize: 14.5, lineHeight: 1.4, letterSpacing: "-0.01em", fontWeight: 500 },
-  figure:  { fontFamily: display, fontSize: 27, lineHeight: 1,    letterSpacing: "-0.033em", fontWeight: 300, fontVariantNumeric: "tabular-nums lining" },
-  body:    { fontFamily: ui,      fontSize: 14, lineHeight: 1.5, letterSpacing: "-0.004em", fontWeight: 400 },
-  small:   { fontFamily: ui,      fontSize: 12, lineHeight: 1.45, letterSpacing: "-0.002em", fontWeight: 400 },
-  caption: { fontFamily: ui,      fontSize: 10.5, lineHeight: 1.4, fontWeight: 400 },
-  eyebrow: { fontFamily: ui,      fontSize: 9.5, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 500 },
+     Cabinet Grotesk is loaded as STATIC cuts — 300, 400, 500, and no
+     variable axis. CSS Fonts 4 matches a weight below 400 by checking
+     lighter cuts in descending order first, so `screen`'s old 350
+     resolved to 300: identical to `hero`. Every H1 in the app shipped
+     at hero's weight, and that is a good part of why the screens read
+     flat. Verified in the browser, not assumed: with a family built
+     from three distinct local cuts, 350 and 399 both render the 300
+     cut and only 400 crosses over. `screen` is 400 now, so the ladder
+     has a weight step as well as a size step.
+
+     The ladder is 32 · 24 · 19 · 15.5 · 14.5 · 13.5 · 12.5 · 11 · 10,
+     with no adjacent pair closer than 1.06x. The display end goes
+     larger and lighter, the text end larger and steadier — body is
+     read on a range at arm's length and is the one size that should
+     never have come down. The 12px floor RISES: small 12 → 12.5,
+     caption 10.5 → 11, eyebrow 9.5 → 10. The only tokens under 12 are
+     caption and eyebrow, and eyebrow is uppercase, tracked, and never
+     prose. */
+  hero:     { fontFamily: display, fontSize: 32, lineHeight: 1.03, letterSpacing: "-0.035em", fontWeight: 300 },
+  /* every screen's H1, and the app's only one — see PageHead. */
+  screen:   { fontFamily: display, fontSize: 24, lineHeight: 1.08, letterSpacing: "-0.03em",  fontWeight: 400 },
+  title:    { fontFamily: display, fontSize: 19, lineHeight: 1.16, letterSpacing: "-0.025em", fontWeight: 400 },
+  /* heading sits 1px above body deliberately: the contrast is family
+     plus weight, not size, which is why the two can live 1px apart. */
+  heading:  { fontFamily: display, fontSize: 15.5, lineHeight: 1.28, letterSpacing: "-0.015em", fontWeight: 500 },
+  subhead:  { fontFamily: display, fontSize: 13.5, lineHeight: 1.34, letterSpacing: "-0.008em", fontWeight: 500 },
+  body:     { fontFamily: ui,      fontSize: 14.5, lineHeight: 1.52, letterSpacing: "-0.003em", fontWeight: 400 },
+  /* the one line under an H1 that says what a page holds. It was set
+     in TYPE.small in t.faint — the quietest thing on the screen. It is
+     a lede: Switzer, and t.sub. */
+  lede:     { fontFamily: ui,      fontSize: 13.5, lineHeight: 1.45, letterSpacing: "-0.004em", fontWeight: 400 },
+  small:    { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.42, letterSpacing: "0",        fontWeight: 400 },
+  caption:  { fontFamily: ui,      fontSize: 11, lineHeight: 1.34, letterSpacing: "0.005em",    fontWeight: 400 },
+  eyebrow:  { fontFamily: ui,      fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 500 },
+
+  /* THE FIGURE LADDER. A number in a document is set large and light.
+     figureXL is the one number that owns a block — a player's lesson
+     count. figure is the middle rung. figureSm is a time or a date
+     inside a row: DISPLAY at 500 while the name beside it is Switzer
+     400, so the column reads as a schedule rather than a paragraph,
+     with hierarchy carried by COLOUR (time in t.sub, name in t.ink)
+     and never by the time being bigger than the person. */
+  figureXL: { fontFamily: display, fontSize: 46, lineHeight: 0.92, letterSpacing: "-0.045em", fontWeight: 300, fontVariantNumeric: "tabular-nums lining" },
+  figure:   { fontFamily: display, fontSize: 30, lineHeight: 0.94, letterSpacing: "-0.04em",  fontWeight: 300, fontVariantNumeric: "tabular-nums lining" },
+  figureSm: { fontFamily: display, fontSize: 15.5, lineHeight: 1, letterSpacing: "-0.02em",   fontWeight: 500, fontVariantNumeric: "tabular-nums lining" },
+};
+
+/* Spread onto every number that is not already inside a figure token.
+   Today the player's Coming up has tabular figures and Recent lessons
+   directly under it does not, so two stacked columns disagree about
+   how wide a 1 is. */
+export const FIG = { fontVariantNumeric: "tabular-nums lining", fontFeatureSettings: '"tnum" 1, "lnum" 1' };
+
+/* RULES. The app had twelve distinct HAIR alphas from 0.07 to 0.30,
+   chosen at the call site across 113 places, so a list's lid and the
+   separators inside it were the identical 0.5px — which means a list
+   had no lid and a screen was an undifferentiated run of greys.
+
+   THE LAW: a list opens on `section`, its rows separate on `hair`, it
+   closes on `section`, and exactly one `major` appears per screen,
+   under the H1. `hair` is 0.14 because that is already the app's
+   dominant separator, so no row gets lighter in the same change that
+   darkens every second line of text. */
+export const RULE = {
+  hair:    (ink) => `0.5px solid ${HAIR(ink, 0.14)}`,
+  section: (ink) => `1px solid ${HAIR(ink, 0.24)}`,
+  major:   (ink) => `1.5px solid ${HAIR(ink, 0.38)}`,
+};
+
+/* THE MEASURE. The leading column was 52 in one place, 58 in another,
+   62 in a third and 64 in two more — five widths, all left-aligned, so
+   no two colons in the app lined up. One right-aligned 54px column
+   now, sized on the widest real case ("10:00 am" at 15.5px Cabinet
+   tabular), so every figure column in the app ends at x = 86 and a
+   name on Today, a name in the diary and a date on a player's file all
+   begin on the same vertical line. */
+export const RAIL = 62;
+
+/* Four durations and no fifth, and the file's existing house curve —
+   109 of its ~151 easing declarations already use it, so this names
+   what is there rather than migrating it. Applied only where this
+   change is already editing; a file-wide rescale would shift every
+   screenshot baseline and buy nothing anyone can see. */
+export const MOTION = {
+  instant: 110,   // a press, a toggle knob, a tick
+  settle:  200,   // anything entering the page
+  move:    300,   // a sheet, a screen push, the tab pill
+  draw:    420,   // the rule under an H1 — the only long one in the app
+  curve:   "cubic-bezier(.22,1,.36,1)",
 };
 
 /* Space as a system, so a screen breathes the same way everywhere.
@@ -1110,20 +1177,42 @@ export const TYPE = {
    somewhere else — and the result read cramped in some places and
    loose in others, which is worse than either. */
 export const SPACE = {
+  knit:     6,   // inside one object — a figure and its unit
   tight:   10,   // a label and the thing it labels
   row:     14,   // two controls doing the same job
   block:   30,   // two different things on one page
   section: 40,   // the page changes subject
 };
 
-/* Depth as a system. Three levels only — anything more and the screen
-   stops having a clear surface. */
-export const ELEV = {
-  flat:  "none",
-  rest:  "0 1px 2px rgba(14,20,26,0.03), 0 2px 8px rgba(14,20,26,0.02)",
-  raise: "0 2px 6px rgba(14,20,26,0.04), 0 12px 28px rgba(14,20,26,0.05)",
-  float: "0 6px 16px rgba(14,20,26,0.06), 0 22px 48px rgba(14,20,26,0.08)",
-};
+/* Depth as a function of the palette, not a constant.
+
+   The page is now the sport's own paper and `surface` is white, so the
+   thing you can touch is the brightest thing on the screen. What makes
+   that read as an object rather than a shape is the `inset 0 1px 0`
+   white rim along its top edge — the light source, declared — over a
+   shadow keyed to that palette's own ink. rgba(14,20,26,…) was a
+   blue-black shadow cast on golf's warm paper by an equestrian card.
+   Nobody can name the difference; everybody feels it.
+
+   `groove` is below the page (an input, the Segmented track) and
+   `press` is an object held down, which is what gives a press its
+   physics: it sinks and loses its shadow rather than bouncing. */
+export const SHADE = (ink, rim = 0.92) => ({
+  flat:   "none",
+  rest:   `inset 0 1px 0 rgba(255,255,255,${rim}), 0 1px 1.5px ${HAIR(ink, 0.05)}, 0 3px 10px -2px ${HAIR(ink, 0.05)}`,
+  /* `rest` for something that is not white: same weight of shadow, no lit
+     rim. A 1px white line across the top of an accent-filled button is the
+     rim doing on a coloured fill what it was only ever meant to do on
+     paper. */
+  cast:   `0 1px 1.5px ${HAIR(ink, 0.07)}, 0 3px 10px -2px ${HAIR(ink, 0.09)}`,
+  raise:  `inset 0 1px 0 rgba(255,255,255,${rim}), 0 1px 2px ${HAIR(ink, 0.06)}, 0 8px 20px -6px ${HAIR(ink, 0.10)}`,
+  float:  `inset 0 1px 0 rgba(255,255,255,${rim * 0.9}), 0 2px 4px ${HAIR(ink, 0.07)}, 0 18px 40px -10px ${HAIR(ink, 0.16)}`,
+  groove: `inset 0 1px 2px ${HAIR(ink, 0.07)}`,
+  press:  `inset 0 1px 3px ${HAIR(ink, 0.12)}`,
+});
+/* Every existing ELEV call site keeps working unchanged; the tinted
+   instance rides on the theme as `t.elev`. */
+export const ELEV = SHADE(NEUTRAL.ink);
 
 /* ==================================================================
    FEEDBACK — haptics + restrained sound. Sound is opt-out, synthesized
@@ -1683,7 +1772,14 @@ function Bone({ w = "100%", h = 14, r = 8, mb = 0 }) {
   );
 }
 const ShimmerCSS = () => (
-  <style>{`@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@200,300,400,500,700,800,900&f[]=switzer@300,400,500,600,700&f[]=zodiak@300i,400i,500i&display=swap');
+  <style>{`
+    /* A list closes once. Its last row's own hairline would otherwise sit
+       directly on the 1px foot and close the list at 1.5px while its lid
+       stayed 1px. The rows carry their borders inline, so only !important
+       reaches them — one declaration, rather than a 'last' prop threaded
+       through DayRow, HomeRow and everything else that may end a list. */
+    .nsc-ruled > div > *:last-child { border-bottom: none !important; }
+    @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
     @keyframes sp{to{transform:rotate(360deg)}}
     @keyframes bl{0%,60%,100%{opacity:.3}30%{opacity:1}}
@@ -1730,12 +1826,11 @@ const ShimmerCSS = () => (
     /* the overture: mark draws in, whole thing lifts away */
     @keyframes overtureMark{0%{transform:scale(.7) rotate(-8deg);opacity:0}55%{transform:scale(1.06) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
     @keyframes overtureOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.04)}}
-    @keyframes ruleDraw{0%{transform:scaleX(0);opacity:0}100%{transform:scaleX(1);opacity:.7}}
+    @keyframes ruleDraw{0%{transform:scaleX(0);opacity:0}100%{transform:scaleX(1);opacity:1}}
     @keyframes wiggle{0%,100%{transform:rotate(-0.7deg)}50%{transform:rotate(0.7deg)}}
     /* Choreography: the header settles first, then content rises under
        it. Staggering by role rather than by index is what stops a
        screen looking like a list of things that all arrived together. */
-    @keyframes headerSettle{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
     @keyframes joinLeft{0%{transform:translateX(-46px);opacity:0}55%{opacity:1}100%{transform:translateX(0);opacity:1}}
     @keyframes joinRight{0%{transform:translateX(46px);opacity:0}55%{opacity:1}100%{transform:translateX(0);opacity:1}}
     @keyframes contentRise{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
@@ -1959,7 +2054,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
         <span className="flex-1 text-left truncate" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.sub }}>
           {lesson.d} {lesson.m}
         </span>
-        <ChevronDown size={12} color={t.faint} />
+        <ChevronDown size={12} color={t.trace || t.faint} />
       </button>
       <div className="relative overflow-hidden" style={{ borderRadius: R.control, aspectRatio: "3/4", background: "#191D1B" }}>
         <span className="absolute" style={{ left: 0, right: 0, top: `${pos}%`, height: 1, background: t.accent, opacity: 0.5 }} />
@@ -2176,7 +2271,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
 
             {/* one card, rows inside — the chaos was every slot being
                 its own floating box */}
-            <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+            <div style={{ borderTop: RULE.section(t.ink) }}>
               {rows.map((h, ri) => {
                 const bk = day.booked.find((b) => b.time === h);
                 const isBlocked = day.blockedHere.includes(h);
@@ -2189,16 +2284,22 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
-                    <span className="shrink-0" style={{ width: 62, ...TYPE.small, color: t.ink, fontVariantNumeric: "tabular-nums" }}>{h.replace(/ (am|pm)/, "")}</span>
-                    <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: isGroup ? GROUP : t.accent }} />
+                    <Rail tone={t.ink}>{h.replace(/ (am|pm)/, "")}</Rail>
+                    {/* THE ACCENT APPEARS ONCE A SCREEN. This bar spent it
+                        on every booked row in the diary, and said nothing
+                        the time beside it does not: a booked hour is
+                        already set in t.ink while a free one is t.sub. It
+                        stays only for a group, where the colour is the one
+                        thing that tells a squad from a single lesson. */}
+                    {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{bk.who}</span>
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 );
 
                 if (isBlocked) return (
                   <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 48, ...line }}>
-                    <span className="shrink-0" style={{ width: 62, ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{h.replace(/ (am|pm)/, "")}</span>
+                    <Rail>{h.replace(/ (am|pm)/, "")}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{tr("Blocked")}</span>
                   </div>
                 );
@@ -2206,7 +2307,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                 if (role !== "coach" && kind === "group") return null;
                 if (role === "player" && juvenile) return (
                   <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 48, ...line }}>
-                    <span className="shrink-0" style={{ width: 62, ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{h.replace(/ (am|pm)/, "")}</span>
+                    <Rail>{h.replace(/ (am|pm)/, "")}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>
                       {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : tr("Open")}
                     </span>
@@ -2226,13 +2327,13 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                           onClick={() => { haptic(7); soft(); onBookInto(day, h, kind); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 50, ...line }}>
-                    <span className="shrink-0" style={{ width: 62, ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{h.replace(/ (am|pm)/, "")}</span>
+                    <Rail>{h.replace(/ (am|pm)/, "")}</Rail>
                     {/* an empty row is empty; only a slot reserved for a
                         kind of lesson has anything to say */}
                     <span className="flex-1 truncate" style={{ ...TYPE.small, color: t.faint }}>
                       {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : ""}
                     </span>
-                    <Plus size={15} color={t.faint} strokeWidth={2} />
+                    <Plus size={15} color={t.trace || t.faint} strokeWidth={2} />
                   </button>
                 );
               })}
@@ -2248,9 +2349,9 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
       {role === "coach" ? (
         <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
                 className="w-full flex items-center gap-3 px-6 text-left active:opacity-60"
-                style={{ minHeight: 56, marginTop: 10, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                style={{ minHeight: 56, marginTop: 10, borderTop: RULE.section(t.ink) }}>
           <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("Recurring lessons")}</span>
-          <ChevronRight size={15} color={t.faint} />
+          <ChevronRight size={15} color={t.trace || t.faint} />
         </button>
       ) : <div style={{ height: 26 }} />}
       </div>
@@ -2304,7 +2405,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
                     className="w-full flex items-center gap-3 px-4 text-left"
                     style={{ minHeight: 52, borderRadius: R.control, background: on ? `${t.accent}0F` : t.surface,
                              border: `1px solid ${on ? `${t.accent}22` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
-                             animation: `fadeUp 320ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }}>
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex-1" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr(r)}</span>
               {on && <Check size={16} color={STEADY} strokeWidth={2.1} style={{ animation: "checkPop 420ms cubic-bezier(.28,1.4,.5,1) both" }} />}
             </button>
@@ -2391,7 +2492,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
                              background: on ? (r.sensitive ? `${DANGER}0D` : `${t.accent}0D`) : t.surface,
                              border: `1px solid ${on ? (r.sensitive ? `${DANGER}3A` : `${t.accent}3A`) : t.hair}`,
                              transition: "background 200ms, border-color 200ms",
-                             animation: `fadeUp 340ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex items-center justify-center shrink-0"
                     style={{ width: 22, height: 22, borderRadius: R.control,
                              border: `1.5px solid ${on ? (r.sensitive ? DANGER : t.accent) : t.hair}`,
@@ -2448,7 +2549,7 @@ function EventCard({ event, sport, onPress, delay = 0 }) {
             </span>
           )}
         </span>
-        <ChevronRight size={15} color={t.faint} />
+        <ChevronRight size={15} color={t.trace || t.faint} />
       </div>
     </Tile>
   );
@@ -2485,7 +2586,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                       </button>}>
         <div className="px-6 pb-2">
           {adding && (
-            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
+            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
                    animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               <VoiceInput value={name} onChange={setName} ph={tr("Name")} autoFocus />
 
@@ -2497,9 +2598,9 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
               <div className="flex gap-2">
                 <input value={dd} onChange={(e) => setDd(e.target.value.replace(/\D/g, "").slice(0, 2))}
                        placeholder="DD" inputMode="numeric" className="outline-none text-center"
-                       style={{ width: 58, minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink }} />
+                       style={{ width: 58, minHeight: 48, borderRadius: R.field, background: t.wash, boxShadow: (t.elev || ELEV).groove, ...TYPE.body, color: t.ink }} />
                 <select value={mm} onChange={(e) => setMm(e.target.value)} className="flex-1 outline-none px-3"
-                        style={{ minHeight: 48, borderRadius: R.field, background: t.wash, ...TYPE.body, color: t.ink, border: "none" }}>
+                        style={{ minHeight: 48, borderRadius: R.field, background: t.wash, boxShadow: (t.elev || ELEV).groove, ...TYPE.body, color: t.ink, border: "none" }}>
                   {(live ? Array.from({ length: 12 }, (_, i) => ({ idx: i + 1, name: MONTHS_FULL[i] })) : calendar.months).map((mo) => <option key={mo.idx} value={mo.idx}>{mo.name}</option>)}
                 </select>
               </div>
@@ -2776,7 +2877,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
           </button>
         )}
         <button onClick={onRemove} className="shrink-0 active:opacity-50 p-1.5" aria-label={tr("Remove")}>
-          <X size={14} color={t.faint} />
+          <X size={14} color={t.trace || t.faint} />
         </button>
       </div>
 
@@ -2838,7 +2939,8 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-9" aria-live="polite"
          onClick={() => { if (waits) { haptic(6); onDone && onDone(); } }}
-         style={{ zIndex: 70, background: t.ink, animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease both" }}>
+         style={{ zIndex: 70, background: t.ink, opacity: 1,
+                  animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease backwards" }}>
       {/* shockwave out from the stamp */}
       <span className="absolute rounded-full" aria-hidden="true"
             style={{ width: 130, height: 130, border: `1px solid ${t.accent}`,
@@ -2989,12 +3091,12 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       )}
 
       {/* the last couple */}
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+      <div style={{ borderTop: RULE.section(t.ink) }}>
         {lessons.map((l, i) => (
           <button key={i} onClick={() => { haptic(7); onHistory && onHistory(); }}
                   className="w-full flex items-baseline gap-4 py-3 text-left active:opacity-50"
-                  style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                           animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 45}ms both` }}>
+                  style={{ borderBottom: RULE.hair(t.ink),
+                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
             <span className="shrink-0" style={{ width: 56, ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{l.m ? `${l.d} ${l.m}` : l.d}</span>
@@ -3018,10 +3120,10 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
 
       {/* what they're building towards — the player's own, plus yours */}
       {comps.length > 0 && (
-        <div className="mb-5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+        <div className="mb-5" style={{ borderTop: RULE.section(t.ink) }}>
           {comps.map((c, i) => (
             <div key={i} className="flex items-baseline gap-4 py-3"
-                 style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                 style={{ borderBottom: RULE.hair(t.ink) }}>
               <span className="shrink-0" style={{ width: 50, ...TYPE.eyebrow, fontSize: 9,
                              color: c.days <= 7 ? CAUTION : t.faint }}>{c.days}d</span>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{c.name}</span>
@@ -3045,7 +3147,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         <ArrowRight size={16} color={t.onAccent} strokeWidth={2.1} />
       </button>
 
-      <div className="flex mt-3" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}`, paddingTop: 12 }}>
+      <div className="flex mt-3" style={{ borderTop: RULE.section(t.ink), paddingTop: 12 }}>
         {[{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null },
           { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null },
           onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
@@ -3125,14 +3227,14 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
        : adding ? <TimeGrid label={tr("Add a time")} onPick={addSlot} onCancel={() => setAdding(false)} />
        : (
         <>
-          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          <div style={{ borderTop: RULE.section(t.ink) }}>
             {hours.map((h, i) => {
               const bk = taken(h);
               const k = kindOf(h);
               return (
                 <div key={h} className="flex items-center gap-3"
-                     style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                              animation: `fadeUp 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
+                     style={{ minHeight: 56, borderBottom: RULE.hair(t.ink),
+                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                   <button onClick={() => { if (!bk) { haptic(7); setMoving(h); } }}
                           className="shrink-0 text-left active:opacity-50"
                           style={{ width: 100, ...TYPE.figure, fontSize: 15, color: bk ? t.faint : t.ink }}>
@@ -3145,7 +3247,7 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
                   </button>
                   {!bk && (
                     <button onClick={() => dropSlot(h)} className="shrink-0 p-2 active:opacity-50" aria-label={tr("Remove")}>
-                      <X size={15} color={t.faint} />
+                      <X size={15} color={t.trace || t.faint} />
                     </button>
                   )}
                 </div>
@@ -3210,7 +3312,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
                       className="flex flex-col items-start justify-center gap-1.5 px-4 active:opacity-70"
                       style={{ minHeight: 96, borderRadius: R.surface, background: t.surface, border: `1px solid ${t.hair}`,
                                willChange: "transform", transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
-                               animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${i * 60}ms both` }}>
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <o.Icon size={20} color={i < 2 ? t.accent : t.sub} strokeWidth={1.6} />
                 <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{o.label}</span>
                 <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 10.5, color: t.faint }}>{o.sub}</span>
@@ -3620,7 +3722,7 @@ function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
             full-width control is never clipped by a fraction of a pixel */}
         <div key={`s${i}`} className="relative overflow-hidden"
              style={{ width: FRAME_W * k, height: FRAME_H * k, boxSizing: "content-box", borderRadius: 26 * k + 8,
-                      border: `1px solid ${t.hair}`, boxShadow: ELEV.float, background: t.page,
+                      border: `1px solid ${t.hair}`, boxShadow: (t.elev || ELEV).float, background: t.page,
                       animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) both" }}>
           <div ref={frameRef} style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${k})`, transformOrigin: "top left", position: "relative" }}>
             <div inert="" aria-hidden="true" style={{ width: FRAME_W, height: FRAME_H, pointerEvents: "none" }}>
@@ -3786,9 +3888,9 @@ function AtRisk({ list, onMessage, pop }) {
             </div>
           ) : (
             /* rows, one action: the number says it, the sentence is spare */
-            <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+            <div style={{ borderTop: RULE.section(t.ink) }}>
               {list.map((x) => (
-                <div key={x.id || x.name} className="flex items-center gap-3.5" style={{ minHeight: 66, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+                <div key={x.id || x.name} className="flex items-center gap-3.5" style={{ minHeight: 66, borderBottom: RULE.hair(t.ink) }}>
                   <Avatar name={x.name} size={40} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{x.name}</span>
@@ -4023,8 +4125,8 @@ function DefaultSport({ name, mine, current, onPick, close }) {
                     style={{ minHeight: 74, borderRadius: R.surface,
                              background: on ? `${sp.theme.accent}12` : t.surface,
                              border: on ? `1px solid ${sp.theme.accent}44` : "1px solid transparent",
-                             boxShadow: on ? "none" : ELEV.rest,
-                             animation: `liftIn 400ms cubic-bezier(.22,1,.36,1) ${i * 60}ms both` }}>
+                             boxShadow: on ? "none" : (t.elev || ELEV).rest,
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />
               <span className="flex-1 min-w-0">
                 <span className="block" style={{ ...TYPE.subhead, color: t.ink }}>{sp.label}</span>
@@ -4065,7 +4167,13 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
   if (gone) return null;
 
   return (
-    <div className="relative overflow-hidden" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+    /* The row inside owns the separator. All three things wrapped in a
+       SwipeRow — the day's lesson to log, an attached item, an alert —
+       draw their own `borderBottom: hair`, so this one doubled it in
+       every case: two 0.5px lines with nothing between them, which on
+       the coach's Today read as a bar under the one row that carries
+       an action. Same defect as the list foot, one level down. */
+    <div className="relative overflow-hidden">
       {/* what sits underneath */}
       <button onClick={() => { hapticWarn(); decline(); setGone(true); setTimeout(() => onDelete && onDelete(), 180); }}
               className="absolute inset-y-0 right-0 flex flex-col items-center justify-center active:opacity-80"
@@ -4075,8 +4183,16 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
         <span className="mt-1" style={{ ...TYPE.caption, fontSize: 9.5, color: "#fff" }}>{deleteLabel || tr("Remove")}</span>
       </button>
 
+      {/* THE SLIDING LAYER IS THE PAGE, NOT A SURFACE. Its job is to be
+          opaque — it has to hide the red Remove underneath it — and
+          while page and surface were both #FFFFFF that was the same
+          thing. On the sport's paper it is not: at t.surface every
+          swipeable row in the app became a white band sitting among
+          rows on the paper, which made "you can swipe this" look like
+          a different kind of object. It reads as the page until a
+          thumb actually moves it. */}
       <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-           style={{ transform: `translateX(${dx}px)`, background: t.surface,
+           style={{ transform: `translateX(${dx}px)`, background: t.page,
                     transition: st.current ? "none" : "transform 320ms cubic-bezier(.22,1,.36,1)",
                     touchAction: "pan-y" }}>
         {children}
@@ -4172,25 +4288,25 @@ function PickPerson({ roster, title, sub, onPick, close }) {
 
       <div className="flex items-center gap-2.5 px-4 mb-4"
            style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
-        <Search size={15} color={t.faint} />
+        <Search size={15} color={t.trace || t.faint} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
                className="flex-1 bg-transparent outline-none"
                style={{ ...TYPE.body, color: t.ink }} />
-        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>
+        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.trace || t.faint} /></button>
            : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
       </div>
 
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}`, maxHeight: 320, overflowY: "auto" }}>
+      <div style={{ borderTop: RULE.section(t.ink), maxHeight: 320, overflowY: "auto" }}>
         {list.length === 0 ? (
           <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name.")}</p>
         ) : list.map((r, i) => (
           <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
                   className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                  style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                           animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 40}ms both` }}>
+                  style={{ minHeight: 62, borderBottom: RULE.hair(t.ink),
+                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             <Avatar name={r.name} size={34} />
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-            <ChevronRight size={14} color={t.faint} />
+            <ChevronRight size={14} color={t.trace || t.faint} />
           </button>
         ))}
       </div>
@@ -4258,7 +4374,7 @@ function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
                   onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                   className="w-full flex items-center justify-center gap-2 mb-3 active:opacity-90"
                   style={{ minHeight: 56, borderRadius: R.control, background: t.accent, willChange: "transform",
-                           boxShadow: ELEV.raise, transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
+                           boxShadow: (t.elev || ELEV).raise, transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
                            ...TYPE.subhead, color: "#fff" }}>
             {actionLabel}
             <ArrowRight size={16} color="#fff" strokeWidth={2.1} />
@@ -4353,13 +4469,13 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
         )}
 
         {/* the register itself */}
-        <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+        <div style={{ borderTop: RULE.section(t.ink) }}>
           {who.map((r, i) => {
             const m = marks[r.id];
             return (
               <div key={r.id} className="flex items-center gap-3"
-                   style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                            animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
+                   style={{ minHeight: 62, borderBottom: RULE.hair(t.ink),
+                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={32} />
                 <span className="flex-1 min-w-0 truncate"
                       style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink }}>{r.name}</span>
@@ -4421,7 +4537,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
         </p>
       )}
 
-      <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+      <div style={{ borderTop: RULE.section(t.ink) }}>
         {(lessons || []).map((l, i) => {
           const key = keyOf(l);
           const reg = taken[key];
@@ -4431,10 +4547,9 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           return (
             <button key={key} data-tour={i === 0 ? "attend-row" : undefined} onClick={() => open(l)}
                     className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 66, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                             animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
-              <span className="shrink-0" style={{ width: 58, ...TYPE.small, color: t.faint,
-                             fontVariantNumeric: "tabular-nums" }}>{l.time}</span>
+                    style={{ minHeight: 66, borderBottom: RULE.hair(t.ink),
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+              <Rail>{l.time}</Rail>
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-2">
                   <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.who}</span>
@@ -4450,7 +4565,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
               {reg
                 ? <Check size={16} color={STEADY} strokeWidth={2.4}
                          style={{ animation: "checkPop 380ms cubic-bezier(.28,1.4,.5,1) both" }} />
-                : <ChevronRight size={14} color={t.faint} />}
+                : <ChevronRight size={14} color={t.trace || t.faint} />}
             </button>
           );
         })}
@@ -4471,16 +4586,16 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           {(lessons || []).length > 0 && (
             <p className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Not in the diary")}</p>
           )}
-          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          <div style={{ borderTop: RULE.section(t.ink) }}>
             {(roster || []).map((r, i) => (
               <button key={r.id || r.name}
                       onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                      style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                               animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${i * 35}ms both` }}>
+                      style={{ minHeight: 58, borderBottom: RULE.hair(t.ink),
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={30} />
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -4565,14 +4680,14 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
         {lessons && lessons.length > 0 && (
           <div className="mb-4">
             <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Filing under")}</div>
-            <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+            <div style={{ borderTop: RULE.section(t.ink) }}>
               {[...lessons, null].map((l) => {
                 const on = l ? !!(chosen && chosen.who === l.who && chosen.time === l.time) : !chosen;
                 return (
                   <button key={l ? l.time + l.who : "none"} disabled={live} aria-pressed={on}
                           onClick={() => { haptic(6); onChoose && onChoose(l); }}
                           className="w-full flex items-center gap-3 text-left active:opacity-60"
-                          style={{ minHeight: 50, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}`, opacity: live ? 0.5 : 1 }}>
+                          style={{ minHeight: 50, borderBottom: RULE.hair(t.ink), opacity: live ? 0.5 : 1 }}>
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>
                       {l ? `${l.who} · ${l.time}` : tr("Nobody yet")}
                     </span>
@@ -4641,7 +4756,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
                   style={{ width: 68, height: 68, borderRadius: 999,
                            background: live ? DANGER : "#fff",
                            border: `3px solid ${live ? DANGER : t.ink}`,
-                           boxShadow: ELEV.raise,
+                           boxShadow: (t.elev || ELEV).raise,
                            transition: "background 200ms, border-radius 200ms" }}>
             {live && <span className="block mx-auto" style={{ width: 22, height: 22, borderRadius: 4, background: "#fff" }} />}
           </button>
@@ -5146,7 +5261,7 @@ function ViewSwitch({ view, setView, onDark, tour }) {
                   className="flex items-center gap-1.5 px-3.5 active:opacity-70"
                   style={{ minHeight: 34, borderRadius: R.pill,
                            background: on ? (onDark ? "rgba(255,255,255,0.92)" : t.surface) : "transparent",
-                           boxShadow: on && !onDark ? ELEV.rest : "none",
+                           boxShadow: on && !onDark ? (t.elev || ELEV).rest : "none",
                            transition: "background 220ms" }}>
             <o.Ico size={13} strokeWidth={2}
                    color={on ? (onDark ? "#111" : t.accent) : (onDark ? "rgba(255,255,255,0.7)" : t.faint)} />
@@ -5221,11 +5336,11 @@ function AttendanceScreen({ role, cfg, records, rule, pop }) {
 
               {/* the record, if anyone wants it */}
               {total > 0 && (
-                <div className="mt-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                <div className="mt-4" style={{ borderTop: RULE.section(t.ink) }}>
                   {rows.map((r, i) => (
                     <div key={i} className="flex items-center gap-3.5 py-3.5"
-                         style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                                  animation: `settle 300ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 10) * 30}ms both` }}>
+                         style={{ borderBottom: RULE.hair(t.ink),
+                                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                       <span className="shrink-0" style={{ width: 54, ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>
                         {r.date}
                       </span>
@@ -5861,7 +5976,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
               mine.length > 0 ? `${mine.length} ${mine.length === 1 ? tr("lesson") : tr("lessons")}` : null].filter(Boolean).join(" · ")}
           </span>
         )}
-        <ChevronRight size={15} color={t.faint} />
+        <ChevronRight size={15} color={t.trace || t.faint} />
       </button>
     );
   };
@@ -5890,7 +6005,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
           {!isJunior && dependants.length > 0 && (<>
             <RowHead>{tr("Young players")}</RowHead>
-            <div className="mb-6" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+            <div className="mb-6" style={{ borderTop: RULE.section(t.ink) }}>
               {dependants.map((k, i) => <KidRow key={k.id} k={k} i={i} last={i === dependants.length - 1} />)}
             </div>
           </>)}
@@ -5900,9 +6015,9 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
           {rest.length > 0 && (<>
             <RowHead>{tr("Coming up")}</RowHead>
-            <div className="mb-7" data-tour="family-upcoming" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+            <div className="mb-7" data-tour="family-upcoming" style={{ borderTop: RULE.section(t.ink) }}>
               {rest.map((b) => (
-                <div key={b.id} className="flex items-center gap-3 py-3" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                <div key={b.id} className="flex items-center gap-3 py-3" style={{ borderBottom: RULE.hair(t.ink) }}>
                   <span className="shrink-0" style={{ width: 84, ...TYPE.caption, color: t.faint }}>{fmtDay(b.date)}</span>
                   <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{first(nameOf(b.playerId)) || b.who}</span>
                   <span className="shrink-0" style={{ ...TYPE.small, color: b.status === "requested" ? CAUTION : t.sub }}>{b.time}</span>
@@ -5960,11 +6075,11 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
                     style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
           </div>
 
-          <div className="mb-7" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          <div className="mb-7" style={{ borderTop: RULE.section(t.ink) }}>
             {[[tr("Next"), next ? `${fmtDay(next.date)} · ${next.time}${next.status === "requested" ? ` · ${tr("asked")}` : ""}` : tr("Nothing booked"), !next],
               /* "All done" is praise; nothing set is not the same thing */
               [tr("To practise"), mineDrills.length === 0 ? tr("None set") : todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), mineDrills.length === 0]].map(([lbl, val, quiet]) => (
-              <div key={lbl} className="flex items-baseline gap-3 py-3" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+              <div key={lbl} className="flex items-baseline gap-3 py-3" style={{ borderBottom: RULE.hair(t.ink) }}>
                 <span className="shrink-0" style={{ width: 88, ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{lbl}</span>
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: quiet ? t.faint : t.ink }}>{val}</span>
               </div>
@@ -5980,7 +6095,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
                   <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.d} {l.m}</span>
                   <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{l.focus}</span>
                   {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
-                  <ChevronRight size={13} color={t.faint} />
+                  <ChevronRight size={13} color={t.trace || t.faint} />
                 </button>
               ))}
             </Card>
@@ -6037,7 +6152,7 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
                    border: accent ? `1px solid ${accent}2E` : "1px solid transparent",
-                   boxShadow: accent ? "none" : ELEV.rest,
+                   boxShadow: accent ? "none" : (t.elev || ELEV).rest,
                    transition: "transform 140ms cubic-bezier(.22,1,.36,1)", willChange: "transform",
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>
       {/* one pass of light as it arrives, never again */}
@@ -6093,8 +6208,8 @@ function Celebration({ label, sub, onDone, tone = "accent" }) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center" aria-live="polite"
-         style={{ zIndex: 70, background: `${t.page}F2`, backdropFilter: "blur(6px)",
-                  animation: "celebFade 1750ms ease both" }}>
+         style={{ zIndex: 70, background: `${t.page}F2`, backdropFilter: "blur(6px)", opacity: 1,
+                  animation: "celebFade 1750ms ease backwards" }}>
       {/* halo pushing out from the mark */}
       <span className="absolute rounded-full" aria-hidden="true"
             style={{ width: 150, height: 150, border: `1.5px solid ${colour}`,
@@ -6188,25 +6303,25 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
     <>
       <h2 className="mb-4" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New message")}</h2>
       <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 46, borderRadius: R.surface, background: t.wash }}>
-        <Search size={15} color={t.faint} />
+        <Search size={15} color={t.trace || t.faint} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
                style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.faint} /></button>
+        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.trace || t.faint} /></button>
            : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
       </div>
       {shown.length === 0 ? (
         <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</p>
       ) : (
-        <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+        <div style={{ borderTop: RULE.section(t.ink) }}>
           {shown.map((p) => (
             <button key={p.id || p.name} onClick={() => { haptic(6); if (!p.all) close(); onPick(p); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 60, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+                    style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
               <Avatar name={p.name} size={38} group={!!p.all} />
               <span className="flex-1 min-w-0">
                 <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
                 {p.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{p.sub}</span>}
               </span>
-              <ChevronRight size={15} color={t.faint} />
+              <ChevronRight size={15} color={t.trace || t.faint} />
             </button>
           ))}
         </div>
@@ -6387,7 +6502,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             <span className="block" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: item.done ? t.accent : t.sub }}>
               {item.done ? tr("Log lesson") : hoursUntil == null ? "" : untilText(hoursUntil)}
             </span>
-            <ChevronDown size={15} color={t.faint} className="inline-block mt-1.5"
+            <ChevronDown size={15} color={t.trace || t.faint} className="inline-block mt-1.5"
                          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 260ms cubic-bezier(.22,1,.36,1)" }} />
           </span>
         </div>
@@ -6421,7 +6536,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                   <span className="block uppercase mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
                 </span>
-                <ChevronRight size={15} color={t.faint} />
+                <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
             )}
 
@@ -6773,16 +6888,8 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
       </div>
       <div className="flex-1 overflow-y-auto" onScroll={(e) => setY(e.currentTarget.scrollTop)}>
         {large && !bare && (
-          <div className="px-6 pb-9 pt-5 flex items-start gap-3 relative"
-               style={{ opacity: y > 24 ? 0 : 1, transition: "opacity 180ms",
-                        animation: "headerSettle 480ms cubic-bezier(.22,1,.36,1) both" }}>
-            <span className="flex-1 min-w-0">
-              <h1 style={{ ...TYPE.screen, color: t.ink, marginLeft: -1.5,
-                            animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
-              {meta && <p className="mt-2" style={{ ...TYPE.small, fontSize: 12.5, color: t.faint,
-                              animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 70ms both" }}>{meta}</p>}
-            </span>
-            {action}
+          <div className="pb-7" style={{ opacity: y > 24 ? 0 : 1, transition: "opacity 180ms" }}>
+            <PageHead title={title} meta={meta} action={action} />
           </div>
         )}
         {!large && <div style={{ height: 8 }} />}
@@ -6877,13 +6984,13 @@ function Toast({ msg }) {
 function Segmented({ options, value, onChange, tour }) {
   const t = useT();
   return (
-    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash }}>
+    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash, boxShadow: (t.elev || ELEV).groove }}>
       {options.map((o) => {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} onClick={() => { haptic(6); onChange(o); }} className="flex-1 rounded-lg"
-                  style={{ minHeight: 34, background: on ? t.surface : "transparent", boxShadow: on ? "0 1px 3px rgba(10,16,12,0.09)" : "none",
-                           transition: "background 260ms cubic-bezier(.22,1,.36,1), color 260ms, box-shadow 260ms",
+                  style={{ minHeight: 34, background: on ? t.surface : "transparent", boxShadow: on ? (t.elev || ELEV).rest : "none",
+                           transition: `background ${MOTION.move}ms ${MOTION.curve}, color ${MOTION.move}ms, box-shadow ${MOTION.move}ms`,
                            fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
         );
       })}
@@ -7011,10 +7118,103 @@ function VoiceArea({ value, onChange, ph, rows = 3 }) {
 /* ==================================================================
    PRIMITIVES
 ================================================================== */
+/* PAGEHEAD — the app's only H1.
+
+   "Every screen's H1 is TYPE.screen" was a rule enforced by four
+   hand-copies of the same block, which had drifted: one carried its
+   own font size, one set the line under it in t.faint at 12.5, one
+   had no line at all. It is one component now, so the rule is
+   enforceable rather than remembered.
+
+   The line under the title is a LEDE — the one line that says what a
+   page holds — so it is Switzer at 13.5 in t.sub, not the quietest
+   thing on the screen.
+
+   Then the mark: a 1.5px rule, full bleed, that draws itself left to
+   right in 420ms and finishes last. It is the same mark under the
+   diary's selected day and on the log between who-and-when and
+   what-happened. Three entrances on three separate elements, never
+   one animation on a parent — a fill-mode on the wrapper holds its
+   own end state over the inline opacity in the cascade, which is
+   exactly the bug `headerSettle` caused for as long as it existed. */
+const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap }) => {
+  const t = useT();
+  /* Where the head itself is the way into a screen — the player's home
+     opens on when they are next on, and tapping it opens the diary —
+     the block IS the control, so it renders as one and the title drops
+     to a span. A button's content model is phrasing content: an <h1>
+     or a <div> inside it is invalid, and React builds the DOM through
+     createElement, so nothing corrects it on the way in. */
+  const Head = onTap ? "span" : "h1";
+  const Block = onTap ? "button" : "div";
+  const head = (
+    <>
+      <span className="flex items-start gap-3" style={{ display: "flex" }}>
+        <span className="flex-1 min-w-0">
+          <Head className="block" style={{ ...TYPE.screen, color: t.ink, marginLeft: -1.5, display: "block",
+                       animation: `setIn 260ms ${MOTION.curve} backwards` }}>{title}</Head>
+          {meta && <span className="block" style={{ ...TYPE.lede, color: t.sub, marginTop: SPACE.tight, display: "block",
+                               animation: `setIn 260ms ${MOTION.curve} 60ms backwards` }}>{meta}</span>}
+        </span>
+        {action}
+      </span>
+      {rule && <span className="block" style={{ display: "block", marginTop: 16, marginLeft: -24, marginRight: -24,
+                             borderTop: RULE.major(t.ink), transformOrigin: "left",
+                             animation: `ruleDraw ${MOTION.draw}ms ${MOTION.curve} 80ms backwards` }} />}
+    </>
+  );
+  return (
+    <Block data-tour={tour} onClick={onTap} className={`${pad ? "px-6 pt-5" : ""} ${onTap ? "w-full text-left active:opacity-60" : ""}`.trim()}>
+      {head}
+    </Block>
+  );
+};
+
+/* RULED — the list law in one component.
+
+   A list opens on a 1px lid, its rows separate on 0.5px hairlines,
+   and it closes on a 1px foot. The lid and the foot run the full
+   width of the phone; the rows inside stay inset to the type. That is
+   how a timetable is set — the rule is the width of the page and the
+   entries hang inside it — and before this a list's lid and its
+   internal separators were the identical 0.5px, so a list had no lid
+   and a screen was an undifferentiated run of greys.
+
+   This is the only negative margin in the file, which is what makes
+   the iOS horizontal-rubber-band risk auditable: one component and
+   the scrollers' overflow-x-hidden, rather than a hundred call
+   sites. */
+const Ruled = ({ children, foot = true, gutter = 24, className = "", style = {} }) => {
+  const t = useT();
+  return (
+    <div className={`nsc-ruled overflow-x-hidden ${className}`}
+         style={{ marginLeft: -gutter, marginRight: -gutter, borderTop: RULE.section(t.ink),
+                  borderBottom: foot ? RULE.section(t.ink) : "none", ...style }}>
+      <div style={{ paddingLeft: gutter, paddingRight: gutter }}>{children}</div>
+    </div>
+  );
+};
+
+/* RAIL — the leading figure column.
+
+   It was 52 in one place, 58 in another, 62 in a third and 64 in two
+   more, and every one of them left-aligned, so no two colons in the
+   app lined up. Right-aligned at 54 now: every time and every date
+   goes through this, so a time on Today, a date on a player's file
+   and a time on a player's home are visibly one column of one
+   document. The figure is DISPLAY at 500 while the name beside it is
+   Switzer 400, so the column reads as a schedule rather than a
+   paragraph — and the hierarchy is carried by colour, never by the
+   time being bigger than the person. */
+const Rail = ({ children, tone, style = {} }) => {
+  const t = useT();
+  return <span className="shrink-0 text-right" style={{ width: RAIL, whiteSpace: "nowrap", ...TYPE.figureSm, color: tone || t.sub, ...style }}>{children}</span>;
+};
+
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: ELEV.rest,
-                  animation: `liftIn 440ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>{children}</div>);
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
+                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
    side padding; inside a column that already has it, use this. */
@@ -7036,14 +7236,17 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
     danger: { background: DANGER, color: "#fff", border: "none" },
     dangerQuiet: { background: "transparent", color: DANGER, border: `1px solid ${t.hair}` },
   }[tone];
+  /* a filled button is an object on the paper and presses like one; an
+     outlined one is a word on the page and only dims */
+  const solid = tone === "accent" || tone === "ink" || tone === "danger";
   return (
     <button data-tour={tour} onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
             className="w-full disabled:opacity-20"
-            onPointerDown={(e) => { if (!disabled) e.currentTarget.style.transform = "scale(0.97)"; }}
-            onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-            onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+            {...sink(t, solid ? (t.elev || ELEV).cast : "none")}
             style={{ minHeight: 54, borderRadius: R.surface, fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "0.015em",
-                     transition: "transform 140ms cubic-bezier(.22,1,.36,1), opacity 140ms", willChange: "transform", ...looks }}>{children}</button>
+                     boxShadow: solid ? (t.elev || ELEV).cast : "none",
+                     transition: `transform ${MOTION.settle}ms ${MOTION.curve}, box-shadow ${MOTION.settle}ms, opacity ${MOTION.instant}ms`,
+                     willChange: "transform", ...looks }}>{children}</button>
   );
 }
 /* AN ICON FOR EVERY THING A COACH WORKS ON
@@ -7072,21 +7275,45 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
    existence fully formed, which reads as a screenshot rather than an
    app. `delay` is fed by TileGrid, which staggers its own children, so
    a grid settles rather than appears. */
+/* A PRESS IS A COLLAPSE OF DEPTH, NOT A BOUNCE.
+
+   The press was `transform: scale(0.96)` over 150ms. On a 76px tile
+   that is 1.5px of movement — invisible — and a bounce is the wrong
+   idea anyway now that a tile is a white object lying on the sport's
+   paper. It sinks instead: it loses its shadow, takes an inset one,
+   and comes back up under the thumb. A shadow collapsing is visible
+   where an edge moving 1.5px is not. Two imperative property writes,
+   no React render, no new listener. */
+export const sink = (t, restShadow) => {
+  const down = (e) => {
+    e.currentTarget.style.transform = "scale(0.985)";
+    e.currentTarget.style.boxShadow = (t.elev || ELEV).press;
+    e.currentTarget.style.transitionDuration = `${MOTION.instant}ms`;
+  };
+  const up = (e) => {
+    e.currentTarget.style.transform = "none";
+    e.currentTarget.style.boxShadow = restShadow;
+    e.currentTarget.style.transitionDuration = `${MOTION.settle}ms`;
+  };
+  return { onPointerDown: down, onPointerUp: up, onPointerCancel: up, onPointerLeave: up };
+};
+
 function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0 }) {
   const t = useT();
-  const bg = tone === "accent" ? t.accent : on ? t.ink : t.wash;
+  /* The quiet tile is the SURFACE — white, on the sport's paper —
+     because the page is now tinted and the thing you can touch has to
+     be the brightest thing on the screen. It was t.wash, which on the
+     new paper is very nearly the page itself. */
+  const bg = tone === "accent" ? t.accent : on ? t.ink : t.surface;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
-  /* a hairline, so nine tiles read as nine things and not one wash */
-  const edge = tone === "accent" || on ? "transparent" : HAIR(t.ink, 0.07);
-  const press = (v) => (e) => { e.currentTarget.style.transform = v; };
+  const lift = tone === "accent" || on ? "none" : (t.elev || ELEV).rest;
   return (
     <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
-            onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
-            onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
-            className="relative w-full flex flex-col items-center justify-center gap-1.5 active:opacity-80"
-            style={{ minHeight: h, borderRadius: R.surface, background: bg, border: `1px solid ${edge}`, willChange: "transform",
-                     animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`,
-                     transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
+            {...sink(t, lift)}
+            className="relative w-full flex flex-col items-center justify-center gap-1.5"
+            style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
+                     animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
+                     transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
           icon is a decoration that has to be invented, and invented
@@ -7098,19 +7325,19 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
       {count > 0 && (
         <span className="absolute flex items-center justify-center rounded-full"
               style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
-                       fontFamily: ui, fontSize: 11, fontWeight: 700, color: on ? t.ink : t.page }}>{count}</span>
+                       fontFamily: ui, fontSize: 11, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
       )}
       {dot && !count && <span className="absolute rounded-full" style={{ top: 12, right: 12, width: 7, height: 7, background: on ? "#fff" : t.accent }} />}
     </button>
   );
 }
-/* and a grid deals its own tiles, 34ms apart, capped so a nine-tile
-   sheet does not become a wait */
-const TileGrid = ({ children, cols = 3, stagger = 34 }) => (
+/* and a grid deals its own tiles, 22ms apart and capped at six, so a
+   nine-tile sheet finishes settling in 310ms rather than 692 */
+const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
   <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
     {stagger === 0 ? children : React.Children.map(children, (c, i) =>
       (c && c.type === ActTile && c.props.delay == null)
-        ? React.cloneElement(c, { delay: Math.min(i, 8) * stagger })
+        ? React.cloneElement(c, { delay: Math.min(i, 5) * stagger })
         : c)}
   </div>
 );
@@ -7122,10 +7349,10 @@ const HomeRow = ({ label, value, tone, onPress, tour }) => {
   return (
     <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className="w-full flex items-center gap-4 text-left active:opacity-50"
-            style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+            style={{ minHeight: 58, borderBottom: RULE.hair(t.ink) }}>
       <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: tone || t.ink, maxWidth: "55%" }}>{value}</span>
-      <ChevronRight size={15} color={t.faint} />
+      <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
 };
@@ -7148,12 +7375,12 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         const on = has(x), off = disabled && disabled.includes(x);
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
-                  className="active:opacity-70"
-                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : t.wash,
-                           border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.07)}`, opacity: off ? 0.35 : 1,
-                           fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em",
-                           fontVariantNumeric: "tabular-nums lining", color: on ? "#fff" : t.ink,
-                           transition: "background 160ms, border-color 160ms" }}>{x}</button>
+                  {...sink(t, on || off ? "none" : (t.elev || ELEV).rest)}
+                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : t.surface,
+                           boxShadow: on || off ? "none" : (t.elev || ELEV).rest, opacity: off ? 0.35 : 1,
+                           fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
+                           color: on ? "#fff" : t.ink, willChange: "transform",
+                           transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>{x}</button>
         );
       })}
     </div>
@@ -7163,7 +7390,7 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
 /* people: a face, a name, a tick. Never a tile, never a pill. */
 const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
   const t = useT();
-  const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
+  const hair = RULE.hair(t.ink);
   const ids = new Set(picked || []);
   return (
     <div data-tour={tour} style={{ borderTop: hair }}>
@@ -7190,7 +7417,7 @@ const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
 /* drills: the name and a tick, because a drill is a sentence */
 const DrillPicker = ({ drills, picked, onToggle, tour }) => {
   const t = useT();
-  const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
+  const hair = RULE.hair(t.ink);
   if (!drills.length) return null;
   return (
     <div data-tour={tour} style={{ borderTop: hair }}>
@@ -7230,7 +7457,7 @@ const FocusGrid = ({ areas, picked, onToggle, h = 58, cols = 2, tour }) => (
    One under the next, in order, is how a day actually reads. */
 const TimeList = ({ times, picked, onPick, tour }) => {
   const t = useT();
-  const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
+  const hair = RULE.hair(t.ink);
   if (!times.length) return null;
   return (
     <div data-tour={tour} style={{ borderTop: hair }}>
@@ -7243,7 +7470,7 @@ const TimeList = ({ times, picked, onPick, tour }) => {
             <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? t.ink : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
-                : <Plus size={15} color={t.faint} strokeWidth={2} />}
+                : <Plus size={15} color={t.trace || t.faint} strokeWidth={2} />}
           </button>
         );
       })}
@@ -7254,7 +7481,6 @@ const TimeList = ({ times, picked, onPick, tour }) => {
 /* the sports, each as its own colour — a sport has no glyph, it has a mark */
 const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
   const t = useT();
-  const press = (v) => (e) => { e.currentTarget.style.transform = v; };
   return (
     <div data-tour={tour}>
       <TileGrid cols={cols}>
@@ -7265,12 +7491,11 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
           const isMain = mainId === id;
           return (
             <button key={id} aria-label={add ? `+ ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
-                    onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
-                    onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
-                    className="relative w-full flex flex-col items-center justify-center gap-2 active:opacity-80"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.wash,
-                             border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.07)}`, willChange: "transform",
-                             transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
+                    {...sink(t, on ? "none" : (t.elev || ELEV).rest)}
+                    className="relative w-full flex flex-col items-center justify-center gap-2"
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.surface,
+                             boxShadow: on ? "none" : (t.elev || ELEV).rest, willChange: "transform",
+                             transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
               {add
                 ? <Plus size={18} color={t.sub} strokeWidth={2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: sp.theme.mark }} />}
@@ -7317,7 +7542,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       </span>
       {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
       {right}
-      {chevron && <ChevronRight size={17} color={t.faint} />}
+      {chevron && <ChevronRight size={17} color={t.trace || t.faint} />}
       {checked && icon && <Check size={18} color={STEADY} strokeWidth={2.1} />}
     </Tag>
   );
@@ -7637,7 +7862,7 @@ export function CodeBoxes({ value, onChange, onComplete, bad }) {
                           border: `1.5px solid ${bad ? DANGER : filled ? t.ink : t.hair}`,
                           fontFamily: display, fontSize: 22, letterSpacing: 0, color: t.ink,
                           transition: "border-color 200ms cubic-bezier(.22,1,.36,1)",
-                          animation: `fadeUp 400ms cubic-bezier(.22,1,.36,1) ${i * 40}ms both` }} />
+                          animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }} />
         );
       })}
     </div>
@@ -7761,13 +7986,13 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
         </>)}
 
         {now === "tips" && (<>
-          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+          <div style={{ borderTop: RULE.section(t.ink) }}>
             {[...(tipPrompts || []).slice(0, 8), ...tips.filter((n) => !(tipPrompts || []).includes(n))].map((tp) => {
               const on = tips.includes(tp);
               return (
                 <button key={tp} aria-pressed={on} onClick={() => togg(tips, setTips, tp)}
                         className="w-full flex items-center gap-3 text-left active:opacity-60"
-                        style={{ minHeight: 52, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                        style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
                   <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>{tp}</span>
                   {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
                 </button>
@@ -8447,11 +8672,11 @@ function TipBody({ prompts, onSet, close }) {
           the notification and on the lesson */}
       <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Tip")}</h2>
       {prompts && prompts.length > 0 && !title && (
-        <div className="mb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+        <div className="mb-4" style={{ borderTop: RULE.section(t.ink) }}>
           {prompts.map((pr) => (
             <button key={pr} onClick={() => { haptic(6); setTitle(pr); }}
                     className="w-full flex items-center text-left active:opacity-60"
-                    style={{ minHeight: 46, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                    style={{ minHeight: 46, borderBottom: RULE.hair(t.ink) }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{pr}</span>
             </button>
           ))}
@@ -8484,7 +8709,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
      the date. It was a thin grey row below the tiles — the one fact a
      player opens the app for, in the smallest type on the screen. */
   const when = nextBooking ? nextBooking.when : null;
-  const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
+  const hair = RULE.hair(t.ink);
   const rest = (upcoming || []).slice(1);
   const underWhen = nextBooking
     ? [nextBooking.focus, conn && conn.coach ? `${tr("with")} ${conn.coach}` : null].filter(Boolean).join(" · ")
@@ -8498,11 +8723,10 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
         <div className="px-6 pt-4">
 
           {/* WHEN YOU ARE NEXT ON */}
-          <button data-tour="home-next" onClick={() => { haptic(7); soft(); go("calendar"); }}
-                  className="w-full text-left active:opacity-60" style={{ marginBottom: SPACE.block }}>
-            <span className="block" style={{ ...TYPE.screen, color: t.ink }}>{when || tr("No lesson booked")}</span>
-            <span className="block" style={{ ...TYPE.small, color: t.faint, marginTop: 4 }}>{underWhen}</span>
-          </button>
+          <div style={{ marginBottom: SPACE.block }}>
+            <PageHead pad={false} tour="home-next" title={when || tr("No lesson booked")} meta={underWhen}
+                      onTap={() => { haptic(7); soft(); go("calendar"); }} />
+          </div>
 
           {/* the board: what a player came here to do */}
           <div style={{ marginBottom: SPACE.block }}>
@@ -8576,10 +8800,10 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                   <button key={b.id || `u${i}`} onClick={() => { haptic(7); soft(); go("calendar"); }}
                           className="w-full flex items-center gap-3 text-left active:opacity-60"
                           style={{ minHeight: 54, borderBottom: hair }}>
-                    <span className="shrink-0" style={{ width: 64, ...TYPE.small, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{b.time}</span>
+                    <Rail>{b.time}</Rail>
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{b.day}</span>
                     {b.status === "requested" && <span className="shrink-0" style={{ ...TYPE.caption, color: CAUTION }}>{tr("Requested")}</span>}
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 ))}
               </div>
@@ -8605,7 +8829,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                             onClick={() => { haptic(7); soft(); go("log"); }}
                             className="w-full flex items-center gap-3 text-left active:opacity-60"
                             style={{ minHeight: 58, borderBottom: hair }}>
-                      <span className="shrink-0" style={{ width: 64, ...TYPE.small, color: t.faint }}>{l.d} {l.m}</span>
+                      <Rail>{l.d} {l.m}</Rail>
                       <span className="flex-1 min-w-0">
                         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
                         {l.note && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{l.note}</span>}
@@ -8615,7 +8839,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                           <Play size={11} color={STEADY} />{files}
                         </span>
                       )}
-                      <ChevronRight size={14} color={t.faint} />
+                      <ChevronRight size={14} color={t.trace || t.faint} />
                     </button>
                   );
                 })}
@@ -8626,7 +8850,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.faint }}>
                       {lessons.length} {tr("in all")}
                     </span>
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 )}
               </div>
@@ -8709,15 +8933,13 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
           {tr("No lessons yet.")}
         </p>
       ) : (
-        <div className="px-6 pb-4" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+        <div className="px-6 pb-4" style={{ borderTop: RULE.section(t.ink) }}>
           {shown.map((l, i) => (
             <button key={l.id} data-tour={i === 0 ? "log-row" : undefined} onClick={() => { haptic(8); soft(); push(`lesson:${l.id}`); }}
                     className="w-full flex items-center gap-4 text-left active:opacity-50"
-                    style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                             animation: `settle 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 45}ms both` }}>
-              <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>
-                {l.d} {l.m}
-              </span>
+                    style={{ minHeight: 64, borderBottom: RULE.hair(t.ink),
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+              <Rail>{l.d} {l.m}</Rail>
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-2">
                   <span className="truncate" style={{ ...TYPE.subhead, color: t.ink }}>{l.focus}</span>
@@ -8733,7 +8955,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
                 </span>
               )}
               {saved.includes(l.id) && <Download size={13} color={t.faint} />}
-              <ChevronRight size={14} color={t.faint} />
+              <ChevronRight size={14} color={t.trace || t.faint} />
             </button>
           ))}
         </div>
@@ -8947,7 +9169,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
   const when = lesson.iso ? localDate(lesson.iso).toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" }) : (lesson.date || `${lesson.d} ${lesson.m}`);
   const withWhom = role === "coach" ? playerName : coachName;
   const first = (n) => (n || "").split(" ")[0];
-  const hair = `0.5px solid ${HAIR(t.ink, 0.1)}`;
+  const hair = RULE.hair(t.ink);
 
   /* everything rare — edit, remove a clip, delete — behind one "…" */
   const menuRows = [
@@ -8970,7 +9192,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
       <Screen bare onBack={pop} right={<>{extraTitleRight}{more}</>}>
         {banner}
         {menu && (
-          <div className="absolute" style={{ top: 50, right: 14, zIndex: 40, minWidth: 220, borderRadius: R.surface, background: t.surface, boxShadow: ELEV.float, overflow: "hidden" }}>
+          <div className="absolute" style={{ top: 50, right: 14, zIndex: 40, minWidth: 220, borderRadius: R.surface, background: t.surface, boxShadow: (t.elev || ELEV).float, overflow: "hidden" }}>
             {menuRows.map((r, i) => (
               <button key={r.key} onClick={() => { haptic(7); r.onTap(); }} className="w-full px-5 text-left active:opacity-60"
                       style={{ minHeight: 50, borderBottom: i < menuRows.length - 1 ? hair : "none", ...TYPE.body, color: r.danger ? DANGER : t.ink }}>{r.label}</button>
@@ -9034,7 +9256,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                       {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
                     </span>
                     <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
-                    {onGoDrills && <ChevronRight size={14} color={t.faint} />}
+                    {onGoDrills && <ChevronRight size={14} color={t.trace || t.faint} />}
                   </Tag>
                 );
               })}
@@ -9195,7 +9417,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               style={{ minHeight: big ? 76 : 62, willChange: "transform",
                        borderRadius: big ? R.surface : 0,
                        background: big ? t.surface : "transparent",
-                       boxShadow: big ? ELEV.rest : "none",
+                       boxShadow: big ? (t.elev || ELEV).rest : "none",
                        borderLeft: big && rained ? `2.5px solid ${DANGER}` : "none",
                        borderBottom: big ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`,
                        marginBottom: big ? 8 : 0,
@@ -9220,7 +9442,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               : `${f ? f.done : (counts && counts[p.id]) || 0} ${tr("lessons")}`}
           </span>
         </span>
-        <ChevronRight size={14} color={t.faint} />
+        <ChevronRight size={14} color={t.trace || t.faint} />
       </button>
     );
   };
@@ -9231,21 +9453,21 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
         <div className="px-6">
           {rest.length > 0 && (
             <div className="mb-7">
-              <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+              <div style={{ borderTop: RULE.section(t.ink) }}>
                 {rest.map((x) => <Person key={x.p.id} x={x} />)}
               </div>
             </div>
           )}
 
-          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          <div style={{ borderTop: RULE.section(t.ink) }}>
             {[[tr("Everyone's diary"), () => go("calendar")],
               [tr("Chat"), () => go("messages")],
               [tr("This month"), () => push("digest")]].map(([lbl, act], i) => (
               <button key={lbl} data-tour={["family-diary", "family-messages", "family-month"][i]} onClick={() => { haptic(7); soft(); act(); }}
                       className="w-full flex items-center text-left active:opacity-50"
-                      style={{ minHeight: 54, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                      style={{ minHeight: 54, borderBottom: RULE.hair(t.ink) }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -9277,8 +9499,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   const border = last ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`;
   const body = (
     <>
-      <span className="shrink-0" style={{ width: 58, ...TYPE.small, color: variant === "now" ? t.accent : t.faint,
-                     fontVariantNumeric: "tabular-nums" }}>{l.time}</span>
+      <Rail tone={variant === "now" ? t.accent : undefined}>{l.time}</Rail>
       {grp ? (
         <span className="rounded-full flex items-center justify-center shrink-0"
               style={{ width: 30, height: 30, background: `${GROUP}18` }}><Users size={13} color={GROUP} /></span>
@@ -9316,7 +9537,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
       {body}
       {variant === "log"
         ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Log")}</span>
-        : <ChevronRight size={14} color={t.faint} />}
+        : <ChevronRight size={14} color={t.trace || t.faint} />}
     </button>
   );
 }
@@ -9431,8 +9652,13 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
         const lifted = drag && drag.id === id;
         const off = offsetFor(i);
         const accent = id === accentId;
-        const bg = accent ? t.accent : t.wash;
+        /* The editor's tiles are the board's tiles. They were still
+           t.wash with a hairline — the old idiom — which on the sport's
+           paper is very nearly the page, so a coach editing the board
+           would see flat tiles beside the raised ones they are editing. */
+        const bg = accent ? t.accent : t.surface;
         const fg = accent ? t.onAccent : t.ink;
+        const E = t.elev || ELEV;
         return (
           <div key={id} data-arrange-id={id}
                style={{ position: "relative", zIndex: lifted ? 5 : 1,
@@ -9453,8 +9679,7 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
                     aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
                     className="relative w-full flex flex-col items-center justify-center gap-1.5"
                     style={{ minHeight: h, borderRadius: R.surface, background: bg, touchAction: "none",
-                             border: `1px solid ${accent ? "transparent" : HAIR(t.ink, 0.07)}`,
-                             boxShadow: lifted ? `0 14px 30px ${HAIR(t.ink, 0.22)}` : "none",
+                             boxShadow: lifted ? E.float : accent ? "none" : E.rest,
                              opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
               <A.Ico size={h >= 84 ? 22 : 19} color={fg} strokeWidth={1.6} />
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: fg }}>{tr(A.label)}</span>
@@ -9626,8 +9851,9 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
       {banner}
       <div className="px-6 pt-3">
 
-        <h1 style={{ ...TYPE.screen, color: t.ink }}>{dateLine}</h1>
-        <p style={{ ...TYPE.small, color: t.faint, marginTop: 4, marginBottom: SPACE.block }}>{dayLine}</p>
+        <div style={{ marginBottom: SPACE.block }}>
+          <PageHead pad={false} title={dateLine} meta={dayLine} />
+        </div>
 
         {/* ---- THE BOARD ----
              The verbs, on the screen rather than one tap inside a sheet.
@@ -9665,7 +9891,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
              tomorrow's first is the grey line at the foot. ---- */}
         {(todayRows.length > 0 || upcoming.length > 0) && (<>
           <RowHead>{tr("Today")}</RowHead>
-          <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+          <Ruled style={{ marginBottom: SPACE.block }}>
             {todayRows.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
               const row = (
@@ -9690,14 +9916,20 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             {upcoming.length > 0 && (
               <button onClick={() => { haptic(7); soft(); go("calendar"); }}
                       className="w-full flex items-center gap-3 pr-4 text-left active:opacity-60"
-                      style={{ minHeight: 52, paddingLeft: 20, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                      /* No rule of its own: the last DayRow above already
+                         draws a hairline, and a 1px section on top of that
+                         0.5px is 1.5px of stacked grey sitting mid-list —
+                         heavier than the lid the list opened on. Tomorrow's
+                         first lesson is the foot of the same column, not a
+                         new section. */
+                      style={{ minHeight: 52, paddingLeft: 20 }}>
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.faint }}>
                   {upcoming[0].dayLabel} · {upcoming[0].time} · {upcoming[0].who}
                 </span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             )}
-          </div>
+          </Ruled>
         </>)}
 
         {/* ---- WAITING ON YOU ----
@@ -9719,10 +9951,10 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           if (!asks.length && !jobs.length) return null;
           return (<>
             <RowHead>{tr("Waiting on you")}</RowHead>
-            <div style={{ marginBottom: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+            <Ruled style={{ marginBottom: SPACE.block }}>
               {asks.slice(0, 3).map((r, i) => (
                 <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
-                     style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                     style={{ minHeight: 62, borderBottom: RULE.hair(t.ink) }}>
                   <Avatar name={r.who} size={32} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
@@ -9735,7 +9967,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               {jobs.map((j) => (
                 <HomeRow key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
               ))}
-            </div>
+            </Ruled>
           </>);
         })()}
 
@@ -9831,7 +10063,7 @@ function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBl
              onBlur={() => { if (done.current) return; if (v.trim()) { if (commitOnBlur) commit(); } else onCancel && onCancel(); }}
              className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
       <span onMouseDown={keep} onPointerDown={keep} className="flex items-center"><MicBtn size={28} onText={(txt) => setV(v ? `${v} ${txt}` : txt)} /></span>
-      {v && <button onMouseDown={keep} onPointerDown={keep} onClick={() => { haptic(6); setV(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>}
+      {v && <button onMouseDown={keep} onPointerDown={keep} onClick={() => { haptic(6); setV(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>}
     </div>
   );
 }
@@ -9878,7 +10110,7 @@ const WizLabel = ({ children, right }) => {
 };
 const WizDocked = ({ children }) => {
   const t = useT();
-  return <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}`, animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>;
+  return <div className="px-6 py-3.5 shrink-0" style={{ background: t.page, borderTop: RULE.section(t.ink), animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>;
 };
 /* LOG A LESSON
 
@@ -9904,17 +10136,15 @@ const wizFirst = (name) => String(name || "").split(" ")[0];
 /* a face is a tile too: the picture, the first name, nothing else */
 function FaceTile({ person, group, caption, on, onTap, tour }) {
   const t = useT();
-  const press = (v) => (e) => { e.currentTarget.style.transform = v; };
   return (
     <button data-tour={tour} aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
-            onPointerDown={press("scale(0.96)")} onPointerUp={press("scale(1)")}
-            onPointerCancel={press("scale(1)")} onPointerLeave={press("scale(1)")}
-            className="relative w-full flex flex-col items-center justify-center gap-2 active:opacity-80"
-            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : t.wash,
-                     border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.07)}`, willChange: "transform",
-                     transition: "background 200ms, border-color 200ms, transform 150ms cubic-bezier(.22,1,.36,1)" }}>
+            {...sink(t, on ? "none" : (t.elev || ELEV).rest)}
+            className="relative w-full flex flex-col items-center justify-center gap-2"
+            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : t.surface,
+                     boxShadow: on ? "none" : (t.elev || ELEV).rest, willChange: "transform",
+                     transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
-              bg={on ? "rgba(255,255,255,0.18)" : t.page} fg={on ? "#fff" : t.sub} />
+              bg={on ? "rgba(255,255,255,0.18)" : t.wash} fg={on ? "#fff" : t.sub} />
       <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
       {caption && <span className="truncate px-2" style={{ ...TYPE.caption, fontSize: 10.5, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption}</span>}
       {on && <span className="absolute rounded-full flex items-center justify-center" style={{ top: 8, right: 8, width: 18, height: 18, background: "#fff" }}><Check size={11} color={t.ink} strokeWidth={3} /></span>}
@@ -10156,7 +10386,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const groupTiles = searching ? (groups || []).filter((g) => wizMatch(g.name, q)) : (groups || []);
   const rest = searching ? [] : POOL_W.filter((pl) => !seen.has(pl.id)).sort((a, b) => a.name.localeCompare(b.name));
 
-  const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
+  const hair = RULE.hair(t.ink);
   const back = () => { haptic(6); setView("main"); };
 
   if (view === "who") {
@@ -10169,11 +10399,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             {POOL_W.length > 8 && (
               <div className="px-6 pb-3" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
                 <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-                  <Search size={15} color={t.faint} />
+                  <Search size={15} color={t.trace || t.faint} />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${tr("Search")} ${POOL_W.length}`} enterKeyHint="search"
                          onKeyDown={(e) => { if (e.key === "Enter" && faces[0]) { e.preventDefault(); pickPerson(faces[0]); } }}
                          className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
-                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
                      : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
                 </div>
               </div>
@@ -10212,7 +10442,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                     <button onClick={() => { haptic(8); onAddPlayer(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, borderTop: hair, borderBottom: hair }}>
                       <UserPlus size={17} color={t.ink} strokeWidth={1.7} />
                       <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Add a player")}</span>
-                      <ChevronRight size={16} color={t.faint} />
+                      <ChevronRight size={16} color={t.trace || t.faint} />
                     </button>
                   )}
                 </>
@@ -10339,7 +10569,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               <button onClick={() => { haptic(6); setAdding(false); setView("who"); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ minHeight: 44 }}>
                 <span className="flex items-end gap-1.5">
                   <span className="truncate" style={{ ...TYPE.hero, color: t.ink }}>{heroText}</span>
-                  <ChevronDown size={16} color={t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
+                  <ChevronDown size={16} color={t.trace || t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
                 </span>
               </button>
               <button onClick={() => { haptic(6); setAdding(true); setView("who"); }} aria-label={tr("Add someone")}
@@ -10349,7 +10579,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <div className="flex items-center gap-2 mt-1.5" style={{ minHeight: 30 }}>
               <span data-tour="wiz-when" className="relative flex items-center">
                 <span style={{ ...TYPE.small, color: t.sub }}>{whenLine}</span>
-                {needsDate && <ChevronDown size={12} color={t.faint} strokeWidth={2} style={{ marginLeft: 4 }} />}
+                {needsDate && <ChevronDown size={12} color={t.trace || t.faint} strokeWidth={2} style={{ marginLeft: 4 }} />}
                 {needsDate && (
                   <input type="date" aria-label={tr("Date")} value={dateIso} max={maxIso}
                          onClick={(e) => { try { if (e.currentTarget.showPicker) e.currentTarget.showPicker(); } catch (err) { /* the tap opens it */ } }}
@@ -10503,13 +10733,13 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
   const searchable = all.length > 8;
   const row = (key, tour, onTap, avatar, label, sub) => (
     <button key={key} data-tour={tour} onClick={onTap} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-            style={{ minHeight: 64, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+            style={{ minHeight: 64, borderBottom: RULE.hair(t.ink) }}>
       {avatar}
       <span className="flex-1 min-w-0">
         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
         {sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
       </span>
-      <ChevronRight size={15} color={t.faint} />
+      <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
   return (
@@ -10538,13 +10768,13 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
         {tab === nounTitle || groups.length === 0 ? (<>
           {searchable && (
             <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
-              <Search size={15} color={t.faint} />
+              <Search size={15} color={t.trace || t.faint} />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-              {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+              {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
                  : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
             </div>
           )}
-          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+          <div style={{ borderTop: RULE.section(t.ink) }}>
             {list.length === 0 ? (
               <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("Nobody yet. Add player shares your code.")}</p>
             ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
@@ -10556,15 +10786,15 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           {lessonCount > 0 && (
             <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
                     className="w-full flex items-center gap-3 text-left active:opacity-50"
-                    style={{ minHeight: 56, marginTop: SPACE.block, borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}`,
-                             borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+                    style={{ minHeight: 56, marginTop: SPACE.block, borderTop: RULE.section(t.ink),
+                             borderBottom: RULE.hair(t.ink) }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
               <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
-              <ChevronRight size={15} color={t.faint} />
+              <ChevronRight size={15} color={t.trace || t.faint} />
             </button>
           )}
         </>) : (
-          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+          <div style={{ borderTop: RULE.section(t.ink) }}>
             {groups.map((g) => row(g.id, undefined, () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={40} group />, g.name,
                 `${g.members.length} ${nouns || "players"} · ${DAY_NAMES[g.day].slice(0, 3)} ${g.time}`))}
             {row("new", "roster-newgroup", () => { hapticCommit(); sheet("group"); },
@@ -10628,12 +10858,17 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           <button data-tour="player-all-lessons"
                   onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
                   className="w-full flex items-center gap-4 text-left active:opacity-70"
-                  style={{ minHeight: 92, marginBottom: 12, padding: "0 20px", borderRadius: R.surface,
-                           background: t.wash, border: `1px solid ${HAIR(t.ink, 0.1)}` }}>
+                  style={{ minHeight: 92, marginBottom: 12, paddingTop: 4, paddingBottom: 14 }}>
+            {/* THE NUMBER IS THE BLOCK. It was a 30px figure inside a
+                wash-filled rounded rectangle with a hairline round it —
+                the app apologising for its own most important number.
+                A number in a document is set large and light, on the
+                bare paper, with the fact that qualifies it on its
+                baseline. Nothing encloses it. */}
             <span className="flex-1 min-w-0">
               <span className="block" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Past lessons")}</span>
-              <span className="flex items-baseline gap-2.5" style={{ marginTop: 5 }}>
-                <span style={{ ...TYPE.figure, fontSize: 30, color: t.ink }}>{live ? f.done : past.length}</span>
+              <span className="flex items-baseline" style={{ marginTop: SPACE.knit, gap: 10 }}>
+                <span style={{ ...TYPE.figureXL, color: t.ink }}>{live ? f.done : past.length}</span>
                 <span className="truncate" style={{ ...TYPE.small, color: t.sub }}>
                   {daysSince != null
                     ? (daysSince === 0 ? tr("last one today") : `${tr("last one")} ${daysSince} ${daysSince === 1 ? tr("day ago") : tr("days ago")}`)
@@ -10676,7 +10911,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               They had an eyebrow reading "Most recent" over them, two
               inches under a block reading "Past lessons" — the same idea
               labelled twice on one screenful. */}
-          <div className="mb-7" data-tour="player-lessons" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          <div className="mb-7" data-tour="player-lessons" style={{ borderTop: RULE.section(t.ink) }}>
             {live && past.length === 0 && (
               <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing logged for")} {name.split(" ")[0]} {tr("yet.")}</p>
             )}
@@ -10684,9 +10919,9 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               <button key={l.id || i} onClick={() => { haptic(7); soft(); if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + (r.id || name)); }}
                       className="w-full flex items-start gap-4 text-left active:opacity-50"
                       style={{ minHeight: 76, paddingTop: 14, paddingBottom: 14,
-                               borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                               animation: `fadeUp 320ms cubic-bezier(.22,1,.36,1) ${Math.min(i, 8) * 55}ms both` }}>
-                <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint, paddingTop: 3 }}>{live ? `${l.d} ${l.m}` : l.d}</span>
+                               borderBottom: RULE.hair(t.ink),
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                <Rail style={{ paddingTop: 3 }}>{live ? `${l.d} ${l.m}` : l.d}</Rail>
                 <span className="flex-1 min-w-0">
                   <span className="block" style={{ ...TYPE.subhead, color: t.ink }}>{l.focus}</span>
                   {(l.note || (live && (l.media || l.videos))) && (
@@ -10695,7 +10930,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                     </span>
                   )}
                 </span>
-                <ChevronRight size={15} color={t.faint} style={{ marginTop: 4 }} />
+                <ChevronRight size={15} color={t.trace || t.faint} style={{ marginTop: 4 }} />
               </button>
             ))}
           </div>
@@ -10705,13 +10940,13 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
             <div className="mb-7">
               {seriesFor && (
                 <div className="flex items-baseline gap-3 py-2">
-                  <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint }}>{tr("Next")}</span>
+                  <Rail>{tr("Next")}</Rail>
                   <span style={{ ...TYPE.body, color: t.ink }}>{DAY_NAMES[seriesFor.day]} {seriesFor.time}</span>
                 </div>
               )}
               {f.tip && (
                 <div className="flex items-baseline gap-3 py-2">
-                  <span className="shrink-0" style={{ width: 52, ...TYPE.eyebrow, color: t.faint }}>{tr("Tip")}</span>
+                  <Rail>{tr("Tip")}</Rail>
                   <span style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
                 </div>
               )}
@@ -10722,13 +10957,13 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               "More" hid three: one of them, Progress, went to the same
               archive the block at the top of this screen goes to, under
               a second name. */}
-          <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+          <div style={{ borderTop: RULE.section(t.ink) }}>
             {[[tr("Recurring lessons"), () => onRecurring(name)],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]])].map(([lbl, act]) => (
               <button key={lbl} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center text-left active:opacity-50"
-                      style={{ minHeight: 52, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                      style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                <ChevronRight size={14} color={t.faint} />
+                <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
           </div>
@@ -10803,14 +11038,14 @@ function FilterRow({ options, value, onChange, label, last }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   if (options.length <= 1) return null;
-  const hair = `0.5px solid ${HAIR(t.ink, 0.12)}`;
+  const hair = RULE.hair(t.ink);
   return (
     <div style={{ borderBottom: last ? hair : "none" }}>
       <button onClick={() => { haptic(6); setOpen(!open); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
               style={{ minHeight: 52, borderTop: hair }}>
         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
         <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "55%" }}>{value}</span>
-        <ChevronRight size={15} color={t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+        <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
       </button>
       {open && (
         <div style={{ background: t.wash }}>
@@ -10879,20 +11114,20 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                                                      : `${shown.length} ${tr("of")} ${lessons.length}`].filter(Boolean).join(" · ")}>
         {sift && (<div className="px-6 mb-3">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
-            <Search size={16} color={t.faint} />
+            <Search size={16} color={t.trace || t.faint} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={forPlayer ? tr("Search what you covered") : `Search ${nouns} or what you covered`}
                    className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.faint} /></button>
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
           </div>
         </div>)}
 
         {forPlayer && onClearPlayer && (
           <button onClick={() => { haptic(6); onClearPlayer(); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
-                  style={{ minHeight: 52, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                  style={{ minHeight: 52, borderTop: RULE.section(t.ink) }}>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Only")}</span>
             <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{forPlayer}</span>
-            <X size={14} color={t.faint} strokeWidth={2.2} />
+            <X size={14} color={t.trace || t.faint} strokeWidth={2.2} />
           </button>
         )}
 
@@ -10915,11 +11150,11 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                 <span>{g.m} {g.y}</span>
                 <span>{g.items.length}</span>
               </div>
-              <div style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+              <div style={{ borderTop: RULE.section(t.ink) }}>
                 {g.items.map((l) => (
                   <button key={l.id} onClick={() => { haptic(6); push(`clesson:${l.id}:${l.who}`); }}
                           className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                          style={{ minHeight: 62, borderBottom: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
+                          style={{ minHeight: 62, borderBottom: RULE.hair(t.ink) }}>
                     <span className="shrink-0 text-center" style={{ width: 26, fontFamily: display, fontSize: 16, color: t.faint }}>{l.d}</span>
                     <span className="flex-1 min-w-0">
                       <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{forPlayer ? l.focus : l.who}</span>
@@ -10929,7 +11164,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                     </span>
                     {l.type === "Group" && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: GROUP }} />}
                     {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
-                    <ChevronRight size={15} color={t.faint} />
+                    <ChevronRight size={15} color={t.trace || t.faint} />
                   </button>
                 ))}
               </div>
@@ -11048,7 +11283,7 @@ function MyGroups({ groups, cfg, nouns, pop, push, say }) {
                       {DAY_NAMES[g.day]}s {g.time} · {g.members.length} {nouns}
                     </span>
                   </span>
-                  <ChevronRight size={16} color={t.faint} />
+                  <ChevronRight size={16} color={t.trace || t.faint} />
                 </button>
               ))}
             </div>
@@ -11108,7 +11343,7 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
                         color: ci === 0 ? t.ink : (ci === r.length - 1 && /lost/i.test(cell) ? DANGER : t.ink) }}>{cell}</span>
               ))}
               <button onClick={() => { haptic(6); onRemove(ri); }} className="active:opacity-50" style={{ width: 22 }} aria-label={tr("Remove")}>
-                <X size={13} color={t.faint} />
+                <X size={13} color={t.trace || t.faint} />
               </button>
             </div>
           ))}
@@ -11417,7 +11652,7 @@ function VideoAnnotate({ angle, transcript, onSave, pop, say }) {
             <Card className="mb-3">
               {captions.map((c, i) => (
                 <Row key={i} label={c.text} sub={c.at} last={i === captions.length - 1}
-                     right={<button onClick={() => { haptic(6); setCaptions(captions.filter((_, j) => j !== i)); }} aria-label={tr("Remove")}><X size={14} color={t.faint} /></button>} />
+                     right={<button onClick={() => { haptic(6); setCaptions(captions.filter((_, j) => j !== i)); }} aria-label={tr("Remove")}><X size={14} color={t.trace || t.faint} /></button>} />
               ))}
             </Card>
           )}
@@ -11529,7 +11764,7 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
               </p>
             ) : (
               /* a register holds two marks, so the record is one line */
-              <p className="py-4" style={{ ...TYPE.body, color: t.ink, borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}`, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+              <p className="py-4" style={{ ...TYPE.body, color: t.ink, borderTop: RULE.section(t.ink), borderBottom: RULE.hair(t.ink) }}>
                 {att.showed} {tr("of")} {total} {tr("attended")}{att.noShow ? ` · ${att.noShow} ${tr("missed")}` : ""}
               </p>
             )}
@@ -11602,7 +11837,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
           <button key={r.id} onClick={() => openRoute(r.id)} disabled={!joinCode}
                   className="flex flex-col items-center justify-center gap-2.5 active:opacity-60 disabled:opacity-30"
                   style={{ minHeight: 92, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
-                           animation: `liftIn 400ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
+                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             <r.Icon size={20} color={t.accent} strokeWidth={1.6} />
             <span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{r.label}</span>
           </button>
@@ -11615,7 +11850,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
                 style={{ minHeight: 56, borderRadius: R.surface, border: `1px solid ${t.hair}` }}>
           <Users size={17} color={t.sub} strokeWidth={1.6} />
           <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
-          <ChevronRight size={15} color={t.faint} />
+          <ChevronRight size={15} color={t.trace || t.faint} />
         </button>
       )}
     </>
@@ -11809,7 +12044,7 @@ function Subscription({ pop, say, plan }) {
             </button>
             <button onClick={() => say("Nothing to restore")} className="w-full flex items-center text-left active:opacity-50"
                     style={{ minHeight: 60, borderBottom: `1px solid ${t.hair}` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Restore purchases")}</span><ChevronRight size={15} color={t.faint} />
+              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Restore purchases")}</span><ChevronRight size={15} color={t.trace || t.faint} />
             </button>
           </div>
 
@@ -11893,7 +12128,7 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
               <button data-tour={i === 0 ? "drill-row" : undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
                       className="w-full flex items-start gap-3.5 px-5 py-4 text-left active:opacity-50"
                       style={{ borderBottom: i === items.length - 1 ? "none" : `1px solid ${t.hair}`,
-                               animation: `rowIn 420ms cubic-bezier(.22,1,.36,1) ${i * 55}ms both` }}>
+                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <span className="flex items-center justify-center shrink-0"
                       style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
                                background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
@@ -11953,7 +12188,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
         <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left active:opacity-70" style={{ background: t.surface, borderRadius: R.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
           <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
           <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 20, color: t.ink }}>{tr("Set drills")}</span><span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{tr("Choose who, and what they practise")}</span></span>
-          <ChevronRight size={17} color={t.faint} />
+          <ChevronRight size={17} color={t.trace || t.faint} />
         </button>
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
@@ -12036,7 +12271,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                           {focusLabel}{d.uses ? ` · ${tr("used")} ${d.uses}×` : ""}
                         </span>
                       </span>
-                      <ChevronDown size={16} color={t.faint} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+                      <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
                     </button>
                     {isOpen && (
                       <div className="px-5 pb-4" style={{ background: t.wash }}>
@@ -12153,7 +12388,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
             <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: t.wash }}><Clock size={15} color={t.sub} /></span>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min default</span></span>
-            <ChevronDown size={16} color={t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+            <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
           </button>
           {editSlots && (
             <Card className="p-5 mt-3">
@@ -12361,7 +12596,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                         {k.canBook ? `${tr("with")} ${k.coachName}` : k.coachId ? tr("their coach has set no times yet") : tr("no coach yet")}
                       </span>
                     </span>
-                    <ChevronRight size={14} color={t.faint} />
+                    <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 ))}
               </Card>
@@ -12482,7 +12717,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                 <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>
                   {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
                 </span>
-                <ChevronRight size={15} color={t.faint} />
+                <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
             )}
 
@@ -12543,7 +12778,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                       {DAY_NAMES[r.day]}s {r.time} · {r.every || r.freq}{r.total ? ` · ${r.total - r.used} of ${r.total} left` : ""}
                     </span>
                   </span>
-                  <ChevronRight size={15} color={t.faint} />
+                  <ChevronRight size={15} color={t.trace || t.faint} />
                 </button>
               ))}
             </div>
@@ -12585,7 +12820,7 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
   const mine = list.filter((c) => c.kind !== "child");
   const kids = list.filter((c) => c.kind === "child");
   const split = kids.length > 0 && mine.length > 0;
-  const hair = `0.5px solid ${HAIR(t.ink, 0.1)}`;
+  const hair = RULE.hair(t.ink);
   const Thread = ({ c, tour }) => (
     <button key={c.id || c.name} data-tour={tour} onClick={() => { haptic(6); push("thread:" + (c.id || c.name)); }}
             className="w-full flex items-center gap-3.5 text-left active:opacity-50"
@@ -12743,7 +12978,7 @@ function Thread({ role, name, isGroup, pop, say, live }) {
           <Avatar name={name} size={32} group={group} />
           <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : live && live.sub ? live.sub : role === "coach" ? "Player" : "Your coach"}</span></span>
           {(!live || live.onDetails) && (
-            <button onClick={() => { haptic(6); if (live) live.onDetails(); else say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.faint} /></button>
+            <button onClick={() => { haptic(6); if (live) live.onDetails(); else say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.trace || t.faint} /></button>
           )}
         </div>
         <div ref={feed} className="flex-1 overflow-y-auto px-4 pt-5 pb-3">
@@ -12802,7 +13037,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
       <Screen title={tr("Branding")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         {!live && (
           <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
-            <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.faint} /></div>
+            <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.trace || t.faint} /></div>
             <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>{tr("Upload your logo")}</span>
             <span className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>Square PNG, 512px or larger</span>
           </Card></div>
@@ -12820,7 +13055,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
         <div className="px-6 pb-2"><Card className="p-5">
           <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 10.5, letterSpacing: "0.13em", fontWeight: 600, color: t.faint }}>{tr("Preview — this is exactly what players see")}</div>
           <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
-            <Mark size={26} color={t.accent} /><span className="flex-1" style={{ fontFamily: display, fontSize: 17, color: "#fff" }}>{clubName || "Your club"}</span>
+            <Mark size={26} color={t.accent} /><span className="flex-1" style={{ ...TYPE.heading, color: t.ink }}>{clubName || "Your club"}</span>
             <span className="rounded-full px-3 py-1.5" style={{ background: t.accent, fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.onAccent }}>{tr("Request")}</span>
           </div>
         </Card></div>
@@ -12982,13 +13217,13 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
                   </>
                 )}
                 {onRemoveSport && (sports || []).filter((id) => id !== f.sport).length > 0 && (
-                  <div className="mt-3.5" style={{ borderTop: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                  <div className="mt-3.5" style={{ borderTop: RULE.section(t.ink) }}>
                     {(sports || []).filter((id) => id !== f.sport).map((id) => (
                       <button key={id} onClick={() => { haptic(8); onRemoveSport(id); }}
                               className="w-full flex items-center gap-3 text-left active:opacity-60"
-                              style={{ minHeight: 48, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+                              style={{ minHeight: 48, borderBottom: RULE.hair(t.ink) }}>
                         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Remove")} {SPORTS[id].label}</span>
-                        <X size={14} color={t.faint} strokeWidth={2.2} />
+                        <X size={14} color={t.trace || t.faint} strokeWidth={2.2} />
                       </button>
                     ))}
                   </div>
@@ -13057,7 +13292,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           {Ico && <I C={Ico} />}
           <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, color: t.ink }}>{label}</span>
           <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
-          <ChevronRight size={16} color={t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+          <ChevronRight size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
         </button>
         {isOpen && (
           <div style={{ background: t.wash }}>
@@ -13115,7 +13350,6 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
     { title: L.appearance, tour: "settings-appearance", rows: [
-      { label: L.darkMode, tour: "settings-dark", right: T(dark, setDark), keys: ["theme", "night"] },
       live && (startOptions || []).length > 1 && { label: tr("Opens on"), keys: ["start", "home", "first screen"],
         /* SETTINGS ROWS CARRY NO GLYPH. Two of forty did — a tick on
            Take attendance and a house on Opens on — which is the sort
@@ -13165,7 +13399,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     <SwipeBack onBack={pop}>
       <Screen title={tr("You")} onBack={pop}>
         {/* who you are: a row, not a bordered card floating on the page */}
-        <div className="px-6 mb-5" style={{ borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+        <div className="px-6 mb-5" style={{ borderBottom: RULE.hair(t.ink) }}>
           <button data-tour="settings-profile" onClick={() => { haptic(6); push(live ? "profile" : "details"); }} className="w-full flex items-center gap-4 text-left active:opacity-50" style={{ minHeight: 78 }}>
             <Avatar name={myName} size={56} src={avatar} />
             <span className="flex-1 min-w-0">
@@ -13174,17 +13408,17 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                 ? <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.sub }}>{weekDone} {tr("this week")} · {seasonDone} {tr("this year")}</span>
                 : !live && <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.faint }}>{sub}</span>}
             </span>
-            <ChevronRight size={18} color={t.faint} />
+            <ChevronRight size={18} color={t.trace || t.faint} />
           </button>
         </div>
 
         {/* find it rather than scroll for it */}
         <div className="px-6 mb-6">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-            <Search size={15} color={t.faint} strokeWidth={2} />
+            <Search size={15} color={t.trace || t.faint} strokeWidth={2} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search settings")} aria-label={tr("Search settings")}
                    className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.faint} strokeWidth={2} /></button>
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.trace || t.faint} strokeWidth={2} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
           </div>
         </div>
@@ -13437,7 +13671,7 @@ function ChangePasswordBody({ onSubmit, say, close }) {
   const [pw, setPw] = useState(""); const [again, setAgain] = useState("");
   const [err, setErr] = useState(null); const [busy, setBusy] = useState(false);
   const ok = pw.length >= 8 && pw === again;
-  const field = { minHeight: 50, borderRadius: R.field, background: t.wash, fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
+  const field = { minHeight: 50, borderRadius: R.field, background: t.wash, boxShadow: (t.elev || ELEV).groove, fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
   return (
     <>
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Change password")}</h2>
@@ -13503,9 +13737,9 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
       <div className="flex flex-col h-full" style={{ background: t.page }}>
         <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-3" style={{ borderBottom: `1px solid ${t.hair}` }}>
           <div className="flex-1 flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
-            <Search size={17} color={t.faint} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            <Search size={17} color={t.trace || t.faint} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
             <MicBtn onText={(txt) => setQ(q ? `${q} ${txt}` : txt)} size={26} />
-            {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={16} color={t.faint} /></button>}
+            {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={16} color={t.trace || t.faint} /></button>}
             <MicBtn onText={(txt) => setQ(txt)} size={30} />
           </div>
           <TextBtn onClick={pop}>{tr("Cancel")}</TextBtn>
@@ -13577,7 +13811,7 @@ function PushPrompt({ userId, say }) {
   };
   return (
     <div className="flex items-center gap-3 px-1 mb-5" data-tour="push-prompt"
-         style={{ minHeight: 56, borderBottom: `0.5px solid ${HAIR(t.ink, 0.1)}` }}>
+         style={{ minHeight: 56, borderBottom: RULE.hair(t.ink) }}>
       <Bell size={15} color={t.faint} strokeWidth={1.8} />
       <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
         {state === "ios" ? tr("Add Nosca to your Home Screen to hear about these") : tr("Hear about these on your phone")}
@@ -13610,7 +13844,7 @@ function PushPrompt({ userId, say }) {
 function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAll,
                        onMarkAllRead, userId, say, faceFor }) {
   const t = useT();
-  const hair = `0.5px solid ${HAIR(t.ink, 0.1)}`;
+  const hair = RULE.hair(t.ink);
   const unread = items.filter((n) => !n.readAt).length;
 
   /* opening the bell is reading it: the dots stay while you look, and
@@ -13677,7 +13911,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {face && (
               <span className="absolute flex items-center justify-center"
                     style={{ right: -3, bottom: -3, width: 16, height: 16, borderRadius: 8,
-                             background: t.wash, boxShadow: `0 0 0 2px ${t.paper}` }}>
+                             background: t.wash, boxShadow: `0 0 0 2px ${t.page}` }}>
                 <K size={9} color={t.sub} strokeWidth={2.2} />
               </span>
             )}
@@ -13800,7 +14034,7 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
           )}
           {!moving.length && (
             <button onClick={() => { haptic(5); onDismiss && onDismiss(); }} className="shrink-0 p-1 active:opacity-50" aria-label={tr("Dismiss")}>
-              <X size={13} color={t.faint} />
+              <X size={13} color={t.trace || t.faint} />
             </button>
           )}
         </div>
@@ -13978,13 +14212,10 @@ function useTypefaces() {
     const pre = document.createElement("link");
     pre.rel = "preconnect"; pre.href = "https://api.fontshare.com"; pre.crossOrigin = "anonymous";
     document.head.appendChild(pre);
-    const link = document.createElement("link");
-    link.id = "nosca-type";
-    link.rel = "stylesheet";
-    /* Fraunces carries optical sizing and a soft axis; Instrument Sans
-       is the quieter companion. Both variable, one request each. */
-    link.href = "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@200,300,400,500,700,800,900&f[]=switzer@300,400,500,600,700&f[]=zodiak@300i,400i,500i&display=swap";
-    document.head.appendChild(link);
+    /* The stylesheet itself is in index.html, so it is in the markup the
+       phone parses before any of this runs. All this adds is the
+       preconnect, and the id so nothing does it twice. */
+    pre.id = "nosca-type";
   }, []);
 }
 
@@ -14617,6 +14848,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [firstRun, setFirstRun] = useState(true);
   const [annotations, setAnnotations] = useState({});
   const [dark, setDark] = useDeviceSetting("dark", false);
+  /* THE WAY OUT HAS TO OUTLIVE THE WAY IN. `dark` is remembered on the
+     device, and the Settings row that toggles it is not rendered while
+     the ~189 hard-coded #fff literals are unaudited — so anyone who
+     turned it on in an earlier build would open this one into dark mode
+     with no control anywhere to turn it off. Hiding a switch never
+     traps anyone in the state it set. */
+  useEffect(() => { if (dark) setDark(false); }, [dark, setDark]);
   const [hapticsOn, setHapticsOn] = useDeviceSetting("haptics", true);
   /* "auto" = the natural home for the account; otherwise a tab id */
   const [startOn, setStartOn] = useDeviceSetting("startOn", "auto");
@@ -14871,7 +15109,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const archive = data ? (role === "coach" ? taught(data.lessons) : mineOnly(data.lessons)).map((l) => ({ ...l, who: l.who || "—" })) : freshAccount ? [] : buildArchive(cfg, live);
   const base = inApp ? cfg.theme : NEUTRAL;
   const tinted = inApp && swatch.accent ? { ...base, accent: swatch.accent, onAccent: swatch.onAccent } : base;
-  const theme = dark && inApp ? darkify(tinted) : tinted;
+  /* Depth is computed AFTER darkify, so the dark palette gets a
+     dark-correct rim (0.06) instead of a white line across every card,
+     and memoised on its fields rather than built inline — the theme is
+     handed to every consumer, so a new object on every render is the
+     same defect as an unmemoised `account`. */
+  const theme = useMemo(() => {
+    const x = dark && inApp ? darkify(tinted) : tinted;
+    return { ...x, elev: SHADE(x.ink, dark && inApp ? 0.06 : 0.92) };
+  }, [base, swatch.accent, swatch.onAccent, dark, inApp]);
   const screen = stack[stack.length - 1];
   /* which way the last move went, so the incoming screen comes from the
      side it came from. Every root tab shares one key, so switching tabs
