@@ -9916,7 +9916,13 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             {upcoming.length > 0 && (
               <button onClick={() => { haptic(7); soft(); go("calendar"); }}
                       className="w-full flex items-center gap-3 pr-4 text-left active:opacity-60"
-                      style={{ minHeight: 52, paddingLeft: 20, borderTop: RULE.section(t.ink) }}>
+                      /* No rule of its own: the last DayRow above already
+                         draws a hairline, and a 1px section on top of that
+                         0.5px is 1.5px of stacked grey sitting mid-list —
+                         heavier than the lid the list opened on. Tomorrow's
+                         first lesson is the foot of the same column, not a
+                         new section. */
+                      style={{ minHeight: 52, paddingLeft: 20 }}>
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.faint }}>
                   {upcoming[0].dayLabel} · {upcoming[0].time} · {upcoming[0].who}
                 </span>
