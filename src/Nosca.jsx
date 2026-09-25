@@ -1111,7 +1111,10 @@ export const TYPE = {
   lede:     { fontFamily: ui,      fontSize: 13.5, lineHeight: 1.45, letterSpacing: "-0.004em", fontWeight: 400 },
   small:    { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.42, letterSpacing: "0",        fontWeight: 400 },
   caption:  { fontFamily: ui,      fontSize: 11, lineHeight: 1.34, letterSpacing: "0.005em",    fontWeight: 400 },
-  eyebrow:  { fontFamily: ui,      fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 500 },
+  /* a section label: a word, set like a word. It was 10px tracked
+     uppercase — the single most repeated tell of a generated interface,
+     on every section of every screen. Sentence case, the UI face, 500. */
+  eyebrow:  { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.3, letterSpacing: "-0.003em", fontWeight: 500 },
 
   /* THE FIGURE LADDER. A number in a document is set large and light.
      figureXL is the one number that owns a block — a player's lesson
@@ -2396,7 +2399,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Cancel lesson")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{lesson}</p>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
       <div className="flex flex-col gap-2 mb-5">
         {CANCEL_REASONS[role === "coach" ? "coach" : "player"].map((r, i) => {
           const on = reason === r;
@@ -2658,7 +2661,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
 
           {!live && all.length > 0 && all[0].days <= 21 && (
             <Tile className="px-5 py-[18px] mt-4" delay={200}>
-              <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {tr("Between now and then")}
               </div>
               <p style={{ fontFamily: display, fontSize: 15.5, lineHeight: 1.65, color: t.ink }}>
@@ -3026,7 +3029,7 @@ function NewLessonArrival({ lesson, coach, onOpen }) {
       </span>
 
       <div className="mt-8 text-center" style={{ animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 420ms both" }}>
-        <div style={{ fontFamily: ui, fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: t.accent }}>
+        <div style={{ ...TYPE.eyebrow, color: t.accent }}>
           {tr("From")} {coach}
         </div>
         <div className="mt-3" style={{ fontFamily: display, fontSize: 30, letterSpacing: "-0.035em", lineHeight: 1.1, color: "#F4F6F3" }}>
@@ -3326,7 +3329,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
             </p>
           ) : (
             <>
-              <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {mine.length} {tr("saved to this lesson")}
               </div>
               <div className="flex flex-col gap-2.5">
@@ -3442,7 +3445,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
 
           {past.length > 0 && (
             <>
-              <div className="uppercase mt-7 mb-3 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mt-7 mb-3 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {tr("Ended")}
               </div>
               {past.map((x, i) => (
@@ -6183,9 +6186,10 @@ function Stat({ value, label, tone, wide }) {
 /* How long until something, in words a person would use. */
 function untilText(hoursFromNow) {
   if (hoursFromNow < 0) return tr("Finished");
-  if (hoursFromNow < 1) return `${Math.round(hoursFromNow * 60)} ${tr("min away")}`;
-  const h = Math.floor(hoursFromNow), m = Math.round((hoursFromNow - h) * 60);
-  return m ? `${h}h ${m}m ${tr("away")}` : `${h}h ${tr("away")}`;
+  /* under an hour it is worth a word; beyond that the row already says
+     the time, and "13h 39m away" beneath "4:00 pm" was a tell */
+  if (hoursFromNow < 1) return `${tr("In")} ${Math.max(1, Math.round(hoursFromNow * 60))} ${tr("min")}`;
+  return "";
 }
 
 /* ==================================================================
@@ -6526,7 +6530,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
             {f.tip && (
               <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
-                <div className="uppercase mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Working on")}</div>
+                <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Working on")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
             )}
@@ -6535,7 +6539,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                       className="w-full flex items-center gap-3 px-4 py-3 text-left active:opacity-60"
                       style={{ borderRadius: R.control, border: `1px solid ${t.hair}` }}>
                 <span className="flex-1">
-                  <span className="block uppercase mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
+                  <span className="block mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
                 </span>
                 <ChevronRight size={15} color={t.trace || t.faint} />
@@ -6879,7 +6883,7 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
         <div className="flex items-center px-1.5" style={{ height: 46 }}>
           {onBack ? (
             <button onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40">
-              <ChevronLeft size={25} color={t.accent} strokeWidth={2.1} />
+              <ChevronLeft size={25} color={t.ink} strokeWidth={2.1} />
             </button>
           ) : <span style={{ width: 41 }} />}
           <span className="flex-1 text-center truncate px-2"
@@ -7222,12 +7226,11 @@ const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
    side padding; inside a column that already has it, use this. */
 const RowHead = ({ children }) => {
   const t = useT();
-  return <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{children}</div>;
+  return <div className="px-1" style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 8 }}>{children}</div>;
 };
 const Eyebrow = ({ children }) => {
   const t = useT();
-  return (<div className="mb-3 px-6 mt-1" style={{ marginLeft: 1, fontFamily: ui, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: t.faint,
-                  animation: "slideIn 460ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>);
+  return <div className="mb-3 px-6 mt-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{children}</div>;
 };
 export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   const t = useT();
@@ -7353,7 +7356,7 @@ const HomeRow = ({ label, value, tone, onPress, tour }) => {
             className="w-full flex items-center gap-4 text-left active:opacity-50"
             style={{ minHeight: 58, borderBottom: RULE.hair(t.ink) }}>
       <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
-      <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: tone || t.ink, maxWidth: "55%" }}>{value}</span>
+      <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
@@ -7515,7 +7518,7 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
 
 const TextBtn = ({ children, onClick, color, tour }) => {
   const t = useT();
-  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
+  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.ink }}>{children}</button>);
 };
 function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
   const t = useT();
@@ -8001,7 +8004,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
               );
             })}
           </div>
-          <AddOwn value={newTip} onChange={setNewTip} ph={tr("One of your own")} onAdd={(v) => setTips([...tips, v])} />
+          <AddOwn value={newTip} onChange={setNewTip} ph={tr("Your own")} onAdd={(v) => setTips([...tips, v])} />
         </>)}
       </div>
 
@@ -8375,9 +8378,10 @@ function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
-      <Avatar name={name} size={22} tint={tint} src={src} group={group} />
-      <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
-      <ChevronDown size={13} color={t.sub} />
+      {/* the face, and nothing else — it still opens the switcher. The
+          pill it replaced carried initials, a first name and a chevron
+          in every header of the app. */}
+      <Avatar name={name} size={30} tint={tint} src={src} group={group} />
     </button>
   );
 }
@@ -8386,7 +8390,7 @@ function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
 function SportListPick({ t, onPick, title, onBack }) {
   return (
     <>
-      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
@@ -8399,7 +8403,7 @@ function SportListPick({ t, onPick, title, onBack }) {
 function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin }) {
   return (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
@@ -8452,7 +8456,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   const SportList = ({ onPick, title, onBack }) => (
     <>
-      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
@@ -8464,7 +8468,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   const CodeStep = ({ onBack, onJoin, who }) => (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
@@ -8482,7 +8486,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   if (stage === "child") return (
     <>
-      <div className="flex items-center gap-1 mb-5 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-5 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Add someone under 18</h2></div>
       <div className="mb-5"><VoiceInput value={childName} onChange={setChildName} ph={tr("Their name")} autoFocus /></div>
 
@@ -8532,7 +8536,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   if (stage === "code" && live) return (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{tr("Coach code")}</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Six characters from the coach")}</p>
       {/* typed, not tapped: a real code is six letters and digits */}
@@ -8684,8 +8688,8 @@ function TipBody({ prompts, onSet, close }) {
           ))}
         </div>
       )}
-      <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("One line")} /></div>
-      <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={2} ph={tr("Anything more")} /></div>
+      <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("Tip")} /></div>
+      <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={2} ph={tr("More")} /></div>
       <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() }); close(); }}>{tr("Set the tip")}</Button>
     </>
   );
@@ -8932,7 +8936,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
         <div className="px-6"><Bone h={220} r={20} /></div>
       ) : shown.length === 0 ? (
         <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-          {tr("No lessons yet.")}
+          {tr("No lessons yet")}
         </p>
       ) : (
         <div className="px-6 pb-4" style={{ borderTop: RULE.section(t.ink) }}>
@@ -9168,7 +9172,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
     ? tips.find((x) => x.playerId && x.playerId === lesson.playerId && near(x)) || null
     : (lesson.tip ? { title: lesson.tip } : null);
   /* the day it happened — a day, not a moment, so it never reads as the evening before */
-  const when = lesson.iso ? localDate(lesson.iso).toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" }) : (lesson.date || `${lesson.d} ${lesson.m}`);
+  const when = lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : (lesson.date || `${lesson.d} ${lesson.m}`);
   const withWhom = role === "coach" ? playerName : coachName;
   const first = (n) => (n || "").split(" ")[0];
   const hair = RULE.hair(t.ink);
@@ -10130,6 +10134,10 @@ const WizDocked = ({ children }) => {
 const WIZ_VIEWS = ["who", "main", "stage"];
 const WIZ_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WIZ_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];   // getDay() order
+/* "Wed 23 Sep" — the locale gives "Sept" for September in en-IE while
+   every table in the file says "Sep"; one spelling, from one table */
+const fmtWeekDay = (d) => `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${WIZ_MONTHS[d.getMonth()]}`;
 const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 /* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
 const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
@@ -10672,7 +10680,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             )}
 
             {/* the note is here, not behind a tap */}
-            <div style={{ marginTop: SPACE.block }}><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={2} ph={tr("A line about it")} /></div>
+            <div style={{ marginTop: SPACE.block }}><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={2} ph={tr("Notes")} /></div>
           </div>
 
           {/* what they do until next time */}
@@ -11148,7 +11156,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
             </p>
           ) : groups.map((g) => (
             <div key={g.key} className="mb-6">
-              <div className="uppercase mb-2 flex items-baseline justify-between" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-2 flex items-baseline justify-between" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 <span>{g.m} {g.y}</span>
                 <span>{g.items.length}</span>
               </div>
@@ -11203,7 +11211,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         {existing ? "Recurring lessons" : `Set up ${(name || "").split(" ")[0]}`}
       </h2>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Day")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Day")}</div>
       <div className="flex gap-1.5 mb-5">
         {DAY_NAMES.map((n, i) => {
           const on = day === i;
@@ -11213,13 +11221,13 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         })}
       </div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
       <div className="mb-5">
         <TimeGrid cols={3} times={slots.map((sl) => span(sl, duration))} picked={time ? span(time, duration) : null}
                   onToggle={(lbl) => setTime(slots.find((sl) => span(sl, duration) === lbl))} />
       </div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("How often")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("How often")}</div>
       <div className="flex gap-2 mb-5">
         {[["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]].map(([id, lbl]) => {
           const on = freq === id;
@@ -11582,7 +11590,7 @@ function VideoAnnotate({ angle, transcript, onSave, pop, say }) {
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Mark it up")} onBack={pop} meta={angle}
-              right={<TextBtn onClick={() => { onSave(shapes, captions); hapticSuccess(); chime(); say(tr("Saved to the clip")); pop(); }}>{tr("Save")}</TextBtn>}>
+              right={<TextBtn color={t.accent} onClick={() => { onSave(shapes, captions); hapticSuccess(); chime(); say(tr("Saved to the clip")); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6">
           <div ref={box} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}
                className="relative overflow-hidden" style={{ borderRadius: R.surface, height: 232, background: "#191D1B", touchAction: "none", cursor: "crosshair" }}>
@@ -11878,7 +11886,7 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New group")}</h2>
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
         {members.length ? `${members.length} ${nouns}` : tr("Members")}
       </div>
       <div className="mb-5">
@@ -11887,7 +11895,7 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
                       onToggle={(pl) => toggle(pl.name)} />
       </div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
       <div className="flex gap-1.5 mb-3">
         {DAY_NAMES.map((d, i) => {
           const on = day === i;
@@ -12013,7 +12021,7 @@ function Subscription({ pop, say, plan }) {
       <Screen title={tr("Subscription")} onBack={pop} meta="">
         <div className="px-6">
           <div className="pb-6 mb-6" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="uppercase block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Current plan")}</span>
+            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Current plan")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 29, letterSpacing: "-0.03em", color: t.ink }}>{BRAND} {current.name}</span>
               <span style={{ fontFamily: display, fontSize: 22, color: t.ink }}>€{current.price}<span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>/mo</span></span>
@@ -12021,7 +12029,7 @@ function Subscription({ pop, say, plan }) {
             <div className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{current.blurb} · renews 21 August</div>
           </div>
 
-          <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Change plan")}</div>
+          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Change plan")}</div>
           <div style={{ borderTop: `1px solid ${t.hair}` }}>
             {PLANS.map((pl) => {
               const on = pl.id === current.id;
@@ -12337,7 +12345,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
 
   return (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2">{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>)}
+      <div className="flex items-center gap-1 mb-1 -ml-2">{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>)}
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
 
       {recommended.length > 0 && (<>
@@ -12384,7 +12392,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
   const TIMES = slots;
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Availability")} onBack={pop} meta={`${total} slots a week`} right={<TextBtn onClick={() => { setAvail(draft); say("Availability saved"); pop(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Availability")} onBack={pop} meta={`${total} slots a week`} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Availability saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
           <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 active:opacity-60" style={{ minHeight: 58, border: `1px solid ${t.hair}` }}>
             <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: t.wash }}><Clock size={15} color={t.sub} /></span>
@@ -12677,7 +12685,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
         {myDay && (
           <div className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="uppercase block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
+            <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, duration)}</span>
               {readOnly
@@ -12699,7 +12707,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           ) : (<>
             {booked.length > 0 ? (
               <>
-                <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
+                <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
                   {mo.idx === T.m && sel === T.d ? tr("Today's schedule") : dayLabel}
                 </div>
                 {booked.map((b, i) => (
@@ -12724,7 +12732,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             )}
 
             {open.length > 0 && prefs.showFree && (<>
-              <div className="uppercase mt-6 mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Free")}</div>
+              <div className="mt-6 mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Free")}</div>
               <TimeList times={open.map((x) => span(x, duration))} picked={pick ? span(pick, duration) : null}
                         onPick={(label) => { const time = open.find((x) => span(x, duration) === label); setPick(pick === time ? null : time); }} />
             </>)}
@@ -12749,7 +12757,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <div className="mt-6">
             {/* a real player asks for one lesson at a time; standing slots are the coach's to set */}
             {!live && (<>
-            <span className="uppercase block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Repeat")}</span>
+            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Repeat")}</span>
             <div className="mb-5">
               <Segmented options={["Just once", "Weekly", "Fortnightly", "Monthly"]}
                          value={{ once: "Just once", weekly: "Weekly", fortnightly: "Fortnightly", monthly: "Monthly" }[recurrence]}
@@ -12768,7 +12776,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         )}
         {role === "coach" && seriesList && seriesList.length > 0 && (
           <div className="mt-8">
-            <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Recurring")}</div>
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Recurring")}</div>
             <div style={{ borderTop: `1px solid ${t.hair}` }}>
               {seriesList.map((r) => (
                 <button key={r.id} onClick={() => { haptic(6); onEditSeries && onEditSeries(r.who); }}
@@ -12911,7 +12919,7 @@ const dayLabelOf = (iso, L) => {
                          - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
   if (days === 0) return L.today;
   if (days === 1) return tr("Yesterday");
-  return d.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" });
+  return fmtWeekDay(d);
 };
 
 function Thread({ role, name, isGroup, pop, say, live }) {
@@ -12976,7 +12984,7 @@ function Thread({ role, name, isGroup, pop, say, live }) {
     <SwipeBack onBack={pop}>
       <div className="flex flex-col h-full" style={{ background: t.page }}>
         <div className="shrink-0 flex items-center px-1.5 relative z-20" style={{ height: 52, background: `${t.page}E6`, backdropFilter: "saturate(180%) blur(18px)", borderBottom: `1px solid ${t.hair}` }}>
-          <button onClick={() => { haptic(); pop(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={25} color={t.accent} strokeWidth={2.1} /></button>
+          <button onClick={() => { haptic(); pop(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={25} color={t.ink} strokeWidth={2.1} /></button>
           <Avatar name={name} size={32} group={group} />
           <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : live && live.sub ? live.sub : role === "coach" ? "Player" : "Your coach"}</span></span>
           {(!live || live.onDetails) && (
@@ -13036,7 +13044,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
   };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Branding")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Branding")} onBack={pop} right={<TextBtn color={t.accent} onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         {!live && (
           <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
             <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.trace || t.faint} /></div>
@@ -13179,7 +13187,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Your profile")} onBack={pop} right={<TextBtn tour="profile-save" onClick={save}>{busy ? "…" : tr("Save")}</TextBtn>}>
+      <Screen title={tr("Your profile")} onBack={pop} right={<TextBtn color={t.accent} tour="profile-save" onClick={save}>{busy ? "…" : tr("Save")}</TextBtn>}>
         <div className="px-6 pb-2">
           <div className="flex flex-col items-center mb-7" data-tour="profile-photo">
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pick} />
@@ -13431,7 +13439,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         {shown.map((g, gi) => (
           <React.Fragment key={g.title || "end"}>
             {g.title && <Eyebrow>{g.title}</Eyebrow>}
-            <div className="px-6 mb-6"><Card tour={g.tour}>
+            <div className="px-6 mb-6" data-tour={g.tour}><Ruled>
               {g.rows.map((r, i) => r.custom
                 ? <div key={r.label} style={{ borderBottom: i === g.rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
@@ -13443,7 +13451,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                           the red bin is a warning, not decoration. */
                        icon={r.danger ? <Trash2 size={17} color={DANGER} strokeWidth={1.6} /> : undefined}
                        onToggle={r.onTap} />)}
-            </Card></div>
+            </Ruled></div>
           </React.Fragment>
         ))}
 
@@ -13477,7 +13485,7 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
   };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn color={t.accent} onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 pb-2">
           <Card className="mb-5">{Object.keys(f).map((k, i, arr) => (
             <div key={k} className="px-5 py-3.5" style={{ borderBottom: i === arr.length - 1 ? "none" : `1px solid ${t.hair}` }}>
@@ -14060,7 +14068,7 @@ function CatchUp({ items, onOpen, onDone }) {
   return (
     <div className="absolute inset-0 flex flex-col" style={{ zIndex: 70, background: t.ink, animation: "fadeIn 320ms ease-out both" }}>
       <div className="flex-1 min-h-0 flex flex-col justify-center px-7">
-        <span style={{ fontFamily: ui, fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: t.accent,
+        <span style={{ ...TYPE.eyebrow, color: t.accent,
                        animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 120ms both" }}>
           {tr("While you were away")}
         </span>
