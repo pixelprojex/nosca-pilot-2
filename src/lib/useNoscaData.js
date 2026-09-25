@@ -26,7 +26,7 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
    the sheet closed, and reopening one offered a blank register. Both
    halves call this now. */
 export const registerKey = (label, date) => {
-  const dt = date instanceof Date ? date : new Date(date);
+  const dt = date instanceof Date ? date : localDate(date);   // session_date is a day, not a moment
   return `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]} ${label}`;
 };
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -821,8 +821,13 @@ export function useNoscaData(profile) {
   };
 
   const takeRegister = async (label, marks) => {
+    /* the day is written from this phone's clock, the same day the key
+       shown on screen was built from — the server's default is UTC, which
+       is tomorrow late on an evening west of Greenwich */
+    const now = new Date();
+    const sessionDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const { data: session, error } = await supabase.from("attendance_sessions")
-      .insert({ coach_id: profile.id, label }).select().single();
+      .insert({ coach_id: profile.id, label, session_date: sessionDate }).select().single();
     if (error) return { error };
     const rows = Object.entries(marks).map(([playerId, state]) => ({
       session_id: session.id, player_id: playerId, state,

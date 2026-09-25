@@ -252,10 +252,10 @@ seeded data and no account.
   rides on `preferences.layout` as `{ board, boardCols, quick }` and is
   read through `pickLayout`, which drops an id it does not recognise
   rather than drawing a blank tile. The editor is `LayoutEditor`,
-  reached from under the board, from the foot of the plus sheet, and
-  from Settings. The last remaining action cannot be removed. The save
-  also goes to `localStorage`, so a project whose SQL has not been
-  re-run still does what the coach asked.
+  reached from the foot of the plus sheet and from Settings — never a
+  permanent link under the board. The last remaining action cannot be
+  removed. The save also goes to `localStorage`, so a project whose SQL
+  has not been re-run still does what the coach asked.
 - **The one behaviour: a coach picks up the phone mid-lesson, does one
   thing in seconds, puts it down.** Every coach screen is judged
   against that. Three surfaces reach the same handlers and nothing is
@@ -277,8 +277,9 @@ seeded data and no account.
   diacritic-insensitive; Return picks the top match); one tap picks and
   returns. Everything else is one scroll: the name and the day, the
   level they are already on (`HI 18.4`, `Green ball · U10`) which is
-  touched only when it has changed and reads **`Set level` in the
-  accent** when there is none — and never blocks Log it; a grid of
+  touched only when it has changed and reads **`Set level`** in ink
+  when there is none (the accent is spent on Log it) — and never blocks
+  Log it; a grid of
   tiles for what was worked on, one per area in the sport's verified
   taxonomy, carrying the word and no glyph, **one tap and done** — there
   is no second grid of sub-areas underneath and no follow-up button; Video, Photo and Voice as three big boxes that open the

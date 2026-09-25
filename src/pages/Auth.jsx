@@ -33,8 +33,7 @@ import {
 
 const MIN_PASS = 8;
 const ADULT = 18;
-const FAMILY_REQUIRED = "Under 18s join with a parent's family code. Ask them to open Nosca → You → Family → Share.";
-const FAMILY_OPTIONAL = "Joining a family someone already set up? Enter their code. Otherwise one is made for you.";
+const FAMILY_REQUIRED = "Ask a parent — it's under Settings › Family";
 const ALREADY = "There's already an account with that email. Try signing in.";
 
 export const friendly = (msg) => {
@@ -49,7 +48,7 @@ export const friendly = (msg) => {
     return `Passwords need at least ${MIN_PASS} characters.`;
   if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Wait a minute and try again.";
   if (m.includes("database error"))
-    return "The database rejected the sign-up. Run supabase/nosca.sql in Supabase, then try again.";
+    return "Something went wrong. Try again";
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("network request failed") || m.includes("load failed"))
     return "Couldn't reach the server. Check your connection and try again.";
   return msg || "Something went wrong. Please try again.";
@@ -168,8 +167,8 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
   const dobIssue = wantsDob && (age === null || age === "invalid");
   const show = (k) => touched[k] || tried;
 
-  const errName  = show("name")  && name.trim().length < 2 ? "Enter your full name" : null;
-  const errEmail = show("email") && !emailOk(email)        ? "That doesn't look like an email address" : null;
+  const errName  = show("name")  && name.trim().length < 2 ? "Enter your name" : null;
+  const errEmail = show("email") && !emailOk(email)        ? "Enter a valid email" : null;
   const errPass  = show("pass")  && pass.length < MIN_PASS ? `Use at least ${MIN_PASS} characters` : null;
   const dobBad   = show("dob") && dobIssue;
   const dobMsg   = age === "invalid" ? "That date doesn't exist" : "Enter your date of birth";
@@ -189,9 +188,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
              dob: wantsDob ? { d, m, y } : null, age });
   };
 
-  const sub = role === "coach" ? tr("The name players will see.")
-            : role === "parent" ? tr("Your own details. Your children join with your family code.")
-            : null;
+  const sub = null;
 
   return (
     <Frame onBack={onBack}
@@ -222,16 +219,16 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
             {dobBad
               ? <p className="mt-2" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: DANGER }}>{dobMsg}</p>
               : typeof age === "number" && age < ADULT
-                ? <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Under 18 — you'll need a parent's family code on the next step.")}</p>
+                ? <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("A parent's family code is needed next")}</p>
                 : null}
           </div>
         )}
 
         <div className={wantsDob ? "mt-5" : "mt-6"}>
-          <div ref={nameWrap}><Field label={tr("Full name")} value={name} onChange={setName} onBlur={() => mark("name")} Icon={User} error={errName} autoComplete="name" /></div>
-          <div ref={emailWrap}><Field label={tr("Email")} value={email} onChange={setEmail} onBlur={() => mark("email")} Icon={Mail} type="email" error={errEmail} autoComplete="email" inputMode="email" /></div>
-          <Field label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} Icon={Phone} type="tel" autoComplete="tel" inputMode="tel" />
-          <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} Icon={Lock} type="password" error={errPass} reveal autoComplete="new-password" /></div>
+          <div ref={nameWrap}><Field label={tr("Name")} value={name} onChange={setName} onBlur={() => mark("name")} error={errName} autoComplete="name" /></div>
+          <div ref={emailWrap}><Field label={tr("Email")} value={email} onChange={setEmail} onBlur={() => mark("email")} type="email" error={errEmail} autoComplete="email" inputMode="email" /></div>
+          <Field label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} type="tel" autoComplete="tel" inputMode="tel" />
+          <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} type="password" error={errPass} reveal autoComplete="new-password" /></div>
         </div>
         <p className="mt-5 text-center pb-6" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: t.faint }}>
           By continuing you accept the {BRAND} Terms and Privacy Policy.
@@ -301,9 +298,9 @@ function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip,
   const issueFor = (value, look, noun) => {
     const c = cleanCode(value);
     if (!c) return null;
-    if (c.length < 6) return tr("Enter all six characters.");
+    if (c.length < 6) return tr("Enter all six characters");
     if (look.status === "error") return tr("Couldn't check that code. Try again.");
-    if (look.status === "miss") return noun === "coach" ? tr("That code doesn't match a coach.") : tr("That code doesn't match a family.");
+    if (look.status === "miss") return noun === "coach" ? tr("No coach with that code") : tr("No family with that code");
     return null;
   };
   const coachIssue = issueFor(coach, coachLook, "coach");
@@ -336,8 +333,7 @@ function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip,
 
   return (
     <SignupShell onBack={onBack} title={parent ? tr("Your family") : tr("Your codes")}
-                 sub={parent ? tr("One code links your household. Children enter it when they sign up.")
-                    : junior ? tr("Your coach's code, and a parent's family code.") : tr("Optional. You can add these later.")}
+                 sub={null}
                  footer={<>
                    <ErrLine>{err}</ErrLine>
                    {err === ALREADY && <div className="mb-3"><Button tone="quiet" onClick={onSignInInstead}>{tr("Sign in")}</Button></div>}
@@ -350,14 +346,14 @@ function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip,
             {label(tr("Coach code"))}
             <CodeBoxes value={coach} onChange={setCoach} bad={!!coachIssue && (cleanCode(coach).length === 6 || tried)} />
             <CodeStatus look={coachLook} value={coach} issue={coachIssue} tried={tried}
-                        hint={tr("Your coach accepts you from their app.")} />
+                        />
           </div>
         )}
         <div ref={famWrap} className="pb-2">
           {label(tr("Family code"))}
           <CodeBoxes value={fam} onChange={setFam} bad={!!famIssue && (cleanCode(fam).length === 6 || (tried && (junior || !!cleanCode(fam))))} />
           <CodeStatus look={famLook} value={fam} issue={famIssue} tried={tried && junior}
-                      hint={junior ? FAMILY_REQUIRED : parent ? FAMILY_OPTIONAL : tr("If your household has one. Otherwise, later, under You → Family.")} />
+                      hint={junior ? FAMILY_REQUIRED : null} />
         </div>
       </div>
     </SignupShell>
@@ -379,26 +375,26 @@ function InboxStep({ email, kind, note, onResend, onChangeEmail, onSignIn, onBac
     setSent("");
     const r = await onResend();
     if (r && r.error) { hapticWarn(); setSent(friendly(r.error.message)); return; }
-    hapticSuccess(); setWait(30); setSent(tr("Sent again."));
+    hapticSuccess(); setWait(30); setSent(tr("Sent"));
   };
   return (
     <Frame onBack={onBack}
            footer={<>
              {kind === "signup"
-               ? <Button tone="ink" onClick={onSignIn}>{tr("I've confirmed — sign in")}</Button>
-               : <Button tone="ink" onClick={onSignIn}>{tr("Back to sign in")}</Button>}
+               ? <Button tone="ink" onClick={onSignIn}>{tr("Sign in")}</Button>
+               : <Button tone="ink" onClick={onSignIn}>{tr("Sign in")}</Button>}
              <QuietLink onClick={resend} disabled={!!wait}>{wait ? `${tr("Resend email")} · ${wait}s` : tr("Resend email")}</QuietLink>
              <QuietLink onClick={onChangeEmail}>{tr("Use a different email")}</QuietLink>
            </>}>
       <div className="pt-6">
         <Headline>{tr("Check your inbox")}</Headline>
-        <Sub>{kind === "signup" ? tr("We sent a link to confirm your email.") : tr("We sent a link to set a new password.")}</Sub>
+        <Sub>{tr("We sent a link to")}</Sub>
         <p className="mt-7" style={{ fontFamily: display, fontSize: 19, letterSpacing: "-0.01em", color: t.ink, wordBreak: "break-all" }}>{email}</p>
         {note && <p className="mt-4" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.5, color: t.sub }}>{note}</p>}
         <p className="mt-4" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.5, color: t.faint }}>
-          {tr("Not there? Check spam, or resend it below.")}
+          {tr("Check spam if it's not there")}
         </p>
-        {sent && <p className="mt-3" style={{ fontFamily: ui, fontSize: 13.5, color: sent === tr("Sent again.") ? STEADY : DANGER }}>{sent}</p>}
+        {sent && <p className="mt-3" style={{ fontFamily: ui, fontSize: 13.5, color: sent === tr("Sent") ? STEADY : DANGER }}>{sent}</p>}
       </div>
     </Frame>
   );
@@ -411,7 +407,7 @@ function SignInStep({ initialEmail, busy, err, onBack, onSubmit, onForgot, clear
   const [pass, setPass] = useState("");
   const [tried, setTried] = useState(false);
   const emailWrap = useRef(null), passWrap = useRef(null);
-  const eEmail = tried && !emailOk(email) ? "Enter your email address" : null;
+  const eEmail = tried && !emailOk(email) ? "Enter your email" : null;
   const ePass = tried && !pass ? "Enter your password" : null;
   const submit = () => {
     if (busy) return;
@@ -448,7 +444,7 @@ function ForgotStep({ initialEmail, busy, err, onBack, onSend }) {
   const [email, setEmail] = useState(initialEmail || "");
   const [tried, setTried] = useState(false);
   const wrap = useRef(null);
-  const eEmail = tried && !emailOk(email) ? "Enter your email address" : null;
+  const eEmail = tried && !emailOk(email) ? "Enter your email" : null;
   const submit = () => {
     if (busy) return;
     if (!emailOk(email)) { setTried(true); hapticWarn(); showProblem(wrap); return; }
@@ -462,8 +458,7 @@ function ForgotStep({ initialEmail, busy, err, onBack, onSend }) {
            </>}>
       <div className="pt-6">
         <Headline>{tr("Reset password")}</Headline>
-        <Sub>{tr("We'll email you a link to set a new one.")}</Sub>
-        <div className="mt-8" ref={wrap}>
+                <div className="mt-8" ref={wrap}>
           <Field label={tr("Email")} value={email} onChange={setEmail} type="email"
                  autoFocus={!initialEmail} error={eEmail} autoComplete="email" inputMode="email" />
         </div>
@@ -504,11 +499,11 @@ function SetPassword() {
     <Neutral>
       <Frame footer={<>
                <ErrLine>{err}</ErrLine>
-               <Button tone="ink" disabled={busy} onClick={save}>{busy ? "…" : tr("Save password")}</Button>
+               <Button tone="ink" disabled={busy} onClick={save}>{busy ? "…" : tr("Save")}</Button>
                <QuietLink onClick={clearRecovery} disabled={busy}>{tr("Not now")}</QuietLink>
              </>}>
         <div className="pt-6">
-          <Headline>{tr("Set a new password")}</Headline>
+          <Headline>{tr("New password")}</Headline>
           {email && <Sub>{email}</Sub>}
           <div className="mt-8">
             <div ref={w1}><Field label={tr("New password")} value={p1} onChange={setP1} onBlur={() => mark("p1")}
