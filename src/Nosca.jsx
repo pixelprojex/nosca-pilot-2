@@ -8301,7 +8301,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                   {off.when || [off.d && off.m ? `${off.d} ${off.m}` : null, off.time].filter(Boolean).join(" · ")}
                 </span>
               </span>
-              <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Rebook")}</span>
+              <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Rebook")}</span>
             </button>
           ); })()}
 
@@ -11793,7 +11793,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
   const TIMES = slots;
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Availability")} onBack={pop} meta={`${total} slots a week`} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Availability saved"); pop(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
           <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 active:opacity-60" style={{ minHeight: 58, border: `1px solid ${t.hair}` }}>
             <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: t.wash }}><Clock size={15} color={t.sub} /></span>
@@ -11821,7 +11821,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                 </div>
                 <button onClick={() => { if (newSlot.trim()) { haptic(10); setSlots([...slots, newSlot.trim()]); setNewSlot(""); } }}
                         disabled={!newSlot.trim()} className="rounded-2xl px-5 active:opacity-60 disabled:opacity-25"
-                        style={{ minHeight: 48, background: t.accent, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.onAccent }}>{tr("Add")}</button>
+                        style={{ minHeight: 48, background: t.ink, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.page }}>{tr("Add")}</button>
               </div>
             </Card>
           )}
@@ -11837,7 +11837,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
             </div>
             {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: t.wash }}>
               <TimeGrid times={TIMES} picked={times} onToggle={(time) => togTime(day, time)} />
-              {day <= 4 && (<button onClick={() => copyDown(day)} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Copy to all weekdays")}</button>)}
+              {day <= 4 && (<button onClick={() => copyDown(day)} className="mt-3 active:opacity-50" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{tr("Copy to all weekdays")}</button>)}
             </div>)}
           </div>
         ); })}</Card></div>

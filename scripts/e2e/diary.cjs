@@ -85,7 +85,7 @@ const leaks = [];
       check("(g) a coach with no hours set is asked to set them", (await hours.count()) === 1 && /set your hours/i.test(h0), h0);
       await hours.click(); await page.waitForTimeout(900);
       const t0 = await leak("coach availability"); await shot("05-coach-availability-empty");
-      check("(g) tapping it opens Availability, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Availability") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
+      check("(g) tapping it opens Hours, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Hours") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
       const toggles = page.locator('[data-tour="avail-days"] button[aria-pressed]');
       const n = await toggles.count();
       for (let i = 0; i < n; i++) { const tg = toggles.nth(i); if ((await tg.getAttribute("aria-pressed")) !== "true") { await tg.click(); await page.waitForTimeout(150); } }
