@@ -50,12 +50,12 @@ const { check, results, summary } = M.checker("shortcuts");
       d0.join("|") === "Log|Register|Capture|Tip|Drills|Add player" && (await boardCols(page)) === 3, `${d0.join("|")} · cols=${await boardCols(page)}`);
 
     /* --- into the editor from the home screen --- */
-    await byText(page, "Edit shortcuts").first().click(); await page.waitForTimeout(1000);
+    await tap(page, '[data-tour="quick"]', 900); await page.locator('[data-sheet] button', { hasText: /^Edit$/ }).first().click(); await page.waitForTimeout(1000);
     const t1 = await text(); await shot("02-editor");
     /* the board is the editor now — the real grid, arranged by moving
        it, with a size control and the ones not showing underneath */
-    check("(b) Edit shortcuts opens the board itself, arrangeable, with a size and what is not showing",
-      t1.includes("Shortcuts") && /HOLD A TILE AND MOVE IT/i.test(t1) && /SIZE/i.test(t1) && /NOT SHOWING/i.test(t1)
+    check("(b) Edit opens the board itself, arrangeable, with a size and what is not showing",
+      t1.includes("Shortcuts") && /Drag to arrange/i.test(t1) && /SIZE/i.test(t1) && /Hidden/i.test(t1)
       && (await page.locator('[data-arrange="grid"]').count()) === 1, t1.slice(0, 240));
     check("(b) what is not on the board is offered", /New group/.test(t1) && /Competition/.test(t1), t1.slice(0, 220));
     check("(b) every tile on the board is a handle, and carries its own way off",
@@ -120,7 +120,7 @@ const { check, results, summary } = M.checker("shortcuts");
     await tap(page, '[data-tour="quick"]', 900);
     const t2 = await text(); await shot("05-plus");
     check("(e) the plus menu is untouched by the board's edits", /Drills/.test(t2) && /Log a lesson/.test(t2), t2.slice(-260));
-    await byText(page, "Edit this menu").first().click(); await page.waitForTimeout(1200);
+    await page.locator('[data-sheet] button', { hasText: /^Edit$/ }).first().click(); await page.waitForTimeout(1200);
     await byText(page, "Plus").first().click(); await page.waitForTimeout(700);
     await page.locator('button[aria-label="Remove Competition"]').first().click(); await page.waitForTimeout(700);
     check("(e) editing the plus writes a separate list", Array.isArray(savedLayout().quick) && !savedLayout().quick.includes("comp") && savedLayout().board.includes("log"), JSON.stringify(savedLayout()));
@@ -141,8 +141,8 @@ const { check, results, summary } = M.checker("shortcuts");
     await shot("06-one-left");
 
     /* --- and the default can be had back --- */
-    await byText(page, "Back to the default").first().click(); await page.waitForTimeout(900);
-    check("(g) Back to the default restores the six and the size",
+    await byText(page, "Reset").first().click(); await page.waitForTimeout(900);
+    check("(g) Reset restores the six and the size",
       savedLayout().board.join("|") === "log|attend|capture|tip|drills|player" && savedLayout().boardCols === 3, JSON.stringify(savedLayout()));
     await M.back(page); await page.waitForTimeout(1200);
     const d2 = await boardLabels(page); await shot("07-board-restored");

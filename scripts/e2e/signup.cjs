@@ -74,7 +74,7 @@ async function signIn(page, email, pass) {
 /* the details step; `dob` only for a player */
 async function fillDetails(page, { name, email, phone, pass, dob }) {
   if (dob) { const [d, m, y] = dob; await page.getByPlaceholder("DD").fill(d); await page.getByPlaceholder("MM").fill(m); await page.getByPlaceholder("YYYY").fill(y); }
-  await page.getByLabel("Full name", { exact: true }).fill(name);
+  await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Email", { exact: true }).fill(email);
   if (phone) await page.getByLabel("Mobile · optional", { exact: true }).fill(phone);
   await page.getByLabel("Password", { exact: true }).fill(pass);
@@ -123,7 +123,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       if (await page.getByPlaceholder("DD").count()) note("FAIL a coach was asked for a date of birth");
       await btn(page, "Create account").click(); await page.waitForTimeout(400);
       if (db.signups.length) note("FAIL an empty form was submitted");
-      if (!/Enter your full name/.test(await rootText(page))) note("FAIL no inline problem shown for an empty form");
+      if (!/Enter your name/.test(await rootText(page))) note("FAIL no inline problem shown for an empty form");
       await fillDetails(page, { name: "Ray Doyle", email: "Ray@Example.ie", phone: "+353 87 123 4567", pass: "secret123" });
       await shot("step3-details-filled");
       await btn(page, "Create account").click();
@@ -139,7 +139,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       let t = await rootText(page);
       if (!/You're set up/.test(t)) { note("FAIL no arrival screen, got: " + t.slice(0, 120)); return; }
       if (!prof || !t.includes(prof.invite_code)) { note(`FAIL arrival does not show the real invite code ${prof && prof.invite_code}: ` + t.slice(0, 160)); return; }
-      if (!/ask to join you/.test(t)) note("FAIL the coach's arrival should say players ask to join (they are accepted from Roster): " + t.slice(0, 200));
+      if (!/Players join with this code/.test(t)) note("FAIL the coach's arrival should say players join with the code: " + t.slice(0, 200));
       note("arrival shows the trigger's real invite code " + prof.invite_code);
       await btn(page, "Copy").click(); await page.waitForTimeout(400);
       t = await rootText(page);
@@ -173,7 +173,6 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       if (db.signups.length) note("FAIL the account was created before the family step");
       const boxes = await codeBoxes(page).count();
       if (boxes !== 6) note(`FAIL a parent's codes step should have only the six family boxes, saw ${boxes}`); else note("codes step for a parent: family code only, no coach code field");
-      if (!/Otherwise one is made for you/.test(t)) note("FAIL the family field does not say a family is made otherwise: " + t.slice(0, 200));
       if (!(await btn(page, "Start a new family").count())) { note("FAIL no 'Start a new family' way through"); return; }
       await btn(page, "Start a new family").click();
       await page.waitForTimeout(1800);
@@ -185,13 +184,13 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       if (!fam || fam.created_by !== prof.id) note("FAIL the trigger did not create a family for the parent"); else note("the trigger made a family, code " + fam.code);
       await shot("arrival-parent");
       t = await rootText(page);
-      if (!fam || !t.includes(fam.code) || !/Your family is set up/.test(t) || !/Your children enter this code/.test(t)) note("FAIL arrival does not show the new family's code with the parent copy: " + t.slice(0, 200));
+      if (!fam || !t.includes(fam.code) || !/Your family is set up/.test(t) || !/Your children join with this code/.test(t)) note("FAIL arrival does not show the new family's code with the parent copy: " + t.slice(0, 200));
       else note("arrival shows the family code " + fam.code + " with the parent copy");
       await btn(page, "Show me around").click(); await page.waitForTimeout(300);
       await waitSplash(page); await dismissTour(page); await shot("home");
       t = await rootText(page);
       if (/Add your coach|Join your coach/.test(t)) note("FAIL a parent is held on the Add your coach screen");
-      if (!(await page.locator('[data-tour="tab-family"][aria-current="page"]').count()) || !/No young players yet/.test(t)) note("FAIL a parent should land on the Family tab: " + t.slice(0, 120));
+      if (!(await page.locator('[data-tour="tab-family"][aria-current="page"]').count()) || !/No children yet/.test(t)) note("FAIL a parent should land on the Family tab: " + t.slice(0, 120));
       else note("parent landed on the Family tab: " + t.slice(0, 60));
     });
 
@@ -221,7 +220,6 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       let t = await rootText(page);
       if (!/Your codes/.test(t)) { note("FAIL no codes step: " + t.slice(0, 100)); return; }
       if (!(await btn(page, "Skip for now").count())) note("FAIL an adult has no Skip for now");
-      if (!/Your coach accepts you from their app/.test(t)) note("FAIL the coach code hint does not say the coach accepts: " + t.slice(0, 200));
       await codeBoxes(page).first().fill("abc234");
       await page.waitForTimeout(900);
       t = await rootText(page);
@@ -239,8 +237,8 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       if (!db.notifications.some((n) => n.user_id === COACH_ID && n.kind === "request" && /Aoife Nolan asked to join/.test(n.title))) note("FAIL the request trigger did not tell the coach");
       await shot("arrival-player");
       t = await rootText(page);
-      if (!/You've asked Sinéad Walsh/.test(t) || !/accept you from their app/.test(t)) note("FAIL arrival should say You've asked Sinéad Walsh, got: " + t.slice(0, 160)); else note("arrival: You've asked Sinéad Walsh");
-      await btn(page, "Skip the tour").click(); await page.waitForTimeout(300);
+      if (!/You've asked Sinéad Walsh/.test(t) || !/when they accept/.test(t)) note("FAIL arrival should say You've asked Sinéad Walsh, got: " + t.slice(0, 160)); else note("arrival: You've asked Sinéad Walsh");
+      await btn(page, "Skip").click(); await page.waitForTimeout(300);
       await waitSplash(page);
       const hadTour = await dismissTour(page);
       if (hadTour) note("FAIL the walkthrough opened even though the person skipped the tour");
@@ -264,7 +262,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await btn(page, "Create account").click(); await page.waitForTimeout(500); await shot("step4-blocked");
       t = await rootText(page);
       if (db.signups.length) note("FAIL account created for an under-18 with no family code");
-      else if (/Under 18s join with a parent's family code/.test(t)) note("stopped with the family-code message");
+      else if (/Ask a parent/.test(t)) note("stopped with the family-code message");
       else note("FAIL stopped, but without the message: " + t.slice(0, 160));
       await codeBoxes(page).nth(6).fill("fam777");
       await page.waitForTimeout(900);
@@ -289,12 +287,12 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await codeBoxes(page).first().fill("ZZZZZZ");
       await page.waitForTimeout(900);
       let t = await rootText(page);
-      if (!/doesn't match a coach/.test(t)) note("FAIL no inline rejection after the live check: " + t.slice(0, 160));
+      if (!/No coach with that code/.test(t)) note("FAIL no inline rejection after the live check: " + t.slice(0, 160));
       await btn(page, "Create account").click();
       await page.waitForTimeout(1000); await shot("rejected");
       t = await rootText(page);
       if (db.signups.length) note("FAIL the account was created even though the code matched no coach");
-      else if (/doesn't match a coach/.test(t)) note("code rejected inline before any account was created");
+      else if (/No coach with that code/.test(t)) note("code rejected inline before any account was created");
       else note("FAIL no account created but no message shown either: " + t.slice(0, 100));
     });
 
@@ -319,21 +317,21 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await page.goto(`${BASE}/#access_token=${s.access_token}&refresh_token=rt_${u.id}&type=recovery&expires_in=86400&token_type=bearer`, { waitUntil: "networkidle" });
       await page.waitForTimeout(1500); await shot("set-password");
       t = await rootText(page);
-      if (!/Set a new password/.test(t)) { note("FAIL the recovery link did not open Set a new password: " + t.slice(0, 120)); return; }
+      if (!/New password/.test(t)) { note("FAIL the recovery link did not open Set a new password: " + t.slice(0, 120)); return; }
       const pws = page.locator('input[type="password"]');
       await pws.nth(0).fill("newsecret9"); await pws.nth(1).fill("different9");
-      await btn(page, "Save password").click(); await page.waitForTimeout(300);
+      await btn(page, "Save").click(); await page.waitForTimeout(300);
       if (!/don't match/.test(await rootText(page))) note("FAIL mismatched confirmation not caught");
       if (db.userPuts.length) note("FAIL updateUser called with a mismatched confirmation");
       await pws.nth(1).fill("newsecret9");
-      await btn(page, "Save password").click(); await page.waitForTimeout(1500);
+      await btn(page, "Save").click(); await page.waitForTimeout(1500);
       if (!db.userPuts.length || db.userPuts[0].password !== "newsecret9") { note("FAIL updateUser({password}) not called"); return; }
       if (u.password !== "newsecret9") note("FAIL the password did not change");
       note("updateUser called; password changed");
       if (await rootEmpty(page)) { note("FAIL blank page after saving the password"); return; }
       await waitSplash(page); await dismissTour(page); await shot("home");
       t = await rootText(page);
-      if (/Set a new password|Sign in/.test(t.slice(0, 40))) note("FAIL did not continue into the app after the new password"); else note("continued into the app, signed in");
+      if (/New password|Sign in/.test(t.slice(0, 40))) note("FAIL did not continue into the app after the new password"); else note("continued into the app, signed in");
     });
 
     await scenario(browser, "10-deep-link-join-prefills-code", async ({ page, db, shot, note }) => {
@@ -400,7 +398,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       if (!/Resend email · \d+s/.test(t)) note("FAIL no cooldown shown after resend");
       const again = page.getByRole("button", { name: /Resend email · \d+s/ });
       if (!(await again.isDisabled())) note("FAIL resend not disabled during the cooldown");
-      await btn(page, "I've confirmed — sign in").click(); await page.waitForTimeout(300);
+      await btn(page, "Sign in").click(); await page.waitForTimeout(300);
       const v = await page.getByLabel("Email", { exact: true }).inputValue();
       if (v !== "orla@example.ie") note("FAIL sign-in email not prefilled after confirming"); else note("sign-in prefilled with the address");
     }, { confirmEmail: true });
@@ -413,10 +411,10 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await page.waitForTimeout(1500);
       if (await rootEmpty(page)) { note("FAIL blank page after account creation"); return; }
       let t = await rootText(page);
-      if (!/No coach yet/.test(t)) note("FAIL arrival should say No coach yet, got: " + t.slice(0, 120));
-      await btn(page, "Skip the tour").click(); await page.waitForTimeout(300);
+      if (!/Add a coach from Home/.test(t)) note("FAIL arrival should say Add a coach from Home, got: " + t.slice(0, 120));
+      await btn(page, "Skip").click(); await page.waitForTimeout(300);
       await waitSplash(page);
-      const hadTour = await dismissTour(page); if (hadTour) note("FAIL walkthrough opened after Skip the tour");
+      const hadTour = await dismissTour(page); if (hadTour) note("FAIL walkthrough opened after Skip");
       await shot("no-coach");
       t = await rootText(page);
       if (!/Add your coach/.test(t)) { note("FAIL expected the Add your coach screen, got: " + t.slice(0, 100)); return; }
@@ -445,10 +443,10 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await page.waitForTimeout(1200); await waitSplash(page); await dismissTour(page);
       await page.getByRole("button", { name: "Your profile" }).click(); await page.waitForTimeout(600);
       let t = await rootText(page);
-      if (!/Invite code & QR ABC234/.test(t)) note("FAIL settings row does not show the real code: " + (t.match(/Invite code & QR \S+/) || [""])[0]);
+      if (!/Invite code ABC234/.test(t)) note("FAIL settings row does not show the real code: " + (t.match(/Invite code \S+/) || [""])[0]);
       else note("settings row shows the real code");
       if (/Delete account/.test(t)) note("FAIL Delete account should live on the profile screen, not You, for a real account");
-      await page.getByRole("button", { name: /Invite code & QR/ }).click(); await page.waitForTimeout(700);
+      await page.getByRole("button", { name: /Invite code/ }).click(); await page.waitForTimeout(700);
       await shot("invite-sheet");
       t = await rootText(page);
       if (!/Invite a player/.test(t) || !/ABC234/.test(t)) note("FAIL invite sheet without the real code");
@@ -515,7 +513,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
        Settings → Walkthrough is the way back to it, and this is where
        the step counts for a real account are checked. */
     await scenario(browser, "17-live-tour-from-settings-not-on-sign-in", async ({ page, db, shot, note }) => {
-      const counter = async () => (await page.locator("[data-tour-counter]").first().textContent().catch(() => "")) || "";
+      const counter = async () => (await page.locator("[data-tour-counter]").first().getAttribute("aria-label").catch(() => "")) || "";
       const openFromSettings = async () => {
         await page.getByRole("button", { name: "You" }).first().click(); await page.waitForTimeout(700);
         await page.getByRole("button", { name: /Walkthrough/ }).first().click(); await page.waitForTimeout(1200);
@@ -528,7 +526,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await openFromSettings(); await shot("coach-tour");
       const c = (await counter()).trim();
       const cn = Number((c.match(/1 \/ (\d+)/) || [])[1]);
-      if (!cn || cn < 15 || cn > 30) note("FAIL coach tour counter is " + JSON.stringify(c)); else note(`coach tour from Settings: ${cn} steps`);
+      if (!cn || cn < 5 || cn > 8) note("FAIL coach tour counter is " + JSON.stringify(c)); else note(`coach tour from Settings: ${cn} steps`);
       await dismissTour(page);
 
       addPlayer(db, { email: "ann@example.ie", name: "Ann Burke", coachId: COACH_ID });
@@ -540,7 +538,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await openFromSettings(); await shot("player-tour");
       const p = (await counter()).trim();
       const pn = Number((p.match(/1 \/ (\d+)/) || [])[1]);
-      if (!pn || pn < 8 || pn > 25) note("FAIL player tour counter is " + JSON.stringify(p)); else note(`player tour from Settings: ${pn} steps`);
+      if (!pn || pn < 4 || pn > 7) note("FAIL player tour counter is " + JSON.stringify(p)); else note(`player tour from Settings: ${pn} steps`);
       await dismissTour(page);
     });
 

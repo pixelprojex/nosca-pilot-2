@@ -57,17 +57,17 @@ export default function Arrival({ role, profile, data, onDone }) {
 
   /* what to say */
   let title, sub;
-  if (isCoach) { title = tr("You're set up"); sub = tr("Players enter this code to ask to join you. You accept them from Roster."); }
+  if (isCoach) { title = tr("You're set up"); sub = tr("Players join with this code"); }
   else if (isParent && code) {
     title = data.family && data.family.members && data.family.members.length > 1 ? `${tr("You're in")} ${data.family.displayName}` : tr("Your family is set up");
-    sub = tr("Your children enter this code when they sign up. Anyone else in the household can join with it too.");
+    sub = tr("Your children join with this code");
   }
   else {
     const asked = data.myRequest && data.myRequest.coachName, fam = data.family && data.family.displayName;
-    if (asked && fam) { title = `${tr("You've asked")} ${asked}`; sub = `${tr("They'll accept you from their app. And you're in")} ${fam}.`; }
-    else if (asked) { title = `${tr("You've asked")} ${asked}`; sub = tr("They'll accept you from their app — you'll be told the moment they do."); }
-    else if (fam) { title = `${tr("You're in")} ${fam}`; sub = tr("No coach yet — add one from Home with their code."); }
-    else { title = tr("You're set up"); sub = tr("No coach yet — add one from Home with their code."); }
+    if (asked && fam) { title = `${tr("You've asked")} ${asked}`; sub = `${tr("You're in")} ${fam}`; }
+    else if (asked) { title = `${tr("You've asked")} ${asked}`; sub = tr("You'll be told when they accept"); }
+    else if (fam) { title = `${tr("You're in")} ${fam}`; sub = tr("Add a coach from Home"); }
+    else { title = tr("You're set up"); sub = tr("Add a coach from Home"); }
   }
 
   const pill = (Icon, label, onClick) => (
@@ -119,7 +119,7 @@ export default function Arrival({ role, profile, data, onDone }) {
           <Button tone="ink" onClick={() => go(true)}>{tr("Show me around")}</Button>
           <button onClick={() => go(false)} className="w-full mt-3 active:opacity-60"
                   style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: NEUTRAL.sub }}>
-            {tr("Skip the tour")}
+            {tr("Skip")}
           </button>
         </div>
       </div>

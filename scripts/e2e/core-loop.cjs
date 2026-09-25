@@ -74,16 +74,15 @@ const leaks = [];
       const { db, ctx, page, text, leak, shot } = await boot("adult");
       await leak("adult home"); await shot("adult-home");
       await tap(page, '[aria-label="Lessons"]');
-      if (await page.locator('[aria-label="List"]').count()) await tap(page, '[aria-label="List"]');
       const listText = await leak("adult lessons list"); await shot("adult-lessons");
       check("(a) list shows both lessons, newest first", /Short game.*Putting/.test(listText), listText.slice(0, 200));
       await page.locator("button", { hasText: "20 AUG" }).first().click(); await page.waitForTimeout(1200);
       const t1 = await leak("adult lesson (second)"); await shot("adult-lesson-putting");
       check("(a) opened the SECOND lesson (Putting), not the newest", /Putting/.test(t1) && t1.includes("Pace on the long ones first.") && !t1.includes("Cleaner contact"), t1.slice(0, 240));
-      const vid = page.locator("video[controls]");
+      const vid = page.locator("video[playsinline]");
       await vid.first().waitFor({ timeout: 8000 }).catch(() => {});
       const vsrc = (await vid.count()) ? await vid.first().getAttribute("src") : null;
-      check("(a) a real <video controls playsinline> with the signed URL", !!vsrc && vsrc.includes(`${SB}/storage/v1/object/sign/media/`) && vsrc.includes("1-swing.mp4") && (await vid.first().getAttribute("playsinline")) !== null, String(vsrc));
+      check("(a) a real <video playsinline> with the signed URL, no browser chrome at rest", !!vsrc && vsrc.includes(`${SB}/storage/v1/object/sign/media/`) && vsrc.includes("1-swing.mp4") && (await vid.first().getAttribute("playsinline")) !== null, String(vsrc));
       const pill = page.getByRole("button", { name: "Voice note" });
       check("(a) a pill for the voice note", (await pill.count()) > 0);
       if (await pill.count()) { await pill.first().click(); await page.waitForTimeout(500); }
@@ -92,9 +91,9 @@ const leaks = [];
       check("(a) a real <audio controls> for the voice note", !!asrc && asrc.includes("2-note.webm"), String(asrc));
       check("(a) signed URLs were requested once per lesson (cached)", db.posts.filter((x) => x.table === "sign").length === 1, JSON.stringify(db.posts.filter((x) => x.table === "sign").map((x) => x.rows)));
       await shot("adult-lesson-audio");
-      const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('button', { hasText: "Download lesson log" }).first().click()]);
+      const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('button', { hasText: "Download" }).first().click()]);
       const file = dl ? await dl.path() : null; const html = file ? fs.readFileSync(file, "utf8") : "";
-      check("(b) Download lesson log fires a download of an .html file", !!dl && /\.html$/.test(dl.suggestedFilename()), dl ? dl.suggestedFilename() : "no download");
+      check("(b) Download fires a download of an .html file", !!dl && /\.html$/.test(dl.suggestedFilename()), dl ? dl.suggestedFilename() : "no download");
       check("(b) the file carries the lesson's focus, notes, coach and media links", html.includes("Putting") && html.includes("Pace on the long ones first.") && html.includes("Niamh Byrne") && html.includes("1-swing.mp4") && html.includes("Voice note"), html.slice(0, 200));
       check("(b) the file carries no seeded text", !M.SEEDED.some((s) => html.includes(s)), M.SEEDED.filter((s) => html.includes(s)).join(","));
       if (dl) fs.copyFileSync(file, path.join(outDir, "lesson-log.html"));
@@ -150,7 +149,7 @@ const leaks = [];
       await tap(page, '[aria-label="Back"]');
       await tap(page, '[data-tour="chat-new"]'); await page.waitForTimeout(400);
       await byText(page, "Everyone").click(); await page.waitForTimeout(600);
-      await page.fill('textarea[placeholder="Write or say your message"]', "Range is closed Friday.");
+      await page.fill('textarea[placeholder="Message"]', "Range is closed Friday.");
       await page.getByRole("button", { name: "Send", exact: true }).click(); await page.waitForTimeout(1200);
       const bc = db.posts.filter((x) => x.table === "messages").pop();
       check("(c) Message everyone posts one row per roster player", !!bc && bc.rows.length === 2 && bc.rows.every((x) => x.sender_id === IDS.coach && x.body === "Range is closed Friday.") && new Set(bc.rows.map((x) => x.player_id)).size === 2, JSON.stringify(bc && bc.rows.map((x) => x.player_id)));
@@ -192,7 +191,7 @@ const leaks = [];
       await tap(page, '[data-tour="quick"]', 900);
       await tap(page, '[data-tour="quick-log"]', 900);
       const tw0 = await leak("log who"); await shot("coach-log-who");
-      check("(e) Log a lesson opens on Who?, today's person as a face, searchable", tw0.includes("Who?") && tw0.includes("Cian") && (await page.locator('[data-tour="wiz-who"]').count()) === 1, tw0.slice(0, 260));
+      check("(e) Log a lesson opens on Who, today's person as a face, searchable", tw0.includes("Who") && tw0.includes("Cian") && (await page.locator('[data-tour="wiz-who"]').count()) === 1, tw0.slice(0, 260));
       await page.locator('[data-tour="wiz-who"]').first().click(); await page.waitForTimeout(500);
       const tw1 = await leak("log"); await shot("coach-log");
       check("(e) one tap on a face opens the whole log: the name, Today, the level they are on, the areas, Video/Photo/Voice, a note, Drills and Tip — never a raw date or a time", tw1.includes("Cian Murphy") && tw1.includes("Today") && tw1.includes("Set level") && tw1.includes("Chipping") && tw1.includes("Video") && tw1.includes("Photo") && tw1.includes("Voice") && tw1.includes("Drills") && tw1.includes("Tip") && (await page.locator('input[type="date"]').count()) === 1 && (await page.locator('input[type="time"]').count()) === 0 && !/\d\d\/\d\d\/\d{4}|\d{4}-\d\d-\d\d/.test(tw1), tw1.slice(0, 300));
@@ -201,8 +200,8 @@ const leaks = [];
       check("(e) the level page is golf's real ladder — Handicap Index and the Passport levels — not an invented one", tws.includes("Level") && tws.includes("Handicap Index") && tws.includes("Passport") && !tws.includes("Long game"), tws.slice(0, 260));
       await tap(page, '[aria-label="Back"]', 500);
       await page.getByRole("button", { name: "Chipping", exact: true }).click(); await page.waitForTimeout(300);
-      check("(e) the note is on the log itself, not behind a tap", (await page.locator('textarea[placeholder="A line about it"]').count()) === 1, String(await page.locator("textarea").count()));
-      await page.fill('textarea[placeholder="A line about it"]', "Worked on tempo from a hundred yards.");
+      check("(e) the note is on the log itself, not behind a tap", (await page.locator('textarea[placeholder="Notes"]').count()) === 1, String(await page.locator("textarea").count()));
+      await page.fill('textarea[placeholder="Notes"]', "Worked on tempo from a hundred yards.");
       await page.waitForTimeout(250); await shot("coach-log-note");
       await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(1500);
@@ -224,16 +223,17 @@ const leaks = [];
       const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"])');
       const rowTexts = await fileRows.allInnerTexts();
       /* the two seeded plus the one just logged, newest first */
-      check("(g) the player file lists that player's real lessons, newest first, under the count that opens them all", /PAST LESSONS\s*3/.test(tg.replace(/\s+/g, " ")) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 AUG/.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
+      check("(g) the player file lists that player's real lessons, newest first, under the count that opens them all", /PAST LESSONS\s*3/i.test(tg.replace(/\s+/g, " ")) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 Aug/i.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
       check("(g) the file's rows are the coach's own — nothing seeded (14 Jun, Driving)", !tg.includes("14 Jun") && !tg.includes("Held the finish"), tg.slice(0, 200));
       /* the archive is one tap away whether or not there are more than
          the few shown — three lessons still get a way through to all */
       /* the archive is the first thing on the file now, at the size of
          the thing it opens, rather than a thin outline at the foot of a list */
-      check("(g) the whole archive is the first thing on the file", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /Past lessons/i.test(tg) && /last one/i.test(tg), tg.slice(0, 200));
+      check("(g) the whole archive is the first thing on the file", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /Past lessons/i.test(tg) && /\bLast\b/.test(tg), tg.slice(0, 200));
       await fileRows.filter({ hasText: "Putting" }).first().click(); await page.waitForTimeout(1200);
+      await page.locator('[data-tour="lesson-clip"] video').first().waitFor({ timeout: 8000 }).catch(() => {});
       const t10 = await leak("coach lesson view"); await shot("coach-lesson-view");
-      check("(g) tapping a row opens the coach lesson view by id with its real notes and media", t10.includes("Putting") && t10.includes("Pace on the long ones first.") && !t10.includes("Distance control") && (await page.locator("video[controls]").count()) === 1 && t10.includes("Download lesson log"), t10.slice(0, 240));
+      check("(g) tapping a row opens the coach lesson view by id with its real notes and media", t10.includes("Putting") && t10.includes("Pace on the long ones first.") && !t10.includes("Distance control") && (await page.locator('[data-tour="lesson-clip"] video').count()) >= 1 && (await page.locator('[data-tour="lesson-clip"] video[controls]').count()) === 0 && t10.includes("Download"), t10.slice(0, 240));
       /* You → Lesson logs (coach) */
       await tap(page, '[aria-label="Back"]'); await tap(page, '[aria-label="Back"]'); await tap(page, '[aria-label="Your profile"]');
       await byText(page, "Lesson logs").click(); await page.waitForTimeout(700);
@@ -245,7 +245,7 @@ const leaks = [];
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
       await page.locator('button[aria-label="Saoirse Kelly"]').first().click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
-      await page.fill('textarea[placeholder="A line about it"]', "Two clips attached.");
+      await page.fill('textarea[placeholder="Notes"]', "Two clips attached.");
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "swing.mp4", mimeType: "video/mp4", buffer: M.MP4 },
         { name: "big-clip.mp4", mimeType: "video/mp4", buffer: M.MP4 },
@@ -290,7 +290,7 @@ const leaks = [];
       await M.tap(page, '[data-tour="quick"]', 900); await M.tap(page, '[data-tour="quick-log"]', 900);
       await page.locator('button[aria-label="Saoirse Kelly"]').first().click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
-      await page.fill('textarea[placeholder="A line about it"]', "Three captures, all called the same thing.");
+      await page.fill('textarea[placeholder="Notes"]', "Three captures, all called the same thing.");
       await page.locator('input[type="file"]').first().setInputFiles([
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
         { name: "image.jpg", mimeType: "image/jpeg", buffer: M.PNG },
@@ -315,7 +315,6 @@ const leaks = [];
       const { ctx, page, leak, shot } = await boot("junior");
       await leak("junior home"); await shot("junior-home");
       await tap(page, '[aria-label="Lessons"]');
-      if (await page.locator('[aria-label="List"]').count()) await tap(page, '[aria-label="List"]');
       await leak("junior lessons");
       await page.locator("button", { hasText: "28 AUG" }).first().click(); await page.waitForTimeout(1000);
       const t = await leak("junior lesson"); await shot("junior-lesson");
@@ -338,14 +337,13 @@ const leaks = [];
         check("(i) the coach's roster counts a group session for the players who were at it", /3 lessons/.test(rowText), rowText);
         await row.click(); await page.waitForTimeout(1200);
         const t = await leak("coach player file with a group");
-        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && /PAST LESSONS\s*3/.test(t.replace(/\s+/g, " ")) && !t.includes("private"), t.slice(0, 240));
+        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && /PAST LESSONS\s*3/i.test(t.replace(/\s+/g, " ")) && !t.includes("private"), t.slice(0, 240));
         await ctx.close();
       }
       {
         /* the same session, from the other side: the player's own log */
         const { ctx, page, leak } = await boot("adult", gdb);
         await tap(page, '[aria-label="Lessons"]', 900);
-        if (await page.locator('[aria-label="List"]').count()) await tap(page, '[aria-label="List"]', 800);
         const t = await leak("player log with a group");
         check("(i) the player's own log carries the group session they attended", t.includes("Serve"), t.slice(0, 240));
         await ctx.close();
@@ -376,7 +374,7 @@ const leaks = [];
       /* the LAST one — the second of that name in Everyone, which a name lookup would never reach */
       await rows.last().click(); await page.waitForTimeout(500);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(300);
-      await page.fill('textarea[placeholder="A line about it"]', "The other Cian.");
+      await page.fill('textarea[placeholder="Notes"]', "The other Cian.");
       await page.getByRole("button", { name: "Log it", exact: true }).click();
       await page.waitForTimeout(1500);
       const lp = ndb.posts.filter((x) => x.table === "lessons").pop();

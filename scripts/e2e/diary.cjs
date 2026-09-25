@@ -65,7 +65,7 @@ const leaks = [];
       await leak("adult home"); await shot("01-adult-home");
       await tap(page, '[aria-label="Diary"]');
       const t1 = await leak("adult diary — no hours"); await shot("02-adult-diary-nohours");
-      check("(g) player sees 'hasn't set times yet' when the coach has no hours", t1.includes("Your coach hasn't set times yet."), t1.slice(0, 200));
+      check("(g) player sees 'No hours yet' when the coach has no hours", t1.includes("No hours yet"), t1.slice(0, 200));
       check("(g) no invented slots: no Request buttons, no 'open' counts", (await page.locator('[data-tour="agenda-book"]').count()) === 0 && !/\d+ open/.test(t1), t1.slice(0, 200));
       check("(j) no seeded '31 July 4:30 pm' booking on the player's home/diary", !t1.includes("4:30") && !t1.includes("Your lesson"), t1.slice(0, 200));
       await ctx.close();
@@ -82,10 +82,10 @@ const leaks = [];
       /* "Your hours · 40 slots · 45 min" over a seven-bar chart of the
          week is gone — the days below say it in full. What remains is the
          one case worth a line: a coach who has set nothing. */
-      check("(g) a coach with no hours set is asked to set them", (await hours.count()) === 1 && /set the times you coach/i.test(h0), h0);
+      check("(g) a coach with no hours set is asked to set them", (await hours.count()) === 1 && /set your hours/i.test(h0), h0);
       await hours.click(); await page.waitForTimeout(900);
       const t0 = await leak("coach availability"); await shot("05-coach-availability-empty");
-      check("(g) tapping it opens Availability, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Availability") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
+      check("(g) tapping it opens Hours, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Hours") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
       const toggles = page.locator('[data-tour="avail-days"] button[aria-pressed]');
       const n = await toggles.count();
       for (let i = 0; i < n; i++) { const tg = toggles.nth(i); if ((await tg.getAttribute("aria-pressed")) !== "true") { await tg.click(); await page.waitForTimeout(150); } }
@@ -107,10 +107,10 @@ const leaks = [];
       }
       await tap(page, '[data-tour="agenda-book"]');
       const t2 = await text(); await shot("07-coach-bookwho");
-      check("(b) Book someone in lists the real roster", t2.includes("Book someone in") && t2.includes("Cian Murphy") && !t2.includes("Marcus Tran"), t2.slice(0, 200));
+      check("(b) Book opens the sheet and lists the real roster", (await page.locator("[data-sheet]").count()) === 1 && /\d:\d\d/.test(t2) && t2.includes("Cian Murphy") && !t2.includes("Marcus Tran"), t2.slice(0, 200));
       await click(page, "Cian Murphy", 1500);
       const b1 = last(db.posts, "bookings");
-      check("(b) Book someone in POSTs a confirmed booking for that player", !!b1 && b1.rows[0].status === "confirmed" && b1.rows[0].player_id === IDS.adult && b1.rows[0].coach_id === IDS.coach && /^\d{4}-\d{2}-\d{2}$/.test(b1.rows[0].booking_date), JSON.stringify(b1 && b1.rows[0]));
+      check("(b) Book POSTs a confirmed booking for that player", !!b1 && b1.rows[0].status === "confirmed" && b1.rows[0].player_id === IDS.adult && b1.rows[0].coach_id === IDS.coach && /^\d{4}-\d{2}-\d{2}$/.test(b1.rows[0].booking_date), JSON.stringify(b1 && b1.rows[0]));
       check("(b) the booking trigger told the player (Lesson booked)", db.notifications.some((x) => x.user_id === IDS.adult && x.kind === "booking" && x.title === "Lesson booked"), JSON.stringify(db.notifications.map((x) => x.title)));
       await page.waitForTimeout(2200);
       const t3 = await leak("coach diary after booking"); await shot("08-coach-diary-booked");
@@ -139,10 +139,10 @@ const leaks = [];
       check("(a) a real player is offered no 'Repeat' pills", !t1.includes("Fortnightly"), t1.slice(0, 200));
       await tap(page, '[data-tour="agenda-book"]');
       const t2 = await text(); await shot("12-adult-request-sheet");
-      check("(a) the Request sheet opens", t2.includes("Request it"), t2.slice(0, 120));
-      await click(page, "Request it", 1500);
+      check("(a) the Request sheet opens", t2.includes("Request"), t2.slice(0, 120));
+      await page.getByRole("button", { name: "Request", exact: true }).click(); await page.waitForTimeout(1500);
       const r1 = last(db.posts, "bookings");
-      check("(a) Request it POSTs a requested booking with the player's coach_id", !!r1 && r1.rows[0].status === "requested" && r1.rows[0].coach_id === IDS.coach && r1.rows[0].player_id === IDS.adult && r1.by === IDS.adult, JSON.stringify(r1 && r1.rows[0]));
+      check("(a) Request POSTs a requested booking with the player's coach_id", !!r1 && r1.rows[0].status === "requested" && r1.rows[0].coach_id === IDS.coach && r1.rows[0].player_id === IDS.adult && r1.by === IDS.adult, JSON.stringify(r1 && r1.rows[0]));
       await page.waitForTimeout(2200); await shot("13-adult-after-request");
       await tap(page, '[aria-label="Home"]');
       const t3 = await leak("adult home after request"); await shot("14-adult-home-next");
@@ -169,7 +169,7 @@ const leaks = [];
       await tap(page, '[aria-label="Roster"]');
       await page.locator('[data-tour="roster-row"]').first().click(); await page.waitForTimeout(900);
       const t3 = await leak("coach player file"); await shot("17-coach-player");
-      check("(c) the player file is the real person with no borrowed history", t3.includes("Cian Murphy") && !t3.includes("Short game") && t3.includes("Nothing logged for Cian yet"), t3.slice(0, 200));
+      check("(c) the player file is the real person with no borrowed history", t3.includes("Cian Murphy") && !t3.includes("Short game") && t3.includes("No lessons yet"), t3.slice(0, 200));
       await click(page, "Drills");
       const t4 = await text(); await shot("18-coach-assign");
       check("(c) the drill sheet is for that player", t4.includes("Drills for Cian"), t4.slice(0, 200));
@@ -181,10 +181,10 @@ const leaks = [];
       check("(c) Set drills POSTs a drill row per drill for the player", !!d1 && d1.rows.length >= 1 && d1.rows.every((r) => r.player_id === IDS.adult && r.coach_id === IDS.coach && r.title), JSON.stringify(d1 && d1.rows));
       /* the tip is a tile on the player file now, not a row in the fold */
       await page.locator('[data-tour="player-actions"] button[aria-label="Tip"]').first().click(); await page.waitForTimeout(700);
-      await page.fill('input[placeholder="One line"]', "Tempo on the long irons");
-      await click(page, "Set the tip", 1500);
+      await page.fill('input[placeholder="Tip"]', "Tempo on the long irons");
+      await click(page, "Set tip", 1500);
       const tp = last(db.posts, "tips");
-      check("(c) Set the tip POSTs a tip for the player, no canned body", !!tp && tp.rows[0].player_id === IDS.adult && tp.rows[0].title === "Tempo on the long irons" && !(tp.rows[0].body || "").includes("Keep at what"), JSON.stringify(tp && tp.rows[0]));
+      check("(c) Set tip POSTs a tip for the player, no canned body", !!tp && tp.rows[0].player_id === IDS.adult && tp.rows[0].title === "Tempo on the long irons" && !(tp.rows[0].body || "").includes("Keep at what"), JSON.stringify(tp && tp.rows[0]));
       await shot("19-coach-after-tip");
       /* (c) the Practice screen: real roster, real completion, rename + remove */
       await back(page);
@@ -235,7 +235,7 @@ const leaks = [];
       await tap(page, '[aria-label="Diary"]');
       await click(page, "Recurring lessons");
       const t8 = await leak("coach recurring manager"); await shot("25-coach-recurring-empty");
-      check("(e) the manager starts empty for a real coach", t8.includes("None yet") && !t8.includes("Marcus Tran"), t8.slice(0, 200));
+      check("(e) the manager starts empty for a real coach", t8.includes("No recurring lessons yet") && !t8.includes("Marcus Tran"), t8.slice(0, 200));
       await tap(page, '[data-tour="recur-add"]');
       await click(page, "Cian Murphy");
       const t9 = await text(); await shot("26-coach-recurring-setup");
@@ -298,7 +298,7 @@ const leaks = [];
       check("(f) the header avatar renders an <img> from the same public URL", !!hsrc && hsrc === src, `${hsrc} · ${t13.slice(0, 100)}`);
       /* the foot of the diary used to read "End of your hours"; it is the
          Recurring lessons row now, so the tab is named by its own title */
-      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && /Schedule/.test(t13) && /Calendar/.test(t13), t13.slice(0, 80));
+      check("(f) saving did not throw the coach out of the app (no splash replay, still on the tab they left from)", !t13.includes("Loading…") && /Diary/.test(t13) && /Calendar/.test(t13), t13.slice(0, 80));
       /* password */
       await tap(page, '[aria-label="Your profile"]');
       const t13b = await text();

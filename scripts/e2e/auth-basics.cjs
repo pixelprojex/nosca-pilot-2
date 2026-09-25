@@ -60,7 +60,7 @@ async function signIn(page, email, pass) {
 }
 async function fillDetails(page, { name, email, phone, pass, dob }) {
   if (dob) { const [d, m, y] = dob; await page.getByPlaceholder("DD").fill(d); await page.getByPlaceholder("MM").fill(m); await page.getByPlaceholder("YYYY").fill(y); }
-  await page.getByLabel("Full name", { exact: true }).fill(name);
+  await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Email", { exact: true }).fill(email);
   if (phone) await page.getByLabel("Mobile · optional", { exact: true }).fill(phone);
   await page.getByLabel("Password", { exact: true }).fill(pass);
@@ -113,7 +113,7 @@ const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name ==
       note("profile the trigger made: " + JSON.stringify(prof));
       const t = await rootText(page);
       if (!prof || !/You're set up/.test(t) || !t.includes(prof.invite_code)) note("FAIL no arrival with the invite code: " + t.slice(0, 120));
-      await btn(page, "Skip the tour").click(); await waitSplash(page); await shot("home");
+      await btn(page, "Skip").click(); await waitSplash(page); await shot("home");
       if (/You're set up|Create account/.test((await rootText(page)).slice(0, 60))) note("FAIL did not reach the app");
     });
 
@@ -131,7 +131,7 @@ const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name ==
       if (await rootEmpty(page)) { note("FAIL blank page after account creation"); return; }
       const t0 = await rootText(page);
       if (!/You've asked Sinéad Walsh/.test(t0)) note("FAIL arrival should say You've asked Sinéad Walsh: " + t0.slice(0, 120));
-      await btn(page, "Skip the tour").click(); await waitSplash(page); await shot("home");
+      await btn(page, "Skip").click(); await waitSplash(page); await shot("home");
       const t = await rootText(page);
       if (!(await page.locator('[data-tour="nocoach-pending"]').count()) || !/Request sent/.test(t)) note("FAIL should be on Request sent: " + t.slice(0, 120)); else note("landed on Request sent");
     });
@@ -144,7 +144,7 @@ const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name ==
       await btn(page, "Create account").click(); await page.waitForTimeout(1000); await shot("after-join");
       const t = await rootText(page);
       if (db.signups.length) note("FAIL the account was created even though the code matched no coach");
-      else if (/doesn't match/.test(t)) note("code rejected inline before any account was created");
+      else if (/No coach with that code/.test(t)) note("code rejected inline before any account was created");
       else note("FAIL no account created but no message shown either: " + t.slice(0, 100));
     });
 
@@ -154,8 +154,8 @@ const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name ==
       await btn(page, "Continue").click(); await page.waitForTimeout(300);
       await btn(page, "Skip for now").click(); await page.waitForTimeout(1500);
       if (await rootEmpty(page)) { note("FAIL blank page after account creation"); return; }
-      await btn(page, "Skip the tour").click(); await waitSplash(page);
-      const hadTour = await dismissTour(page); if (hadTour) note("FAIL the walkthrough opened after Skip the tour");
+      await btn(page, "Skip").click(); await waitSplash(page);
+      const hadTour = await dismissTour(page); if (hadTour) note("FAIL the walkthrough opened after Skip");
       await shot("no-coach");
       let t = await rootText(page);
       if (!/Add your coach/.test(t)) { note("FAIL expected the Add your coach screen, got: " + t.slice(0, 100)); return; }
@@ -180,7 +180,7 @@ const profileNamed = (db, n) => Object.values(db.profiles).find((p) => p.name ==
       await btn(page, "Create account").click(); await page.waitForTimeout(600); await shot("blocked");
       let t = await rootText(page);
       if (db.signups.length) note("FAIL a 15-year-old was allowed through with no family code");
-      else if (/Under 18s join with a parent's family code/.test(t)) note("blocked until a family code is entered");
+      else if (/Ask a parent/.test(t)) note("blocked until a family code is entered");
       else note("FAIL blocked, but without the message: " + t.slice(0, 160));
       await M.codeBoxes(page).nth(6).fill("fam777"); await page.waitForTimeout(900);
       t = await rootText(page);

@@ -15,7 +15,9 @@ import { supabase } from "./supabase";
  * to know the database exists.
  */
 
-const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+/* "Sep", not "SEP" and not en-IE's "Sept": every date the app shows
+   comes from this table, in the case a person would write it */
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* THE ONE KEY A REGISTER IS FILED AND FOUND UNDER: the day it was
    taken and what it was called — "14 JUN Summer clinic". The reader
@@ -24,7 +26,7 @@ const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV
    the sheet closed, and reopening one offered a blank register. Both
    halves call this now. */
 export const registerKey = (label, date) => {
-  const dt = date instanceof Date ? date : new Date(date);
+  const dt = date instanceof Date ? date : localDate(date);   // session_date is a day, not a moment
   return `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]} ${label}`;
 };
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -117,7 +119,7 @@ const relTime = (iso) => {
   if (mins < 1) return "now";
   if (mins < 60) return `${mins}m`;
   if (mins < 60 * 24 && d.getDate() === now.getDate()) return d.toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" });
-  return d.toLocaleDateString("en-IE", { day: "numeric", month: "short" });
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 };
 
 const toNotification = (n) => ({
@@ -299,7 +301,7 @@ export function useNoscaData(profile) {
         const who = personOf(r.player_id) || {};
         return { id: r.id, playerId: r.player_id, name: who.name || "Someone", sport: who.sport || null,
                  junior: who.id ? juniorRow(who) : false, dateOfBirth: who.date_of_birth || null, createdAt: r.created_at,
-                 when: new Date(r.created_at).toLocaleDateString("en-IE", { day: "numeric", month: "short" }) };
+                 when: (() => { const d = new Date(r.created_at); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; })() };
       }));
       const out = allReq.find((r) => r.player_id === profile.id && r.status === "pending") || null;
       const asked = out ? personOf(out.coach_id) : null;
@@ -327,7 +329,7 @@ export function useNoscaData(profile) {
            at — the coach's count and the player's own must agree */
         lessons: (lRes.data || []).filter((l) => wasAt(l, p.id)).length,
         lastLesson: (lRes.data || []).filter((l) => wasAt(l, p.id)).map((l) => l.lesson_date).sort().pop() || null,
-        since: new Date(p.created_at).toLocaleDateString("en-IE", { month: "short", year: "numeric" }),
+        since: (() => { const d = new Date(p.created_at); return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; })(),
       })));
 
       setLessons((lRes.data || []).map((r) => toLesson(r, attendeesBy[r.id] || [])));
@@ -495,7 +497,7 @@ export function useNoscaData(profile) {
         id: r.id, rating: r.rating, comment: r.comment || "",
         playerId: r.player_id,
         who: nameOf[r.player_id] || "—",
-        when: new Date(r.created_at).toLocaleDateString("en-IE", { month: "short", year: "numeric" }),
+        when: (() => { const d = new Date(r.created_at); return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; })(),
       })));
     setReviewSummary(
       allReviews.length
@@ -819,8 +821,13 @@ export function useNoscaData(profile) {
   };
 
   const takeRegister = async (label, marks) => {
+    /* the day is written from this phone's clock, the same day the key
+       shown on screen was built from — the server's default is UTC, which
+       is tomorrow late on an evening west of Greenwich */
+    const now = new Date();
+    const sessionDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const { data: session, error } = await supabase.from("attendance_sessions")
-      .insert({ coach_id: profile.id, label }).select().single();
+      .insert({ coach_id: profile.id, label, session_date: sessionDate }).select().single();
     if (error) return { error };
     const rows = Object.entries(marks).map(([playerId, state]) => ({
       session_id: session.id, player_id: playerId, state,

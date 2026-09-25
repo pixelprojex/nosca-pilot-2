@@ -9,7 +9,7 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
-  Delete, Lock, Mail, Camera, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
+  Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus,
   Edit3, Trophy, Star, CloudRain, Copy, Settings2, BellOff
@@ -281,7 +281,7 @@ const FAMILY_CODE = "TR7M2K";
 function buildArchive(cfg, live) {
   if (live) return [];        // a real account has no archive until it earns one
   const out = [];
-  const months = [["JUL", 7], ["JUN", 6], ["MAY", 5], ["APR", 4]];
+  const months = [["Jul", 7], ["Jun", 6], ["May", 5], ["Apr", 4]];
   let id = 1;
   months.forEach(([mLabel, mIdx], mi) => {
     cfg.lessons.forEach((l, li) => {
@@ -431,26 +431,26 @@ export const SPORTS = {
     chart: { label: "Scoring average", note: "Lower is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [94,93,91,90,89,88] },
     transcript: "Good session. Most of it went on distance control from inside a hundred yards, and your contact is far more consistent now. Keep the ladder drill going before we meet again — sixty, eighty, a hundred, ten balls each, and write down the carry.",
     lessons: [
-      { id:1, focus:"Full swing", focusId:"swing", subs:["HI 18.4", "Driver", "Fairway woods"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Pitching", focusId:"pitch", subs:["HI 18.4", "Distance control", "Trajectory"], d:"31", m:"MAY", type:"Private", videos:1 },
-      { id:3, focus:"Chipping", focusId:"chip", subs:["HI 18.4", "Contact", "Landing spot"], d:"17", m:"MAY", type:"Group", videos:3 },
-      { id:4, focus:"Bunker play", focusId:"bunker", subs:["HI 18.4", "Greenside", "Fairway bunker"], d:"03", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Putting", focusId:"putt", subs:["HI 18.4", "Stroke", "Green reading"], d:"19", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"On course", focusId:"course", subs:["HI 18.4"], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Mental game", focusId:"mental", subs:["HI 18.4"], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Fitness", focusId:"fitness", subs:["HI 18.4"], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Custom fitting", focusId:"fitting", subs:["HI 18.4"], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Full swing", focusId:"swing", subs:["HI 18.4"], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Pitching", focusId:"pitch", subs:["HI 18.4"], d:"24", m:"FEB", type:"Private", videos:2 },
-      { id:12, focus:"Chipping", focusId:"chip", subs:["HI 18.4"], d:"11", m:"FEB", type:"Group", videos:1 },
-      { id:13, focus:"Bunker play", focusId:"bunker", subs:["HI 18.4"], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Putting", focusId:"putt", subs:["HI 18.4"], d:"16", m:"JAN", type:"Private", videos:2 },
-      { id:15, focus:"On course", focusId:"course", subs:["HI 18.4"], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Mental game", focusId:"mental", subs:["HI 18.4"], d:"18", m:"DEC", type:"Private", videos:0 },
-      { id:17, focus:"Fitness", focusId:"fitness", subs:["HI 18.4"], d:"06", m:"DEC", type:"Private", videos:1 },
-      { id:18, focus:"Custom fitting", focusId:"fitting", subs:["HI 18.4"], d:"22", m:"NOV", type:"Group", videos:2 },
-      { id:19, focus:"Full swing", focusId:"swing", subs:["HI 18.4"], d:"08", m:"NOV", type:"Private", videos:3 },
-      { id:20, focus:"Pitching", focusId:"pitch", subs:["HI 18.4"], d:"25", m:"OCT", type:"Private", videos:0 },
+      { id:1, focus:"Full swing", focusId:"swing", subs:["HI 18.4", "Driver", "Fairway woods"], d:"14", m:"Jun", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Pitching", focusId:"pitch", subs:["HI 18.4", "Distance control", "Trajectory"], d:"31", m:"May", type:"Private", videos:1 },
+      { id:3, focus:"Chipping", focusId:"chip", subs:["HI 18.4", "Contact", "Landing spot"], d:"17", m:"May", type:"Group", videos:3 },
+      { id:4, focus:"Bunker play", focusId:"bunker", subs:["HI 18.4", "Greenside", "Fairway bunker"], d:"03", m:"May", type:"Private", videos:2 },
+      { id:5, focus:"Putting", focusId:"putt", subs:["HI 18.4", "Stroke", "Green reading"], d:"19", m:"Apr", type:"Private", videos:1 },
+      { id:6, focus:"On course", focusId:"course", subs:["HI 18.4"], d:"28", m:"Apr", type:"Group", videos:0 },
+      { id:7, focus:"Mental game", focusId:"mental", subs:["HI 18.4"], d:"14", m:"Apr", type:"Private", videos:1 },
+      { id:8, focus:"Fitness", focusId:"fitness", subs:["HI 18.4"], d:"02", m:"Apr", type:"Private", videos:2 },
+      { id:9, focus:"Custom fitting", focusId:"fitting", subs:["HI 18.4"], d:"21", m:"Mar", type:"Group", videos:3 },
+      { id:10, focus:"Full swing", focusId:"swing", subs:["HI 18.4"], d:"09", m:"Mar", type:"Private", videos:0 },
+      { id:11, focus:"Pitching", focusId:"pitch", subs:["HI 18.4"], d:"24", m:"Feb", type:"Private", videos:2 },
+      { id:12, focus:"Chipping", focusId:"chip", subs:["HI 18.4"], d:"11", m:"Feb", type:"Group", videos:1 },
+      { id:13, focus:"Bunker play", focusId:"bunker", subs:["HI 18.4"], d:"29", m:"Jan", type:"Private", videos:3 },
+      { id:14, focus:"Putting", focusId:"putt", subs:["HI 18.4"], d:"16", m:"Jan", type:"Private", videos:2 },
+      { id:15, focus:"On course", focusId:"course", subs:["HI 18.4"], d:"04", m:"Jan", type:"Group", videos:1 },
+      { id:16, focus:"Mental game", focusId:"mental", subs:["HI 18.4"], d:"18", m:"Dec", type:"Private", videos:0 },
+      { id:17, focus:"Fitness", focusId:"fitness", subs:["HI 18.4"], d:"06", m:"Dec", type:"Private", videos:1 },
+      { id:18, focus:"Custom fitting", focusId:"fitting", subs:["HI 18.4"], d:"22", m:"Nov", type:"Group", videos:2 },
+      { id:19, focus:"Full swing", focusId:"swing", subs:["HI 18.4"], d:"08", m:"Nov", type:"Private", videos:3 },
+      { id:20, focus:"Pitching", focusId:"pitch", subs:["HI 18.4"], d:"25", m:"Oct", type:"Private", videos:0 },
     ],
   },
   tennis: {
@@ -523,26 +523,26 @@ export const SPORTS = {
     chart: { label: "First serve percentage", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [48,50,51,54,56,58] },
     transcript: "Good session. Most of it went on the first serve — your toss is landing in the same spot now and you're getting up into the ball instead of pushing it. Keep the shadow serve going before we meet again: twenty reps, no ball, just the toss and the reach.",
     lessons: [
-      { id:1, focus:"Serve", focusId:"serve", subs:["Yellow ball", "First serve", "Second serve"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Return", focusId:"return", subs:["Yellow ball", "First-serve return", "Second-serve return"], d:"31", m:"MAY", type:"Private", videos:1 },
-      { id:3, focus:"Forehand", focusId:"fh", subs:["Yellow ball", "Topspin", "Slice"], d:"17", m:"MAY", type:"Group", videos:3 },
-      { id:4, focus:"Backhand", focusId:"bh", subs:["Yellow ball", "Two-handed", "One-handed"], d:"03", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Net game", focusId:"net", subs:["Yellow ball", "Volley", "Smash"], d:"19", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Rally", focusId:"rally", subs:["Yellow ball"], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Movement", focusId:"move", subs:["Yellow ball"], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Match play", focusId:"match", subs:["Yellow ball"], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Serve", focusId:"serve", subs:["Yellow ball"], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Return", focusId:"return", subs:["Yellow ball"], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Forehand", focusId:"fh", subs:["Yellow ball"], d:"24", m:"FEB", type:"Private", videos:2 },
-      { id:12, focus:"Backhand", focusId:"bh", subs:["Yellow ball"], d:"11", m:"FEB", type:"Group", videos:1 },
-      { id:13, focus:"Net game", focusId:"net", subs:["Yellow ball"], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Rally", focusId:"rally", subs:["Yellow ball"], d:"16", m:"JAN", type:"Private", videos:2 },
-      { id:15, focus:"Movement", focusId:"move", subs:["Yellow ball"], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Match play", focusId:"match", subs:["Yellow ball"], d:"18", m:"DEC", type:"Private", videos:0 },
-      { id:17, focus:"Serve", focusId:"serve", subs:["Yellow ball"], d:"06", m:"DEC", type:"Private", videos:1 },
-      { id:18, focus:"Return", focusId:"return", subs:["Yellow ball"], d:"22", m:"NOV", type:"Group", videos:2 },
-      { id:19, focus:"Forehand", focusId:"fh", subs:["Yellow ball"], d:"08", m:"NOV", type:"Private", videos:3 },
-      { id:20, focus:"Backhand", focusId:"bh", subs:["Yellow ball"], d:"25", m:"OCT", type:"Private", videos:0 },
+      { id:1, focus:"Serve", focusId:"serve", subs:["Yellow ball", "First serve", "Second serve"], d:"14", m:"Jun", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Return", focusId:"return", subs:["Yellow ball", "First-serve return", "Second-serve return"], d:"31", m:"May", type:"Private", videos:1 },
+      { id:3, focus:"Forehand", focusId:"fh", subs:["Yellow ball", "Topspin", "Slice"], d:"17", m:"May", type:"Group", videos:3 },
+      { id:4, focus:"Backhand", focusId:"bh", subs:["Yellow ball", "Two-handed", "One-handed"], d:"03", m:"May", type:"Private", videos:2 },
+      { id:5, focus:"Net game", focusId:"net", subs:["Yellow ball", "Volley", "Smash"], d:"19", m:"Apr", type:"Private", videos:1 },
+      { id:6, focus:"Rally", focusId:"rally", subs:["Yellow ball"], d:"28", m:"Apr", type:"Group", videos:0 },
+      { id:7, focus:"Movement", focusId:"move", subs:["Yellow ball"], d:"14", m:"Apr", type:"Private", videos:1 },
+      { id:8, focus:"Match play", focusId:"match", subs:["Yellow ball"], d:"02", m:"Apr", type:"Private", videos:2 },
+      { id:9, focus:"Serve", focusId:"serve", subs:["Yellow ball"], d:"21", m:"Mar", type:"Group", videos:3 },
+      { id:10, focus:"Return", focusId:"return", subs:["Yellow ball"], d:"09", m:"Mar", type:"Private", videos:0 },
+      { id:11, focus:"Forehand", focusId:"fh", subs:["Yellow ball"], d:"24", m:"Feb", type:"Private", videos:2 },
+      { id:12, focus:"Backhand", focusId:"bh", subs:["Yellow ball"], d:"11", m:"Feb", type:"Group", videos:1 },
+      { id:13, focus:"Net game", focusId:"net", subs:["Yellow ball"], d:"29", m:"Jan", type:"Private", videos:3 },
+      { id:14, focus:"Rally", focusId:"rally", subs:["Yellow ball"], d:"16", m:"Jan", type:"Private", videos:2 },
+      { id:15, focus:"Movement", focusId:"move", subs:["Yellow ball"], d:"04", m:"Jan", type:"Group", videos:1 },
+      { id:16, focus:"Match play", focusId:"match", subs:["Yellow ball"], d:"18", m:"Dec", type:"Private", videos:0 },
+      { id:17, focus:"Serve", focusId:"serve", subs:["Yellow ball"], d:"06", m:"Dec", type:"Private", videos:1 },
+      { id:18, focus:"Return", focusId:"return", subs:["Yellow ball"], d:"22", m:"Nov", type:"Group", videos:2 },
+      { id:19, focus:"Forehand", focusId:"fh", subs:["Yellow ball"], d:"08", m:"Nov", type:"Private", videos:3 },
+      { id:20, focus:"Backhand", focusId:"bh", subs:["Yellow ball"], d:"25", m:"Oct", type:"Private", videos:0 },
     ],
   },
   rowing: {
@@ -618,26 +618,26 @@ export const SPORTS = {
     chart: { label: "2k split", note: "Lower is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [126,124,123,121,119,118] },
     transcript: "Good session. Most of it went on the catch — you're getting the blade in before the legs go now, instead of the other way round. Keep the square blade work going before we meet again, five minutes at a low rate.",
     lessons: [
-      { id:1, focus:"Technique", focusId:"technique", subs:["J16", "Catch", "Drive"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16", "Ratio", "Rate"], d:"31", m:"MAY", type:"Private", videos:1 },
-      { id:3, focus:"Racing", focusId:"racing", subs:["J16", "Starts", "Pieces"], d:"17", m:"MAY", type:"Group", videos:3 },
-      { id:4, focus:"Erg", focusId:"erg", subs:["J16", "2k test", "5k"], d:"03", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"S&C", focusId:"sc", subs:["J16", "Weights", "Circuits"], d:"19", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Technique", focusId:"technique", subs:["J16"], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Racing", focusId:"racing", subs:["J16"], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Erg", focusId:"erg", subs:["J16"], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"S&C", focusId:"sc", subs:["J16"], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Technique", focusId:"technique", subs:["J16"], d:"24", m:"FEB", type:"Private", videos:2 },
-      { id:12, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"11", m:"FEB", type:"Group", videos:1 },
-      { id:13, focus:"Racing", focusId:"racing", subs:["J16"], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Erg", focusId:"erg", subs:["J16"], d:"16", m:"JAN", type:"Private", videos:2 },
-      { id:15, focus:"S&C", focusId:"sc", subs:["J16"], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Technique", focusId:"technique", subs:["J16"], d:"18", m:"DEC", type:"Private", videos:0 },
-      { id:17, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"06", m:"DEC", type:"Private", videos:1 },
-      { id:18, focus:"Racing", focusId:"racing", subs:["J16"], d:"22", m:"NOV", type:"Group", videos:2 },
-      { id:19, focus:"Erg", focusId:"erg", subs:["J16"], d:"08", m:"NOV", type:"Private", videos:3 },
-      { id:20, focus:"S&C", focusId:"sc", subs:["J16"], d:"25", m:"OCT", type:"Private", videos:0 },
+      { id:1, focus:"Technique", focusId:"technique", subs:["J16", "Catch", "Drive"], d:"14", m:"Jun", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16", "Ratio", "Rate"], d:"31", m:"May", type:"Private", videos:1 },
+      { id:3, focus:"Racing", focusId:"racing", subs:["J16", "Starts", "Pieces"], d:"17", m:"May", type:"Group", videos:3 },
+      { id:4, focus:"Erg", focusId:"erg", subs:["J16", "2k test", "5k"], d:"03", m:"May", type:"Private", videos:2 },
+      { id:5, focus:"S&C", focusId:"sc", subs:["J16", "Weights", "Circuits"], d:"19", m:"Apr", type:"Private", videos:1 },
+      { id:6, focus:"Technique", focusId:"technique", subs:["J16"], d:"28", m:"Apr", type:"Group", videos:0 },
+      { id:7, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"14", m:"Apr", type:"Private", videos:1 },
+      { id:8, focus:"Racing", focusId:"racing", subs:["J16"], d:"02", m:"Apr", type:"Private", videos:2 },
+      { id:9, focus:"Erg", focusId:"erg", subs:["J16"], d:"21", m:"Mar", type:"Group", videos:3 },
+      { id:10, focus:"S&C", focusId:"sc", subs:["J16"], d:"09", m:"Mar", type:"Private", videos:0 },
+      { id:11, focus:"Technique", focusId:"technique", subs:["J16"], d:"24", m:"Feb", type:"Private", videos:2 },
+      { id:12, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"11", m:"Feb", type:"Group", videos:1 },
+      { id:13, focus:"Racing", focusId:"racing", subs:["J16"], d:"29", m:"Jan", type:"Private", videos:3 },
+      { id:14, focus:"Erg", focusId:"erg", subs:["J16"], d:"16", m:"Jan", type:"Private", videos:2 },
+      { id:15, focus:"S&C", focusId:"sc", subs:["J16"], d:"04", m:"Jan", type:"Group", videos:1 },
+      { id:16, focus:"Technique", focusId:"technique", subs:["J16"], d:"18", m:"Dec", type:"Private", videos:0 },
+      { id:17, focus:"Rhythm & rating", focusId:"rhythm", subs:["J16"], d:"06", m:"Dec", type:"Private", videos:1 },
+      { id:18, focus:"Racing", focusId:"racing", subs:["J16"], d:"22", m:"Nov", type:"Group", videos:2 },
+      { id:19, focus:"Erg", focusId:"erg", subs:["J16"], d:"08", m:"Nov", type:"Private", videos:3 },
+      { id:20, focus:"S&C", focusId:"sc", subs:["J16"], d:"25", m:"Oct", type:"Private", videos:0 },
     ],
   },
   squash: {
@@ -704,26 +704,26 @@ export const SPORTS = {
     chart: { label: "Length accuracy", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [48,51,53,56,59,61] },
     transcript: "Good session. Most of it went on length — you're getting the ball behind the service line far more often, which is buying you the T. Keep the solo drives going before we meet again, fifty each side.",
     lessons: [
-      { id:1, focus:"Drives", focusId:"drives", subs:["Double yellow", "Straight drive", "Cross-court"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Volleys", focusId:"volleys", subs:["Double yellow", "Straight volley", "Cross-court volley"], d:"31", m:"MAY", type:"Private", videos:1 },
-      { id:3, focus:"Serve & return", focusId:"serve", subs:["Double yellow", "Serve", "Return of serve"], d:"17", m:"MAY", type:"Group", videos:3 },
-      { id:4, focus:"Front court", focusId:"front", subs:["Double yellow", "Drop", "Boast"], d:"03", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Movement", focusId:"move", subs:["Double yellow", "Ghosting", "The T"], d:"19", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Tactics", focusId:"tactics", subs:["Double yellow"], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Physical & mental", focusId:"physical", subs:["Double yellow"], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Games", focusId:"games", subs:["Double yellow"], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Drives", focusId:"drives", subs:["Double yellow"], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Volleys", focusId:"volleys", subs:["Double yellow"], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Serve & return", focusId:"serve", subs:["Double yellow"], d:"24", m:"FEB", type:"Private", videos:2 },
-      { id:12, focus:"Front court", focusId:"front", subs:["Double yellow"], d:"11", m:"FEB", type:"Group", videos:1 },
-      { id:13, focus:"Movement", focusId:"move", subs:["Double yellow"], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Tactics", focusId:"tactics", subs:["Double yellow"], d:"16", m:"JAN", type:"Private", videos:2 },
-      { id:15, focus:"Physical & mental", focusId:"physical", subs:["Double yellow"], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Games", focusId:"games", subs:["Double yellow"], d:"18", m:"DEC", type:"Private", videos:0 },
-      { id:17, focus:"Drives", focusId:"drives", subs:["Double yellow"], d:"06", m:"DEC", type:"Private", videos:1 },
-      { id:18, focus:"Volleys", focusId:"volleys", subs:["Double yellow"], d:"22", m:"NOV", type:"Group", videos:2 },
-      { id:19, focus:"Serve & return", focusId:"serve", subs:["Double yellow"], d:"08", m:"NOV", type:"Private", videos:3 },
-      { id:20, focus:"Front court", focusId:"front", subs:["Double yellow"], d:"25", m:"OCT", type:"Private", videos:0 },
+      { id:1, focus:"Drives", focusId:"drives", subs:["Double yellow", "Straight drive", "Cross-court"], d:"14", m:"Jun", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Volleys", focusId:"volleys", subs:["Double yellow", "Straight volley", "Cross-court volley"], d:"31", m:"May", type:"Private", videos:1 },
+      { id:3, focus:"Serve & return", focusId:"serve", subs:["Double yellow", "Serve", "Return of serve"], d:"17", m:"May", type:"Group", videos:3 },
+      { id:4, focus:"Front court", focusId:"front", subs:["Double yellow", "Drop", "Boast"], d:"03", m:"May", type:"Private", videos:2 },
+      { id:5, focus:"Movement", focusId:"move", subs:["Double yellow", "Ghosting", "The T"], d:"19", m:"Apr", type:"Private", videos:1 },
+      { id:6, focus:"Tactics", focusId:"tactics", subs:["Double yellow"], d:"28", m:"Apr", type:"Group", videos:0 },
+      { id:7, focus:"Physical & mental", focusId:"physical", subs:["Double yellow"], d:"14", m:"Apr", type:"Private", videos:1 },
+      { id:8, focus:"Games", focusId:"games", subs:["Double yellow"], d:"02", m:"Apr", type:"Private", videos:2 },
+      { id:9, focus:"Drives", focusId:"drives", subs:["Double yellow"], d:"21", m:"Mar", type:"Group", videos:3 },
+      { id:10, focus:"Volleys", focusId:"volleys", subs:["Double yellow"], d:"09", m:"Mar", type:"Private", videos:0 },
+      { id:11, focus:"Serve & return", focusId:"serve", subs:["Double yellow"], d:"24", m:"Feb", type:"Private", videos:2 },
+      { id:12, focus:"Front court", focusId:"front", subs:["Double yellow"], d:"11", m:"Feb", type:"Group", videos:1 },
+      { id:13, focus:"Movement", focusId:"move", subs:["Double yellow"], d:"29", m:"Jan", type:"Private", videos:3 },
+      { id:14, focus:"Tactics", focusId:"tactics", subs:["Double yellow"], d:"16", m:"Jan", type:"Private", videos:2 },
+      { id:15, focus:"Physical & mental", focusId:"physical", subs:["Double yellow"], d:"04", m:"Jan", type:"Group", videos:1 },
+      { id:16, focus:"Games", focusId:"games", subs:["Double yellow"], d:"18", m:"Dec", type:"Private", videos:0 },
+      { id:17, focus:"Drives", focusId:"drives", subs:["Double yellow"], d:"06", m:"Dec", type:"Private", videos:1 },
+      { id:18, focus:"Volleys", focusId:"volleys", subs:["Double yellow"], d:"22", m:"Nov", type:"Group", videos:2 },
+      { id:19, focus:"Serve & return", focusId:"serve", subs:["Double yellow"], d:"08", m:"Nov", type:"Private", videos:3 },
+      { id:20, focus:"Front court", focusId:"front", subs:["Double yellow"], d:"25", m:"Oct", type:"Private", videos:0 },
     ],
   },
   padel: {
@@ -790,26 +790,26 @@ export const SPORTS = {
     chart: { label: "Net points won", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [48,51,54,57,60,62] },
     transcript: "Good session. Most of it went on the bandeja — you're holding the net instead of getting pushed back, and the contact point is much more consistent. Keep the repetition drill going before we meet again, thirty of them.",
     lessons: [
-      { id:1, focus:"Net game", focusId:"net", subs:["Intermediate", "Volleys", "Net position"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Overheads", focusId:"overhead", subs:["Intermediate", "Bandeja", "Víbora"], d:"31", m:"MAY", type:"Private", videos:1 },
-      { id:3, focus:"Lob", focusId:"lob", subs:["Intermediate", "Defensive lob", "Attacking lob"], d:"17", m:"MAY", type:"Group", videos:3 },
-      { id:4, focus:"Back wall", focusId:"wall", subs:["Intermediate", "Off the back wall", "Side wall"], d:"03", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Chiquita", focusId:"chiquita", subs:["Intermediate", "Placement", "Approach"], d:"19", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Serve & return", focusId:"serve", subs:["Intermediate"], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Defence & tactics", focusId:"defence", subs:["Intermediate"], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Match play", focusId:"match", subs:["Intermediate"], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Net game", focusId:"net", subs:["Intermediate"], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Overheads", focusId:"overhead", subs:["Intermediate"], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Lob", focusId:"lob", subs:["Intermediate"], d:"24", m:"FEB", type:"Private", videos:2 },
-      { id:12, focus:"Back wall", focusId:"wall", subs:["Intermediate"], d:"11", m:"FEB", type:"Group", videos:1 },
-      { id:13, focus:"Chiquita", focusId:"chiquita", subs:["Intermediate"], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Serve & return", focusId:"serve", subs:["Intermediate"], d:"16", m:"JAN", type:"Private", videos:2 },
-      { id:15, focus:"Defence & tactics", focusId:"defence", subs:["Intermediate"], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Match play", focusId:"match", subs:["Intermediate"], d:"18", m:"DEC", type:"Private", videos:0 },
-      { id:17, focus:"Net game", focusId:"net", subs:["Intermediate"], d:"06", m:"DEC", type:"Private", videos:1 },
-      { id:18, focus:"Overheads", focusId:"overhead", subs:["Intermediate"], d:"22", m:"NOV", type:"Group", videos:2 },
-      { id:19, focus:"Lob", focusId:"lob", subs:["Intermediate"], d:"08", m:"NOV", type:"Private", videos:3 },
-      { id:20, focus:"Back wall", focusId:"wall", subs:["Intermediate"], d:"25", m:"OCT", type:"Private", videos:0 },
+      { id:1, focus:"Net game", focusId:"net", subs:["Intermediate", "Volleys", "Net position"], d:"14", m:"Jun", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Overheads", focusId:"overhead", subs:["Intermediate", "Bandeja", "Víbora"], d:"31", m:"May", type:"Private", videos:1 },
+      { id:3, focus:"Lob", focusId:"lob", subs:["Intermediate", "Defensive lob", "Attacking lob"], d:"17", m:"May", type:"Group", videos:3 },
+      { id:4, focus:"Back wall", focusId:"wall", subs:["Intermediate", "Off the back wall", "Side wall"], d:"03", m:"May", type:"Private", videos:2 },
+      { id:5, focus:"Chiquita", focusId:"chiquita", subs:["Intermediate", "Placement", "Approach"], d:"19", m:"Apr", type:"Private", videos:1 },
+      { id:6, focus:"Serve & return", focusId:"serve", subs:["Intermediate"], d:"28", m:"Apr", type:"Group", videos:0 },
+      { id:7, focus:"Defence & tactics", focusId:"defence", subs:["Intermediate"], d:"14", m:"Apr", type:"Private", videos:1 },
+      { id:8, focus:"Match play", focusId:"match", subs:["Intermediate"], d:"02", m:"Apr", type:"Private", videos:2 },
+      { id:9, focus:"Net game", focusId:"net", subs:["Intermediate"], d:"21", m:"Mar", type:"Group", videos:3 },
+      { id:10, focus:"Overheads", focusId:"overhead", subs:["Intermediate"], d:"09", m:"Mar", type:"Private", videos:0 },
+      { id:11, focus:"Lob", focusId:"lob", subs:["Intermediate"], d:"24", m:"Feb", type:"Private", videos:2 },
+      { id:12, focus:"Back wall", focusId:"wall", subs:["Intermediate"], d:"11", m:"Feb", type:"Group", videos:1 },
+      { id:13, focus:"Chiquita", focusId:"chiquita", subs:["Intermediate"], d:"29", m:"Jan", type:"Private", videos:3 },
+      { id:14, focus:"Serve & return", focusId:"serve", subs:["Intermediate"], d:"16", m:"Jan", type:"Private", videos:2 },
+      { id:15, focus:"Defence & tactics", focusId:"defence", subs:["Intermediate"], d:"04", m:"Jan", type:"Group", videos:1 },
+      { id:16, focus:"Match play", focusId:"match", subs:["Intermediate"], d:"18", m:"Dec", type:"Private", videos:0 },
+      { id:17, focus:"Net game", focusId:"net", subs:["Intermediate"], d:"06", m:"Dec", type:"Private", videos:1 },
+      { id:18, focus:"Overheads", focusId:"overhead", subs:["Intermediate"], d:"22", m:"Nov", type:"Group", videos:2 },
+      { id:19, focus:"Lob", focusId:"lob", subs:["Intermediate"], d:"08", m:"Nov", type:"Private", videos:3 },
+      { id:20, focus:"Back wall", focusId:"wall", subs:["Intermediate"], d:"25", m:"Oct", type:"Private", videos:0 },
     ],
   },
   equestrian: {
@@ -889,26 +889,26 @@ export const SPORTS = {
     chart: { label: "Dressage score", note: "Higher is better", labels: ["Feb","Mar","Apr","May","Jun","Jul"], data: [61,62,63,64,65,66] },
     transcript: "Good session. Most of it went on straightness through the corners — she's not falling in on the left rein nearly as much now. Keep the shoulder-in going before we meet again, three times each way.",
     lessons: [
-      { id:1, focus:"Flatwork", focusId:"flat", subs:["C", "on Bracken", "Walk", "Trot"], d:"14", m:"JUN", type:"Private", videos:2, unread:true },
-      { id:2, focus:"Dressage", focusId:"dressage", subs:["C", "on Corrib Lad", "Test riding", "Centre line"], d:"31", m:"MAY", type:"Private", videos:1 },
-      { id:3, focus:"Pole work", focusId:"poles", subs:["C", "on Willow", "Trotting poles", "Canter poles"], d:"17", m:"MAY", type:"Group", videos:3 },
-      { id:4, focus:"Gridwork", focusId:"grid", subs:["C", "on Bracken", "Placing pole", "Cross"], d:"03", m:"MAY", type:"Private", videos:2 },
-      { id:5, focus:"Showjumping", focusId:"sj", subs:["C", "on Corrib Lad", "Course work", "Related distances"], d:"19", m:"APR", type:"Private", videos:1 },
-      { id:6, focus:"Cross-country", focusId:"xc", subs:["C", "on Willow"], d:"28", m:"APR", type:"Group", videos:0 },
-      { id:7, focus:"Hacking", focusId:"hack", subs:["C", "on Bracken"], d:"14", m:"APR", type:"Private", videos:1 },
-      { id:8, focus:"Lunge", focusId:"lunge", subs:["C", "on Corrib Lad"], d:"02", m:"APR", type:"Private", videos:2 },
-      { id:9, focus:"Position & seat", focusId:"seat", subs:["C", "on Willow"], d:"21", m:"MAR", type:"Group", videos:3 },
-      { id:10, focus:"Horse care", focusId:"care", subs:["C", "on Bracken"], d:"09", m:"MAR", type:"Private", videos:0 },
-      { id:11, focus:"Flatwork", focusId:"flat", subs:["C", "on Corrib Lad"], d:"24", m:"FEB", type:"Private", videos:2 },
-      { id:12, focus:"Dressage", focusId:"dressage", subs:["C", "on Willow"], d:"11", m:"FEB", type:"Group", videos:1 },
-      { id:13, focus:"Pole work", focusId:"poles", subs:["C", "on Bracken"], d:"29", m:"JAN", type:"Private", videos:3 },
-      { id:14, focus:"Gridwork", focusId:"grid", subs:["C", "on Corrib Lad"], d:"16", m:"JAN", type:"Private", videos:2 },
-      { id:15, focus:"Showjumping", focusId:"sj", subs:["C", "on Willow"], d:"04", m:"JAN", type:"Group", videos:1 },
-      { id:16, focus:"Cross-country", focusId:"xc", subs:["C", "on Bracken"], d:"18", m:"DEC", type:"Private", videos:0 },
-      { id:17, focus:"Hacking", focusId:"hack", subs:["C", "on Corrib Lad"], d:"06", m:"DEC", type:"Private", videos:1 },
-      { id:18, focus:"Lunge", focusId:"lunge", subs:["C", "on Willow"], d:"22", m:"NOV", type:"Group", videos:2 },
-      { id:19, focus:"Position & seat", focusId:"seat", subs:["C", "on Bracken"], d:"08", m:"NOV", type:"Private", videos:3 },
-      { id:20, focus:"Horse care", focusId:"care", subs:["C", "on Corrib Lad"], d:"25", m:"OCT", type:"Private", videos:0 },
+      { id:1, focus:"Flatwork", focusId:"flat", subs:["C", "on Bracken", "Walk", "Trot"], d:"14", m:"Jun", type:"Private", videos:2, unread:true },
+      { id:2, focus:"Dressage", focusId:"dressage", subs:["C", "on Corrib Lad", "Test riding", "Centre line"], d:"31", m:"May", type:"Private", videos:1 },
+      { id:3, focus:"Pole work", focusId:"poles", subs:["C", "on Willow", "Trotting poles", "Canter poles"], d:"17", m:"May", type:"Group", videos:3 },
+      { id:4, focus:"Gridwork", focusId:"grid", subs:["C", "on Bracken", "Placing pole", "Cross"], d:"03", m:"May", type:"Private", videos:2 },
+      { id:5, focus:"Showjumping", focusId:"sj", subs:["C", "on Corrib Lad", "Course work", "Related distances"], d:"19", m:"Apr", type:"Private", videos:1 },
+      { id:6, focus:"Cross-country", focusId:"xc", subs:["C", "on Willow"], d:"28", m:"Apr", type:"Group", videos:0 },
+      { id:7, focus:"Hacking", focusId:"hack", subs:["C", "on Bracken"], d:"14", m:"Apr", type:"Private", videos:1 },
+      { id:8, focus:"Lunge", focusId:"lunge", subs:["C", "on Corrib Lad"], d:"02", m:"Apr", type:"Private", videos:2 },
+      { id:9, focus:"Position & seat", focusId:"seat", subs:["C", "on Willow"], d:"21", m:"Mar", type:"Group", videos:3 },
+      { id:10, focus:"Horse care", focusId:"care", subs:["C", "on Bracken"], d:"09", m:"Mar", type:"Private", videos:0 },
+      { id:11, focus:"Flatwork", focusId:"flat", subs:["C", "on Corrib Lad"], d:"24", m:"Feb", type:"Private", videos:2 },
+      { id:12, focus:"Dressage", focusId:"dressage", subs:["C", "on Willow"], d:"11", m:"Feb", type:"Group", videos:1 },
+      { id:13, focus:"Pole work", focusId:"poles", subs:["C", "on Bracken"], d:"29", m:"Jan", type:"Private", videos:3 },
+      { id:14, focus:"Gridwork", focusId:"grid", subs:["C", "on Corrib Lad"], d:"16", m:"Jan", type:"Private", videos:2 },
+      { id:15, focus:"Showjumping", focusId:"sj", subs:["C", "on Willow"], d:"04", m:"Jan", type:"Group", videos:1 },
+      { id:16, focus:"Cross-country", focusId:"xc", subs:["C", "on Bracken"], d:"18", m:"Dec", type:"Private", videos:0 },
+      { id:17, focus:"Hacking", focusId:"hack", subs:["C", "on Corrib Lad"], d:"06", m:"Dec", type:"Private", videos:1 },
+      { id:18, focus:"Lunge", focusId:"lunge", subs:["C", "on Willow"], d:"22", m:"Nov", type:"Group", videos:2 },
+      { id:19, focus:"Position & seat", focusId:"seat", subs:["C", "on Bracken"], d:"08", m:"Nov", type:"Private", videos:3 },
+      { id:20, focus:"Horse care", focusId:"care", subs:["C", "on Corrib Lad"], d:"25", m:"Oct", type:"Private", videos:0 },
     ],
   },
 };
@@ -1111,7 +1111,10 @@ export const TYPE = {
   lede:     { fontFamily: ui,      fontSize: 13.5, lineHeight: 1.45, letterSpacing: "-0.004em", fontWeight: 400 },
   small:    { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.42, letterSpacing: "0",        fontWeight: 400 },
   caption:  { fontFamily: ui,      fontSize: 11, lineHeight: 1.34, letterSpacing: "0.005em",    fontWeight: 400 },
-  eyebrow:  { fontFamily: ui,      fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 500 },
+  /* a section label: a word, set like a word. It was 10px tracked
+     uppercase — the single most repeated tell of a generated interface,
+     on every section of every screen. Sentence case, the UI face, 500. */
+  eyebrow:  { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.3, letterSpacing: "-0.003em", fontWeight: 500 },
 
   /* THE FIGURE LADDER. A number in a document is set large and light.
      figureXL is the one number that owns a block — a player's lesson
@@ -1615,10 +1618,10 @@ const NOTIFS = {
   ],
 };
 const NOTIF_CATS = {
-  coach:  [["Bookings", "New, cancelled and rescheduled"], ["Weekly calendar check", "Every Sunday, to confirm the week ahead"], ["Practice", "When they complete drills"],
+  coach:  [["Bookings", "New, cancelled and rescheduled"], ["Weekly calendar check", "Every Sunday, to confirm the week ahead"], ["Drills", "When they complete drills"],
            ["Video engagement", "When they watch a review"], ["Your subscription", "Renewals and billing"],
            ["Who needs attention", "Inactivity and follow-ups"], ["Milestones", "Streaks and anniversaries"]],
-  player: [["Lessons", "When your coach publishes"], ["Practice", "New drills and reminders"],
+  player: [["Lessons", "When your coach publishes"], ["Drills", "New drills and reminders"],
            ["Bookings", "Reminders and changes"], ["Messages", "Direct from your coach"],
            ["Milestones", "Progress worth celebrating"], ["Product news", "Occasional updates"]],
 };
@@ -1779,6 +1782,10 @@ const ShimmerCSS = () => (
        reaches them — one declaration, rather than a 'last' prop threaded
        through DayRow, HomeRow and everything else that may end a list. */
     .nsc-ruled > div > *:last-child { border-bottom: none !important; }
+    /* the inset form of the same law: a lid and a foot in the section
+       weight, and the last row's own hairline suppressed */
+    .nsc-list { border-top: 1px solid var(--rule-section); border-bottom: 1px solid var(--rule-section); }
+    .nsc-list > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
     @keyframes sp{to{transform:rotate(360deg)}}
@@ -2067,7 +2074,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Side by side")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Side by side")}</h2>
       
 
       <div className="flex gap-3 mb-4">
@@ -2156,6 +2163,12 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
      business knowing who else is on the sheet, and filtering at render
      is not good enough — the data must not reach them. */
   const isCoach = role === "coach";
+  /* tomorrow, minding the end of the month */
+  const tomorrow = (() => {
+    const mi = cx.months.findIndex((x) => x.idx === T.m); const mo = cx.months[mi];
+    if (mo && T.d < mo.days) return { m: T.m, d: T.d + 1 };
+    return { m: cx.months[mi + 1] ? cx.months[mi + 1].idx : (T.m % 12) + 1, d: 1 };   // the calendar's own next month, so December turns to January
+  })();
   const days = [];
   const from = Math.max(0, cx.months.findIndex((x) => x.idx === monthIdx));
   cx.months.forEach((mo, mi) => {
@@ -2196,49 +2209,29 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
           A week at a glance: how many slots each day holds and how many
           are taken, so the shape of the week is legible before you
           scroll into it. Tap a day to isolate it, tap again to release. */}
-      <div className="flex gap-1.5 overflow-x-auto px-6 pb-4" style={{ scrollbarWidth: "none" }}>
+      {/* plain text, no boxes: the weekday over the date, an ink disc
+          behind the one that is isolated, a wash disc under today, and
+          for a coach one mark under a day that has anything booked.
+          Tap a day to isolate it; tap it again to release. */}
+      <div className="flex overflow-x-auto px-6 pb-4" style={{ scrollbarWidth: "none", gap: 2 }}>
         {days.slice(0, 10).map((day) => {
-          const taken = day.booked.length;
-          const total = day.hours.length;
           const on = focus && focus.m === day.m && focus.d === day.d;
           const isToday = day.m === T.m && day.d === T.d;
-          const full = total > 0 && taken >= total;
+          const any = isCoach && day.booked.length > 0;
           return (
-            <button key={key(day.m, day.d)}
+            <button key={key(day.m, day.d)} aria-pressed={!!on}
                     onClick={() => { haptic(7); soft(); setFocus(on ? null : { m: day.m, d: day.d }); }}
-                    className="shrink-0 flex flex-col items-center justify-center active:opacity-70"
-                    style={{ width: 52, minHeight: 66, borderRadius: R.control,
-                             background: on ? t.accent : isToday ? t.wash : "transparent",
-                             border: `0.5px solid ${on ? t.accent : isToday ? "transparent" : HAIR(t.ink, 0.14)}`,
-                             transition: "background 200ms, border-color 200ms" }}>
-              <span style={{ ...TYPE.eyebrow, fontSize: 8.5,
-                             color: on ? t.onAccent : t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 2)}</span>
-              <span className="mt-0.5" style={{ ...TYPE.figure, fontSize: 17,
-                             color: on ? t.onAccent : isToday ? t.accent : t.ink }}>{day.d}</span>
-              {/* load: one dot per slot, filled where booked — the coach's reading of the week */}
-              {isCoach && <span className="flex gap-0.5 mt-1.5">
-                {day.hours.slice(0, 5).map((h, k) => {
-                  const isBooked = !!day.booked.find((b) => b.time === h);
-                  return (
-                    <span key={k} className="rounded-full"
-                          style={{ width: 3.5, height: 3.5,
-                                   background: on ? (isBooked ? t.onAccent : `${t.onAccent}55`)
-                                     : isBooked ? (full ? DANGER : t.accent) : HAIR(t.ink, 0.28) }} />
-                  );
-                })}
-              </span>}
+                    className="shrink-0 flex flex-col items-center active:opacity-70" style={{ width: 44, paddingTop: 2 }}>
+              <span style={{ ...TYPE.caption, color: t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
+              <span className="flex items-center justify-center rounded-full mt-0.5"
+                    style={{ width: 28, height: 28, background: on ? t.ink : isToday ? t.wash : "transparent", transition: "background 200ms" }}>
+                <span style={{ ...TYPE.figureSm, color: on ? "#fff" : t.ink }}>{day.d}</span>
+              </span>
+              <span className="rounded-full mt-1" style={{ width: 3.5, height: 3.5, background: any ? t.ink : "transparent" }} />
             </button>
           );
         })}
       </div>
-
-      {focus && (
-        <button onClick={() => { haptic(6); setFocus(null); }}
-                className="mx-6 mb-3 flex items-center gap-1.5 active:opacity-50"
-                style={{ ...TYPE.small, color: t.accent }}>
-          <ChevronLeft size={14} color={t.accent} strokeWidth={2.2} /> {tr("All days")}
-        </button>
-      )}
 
       <div className="px-6">
       {shown.map((day, di) => {
@@ -2252,13 +2245,12 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
         if (!rows.length) return null;
 
         return (
-          <div key={`${day.m}-${day.d}`} className="mb-6"
-               style={{ animation: `liftIn 400ms cubic-bezier(.22,1,.36,1) ${Math.min(di, 7) * 50}ms both` }}>
+          <div key={`${day.m}-${day.d}`} className="mb-6">
 
             {/* one quiet line, not a header competing with the rows */}
             <div className="flex items-center gap-2.5 mb-2.5 px-1">
-              <span style={{ ...TYPE.heading, fontSize: 16, color: isToday ? t.accent : t.ink }}>
-                {DAY_NAMES[dowOf(day.m, day.d, cx)]} {day.d}
+              <span style={{ ...TYPE.heading, fontSize: 16, color: t.ink }}>
+                {isToday ? tr("Today") : (day.m === tomorrow.m && day.d === tomorrow.d) ? tr("Tomorrow") : `${DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)} ${day.d} ${day.mo.name.split(" ")[0].slice(0, 3)}`}
               </span>
               <span className="flex-1" />
               {role === "coach" && (
@@ -2284,7 +2276,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
-                    <Rail tone={t.ink}>{h.replace(/ (am|pm)/, "")}</Rail>
+                    <Rail tone={t.ink}>{h}</Rail>
                     {/* THE ACCENT APPEARS ONCE A SCREEN. This bar spent it
                         on every booked row in the diary, and said nothing
                         the time beside it does not: a booked hour is
@@ -2299,7 +2291,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
 
                 if (isBlocked) return (
                   <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 48, ...line }}>
-                    <Rail>{h.replace(/ (am|pm)/, "")}</Rail>
+                    <Rail>{h}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{tr("Blocked")}</span>
                   </div>
                 );
@@ -2307,9 +2299,9 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                 if (role !== "coach" && kind === "group") return null;
                 if (role === "player" && juvenile) return (
                   <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 48, ...line }}>
-                    <Rail>{h.replace(/ (am|pm)/, "")}</Rail>
+                    <Rail>{h}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>
-                      {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : tr("Open")}
+                      {kind === "group" ? tr("Group") : kind === "private" ? tr("Private") : ""}
                     </span>
                   </div>
                 );
@@ -2327,7 +2319,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                           onClick={() => { haptic(7); soft(); onBookInto(day, h, kind); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 50, ...line }}>
-                    <Rail>{h.replace(/ (am|pm)/, "")}</Rail>
+                    <Rail>{h}</Rail>
                     {/* an empty row is empty; only a slot reserved for a
                         kind of lesson has anything to say */}
                     <span className="flex-1 truncate" style={{ ...TYPE.small, color: t.faint }}>
@@ -2378,7 +2370,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
 
   if (stage === "when") return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Offer another time")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Offer another time")}</h2>
       
       <div className="mb-6">
         <TimeGrid cols={3} times={slots} picked={offer} onToggle={(sl) => setOffer(offer === sl ? null : sl)} />
@@ -2393,10 +2385,10 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Cancel lesson")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Cancel lesson")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{lesson}</p>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
       <div className="flex flex-col gap-2 mb-5">
         {CANCEL_REASONS[role === "coach" ? "coach" : "player"].map((r, i) => {
           const on = reason === r;
@@ -2415,7 +2407,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
 
       {reason === "Something else" && (
         <div className="mb-5" style={{ animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
-          <VoiceArea value={note} onChange={setNote} rows={2} ph={tr("What happened?")} />
+          <VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Reason")} />
         </div>
       )}
 
@@ -2452,7 +2444,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
 
   if (stage === "confirm") return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Share with")} {toCoach}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Share with")} {toCoach}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.55, color: t.faint }}>
         {parts.length} {tr("of")} {RECORD_PARTS.length} {tr("parts of your record")}
       </p>
@@ -2461,7 +2453,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
           <div key={r.id} className="flex items-center gap-3 px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
             <Check size={14} color={STEADY} strokeWidth={2.1} style={{ animation: "checkPop 420ms cubic-bezier(.28,1.4,.5,1) both" }} />
             <span className="flex-1" style={{ fontFamily: ui, fontSize: 13.5, color: t.ink }}>{tr(r.label)}</span>
-            {r.sensitive && <span className="rounded-full px-2 py-0.5" style={{ background: `${DANGER}18`, fontFamily: ui, fontSize: 9.5, fontWeight: 600, color: DANGER }}>{tr("Sensitive")}</span>}
+            {r.sensitive && <span className="rounded-full px-2 py-0.5" style={{ background: `${DANGER}18`, fontFamily: ui, fontSize: 11, fontWeight: 600, color: DANGER }}>{tr("Sensitive")}</span>}
           </div>
         ))}
       </div>
@@ -2478,7 +2470,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Your record")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Your record")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.55, color: t.faint }}>
         {tr("Choose what")} {toCoach} {tr("can see. You can change this later.")}
       </p>
@@ -2532,12 +2524,12 @@ function EventCard({ event, sport, onPress, delay = 0 }) {
                        animation: near ? "breathe 2.6s ease-in-out infinite" : "none" }}>
           <span style={{ fontFamily: display, fontSize: past ? 13 : 19, lineHeight: 1, letterSpacing: "-0.02em",
                          color: past ? t.faint : tone || t.ink }}>{past ? tr("Done") : event.days}</span>
-          {!past && <span className="uppercase" style={{ fontFamily: ui, fontSize: 7.5, letterSpacing: "0.14em", color: t.faint }}>
+          {!past && <span style={{ ...TYPE.caption, color: t.faint }}>
             {event.days === 1 ? tr("day") : tr("days")}
           </span>}
         </span>
         <span className="flex-1 min-w-0">
-          {event.kind && <span className="block uppercase mb-1" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.2em",
+          {event.kind && <span className="block mb-1" style={{ ...TYPE.caption,
                          fontWeight: 600, color: tone || t.faint }}>{tr(event.kind)}</span>}
           <span className="block truncate" style={{ ...TYPE.subhead, color: t.ink }}>{event.name}</span>
           {/* the harness writes one sentence into `when`; a real
@@ -2579,14 +2571,13 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
     <SwipeBack onBack={pop}>
       <Screen title={tr("Ahead")} onBack={pop} meta={`${all.length} ${tr("coming up")}`}
               action={<button onClick={() => { haptic(9); soft(); setAdding(!adding); }}
-                              className="rounded-full flex items-center justify-center active:opacity-70"
-                              style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }}
-                              aria-label={tr("Add")}>
-                        <Plus size={19} color={t.onAccent} strokeWidth={2.1} />
+                              className="flex items-center justify-center active:opacity-50"
+                              style={{ width: 40, height: 40 }} aria-label={tr("Add")}>
+                        <Plus size={22} color={t.ink} strokeWidth={2} />
                       </button>}>
         <div className="px-6 pb-2">
           {adding && (
-            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
+            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, border: `1px solid ${HAIR(t.ink, 0.14)}`,
                    animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               <VoiceInput value={name} onChange={setName} ph={tr("Name")} autoFocus />
 
@@ -2636,7 +2627,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
           )}
 
           {live && all.length === 0 && !adding && (
-            <p className="py-12 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing coming up. Add one with +.")}</p>
+            <p className="py-12 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing coming up")}</p>
           )}
 
           {all.map((e, i) => (
@@ -2658,7 +2649,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
 
           {!live && all.length > 0 && all[0].days <= 21 && (
             <Tile className="px-5 py-[18px] mt-4" delay={200}>
-              <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {tr("Between now and then")}
               </div>
               <p style={{ fontFamily: display, fontSize: 15.5, lineHeight: 1.65, color: t.ink }}>
@@ -2723,7 +2714,7 @@ function Credentials({ pop, say }) {
                     <span className="block" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: tone(d.months) }}>
                       {d.months <= 12 ? `${d.months} ${tr("months")}` : tr("Current")}
                     </span>
-                    <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 10.5, color: t.faint }}>{d.expires}</span>
+                    <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{d.expires}</span>
                   </>) : (
                     <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.accent }}>{tr("Add")}</span>
                   )}
@@ -2765,7 +2756,7 @@ function Testimonials({ role, pop, say, live, reviews: given, summary, code }) {
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Reviews")} onBack={pop} meta={reviews.length ? `${avg} · ${reviews.length} ${tr("reviews")}` : tr("None yet")}>
+      <Screen title={tr("Reviews")} onBack={pop} meta={reviews.length ? `${avg} · ${reviews.length} ${tr("reviews")}` : ""}>
         <div className="px-6 pb-2">
           <Tile className="px-5 py-5 mb-4">
             <div className="flex items-center gap-4">
@@ -2787,7 +2778,7 @@ function Testimonials({ role, pop, say, live, reviews: given, summary, code }) {
           </Tile>
 
           {live && reviews.length === 0 && (
-            <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.faint }}>{tr("No reviews yet. Players leave one from your profile.")}</p>
+            <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.faint }}>{tr("No reviews yet")}</p>
           )}
 
           {reviews.map((r, i) => (
@@ -2807,7 +2798,7 @@ function Testimonials({ role, pop, say, live, reviews: given, summary, code }) {
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {r.tags.map((tg) => (
                     <span key={tg} className="px-2.5 py-1" style={{ borderRadius: R.control, background: t.wash,
-                                   fontFamily: ui, fontSize: 10.5, color: t.sub }}>{tr(tg)}</span>
+                                   fontFamily: ui, fontSize: 11, color: t.sub }}>{tr(tg)}</span>
                   ))}
                 </div>
               )}
@@ -2891,7 +2882,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
         <div className="flex flex-wrap gap-1.5 mt-3" style={{ animation: "liftIn 340ms cubic-bezier(.22,1,.36,1) both" }}>
           {cap.fields.map((f, k) => (
             <span key={f} className="px-2.5 py-1.5" style={{ borderRadius: R.field, background: t.wash }}>
-              <span className="block" style={{ fontFamily: ui, fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: t.faint }}>{f}</span>
+              <span className="block" style={{ ...TYPE.caption, color: t.faint }}>{f}</span>
               <span className="block" style={{ fontFamily: display, fontSize: 13, color: t.ink }}>{item.values[k]}</span>
             </span>
           ))}
@@ -3026,7 +3017,7 @@ function NewLessonArrival({ lesson, coach, onOpen }) {
       </span>
 
       <div className="mt-8 text-center" style={{ animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 420ms both" }}>
-        <div style={{ fontFamily: ui, fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: t.accent }}>
+        <div style={{ ...TYPE.eyebrow, color: t.accent }}>
           {tr("From")} {coach}
         </div>
         <div className="mt-3" style={{ fontFamily: display, fontSize: 30, letterSpacing: "-0.035em", lineHeight: 1.1, color: "#F4F6F3" }}>
@@ -3085,7 +3076,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       {/* what today is for */}
       {focus && (
         <div className="px-4 py-3.5 mb-5" style={{ borderRadius: R.control, background: `${t.accent}0F` }}>
-          <span className="block" style={{ ...TYPE.eyebrow, fontSize: 9, color: t.accent }}>{tr("Today")}</span>
+          <span className="block" style={{ ...TYPE.caption, color: t.accent }}>{tr("Today")}</span>
           <span className="block mt-1" style={{ ...TYPE.subhead, color: t.ink }}>{focus}</span>
         </div>
       )}
@@ -3099,7 +3090,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
-            <span className="shrink-0" style={{ width: 56, ...TYPE.eyebrow, fontSize: 9, color: t.faint }}>{l.m ? `${l.d} ${l.m}` : l.d}</span>
+            <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.m ? `${l.d} ${l.m}` : l.d}</span>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
           </button>
         ))}
@@ -3124,10 +3115,10 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           {comps.map((c, i) => (
             <div key={i} className="flex items-baseline gap-4 py-3"
                  style={{ borderBottom: RULE.hair(t.ink) }}>
-              <span className="shrink-0" style={{ width: 50, ...TYPE.eyebrow, fontSize: 9,
+              <span className="shrink-0" style={{ width: 50, ...TYPE.caption,
                              color: c.days <= 7 ? CAUTION : t.faint }}>{c.days}d</span>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{c.name}</span>
-              {c.mine && <span style={{ ...TYPE.caption, fontSize: 10, color: t.faint }}>{tr("Yours")}</span>}
+              {c.mine && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Yours")}</span>}
             </div>
           ))}
         </div>
@@ -3140,10 +3131,9 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
               onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               className="w-full flex items-center justify-center gap-2 active:opacity-90"
               style={{ minHeight: 56, borderRadius: R.control, background: t.accent, willChange: "transform",
-                       boxShadow: `0 6px 18px ${t.accent}2E`,
                        transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
                        ...TYPE.subhead, color: t.onAccent }}>
-        {tr("Log lesson")}
+        {tr("Log")}
         <ArrowRight size={16} color={t.onAccent} strokeWidth={2.1} />
       </button>
 
@@ -3164,7 +3154,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
                   style={{ width: 38, height: 38, background: tone ? `${tone}12` : t.wash }}>
               <Ico size={16} color={tone || t.sub} strokeWidth={1.6} />
             </span>
-            <span style={{ ...TYPE.caption, fontSize: 10, color: tone || t.faint }}>{lbl}</span>
+            <span style={{ ...TYPE.caption, color: tone || t.faint }}>{lbl}</span>
           </button>
         ))}
       </div>
@@ -3220,11 +3210,11 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
     <>
       <h2 style={{ ...TYPE.title, color: t.ink }}>{DAY_NAMES[dow]} {day.d}</h2>
       <p className="mt-1.5 mb-6" style={{ ...TYPE.small, color: t.faint }}>
-        {hours.length} {hours.length === 1 ? tr("slot") : tr("slots")}
+        {hours.length} {hours.length === 1 ? tr("hour") : tr("hours")}
       </p>
 
       {moving ? <TimeGrid label={tr("Move to")} onPick={(tm) => moveSlot(moving, tm)} onCancel={() => setMoving(null)} />
-       : adding ? <TimeGrid label={tr("Add a time")} onPick={addSlot} onCancel={() => setAdding(false)} />
+       : adding ? <TimeGrid label={tr("Add an hour")} onPick={addSlot} onCancel={() => setAdding(false)} />
        : (
         <>
           <div style={{ borderTop: RULE.section(t.ink) }}>
@@ -3242,7 +3232,7 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
                   </button>
                   <button onClick={() => { if (!bk) cycle(h); }} className="flex-1 text-left min-w-0 active:opacity-50">
                     <span className="block truncate" style={{ ...TYPE.small, color: bk ? t.faint : t.sub }}>
-                      {bk ? bk.who : k === "either" ? tr("Private or group") : k === "group" ? tr("Group only") : tr("Private only")}
+                      {bk ? bk.who : k === "either" ? "" : k === "group" ? tr("Group only") : tr("Private only")}
                     </span>
                   </button>
                   {!bk && (
@@ -3254,14 +3244,14 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
               );
             })}
             {hours.length === 0 && (
-              <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No hours this day.")}</p>
+              <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No hours yet")}</p>
             )}
           </div>
 
           <button onClick={() => { haptic(9); soft(); setAdding(true); }}
                   className="w-full flex items-center gap-2.5 mt-5 active:opacity-50" style={{ minHeight: 48 }}>
             <Plus size={16} color={t.accent} strokeWidth={2.1} />
-            <span style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>{tr("Add a time")}</span>
+            <span style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>{tr("Add an hour")}</span>
           </button>
 
           {(day.booked || []).length > 0 && (
@@ -3315,7 +3305,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <o.Icon size={20} color={i < 2 ? t.accent : t.sub} strokeWidth={1.6} />
                 <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{o.label}</span>
-                <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 10.5, color: t.faint }}>{o.sub}</span>
+                <span className="truncate w-full text-left" style={{ ...TYPE.caption, color: t.faint }}>{o.sub}</span>
               </button>
             ))}
           </div>
@@ -3326,7 +3316,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
             </p>
           ) : (
             <>
-              <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {mine.length} {tr("saved to this lesson")}
               </div>
               <div className="flex flex-col gap-2.5">
@@ -3362,18 +3352,15 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Recurring lessons")} onBack={pop}
-              meta={live.length ? `${live.length} ${tr("running")}` : tr("None yet")}
+              meta={live.length ? `${live.length} ${tr("running")}` : ""}
               action={<button data-tour="recur-add" onClick={() => { hapticCommit(); soft(); onNew(); }}
-                              className="rounded-full flex items-center justify-center active:opacity-70"
-                              style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }}
-                              aria-label={tr("Add")}>
-                        <Plus size={19} color={t.onAccent} strokeWidth={2.1} />
+                              className="flex items-center justify-center active:opacity-50"
+                              style={{ width: 40, height: 40 }} aria-label={tr("Add")}>
+                        <Plus size={22} color={t.ink} strokeWidth={2} />
                       </button>}>
         <div className="px-6 pb-2">
           {live.length === 0 && (
-            <p className="py-12 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>
-              {""}
-            </p>
+            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No recurring lessons yet")}</p>
           )}
 
           {live.map((x, i) => (
@@ -3388,7 +3375,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                 </span>
                 <span className="text-right shrink-0">
                   <span className="block" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>
-                    {x.until ? tr("Until") : tr("Open ended")}
+                    {x.until ? tr("Until") : ""}
                   </span>
                   {x.until && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{x.until}</span>}
                 </span>
@@ -3442,7 +3429,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
 
           {past.length > 0 && (
             <>
-              <div className="uppercase mt-7 mb-3 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mt-7 mb-3 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 {tr("Ended")}
               </div>
               {past.map((x, i) => (
@@ -3463,13 +3450,6 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
 }
 
 /* ==================================================================
-   WALKTHROUGH
-   Shown once on first open, and available afterwards from Help. Each
-   card is a small drawing of the screen being described with a pulsing
-   ring on the control in question — pointing at the thing beats
-   describing it, and it survives translation better too.
-================================================================== */
-/* ==================================================================
    WALKTHROUGH — the real app, inert and scaled
 
    The tour used to draw its own little pictures of the app, which
@@ -3479,89 +3459,48 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
    data-tour attribute and measuring it. The ring is drawn inside the
    scaled frame, in the frame's own units, so it cannot drift.
 
-   Steps are grouped by area so the whole thing reads as "where
-   everything is". One control per step; a path caption says how to
-   get there by hand.
+   Seven steps at most a role, each an imperative naming the control
+   it rings — the ring is the location, so there is no area label and
+   no breadcrumb. The rest of the app is learned by using it.
 ================================================================== */
 const FRAME_W = 390, FRAME_H = 780;
 
 /* The one wizard prefill every logging step shares. */
 const TOUR_PREFILL = { who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: "Private" };
 
-/* { area, title, body, path, target, state } — `state` is merged into
-   the showcase prop: stack, sheet, logView, prefill, peek, wizardView.
-   `skipLive` marks a step whose control only the design harness has;
-   a real account's tour leaves it out. */
+/* { title, body, target, state } — `state` is merged into the showcase
+   prop: stack, sheet, prefill, peek, wizardView. A body is one fragment
+   of five words at most, or nothing. `skipLive` marks a step whose
+   control only the design harness has; a real account's tour leaves it
+   out. */
 const TOUR = {
   coach: [
-    { area: "Today", title: "Your day", body: "Lessons in order. Tap one for the brief.", path: "Tab bar → Today", target: "today-next", state: { stack: ["today"] } },
-    { area: "Today", title: "Lessons to log", body: "One tap logs it while it's fresh. Swipe it away if nobody came.", path: "Today → a finished lesson", target: "today-justdone", state: { stack: ["today"] } },
-    { area: "Today", title: "Players asking to join", body: "Anyone who enters your code waits here until you accept.", path: "Today → asking to join", target: "today-requests", state: { stack: ["today"] } },
-    { area: "Today", title: "The board", body: "Log, register, capture, a tip, drills, a new player. Always here.", path: "Today", target: "today-board", state: { stack: ["today"] } },
-    { area: "Today", title: "Make it yours", body: "Keep what you use, drop what you don't, and choose how big it sits.", path: "You → Shortcuts", target: "settings-shortcuts", state: { stack: ["today", "you"] } },
-    { area: "Log a lesson", title: "The plus", body: "The same six, and two more, from anywhere.", path: "Tab bar → Plus", target: "quick", state: { stack: ["today"] } },
-    { area: "Log a lesson", title: "Who?", body: "A face, not a list. On now and today first; search when you have hundreds.", path: "Plus → Log a lesson", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
-    { area: "Log a lesson", title: "What you worked on", body: "Tap what you did. That is the whole lesson.", path: "Log a lesson", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "Their level", body: "Already set to the level they are on. Tap it only when it has changed.", path: "Log a lesson", target: "wiz-stage", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "Video, photo, voice", body: "One tap opens the camera. Anything you captured mid-lesson is already on it — swipe left to take one off.", path: "Log a lesson", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "Drills and the tip", body: "What they practise until next time, and the one line they remember.", path: "Log a lesson", target: "wiz-drills", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "Log a lesson", title: "Log it", body: "The lesson, clips, drills and tip arrive together on their phone.", path: "Log a lesson → Log it", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
-    { area: "During a lesson", title: "Live capture", body: "Film, photograph or dictate mid-lesson; it waits until you log.", path: "Plus → Live capture", target: "quick-capture", state: { stack: ["today"], sheet: "quick" } },
-    { area: "During a lesson", title: "Attendance", body: "Mark who turned up; the player's record fills itself.", path: "Plus → Attendance", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
-    /* The diary's hours block became a prompt that only shows while a
-       coach has set none, so there is nothing to ring once they have.
-       The row that is always there is the one in Settings. */
-    { area: "You", title: "Your hours", body: "Set the days and times players can book into. This is what their diary shows.", path: "You → Your hours", target: "settings-availability", state: { stack: ["today", "you"] } },
-    { area: "Diary", title: "Recurring lessons", body: "Standing weekly slots, booked out for the whole run.", path: "Diary → Recurring lessons", target: "cal-recurring", state: { stack: ["calendar"] } },
-    { area: "Diary", title: "Book in the diary", body: "Tap a free slot to book someone; tap a booking to log or cancel it.", path: "Diary → free slot", target: "agenda-book", state: { stack: ["calendar"] } },
-    { area: "Roster", title: "Roster", body: "Everyone you coach. Add player shares your code.", path: "Tab bar → Roster", target: "tab-roster", state: { stack: ["roster"] } },
-    { area: "Roster", title: "A player's file", body: "Message, a tip, drills or Log, then their lessons newest first.", path: "Roster → name", target: "player-lessons", state: { stack: ["roster", "player:Marcus Tran"] } },
-    { area: "Roster", title: "Groups", body: "Squads and clinics, with their own sessions.", path: "Roster → Groups", target: "roster-tab", state: { stack: ["roster"] } },
-    { area: "Chat", title: "Chat", body: "A thread with every player. A junior's parent reads theirs.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
-    { area: "Chat", title: "Start a conversation", body: "The plus writes to one player, or to everyone at once.", path: "Chat → +", target: "chat-new", state: { stack: ["messages"] } },
-    { area: "Alerts", title: "Alerts", body: "Requests, bookings, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["today"] } },
-    { area: "You", title: "Your profile", body: "Photo, details, club and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["today", "you"] } },
-    { area: "You", title: "Invite code & QR", body: "Share it any time; it's also on Roster.", path: "You → Invite code & QR", target: "settings-invite", state: { stack: ["today", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["today", "you"] } },
+    { title: "Log a lesson", body: "One tap on a face", target: "wiz-who", state: { stack: ["log"], wizardView: "who" } },
+    { title: "Tap what you worked on", body: "", target: "wiz-focus", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { title: "Add a clip", body: "Video, photo or voice", target: "wiz-media", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { title: "Log it", body: "It lands on their phone", target: "wiz-next", state: { stack: ["log"], prefill: TOUR_PREFILL, wizardView: "main" } },
+    { title: "Take the register", body: "", target: "quick-attend", state: { stack: ["today"], sheet: "quick" } },
+    { title: "Book a lesson", body: "Tap a free slot", target: "agenda-book", state: { stack: ["calendar"] } },
+    { title: "Add a player", body: "They enter your code", target: "settings-invite", state: { stack: ["today", "you"] } },
   ],
   player: [
-    { area: "Start", title: "Your coach", body: "Enter their code to ask. They accept from their app, and you're told.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
-    { area: "Home", title: "Home", body: "Your coach's tip, then booking, practice and your lessons.", path: "Tab bar → Home", target: "home-tip", state: { stack: ["home"] } },
-    { area: "Home", title: "Request a lesson", body: "Pick from your coach's hours; they confirm.", path: "Home → Request a lesson", target: "home-request", state: { stack: ["home"] } },
-    { area: "Lessons", title: "Lessons", body: "Everything your coach logged, newest first. Feed or list.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "Clips", body: "Every clip, photo and voice note they attached.", path: "Lessons → a lesson", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Lessons", title: "Download lesson log", body: "Keep a copy of any lesson as a file.", path: "Lesson → download", target: "lesson-save", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Drills", title: "Drills", body: "Tick them off; your coach sees it.", path: "Tab bar → Drills", target: "drill-row", state: { stack: ["practice"] } },
-    { area: "Diary", title: "Diary", body: "Your coach's free times. Tap one to ask.", path: "Tab bar → Diary", target: "agenda-book", state: { stack: ["calendar"] } },
-    { area: "Chat", title: "Chat", body: "Your coach, any time.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
-    { area: "Family", title: "Family", body: "Optional. Start or join one so a parent can follow a young player. It becomes its own tab.", path: "You → Family", target: "settings-dashboard", state: { stack: ["home", "you"] } },
-    { area: "Family", title: "One code", body: "Create a code and share it, or join with the one you were given.", path: "Family → Set up", target: "family-create", state: { stack: ["home", "familyCode"] } },
-    { area: "Alerts", title: "Alerts", body: "New lessons, confirmations, messages. Turn on push and your phone hears too.", path: "Header → bell", target: "alerts", state: { stack: ["home"] } },
-    { area: "You", title: "Your profile", body: "Photo, details and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["home", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { title: "Join your coach", body: "Enter their code", target: "nocoach-code", state: { stack: ["nocoach"] } },
+    { title: "Book a lesson", body: "From their hours", target: "home-request", state: { stack: ["home"] } },
+    { title: "Watch your clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"] } },
+    { title: "Tick off drills", body: "Your coach sees it", target: "drill-row", state: { stack: ["practice"] } },
+    { title: "Message your coach", body: "", target: "tab-messages", state: { stack: ["messages"] } },
   ],
   parent: [
-    { area: "Family", title: "Your family", body: "One line per young player. Tap to open them.", path: "Tab bar → Family", target: "family-kid", state: { stack: ["family"] } },
-    { area: "Family", title: "Book and message", body: "Book into their coach's hours, or write to the coach.", path: "Family → a young player", target: "kid-book", state: { stack: ["family", "familyKid:first"] } },
-    { area: "Family", title: "Everyone's week", body: "All bookings, one list.", path: "Family → Coming up", target: "family-upcoming", state: { stack: ["family"] } },
-    { area: "Family", title: "Your family code", body: "A child enters it when they sign up. Share it from here.", path: "Family → settings", target: "family-code", state: { stack: ["family", "familyCode"] } },
-    { area: "Lessons", title: "Lessons", body: "Every child's lessons, with the clips their coach attached.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "Clips", body: "Open one to watch, read the notes, and download a copy.", path: "Lessons → a lesson", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Diary", title: "Diary", body: "Confirmed lessons for everyone. Requests come from a child's card.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
-    { area: "Chat", title: "Chat", body: "You write to your children's coaches; they read what a coach sends them.", path: "Tab bar → Chat", target: "tab-messages", state: { stack: ["messages"] } },
-    { area: "Alerts", title: "Alerts", body: "A lesson logged, a booking confirmed, a message — for each child.", path: "Header → bell", target: "alerts", state: { stack: ["family"] } },
-    { area: "You", title: "Your profile", body: "Photo, details and password.", path: "Header → avatar → your name", target: "settings-profile", state: { stack: ["family", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["family", "you"] } },
+    { title: "Book for a child", body: "", target: "kid-book", state: { stack: ["family", "familyKid:first"] } },
+    { title: "Watch the clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"] } },
+    { title: "Message their coach", body: "", target: "tab-messages", state: { stack: ["messages"] } },
+    { title: "Share your family code", body: "A child enters it", target: "family-code", state: { stack: ["family", "familyCode"] } },
   ],
   juvenile: [
-    { area: "Start", title: "Your coach", body: "Enter the code your coach gave. They accept you from their app.", path: "First screen", target: "nocoach-code", state: { stack: ["nocoach"] } },
-    { area: "Home", title: "Home", body: "Your coach's tip, then booking, practice and your lessons.", path: "Tab bar → Home", target: "home-tip", state: { stack: ["home"] } },
-    { area: "Lessons", title: "Lessons", body: "Everything your coach logged, newest first.", path: "Tab bar → Lessons", target: "tab-log", state: { stack: ["log"], logView: "list" } },
-    { area: "Lessons", title: "Clips", body: "Every clip, photo and voice note they attached.", path: "Lessons → a lesson", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
-    { area: "Drills", title: "Drills", body: "Tick them off; your coach sees it.", path: "Tab bar → Drills", target: "drill-row", state: { stack: ["practice"] } },
-    { area: "Diary", title: "Diary", body: "Your lessons. A parent books them for you.", path: "Tab bar → Diary", target: "tab-calendar", state: { stack: ["calendar"] } },
-    { area: "Family", title: "Family", body: "Who's in your family. They book and message your coach for you.", path: "You → Family", target: "settings-dashboard", state: { stack: ["home", "you"] } },
-    { area: "You", title: "This walkthrough", body: "Come back to it any time from here.", path: "You → Walkthrough", target: "settings-tour", state: { stack: ["home", "you"] } },
+    { title: "Join your coach", body: "Enter their code", target: "nocoach-code", state: { stack: ["nocoach"] } },
+    { title: "Watch your clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"] } },
+    { title: "Tick off drills", body: "Your coach sees it", target: "drill-row", state: { stack: ["practice"] } },
+    { title: "Ask a parent to book", body: "They book for you", target: "tab-calendar", state: { stack: ["calendar"] } },
   ],
 };
 
@@ -3709,11 +3648,9 @@ function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
            animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
       <div className="flex items-center px-5 shrink-0" style={{ height: 56 }}>
         <Mark size={19} color={t.mark} />
-        <span className="ml-2.5" style={{ fontFamily: display, fontSize: 10.5, letterSpacing: "0.3em", color: t.ink }}>{BRAND}</span>
         <span className="flex-1" />
-        <button onClick={() => { haptic(6); onClose(); }} className="px-4 active:opacity-60"
-                style={{ minHeight: 36, borderRadius: R.pill, background: t.wash,
-                         ...TYPE.small, fontWeight: 500, color: t.sub }}>{tr("Skip")}</button>
+        <button onClick={() => { haptic(6); onClose(); }} className="px-3 active:opacity-60"
+                style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Skip")}</button>
       </div>
 
       {/* the app itself, at whatever size is left */}
@@ -3740,41 +3677,38 @@ function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
       </div>
 
       <div key={`t${i}`} className="text-center px-8 shrink-0" style={{ animation: "slideFrom 460ms cubic-bezier(.22,1,.36,1) 80ms both" }}>
-        <span className="block uppercase" style={{ ...TYPE.eyebrow, color: t.accent }}>{tr(step.area)}</span>
-        <h2 className="mt-2" data-tour-title="" style={{ fontFamily: display, fontSize: 24, lineHeight: 1.12, letterSpacing: "-0.032em", color: t.ink }}>{tr(step.title)}</h2>
-        <p className="mt-2" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.5, color: t.sub }}>{tr(step.body)}</p>
-        <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{step.path}</p>
+        {/* A verb, and one short line only when the ring does not say it
+            all. There was an area label above, a sentence or two below,
+            and a breadcrumb under that — four things to read on a step
+            whose whole point is the one control it rings. */}
+        <h2 data-tour-title="" style={{ ...TYPE.screen, color: t.ink }}>{tr(step.title)}</h2>
+        {step.body && <p style={{ ...TYPE.lede, color: t.sub, marginTop: SPACE.tight }}>{tr(step.body)}</p>}
       </div>
 
-      <div className="px-8 pb-9 pt-5 shrink-0">
-        {/* progress — a track rather than one dot per step, since a
-            complete tour runs long */}
-        <div className="flex items-center gap-3 mb-5">
-          <span className="flex-1 rounded-full overflow-hidden" style={{ height: 3, background: t.hair }}>
-            <span className="block h-full rounded-full" style={{ width: `${((i + 1) / steps.length) * 100}%`, background: t.accent,
-                     transition: "width 320ms cubic-bezier(.22,1,.36,1)" }} />
-          </span>
-          <span data-tour-counter="" style={{ ...TYPE.caption, color: t.faint, fontVariantNumeric: "tabular-nums" }}>{i + 1} / {steps.length}</span>
+      <div className="px-8 pb-9 pt-0.5 shrink-0">
+        {/* one dot a step — a tour short enough to count on one hand
+            needs no counter and no track; the harness reads the count
+            from the label. Each dot is the way back to its step, so it
+            sits in a full-height target */}
+        <div data-tour-counter="" role="group" aria-label={`${i + 1} / ${steps.length}`} className="flex items-center justify-center" style={{ height: 44, marginBottom: 2 }}>
+          {steps.map((_, k) => (
+            <button key={k} aria-label={`${tr("Step")} ${k + 1} ${tr("of")} ${steps.length}`} aria-current={k === i ? "step" : undefined}
+                    onClick={() => { haptic(6); setI(k); }} className="flex items-center justify-center" style={{ width: 22, height: 44 }}>
+              <span className="block rounded-full" style={{ width: k === i ? 18 : 6, height: 6, background: k === i ? t.ink : t.trace, transition: "width 240ms cubic-bezier(.22,1,.36,1), background 240ms" }} />
+            </button>
+          ))}
         </div>
-        <div className="flex gap-2.5">
-          {i > 0 && (
-            <button onClick={() => { haptic(6); setI(i - 1); }} className="px-5 active:opacity-60"
-                    style={{ minHeight: 56, borderRadius: R.surface, border: `1px solid ${t.hair}`,
-                             fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Back")}</button>
-          )}
-          <button onClick={next}
-                  onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                  onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  className="flex-1 flex items-center justify-center gap-2.5 active:opacity-90"
-                  style={{ minHeight: 56, borderRadius: R.surface, background: t.accent,
-                           boxShadow: `0 6px 22px ${t.accent}22`, willChange: "transform",
-                           transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
-                           fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.onAccent }}>
-            {last ? tr("Start using it") : tr("Next")}
-            {!last && <ArrowRight size={17} color={t.onAccent} strokeWidth={2.1} />}
-          </button>
-        </div>
+        {/* one button: Next, then Done. Back is a tap on a dot. */}
+        <button onClick={next}
+                onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
+                onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                className="w-full flex items-center justify-center active:opacity-90"
+                style={{ minHeight: 54, borderRadius: R.control, background: t.accent, willChange: "transform",
+                         transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
+                         fontFamily: ui, fontSize: 15.5, fontWeight: 600, letterSpacing: "-0.01em", color: t.onAccent }}>
+          {last ? tr("Done") : tr("Next")}
+        </button>
       </div>
     </div>
   );
@@ -3958,7 +3892,7 @@ function ParentDigest({ profiles, cfg, pop, stats }) {
             );
           })}
           {kids.length === 0 && (
-            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nobody under 18 on this account.")}</p>
+            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No children yet")}</p>
           )}
         </div>
       </Screen>
@@ -3988,10 +3922,9 @@ function CheckIns({ role, list, onAnswer, onSend, pop, say }) {
                 : tr("Send something to look at")}
               action={role !== "coach" ? (
                 <button onClick={() => { hapticCommit(); soft(); onSend(); }}
-                        className="rounded-full flex items-center justify-center active:opacity-70"
-                        style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }}
-                        aria-label={tr("Send")}>
-                  <Plus size={19} color={t.onAccent} strokeWidth={2.1} />
+                        className="flex items-center justify-center active:opacity-50"
+                        style={{ width: 40, height: 40 }} aria-label={tr("Send")}>
+                  <Plus size={22} color={t.ink} strokeWidth={2} />
                 </button>
               ) : null}>
         <div className="px-6 pb-2">
@@ -4124,8 +4057,7 @@ function DefaultSport({ name, mine, current, onPick, close }) {
                     className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-70"
                     style={{ minHeight: 74, borderRadius: R.surface,
                              background: on ? `${sp.theme.accent}12` : t.surface,
-                             border: on ? `1px solid ${sp.theme.accent}44` : "1px solid transparent",
-                             boxShadow: on ? "none" : (t.elev || ELEV).rest,
+                             border: on ? `1px solid ${sp.theme.accent}44` : `1px solid ${HAIR(t.ink, 0.14)}`,
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />
               <span className="flex-1 min-w-0">
@@ -4179,8 +4111,8 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
               className="absolute inset-y-0 right-0 flex flex-col items-center justify-center active:opacity-80"
               style={{ width: OPEN, background: DANGER }}
               aria-label={deleteLabel || tr("Remove")}>
-        <Trash2 size={16} color="#fff" strokeWidth={1.9} />
-        <span className="mt-1" style={{ ...TYPE.caption, fontSize: 9.5, color: "#fff" }}>{deleteLabel || tr("Remove")}</span>
+        {(!deleteLabel || /remove|clear|delete/i.test(deleteLabel)) && <Trash2 size={16} color="#fff" strokeWidth={1.9} />}
+        <span className={(!deleteLabel || /remove|clear|delete/i.test(deleteLabel)) ? "mt-1" : ""} style={{ ...TYPE.caption, color: "#fff" }}>{deleteLabel || tr("Remove")}</span>
       </button>
 
       {/* THE SLIDING LAYER IS THE PAGE, NOT A SURFACE. Its job is to be
@@ -4260,8 +4192,8 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
       </div>
       {onEdit && (
         <div className="flex justify-center" style={{ marginTop: 14 }}>
-          <button onClick={() => { haptic(6); soft(); onEdit(); }} className="px-2 py-1 active:opacity-50"
-                  style={{ ...TYPE.caption, color: t.faint }}>{tr("Edit this menu")}</button>
+          <button onClick={() => { haptic(6); soft(); onEdit(); }} className="px-3 active:opacity-50"
+                  style={{ minHeight: 44, ...TYPE.small, color: t.faint }}>{tr("Edit")}</button>
         </div>
       )}
     </>
@@ -4298,7 +4230,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
 
       <div style={{ borderTop: RULE.section(t.ink), maxHeight: 320, overflowY: "auto" }}>
         {list.length === 0 ? (
-          <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name.")}</p>
+          <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name")}</p>
         ) : list.map((r, i) => (
           <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
                   className="w-full flex items-center gap-3.5 text-left active:opacity-50"
@@ -4515,7 +4447,6 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                 className="w-full flex items-center justify-center gap-2 active:opacity-90"
                 style={{ minHeight: 56, borderRadius: R.control,
                          background: ready ? t.accent : t.wash,
-                         boxShadow: ready ? `0 6px 18px ${t.accent}2E` : "none",
                          ...TYPE.subhead, color: ready ? t.onAccent : t.faint,
                          transition: "background 220ms, color 220ms" }}>
           {tr("Submit register")}
@@ -4528,12 +4459,12 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
   /* ---------- pick a lesson ---------- */
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Attendance")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Register")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Today")}</p>
 
       {(lessons || []).length === 0 && (
         <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>
-          {tr("Nothing booked today.")}{(roster || []).length ? ` ${tr("You can still mark someone.")}` : ""}
+          {tr("Nothing booked today")}
         </p>
       )}
 
@@ -4673,7 +4604,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
           in a second <Sheet> with no `open` slid the whole thing 760px
           off the bottom, so the plus menu's Live capture opened onto an
           empty panel. */}
-      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{tr("Capture")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Capture")}</h2>
       <div className="pb-2">
         {/* where it files: one of today's bookings, or the holding pile
             that is offered when the next lesson is logged */}
@@ -4804,477 +4735,64 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
 
 
 
-/* ==================================================================
-   THE LESSON FEED — the statement piece
+/* LESSONS, AS A LIST
 
-   Vertical: one lesson per screen, snapped so you are never left
-   between two. Horizontal: within a lesson, swipe through everything
-   attached to it — clips, photos, launch-monitor readouts — all in the
-   same frame, because they are all just evidence of the same session.
-
-   Chrome is kept to two corners and one rail so nothing overlaps the
-   photography.
-================================================================== */
-
-const seedOf = (str) => {
-  let h = 2166136261;
-  for (let i = 0; i < (str || "").length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return Math.abs(h);
-};
-
-/* Composed artwork for a lesson with nothing attached — seeded from
-   its own content, so it never changes under you. */
-function GeneratedField({ lesson, mark }) {
-  const s = seedOf(lesson.focus + lesson.d + lesson.m);
-  const angle = 120 + (s % 90);
+   A coach's clip is shown inside the lesson it came from. The tab is
+   the lessons newest first, each row a poster of its first file, the
+   focus and one grey line; the lesson page is the player. Nothing
+   plays until it is tapped, nothing snaps to the screen, and the tab
+   shares the app's paper with every other tab. */
+function Poster({ item, size = 56, radius = 8 }) {
+  const t = useT();
+  if (!item) return null;
+  const flat = item.type === "sim" || item.type === "audio";
+  const glyph = item.type === "audio" ? <Mic size={13} color="#fff" strokeWidth={1.8} />
+    : item.type === "photo" ? null
+    : <Play size={10} color="#fff" fill="#fff" style={{ marginLeft: 1 }} />;
   return (
-    <div className="absolute inset-0" aria-hidden="true">
-      <div className="absolute inset-0"
-           style={{ background: `linear-gradient(${angle}deg, #0B0E0F 0%, ${mark} ${18 + (s % 22)}%, #0C0F10 100%)` }} />
-      <div className="absolute inset-0"
-           style={{ background: `radial-gradient(80% 55% at ${28 + (s % 40)}% ${30 + (s % 30)}%, ${mark}55 0%, transparent 70%)` }} />
-      <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.16, mixBlendMode: "overlay" }}>
-        <filter id={`gr${s % 9999}`}><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" /></filter>
-        <rect width="100%" height="100%" filter={`url(#gr${s % 9999})`} />
-      </svg>
-      <div className="absolute" style={{ left: -8, bottom: "30%", right: 0, overflow: "hidden" }}>
-        <span style={{ fontFamily: display, fontSize: 76, fontWeight: 300, lineHeight: 0.92,
-                       letterSpacing: "-0.045em", color: "#fff", opacity: 0.09, whiteSpace: "nowrap", display: "block" }}>
-          {(lesson.focus || "").toUpperCase()}
+    <span className="relative block shrink-0 overflow-hidden" aria-hidden="true"
+          style={{ width: size, height: size, borderRadius: radius, background: flat ? t.wash : "#191D1B" }}>
+      {item.type === "video" && item.url && <video src={`${item.url}#t=0.001`} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />}
+      {item.type === "photo" && item.url && <img src={item.url} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />}
+      {glyph && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="rounded-full flex items-center justify-center" style={{ width: 22, height: 22, background: flat ? t.ink : "rgba(0,0,0,0.45)" }}>{glyph}</span>
         </span>
-      </div>
-    </div>
+      )}
+    </span>
   );
 }
 
-/* One piece of evidence: a clip, a photo, or a readout.
-
-   The video is driven from an effect, not an inline ref callback — an
-   inline callback is a new function every render, so React detaches and
-   reattaches the ref each time, which paused the clip on every state
-   change and left a black frame. It also needs preload="auto" and an
-   explicit load(), or nothing is painted until first play. */
-function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
-  const vid = useRef(null);
-  const [tk, setTk] = useState(0);
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  const [blocked, setBlocked] = useState(false);
-  /* Play as soon as this card is the one on screen. Three things that
-     each left a frozen first frame on an iPhone: React sets `muted` as
-     a property and not an attribute, and Safari decides autoplay from
-     the attribute; a new URL on the same element needs load() before
-     play(); and Low Power Mode refuses every autoplay, which play()
-     reports as a rejection — so that is caught and answered with a
-     play button, and a tap starts it inside a gesture. */
-  const tryPlay = () => {
-    const el = vid.current;
-    if (!el) return;
-    /* autoplay is only ever allowed muted; sound comes on afterwards,
-       from a tap, which the browser permits */
-    el.muted = muted; el.defaultMuted = true;
-    if (muted) el.setAttribute("muted", ""); else el.removeAttribute("muted");
-    el.setAttribute("playsinline", ""); el.setAttribute("webkit-playsinline", "");
-    const p = el.play();
-    if (p && p.then) p.then(() => setBlocked(false)).catch(() => {
-      /* sound on is allowed only from a tap; a card scrolled into view
-         plays muted instead of not at all, and the switch shows it */
-      if (!muted) {
-        el.muted = true; el.setAttribute("muted", "");
-        const q = el.play();
-        if (q && q.then) q.then(() => { setBlocked(false); onAutoMuted && onAutoMuted(); }).catch(() => setBlocked(true));
-      } else setBlocked(true);
-    });
-  };
-  useEffect(() => {
-    const el = vid.current;
-    if (!el) return;
-    if (live) tryPlay();
-    else el.pause();
-  }, [live, item.url]);
-  useEffect(() => { const el = vid.current; if (el) el.muted = muted; }, [muted]);
-  useEffect(() => {
-    const el = vid.current;
-    if (el && item.type === "video") { setReady(false); setFailed(false); el.load(); if (live) tryPlay(); }
-  }, [item.url]);
-  useEffect(() => {
-    /* coming back to the tab: the browser pauses everything, and does
-       not always resume it */
-    const onVis = () => { if (document.visibilityState === "visible" && live) tryPlay(); };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [live]);
-
-  useEffect(() => {
-    if (!live || item.type !== "sim") return;
-    const x = setInterval(() => setTk((v) => (v + 1) % 100), 90);
-    return () => clearInterval(x);
-  }, [live, item.type]);
-
-  if (item.type === "video") {
-    return (
-      <>
-        {/* behind, so it can never hide the clip */}
-        <div className="absolute inset-0 flex items-center justify-center"
-             style={{ background: "#0B0F10", zIndex: 0,
-                      opacity: ready ? 0 : 1, transition: "opacity 420ms ease-out" }}>
-          <span style={{ opacity: 0.45, animation: "markBreathe 3s ease-in-out infinite" }}>
-            <Mark size={24} color={mark} />
-          </span>
-        </div>
-        <video ref={vid} src={item.url} muted loop playsInline autoPlay preload="auto"
-               onLoadedMetadata={() => setReady(true)}
-               onLoadedData={() => setReady(true)}
-               onCanPlay={() => { setReady(true); if (live && vid.current && vid.current.paused) tryPlay(); }}
-               onPlaying={() => { setReady(true); setBlocked(false); }}
-               onTimeUpdate={(e) => { if (onProgress && live) { const el = e.currentTarget; onProgress(el.duration ? el.currentTime / el.duration : 0); } }}
-               onError={() => setFailed(true)}
-               className="absolute inset-0 w-full h-full"
-               style={{ objectFit: "cover", zIndex: 1 }} />
-        {blocked && !failed && (
-          /* autoplay was refused (Low Power Mode, mostly): one tap, in a
-             gesture, is allowed where autoplay was not */
-          <button onClick={() => { haptic(8); tryPlay(); }} aria-label={tr("Play")}
-                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: "rgba(0,0,0,0.18)" }}>
-            <span className="rounded-full flex items-center justify-center" style={{ width: 64, height: 64, background: "rgba(255,255,255,0.92)" }}>
-              <Play size={24} color="#111" strokeWidth={2} style={{ marginLeft: 3 }} />
-            </span>
-          </button>
-        )}
-        {failed && (
-          /* say so, rather than showing a blank frame forever */
-          /* centred in the top half: the lesson's date, title and note
-             are drawn over the lower third of this frame, and a message
-             centred on the whole frame landed on top of them */
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ zIndex: 2, background: "#0B0F10", paddingBottom: "38%" }}>
-            <X size={22} color={DANGER} strokeWidth={2} />
-            <span className="mt-3 text-center" style={{ ...TYPE.small, color: "rgba(255,255,255,0.8)" }}>
-              {tr("This clip wouldn't play")}
-            </span>
-            <span className="mt-1 text-center" style={{ ...TYPE.caption, color: "rgba(255,255,255,0.45)" }}>
-              {item.name || tr("Try an MP4")}
-            </span>
-            <button onClick={() => { haptic(8); setFailed(false); if (vid.current) vid.current.load(); }}
-                    className="mt-4 px-4 active:opacity-60"
-                    style={{ minHeight: 34, borderRadius: R.pill, border: "0.5px solid rgba(255,255,255,0.3)",
-                             ...TYPE.caption, color: "#fff" }}>{tr("Try again")}</button>
-          </div>
-        )}
-      </>
-    );
-  }
-
-  if (item.type === "photo") {
-    return (
-      <>
-        <div className="absolute inset-0" style={{ background: "#0B0F10", zIndex: 0,
-               opacity: ready ? 0 : 1, transition: "opacity 420ms ease-out" }} />
-        <img src={item.url} alt="" onLoad={() => setReady(true)} onError={() => setFailed(true)}
-             className="absolute inset-0 w-full h-full"
-             style={{ objectFit: "cover", zIndex: 1 }} />
-      </>
-    );
-  }
-
-  if (item.type === "audio") {
-    /* a voice note in the feed: the browser's own player, nothing drawn */
-    return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8" style={{ background: "#0B0F10" }}>
-        <Mic size={40} color="rgba(255,255,255,0.85)" strokeWidth={1.4} />
-        <audio src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
-      </div>
-    );
-  }
-
-  if (item.type === "data") {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0B0F10" }}>
-        <div className="w-full px-8">
-          <div className="mb-5" style={{ ...TYPE.eyebrow, fontSize: 9, color: "rgba(255,255,255,0.5)" }}>{item.device}</div>
-          {item.rows.map((r, i) => (
-            <div key={r[0]} className="flex items-baseline justify-between py-3"
-                 style={{ borderBottom: "0.5px solid rgba(255,255,255,0.12)",
-                          animation: live ? `settle 380ms cubic-bezier(.22,1,.36,1) ${i * 70}ms both` : "none" }}>
-              <span style={{ ...TYPE.small, color: "rgba(255,255,255,0.6)" }}>{r[0]}</span>
-              <span style={{ ...TYPE.figure, fontSize: 26, color: "#fff" }}>{r[1]}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
+function LessonRow({ lesson: l, poster, need, onOpen, saved, showWho, first, index = 0 }) {
+  const t = useT();
+  const asked = useRef(false);
+  /* a real account asks for the lesson's files once, when the row
+     first mounts, so the list has its posters without loading every
+     lesson's media up front */
+  useEffect(() => { if (need && !asked.current) { asked.current = true; need(); } }, [need]);
+  const files = l.media ?? l.videos ?? 0;
+  const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
+  /* two facts on the grey line, never three */
+  const sub = [showWho && l.who ? l.who.split(" ")[0] : null, when, files > 1 ? `${files} ${tr("files")}` : null].filter(Boolean).slice(0, 2).join(" · ");
   return (
-    <div className="absolute inset-0" aria-hidden="true">
-      <div className="absolute inset-0" style={{ background: "#0C0F10" }} />
-      <div className="absolute inset-0"
-           style={{ background: `radial-gradient(70% 50% at ${45 + Math.sin(tk / 9) * 10}% ${42 + Math.cos(tk / 11) * 8}%, ${mark}4D 0%, transparent 72%), linear-gradient(180deg, ${mark}22 0%, #0A0D0E 78%)`,
-                    transition: "background 220ms linear" }} />
-      <div className="absolute" style={{ left: 0, right: 0, top: "46%", height: 1, background: `${mark}44` }} />
-    </div>
-  );
-}
-
-
-/* the round buttons down the right of a feed card: sound, open, the coach */
-function Round({ label, onTap, children, solid, tour }) {
-  return (
-    <button onClick={onTap} aria-label={label} data-tour={tour} className="flex items-center justify-center active:opacity-70"
-            style={{ width: 46, height: 46, borderRadius: 23,
-                     background: solid ? "rgba(255,255,255,0.94)" : "rgba(20,24,26,0.55)",
-                     backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                     border: solid ? "none" : "0.5px solid rgba(255,255,255,0.18)",
-                     transition: "background 200ms" }}>
-      {children}
+    <button data-tour={first ? "log-row" : undefined} onClick={() => { haptic(8); soft(); onOpen(l); }}
+            className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+            style={{ minHeight: 64, paddingTop: 8, paddingBottom: 8, borderBottom: RULE.hair(t.ink),
+                     animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(index, 5) * 22}ms backwards` }}>
+      <Poster item={poster} />
+      <span className="flex-1 min-w-0">
+        <span className="flex items-center gap-2">
+          {l.unread && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.ink }} />}
+          <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+        </span>
+        <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
+      </span>
+      {saved && <Download size={13} color={t.faint} />}
+      <ChevronRight size={14} color={t.trace || t.faint} />
     </button>
   );
 }
 
-const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho, cfg }) {
-  const t = useT();
-  const live = useLive();
-  const [frame, setFrame] = useState(0);
-  const [prog, setProg] = useState(0);      // how far through the clip on screen
-  const [more, setMore] = useState(false);  // the note, opened out
-  const rail = useRef(null);
-  const items = media && media.length ? media : [];
-  const current = items[frame];
-
-  /* A lesson the prefetch never reached asks for its own files the
-     first time it comes near, so the twentieth lesson down is not a
-     black card for ever. */
-  useEffect(() => { if (near && media === undefined && onNeed) onNeed(lesson); }, [near, media, lesson, onNeed]);
-  useEffect(() => { setProg(0); }, [frame, active]);
-
-  const step = (d) => {
-    const el = rail.current;
-    if (!el || items.length < 2) return;
-    const w = el.clientWidth || 1;
-    const next = (frame + d + items.length) % items.length;
-    el.scrollTo({ left: next * w, behavior: "smooth" });
-    setFrame(next);
-  };
-
-  const tick = useRef(0);
-  const onRailScroll = (e) => {
-    const el = e.currentTarget;
-    if (tick.current) return;                 /* one read per frame, not per event */
-    tick.current = requestAnimationFrame(() => {
-      tick.current = 0;
-      const i = Math.round(el.scrollLeft / (el.clientWidth || 1));
-      if (i !== frame) setFrame(i);
-    });
-  };
-
-  const open = () => { hapticCommit(); soft(); onOpen && onOpen(lesson); };
-
-  return (
-    <div data-feed-card={index} className="relative"
-         style={{ height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always", overflow: "hidden" }}>
-
-      {media === null ? (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0B0F10" }} aria-hidden="true">
-          <span style={{ opacity: 0.4, animation: "markBreathe 3s ease-in-out infinite" }}><Mark size={22} color={t.mark} /></span>
-        </div>
-      ) : items.length === 0 ? (
-        /* Nothing was attached. The harness draws its field; a real
-           lesson gets a plain ground — CLAUDE.md: no drawn placeholder
-           for a real lesson, because it reads as a clip that failed. */
-        live ? <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />
-             : <GeneratedField lesson={lesson} mark={t.mark} />
-      ) : (
-        /* `near` decides whether the heavy elements are mounted, never
-           whether the person sees their own footage: swapping a drawn
-           field in for a real clip is what read as "it didn't upload". */
-        <div ref={rail} onScroll={onRailScroll}
-             className="absolute inset-0 flex overflow-x-auto"
-             style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain", scrollbarWidth: "none" }}>
-          {items.map((it, i) => (
-            <div key={it.id || i} className="relative shrink-0"
-                 style={{ width: "100%", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>
-              {near || i === 0
-                ? <Evidence item={it} live={active && i === frame} mark={t.mark} muted={!sound} onAutoMuted={() => onSound && onSound(false)} onProgress={i === frame ? setProg : undefined} />
-                : <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* a soft floor for the words, and nothing over the picture above it */}
-      <div className="absolute inset-x-0 bottom-0" aria-hidden="true"
-           style={{ height: "48%", zIndex: 10,
-                    background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)" }} />
-
-      {/* the column: sound, open, the coach */}
-      <div className="absolute flex flex-col items-center gap-3.5" style={{ right: 16, bottom: 132, zIndex: 30 }}>
-        {current && current.type === "video" && (
-          <Round label={sound ? tr("Mute") : tr("Sound")} onTap={() => { haptic(7); onSound && onSound(!sound); }}>
-            {sound ? <Volume2 size={19} color="#fff" strokeWidth={1.9} /> : <VolumeX size={19} color="rgba(255,255,255,0.9)" strokeWidth={1.9} />}
-          </Round>
-        )}
-        <Round label={tr("Open lesson")} onTap={open} solid tour="feed-open">
-          <ArrowRight size={19} color="#111" strokeWidth={2.2} />
-        </Round>
-        {lesson.coach && (
-          <span className="rounded-full" style={{ padding: 2, background: "rgba(255,255,255,0.9)" }} aria-label={lesson.coach}>
-            <Avatar name={lesson.coach} size={38} />
-          </span>
-        )}
-      </div>
-
-      {/* what this is: the focus, the day, the coach, the note — on glass */}
-      <div className="absolute" style={{ left: 16, right: 78, bottom: 108, zIndex: 25 }}>
-        {/* the title opens the lesson; the note unfolds only when there is
-            more of it — a tap that changed nothing was a dead end */}
-        <div className="w-full text-left"
-             style={{ padding: "14px 16px 12px", borderRadius: 18, background: "rgba(10,13,14,0.38)",
-                      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-                      border: "0.5px solid rgba(255,255,255,0.12)",
-                      animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
-          <button onClick={open} className="block w-full text-left active:opacity-80">
-            <span className="block" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
-              {lesson.focus}
-            </span>
-            <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
-            </span>
-          </button>
-          {lesson.note && (lesson.note.length > 44 ? (
-            <button onClick={() => { haptic(6); setMore((v) => !v); }} className="flex items-baseline gap-2 mt-2 w-full text-left active:opacity-80"
-                    style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>
-              <span className={`min-w-0 ${more ? "" : "truncate"}`}>{lesson.note}</span>
-              <span className="shrink-0" style={{ color: "rgba(255,255,255,0.55)" }}>{more ? tr("less") : tr("more")}</span>
-            </button>
-          ) : (
-            <span className="block mt-2" style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>{lesson.note}</span>
-          ))}
-          {items.length > 1 && (
-            <span className="flex items-center gap-1.5 mt-3" aria-label={`${frame + 1} ${tr("of")} ${items.length}`}>
-              {items.map((it, i) => (
-                <span key={it.id || i} className="rounded-full"
-                      style={{ width: i === frame ? 14 : 4, height: 4,
-                               background: i === frame ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.38)",
-                               transition: "width 240ms cubic-bezier(.22,1,.36,1), background 240ms" }} />
-              ))}
-            </span>
-          )}
-        </div>
-        {/* how far through the clip */}
-        {current && current.type === "video" && (
-          <div className="mt-2.5 mx-1" aria-hidden="true" style={{ height: 2, borderRadius: 1, background: "rgba(255,255,255,0.22)", overflow: "hidden" }}>
-            <div style={{ width: `${Math.round(prog * 100)}%`, height: 2, background: "#fff", transition: "width 240ms linear" }} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-});
-
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg }) {
-  const [active, setActive] = useState(0);
-  const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
-  const wrap = useRef(null);
-
-  useEffect(() => {
-    const root = wrap.current;
-    if (!root || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (!e.isIntersecting) return;
-        const i = Number(e.target.getAttribute("data-feed-card"));
-        setActive(i);
-      });
-    }, { root, threshold: 0.6, rootMargin: "-30% 0px -30% 0px" });
-    root.querySelectorAll("[data-feed-card]").forEach((c) => io.observe(c));
-    return () => io.disconnect();
-  }, [lessons.length]);
-
-  return (
-    <div className="absolute inset-0" style={{ background: "#0A0D0E" }}>
-
-      <div className="absolute inset-x-0 pointer-events-none" aria-hidden="true"
-           style={{ top: 0, height: 104, zIndex: 20,
-                    background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)" }} />
-
-      {/* TEST CONTROL — not part of the product. Sits here because this
-          is the screen it loads into. */}
-      {onPickFiles && (
-        <label className="absolute flex items-center gap-1.5 px-3"
-               style={{ top: 70, left: 18, height: 28, borderRadius: 14, zIndex: 30, cursor: "pointer",
-                        background: "rgba(0,0,0,0.45)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-                        border: `0.5px dashed rgba(255,255,255,0.4)` }}>
-          <Plus size={12} color="rgba(255,255,255,0.85)" strokeWidth={2.4} />
-          <span style={{ ...TYPE.caption, fontSize: 9.5, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>
-            {tr("Test media")}{loaded ? ` · ${loaded}` : ""}
-          </span>
-          <input type="file" accept="video/*,image/*,audio/*" multiple className="hidden"
-                 onChange={(e) => { onPickFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
-        </label>
-      )}
-
-      {/* the three views, top left — the same switch as the other two screens */}
-      <div className="absolute" style={{ top: 26, left: 16, zIndex: 30 }}>
-        <ViewSwitch onDark view={view} setView={setView} tour="log-view" />
-      </div>
-
-      <div ref={wrap} className="absolute inset-0 overflow-y-auto"
-           style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
-                    WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
-        {lessons.map((l, i) => (
-          <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active} cfg={cfg}
-                    near={Math.abs(i - active) <= 1} onNeed={onNeed}
-                    media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} showWho={showWho} />
-        ))}
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"
-           style={{ height: 120, zIndex: 20,
-                    background: "linear-gradient(to top, #0A0D0E 8%, rgba(10,13,14,0.55) 45%, transparent 100%)" }} />
-    </div>
-  );
-}
-
-
-
-
-/* One control, used in the feed and on the list screen, so the three
-   views read as equals wherever you meet them. */
-function ViewSwitch({ view, setView, onDark, tour }) {
-  const t = useT();
-  /* Two views, not three. Cards and List were both "scroll your
-     lessons" — one with a big picture, one without — and a person
-     choosing between them is choosing nothing. The feed is the one
-     that is genuinely a different thing to do. */
-  const opts = [
-    { id: "feed", Ico: Play,     label: "Feed" },
-    { id: "list", Ico: FileText, label: "List" },
-  ];
-  return (
-    <div data-tour={tour} className="flex gap-1 p-1" style={{ borderRadius: R.pill,
-           background: onDark ? "rgba(255,255,255,0.14)" : t.wash,
-           backdropFilter: onDark ? "blur(14px)" : "none", WebkitBackdropFilter: onDark ? "blur(14px)" : "none" }}>
-      {opts.map((o) => {
-        const on = view === o.id;
-        return (
-          <button key={o.id} aria-pressed={on} aria-label={o.label} onClick={() => { haptic(9); soft(); setView(o.id); }}
-                  className="flex items-center gap-1.5 px-3.5 active:opacity-70"
-                  style={{ minHeight: 34, borderRadius: R.pill,
-                           background: on ? (onDark ? "rgba(255,255,255,0.92)" : t.surface) : "transparent",
-                           boxShadow: on && !onDark ? (t.elev || ELEV).rest : "none",
-                           transition: "background 220ms" }}>
-            <o.Ico size={13} strokeWidth={2}
-                   color={on ? (onDark ? "#111" : t.accent) : (onDark ? "rgba(255,255,255,0.7)" : t.faint)} />
-            <span style={{ ...TYPE.caption, fontWeight: 500,
-                           color: on ? (onDark ? "#111" : t.ink) : (onDark ? "rgba(255,255,255,0.7)" : t.faint) }}>
-              {tr(o.label)}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 
 /* ATTENDANCE, ON ITS OWN
@@ -5310,7 +4828,7 @@ function AttendanceScreen({ role, cfg, records, rule, pop }) {
           ) : total === 0 ? (
             /* a green 100% for a register nobody has taken is a score
                nobody earned */
-            <p className="py-14 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No register taken yet.")}</p>
+            <p className="py-14 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No register taken yet")}</p>
           ) : (
             <>
               {/* one number, said plainly */}
@@ -5326,7 +4844,7 @@ function AttendanceScreen({ role, cfg, records, rule, pop }) {
                   <span className="absolute flex flex-col items-center">
                     <span style={{ ...TYPE.figure, fontSize: 34, color: t.ink,
                                    animation: "countIn 520ms cubic-bezier(.28,1.4,.5,1) 260ms both" }}>{pct}</span>
-                    <span style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{tr("Per cent")}</span>
+                    <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Per cent")}</span>
                   </span>
                 </span>
                 <span className="mt-4" style={{ ...TYPE.small, color: t.sub }}>
@@ -5341,7 +4859,7 @@ function AttendanceScreen({ role, cfg, records, rule, pop }) {
                     <div key={i} className="flex items-center gap-3.5 py-3.5"
                          style={{ borderBottom: RULE.hair(t.ink),
                                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                      <span className="shrink-0" style={{ width: 54, ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>
+                      <span className="shrink-0" style={{ width: 54, ...TYPE.caption, color: t.faint }}>
                         {r.date}
                       </span>
                       <span className="flex-1 min-w-0">
@@ -5591,7 +5109,7 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
 
   const already = !!found && (family ? found.id === currentGuardian : found.id === currentCoach);
   const line = found === undefined ? tr("Checking the code…")
-    : !found ? (family ? tr("That code doesn't match a family.") : tr("That code doesn't match a coach."))
+    : !found ? (family ? tr("No family with that code") : tr("No coach with that code"))
     : already ? (family ? `${tr("You're already in")} ${found.name}.` : `${tr("You're already with")} ${found.name}.`)
     : family ? `${tr("Join")} ${found.name}?${found.members ? ` ${found.members} ${found.members === 1 ? tr("person") : tr("people")} ${tr("in it.")}` : ""}`
     : currentCoachName ? `${tr("Ask to join")} ${found.name}? ${tr("Leave")} ${currentCoachName} ${tr("first, from their profile.")}`
@@ -5653,7 +5171,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
       {/* Same as LiveCapture: a body inside the app's Sheet, not a Sheet
           of its own — which is why Delete account and the weather
           call-off confirmation opened onto an empty panel. */}
-      <h2 className="mb-2" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{title}</h2>
+      <h2 className="mb-2" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
       <div className="pb-2">
         <p style={{ ...TYPE.body, color: t.sub, lineHeight: 1.55 }}>{detail}</p>
 
@@ -5770,9 +5288,9 @@ function FamilyCodeEntry({ lookup, onJoin, busy, tour }) {
       <CodeBoxes value={code} onChange={(v) => { setCode(v); setErr(""); }} bad={!!err || found === null} />
       <p className="mt-3 text-center" style={{ ...TYPE.caption, color: found === null || err ? DANGER : t.faint, minHeight: 18 }}>
         {err ? err : clean.length === 6 && found === undefined ? tr("Checking…")
-          : found === null ? tr("That code doesn't match a family.")
+          : found === null ? tr("No family with that code")
           : found ? `${found.name} · ${found.members} ${found.members === 1 ? tr("person") : tr("people")}`
-          : tr("Six characters, from someone already in it.")}
+          : tr("From someone already in it")}
       </p>
       <button onClick={join} disabled={busy || clean.length !== 6 || !found}
               className="w-full mt-3 active:opacity-80 disabled:opacity-30"
@@ -5831,12 +5349,12 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
               <Eyebrow>{tr("Start a family")}</Eyebrow>
               <Card tour="family-create" className="p-5 mb-8">
                 <div className="flex items-center gap-2 mb-4 px-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash }}>
-                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Name it, if you like")} maxLength={40}
+                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Family name · optional")} maxLength={40}
                          className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
                   <MicBtn onText={(txt) => setName(name ? `${name} ${txt}` : txt)} size={26} />
                 </div>
                 {err && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
-                <Button tone="ink" disabled={busy} onClick={create}>{busy ? "…" : tr("Create a family code")}</Button>
+                <Button tone="ink" disabled={busy} onClick={create}>{busy ? "…" : tr("Start")}</Button>
               </Card>
             </>)}
             <Eyebrow>{tr("Join a family")}</Eyebrow>
@@ -5872,7 +5390,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
             </Card>
           </>)}
 
-          <Eyebrow>{tr("Who's in it")}</Eyebrow>
+          <Eyebrow>{tr("Members")}</Eyebrow>
           <Card className="mb-8" tour="family-members">
             {adults.map((m, i) => member(m, i, i === adults.length - 1 && kids.length === 0))}
             {kids.map((m, i) => member(m, i, i === kids.length - 1))}
@@ -5893,17 +5411,17 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                             className="flex-1 active:opacity-80" style={{ minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Save")}</button>
                   </div>
                 </div>
-              ) : <Row label={tr("Name the family")} sub={family.name || tr("Shown to everyone in it")} chevron icon={<Edit3 size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { setNewName(family.name || ""); setRenaming(true); }} />}
+              ) : <Row label={tr("Name")} value={family.name || ""} chevron onToggle={() => { setNewName(family.name || ""); setRenaming(true); }} />}
               {leaving ? (
                 <div className="px-5 py-4" style={{ borderTop: `1px solid ${t.hair}` }}>
-                  <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{tr("You'll stop seeing the family's lessons and bookings. You can join again with the code.")}</p>
+                  <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{tr("You'll stop seeing their lessons. Rejoin any time with the code")}</p>
                   <div className="flex gap-2">
                     <button onClick={() => setLeaving(false)} className="flex-1 active:opacity-60" style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
                     <button onClick={async () => { hapticWarn(); setBusy(true); const r = await onLeave(); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } say && say(tr("You've left the family")); }}
                             className="flex-1 active:opacity-80" style={{ minHeight: 44, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Leave")}</button>
                   </div>
                 </div>
-              ) : <Row label={tr("Leave the family")} danger last icon={<LogOut size={17} color={DANGER} strokeWidth={1.6} />} onToggle={() => setLeaving(true)} />}
+              ) : <Row label={tr("Leave")} danger last onToggle={() => setLeaving(true)} />}
             </Card>
           )}
           <div style={{ height: 26 }} />
@@ -5934,8 +5452,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
         <div className="px-6 flex flex-col items-center text-center pt-6">
           <span className="rounded-full flex items-center justify-center mb-6" style={{ width: 70, height: 70, background: t.wash }}><Users size={26} color={t.sub} strokeWidth={1.5} /></span>
           <p style={{ ...TYPE.title, color: t.ink }}>{tr("No family yet")}</p>
-          <p className="mt-2 mb-7" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub, maxWidth: 300 }}>{tr("Start one and share its code, or join with a code you were given.")}</p>
-          <div className="w-full"><Button tone="ink" tour="family-setup" onClick={onSetUp}>{tr("Set up a family")}</Button></div>
+          <div className="w-full"><Button tone="ink" tour="family-setup" onClick={onSetUp}>{tr("Start or join")}</Button></div>
         </div>
       </Screen>
     );
@@ -5982,8 +5499,8 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
   };
 
   return (
-    <Screen title={family.displayName} meta={`${family.members.length} ${family.members.length === 1 ? tr("person") : tr("people")}`} right={right}
-            action={<button data-tour="family-settings" onClick={() => { haptic(6); onSettings && onSettings(); }} className="shrink-0 rounded-full flex items-center justify-center active:opacity-50" style={{ width: 38, height: 38, background: t.wash }} aria-label={tr("Family settings")}><Settings2 size={16} color={t.sub} strokeWidth={1.8} /></button>}>
+    <Screen title={family.displayName} right={right}
+            action={<button data-tour="family-settings" onClick={() => { haptic(6); onSettings && onSettings(); }} className="shrink-0 active:opacity-50" style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }} aria-label={tr("Family settings")}>{tr("Manage")}</button>}>
       {!ready ? <HomeSkeleton /> : (
         <div className="px-6">
           {/* THE ONE THING HAPPENING NEXT, WHEN IT IS NOT ALREADY BELOW.
@@ -5998,24 +5515,24 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
                 {first(nameOf(next.playerId)) || first(next.who) || tr("Lesson")}
               </p>
               <p className="mt-1" style={{ ...TYPE.small, color: next.status === "requested" ? CAUTION : t.sub }}>
-                {fmtDay(next.date)} · {next.time}{next.status === "requested" ? ` · ${tr("waiting on the coach")}` : ""}
+                {fmtDay(next.date)} · {next.time}{next.status === "requested" ? ` · ${tr("Requested")}` : ""}
               </p>
             </div>
           )}
 
           {!isJunior && dependants.length > 0 && (<>
-            <RowHead>{tr("Young players")}</RowHead>
+            <RowHead>{tr("Children")}</RowHead>
             <div className="mb-6" style={{ borderTop: RULE.section(t.ink) }}>
               {dependants.map((k, i) => <KidRow key={k.id} k={k} i={i} last={i === dependants.length - 1} />)}
             </div>
           </>)}
           {!isJunior && dependants.length === 0 && (
-            <p className="mb-6 py-6 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No young players yet")}</p>
+            <p className="mb-6 py-6 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No children yet")}</p>
           )}
 
           {rest.length > 0 && (<>
             <RowHead>{tr("Coming up")}</RowHead>
-            <div className="mb-7" data-tour="family-upcoming" style={{ borderTop: RULE.section(t.ink) }}>
+            <div className="nsc-list mb-7" data-tour="family-upcoming">
               {rest.map((b) => (
                 <div key={b.id} className="flex items-center gap-3 py-3" style={{ borderBottom: RULE.hair(t.ink) }}>
                   <span className="shrink-0" style={{ width: 84, ...TYPE.caption, color: t.faint }}>{fmtDay(b.date)}</span>
@@ -6026,7 +5543,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
             </div>
           </>)}
           {!next && rest.length === 0 && (
-            <p className="mb-7 py-6 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing booked.")}</p>
+            <p className="mb-7 py-6 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing booked")}</p>
           )}
 
           {/* who is in it — faces, not a table */}
@@ -6035,8 +5552,11 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
             {family.members.map((m) => (
               <span key={m.id} className="flex flex-col items-center shrink-0" style={{ width: 62 }}>
                 <Avatar name={m.name} size={46} src={avatarUrl(m.avatarPath)} />
-                <span className="mt-1.5 w-full truncate text-center" style={{ ...TYPE.caption, color: t.ink }}>{m.me ? tr("You") : first(m.name)}</span>
-                <span className="w-full truncate text-center" style={{ ...TYPE.caption, fontSize: 10, color: t.faint }}>{m.junior ? tr("Under 18") : m.role === "coach" ? tr("Coach") : tr("Adult")}</span>
+                <span className="mt-1.5 w-full truncate text-center" style={{ ...TYPE.caption, color: t.ink }}>{first(m.name)}</span>
+                {/* a list of names names everyone; the line under says only what is not obvious */}
+                {(m.me || m.junior || m.role === "coach") && (
+                  <span className="w-full truncate text-center" style={{ ...TYPE.caption, color: t.faint }}>{m.me ? tr("You") : m.junior ? tr("Under 18") : tr("Coach")}</span>
+                )}
               </span>
             ))}
           </div>
@@ -6076,11 +5596,11 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
           </div>
 
           <div className="mb-7" style={{ borderTop: RULE.section(t.ink) }}>
-            {[[tr("Next"), next ? `${fmtDay(next.date)} · ${next.time}${next.status === "requested" ? ` · ${tr("asked")}` : ""}` : tr("Nothing booked"), !next],
+            {[[tr("Next"), next ? `${fmtDay(next.date)} · ${next.time}${next.status === "requested" ? ` · ${tr("Requested")}` : ""}` : tr("Nothing booked"), !next],
               /* "All done" is praise; nothing set is not the same thing */
-              [tr("To practise"), mineDrills.length === 0 ? tr("None set") : todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), mineDrills.length === 0]].map(([lbl, val, quiet]) => (
+              [tr("Drills"), mineDrills.length === 0 ? tr("None set") : todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), mineDrills.length === 0]].map(([lbl, val, quiet]) => (
               <div key={lbl} className="flex items-baseline gap-3 py-3" style={{ borderBottom: RULE.hair(t.ink) }}>
-                <span className="shrink-0" style={{ width: 88, ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{lbl}</span>
+                <span className="shrink-0" style={{ width: 88, ...TYPE.caption, color: t.faint }}>{lbl}</span>
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: quiet ? t.faint : t.ink }}>{val}</span>
               </div>
             ))}
@@ -6118,7 +5638,6 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
    and review prompt) or a control on the screen they affect (the log
    view's pill on Lessons). */
 const PREF_DEFAULTS = {
-  logView:    "feed",     // feed · list
   calView:    "list",     // list · grid
   notify:     "instant",  // instant · digest · quiet
   quietFrom:  "9:00 pm",
@@ -6151,8 +5670,7 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              hairline do the grouping; a border is reserved for emphasis. */
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `1px solid ${accent}2E` : "1px solid transparent",
-                   boxShadow: accent ? "none" : (t.elev || ELEV).rest,
+                   border: accent ? `1px solid ${accent}2E` : `1px solid ${HAIR(t.ink, 0.14)}`,
                    transition: "transform 140ms cubic-bezier(.22,1,.36,1)", willChange: "transform",
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>
       {/* one pass of light as it arrives, never again */}
@@ -6173,7 +5691,7 @@ function Stat({ value, label, tone, wide }) {
     <div className="flex-1 px-3.5 py-3" style={{ minWidth: wide ? 0 : 74 }}>
       <div style={{ ...TYPE.figure, fontSize: 21,
                     color: tone || t.ink, animation: "figureCount 600ms cubic-bezier(.22,1,.36,1) both" }}>{value}</div>
-      <div className="mt-1.5 uppercase truncate" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.16em", color: t.faint }}>{label}</div>
+      <div className="mt-1.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{label}</div>
     </div>
   );
 }
@@ -6181,9 +5699,10 @@ function Stat({ value, label, tone, wide }) {
 /* How long until something, in words a person would use. */
 function untilText(hoursFromNow) {
   if (hoursFromNow < 0) return tr("Finished");
-  if (hoursFromNow < 1) return `${Math.round(hoursFromNow * 60)} ${tr("min away")}`;
-  const h = Math.floor(hoursFromNow), m = Math.round((hoursFromNow - h) * 60);
-  return m ? `${h}h ${m}m ${tr("away")}` : `${h}h ${tr("away")}`;
+  /* under an hour it is worth a word; beyond that the row already says
+     the time, and "13h 39m away" beneath "4:00 pm" was a tell */
+  if (hoursFromNow < 1) return `${tr("In")} ${Math.max(1, Math.round(hoursFromNow * 60))} ${tr("min")}`;
+  return "";
 }
 
 /* ==================================================================
@@ -6276,7 +5795,7 @@ function RateLesson({ focus, coach, onDone, close }) {
         <TimeGrid cols={2} times={tags} picked={picked} onToggle={(tg) => setPicked(picked.includes(tg) ? picked.filter((x) => x !== tg) : [...picked, tg])} />
       </div>
 
-      <div className="mb-5"><VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Anything else? Optional.")} /></div>
+      <div className="mb-5"><VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Notes")} /></div>
       <Button disabled={!score} onClick={() => { onDone({ score, tags: picked, note }); close(); }}>{tr("Send to your coach")}</Button>
       
     </>
@@ -6293,7 +5812,7 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
      family member with a coach of their own; the seeded connections
      are the design harness's. */
   const base = given ? given : role === "coach"
-    ? roster.map((r) => ({ id: r.id, name: r.name, sub: `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}` }))
+    ? roster.map((r) => ({ id: r.id, name: r.name }))
     : conns.map((c) => ({ name: c.coach, sub: `${SPORTS[c.sport].label} · ${c.club}` }));
   /* one message to every player is the first row, not a second button */
   const people = role === "coach" && base.length > 1 ? [{ id: "__all", name: tr("Everyone"), sub: `${base.length} ${tr("players")}`, all: true }, ...base] : base;
@@ -6344,7 +5863,7 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
       <div className="mb-5">
         <FocusGrid areas={cfg.focus} picked={[pick]} onToggle={setPick} />
       </div>
-      <div className="mb-5"><VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Anything specific? Optional.")} /></div>
+      <div className="mb-5"><VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Notes")} /></div>
       <Button disabled={!pick} onClick={() => { onSend(cfg.focus.find((f) => f.id === pick).label, note); close(); }}>
         {tr("Send the suggestion")}
       </Button>
@@ -6398,7 +5917,7 @@ function WeatherCallOff({ day, bookings, duration, onConfirm, close, ahead }) {
 
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: t.ink }}>{ahead ? tr("Call off ahead") : tr("Weather call-off")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{ahead ? tr("Call off ahead") : tr("Weather call-off")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{day}</p>
 
       <Tile accent={scope === "day" ? DANGER : null} className="px-5 py-4 mb-2.5" onPress={() => { setScope("day"); setPick(null); }}>
@@ -6524,7 +6043,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
             {f.tip && (
               <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
-                <div className="uppercase mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Working on")}</div>
+                <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Working on")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
             )}
@@ -6533,7 +6052,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                       className="w-full flex items-center gap-3 px-4 py-3 text-left active:opacity-60"
                       style={{ borderRadius: R.control, border: `1px solid ${t.hair}` }}>
                 <span className="flex-1">
-                  <span className="block uppercase mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
+                  <span className="block mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
                 </span>
                 <ChevronRight size={15} color={t.trace || t.faint} />
@@ -6567,10 +6086,9 @@ function FreeDay({ onSetHours }) {
      booked. It is a quiet fact and it gets a quiet line. */
   return (
     <div className="px-6 py-14 text-center">
-      <p style={{ ...TYPE.title, color: t.ink }}>{tr("You're free today")}</p>
-      <p className="mt-2 mb-6" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing booked. Enjoy it.")}</p>
-      <button onClick={onSetHours} className="active:opacity-50" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>
-        {tr("Open more hours")}
+      <p style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked")}</p>
+      <button onClick={onSetHours} className="mt-4 active:opacity-50" style={{ ...TYPE.small, fontWeight: 500, color: t.ink }}>
+        {tr("Set hours")}
       </button>
     </div>
   );
@@ -6647,7 +6165,9 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
      come in to match; nothing is dropped, because a tab that is there
      for some people and not others is worse than a small label. */
   const tight = tabs.length >= 6;
-  const D = barPath(w, hasRaised);
+  /* a plain oval whoever is signed in: the plus sits inside the bar as
+     the one raised object, not as a swell in the bar's silhouette */
+  const D = barPath(w, false);
   const barRef = useRef(null);
   const bubbleRef = useRef(null);
   const iconRefs = useRef([]);
@@ -6717,7 +6237,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
     if (!S.current.dragging) return;
     S.current.dragging = false;
     const b = bubbleRef.current;
-    if (b) { b.style.opacity = "0.12"; b.style.boxShadow = "none"; }
+    if (b) { b.style.opacity = "0"; b.style.boxShadow = "none"; }
     const target = S.current.idx;
     snapTo(target);
     S.current.suppress = true;
@@ -6804,8 +6324,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
             the active tab rather than taking the ring's word for it */}
         <span ref={bubbleRef} className="absolute" aria-hidden="true" data-tour-pill=""
               style={{ left: 4, top: 5, bottom: 5, width: `calc(${100 / tabs.length}% - 8px)`,
-                       borderRadius: R.pill, background: theme.mark, opacity: 0.13, zIndex: 1,
-                       boxShadow: `inset 0 1px 0 rgba(255,255,255,0.4)`,
+                       borderRadius: R.pill, background: theme.ink, opacity: 0, zIndex: 1,
                        willChange: "transform", transform: "translate3d(0,0,0)" }} />
 
         {tabs.map((tb, i) => {
@@ -6823,13 +6342,13 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
                       onClick={() => { if (S.current.suppress) return; haptic(12); soft(); onSelect(tb.id); }}
                       className="flex-1 flex items-center justify-center"
                       style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
-                <span className="relative flex items-center justify-center"
-                      style={{ width: 56, height: 56, marginTop: RAISED_OFFSET,
+                <span className="relative flex items-center justify-center rounded-full"
+                      style={{ width: 42, height: 42, marginTop: RAISED_OFFSET, background: theme.ink,
                                /* level with the other tabs' icons, derived from
                                   their own metrics rather than hand-tuned */
                                transition: "transform 220ms cubic-bezier(.34,1.56,.64,1)",
-                               transform: on ? "scale(0.9)" : "scale(1)", willChange: "transform" }}>
-                  <Plus size={32} color={theme.ink} strokeWidth={2.4} />
+                               transform: on ? "scale(0.94)" : "scale(1)", willChange: "transform" }}>
+                  <Plus size={22} color={theme.page} strokeWidth={2.4} />
                 </span>
               </button>
             );
@@ -6843,14 +6362,14 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
               <span ref={(el) => { iconRefs.current[i] = el; }} className="relative flex flex-col items-center justify-center gap-1"
                     style={{ maxWidth: "100%", transition: "transform 260ms cubic-bezier(.22,1,.36,1), opacity 200ms",
                              transform: on ? "scale(1.04)" : "scale(1)", willChange: "transform" }}>
-                <Icon size={tight ? 18 : 19} color={on ? theme.mark : theme.faint} strokeWidth={on ? 2.1 : 1.75} style={{ transition: "color 220ms" }} />
-                <span style={{ fontFamily: ui, fontSize: tight ? 8.5 : 9.5, fontWeight: 600,
+                <Icon size={tight ? 18 : 19} color={on ? theme.ink : theme.faint} strokeWidth={on ? 2.1 : 1.75} style={{ transition: "color 220ms" }} />
+                <span style={{ fontFamily: ui, fontSize: 11, fontWeight: on ? 600 : 500,
                                letterSpacing: tight ? "-0.01em" : "0.005em", maxWidth: "100%",
-                               color: on ? theme.mark : theme.faint, transition: "color 220ms", whiteSpace: "nowrap" }}>{tb.label}</span>
+                               color: on ? theme.ink : theme.faint, transition: "color 220ms", whiteSpace: "nowrap" }}>{tb.label}</span>
                 {tb.badge && (<span className="absolute rounded-full" style={{ top: -2, right: tight ? -3 : -5, width: 7, height: 7, background: DANGER }} />)}
                 {tb.count > 0 && (<span className="absolute rounded-full flex items-center justify-center"
                                         style={{ top: -6, right: tight ? -5 : -9, minWidth: 15, height: 15, padding: "0 4px", background: DANGER,
-                                                 fontFamily: ui, fontSize: 9, fontWeight: 600, color: "#fff" }}>{tb.count}</span>)}
+                                                 fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>{tb.count}</span>)}
               </span>
             </button>
           );
@@ -6877,7 +6396,7 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
         <div className="flex items-center px-1.5" style={{ height: 46 }}>
           {onBack ? (
             <button onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40">
-              <ChevronLeft size={25} color={t.accent} strokeWidth={2.1} />
+              <ChevronLeft size={25} color={t.ink} strokeWidth={2.1} />
             </button>
           ) : <span style={{ width: 41 }} />}
           <span className="flex-1 text-center truncate px-2"
@@ -6984,14 +6503,14 @@ function Toast({ msg }) {
 function Segmented({ options, value, onChange, tour }) {
   const t = useT();
   return (
-    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash, boxShadow: (t.elev || ELEV).groove }}>
+    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash }}>
       {options.map((o) => {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} onClick={() => { haptic(6); onChange(o); }} className="flex-1 rounded-lg"
-                  style={{ minHeight: 34, background: on ? t.surface : "transparent", boxShadow: on ? (t.elev || ELEV).rest : "none",
-                           transition: `background ${MOTION.move}ms ${MOTION.curve}, color ${MOTION.move}ms, box-shadow ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
+                  style={{ minHeight: 30, background: on ? t.surface : "transparent", border: `1px solid ${on ? HAIR(t.ink, 0.14) : "transparent"}`,
+                           transition: `background ${MOTION.move}ms ${MOTION.curve}, color ${MOTION.move}ms`,
+                           fontFamily: ui, fontSize: 13, fontWeight: 500, color: on ? t.ink : t.sub }}>{o}</button>
         );
       })}
     </div>
@@ -7003,7 +6522,7 @@ function Toggle({ on, onChange }) {
     <button onClick={() => { haptic(6); onChange(!on); }} aria-pressed={on} className="rounded-full shrink-0 relative"
             style={{ width: 50, height: 30, background: on ? t.accent : "#D6DAD3", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
       <span className="absolute rounded-full" style={{ width: 26, height: 26, top: 2, left: on ? 22 : 2, background: "#fff",
-                     boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 200ms cubic-bezier(.32,.72,0,1)" }} />
+                     transition: "left 200ms cubic-bezier(.32,.72,0,1)" }} />
     </button>
   );
 }
@@ -7105,12 +6624,10 @@ function VoiceInput({ value, onChange, ph, style, autoFocus }) {
 function VoiceArea({ value, onChange, ph, rows = 3 }) {
   const t = useT();
   return (
-    <div className="rounded-2xl px-4 py-1" style={{ background: t.wash }}>
+    <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, border: `1px solid ${HAIR(t.ink, 0.14)}` }}>
       <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={ph}
-                className="w-full outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
-      <div className="flex items-center justify-end pb-2">
-        <MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} />
-      </div>
+                className="flex-1 min-w-0 outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
+      <div className="pb-2"><MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} /></div>
     </div>
   );
 }
@@ -7213,19 +6730,20 @@ const Rail = ({ children, tone, style = {} }) => {
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
+  /* flat: a surface is a step in fill and a hairline, never a shadow.
+     Shadows are the bottom sheet's and the raised plus's alone. */
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `1px solid ${HAIR(t.ink, 0.14)}`,
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
    side padding; inside a column that already has it, use this. */
 const RowHead = ({ children }) => {
   const t = useT();
-  return <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{children}</div>;
+  return <div className="px-1" style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 8 }}>{children}</div>;
 };
 const Eyebrow = ({ children }) => {
   const t = useT();
-  return (<div className="mb-3 px-6 mt-1" style={{ marginLeft: 1, fontFamily: ui, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: t.faint,
-                  animation: "slideIn 460ms cubic-bezier(.22,1,.36,1) both" }}>{children}</div>);
+  return <div className="mb-3 px-6 mt-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{children}</div>;
 };
 export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   const t = useT();
@@ -7238,15 +6756,16 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   }[tone];
   /* a filled button is an object on the paper and presses like one; an
      outlined one is a word on the page and only dims */
-  const solid = tone === "accent" || tone === "ink" || tone === "danger";
   return (
     <button data-tour={tour} onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
-            className="w-full disabled:opacity-20"
-            {...sink(t, solid ? (t.elev || ELEV).cast : "none")}
+            className="w-full"
+            {...(disabled ? {} : sink(t, "none"))}
             style={{ minHeight: 54, borderRadius: R.surface, fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "0.015em",
-                     boxShadow: solid ? (t.elev || ELEV).cast : "none",
-                     transition: `transform ${MOTION.settle}ms ${MOTION.curve}, box-shadow ${MOTION.settle}ms, opacity ${MOTION.instant}ms`,
-                     willChange: "transform", ...looks }}>{children}</button>
+                     /* a filled button is a flat surface like the tiles beside it — no shadow at rest */
+                     transition: `transform ${MOTION.settle}ms ${MOTION.curve}, opacity ${MOTION.instant}ms`,
+                     willChange: "transform", ...looks,
+                     /* disabled is grey on grey, never white on a pale accent */
+                     ...(disabled ? { background: t.wash, color: t.faint, border: "none" } : {}) }}>{children}</button>
   );
 }
 /* AN ICON FOR EVERY THING A COACH WORKS ON
@@ -7306,12 +6825,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      new paper is very nearly the page itself. */
   const bg = tone === "accent" ? t.accent : on ? t.ink : t.surface;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
-  const lift = tone === "accent" || on ? "none" : (t.elev || ELEV).rest;
+  /* A hairline at rest, no shadow. White tiles floating on the tinted
+     paper under a soft blur was the single strongest "template kit"
+     tell in every reference set; a tile is a flat surface with an edge. */
+  const edge = tone === "accent" || on ? "1px solid transparent" : `1px solid ${HAIR(t.ink, 0.14)}`;
   return (
     <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
-            {...sink(t, lift)}
+            {...sink(t, "none")}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
-            style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
+            style={{ minHeight: h, borderRadius: R.surface, background: bg, border: edge, willChange: "transform",
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
@@ -7321,11 +6843,14 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           Icon and the label centres on its own. */}
       {Icon && <Icon size={h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={1.6} />}
       <span className={Icon ? "truncate px-2" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: Icon ? 12 : 13, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: 1.25, color: fg }}>{label}</span>
+            style={{ fontFamily: ui, fontSize: Icon ? 12 : 13, fontWeight: 500, letterSpacing: "-0.005em", lineHeight: 1.25, color: fg }}>{label}</span>
+      {/* a count is a figure, not a disc. The black badge was a third
+          count coding on one screen beside the tab's red numeral and the
+          row's grey dot; one convention — a number only on the tab bar,
+          a plain figure anywhere else. */}
       {count > 0 && (
-        <span className="absolute flex items-center justify-center rounded-full"
-              style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
-                       fontFamily: ui, fontSize: 11, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
+        <span className="absolute" style={{ top: 10, right: 12, ...TYPE.small, fontWeight: 500, ...FIG,
+                                             color: tone === "accent" ? t.onAccent : on ? "rgba(255,255,255,0.8)" : t.sub }}>{count}</span>
       )}
       {dot && !count && <span className="absolute rounded-full" style={{ top: 12, right: 12, width: 7, height: 7, background: on ? "#fff" : t.accent }} />}
     </button>
@@ -7349,9 +6874,9 @@ const HomeRow = ({ label, value, tone, onPress, tour }) => {
   return (
     <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className="w-full flex items-center gap-4 text-left active:opacity-50"
-            style={{ minHeight: 58, borderBottom: RULE.hair(t.ink) }}>
+            style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
       <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
-      <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: tone || t.ink, maxWidth: "55%" }}>{value}</span>
+      <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
@@ -7375,12 +6900,12 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         const on = has(x), off = disabled && disabled.includes(x);
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
-                  {...sink(t, on || off ? "none" : (t.elev || ELEV).rest)}
+                  {...sink(t, "none")}
                   style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : t.surface,
-                           boxShadow: on || off ? "none" : (t.elev || ELEV).rest, opacity: off ? 0.35 : 1,
-                           fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
+                           border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.14)}`, opacity: off ? 0.35 : 1,
+                           fontFamily: ui, fontSize: 13, fontWeight: 500, letterSpacing: "-0.01em", ...FIG,
                            color: on ? "#fff" : t.ink, willChange: "transform",
-                           transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>{x}</button>
+                           transition: `background ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>{x}</button>
         );
       })}
     </div>
@@ -7428,7 +6953,6 @@ const DrillPicker = ({ drills, picked, onToggle, tour }) => {
           <button key={name} aria-pressed={on} onClick={() => { haptic(7); soft(); onToggle(name); }}
                   className="w-full flex items-center gap-3 text-left active:opacity-60"
                   style={{ minHeight: 50, borderBottom: hair }}>
-            <ListChecks size={16} color={on ? t.accent : t.faint} strokeWidth={1.7} />
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>{name}</span>
             {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
           </button>
@@ -7491,18 +7015,18 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
           const isMain = mainId === id;
           return (
             <button key={id} aria-label={add ? `+ ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
-                    {...sink(t, on ? "none" : (t.elev || ELEV).rest)}
+                    {...sink(t, "none")}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.surface,
-                             boxShadow: on ? "none" : (t.elev || ELEV).rest, willChange: "transform",
-                             transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.surface, border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.14)}`,
+                             willChange: "transform",
+                             transition: `background ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
               {add
                 ? <Plus size={18} color={t.sub} strokeWidth={2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: sp.theme.mark }} />}
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>
                 {add ? `+ ${sp.label}` : sp.label}
               </span>
-              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, fontSize: 9.5, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>· {tr("main")}</span>}
+              {isMain && <span className="absolute" style={{ bottom: 6, ...TYPE.caption, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>· {tr("main")}</span>}
             </button>
           );
         })}
@@ -7513,7 +7037,7 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
 
 const TextBtn = ({ children, onClick, color, tour }) => {
   const t = useT();
-  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: color || t.accent }}>{children}</button>);
+  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: color || t.ink }}>{children}</button>);
 };
 function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
   const t = useT();
@@ -7524,7 +7048,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
          onPointerDown={(e) => { if (onToggle) e.currentTarget.style.transform = "scale(0.97)"; }}
          onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
          onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-         style={{ minHeight: 62, borderBottom: last ? "none" : `1px solid ${t.hair}`,
+         style={{ minHeight: 56, borderBottom: last ? "none" : `1px solid ${t.hair}`,
                   transition: "transform 130ms cubic-bezier(.22,1,.36,1)", willChange: "transform" }}>
       {icon}
       {onToggle && !chevron && !icon && !right && (
@@ -7536,7 +7060,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
           <span className="truncate" style={{ fontFamily: ui, fontSize: 15, letterSpacing: "-0.005em", color: danger ? DANGER : t.ink }}>{label}</span>
-          {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.accent }} />}
+          {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.ink }} />}
         </span>
         {sub && <span className="block truncate mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{sub}</span>}
       </span>
@@ -7565,7 +7089,7 @@ function Clip({ angle, dur = "0:12", size = "lg", onRemove, onMinimise, saved })
       )}
       {saved && (
         <span className="absolute top-2.5 left-2.5 rounded-full px-2.5 py-1 flex items-center gap-1.5" style={{ background: "rgba(0,0,0,0.45)" }}>
-          <Check size={10} color="#fff" strokeWidth={2.1} /><span style={{ fontFamily: ui, fontSize: 10, fontWeight: 600, color: "#fff" }}>{tr("Offline")}</span>
+          <Check size={10} color="#fff" strokeWidth={2.1} /><span style={{ fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>{tr("Offline")}</span>
         </span>
       )}
       <div className="absolute left-0 right-0 bottom-0 flex items-center justify-between px-3 py-2">
@@ -7595,7 +7119,7 @@ function MiniPlayer({ clip, onClose, onExpand }) {
         <button onClick={() => { haptic(8); onClose(); }} aria-label={tr("Close video")} className="absolute top-1.5 right-1.5 rounded-full p-1.5 active:opacity-60" style={{ background: "rgba(0,0,0,0.5)" }}>
           <X size={11} color="#fff" />
         </button>
-        <div className="absolute left-0 right-0 bottom-0 px-2 py-1.5 pointer-events-none"><span style={{ fontFamily: ui, fontSize: 9.5, fontWeight: 600, color: "#fff" }}>{clip}</span></div>
+        <div className="absolute left-0 right-0 bottom-0 px-2 py-1.5 pointer-events-none"><span style={{ fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>{clip}</span></div>
         <div className="absolute left-0 right-0 pointer-events-none" style={{ bottom: 0, height: 2, background: "rgba(255,255,255,0.2)" }}><div style={{ height: 2, width: "38%", background: t.accent }} /></div>
       </div>
     </div>
@@ -7916,8 +7440,8 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
      the step ended somewhere under the footer. */
   const [step, setStep] = useState(0);
   const [drills, setDrills] = useState(live ? [] : cfg.drills.slice(0, 3).map((d) => d.t));
-  const [days, setDays] = useState([1, 3, 4]);
-  const [times, setTimes] = useState(["9:00 am", "10:00 am", "4:30 pm"]);
+  const [days, setDays] = useState([]);
+  const [times, setTimes] = useState([]);
   const [dur, setDur] = useState(45);
   const [tips, setTips] = useState([]);
   const [newDrill, setNewDrill] = useState("");
@@ -7933,8 +7457,8 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
   const order = ["hours", "drills", "tips"];
   const now = order[step];
   const last = step === order.length - 1;
-  const ready = { hours: days.length > 0 && times.length > 0, drills: true, tips: true }[now];
-  const head = { hours: tr("When you coach"), drills: tr("Your drills"), tips: tr("Your tips") }[now];
+  const ready = { hours: true, drills: true, tips: true }[now];
+  const head = { hours: tr("Hours"), drills: tr("Drills"), tips: tr("Tips") }[now];
 
   const Label = ({ children }) => <div className="mb-3 mt-7 first:mt-0" style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</div>;
   const AddOwn = ({ value, onChange, ph, onAdd }) => (
@@ -7956,27 +7480,24 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
           ? <button onClick={() => { haptic(6); setStep(step - 1); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={23} color={t.ink} strokeWidth={2} /></button>
           : <span style={{ width: 39 }} />}
         <span className="flex-1 text-center" style={{ ...TYPE.caption, color: t.faint }}>{step + 1} / {order.length}</span>
-        {onSkip ? <span className="pr-4"><TextBtn onClick={() => onSkip()}>{tr("Not now")}</TextBtn></span> : <span style={{ width: 39 }} />}
+        {onSkip ? <span className="pr-4"><TextBtn onClick={() => onSkip()}>{tr("Skip")}</TextBtn></span> : <span style={{ width: 39 }} />}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-7 min-h-0" style={{ paddingBottom: 24 }}>
-        <h1 className="mb-7" style={{ ...TYPE.hero, color: t.ink, animation: "fadeUp 460ms cubic-bezier(.22,1,.36,1) both" }}>{head}</h1>
+      <div className="flex-1 overflow-y-auto px-7 min-h-0" style={{ paddingBottom: 96 }}>
+        <h1 className="mb-7" style={{ ...TYPE.screen, color: t.ink, animation: "fadeUp 460ms cubic-bezier(.22,1,.36,1) both" }}>{head}</h1>
 
         {now === "hours" && (<>
           <Label>{tr("Days")}</Label>
           <TimeGrid cols={7} times={DAY_NAMES.map((d) => d.slice(0, 2))}
                     picked={DAY_NAMES.filter((_, i) => days.includes(i)).map((d) => d.slice(0, 2))}
                     onToggle={(ab) => togg(days, setDays, DAY_NAMES.findIndex((d) => d.slice(0, 2) === ab))} />
-          <Label>{tr("Lesson length")}</Label>
+          <Label>{tr("Length")}</Label>
           <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d} min`)} picked={`${dur} min`}
                     onToggle={(x) => setDur(Number(String(x).replace(" min", "")))} />
-          <Label>{tr("Start times")}</Label>
+          <Label>{tr("Times")}</Label>
           {/* a grid fills its rows: five slots go three and two, not
               four and a widow */}
           <TimeGrid cols={evenCols(slots.length)} times={slots} picked={times} onToggle={(sl) => togg(times, setTimes, sl)} />
-          <p className="mt-5" style={{ ...TYPE.small, color: t.faint }}>
-            {times.length} {times.length === 1 ? tr("time") : tr("times")} · {days.length} {days.length === 1 ? tr("day") : tr("days")} · {dur} {tr("min")}
-          </p>
         </>)}
 
         {now === "drills" && (<>
@@ -7999,12 +7520,12 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
               );
             })}
           </div>
-          <AddOwn value={newTip} onChange={setNewTip} ph={tr("One of your own")} onAdd={(v) => setTips([...tips, v])} />
+          <AddOwn value={newTip} onChange={setNewTip} ph={tr("Your own")} onAdd={(v) => setTips([...tips, v])} />
         </>)}
       </div>
 
       <div className="px-7 pt-3 shrink-0" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))", borderTop: `1px solid ${HAIR(t.ink, 0.08)}` }}>
-        <Button tone="ink" disabled={!ready}
+        <Button disabled={!ready}
                 onClick={() => { if (last) { hapticSuccess(); swell(); onDone({ drills, days, times, dur, tips }); }
                                  else { haptic(10); soft(); setStep(step + 1); } }}>
           {last ? tr("Finish") : L.continue}
@@ -8222,7 +7743,7 @@ function CoachClub({ sport, onDone, onBack }) {
         <div className="mt-8"><VoiceInput value={nameText} onChange={setNameText} ph={tr("Hollow Brook Golf")} autoFocus /></div>
         {ready && (
           <div className="mt-6">
-            <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 10.5, letterSpacing: "0.13em", fontWeight: 600, color: t.faint }}>{tr("Preview")}</div>
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Preview")}</div>
             <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
               <Mark size={26} color={SPORTS[sport].theme.accent} />
               <span className="flex-1" style={{ fontFamily: display, fontSize: 17, color: "#fff" }}>{nameText.trim()}</span>
@@ -8265,7 +7786,7 @@ function CoachPlan({ onDone, onBack }) {
 
         {band && (
           <div className="mt-8">
-            <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 10.5, letterSpacing: "0.13em", fontWeight: 600, color: t.faint }}>
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
               Recommended for you
             </div>
             <div className="flex flex-col gap-3">
@@ -8278,7 +7799,7 @@ function CoachPlan({ onDone, onBack }) {
                     <div className="flex items-baseline justify-between">
                       <span className="flex items-center gap-2">
                         <span style={{ fontFamily: display, fontSize: 23, color: on ? "#fff" : t.ink }}>{p.name}</span>
-                        {rec && <span className="rounded-full px-2.5 py-1" style={{ background: on ? STEADY : t.wash, fontFamily: ui, fontSize: 10, fontWeight: 600, color: on ? t.onAccent : t.ink }}>{tr("BEST FIT")}</span>}
+                        {rec && <span className="rounded-full px-2.5 py-1" style={{ background: on ? STEADY : t.wash, fontFamily: ui, fontSize: 11, fontWeight: 600, color: on ? t.onAccent : t.ink }}>{tr("BEST FIT")}</span>}
                       </span>
                       <span style={{ fontFamily: display, fontSize: 22, color: on ? "#fff" : t.ink }}>€{p.price}<span style={{ fontFamily: ui, fontSize: 12, color: on ? "rgba(255,255,255,0.55)" : t.faint }}>/mo</span></span>
                     </div>
@@ -8372,10 +7893,11 @@ function ConnectPlayer({ sport, onDone, onBack }) {
 function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
   const t = useT();
   return (
-    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
-      <Avatar name={name} size={22} tint={tint} src={src} group={group} />
-      <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
-      <ChevronDown size={13} color={t.sub} />
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center rounded-full active:opacity-50" style={{ padding: 7 }}>
+      {/* the face, and nothing else — it still opens the switcher. The
+          pill it replaced carried initials, a first name and a chevron
+          in every header of the app. */}
+      <Avatar name={name} size={30} tint={tint} src={src} group={group} />
     </button>
   );
 }
@@ -8384,7 +7906,7 @@ function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
 function SportListPick({ t, onPick, title, onBack }) {
   return (
     <>
-      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
@@ -8397,7 +7919,7 @@ function SportListPick({ t, onPick, title, onBack }) {
 function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin }) {
   return (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
@@ -8450,7 +7972,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   const SportList = ({ onPick, title, onBack }) => (
     <>
-      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-4 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>{title}</h2></div>
       <Card>{Object.entries(SPORTS).map(([id, sp], i, arr) => (
         <Row key={id} label={sp.label} chevron last={i === arr.length - 1}
@@ -8462,7 +7984,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   const CodeStep = ({ onBack, onJoin, who }) => (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={onBack} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{SPORTS[newSport]?.label} coach code</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{who}</p>
       <div className="mb-2"><CodePad value={code} onChange={setCode} compact /></div>
@@ -8480,7 +8002,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   if (stage === "child") return (
     <>
-      <div className="flex items-center gap-1 mb-5 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-5 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Add someone under 18</h2></div>
       <div className="mb-5"><VoiceInput value={childName} onChange={setChildName} ph={tr("Their name")} autoFocus /></div>
 
@@ -8530,7 +8052,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   if (stage === "code" && live) return (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>
+      <div className="flex items-center gap-1 mb-1 -ml-2"><button onClick={() => setStage("root")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>
         <h2 style={{ fontFamily: display, fontSize: 22, color: t.ink }}>{tr("Coach code")}</h2></div>
       <p className="mb-3 px-1" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Six characters from the coach")}</p>
       {/* typed, not tapped: a real code is six letters and digits */}
@@ -8579,7 +8101,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       <Eyebrow>{kids.length ? `${profiles.find((p) => p.id === activeProfileId)?.name.split(" ")[0]}'s coaches` : "Your coaches"}</Eyebrow>
       <Card className="mb-4">
         {myConns.length === 0 ? (
-          <div className="p-6 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No coach connected yet.")}</p></div>
+          <div className="p-6 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No coach yet")}</p></div>
         ) : myConns.map((c, i) => (
           <Row key={c.id} label={c.coach} sub={c.club ? `${SPORTS[c.sport].label} · ${c.club}` : SPORTS[c.sport].label} checked={c.id === activeConnId} last={i === myConns.length - 1}
                icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: SPORTS[c.sport].theme.mark }} />}
@@ -8648,7 +8170,7 @@ function TipsHistory({ cfg, tips, pop }) {
                 <Card key={tip.id} className="p-5 mb-3">
                   <div className="flex items-center justify-between mb-2">
                     {tip.focus
-                      ? <span className="rounded-full px-2.5 py-1" style={{ background: t.wash, fontFamily: ui, fontSize: 10.5, fontWeight: 600, color: t.ink }}>{tip.focus}</span>
+                      ? <span className="rounded-full px-2.5 py-1" style={{ background: t.wash, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.ink }}>{tip.focus}</span>
                       : <span />}
                     <span style={{ ...TYPE.caption, color: t.faint }}>{tip.date}</span>
                   </div>
@@ -8682,9 +8204,9 @@ function TipBody({ prompts, onSet, close }) {
           ))}
         </div>
       )}
-      <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("One line")} /></div>
-      <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={2} ph={tr("Anything more")} /></div>
-      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() }); close(); }}>{tr("Set the tip")}</Button>
+      <div className="mb-3"><VoiceInput value={title} onChange={setTitle} ph={tr("Tip")} /></div>
+      <div className="mb-6"><VoiceArea value={body} onChange={setBody} rows={2} ph={tr("More")} /></div>
+      <Button disabled={!title.trim()} onClick={() => { onSet({ title: title.trim(), body: body.trim() }); close(); }}>{tr("Set tip")}</Button>
     </>
   );
 }
@@ -8711,9 +8233,9 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
   const when = nextBooking ? nextBooking.when : null;
   const hair = RULE.hair(t.ink);
   const rest = (upcoming || []).slice(1);
-  const underWhen = nextBooking
-    ? [nextBooking.focus, conn && conn.coach ? `${tr("with")} ${conn.coach}` : null].filter(Boolean).join(" · ")
-    : (!juvenile && onRequest ? tr("Book one below") : tr("Your coach sets the next one"));
+  /* the booking's focus when there is one; the coach's name is on the
+     row below and an instruction is not a value */
+  const underWhen = nextBooking ? (nextBooking.focus || "") : "";
 
   return (
     <Screen bare right={right}>
@@ -8724,18 +8246,14 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
           {/* WHEN YOU ARE NEXT ON */}
           <div style={{ marginBottom: SPACE.block }}>
+            {/* Book sits on the heading it acts on — the screen's one
+                accent. The three tiles that used to follow (Drills,
+                Lessons, Family) were the tab bar drawn again. */}
             <PageHead pad={false} tour="home-next" title={when || tr("No lesson booked")} meta={underWhen}
-                      onTap={() => { haptic(7); soft(); go("calendar"); }} />
-          </div>
-
-          {/* the board: what a player came here to do */}
-          <div style={{ marginBottom: SPACE.block }}>
-            <TileGrid>
-              {!juvenile && onRequest && <ActTile tour="home-request" tone="accent" Icon={CalendarDays} label={tr("Book")} onTap={() => onRequest()} />}
-              <ActTile tour="home-practice" Icon={ListChecks} label={tr("Practise")} count={todo.length} onTap={() => go("practice")} />
-              <ActTile tour="home-lessons" Icon={FileText} label={tr("Lessons")} count={lessons.length} onTap={() => go("log")} />
-              {juvenile && <ActTile Icon={Users} label={tr("Family")} onTap={() => go("family")} />}
-            </TileGrid>
+                      action={!juvenile && onRequest ? (
+                        <button data-tour="home-request" onClick={() => { hapticCommit(); soft(); onRequest(); }} className="shrink-0 active:opacity-80"
+                                style={{ minHeight: 44, padding: "0 18px", borderRadius: R.control, background: t.accent, ...TYPE.body, fontWeight: 600, color: t.onAccent }}>{tr("Book")}</button>
+                      ) : null} />
           </div>
 
           {/* THE TIP. One line from the coach, the whole block a door
@@ -8756,7 +8274,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                   screen, and a second accent where a screen gets one.
                   The border is what this block earns; the colour goes on
                   the word, not the wall. */}
-              <span className="relative block" style={{ ...TYPE.eyebrow, color: t.accent }}>{tr("Tip from your coach")}</span>
+              <span className="relative block" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Tip")}</span>
               <span className="relative block mt-2" style={{ ...TYPE.title, color: t.ink }}>{tipText}</span>
               {tipBody && <span className="relative block mt-2" style={{ ...TYPE.small, color: t.sub }}>{tipBody}</span>}
             </button>
@@ -8782,7 +8300,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                   {off.when || [off.d && off.m ? `${off.d} ${off.m}` : null, off.time].filter(Boolean).join(" · ")}
                 </span>
               </span>
-              <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Rebook")}</span>
+              <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Rebook")}</span>
             </button>
           ); })()}
 
@@ -8795,14 +8313,14 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
           {rest.length > 0 && (
             <div style={{ marginBottom: SPACE.block }}>
               <RowHead>{tr("Coming up")}</RowHead>
-              <div style={{ borderTop: hair }}>
+              <div className="nsc-list">
                 {rest.map((b, i) => (
                   <button key={b.id || `u${i}`} onClick={() => { haptic(7); soft(); go("calendar"); }}
                           className="w-full flex items-center gap-3 text-left active:opacity-60"
                           style={{ minHeight: 54, borderBottom: hair }}>
                     <Rail>{b.time}</Rail>
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{b.day}</span>
-                    {b.status === "requested" && <span className="shrink-0" style={{ ...TYPE.caption, color: CAUTION }}>{tr("Requested")}</span>}
+                    {b.status === "requested" && <span className="shrink-0" style={{ ...TYPE.caption, color: t.sub }}>{tr("Requested")}</span>}
                     <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 ))}
@@ -8821,7 +8339,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
           {lessons.length > 0 && (
             <div style={{ marginBottom: SPACE.block }}>
               <RowHead>{tr("Recent lessons")}</RowHead>
-              <div style={{ borderTop: hair }}>
+              <div className="nsc-list">
                 {lessons.slice(0, 3).map((l, i) => {
                   const files = l.media ?? l.videos ?? 0;
                   return (
@@ -8832,13 +8350,8 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
                       <Rail>{l.d} {l.m}</Rail>
                       <span className="flex-1 min-w-0">
                         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
-                        {l.note && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{l.note}</span>}
+                        {files > 1 && <span className="block" style={{ ...TYPE.caption, color: t.faint }}>{files} {tr("files")}</span>}
                       </span>
-                      {files > 0 && (
-                        <span className="flex items-center gap-1 shrink-0" style={{ ...TYPE.caption, color: STEADY }}>
-                          <Play size={11} color={STEADY} />{files}
-                        </span>
-                      )}
                       <ChevronRight size={14} color={t.trace || t.faint} />
                     </button>
                   );
@@ -8858,7 +8371,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
           )}
 
           {/* and the few facts worth a line each */}
-          <div style={{ borderTop: hair }}>
+          <div className="nsc-list">
             {nextEvent && (
               <HomeRow tour="home-events" label={nextEvent.name} value={`${nextEvent.days}d`}
                        tone={nextEvent.days <= 7 ? CAUTION : null} onPress={() => push("events")} />
@@ -8881,88 +8394,34 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false }) {
+function PlayerLog({ lessons, push, saved, right, ownMedia, liveMedia, onNeedMedia, showWho = false }) {
   const t = useT();
   const ready = useLoad();
-  const shown = lessons;
-
-  /* Immersive is a different animal — it owns the screen, so it is not
-     a segment inside this one. */
-  if ((prefs && prefs.logView) === "feed" && lessons.length > 0) {
-    /* A real account shows what was actually attached — the sport's
-       colour field while it loads or when there is nothing. The drawn
-       frames, the device readout and the test-media control are the
-       design harness's only. */
-    const mediaFor = liveMedia
-      /* [] when the lesson has none; the signed items once they are in;
-         null while a fetch is in flight; undefined when nothing has
-         asked yet, which is the card's cue to ask for itself. */
-      ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? undefined : []))
-      : (l, i) => {
-      const own = (ownMedia && ownMedia[i]) || [];
-      if (own.length) return own;
-      const n = l.videos || 0;
-      const sim = Array.from({ length: n }, () => ({ type: "sim" }));
-      /* a readout rides alongside the clips, in the same frame */
-      if (n > 1 && CAPTURE[sport]) {
-        sim.push({ type: "data", device: CAPTURE[sport].device,
-                   rows: CAPTURE[sport].fields.slice(0, 4).map((f, k) => [f, ["112", "1.34", "58", "9.2"][k] || "—"]) });
-      }
-      return sim;
-    };
-    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg}
-                       view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
-                       onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
-                       loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
-                       onOpen={(l) => push(`lesson:${l.id}`)} />;
-  }
-
+  /* the row's poster is the lesson's first file: what was attached on a
+     real account ([] none · null fetching · undefined not yet asked),
+     the harness's own picked files or its drawn clip otherwise */
+  const posterFor = liveMedia
+    ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
+    : (l, i) => { const own = (ownMedia && ownMedia[i]) || []; return own[0] || ((l.videos || 0) > 0 ? { type: "sim" } : null); };
+  const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
   return (
-    <Screen bare right={right}>
-      {/* Nothing to arrange or filter until there is a lesson: a view
-          switch and a row of focus chips over "No lessons yet" are nine
-          controls that can do nothing. */}
-      {lessons.length > 0 && (<div className="px-6 pt-1 mb-4">
-        <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
-      </div>)}
-
+    <Screen title={tr("Lessons")} right={right}>
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
-      ) : shown.length === 0 ? (
-        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-          {tr("No lessons yet.")}
-        </p>
+      ) : lessons.length === 0 ? (
+        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No lessons yet")}</p>
       ) : (
-        <div className="px-6 pb-4" style={{ borderTop: RULE.section(t.ink) }}>
-          {shown.map((l, i) => (
-            <button key={l.id} data-tour={i === 0 ? "log-row" : undefined} onClick={() => { haptic(8); soft(); push(`lesson:${l.id}`); }}
-                    className="w-full flex items-center gap-4 text-left active:opacity-50"
-                    style={{ minHeight: 64, borderBottom: RULE.hair(t.ink),
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <Rail>{l.d} {l.m}</Rail>
-              <span className="flex-1 min-w-0">
-                <span className="flex items-center gap-2">
-                  <span className="truncate" style={{ ...TYPE.subhead, color: t.ink }}>{l.focus}</span>
-                  {l.unread && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: DANGER }} />}
-                </span>
-              </span>
-              {/* every file, not just the clips: three files reading as
-                  "2" is the same lie as one clip in the feed */}
-              {(l.media ?? l.videos ?? 0) > 0 && (
-                <span className="flex items-center gap-1 shrink-0" style={{ ...TYPE.caption, color: STEADY }}>
-                  {(l.videos || 0) > 0 ? <Play size={11} color={STEADY} /> : <ImageIcon size={11} color={STEADY} />}
-                  {l.media ?? l.videos}
-                </span>
-              )}
-              {saved.includes(l.id) && <Download size={13} color={t.faint} />}
-              <ChevronRight size={14} color={t.trace || t.faint} />
-            </button>
+        <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
+          {lessons.map((l, i) => (
+            <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)}
+                       saved={saved.includes(l.id)} showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} />
           ))}
         </div>
       )}
     </Screen>
   );
 }
+
 
 /* REAL MEDIA
 
@@ -9093,43 +8552,74 @@ function MediaThumb({ item, on, onPick, index }) {
   const t = useT();
   const label = item.type === "video" ? tr("Clip") : item.type === "audio" ? tr("Voice note") : item.type === "photo" ? tr("Photo") : item.angle || tr("Clip");
   return (
-    <button onClick={() => { haptic(6); onPick(index); }} aria-label={label} className="relative shrink-0 overflow-hidden active:opacity-70"
-            style={{ width: 64, height: 64, borderRadius: 14, background: "#191D1B",
-                     boxShadow: on ? `0 0 0 2.5px ${t.accent}` : "none", opacity: on ? 1 : 0.72, transition: "opacity 160ms, box-shadow 160ms" }}>
-      {item.type === "video" && item.url && <video src={item.url} muted playsInline preload="metadata" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />}
-      {item.type === "photo" && item.url && <img src={item.url} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: "cover" }} />}
-      {item.type === "sim" && <span className="absolute inset-0" style={{ background: `linear-gradient(160deg, ${t.mark}55, #0C0F10)` }} />}
-      <span className="absolute inset-0 flex items-center justify-center">
-        {item.type === "audio" ? <Mic size={18} color="#fff" strokeWidth={1.8} />
-          : item.type === "photo" ? null
-          : <span className="rounded-full flex items-center justify-center" style={{ width: 24, height: 24, background: "rgba(0,0,0,0.45)" }}><Play size={11} color="#fff" fill="#fff" /></span>}
-      </span>
+    <button onClick={() => { haptic(6); onPick(index); }} aria-label={label} aria-pressed={on} className="relative shrink-0 active:opacity-70"
+            style={{ borderRadius: 8, boxShadow: on ? `0 0 0 1.5px ${t.ink}` : "none", opacity: on ? 1 : 0.7, transition: "opacity 160ms, box-shadow 160ms" }}>
+      <Poster item={item} size={56} radius={8} />
     </button>
   );
 }
 
+/* The player. A clip rests as its own first frame under one play disc
+   and the browser's controls appear only once it is playing; the frame
+   is the clip's own shape — a portrait clip stands portrait, capped at
+   460 tall, a landscape one runs the width — so there are never black
+   bars either side on a paper page. */
+const STAGE_MAX = 460;
 function LessonStage({ item, onAnnotate }) {
   const t = useT();
+  const ref = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [ratio, setRatio] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const [tries, setTries] = useState(0);
+  const url = item && item.url;
+  useEffect(() => { setPlaying(false); setRatio(null); setFailed(false); }, [url]);
   if (!item) return null;
-  const frame = { borderRadius: 22, overflow: "hidden", background: "#0B0F10" };
   if (item.type === "video") {
+    const wide = ratio != null && ratio >= 1;
+    /* a clip that will not load says so, once, with a way to try again —
+       never a shimmering skeleton for ever */
+    if (failed) {
+      return (
+        <div className="flex items-center justify-between px-4" style={{ minHeight: 64, borderRadius: 16, background: t.wash }}>
+          <span style={{ ...TYPE.small, color: t.sub }}>{tr("Couldn't load this clip")}</span>
+          <button onClick={() => { haptic(6); setFailed(false); setTries((n) => n + 1); }} className="active:opacity-60" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Try again")}</button>
+        </div>
+      );
+    }
     return (
-      <div style={frame}>
-        <video key={item.url} src={item.url} playsInline controls preload="metadata" className="block w-full"
-               style={{ height: 262, objectFit: "contain", background: "#0B0F10" }} />
+      <div className="relative flex justify-center" style={{ minHeight: ratio ? 0 : 200 }}>
+        {!ratio && <div className="absolute inset-0"><Bone h={200} r={16} /></div>}
+        <video ref={ref} key={`${item.url}#${tries}`} src={item.url} playsInline preload="metadata" controls={playing}
+               onLoadedMetadata={(e) => { const v = e.currentTarget; setRatio((v.videoWidth || 1) / (v.videoHeight || 1)); }}
+               onError={() => setFailed(true)}
+               onPlay={() => setPlaying(true)} onEnded={() => setPlaying(false)}
+               className="block"
+               style={{ borderRadius: 16, background: "#0B0F10", maxHeight: STAGE_MAX, maxWidth: "100%",
+                        width: wide ? "100%" : "auto", height: wide ? "auto" : STAGE_MAX,
+                        visibility: ratio ? "visible" : "hidden" }} />
+        {ratio && !playing && (
+          <button onClick={() => { haptic(8); const v = ref.current; if (v) { v.muted = false; v.play().catch(() => {}); } }} aria-label={tr("Play")}
+                  className="absolute inset-0 flex items-center justify-center active:opacity-70">
+            <span className="rounded-full flex items-center justify-center" style={{ width: 56, height: 56, background: "rgba(255,255,255,0.92)" }}>
+              <Play size={22} color="#111" fill="#111" style={{ marginLeft: 3 }} />
+            </span>
+          </button>
+        )}
       </div>
     );
   }
   if (item.type === "photo") {
     return (
-      <div style={frame}>
-        <img key={item.url} src={item.url} alt="" className="block w-full" style={{ height: 262, objectFit: "contain", background: "#0B0F10" }} />
+      <div className="flex justify-center">
+        <img key={item.url} src={item.url} alt="" className="block"
+             style={{ borderRadius: 16, maxHeight: STAGE_MAX, maxWidth: "100%", width: "auto", height: "auto", background: "#0B0F10" }} />
       </div>
     );
   }
   if (item.type === "audio") {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ ...frame, height: 150, background: t.wash }}>
+      <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ borderRadius: 16, height: 150, background: t.wash }}>
         <span className="flex items-center gap-2" style={{ ...TYPE.eyebrow, color: t.sub }}><Mic size={13} color={t.sub} strokeWidth={2} />{tr("Voice note")}</span>
         <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
       </div>
@@ -9137,7 +8627,7 @@ function LessonStage({ item, onAnnotate }) {
   }
   /* the harness's drawn clip */
   return (
-    <div style={frame}>
+    <div style={{ borderRadius: 16, overflow: "hidden", background: "#0B0F10" }}>
       <Clip angle={item.angle || tr("Clip")} />
       {onAnnotate && (
         <button onClick={() => { haptic(8); onAnnotate(item.angle); }} className="w-full flex items-center justify-center gap-2 active:opacity-60"
@@ -9148,6 +8638,7 @@ function LessonStage({ item, onAnnotate }) {
     </div>
   );
 }
+
 
 function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson, banner, cfg,
                         onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight }) {
@@ -9166,7 +8657,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
     ? tips.find((x) => x.playerId && x.playerId === lesson.playerId && near(x)) || null
     : (lesson.tip ? { title: lesson.tip } : null);
   /* the day it happened — a day, not a moment, so it never reads as the evening before */
-  const when = lesson.iso ? localDate(lesson.iso).toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" }) : (lesson.date || `${lesson.d} ${lesson.m}`);
+  const when = lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : (lesson.date || `${lesson.d} ${lesson.m}`);
   const withWhom = role === "coach" ? playerName : coachName;
   const first = (n) => (n || "").split(" ")[0];
   const hair = RULE.hair(t.ink);
@@ -9202,16 +8693,16 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
         <div className="px-6" onClick={() => { if (menu) setMenu(false); }}>
           {/* what this is */}
           <div className="mb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
-            <span className="block truncate" style={{ ...TYPE.eyebrow, color: t.faint }}>
-              {when}{groupLesson ? ` · ${tr("Group")}` : ""}{withWhom ? ` · ${withWhom}` : ""}
+            <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>
+              {when}{withWhom ? ` · ${withWhom}` : ""}{groupLesson ? ` · ${tr("Group")}` : ""}
             </span>
-            <h1 className="mt-2" style={{ ...TYPE.hero, fontSize: 30, lineHeight: 1.04, letterSpacing: "-0.03em", color: t.ink }}>{lesson.focus}</h1>
+            <h1 className="mt-2" style={{ ...TYPE.screen, color: t.ink }}>{lesson.focus}</h1>
             <LessonTags lesson={lesson} cfg={cfg} className="mt-2.5" />
           </div>
 
           {/* the clip, and the others as thumbnails — the ring says which */}
           {loading ? (
-            <div className="mb-6"><Bone h={262} r={22} /></div>
+            <div className="mb-6"><Bone h={200} r={16} /></div>
           ) : list.length > 0 ? (
             <div className="mb-6" data-tour="lesson-clip" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) 60ms both" }}>
               <LessonStage item={current} onAnnotate={onAnnotate} />
@@ -9223,21 +8714,20 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             </div>
           ) : null}
 
-          {/* THE NOTE, WHERE THERE IS ONE. A coach reading their own
-              lesson does not need the word "Notes" over their own
-              sentence; a player does need to be told whose it is. And a
-              section whose whole content is "None on this one" is a
-              heading and a denial where there could be nothing. */}
+          {/* THE NOTE, WHERE THERE IS ONE. The line under the title already
+              says whose lesson this was, so the note needs no label on
+              either side; and a section whose whole content is "None on
+              this one" is a heading and a denial where there could be
+              nothing. */}
           {lesson.note && (
             <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
-              {role !== "coach" && <Label>{`${first(coachName) || tr("Coach")}'s ${tr("notes")}`}</Label>}
               <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{lesson.note}</p>
             </div>
           )}
 
           {tipHere && (
             <div className="py-5" data-tour="lesson-tip" style={{ borderTop: hair }}>
-              <Label>{tr("Next")}</Label>
+              <Label>{tr("Tip")}</Label>
               <p style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.02em", lineHeight: 1.3, color: t.ink }}>{tipHere.title}</p>
               {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
             </div>
@@ -9263,17 +8753,17 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             </div>
           )}
 
-          {attendance && (
+          {attendance === "out" && (
             <div className="py-5 flex items-center gap-2" style={{ borderTop: hair }}>
-              {attendance === "in" ? <Check size={15} color={STEADY} strokeWidth={2.4} /> : <X size={15} color={DANGER} strokeWidth={2.4} />}
-              <span style={{ ...TYPE.body, color: t.ink }}>{attendance === "in" ? tr("Present") : tr("Absent")}</span>
+              <X size={15} color={DANGER} strokeWidth={2.4} />
+              <span style={{ ...TYPE.body, color: t.ink }}>{tr("Absent")}</span>
             </div>
           )}
 
           {onRate && lesson.ratingRequested && (
             <div className="py-5" style={{ borderTop: hair }}>
-              <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="flex items-center gap-1.5 active:opacity-50" style={{ ...TYPE.body, fontWeight: 600, color: t.accent }}>
-                {first(coachName) || tr("Your coach")} {tr("asked for a rating")} <ArrowRight size={13} color={t.accent} strokeWidth={2.2} />
+              <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="w-full flex items-center gap-1.5 active:opacity-50" style={{ minHeight: 44, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                {first(coachName) || tr("Your coach")} {tr("asked for a rating")} <ArrowRight size={13} color={t.ink} strokeWidth={2.2} />
               </button>
             </div>
           )}
@@ -9281,27 +8771,38 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {/* one thing to do, and one more */}
           <div className="mt-4" data-tour="lesson-next" style={{ borderTop: hair, paddingTop: 20 }}>
             {(() => {
+              /* one primary button, then the secondary verbs as a quiet row */
               const acts = (role === "coach"
-                ? [onSetDrills && { k: "d", Ico: ListChecks, lbl: tr("Drills"), act: onSetDrills, accent: true },
-                   onMessage && { k: "m", Ico: MessageCircle, lbl: tr("Message"), act: onMessage },
-                   onLogAnother && { k: "l", Ico: Plus, lbl: tr("Log another"), act: onLogAnother }]
-                : [onMessage && !juvenile && { k: "m", Ico: MessageCircle, lbl: tr("Message"), act: onMessage, accent: true },
-                   onBook && !juvenile && { k: "b", Ico: CalendarDays, lbl: tr("Book again"), act: onBook }]).filter(Boolean);
+                ? [onSetDrills && { k: "d", lbl: tr("Set drills"), act: onSetDrills, accent: true },
+                   onMessage && { k: "m", lbl: tr("Message"), act: onMessage },
+                   onLogAnother && { k: "l", lbl: tr("Log"), act: onLogAnother }]
+                : [onMessage && !juvenile && { k: "m", lbl: tr("Message"), act: onMessage, accent: true }]).filter(Boolean);
               if (!acts.length) return null;
+              const primary = acts.find((a) => a.accent) || acts[0];
+              const rest = acts.filter((a) => a !== primary);
               return (
-                <TileGrid cols={acts.length >= 3 ? 3 : 2}>
-                  {acts.map((a) => <ActTile key={a.k} h={82} Icon={a.Ico} label={a.lbl} tone={a.accent ? "accent" : "quiet"} onTap={a.act} />)}
-                </TileGrid>
+                <>
+                  <Button onClick={primary.act}>{primary.lbl}</Button>
+                  {rest.length > 0 && (
+                    <div className="flex gap-2 mt-2.5">
+                      {rest.map((a) => (
+                        <button key={a.k} onClick={() => { haptic(8); soft(); a.act(); }} className="flex-1 active:opacity-60"
+                                style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${HAIR(t.ink, 0.14)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{a.lbl}</button>
+                      ))}
+                    </div>
+                  )}
+                </>
               );
             })()}
             {onDownload && (
               <button data-tour="lesson-save" onClick={() => { haptic(8); onDownload(list); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
                       style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: t.sub }}>
-                <Download size={14} color={t.sub} strokeWidth={2} />{tr("Download lesson log")}
+                <Download size={14} color={t.sub} strokeWidth={2} />{tr("Download")}
               </button>
             )}
           </div>
-          <div style={{ height: 26 }} />
+          {/* the last control clears the tab bar */}
+          <div style={{ height: SPACE.section + 62 }} />
         </div>
       </Screen>
     </SwipeBack>
@@ -9327,7 +8828,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
     return (
       <SwipeBack onBack={pop}>
         <Screen bare onBack={pop}>
-          <p className="px-6 py-16 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That lesson isn't available.")}</p>
+          <p className="px-6 py-16 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That lesson isn't available")}</p>
         </Screen>
       </SwipeBack>
     );
@@ -9417,7 +8918,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               style={{ minHeight: big ? 76 : 62, willChange: "transform",
                        borderRadius: big ? R.surface : 0,
                        background: big ? t.surface : "transparent",
-                       boxShadow: big ? (t.elev || ELEV).rest : "none",
+                       border: big ? `1px solid ${HAIR(t.ink, 0.14)}` : "none",
                        borderLeft: big && rained ? `2.5px solid ${DANGER}` : "none",
                        borderBottom: big ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`,
                        marginBottom: big ? 8 : 0,
@@ -9499,23 +9000,21 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   const border = last ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`;
   const body = (
     <>
-      <Rail tone={variant === "now" ? t.accent : undefined}>{l.time}</Rail>
+      <Rail tone={variant === "now" ? t.ink : undefined}>{l.time}</Rail>
       {grp ? (
         <span className="rounded-full flex items-center justify-center shrink-0"
               style={{ width: 30, height: 30, background: `${GROUP}18` }}><Users size={13} color={GROUP} /></span>
       ) : <Avatar name={l.who} size={30} src={avatar} />}
       <span className="flex-1 min-w-0">
-        <span className="block truncate" style={emphasis ? { ...TYPE.subhead, fontSize: 16, color: t.ink }
-                                                         : { ...TYPE.body, color: t.ink }}>{l.who}</span>
-        {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: variant === "now" ? t.accent : t.faint }}>{until}</span>}
+        <span className="block truncate" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink }}>{l.who}</span>
+        {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: variant === "now" ? t.ink : t.faint }}>{until}</span>}
       </span>
     </>
   );
   const frame = {
-    minHeight: emphasis ? 74 : 62,
+    minHeight: 60,
     borderBottom: border,
-    borderLeft: emphasis ? `2.5px solid ${t.accent}` : "none",
-    paddingLeft: emphasis ? 17.5 : 20,
+    paddingLeft: 20,
   };
 
   /* the lesson happening now carries its own button, so the row body and
@@ -9536,7 +9035,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
             className="w-full flex items-center gap-3.5 pr-4 text-left active:opacity-50" style={frame}>
       {body}
       {variant === "log"
-        ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Log")}</span>
+        ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Log")}</span>
         : <ChevronRight size={14} color={t.trace || t.faint} />}
     </button>
   );
@@ -9679,7 +9178,8 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
                     aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
                     className="relative w-full flex flex-col items-center justify-center gap-1.5"
                     style={{ minHeight: h, borderRadius: R.surface, background: bg, touchAction: "none",
-                             boxShadow: lifted ? E.float : accent ? "none" : E.rest,
+                             boxShadow: lifted ? E.float : "none",
+                             border: `1px solid ${lifted || accent ? "transparent" : HAIR(t.ink, 0.14)}`,
                              opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
               <A.Ico size={h >= 84 ? 22 : 19} color={fg} strokeWidth={1.6} />
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: fg }}>{tr(A.label)}</span>
@@ -9741,7 +9241,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
               rows with chevrons — the thing itself, at its real size,
               rearranged by moving it. */}
           <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 9 }}>
-            {tr("Hold a tile and move it")}
+            {tr("Drag to arrange")}
           </div>
           <div style={{ marginBottom: SPACE.section }}>
             <ArrangeGrid ids={ids} cols={gridCols} h={tileH}
@@ -9763,7 +9263,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
           </>)}
 
           {hidden.length > 0 && (<>
-            <RowHead>{tr("Not showing")}</RowHead>
+            <RowHead>{tr("Hidden")}</RowHead>
             <div style={{ marginBottom: SPACE.section }}>
               <TileGrid cols={gridCols}>
                 {hidden.map((id) => {
@@ -9779,7 +9279,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
                   className="w-full active:opacity-60"
                   style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
                            ...TYPE.small, fontWeight: 600, color: t.sub }}>
-            {tr("Back to the default")}
+            {tr("Reset")}
           </button>
         </div>
       </Screen>
@@ -9800,7 +9300,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onLog, onCapture, onAttend, onAddPlayer, onTip, onDrills, code,
                       onAccept, onDecline, onInvite, push, go,
-                      layout, onEditBoard, onAction }) {
+                      layout, onAction }) {
   const t = useT();
   const list = today || [];
   const done = list.filter((l) => l.done);
@@ -9838,12 +9338,6 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
   /* the badge on Log: everything waiting, today's and older */
   const waiting = list.filter((l) => l.done).length + toLog.length;
   const avatarFor = (l) => avatarUrl(((roster || []).find((r) => r.name === l.who) || {}).avatarPath);
-  /* The day in one line under the date, so the shape of it is known
-     before a single row is read. */
-  const dayLine = list.length === 0
-    ? tr("Nothing booked")
-    : [`${list.length} ${list.length === 1 ? tr("lesson") : tr("lessons")}`,
-       done.length ? `${done.length} ${tr("to log")}` : null].filter(Boolean).join(" · ");
 
 
   return (
@@ -9852,7 +9346,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
       <div className="px-6 pt-3">
 
         <div style={{ marginBottom: SPACE.block }}>
-          <PageHead pad={false} title={dateLine} meta={dayLine} />
+          <PageHead pad={false} title={dateLine} />
         </div>
 
         {/* ---- THE BOARD ----
@@ -9865,7 +9359,10 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           <TileGrid cols={boardCols}>
             {boardIds.map((id) => {
               const A = COACH_ACTIONS[id];
-              const accent = id === "log" && !liveNow;
+              /* the one accent: Add player until there is a roster, then
+                 Log — while a lesson is live its row carries the accent */
+              const rosterEmpty = (roster || []).length === 0;
+              const accent = rosterEmpty ? id === "player" : id === "log" && !liveNow;
               return <ActTile key={id} tone={accent ? "accent" : "quiet"} h={boardCols === 2 ? 88 : 76}
                               Icon={A.Ico} label={tr(A.label)}
                               count={id === "log" ? waiting : 0}
@@ -9873,13 +9370,10 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             })}
           </TileGrid>
         </div>
-        {onEditBoard && (
-          <div className="flex justify-end" style={{ marginTop: 6, marginBottom: SPACE.block }}>
-            <button onClick={() => { haptic(6); soft(); onEditBoard(); }} className="px-1 py-1 active:opacity-50"
-                    style={{ ...TYPE.caption, color: t.faint }}>{tr("Edit shortcuts")}</button>
-          </div>
-        )}
-        {!onEditBoard && <div style={{ height: SPACE.block }} />}
+        {/* the editor is reached from the foot of the plus sheet and from
+            Settings › Shortcuts; a permanent customise link under the
+            primary control is chrome no home screen carries */}
+        <div style={{ height: SPACE.block }} />
 
         {/* ---- THE DAY, IN ONE COLUMN ----
 
@@ -9890,7 +9384,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
              one that is running is marked, the rest are plain, and
              tomorrow's first is the grey line at the foot. ---- */}
         {(todayRows.length > 0 || upcoming.length > 0) && (<>
-          <RowHead>{tr("Today")}</RowHead>
+          {/* no "Today" head: the H1 directly above is today's date */}
           <Ruled style={{ marginBottom: SPACE.block }}>
             {todayRows.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
@@ -9922,10 +9416,11 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                          heavier than the lid the list opened on. Tomorrow's
                          first lesson is the foot of the same column, not a
                          new section. */
-                      style={{ minHeight: 52, paddingLeft: 20 }}>
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.faint }}>
-                  {upcoming[0].dayLabel} · {upcoming[0].time} · {upcoming[0].who}
-                </span>
+                      style={{ minHeight: 60, paddingLeft: 20 }}>
+                <Rail>{upcoming[0].dayLabel.replace(/ \w+$/, "")}</Rail>
+                <Avatar name={upcoming[0].who} size={30} src={avatarFor(upcoming[0])} />
+                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{upcoming[0].who}</span>
+                <span className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{upcoming[0].time}</span>
                 <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             )}
@@ -9943,24 +9438,24 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           const jobs = [
             toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To write up"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Wanting to join"), n: requests.length,
+            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
             drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
             events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           return (<>
-            <RowHead>{tr("Waiting on you")}</RowHead>
+            <RowHead>{tr("To do")}</RowHead>
             <Ruled style={{ marginBottom: SPACE.block }}>
               {asks.slice(0, 3).map((r, i) => (
                 <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
-                     style={{ minHeight: 62, borderBottom: RULE.hair(t.ink) }}>
-                  <Avatar name={r.who} size={32} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
+                     style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
+                  <Avatar name={r.who} size={30} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
                     <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{r.d} {monthName(r.m).slice(0, 3)} · {r.time}</span>
                   </span>
-                  <TextBtn color={t.accent} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
+                  <TextBtn color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
                   <TextBtn color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
                 </div>
               ))}
@@ -9970,12 +9465,6 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             </Ruled>
           </>);
         })()}
-
-        {/* nobody yet: the code, on the thing they tap to share it */}
-        {(roster || []).length === 0 && (
-          <ActTile tone="accent" h={104} Icon={Share2} label={code ? `${tr("Share your code")} · ${code}` : tr("Invite a player")}
-                   onTap={() => { onInvite && onInvite(); }} />
-        )}
 
         <div style={{ height: 26 }} />
       </div>
@@ -10032,7 +9521,7 @@ function areaSubsOf(cfg, lesson) {
 function StagePill({ label, small }) {
   const t = useT();
   if (!label) return null;
-  return <span style={{ ...TYPE.small, fontSize: small ? 11.5 : 12.5, fontWeight: 600, color: t.accent, whiteSpace: "nowrap" }}>{label}</span>;
+  return <span style={{ ...TYPE.small, fontSize: small ? 11.5 : 12.5, fontWeight: 500, color: t.sub, whiteSpace: "nowrap" }}>{label}</span>;
 }
 function LessonTags({ lesson, cfg, className = "" }) {
   const t = useT();
@@ -10095,7 +9584,7 @@ const WizHero = ({ children, sub }) => {
   const t = useT();
   return (
     <div className="px-6 pt-3 pb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
-      <h2 style={{ ...TYPE.hero, fontSize: 30, color: t.ink }}>{children}</h2>
+      <h2 style={{ ...TYPE.screen, color: t.ink }}>{children}</h2>
       {sub && <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
     </div>
   );
@@ -10128,6 +9617,10 @@ const WizDocked = ({ children }) => {
 const WIZ_VIEWS = ["who", "main", "stage"];
 const WIZ_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WIZ_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];   // getDay() order
+/* "Wed 23 Sep" — the locale gives "Sept" for September in en-IE while
+   every table in the file says "Sep"; one spelling, from one table */
+const fmtWeekDay = (d) => `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${WIZ_MONTHS[d.getMonth()]}`;
 const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 /* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
 const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
@@ -10138,15 +9631,17 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
   const t = useT();
   return (
     <button data-tour={tour} aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
-            {...sink(t, on ? "none" : (t.elev || ELEV).rest)}
-            className="relative w-full flex flex-col items-center justify-center gap-2"
-            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : t.surface,
-                     boxShadow: on ? "none" : (t.elev || ELEV).rest, willChange: "transform",
-                     transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
+            {...sink(t, "none")}
+            className="relative w-full flex flex-col items-center gap-2"
+            /* top-aligned, so a tile that carries a time under the name
+               keeps its face level with the tile beside it */
+            style={{ minHeight: 104, paddingTop: 16, paddingBottom: 12, borderRadius: R.surface, background: on ? t.ink : t.surface,
+                     border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.14)}`, willChange: "transform",
+                     transition: `background ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
               bg={on ? "rgba(255,255,255,0.18)" : t.wash} fg={on ? "#fff" : t.sub} />
-      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
-      {caption && <span className="truncate px-2" style={{ ...TYPE.caption, fontSize: 10.5, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption}</span>}
+      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 500, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
+      {caption && <span className="truncate px-2" style={{ ...TYPE.caption, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption}</span>}
       {on && <span className="absolute rounded-full flex items-center justify-center" style={{ top: 8, right: 8, width: 18, height: 18, background: "#fff" }}><Check size={11} color={t.ink} strokeWidth={3} /></span>}
     </button>
   );
@@ -10324,7 +9819,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const stageValue = [currentStage, ...extraPick, mount.trim() ? `${cfg.mount ? "" : ""}${mount.trim()}` : null].filter(Boolean).join(" · ");
   const tags = [currentStage, ...extraPick, mount.trim() ? `on ${mount.trim()}` : null].filter(Boolean);
   const heroText = pickedGroup ? pickedGroup
-    : who.length === 0 ? tr("Who?")
+    : who.length === 0 ? tr("Who")
     : who.length === 1 ? who[0].name
     : who.length === 2 ? `${wizFirst(who[0].name)} & ${wizFirst(who[1].name)}`
     : `${wizFirst(who[0].name)} +${who.length - 1}`;
@@ -10395,12 +9890,12 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
         <div key="who" className="flex flex-col h-full relative" style={{ background: t.page }}>
           <WizBar onBack={() => (who.length ? setView("main") : onCancel())} close={!who.length} />
           <div className="flex-1 overflow-y-auto">
-            <WizHero>{adding ? tr("Who else?") : tr("Who?")}</WizHero>
+            <WizHero>{adding ? tr("Who else") : tr("Who")}</WizHero>
             {POOL_W.length > 8 && (
               <div className="px-6 pb-3" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
                 <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
                   <Search size={15} color={t.trace || t.faint} />
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${tr("Search")} ${POOL_W.length}`} enterKeyHint="search"
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} enterKeyHint="search"
                          onKeyDown={(e) => { if (e.key === "Enter" && faces[0]) { e.preventDefault(); pickPerson(faces[0]); } }}
                          className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                   {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
@@ -10469,7 +9964,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     return (
       <SwipeBack key="stage" onBack={back}>
         <div key="stage" className="flex flex-col h-full relative" style={{ background: t.page }}>
-          <WizBar onBack={back} right={<TextBtn color={t.ink} onClick={() => setView("main")}>{tr("Done")}</TextBtn>} />
+          <WizBar onBack={back} />
           <div className="flex-1 overflow-y-auto pb-8">
             <WizHero sub={pickedGroup || firstName}>{tr("Level")}</WizHero>
             <div className="px-6">
@@ -10535,7 +10030,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                     </div>
                   )}
                   <div className="mt-2.5">
-                    <InlineField key={mount} ph={tr("Another name")} label={cfg.mount.label} initial={recentMounts && recentMounts.includes(mount.trim()) ? "" : mount} autoFocus={false} height={54} commitOnBlur
+                    <InlineField key={mount} ph={cfg.mount.label} label={cfg.mount.label} initial={recentMounts && recentMounts.includes(mount.trim()) ? "" : mount} autoFocus={false} height={54} commitOnBlur
                                  onCommit={(x) => { setStageTouched(true); setMount(x); }}
                                  onEmpty={() => { setStageTouched(true); if (!(recentMounts || []).includes(mount.trim())) setMount(""); }} />
                   </div>
@@ -10568,13 +10063,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <div className="flex items-center gap-3">
               <button onClick={() => { haptic(6); setAdding(false); setView("who"); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ minHeight: 44 }}>
                 <span className="flex items-end gap-1.5">
-                  <span className="truncate" style={{ ...TYPE.hero, color: t.ink }}>{heroText}</span>
-                  <ChevronDown size={16} color={t.trace || t.faint} strokeWidth={2} style={{ marginBottom: 7, flexShrink: 0 }} />
+                  <span className="truncate" style={{ ...TYPE.screen, color: t.ink }}>{heroText}</span>
+                  <ChevronDown size={14} color={t.trace || t.faint} strokeWidth={2} style={{ marginBottom: 6, flexShrink: 0 }} />
                 </span>
               </button>
               <button onClick={() => { haptic(6); setAdding(true); setView("who"); }} aria-label={tr("Add someone")}
-                      className="rounded-full flex items-center justify-center shrink-0 active:opacity-60"
-                      style={{ width: 38, height: 38, background: t.wash }}><Plus size={17} color={t.ink} strokeWidth={2} /></button>
+                      className="flex items-center justify-center shrink-0 active:opacity-50"
+                      style={{ width: 44, height: 44 }}><Plus size={20} color={t.sub} strokeWidth={2} /></button>
             </div>
             <div className="flex items-center gap-2 mt-1.5" style={{ minHeight: 30 }}>
               <span data-tour="wiz-when" className="relative flex items-center">
@@ -10589,14 +10084,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </span>
               {stages.length > 0 && (
                 <>
-                  <span style={{ ...TYPE.small, color: t.faint }}>·</span>
-                  <button data-tour="wiz-stage" onClick={() => { haptic(6); setView("stage"); }} className="flex items-center gap-1 active:opacity-60" style={{ minHeight: 30 }}>
+                  <button data-tour="wiz-stage" onClick={() => { haptic(6); setView("stage"); }} className="flex items-center gap-1 active:opacity-60" style={{ minHeight: 30, marginLeft: SPACE.row }}>
                     {/* the level they are on, or the one thing still to
                         answer — never a control labelled "Level" holding
                         nothing. It never blocks Log it: a coach's first
                         lesson with a new player is still one tap. */}
-                    <span style={{ ...TYPE.small, fontWeight: 600, color: stageValue ? t.ink : t.accent }}>{stageValue || tr("Set level")}</span>
-                    <ChevronRight size={12} color={stageValue ? t.faint : t.accent} strokeWidth={2} />
+                    <span style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{stageValue || tr("Set level")}</span>
+                    <ChevronRight size={12} color={t.faint} strokeWidth={2} />
                   </button>
                 </>
               )}
@@ -10614,7 +10108,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               "Dressage" have no glyph that anyone would recognise, so
               every one of them had to be invented, and invented glyphs
               are what make software look like it wrote itself. */}
-          <div className="px-6" style={{ marginTop: SPACE.section }}>
+          <div className="px-6" style={{ marginTop: SPACE.block }}>
             <div data-tour="wiz-focus">
               <TileGrid cols={2}>
                 {cfg.focus.map((f) => {
@@ -10629,18 +10123,18 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </TileGrid>
               {otherOpen && (
                 <div style={{ marginTop: SPACE.tight }}>
-                  <InlineField ph={tr("Something else")} onCommit={(x) => { haptic(10); setCustom([x]); setFocus([]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} />
+                  <InlineField ph={tr("Other")} onCommit={(x) => { haptic(10); setCustom([x]); setFocus([]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} />
                 </div>
               )}
             </div>
           </div>
 
           {/* what was taken — one tap opens the camera itself */}
-          <div className="px-6" style={{ marginTop: SPACE.section }}>
+          <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid>
-              <ActTile tour="wiz-media" h={76} Icon={Camera} label={tr("Video")} count={videos.length}
+              <ActTile tour="wiz-media" h={76} Icon={VideoIcon} label={tr("Video")} count={videos.length}
                        onTap={() => (live ? pickFiles("video/*", "environment") : setCam(true))} />
-              <ActTile h={76} Icon={ImageIcon} label={tr("Photo")} count={photos.length}
+              <ActTile h={76} Icon={Camera} label={tr("Photo")} count={photos.length}
                        onTap={() => (live ? pickFiles("image/*", "environment") : addPhoto("action"))} />
               <ActTile h={76} Icon={Mic} on={rec === "recording"} count={voice ? 1 : 0}
                        label={rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice")}
@@ -10659,9 +10153,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                         return <K size={15} color={t.sub} strokeWidth={1.8} />; })()}
                       <span className="flex-1 min-w-0">
                         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>
-                          {it.kind === "video" ? tr("Video") : it.kind === "voice" ? tr("Voice note") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo")}
+                          {it.kind === "video" ? tr("Video") : it.kind === "voice" ? tr("Voice") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo")}
                         </span>
-                        {(it.from || it.capturedId != null) && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{it.from ? `${tr("captured")} · ${wizFirst(it.from)}` : tr("captured earlier")}</span>}
+                        {it.from && who.length > 1 && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{wizFirst(it.from)}</span>}
                       </span>
                     </div>
                   </SwipeRow>
@@ -10670,25 +10164,25 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             )}
 
             {/* the note is here, not behind a tap */}
-            <div style={{ marginTop: SPACE.block }}><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={2} ph={tr("A line about it")} /></div>
+            <div style={{ marginTop: SPACE.block }}><VoiceArea value={note || ""} onChange={(v) => setNote(v || null)} rows={2} ph={tr("Notes")} /></div>
           </div>
 
           {/* what they do until next time */}
-          <div className="px-6" style={{ marginTop: SPACE.section }}>
+          <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid cols={2}>
-              <ActTile tour="wiz-drills" h={58} Icon={ListChecks} label={tr("Drills")} count={nextDrills.length} on={drillsOpen} onTap={() => { setDrillsOpen(!drillsOpen); setTipOpen(false); }} />
-              <ActTile tour="wiz-tip" h={58} Icon={Lightbulb} label={tr("Tip")} dot={!!nextTip} on={tipOpen} onTap={() => { setTipOpen(!tipOpen); setDrillsOpen(false); }} />
+              <ActTile tour="wiz-drills" h={52} label={tr("Drills")} count={nextDrills.length} on={drillsOpen} onTap={() => { setDrillsOpen(!drillsOpen); setTipOpen(false); }} />
+              <ActTile tour="wiz-tip" h={52} label={tr("Tip")} dot={!!nextTip} on={tipOpen} onTap={() => { setTipOpen(!tipOpen); setDrillsOpen(false); }} />
             </TileGrid>
             {drillsOpen && (
               <div className="mt-2.5" style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
                 <DrillPicker drills={[...recommended, ...extraDrills.map((x) => ({ t: x }))]} picked={nextDrills}
                              onToggle={(name) => setNextDrills(nextDrills.includes(name) ? nextDrills.filter((x) => x !== name) : [...nextDrills, name])} />
-                <div className="mt-2.5"><InlineField ph={tr("Add your own")} onCommit={addOwnDrill} onCancel={() => {}} autoFocus={false} /></div>
+                <div className="mt-2.5"><InlineField ph={tr("Add a drill")} onCommit={addOwnDrill} onCancel={() => {}} autoFocus={false} /></div>
               </div>
             )}
             {tipOpen && (
               <div className="mt-2.5" style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
-                <VoiceInput value={nextTip} onChange={setNextTip} ph={prompts[0] || tr("One sentence")} />
+                <VoiceInput value={nextTip} onChange={setNextTip} ph={tr("Tip")} />
                 {prompts.length > 0 && (
                   <div className="mt-2" style={{ borderTop: hair }}>
                     {prompts.map((tp) => (
@@ -10705,7 +10199,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             )}
             {showReviewAsk && (
               <div className="flex items-center gap-3 mt-4" style={{ minHeight: 52, borderTop: hair }}>
-                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Ask")} {firstName} {tr("for a rating")}</span>
+                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr("Ask for a rating")}</span>
                 <Toggle on={wantRating} onChange={(v) => { soft(); setWantRating(v); }} />
               </div>
             )}
@@ -10774,9 +10268,9 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
                  : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
             </div>
           )}
-          <div style={{ borderTop: RULE.section(t.ink) }}>
+          <div className="nsc-list">
             {list.length === 0 ? (
-              <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("Nobody yet. Add player shares your code.")}</p>
+              <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("No players yet")}</p>
             ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
                 <Avatar name={r.name} size={40} />, r.name, [stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · ")))}
           </div>
@@ -10786,8 +10280,9 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           {lessonCount > 0 && (
             <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
                     className="w-full flex items-center gap-3 text-left active:opacity-50"
-                    style={{ minHeight: 56, marginTop: SPACE.block, borderTop: RULE.section(t.ink),
-                             borderBottom: RULE.hair(t.ink) }}>
+                    /* the foot of the same column, not a second list after a
+                       blank band between two rules */
+                    style={{ minHeight: 56, borderBottom: RULE.section(t.ink) }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
               <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
               <ChevronRight size={15} color={t.trace || t.faint} />
@@ -10830,7 +10325,8 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
      the screen; three is what they actually read walking out to meet
      someone, and the button is there whether or not there are more. */
   const shown = past.slice(0, 3);
-  const daysSince = live && r.lastLesson ? Math.max(0, Math.round((new Date() - localDate(r.lastLesson)) / 86400000)) : null;
+  /* day against day, so "today" holds until midnight and not until noon */
+  const daysSince = live && r.lastLesson ? (() => { const t0 = new Date(); t0.setHours(0, 0, 0, 0); return Math.max(0, Math.round((t0 - localDate(r.lastLesson)) / 86400000)); })() : null;
   /* Private lessons and the group sessions this player was marked at —
      lesson_attendees records who was there, so the coach's count and
      the player's own agree. */
@@ -10858,21 +10354,18 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           <button data-tour="player-all-lessons"
                   onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
                   className="w-full flex items-center gap-4 text-left active:opacity-70"
-                  style={{ minHeight: 92, marginBottom: 12, paddingTop: 4, paddingBottom: 14 }}>
-            {/* THE NUMBER IS THE BLOCK. It was a 30px figure inside a
-                wash-filled rounded rectangle with a hairline round it —
-                the app apologising for its own most important number.
-                A number in a document is set large and light, on the
-                bare paper, with the fact that qualifies it on its
-                baseline. Nothing encloses it. */}
+                  style={{ minHeight: 72, marginBottom: 12, paddingTop: 4, paddingBottom: 14 }}>
+            {/* The count at title size with the last date beside it — a
+                figure a coach reads walking, not a hero numeral bigger
+                than the screen's own H1 restating the rows beneath. */}
             <span className="flex-1 min-w-0">
               <span className="block" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Past lessons")}</span>
               <span className="flex items-baseline" style={{ marginTop: SPACE.knit, gap: 10 }}>
-                <span style={{ ...TYPE.figureXL, color: t.ink }}>{live ? f.done : past.length}</span>
+                <span style={{ ...TYPE.title, ...FIG, color: t.ink }}>{live ? f.done : past.length}</span>
                 <span className="truncate" style={{ ...TYPE.small, color: t.sub }}>
-                  {daysSince != null
-                    ? (daysSince === 0 ? tr("last one today") : `${tr("last one")} ${daysSince} ${daysSince === 1 ? tr("day ago") : tr("days ago")}`)
-                    : (live ? tr("none yet") : `${tr("last")} ${r.last}d ${tr("ago")}`)}
+                  {live
+                    ? (r.lastLesson ? `${tr("Last")} ${daysSince === 0 ? tr("today") : fmtWeekDay(localDate(r.lastLesson))}` : tr("None yet"))
+                    : `${tr("Last")} ${r.last}d ${tr("ago")}`}
                 </span>
               </span>
             </span>
@@ -10884,7 +10377,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           <div className="mb-6" data-tour="player-actions">
             <TileGrid cols={4}>
               <ActTile h={82} Icon={MessageCircle} label={tr("Message")} onTap={() => push("thread:" + (r.id || name))} />
-              <ActTile h={82} Icon={Lightbulb} label={tr("Tip")} dot={!!f.tip} onTap={() => assignTip(r.id ? r : name, null)} />
+              <ActTile h={82} Icon={Lightbulb} label={tr("Tip")} onTap={() => assignTip(r.id ? r : name, null)} />
               <ActTile h={82} Icon={ListChecks} label={tr("Drills")} onTap={() => assignDrills(r.id ? r : name, null)} />
               <ActTile h={82} Icon={Plus} label={tr("Log")} tone="accent" onTap={() => onLog && onLog(r.id ? r : { name })} />
             </TileGrid>
@@ -10892,10 +10385,9 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* who looks after a junior — the adult the coach writes to */}
           {live && r.junior && (
-            <p className="mb-6 px-4 py-3" style={{ borderRadius: R.control, background: t.wash, ...TYPE.small, color: t.sub }}>
-              {r.guardians && r.guardians.length
-                ? `${tr("Messages go to")} ${r.guardians.join(", ")}.`
-                : tr("No adult in their family yet — messages wait until there is one.")}
+            /* the adult a coach speaks to — one grey line, no box */
+            <p className="mb-6" style={{ ...TYPE.small, color: t.sub }}>
+              {r.guardians && r.guardians.length ? `${tr("Parent")} · ${r.guardians.join(", ")}` : tr("No parent linked yet")}
             </p>
           )}
 
@@ -10913,37 +10405,25 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               labelled twice on one screenful. */}
           <div className="mb-7" data-tour="player-lessons" style={{ borderTop: RULE.section(t.ink) }}>
             {live && past.length === 0 && (
-              <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing logged for")} {name.split(" ")[0]} {tr("yet.")}</p>
+              <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
             )}
             {shown.map((l, i) => (
               <button key={l.id || i} onClick={() => { haptic(7); soft(); if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + (r.id || name)); }}
                       className="w-full flex items-start gap-4 text-left active:opacity-50"
-                      style={{ minHeight: 76, paddingTop: 14, paddingBottom: 14,
+                      style={{ minHeight: 56, paddingTop: 12, paddingBottom: 12,
                                borderBottom: RULE.hair(t.ink),
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Rail style={{ paddingTop: 3 }}>{live ? `${l.d} ${l.m}` : l.d}</Rail>
                 <span className="flex-1 min-w-0">
-                  <span className="block" style={{ ...TYPE.subhead, color: t.ink }}>{l.focus}</span>
-                  {(l.note || (live && (l.media || l.videos))) && (
-                    <span className="block mt-1 truncate" style={{ ...TYPE.small, color: t.faint }}>
-                      {[live && (l.media || l.videos) ? `${l.media || l.videos} ${(l.media || l.videos) === 1 ? tr("file") : tr("files")}` : null, l.note].filter(Boolean).join(" · ")}
-                    </span>
-                  )}
+                  <span className="block" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
                 </span>
-                <ChevronRight size={15} color={t.trace || t.faint} style={{ marginTop: 4 }} />
               </button>
             ))}
           </div>
 
           {/* what is live right now — three lines, no cards */}
-          {(f.tip || seriesFor) && (
+          {f.tip && (
             <div className="mb-7">
-              {seriesFor && (
-                <div className="flex items-baseline gap-3 py-2">
-                  <Rail>{tr("Next")}</Rail>
-                  <span style={{ ...TYPE.body, color: t.ink }}>{DAY_NAMES[seriesFor.day]} {seriesFor.time}</span>
-                </div>
-              )}
               {f.tip && (
                 <div className="flex items-baseline gap-3 py-2">
                   <Rail>{tr("Tip")}</Rail>
@@ -10958,11 +10438,12 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               archive the block at the top of this screen goes to, under
               a second name. */}
           <div style={{ borderTop: RULE.section(t.ink) }}>
-            {[[tr("Recurring lessons"), () => onRecurring(name)],
-              ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool")]])].map(([lbl, act]) => (
-              <button key={lbl} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center text-left active:opacity-50"
+            {[[tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
+              ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
+              <button key={lbl} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
                       style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+                {val && <span style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
                 <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
@@ -11034,15 +10515,15 @@ const ARCHIVE_PAGE = 40;
 /* A FILTER IS A ROW THAT SAYS WHAT IT IS SET TO. Three rails of pills
    stacked above the archive ran off the right edge and told a coach
    nothing until they scrolled sideways. The value is on the row. */
-function FilterRow({ options, value, onChange, label, last }) {
+function FilterRow({ options, value, onChange, label, last, plain }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   if (options.length <= 1) return null;
   const hair = RULE.hair(t.ink);
   return (
-    <div style={{ borderBottom: last ? hair : "none" }}>
+    <div style={{ borderBottom: last && !plain ? hair : "none" }}>
       <button onClick={() => { haptic(6); setOpen(!open); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
-              style={{ minHeight: 52, borderTop: hair }}>
+              style={{ minHeight: 52, borderTop: plain ? "none" : hair }}>
         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
         <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "55%" }}>{value}</span>
         <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
@@ -11109,13 +10590,12 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
       {/* "Cian Murphy" over a screen you reached from "Cian Murphy" told
           nobody where they had got to. */}
       <Screen title={tr("Lessons")} onBack={pop}
-              meta={[forPlayer || null,
-                     shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
-                                                     : `${shown.length} ${tr("of")} ${lessons.length}`].filter(Boolean).join(" · ")}>
+              meta={shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
+                                                    : `${shown.length} ${tr("of")} ${lessons.length}`}>
         {sift && (<div className="px-6 mb-3">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
             <Search size={16} color={t.trace || t.faint} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={forPlayer ? tr("Search what you covered") : `Search ${nouns} or what you covered`}
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
                    className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
             {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
                : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
@@ -11142,11 +10622,11 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
         <div className="px-6 pb-2 mt-2">
           {shown.length === 0 ? (
             <p className="py-12 text-center" style={{ ...TYPE.small, color: t.faint }}>
-              {lessons.length === 0 ? tr("Nothing logged yet.") : tr("Nothing matches those filters.")}
+              {lessons.length === 0 ? tr("No lessons yet") : tr("No matches")}
             </p>
           ) : groups.map((g) => (
             <div key={g.key} className="mb-6">
-              <div className="uppercase mb-2 flex items-baseline justify-between" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-2 flex items-baseline justify-between" style={{ ...TYPE.eyebrow, color: t.faint }}>
                 <span>{g.m} {g.y}</span>
                 <span>{g.items.length}</span>
               </div>
@@ -11162,8 +10642,6 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                         {forPlayer ? ((l.subs || []).join(" · ") || l.note || "") : l.focus}
                       </span>
                     </span>
-                    {l.type === "Group" && <span className="rounded-full shrink-0" style={{ width: 6, height: 6, background: GROUP }} />}
-                    {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
                     <ChevronRight size={15} color={t.trace || t.faint} />
                   </button>
                 ))}
@@ -11175,7 +10653,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                     className="w-full mb-6 active:opacity-70"
                     style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>
-              {tr("Show")} {Math.min(ARCHIVE_PAGE, shown.length - page.length)} {tr("more")} · {shown.length - page.length} {tr("left")}
+              {tr("Show more")}
             </button>
           )}
         </div>
@@ -11201,7 +10679,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         {existing ? "Recurring lessons" : `Set up ${(name || "").split(" ")[0]}`}
       </h2>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Day")}</div>
+      
       <div className="flex gap-1.5 mb-5">
         {DAY_NAMES.map((n, i) => {
           const on = day === i;
@@ -11211,13 +10689,13 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         })}
       </div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
       <div className="mb-5">
         <TimeGrid cols={3} times={slots.map((sl) => span(sl, duration))} picked={time ? span(time, duration) : null}
                   onToggle={(lbl) => setTime(slots.find((sl) => span(sl, duration) === lbl))} />
       </div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("How often")}</div>
+      
       <div className="flex gap-2 mb-5">
         {[["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]].map(([id, lbl]) => {
           const on = freq === id;
@@ -11228,7 +10706,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       </div>
 
       <div className="flex items-center justify-between mb-5">
-        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("End date")}</span>
+        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Lessons")}</span>
         <span className="flex items-center gap-3">
           <button onClick={() => { haptic(5); setTotal(Math.max(1, total - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
           <span style={{ fontFamily: display, fontSize: 22, color: t.ink, minWidth: 26, textAlign: "center" }}>{total}</span>
@@ -11248,7 +10726,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       </Button>
       {existing && (
         <button onClick={() => { hapticWarn(); onEnd(existing); close(); }} className="w-full mt-3 py-3 active:opacity-50"
-                style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("End this arrangement")}</button>
+                style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("End series")}</button>
       )}
     </>
   );
@@ -11265,8 +10743,7 @@ function MyGroups({ groups, cfg, nouns, pop, push, say }) {
         <div className="px-6 pb-2">
           {groups.length === 0 ? (
             <div className="py-12 text-center">
-              <p style={{ fontFamily: display, fontSize: 20, letterSpacing: "-0.02em", color: t.ink }}>{tr("No groups yet")}</p>
-              <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("Clinics and squads show here.")}</p>
+              <p style={{ ...TYPE.body, color: t.faint }}>{tr("No groups yet")}</p>
             </div>
           ) : (
             <div style={{ borderTop: `1px solid ${t.hair}` }}>
@@ -11333,7 +10810,7 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
             <span style={{ width: 22 }} />
           </div>
           {rows.length === 0 ? (
-            <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing here yet.")}</p>
+            <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing here yet")}</p>
           ) : rows.map((r, ri) => (
             <div key={ri} className="flex items-center px-1" style={{ minHeight: 54, borderBottom: `1px solid ${t.hair}` }}>
               {r.map((cell, ci) => (
@@ -11382,24 +10859,16 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers }) {
   const avg = counted.length ? Math.round(counted.reduce((n, w) => n + w.present, 0) / counted.length) : null;
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={group.name} onBack={pop} meta={`${group.members.length} ${cfg.nouns} · ${DAY_NAMES[group.day]}s ${group.time}`}>
-        <div className="px-6 mb-6">
-          <div className="flex" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
-            {[["Sessions", String(weeks.length)],
-              ...(avg == null ? [] : [["Average in", String(avg)]]),
-              ...(group.weeks ? [["Weeks left", String(Math.max(0, group.weeks - weeks.length))]] : [])].map(([k, v], i) => (
-              <div key={k} className="flex-1 py-4" style={{ borderLeft: i ? `1px solid ${t.hair}` : "none", paddingLeft: i ? 14 : 0 }}>
-                <div style={{ fontFamily: display, fontSize: 26, lineHeight: 1, letterSpacing: "-0.02em", color: t.ink }}>{v}</div>
-                <div className="mt-1.5 uppercase" style={{ fontFamily: ui, fontSize: 9, letterSpacing: "0.18em", color: t.faint }}>{k}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {weeks.length > 0 && <Eyebrow>{tr("Week by week")}</Eyebrow>}
+      <Screen title={group.name} onBack={pop} meta={`${DAY_NAMES[group.day]}s ${group.time}`}>
+        {/* one grey line, not a dashboard of three stat cells */}
+        {weeks.length > 0 && (
+          <p className="px-6 mb-4" style={{ ...TYPE.small, color: t.sub }}>
+            {weeks.length} {weeks.length === 1 ? tr("session") : tr("sessions")}{group.weeks ? ` · ${Math.max(0, group.weeks - weeks.length)} ${tr("weeks left")}` : ""}
+          </p>
+        )}
         <div className="px-6 mb-6">
           {weeks.length === 0 && (
-            <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing logged for this group yet.")}</p>
+            <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No sessions yet")}</p>
           )}
           {weeks.map((w, i) => (
             <div key={i} className="py-4" style={{ borderBottom: `1px solid ${t.hair}` }}>
@@ -11411,24 +10880,16 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers }) {
               {/* only a register can say who was there; without one the
                   session simply carries no head count */}
               {w.present != null && (
-                <div className="mt-2.5 flex items-center gap-2">
-                  <span className="flex gap-1">
-                    {Array.from({ length: group.members.length }).map((_, k) => (
-                      <span key={k} className="rounded-full" style={{ width: 6, height: 6, background: k < w.present ? t.accent : t.hair }} />
-                    ))}
-                  </span>
-                  <span style={{ ...TYPE.caption, color: t.faint }}>{w.present} in{w.absent ? `, ${w.absent} out` : ""}</span>
-                </div>
+                <div className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{w.present} {tr("of")} {group.members.length}</div>
               )}
             </div>
           ))}
         </div>
 
-        <Eyebrow>{tr("Who's in the group")}</Eyebrow>
-        <div className="px-6 pb-2">
-          <Card>{group.members.map((mname, i) => (
+        <Eyebrow>{tr("Members")}</Eyebrow>
+        <div className="px-6 pb-2"><div className="nsc-list">{group.members.map((mname, i) => (
             <Row key={mname} label={mname} icon={<Avatar name={mname} size={36} />} chevron last={i === group.members.length - 1} onToggle={() => onOpen && onOpen(mname)} />
-          ))}</Card>
+          ))}</div>
         </div>
       </Screen>
     </SwipeBack>
@@ -11489,7 +10950,7 @@ function UnloggedLessons({ items, onLog, onDismiss, pop }) {
               <div className="flex items-center gap-3.5 mb-4">
                 <span className="rounded-2xl flex flex-col items-center justify-center shrink-0" style={{ width: 46, height: 46, background: t.wash }}>
                   <span style={{ fontFamily: display, fontSize: 17, lineHeight: 1, color: t.ink }}>{u.d}</span>
-                  <span className="uppercase" style={{ fontFamily: ui, fontSize: 8, letterSpacing: "0.1em", fontWeight: 600, color: t.faint }}>
+                  <span style={{ ...TYPE.caption, fontWeight: 500, color: t.faint }}>
                     {monthName(u.m).slice(0, 3)}
                   </span>
                 </span>
@@ -11580,7 +11041,7 @@ function VideoAnnotate({ angle, transcript, onSave, pop, say }) {
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Mark it up")} onBack={pop} meta={angle}
-              right={<TextBtn onClick={() => { onSave(shapes, captions); hapticSuccess(); chime(); say(tr("Saved to the clip")); pop(); }}>{tr("Save")}</TextBtn>}>
+              right={<TextBtn color={t.accent} onClick={() => { onSave(shapes, captions); hapticSuccess(); chime(); say(tr("Saved to the clip")); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6">
           <div ref={box} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}
                className="relative overflow-hidden" style={{ borderRadius: R.surface, height: 232, background: "#191D1B", touchAction: "none", cursor: "crosshair" }}>
@@ -11738,7 +11199,7 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
           <div className="px-6 pb-2">
             {list.length === 0 ? (
               <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-                {tr("Lessons you log will appear here.")}
+                {tr("No lessons yet")}
               </p>
             ) : (
               <Card>
@@ -11760,7 +11221,7 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
           <div className="px-6 pb-2">
             {!att ? (
               <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-                {tr("No register taken yet.")}
+                {tr("No register taken yet")}
               </p>
             ) : (
               /* a register holds two marks, so the record is one line */
@@ -11799,7 +11260,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
     { id: "copy", label: tr("Copy link"), Icon: Paperclip },
   ];
   const openRoute = async (id) => {
-    if (!joinCode) { say(tr("No code yet.")); return; }
+    if (!joinCode) { say(tr("No code yet")); return; }
     hapticSuccess(); soft();
     if (id === "copy") { const ok = await copyText(link); say(ok ? tr("Link copied") : tr("Couldn't copy")); close(); return; }
     const body = `${text} ${link}`;
@@ -11812,7 +11273,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
      not there at all. */
   const canPickContacts = typeof navigator !== "undefined" && !!navigator.contacts && typeof navigator.contacts.select === "function";
   const pickContacts = async () => {
-    if (!joinCode) { say(tr("No code yet.")); return; }
+    if (!joinCode) { say(tr("No code yet")); return; }
     try {
       const picked = await navigator.contacts.select(["name", "tel"], { multiple: true });
       const names = (picked || []).map((c) => (c.name && c.name[0]) || "").filter(Boolean);
@@ -11827,7 +11288,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
 
       <div className="px-5 py-4 mb-5 flex items-center gap-3" style={{ borderRadius: R.surface, background: t.wash }}>
         <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{shown || "—"}</span>
-        <span className="rounded-full px-2.5 py-1" style={{ background: t.surface, fontFamily: ui, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", color: t.sub }}>
+        <span className="rounded-full px-2.5 py-1" style={{ background: t.surface, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.sub }}>
           {joinCode || "——————"}
         </span>
       </div>
@@ -11876,7 +11337,7 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New group")}</h2>
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
         {members.length ? `${members.length} ${nouns}` : tr("Members")}
       </div>
       <div className="mb-5">
@@ -11885,7 +11346,7 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
                       onToggle={(pl) => toggle(pl.name)} />
       </div>
 
-      <div className="uppercase mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
       <div className="flex gap-1.5 mb-3">
         {DAY_NAMES.map((d, i) => {
           const on = day === i;
@@ -11900,7 +11361,7 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("How many weeks")}</span>
+        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Weeks")}</span>
         <span className="flex items-center gap-3">
           <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
           <span style={{ fontFamily: display, fontSize: 22, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
@@ -11912,7 +11373,6 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
               onClick={() => { onCreate({ name: name.trim(), members, day, time, weeks }); close(); }}>
         {tr("Create group")}
       </Button>
-      <p className="mt-3 text-center" style={{ ...TYPE.caption, color: t.faint }}>{tr("You'll manage it")}</p>
     </>
   );
 }
@@ -12011,7 +11471,7 @@ function Subscription({ pop, say, plan }) {
       <Screen title={tr("Subscription")} onBack={pop} meta="">
         <div className="px-6">
           <div className="pb-6 mb-6" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="uppercase block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Current plan")}</span>
+            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Current plan")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 29, letterSpacing: "-0.03em", color: t.ink }}>{BRAND} {current.name}</span>
               <span style={{ fontFamily: display, fontSize: 22, color: t.ink }}>€{current.price}<span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>/mo</span></span>
@@ -12019,7 +11479,7 @@ function Subscription({ pop, say, plan }) {
             <div className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{current.blurb} · renews 21 August</div>
           </div>
 
-          <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Change plan")}</div>
+          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Change plan")}</div>
           <div style={{ borderTop: `1px solid ${t.hair}` }}>
             {PLANS.map((pl) => {
               const on = pl.id === current.id;
@@ -12069,65 +11529,23 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
   useEffect(() => { if (allDone) { hapticCommit(); swell(); } }, [allDone]);
   const who = conn?.coach?.split(" ")[0] || "your coach";
   return (
-    <Screen title={tr("Practice")} meta={items.length ? `${tr("Set by")} ${who}` : ""} right={right}>
+    <Screen title={tr("Drills")} meta={items.length ? (items.length - done > 0 ? `${items.length - done} ${tr("to do")}` : tr("All done")) : ""} right={right}>
       {items.length === 0 ? (
-        <div className="px-6"><Card className="p-8 text-center">
-          <p style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{tr("Nothing set yet")}</p>
-          <p className="mt-2" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.55, color: t.sub }}>{who} will send drills after your next lesson.</p>
-        </Card></div>
+        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No drills yet")}</p>
       ) : (
         <>
-          <div className="px-6">
-            <Card className="p-5 mb-6">
-              <div className="flex items-baseline justify-between mb-4">
-                <span style={{ ...TYPE.figure, fontSize: 24, color: t.ink }}>
-                  {done}<span style={{ ...TYPE.small, color: t.faint }}> {tr("of")} {items.length}</span>
-                </span>
-                {/* A coach sets a drill, not a length. The seeds carry
-                    minutes; a real drill does not, and ten a piece was
-                    a number the app made up. */}
-                <span style={{ ...TYPE.small, color: t.faint }}>
-                  {items.some((x) => x.mins) && <>{items.reduce((a, x) => a + (x.mins || 10), 0)} {tr("min")}</>}
-                  {done === items.length && <span style={{ color: STEADY }}>{items.some((x) => x.mins) ? " · " : ""}{tr("All clear")}</span>}
-                </span>
-              </div>
-
-              {/* THE SESSION AS BLOCKS
-                  Width is duration, height is effort. Done blocks fill
-                  green; the one you're on breathes; the rest wait in
-                  outline. The shape of the session is the information. */}
-              <div className="flex items-end gap-1" style={{ height: 52 }}>
-                {items.map((x, i) => {
-                  const mins = x.mins || 10;
-                  const effort = x.effort || (i % 3 === 1 ? 3 : i % 3 === 2 ? 2 : 1);   // 1 easy · 2 · 3 hard
-                  const current = !x.done && items.slice(0, i).every((y) => y.done);
-                  return (
-                    <button key={x.id || i} onClick={() => { haptic(7); soft(); toggle(x.id); }}
-                            className="active:opacity-70"
-                            style={{ flex: mins, height: `${34 + effort * 6}px`, borderRadius: 5,
-                                     background: x.done ? STEADY : current ? `${t.accent}22` : "transparent",
-                                     border: x.done ? "none" : `1.5px solid ${current ? t.accent : HAIR(t.ink, 0.28)}`,
-                                     transformOrigin: "bottom",
-                                     animation: current ? "breathe 2.8s ease-in-out infinite"
-                                       : `barGrow 520ms cubic-bezier(.22,1,.36,1) ${i * 60}ms both`,
-                                     transition: "background 220ms, border-color 220ms" }}
-                            aria-label={x.t} />
-                  );
-                })}
-              </div>
-              <div className="flex justify-between mt-2">
-                <span style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{tr("Start")}</span>
-                <span style={{ ...TYPE.eyebrow, fontSize: 8.5, color: t.faint }}>{tr("Finish")}</span>
-              </div>
-            </Card>
-          </div>
-          <Eyebrow>{tr("Your drills")}</Eyebrow>
-          <div className="px-6 pb-2"><Card>
+          {/* THE LIST IS THE SCREEN. There was a card above it: a figure
+              ("0 of 1"), a row of blocks whose widths were minutes the
+              app invented and whose heights were an "effort" it made
+              up, and START / FINISH in tracked caps under one drill. A
+              coach sets a drill, not a length; what a player has to do
+              is the rows, and the count is the subtitle. */}
+          <div className="px-6 pb-2"><div className="nsc-list">
             {items.map((x, i) => (
               <div key={x.id}>
               <button data-tour={i === 0 ? "drill-row" : undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
-                      className="w-full flex items-start gap-3.5 px-5 py-4 text-left active:opacity-50"
-                      style={{ borderBottom: i === items.length - 1 ? "none" : `1px solid ${t.hair}`,
+                      className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
+                      style={{ borderBottom: `1px solid ${t.hair}`,
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <span className="flex items-center justify-center shrink-0"
                       style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
@@ -12135,25 +11553,21 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
                   {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
+                  <span className="block" style={{ ...TYPE.body, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
                   {/* a drill set by a real coach is a name; only the
                       starter sets carry a description */}
                   {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
                 </span>
               </button>
               {DRILL_SECONDS(x.d) && !x.done && (
-                <div className="px-5 pb-4" style={{ marginTop: -4 }}>
+                <div className="pb-4" style={{ marginTop: -4 }}>
                   <DrillTimer seconds={DRILL_SECONDS(x.d)} onDone={() => toggle(x.id)} />
                 </div>
               )}
               </div>
             ))}
-          </Card>
-          {!live && <button onClick={() => { haptic(8); tone(660, 0.12, 0.04); say && say(`${who} will see that`); }}
-                  className="w-full mt-4 py-3.5 active:opacity-50"
-                  style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>
-            {tr("Leave optional feedback")}
-          </button>}
+          </div>
+
           </div>
         </>
       )}
@@ -12183,7 +11597,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
     ? (roster || []).map((r) => { const mine = (drills || []).filter((d) => d.playerId === r.id); return { id: r.id, name: r.name, done: mine.filter((d) => d.done).length, total: mine.length, list: mine }; })
     : ROSTER.map((r) => r.name === "Marcus Tran" ? { id: r.id, name: r.name, done: marcusDone, total: items.length } : { id: r.id, name: r.name, done: r.pr ? r.pr[0] : 0, total: r.pr ? r.pr[1] : 0 });
   return (
-    <Screen title={tr("Practice")} right={right}>
+    <Screen title={tr("Drills")} right={right}>
       <div className="px-6 mb-6">
         <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left active:opacity-70" style={{ background: t.surface, borderRadius: R.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
           <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
@@ -12193,7 +11607,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
-      <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet.")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
+      <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
         <div key={r.id}>
         <Row label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
              right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: Math.min(r.total, 12) }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
@@ -12211,7 +11625,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
                         className="p-2 active:opacity-50" aria-label={tr("Remove")}><Trash2 size={15} color={DANGER} /></button>
               </div>
             ))}
-            {r.list.length === 0 && <p className="pt-3" style={{ fontFamily: ui, fontSize: 13, color: t.faint }}>{tr("Nothing set.")}</p>}
+            {r.list.length === 0 && <p className="pt-3" style={{ fontFamily: ui, fontSize: 13, color: t.faint }}>{tr("Nothing set")}</p>}
             <button onClick={() => { haptic(8); sheet(r); }} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Set drills")}</button>
           </div>
         )}
@@ -12237,7 +11651,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Drills")} onBack={pop} meta={library.length ? `${library.length} ${tr("in your library")}` : ""}
+      <Screen title={tr("Drills")} onBack={pop} meta={library.length ? `${library.length} ${tr("drills")}` : ""}
               right={<TextBtn tour="library-new" onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
         {adding && (
           <div className="px-6 mb-5"><Card className="p-5">
@@ -12246,39 +11660,36 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
             <div className="mt-4">
               <FocusGrid areas={cfg.focus} picked={[f.focus]} onToggle={(id) => setF({ ...f, focus: id })} />
             </div>
-            <div className="mt-5"><Button disabled={!f.t.trim()} onClick={() => { addDrill({ t: f.t.trim(), d: f.d.trim() || "No notes", focus: f.focus, uses: 0 }); setF({ t: "", d: "", focus: cfg.focus[0].id }); setAdding(false); hapticSuccess(); chime(); say("Saved"); }}>{tr("Save to library")}</Button></div>
+            <div className="mt-5"><Button disabled={!f.t.trim()} onClick={() => { addDrill({ t: f.t.trim(), d: f.d.trim() || "No notes", focus: f.focus, uses: 0 }); setF({ t: "", d: "", focus: cfg.focus[0].id }); setAdding(false); hapticSuccess(); chime(); say("Saved"); }}>{tr("Save")}</Button></div>
           </Card></div>
         )}
 
         {library.length > 8 && (
-          <div className="mb-4"><FilterRow last label={tr("Worked on")} options={chips} value={filter} onChange={setFilter} /></div>
+          <FilterRow plain label={tr("Area")} options={chips} value={filter} onChange={setFilter} />
         )}
 
         <div className="px-6 pb-2">
           {shown.length === 0 ? (
-            <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{library.length ? tr("Nothing under that.") : tr("Nothing saved yet.")}</p>
+            <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{library.length ? tr("None in this area") : tr("No drills yet")}</p>
           ) : (
-            <Card>
+            <div className="nsc-list">
               {shown.map((d, i) => {
                 const isOpen = open === d.t;
                 const focusLabel = cfg.focus.find((f2) => f2.id === d.focus)?.label;
                 return (
                   <div key={d.t + i} style={{ borderBottom: i === shown.length - 1 ? "none" : `1px solid ${t.hair}` }}>
-                    <button onClick={() => { haptic(6); setOpen(isOpen ? null : d.t); }} className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 64 }}>
+                    <button onClick={() => { haptic(6); setOpen(isOpen ? null : d.t); }} aria-expanded={isOpen} className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 60 }}>
                       <span className="flex-1 min-w-0">
                         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{d.t}</span>
-                        <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
-                          {focusLabel}{d.uses ? ` · ${tr("used")} ${d.uses}×` : ""}
-                        </span>
+                        <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{focusLabel}</span>
                       </span>
-                      <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
                     </button>
                     {isOpen && (
-                      <div className="px-5 pb-4" style={{ background: t.wash }}>
+                      <div className="pb-4">
                         <p className="pt-3 pb-4" style={{ fontFamily: ui, fontSize: 13.5, lineHeight: 1.6, color: t.sub }}>{d.d}</p>
                         <div className="flex gap-2">
                           <button onClick={() => { hapticCommit(); assign(null, d.focus); }} className="flex-1 active:opacity-70"
-                                  style={{ minHeight: 44, borderRadius: R.control, background: t.accent, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.onAccent }}>{tr("Assign this")}</button>
+                                  style={{ minHeight: 44, borderRadius: R.control, background: t.accent, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.onAccent }}>{tr("Set drills")}</button>
                           <button onClick={() => { haptic(8); removeDrill(d.t); say("Removed"); setOpen(null); }} className="px-4 active:opacity-60"
                                   style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}` }} aria-label={tr("Delete")}>
                             <Trash2 size={15} color={DANGER} />
@@ -12289,7 +11700,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                   </div>
                 );
               })}
-            </Card>
+            </div>
           )}
         </div>
       </Screen>
@@ -12329,13 +11740,13 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
 
   const total = picked.length + (custom.trim() ? 1 : 0);
   const DrillRow = ({ dr, i, arr }) => (
-    <Row key={dr.t} label={dr.t} sub={dr.uses ? `${dr.d} · used ${dr.uses}×` : dr.d}
+    <Row key={dr.t} label={dr.t} sub={dr.d}
          checked={picked.includes(dr.t)} last={i === arr.length - 1} onToggle={() => tog(dr.t)} />
   );
 
   return (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2">{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.accent} /></button>)}
+      <div className="flex items-center gap-1 mb-1 -ml-2">{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>)}
         <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
 
       {recommended.length > 0 && (<>
@@ -12382,7 +11793,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
   const TIMES = slots;
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Availability")} onBack={pop} meta={`${total} slots a week`} right={<TextBtn onClick={() => { setAvail(draft); say("Availability saved"); pop(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
           <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 active:opacity-60" style={{ minHeight: 58, border: `1px solid ${t.hair}` }}>
             <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: t.wash }}><Clock size={15} color={t.sub} /></span>
@@ -12392,12 +11803,12 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
           </button>
           {editSlots && (
             <Card className="p-5 mt-3">
-              <div className="uppercase mb-2.5" style={{ fontFamily: ui, fontSize: 9, letterSpacing: "0.2em", fontWeight: 600, color: t.faint }}>{tr("Lesson length")}</div>
+              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Lesson length")}</div>
               <div className="mb-5">
                 <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d}m`)} picked={`${duration}m`}
                           onToggle={(x) => setDuration(Number(String(x).replace("m", "")))} />
               </div>
-              <div className="uppercase mb-2.5" style={{ fontFamily: ui, fontSize: 9, letterSpacing: "0.2em", fontWeight: 600, color: t.faint }}>{tr("Start times")}</div>
+              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Start times")}</div>
               <div className="mb-4">
                 <TimeGrid cols={3} times={slots.map((sl) => span(sl, duration))} picked={[]}
                           onToggle={(label) => { haptic(6); const sl = slots.find((x) => span(x, duration) === label); setSlots(slots.filter((x) => x !== sl)); }} />
@@ -12410,7 +11821,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                 </div>
                 <button onClick={() => { if (newSlot.trim()) { haptic(10); setSlots([...slots, newSlot.trim()]); setNewSlot(""); } }}
                         disabled={!newSlot.trim()} className="rounded-2xl px-5 active:opacity-60 disabled:opacity-25"
-                        style={{ minHeight: 48, background: t.accent, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.onAccent }}>{tr("Add")}</button>
+                        style={{ minHeight: 48, background: t.ink, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.page }}>{tr("Add")}</button>
               </div>
             </Card>
           )}
@@ -12426,7 +11837,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
             </div>
             {expanded && on && (<div className="px-5 pb-4 pt-3" style={{ background: t.wash }}>
               <TimeGrid times={TIMES} picked={times} onToggle={(time) => togTime(day, time)} />
-              {day <= 4 && (<button onClick={() => copyDown(day)} className="mt-3 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Copy to all weekdays")}</button>)}
+              {day <= 4 && (<button onClick={() => copyDown(day)} className="mt-3 active:opacity-50" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{tr("Copy to all weekdays")}</button>)}
             </div>)}
           </div>
         ); })}</Card></div>
@@ -12480,7 +11891,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           well as themselves, so the person is picked first and the hours
           shown are that person's coach's. The request then carries the
           child's name, not the parent's. */}
-      {role === "player" && (kids || []).some((k) => k.canBook) && (
+      {role === "player" && (kids || []).some((k) => k.canBook) && ((selfCanBook ? 1 : 0) + (kids || []).filter((k) => k.canBook).length) > 1 && (
         <div className="px-6 mb-4" data-tour="cal-for">
           <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("For")}</div>
           {/* who the lesson is for, as faces — the hours shown are that
@@ -12532,14 +11943,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               })}
             </div>
             {days.length === 0 ? (
-              <p className="py-8 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing booked.")}</p>
+              <p className="py-8 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("Nothing booked")}</p>
             ) : (
               <div style={{ borderTop: `1px solid ${t.hair}` }}>
                 {days.map((g) => (
                   <div key={g.k} className="flex gap-4 py-3.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
                     <span className="shrink-0 text-center" style={{ width: 38 }}>
                       <span className="block" style={{ fontFamily: display, fontSize: 19, lineHeight: 1, color: t.ink }}>{g.d}</span>
-                      <span className="block mt-1 uppercase" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.14em", color: t.faint }}>
+                      <span className="block mt-1" style={{ ...TYPE.caption, color: t.faint }}>
                         {DAY_NAMES[dowOf(g.m, g.d, cx)].slice(0, 3)}
                       </span>
                     </span>
@@ -12571,7 +11982,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <button data-tour="cal-hours" onClick={() => { haptic(9); soft(); push("availability"); }}
                   className="w-full flex items-center gap-3 active:opacity-60"
                   style={{ minHeight: 54, borderRadius: R.control, background: t.accent, paddingLeft: 18, paddingRight: 14 }}>
-            <span className="flex-1 text-left" style={{ ...TYPE.body, fontWeight: 600, color: t.onAccent }}>{tr("Set the times you coach")}</span>
+            <span className="flex-1 text-left" style={{ ...TYPE.body, fontWeight: 600, color: t.onAccent }}>{tr("Set your hours")}</span>
             <ChevronRight size={16} color={t.onAccent} />
           </button>
         </div>
@@ -12603,7 +12014,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             </>
           ) : (
             <p className="py-6 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
-              {parent ? tr("Nobody's coach has set times yet.") : tr("Your coach hasn't set times yet.")}
+              {tr("No hours yet")}
             </p>
           )}
         </div>
@@ -12632,7 +12043,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           </span>
         </div>
         <div className={`grid mb-2`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
-          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center uppercase" style={{ fontFamily: ui, fontSize: 9, letterSpacing: "0.14em", fontWeight: 600, color: t.faint }}>{d}</div>))}
+          {DOW.map((d, i) => (prefs.weekends || i < 5) && (<div key={i} className="text-center" style={{ ...TYPE.caption, color: t.faint }}>{d}</div>))}
         </div>
         <div className="gap-y-1.5" style={{ display: "grid", gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
           {cells.map((d, i) => {
@@ -12675,7 +12086,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
 
         {myDay && (
           <div className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="uppercase block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
+            <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, duration)}</span>
               {readOnly
@@ -12690,14 +12101,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         )}
 
         {past ? (
-          <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("That day has passed.")}</p>
+          <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("That day has passed")}</p>
         ) : role === "coach" ? (
           booked.length === 0 && dayHours.length === 0 ? (
             <FreeDay onSetHours={() => push("availability")} />
           ) : (<>
             {booked.length > 0 ? (
               <>
-                <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
+                <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
                   {mo.idx === T.m && sel === T.d ? tr("Today's schedule") : dayLabel}
                 </div>
                 {booked.map((b, i) => (
@@ -12722,14 +12133,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             )}
 
             {open.length > 0 && prefs.showFree && (<>
-              <div className="uppercase mt-6 mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Free")}</div>
+              <div className="mt-6 mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Free")}</div>
               <TimeList times={open.map((x) => span(x, duration))} picked={pick ? span(pick, duration) : null}
                         onPick={(label) => { const time = open.find((x) => span(x, duration) === label); setPick(pick === time ? null : time); }} />
             </>)}
           </>)
         ) : dayHours.length === 0 ? (
           <div className="py-10 text-center">
-            <p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No lessons this day.")}</p>
+            <p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No lessons this day")}</p>
           </div>
         ) : (
           (() => {
@@ -12747,7 +12158,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <div className="mt-6">
             {/* a real player asks for one lesson at a time; standing slots are the coach's to set */}
             {!live && (<>
-            <span className="uppercase block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Repeat")}</span>
+            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Repeat")}</span>
             <div className="mb-5">
               <Segmented options={["Just once", "Weekly", "Fortnightly", "Monthly"]}
                          value={{ once: "Just once", weekly: "Weekly", fortnightly: "Fortnightly", monthly: "Monthly" }[recurrence]}
@@ -12766,7 +12177,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         )}
         {role === "coach" && seriesList && seriesList.length > 0 && (
           <div className="mt-8">
-            <div className="uppercase mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Recurring")}</div>
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Recurring")}</div>
             <div style={{ borderTop: `1px solid ${t.hair}` }}>
               {seriesList.map((r) => (
                 <button key={r.id} onClick={() => { haptic(6); onEditSeries && onEditSeries(r.who); }}
@@ -12790,7 +12201,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
     </Screen>
   );
 }
-const L_CAL = (role, readOnly) => (role === "coach" ? "Schedule" : readOnly ? "Calendar" : "Book a lesson");
+/* the tab says Diary, so the screen says Diary — for everyone */
+const L_CAL = () => "Diary";
 
 /* MESSAGES
 
@@ -12830,11 +12242,11 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
         <span className="flex items-baseline justify-between gap-2">
           <span className="truncate" style={{ ...TYPE.subhead, fontWeight: c.unread ? 600 : 500, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span>
           <span className="flex items-center gap-1.5 shrink-0">
-            {c.unread > 0 && <span className="rounded-full" style={{ width: 8, height: 8, background: t.accent }} />}
+            {c.unread > 0 && <span className="rounded-full" style={{ width: 8, height: 8, background: t.ink }} />}
             <span style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span>
           </span>
         </span>
-        {c.kind === "child" && c.sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.accent }}>{c.sub}</span>}
+        {c.kind === "child" && c.sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.sub }}>{c.sub}</span>}
         <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: c.unread ? t.ink : t.sub }}>
           {c.last || (c.kind === "child" ? "" : c.sub) || preview(c.lastId)}
         </span>
@@ -12845,23 +12257,21 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
     <Screen title={tr("Chat")} right={right}
             action={canStart ? (
               <button data-tour="chat-new" onClick={() => { hapticCommit(); soft(); onNew && onNew(); }}
-                      className="rounded-full flex items-center justify-center active:opacity-70"
-                      style={{ width: 40, height: 40, background: t.accent }} aria-label={tr("New message")}>
-                <Plus size={19} color={t.onAccent} strokeWidth={2.1} />
+                      className="flex items-center justify-center active:opacity-50"
+                      style={{ width: 40, height: 40 }} aria-label={tr("New message")}>
+                <Plus size={22} color={t.ink} strokeWidth={2} />
               </button>) : null}>
       <div className="px-6 pb-2">
         {list.length === 0 ? (
-          canStart
-            ? <ActTile tone="accent" h={96} Icon={MessageCircle} label={tr("New message")} onTap={() => { hapticCommit(); soft(); onNew && onNew(); }} />
-            : <p className="py-16 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing yet")}</p>
+          <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No conversations yet")}</p>
         ) : (<>
           {split && <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Yours")}</div>}
-          <div style={{ borderTop: hair }}>
+          <div>
             {mine.map((c, i) => <Thread key={c.id || c.name} c={c} tour={i === 0 ? "chat-row" : undefined} />)}
           </div>
           {kids.length > 0 && (<>
-            {split && <div className="mt-6 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("For your children")}</div>}
-            <div style={{ borderTop: hair }}>
+            {split && <div className="mt-6 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Children")}</div>}
+            <div>
               {kids.map((c, i) => <Thread key={c.id || c.name} c={c} tour={!split && i === 0 ? "chat-row" : undefined} />)}
             </div>
           </>)}
@@ -12892,9 +12302,7 @@ function BroadcastBody({ nouns, say, close, onSend }) {
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Message everyone")}</h2>
-      <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("One message, sent to every thread at once.")}</p>
-      {!onSend && <div className="mb-5"><Segmented options={[allLabel, "Groups only"]} value={aud} onChange={setAud} /></div>}
-      <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Write or say your message")} /></div>
+      <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Message")} /></div>
       <Button disabled={!text.trim() || busy} onClick={send}>{busy ? "…" : tr("Send")}</Button>
     </>
   );
@@ -12909,7 +12317,7 @@ const dayLabelOf = (iso, L) => {
                          - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
   if (days === 0) return L.today;
   if (days === 1) return tr("Yesterday");
-  return d.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" });
+  return fmtWeekDay(d);
 };
 
 function Thread({ role, name, isGroup, pop, say, live }) {
@@ -12961,12 +12369,10 @@ function Thread({ role, name, isGroup, pop, say, live }) {
           {/* who wrote it, inside the bubble. Floating above it, an
               adult's name read as a system note rather than as the
               author of the line under it. */}
-          {m.via && <span className="block mb-0.5" style={{ ...TYPE.caption, fontSize: 10.5, letterSpacing: "0.04em", color: t.faint }}>{m.via}</span>}
+          {m.via && <span className="block mb-0.5" style={{ ...TYPE.caption, color: t.faint }}>{m.via}</span>}
           <p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.45, color: mine ? "#fff" : t.ink }}>{body}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span style={{ fontFamily: ui, fontSize: 10.5, color: mine ? "rgba(255,255,255,0.45)" : t.faint }}>{m.at}</span>
-          </div>
         </div>
+        {m.at && <span className="block mt-1 px-1" style={{ ...TYPE.caption, color: t.faint }}>{m.at}</span>}
       </div>
     );
   };
@@ -12974,19 +12380,24 @@ function Thread({ role, name, isGroup, pop, say, live }) {
     <SwipeBack onBack={pop}>
       <div className="flex flex-col h-full" style={{ background: t.page }}>
         <div className="shrink-0 flex items-center px-1.5 relative z-20" style={{ height: 52, background: `${t.page}E6`, backdropFilter: "saturate(180%) blur(18px)", borderBottom: `1px solid ${t.hair}` }}>
-          <button onClick={() => { haptic(); pop(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={25} color={t.accent} strokeWidth={2.1} /></button>
-          <Avatar name={name} size={32} group={group} />
-          <span className="flex-1 ml-2.5 min-w-0"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? "Group chat" : live && live.sub ? live.sub : role === "coach" ? "Player" : "Your coach"}</span></span>
-          {(!live || live.onDetails) && (
-            <button onClick={() => { haptic(6); if (live) live.onDetails(); else say("Opens their profile"); }} className="p-2 active:opacity-40" aria-label={tr("Details")}><ChevronRight size={20} color={t.trace || t.faint} /></button>
-          )}
+          <button onClick={() => { haptic(); pop(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={25} color={t.ink} strokeWidth={2.1} /></button>
+          {(() => {
+            const inner = (<>
+              <Avatar name={name} size={32} group={group} />
+              <span className="flex-1 ml-2.5 min-w-0 text-left"><span className="block truncate" style={{ fontFamily: ui, fontSize: 15.5, fontWeight: 600, color: t.ink }}>{name}</span><span className="block" style={{ ...TYPE.caption, color: t.faint }}>{group ? tr("Group") : live && live.sub ? live.sub : role === "coach" ? "" : tr("Your coach")}</span></span>
+            </>);
+            /* a coach taps the name to open the player's file; nobody else has anywhere to go */
+            return live && live.onDetails
+              ? <button onClick={() => { haptic(6); live.onDetails(); }} className="flex-1 flex items-center min-w-0 active:opacity-60" style={{ minHeight: 44 }}>{inner}</button>
+              : <div className="flex-1 flex items-center min-w-0">{inner}</div>;
+          })()}
         </div>
         <div ref={feed} className="flex-1 overflow-y-auto px-4 pt-5 pb-3">
           {/* "Today" used to sit over every thread, however old, and
               over an empty one. A real thread is dated by the day each
               message was actually sent. */}
           {!live && msgs.length > 0 && <p className="text-center mb-5" style={{ ...TYPE.caption, color: t.faint }}>{L.today}</p>}
-          {msgs.length === 0 ? (<p className="text-center mt-8" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{live ? tr("No messages yet.") : tr("Say hello to get the group started.")}</p>) : msgs.map((m, i) => (
+          {msgs.length === 0 ? null : msgs.map((m, i) => (
             <React.Fragment key={m.key || i}>
               {live && dayOf(m.iso) !== dayOf(msgs[i - 1] && msgs[i - 1].iso) && (
                 <p className="text-center mb-5 mt-1" style={{ ...TYPE.caption, color: t.faint }}>{dayLabelOf(m.iso, L)}</p>
@@ -12999,9 +12410,6 @@ function Thread({ role, name, isGroup, pop, say, live }) {
         </div>
         <div className="shrink-0 px-3 pt-2 pb-3" style={{ background: `${t.surface}F2`, backdropFilter: "blur(18px)", borderTop: `1px solid ${t.hair}` }}>
           <div className="flex items-end gap-2">
-            {!live && (
-              <button onClick={() => { haptic(6); say("Attach a photo"); }} className="rounded-full flex items-center justify-center shrink-0 active:opacity-50" style={{ width: 40, height: 40, background: t.wash }} aria-label={tr("Attach")}><Paperclip size={18} color={t.sub} /></button>
-            )}
             <div className="flex-1 rounded-3xl px-4 py-2.5 flex items-center gap-2" style={{ background: t.wash }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
@@ -13034,7 +12442,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
   };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Branding")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Branding")} onBack={pop} right={<TextBtn color={t.accent} onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         {!live && (
           <div className="px-6 mb-6"><Card className="p-6 flex flex-col items-center">
             <div className="rounded-2xl flex items-center justify-center mb-4" style={{ width: 74, height: 74, background: t.wash, border: `1px dashed ${t.hair}` }}><Plus size={22} color={t.trace || t.faint} /></div>
@@ -13053,7 +12461,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
           ))}</Card></div>
         </>)}
         <div className="px-6 pb-2"><Card className="p-5">
-          <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 10.5, letterSpacing: "0.13em", fontWeight: 600, color: t.faint }}>{tr("Preview — this is exactly what players see")}</div>
+          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Preview")}</div>
           <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
             <Mark size={26} color={t.accent} /><span className="flex-1" style={{ ...TYPE.heading, color: t.ink }}>{clubName || "Your club"}</span>
             <span className="rounded-full px-3 py-1.5" style={{ background: t.accent, fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.onAccent }}>{tr("Request")}</span>
@@ -13177,7 +12585,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Your profile")} onBack={pop} right={<TextBtn tour="profile-save" onClick={save}>{busy ? "…" : tr("Save")}</TextBtn>}>
+      <Screen title={tr("Your profile")} onBack={pop} right={<TextBtn color={t.accent} tour="profile-save" onClick={save}>{busy ? "…" : tr("Save")}</TextBtn>}>
         <div className="px-6 pb-2">
           <div className="flex flex-col items-center mb-7" data-tour="profile-photo">
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pick} />
@@ -13311,7 +12719,6 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     );
   };
   const setPref = (k, v) => setPrefs && setPrefs((p) => ({ ...p, [k]: v }));
-  const [q, setQ] = useState("");
   const sub = role === "coach" ? (brandName ? `${cfg.label} coach · ${brandName}` : `${cfg.label} coach`) : (conn?.coach ? `${cfg.label} · ${conn.coach}` : cfg.label);
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
 
@@ -13326,20 +12733,20 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       !live && { label: tr("Paperwork"), tour: "settings-credentials", onTap: () => push("credentials") },
       !live && { label: tr("Requests"), tour: "settings-requests", onTap: () => push("requests") },
       demo && { label: tr("Subscription"), sub: `${BRAND} ${plan?.name || "Coach"}`, onTap: () => push("subscription") },
-      { label: tr("Your hours"), tour: "settings-availability", onTap: () => push("availability"), keys: ["availability", "times", "slots", "week", "when"] },
+      { label: tr("Hours"), tour: "settings-availability", onTap: () => push("availability"), keys: ["availability", "times", "slots", "week", "when"] },
       !live && { label: tr("Roster & groups"), tour: "settings-roster", onTap: () => push("roster") },
-      live && { label: tr("Set yourself up"), onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
+      live && { label: tr("Setup"), onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
         ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", onTap: () => push("myLessons") }
-        : { label: tr("Take lessons yourself"), onTap: () => push("takeLessons") }),
+        : { label: tr("Lessons as a player"), onTap: () => push("takeLessons") }),
       { label: tr("Shortcuts"), tour: "settings-shortcuts", onTap: () => push("layout"), keys: ["home", "board", "plus", "customise", "edit", "layout", "tiles"] },
       { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
-      { label: tr("Invite code & QR"), value: inviteCode || "——————", tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
-      prefs && { label: tr("Take attendance"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Take attendance"), prefs.attendance || "all",
+      { label: tr("Invite code"), value: inviteCode || "——————", tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
+      prefs && { label: tr("Register"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Register"), prefs.attendance || "all",
         [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v)) },
-      prefs && { label: tr("Ask for a review"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
+      prefs && { label: tr("Review prompt"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
       (!live || hasDependants) && { label: tr("This month"), tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
       { label: tr("Family"), sub: live ? (familyName || null) : null, tour: "settings-dashboard",
@@ -13349,7 +12756,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "file", "save"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
-    { title: L.appearance, tour: "settings-appearance", rows: [
+    { title: tr("App"), tour: "settings-appearance", rows: [
       live && (startOptions || []).length > 1 && { label: tr("Opens on"), keys: ["start", "home", "first screen"],
         /* SETTINGS ROWS CARRY NO GLYPH. Two of forty did — a tick on
            Take attendance and a house on Opens on — which is the sort
@@ -13358,11 +12765,10 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: L.sound, right: T(soundState, setSoundState, (v) => { setSoundOn(v); if (v) chime(); }), keys: ["tones", "audio", "mute"] },
       { label: L.haptics, right: T(hapticsOn, setHapticsOn, setHapticsEnabled), keys: ["vibrate", "vibration", "feedback", "tap"] },
       { label: tr("Reduce motion"), right: T(reduceMotion, setReduceMotion), keys: ["animation", "animations"] },
+      live && { label: tr("Notifications"), tour: "settings-notifications", onTap: () => push("notifications"), keys: ["push", "alerts", "quiet", "phone"] },
+      live && { label: tr("Data & permissions"), tour: "settings-data", onTap: () => push("legal:data"), keys: ["privacy", "export", "gdpr", "stored"] },
     ] },
-    live ? { title: tr("Account"), rows: [
-      { label: tr("Notifications"), tour: "settings-notifications", onTap: () => push("notifications"), keys: ["push", "alerts", "quiet", "phone"] },
-      { label: tr("Data & permissions"), tour: "settings-data", onTap: () => push("legal:data"), keys: ["privacy", "export", "gdpr", "stored"] },
-    ] } : { title: tr("Account"), tour: "settings-account", rows: [
+    live ? null : { title: tr("Account"), tour: "settings-account", rows: [
       { label: tr("Photo"), tour: "settings-photo", onTap: () => onPhoto && onPhoto() },
       multiSport && { label: tr("Main sport"), sub: mainLabel, onTap: () => onMainSport && onMainSport() },
       { label: tr("Personal details"), tour: "settings-details", onTap: () => push("details") },
@@ -13378,10 +12784,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
          each opened it was three taps for one thing */
       (!live || SUPPORT_EMAIL) && { label: tr("Contact us"), sub: live ? SUPPORT_EMAIL : null, tour: "settings-contact", keys: ["email", "support", "help", "problem", "faq"],
         onTap: () => { if (!live) { push("support"); return; } window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`${BRAND}: ${tr("a question")}`)}&body=${encodeURIComponent(`\n\n—\n${BRAND} ${VERSION}`)}`; } },
-    ] },
-    { title: tr("Legal"), tour: "settings-legal", rows: [
-      { label: tr("Terms of Service"), tour: "settings-terms", onTap: () => push("legal:terms") },
-      { label: tr("Privacy Policy"), tour: "settings-privacy", onTap: () => push("legal:privacy") },
+      { label: tr("Terms"), tour: "settings-terms", onTap: () => push("legal:terms") },
+      { label: tr("Privacy"), tour: "settings-privacy", onTap: () => push("legal:privacy") },
       { label: tr("Licences"), tour: "settings-licences", onTap: () => push("legal:licences") },
     ] },
     { title: null, rows: [
@@ -13390,46 +12794,30 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     ] },
   ].filter(Boolean).map((g) => ({ ...g, rows: g.rows.filter(Boolean) }));
 
-  const norm = (x) => String(x || "").toLowerCase();
-  const needle = norm(q).trim();
-  const hit = (r) => !needle || [r.label, r.sub, r.value, ...(r.keys || [])].some((x) => norm(x).includes(needle));
-  const shown = groups.map((g) => ({ ...g, rows: g.rows.filter(hit) })).filter((g) => g.rows.length);
+  const shown = groups.filter((g) => g.rows.length);
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("You")} onBack={pop}>
+      <Screen title={tr("Settings")} onBack={pop}>
         {/* who you are: a row, not a bordered card floating on the page */}
-        <div className="px-6 mb-5" style={{ borderBottom: RULE.hair(t.ink) }}>
+        <div className="px-6 mb-5">
           <button data-tour="settings-profile" onClick={() => { haptic(6); push(live ? "profile" : "details"); }} className="w-full flex items-center gap-4 text-left active:opacity-50" style={{ minHeight: 78 }}>
             <Avatar name={myName} size={56} src={avatar} />
             <span className="flex-1 min-w-0">
               <span className="block truncate" style={{ ...TYPE.title, color: t.ink }}>{myName}</span>
-              {role === "coach" && lifetime > 0
-                ? <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.sub }}>{weekDone} {tr("this week")} · {seasonDone} {tr("this year")}</span>
+              {role === "coach"
+                ? <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.sub }}>{cfg && cfg.label ? `${cfg.label} ${tr("coach")}` : tr("Coach")}</span>
                 : !live && <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.faint }}>{sub}</span>}
             </span>
             <ChevronRight size={18} color={t.trace || t.faint} />
           </button>
         </div>
 
-        {/* find it rather than scroll for it */}
-        <div className="px-6 mb-6">
-          <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-            <Search size={15} color={t.trace || t.faint} strokeWidth={2} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search settings")} aria-label={tr("Search settings")}
-                   className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.trace || t.faint} strokeWidth={2} /></button>
-               : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
-          </div>
-        </div>
 
-        {shown.length === 0 && (
-          <p className="px-6 py-8 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing called")} “{q}”.</p>
-        )}
         {shown.map((g, gi) => (
           <React.Fragment key={g.title || "end"}>
             {g.title && <Eyebrow>{g.title}</Eyebrow>}
-            <div className="px-6 mb-6"><Card tour={g.tour}>
+            <div className="px-6 mb-6" data-tour={g.tour}><Ruled>
               {g.rows.map((r, i) => r.custom
                 ? <div key={r.label} style={{ borderBottom: i === g.rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
@@ -13441,11 +12829,12 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                           the red bin is a warning, not decoration. */
                        icon={r.danger ? <Trash2 size={17} color={DANGER} strokeWidth={1.6} /> : undefined}
                        onToggle={r.onTap} />)}
-            </Card></div>
+            </Ruled></div>
           </React.Fragment>
         ))}
 
-        <div className="flex flex-col items-center pb-6"><Mark size={30} color={t.faint} /><p className="mt-2.5" style={{ ...TYPE.caption, color: t.faint }}>{BRAND} {VERSION}</p><p className="mt-1" style={{ ...TYPE.caption, color: t.faint }}>{tr("Made in Ireland")}</p></div>
+        {/* the version, at the very foot, and not under a search result */}
+        <p className="text-center pb-6" style={{ ...TYPE.caption, color: t.faint }}>Nosca {VERSION}</p>
       </Screen>
     </SwipeBack>
   );
@@ -13475,7 +12864,7 @@ function Details({ role, pop, say, me, onSave, onChangePassword }) {
   };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
+      <Screen title={tr("Personal details")} onBack={pop} right={<TextBtn color={t.accent} onClick={() => { if (!busy) save(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 pb-2">
           <Card className="mb-5">{Object.keys(f).map((k, i, arr) => (
             <div key={k} className="px-5 py-3.5" style={{ borderBottom: i === arr.length - 1 ? "none" : `1px solid ${t.hair}` }}>
@@ -13682,7 +13071,7 @@ function ChangePasswordBody({ onSubmit, say, close }) {
              aria-label={tr("New password again")} className="w-full outline-none px-4 mb-2" style={field} />
       <div className="mb-4" style={{ minHeight: 22 }}>
         {err ? <p style={{ ...TYPE.small, color: DANGER }}>{err}</p>
-             : again && pw !== again ? <p style={{ ...TYPE.small, color: t.faint }}>{tr("Those don't match yet.")}</p> : null}
+             : again && pw !== again ? <p style={{ ...TYPE.small, color: t.faint }}>{tr("Passwords don't match")}</p> : null}
       </div>
       <Button disabled={!ok || busy} onClick={async () => {
         if (!onSubmit) { close(); return; }
@@ -13812,9 +13201,8 @@ function PushPrompt({ userId, say }) {
   return (
     <div className="flex items-center gap-3 px-1 mb-5" data-tour="push-prompt"
          style={{ minHeight: 56, borderBottom: RULE.hair(t.ink) }}>
-      <Bell size={15} color={t.faint} strokeWidth={1.8} />
       <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
-        {state === "ios" ? tr("Add Nosca to your Home Screen to hear about these") : tr("Hear about these on your phone")}
+        {state === "ios" ? tr("Add to Home Screen for notifications") : tr("Phone notifications")}
       </span>
       {state === "ask" && (
         <button onClick={() => { haptic(8); turnOn(); }} disabled={busy} className="shrink-0 active:opacity-60 disabled:opacity-40"
@@ -13924,7 +13312,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
           <span className="shrink-0 flex items-center gap-2" style={{ marginTop: 3 }}>
             <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
             {/* one unread signal a surface: the dot here, the number in the bar */}
-            {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.accent }} />}
+            {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.ink }} />}
           </span>
         </button>
       </SwipeRow>
@@ -13940,7 +13328,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
         <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{w.what}</span>
       </span>
       <button onClick={() => { hapticCommit(); soft(); w.onAccept(); }} className="shrink-0 px-2 active:opacity-60"
-              style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Accept")}</button>
+              style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Accept")}</button>
       <button onClick={() => { haptic(7); w.onDecline(); }} className="shrink-0 px-2 active:opacity-60"
               style={{ ...TYPE.small, fontWeight: 500, color: t.faint }}>{tr("Decline")}</button>
     </div>
@@ -13957,13 +13345,12 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
           {userId && <PushPrompt userId={userId} say={say} />}
           {nothing ? (
             <div className="py-16 text-center">
-              <p style={{ ...TYPE.title, color: t.ink }}>{tr("All clear")}</p>
-              <p className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing new")}</p>
+              <p style={{ ...TYPE.body, color: t.faint }}>{tr("All clear")}</p>
             </div>
           ) : (<>
             {waiting.length > 0 && (
               <div style={{ marginBottom: SPACE.block }}>
-                <Eyeb>{tr("Waiting on you")}</Eyeb>
+                <Eyeb>{tr("Requests")}</Eyeb>
                 <div style={{ borderTop: hair }}>{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
               </div>
             )}
@@ -13973,13 +13360,14 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
                            options={[tr("Everything"), ...kinds]} />
               </div>
             )}
-            {shownList.length === 0 && (
+            {shownList.length === 0 && waiting.length === 0 && (
               <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing here")}</p>
             )}
-            {[[tr("Today"), today], [tr("Yesterday"), yesterday], [tr("Earlier"), earlier]].map(([label, group]) =>
+            {[[tr("Today"), today], [tr("Earlier"), [...yesterday, ...earlier]]].map(([label, group]) =>
               group.length === 0 ? null : (
                 <div key={label} style={{ marginBottom: SPACE.block }}>
-                  <Eyeb>{label}</Eyeb>
+                  {/* the split is worth a head only when both halves exist */}
+                  {today.length > 0 && yesterday.length + earlier.length > 0 && <Eyeb>{label}</Eyeb>}
                   <div style={{ borderTop: hair }}>{group.map((n) => <Line key={n.id} n={n} />)}</div>
                 </div>
               ))}
@@ -14058,7 +13446,7 @@ function CatchUp({ items, onOpen, onDone }) {
   return (
     <div className="absolute inset-0 flex flex-col" style={{ zIndex: 70, background: t.ink, animation: "fadeIn 320ms ease-out both" }}>
       <div className="flex-1 min-h-0 flex flex-col justify-center px-7">
-        <span style={{ fontFamily: ui, fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: t.accent,
+        <span style={{ ...TYPE.eyebrow, color: t.accent,
                        animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 120ms both" }}>
           {tr("While you were away")}
         </span>
@@ -14329,10 +13717,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (account) return {};              // a real account's registers come from the database, below
     const out = {};
     const who = ["p01", "p02", "p06", "p07", "p08"];   // ids: the second Tom Beckett, not the first
-    const days = [["14 JUN","Summer clinic"],["07 JUN","Marcus Tran"],["31 MAY","Junior squad"],
-                  ["24 MAY","Marcus Tran"],["17 MAY","Ladies group"],["10 MAY","Marcus Tran"],
-                  ["03 MAY","Summer clinic"],["26 APR","Marcus Tran"],["19 APR","Junior squad"],
-                  ["12 APR","Marcus Tran"],["05 APR","Summer clinic"],["29 MAR","Marcus Tran"]];
+    const days = [["14 Jun","Summer clinic"],["07 Jun","Marcus Tran"],["31 May","Junior squad"],
+                  ["24 May","Marcus Tran"],["17 May","Ladies group"],["10 May","Marcus Tran"],
+                  ["03 May","Summer clinic"],["26 Apr","Marcus Tran"],["19 Apr","Junior squad"],
+                  ["12 Apr","Marcus Tran"],["05 Apr","Summer clinic"],["29 Mar","Marcus Tran"]];   // the same spelling registerKey() writes
     days.forEach(([d, w], i) => {
       const reg = {};
       who.forEach((n, k) => { reg[n] = (i * 3 + k) % 11 === 0 ? "out" : "in"; });
@@ -14353,7 +13741,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [attendFor, setAttendFor] = useState(null);
   const [pickFor, setPickFor] = useState(null);   // what we are choosing a player for
   const [captureItems, setCaptureItems] = useState([]);
-  const [prefs, setPrefsLocal] = useState(sc && sc.logView ? { ...PREF_DEFAULTS, logView: sc.logView } : PREF_DEFAULTS);
+  const [prefs, setPrefsLocal] = useState(PREF_DEFAULTS);
   /* With a real account, preferences live in the database. The setter
      keeps the same signature the screens already call, so nothing
      downstream needs to know the difference. */
@@ -14362,7 +13750,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setPrefsLocal(value);
     if (data && data.savePrefs) {
       data.savePrefs({
-        log_view: value.logView, cal_view: value.calView, notify: value.notify,
+        cal_view: value.calView, notify: value.notify,
         attendance: value.attendance, show_record: value.showRecord,
         show_comps: value.showComps, reduce_data: value.reduceData,
         ask_for_review: value.askForReview,
@@ -14377,8 +13765,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        default rather than leaving a segmented control with nothing
        selected. */
     setPrefsLocal({
-      /* "cards" was a third view; a stored one reads as the list now */
-      logView: p.log_view === "cards" ? "list" : (p.log_view ?? PREF_DEFAULTS.logView),
       calView: p.cal_view ?? PREF_DEFAULTS.calView,
       notify: p.notify ?? PREF_DEFAULTS.notify,
       quietFrom: PREF_DEFAULTS.quietFrom,
@@ -15361,7 +14747,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (!data) return;
     const patch = { setup_done: true };
     if (out) {
-      if (out.days && out.times) {
+      if (out.days && out.days.length && out.times && out.times.length) {
         const week = {};
         for (let d = 0; d < 7; d++) week[d] = out.days.includes(d) ? out.times.slice().sort((a, b) => parseTime(a) - parseTime(b)) : [];
         patch.availability = { ...((data.prefs && data.prefs.availability) || {}), days: week, duration: out.dur || 45, slots: out.times };
@@ -15758,7 +15144,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }
     if (!conn || freshAccount) return [];
     const seed = conn.seeded ? SPORTS[conn.sport].lessons : [];
-    if (published && role === "player") return [{ id: 999, focus: published.focus, subs: published.subs, d: "24", m: "JUL", type: published.type === "group" ? "Group" : "Private", videos: published.videos.length, unread: true }, ...seed];
+    if (published && role === "player") return [{ id: 999, focus: published.focus, subs: published.subs, d: "24", m: "Jul", type: published.type === "group" ? "Group" : "Private", videos: published.videos.length, unread: true }, ...seed];
     return seed;
   })();
 
@@ -15771,7 +15157,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        is where a new one starts. */
     const order = (a, b) => (b.unread > 0) - (a.unread > 0) || String(b.lastAt || "").localeCompare(String(a.lastAt || "")) || a.who.localeCompare(b.who);
     if (role === "coach") {
-      const rows = (data.roster || []).filter((r) => byId[r.id]).map((r) => row(r.id, r.name, r.junior ? tr("Under 18 · a parent replies") : "", { coachId: account.id, junior: !!r.junior }));
+      const rows = (data.roster || []).filter((r) => byId[r.id]).map((r) => row(r.id, r.name, r.junior ? tr("Parent replies") : "", { coachId: account.id, junior: !!r.junior }));
       /* a coach who takes lessons themselves has a coach of their own to talk to */
       if (data.hasCoach && account && myCoachName) rows.unshift(row(account.id, myCoachName, tr("Your coach"), { kind: "own", coachId: null }));
       return rows.sort(order);
@@ -15906,7 +15292,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     : juvenile
       /* No messaging for an under-18 account. Deliberate: a child's
          contact with an adult coach runs through their parent. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : [])]
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : [])]
     : hasFamily
       /* Family stands in for Home — a parent's home IS the family view —
          so Lessons keeps its place rather than being pushed out. */
@@ -15916,11 +15302,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* Identical to a player's tabs — a parent has their own coaching
          and needs their own log. Family lives on the profile pill, which
          is already where you switch between people. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
-      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills"), count: practiceTodo }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
-  /* the feed runs edge to edge, under the status bar */
-  const bleed = inApp && screen === "log" && prefs.logView === "feed" && role !== "coach";
   let body, bare = !inApp;
   /* A player with no coach has an account and nothing in it. Rather
      than show empty lessons, an empty diary and a disabled chat, the
@@ -15986,13 +15370,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       <Screen title={tr("Chat")} right={slimRight}>
         <div className="px-6">
           <div className="py-12 text-center">
-            <span className="rounded-full flex items-center justify-center mx-auto mb-5" style={{ width: 54, height: 54, background: theme.wash }}>
-              <ShieldCheck size={22} color={theme.sub} strokeWidth={1.6} />
-            </span>
-            <p style={{ fontFamily: display, fontSize: 20, letterSpacing: "-0.02em", color: theme.ink }}>{tr("Handled by your parent")}</p>
-            <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.55, color: theme.sub }}>
-              Messages between you and your coach go through whoever manages your account.
-            </p>
+            <p style={{ ...TYPE.body, color: theme.faint }}>{tr("Handled by your parent")}</p>
           </div>
         </div>
       </Screen>
@@ -16022,7 +15400,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       }
       if (role === "coach") {
         const r = (data.roster || []).find((x) => x.id === threadKey || x.name === threadKey);
-        return r ? { playerId: r.id, who: r.name, sub: r.junior ? tr("Under 18 · a parent replies") : "",
+        return r ? { playerId: r.id, who: r.name, sub: r.junior ? tr("Parent replies") : "",
                      coachId: account ? account.id : null, junior: !!r.junior } : null;
       }
       const kid = (data.dependants || []).find((f) => f.coachId && (f.id === threadKey || f.name === threadKey));
@@ -16103,7 +15481,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        same two buttons here saves the trip to two other screens. */
     const alertWaiting = role !== "coach" ? [] : [
       ...(openRequests || []).map((r) => ({ id: `join-${r.id || r.name}`, who: r.name,
-            avatar: avatarUrl(r.avatarPath), what: tr("asking to join you"),
+            avatar: avatarUrl(r.avatarPath), what: tr("wants to join"),
             onAccept: () => acceptRequest(r), onDecline: () => declineRequest(r) })),
       ...(liveAsks || []).map((r) => ({ id: `ask-${r.id}`, who: r.who,
             avatar: avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath),
@@ -16209,7 +15587,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
                          onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: coachName, who: l.who, media: items, say })} />
       : <SwipeBack onBack={pop}><Screen title={tr("Lesson")} onBack={pop}>
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available.")}</p>
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
   } else if (screen.startsWith("capture:")) {
     const who = screen.slice(8);
@@ -16274,7 +15652,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       Object.keys(registers[k]).forEach((who) => {
         if (role !== "coach" && who !== me) return;
         const parts = k.split(" ");
-        const date = `${parts[0]} ${parts[1]}`;          // "14 JUN"
+        const date = `${parts[0]} ${parts[1]}`;          // "14 Jun"
         const what = parts.slice(2).join(" ");            // "Summer clinic"
         rows.push({ date, who: role === "coach" ? nameOfId(who) : what,
                     kind: role === "coach" ? what : (what.includes("clinic") || what.includes("squad") || what.includes("group") ? tr("Group") : tr("Private")),
@@ -16387,7 +15765,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
                           weekDone={liveStats ? liveStats.weekDone : freshAccount ? 0 : 11} seasonDone={liveStats ? liveStats.seasonDone : freshAccount ? 0 : 210} lifetime={data ? (role === "coach" ? taught(data.lessons).length : mineOnly(data.lessons).length) : freshAccount ? 0 : 1284} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} soundState={soundState} setSoundState={setSoundState} dark={dark} setDark={setDark} hapticsOn={hapticsOn} setHapticsOn={setHapticsOn}
                           startOn={startOn} setStartOn={setStartOn} prefs={role === "coach" ? prefs : null} setPrefs={setPrefs}
-                          startOptions={[{ id: "auto", label: tr("As it comes") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
+                          startOptions={[{ id: "auto", label: tr("Automatic") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
                           pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
   } else if (screen === "calendar") { body = <CalendarScreen role={role} lessonsFor={data ? (n) => (((roster || []).find((r) => r.name === n) || {}).lessons ?? 0) : null} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount && !bookFor}
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
@@ -16438,7 +15816,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   onAccept={acceptAsk}
                   onDecline={(r) => { setDeclining(r); setSheet("decline"); }}
                   onInvite={() => setSheet("invite")}
-                  layout={layout} onAction={runQuick} onEditBoard={() => push("layout")}
+                  layout={layout} onAction={runQuick}
                   push={push} go={go} />
     );
     body = {
@@ -16468,7 +15846,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
       home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
-      log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} onCompare={() => setSheet("compare")} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} ownMedia={ownMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
@@ -16490,7 +15868,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }}>
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24),
+                    ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
           <Mark size={30} color="#E7EBE4" />
@@ -16625,13 +16004,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               entirely in the product, replaced by safe-area padding so
               content clears the real status bar. */}
           {demo ? (
-            <div className={`flex items-center justify-between px-7 pt-3 shrink-0 z-30 ${bleed ? "absolute inset-x-0" : "relative"}`}>
-              <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600,
-                             color: bleed ? "#fff" : theme.ink,
-                             textShadow: bleed ? "0 1px 4px rgba(0,0,0,0.6)" : "none" }}>9:41</span>
-              <span style={{ fontFamily: ui, fontSize: 12.5,
-                             color: bleed ? "rgba(255,255,255,0.9)" : theme.ink,
-                             textShadow: bleed ? "0 1px 4px rgba(0,0,0,0.6)" : "none" }}>82%</span>
+            <div className="flex items-center justify-between px-7 pt-3 shrink-0 z-30 relative">
+              <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: theme.ink }}>9:41</span>
+              <span style={{ fontFamily: ui, fontSize: 12.5, color: theme.ink }}>82%</span>
             </div>
           ) : (
             <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
@@ -16656,7 +16031,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 {tr("Offline — recording and mark-up still work")}
               </span>
               {queued > 0 && (
-                <span className="rounded-full px-2 py-0.5" style={{ background: "rgba(255,255,255,0.25)", fontFamily: ui, fontSize: 10.5, fontWeight: 600, color: "#fff" }}>
+                <span className="rounded-full px-2 py-0.5" style={{ background: "rgba(255,255,255,0.25)", fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>
                   {queued} {tr("queued")}
                 </span>
               )}
@@ -16716,7 +16091,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
             {sheet === "pickWho" ? <PickPerson roster={roster}
                                             title={pickFor === "tip" ? tr("Set a tip") : tr("Set drills")}
-                                            sub={tr("Who is it for?")}
+                                            sub={tr("For")}
                                             onPick={(r) => {
                                               setSheet(null);
                                               setTimeout(() => {
@@ -16841,10 +16216,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onWeather={() => setSheet("weather")} close={() => setSheet(null)} say={say} />
               : sheet === "bookWho" && bookSlot ? (
                   <>
-                    <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Book someone in")}</h2>
-                    <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
-                    </p>
+                    <h2 className="mb-5" style={{ ...TYPE.title, color: theme.ink }}>
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} · {span(bookSlot.time, duration)}
+                    </h2>
                     {/* A NAMED BEING IN A LIST IS A ROW. This was a stack
                         of cards, one card a player, which is the tile
                         contract's other half being used for the wrong
@@ -16878,15 +16252,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "bookSelf" && bookSlot ? (
                   <>
-                    <h2 className="mb-1" style={{ fontFamily: display, fontSize: 23, letterSpacing: "-0.025em", color: theme.ink }}>
-                      {bookFor ? `${tr("A lesson for")} ${bookFor.name.split(" ")[0]}` : tr("A lesson for you")}
+                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)}
                     </h2>
-                    <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)]} {bookSlot.day.d} · {span(bookSlot.time, duration)}
-                      {" · "}{tr("with")} {bookFor ? (bookFor.coachName || tr("their coach")) : ((conn || {}).coach || tr("your coach"))}
+                    <p className="mb-6" style={{ ...TYPE.small, color: theme.sub }}>
+                      {span(bookSlot.time, duration)} · {bookFor ? bookFor.name.split(" ")[0] : ((conn || {}).coach || tr("your coach"))}
                     </p>
                     <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } done(tr("Asked"), tr("Your coach will confirm.")); }}>
-                      {bookFor ? `${tr("Request for")} ${bookFor.name.split(" ")[0]}` : tr("Request it")}
+                      {bookFor ? `${tr("Request for")} ${bookFor.name.split(" ")[0]}` : tr("Request")}
                     </Button>
                   </>
                 )

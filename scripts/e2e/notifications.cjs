@@ -72,7 +72,7 @@ const { check, results, summary } = M.checker("notifications");
       check("(a) it lists the three, newest first, with their bodies", (await rows.count()) === 3 && /Lesson confirmed/.test(await rows.nth(0).innerText()) && /Niamh Byrne/.test(await rows.nth(1).innerText()) && /Lesson logged/.test(await rows.nth(2).innerText()) && t0.includes("Short game · Niamh Byrne"), t0.slice(0, 300));
       await rows.filter({ hasText: "Lesson logged" }).first().click(); await page.waitForTimeout(1200);
       const t1 = await text(); await shot("02-adult-lesson-from-catchup");
-      check("(a) tapping a lesson notification lands on that lesson", (await catchup(page).count()) === 0 && t1.includes("Short game") && t1.includes("Cleaner contact from the fringe.") && (await page.locator('button', { hasText: "Download lesson log" }).count()) === 1, t1.slice(0, 200));
+      check("(a) tapping a lesson notification lands on that lesson", (await catchup(page).count()) === 0 && t1.includes("Short game") && t1.includes("Cleaner contact from the fringe.") && (await page.locator('button', { hasText: "Download" }).count()) === 1, t1.slice(0, 200));
       const p1 = readPatches()[0];
       check("(a) …and marks only that one read (PATCH id=in.(…) read_at=is.null)", !!p1 && p1.body.read_at && /id=in\.%28|id=in\.\(/.test(p1.query) && p1.query.includes(N.lesson) && !p1.query.includes(N.message) && p1.query.includes("read_at=is.null") && p1.n === 1, p1 ? p1.query : "no PATCH");
       await M.back(page);
@@ -131,11 +131,11 @@ const { check, results, summary } = M.checker("notifications");
          thing happened is suppressed while the row is there, so the
          name is on the screen once. */
       const named = (t2.match(/Eoin Walsh/g) || []).length;
-      check("(c) the alerts list names the person asking to join, once", named === 1 && /WAITING ON YOU/i.test(t2) && t2.includes("asking to join you"), t2.slice(0, 240));
+      check("(c) the alerts list names the person asking to join, once", named === 1 && /Requests/.test(t2) && t2.includes("wants to join"), t2.slice(0, 240));
       check("(c) the row carries Accept and Decline", (await byText(page, "Accept").count()) === 1 && (await byText(page, "Decline").count()) === 1, t2.slice(0, 200));
       await byText(page, "Accept").first().click(); await page.waitForTimeout(1400);
       const t3 = await text(); await shot("10b-coach-alerts-accepted");
-      check("(c) accepting from the alerts list answers it there", !/WAITING ON YOU/i.test(t3) && db.requests.every((r) => r.status !== "pending"), `${t3.slice(0, 160)} · ${JSON.stringify(db.requests.map((r) => r.status))}`);
+      check("(c) accepting from the alerts list answers it there", !/Requests/.test(t3) && db.requests.every((r) => r.status !== "pending"), `${t3.slice(0, 160)} · ${JSON.stringify(db.requests.map((r) => r.status))}`);
       await ctx.close();
     }
 

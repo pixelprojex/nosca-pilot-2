@@ -49,7 +49,7 @@ const TARGETS = {
      family's own settings are the gear on it (or You → Family when there
      is no family yet) */
   player: [["family", ['[aria-label="Your profile"]', '[data-tour="settings-dashboard"]'], /Family|family/],
-           ["familyCode", ['[aria-label="Your profile"]', '[data-tour="settings-dashboard"]', '[data-tour="family-settings"], [data-tour="family-create"]'], /Start a family|Who's in it/],
+           ["familyCode", ['[aria-label="Your profile"]', '[data-tour="settings-dashboard"]', '[data-tour="family-settings"], [data-tour="family-create"]'], /Start a family|Members/],
            ["alerts", ['[aria-label="Alerts"]'], /Alerts/], ["you", ['[aria-label="Your profile"]'], /Sign out/], ["profile", ['[aria-label="Your profile"]', '[data-tour="settings-profile"]'], /Your profile/],
            ["notifications", ['[aria-label="Your profile"]', '[data-tour="settings-notifications"]'], /Notifications/]],
 };

@@ -27,7 +27,7 @@ let seq = 0;
 const uuid = (prefix = "40000000") => `${prefix}-0000-4000-8000-${String(++seq).padStart(12, "0")}`;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const code6 = () => { let s = ""; for (let i = 0; i < 6; i++) s += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]; return s; };
-const MON = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const pad = (n) => String(n).padStart(2, "0");
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
@@ -253,7 +253,8 @@ function lessonsView(db) {
   return db.lessons.map((l) => {
     const files = db.media.filter((m) => m.lesson_id === l.id);
     const n = (k) => files.filter((m) => m.kind === k).length;
-    const d = new Date(l.lesson_date);
+    const [yy, mm, dd] = String(l.lesson_date).split("-").map(Number);
+    const d = new Date(yy, mm - 1, dd);   // the day itself, as the app reads it — not UTC midnight
     return { ...l, d: pad(d.getDate()), m: MON[d.getMonth()], videos: n("video"), photos: n("photo"), audio: n("audio"), media: files.length,
              who: l.group_name || (db.profiles[l.player_id] || {}).name || null, coach_name: (db.profiles[l.coach_id] || {}).name || null };
   });
