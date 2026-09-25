@@ -202,7 +202,7 @@ const leaks = [];
       /* joining lands on the family itself, with the moment it earns */
       await page.waitForTimeout(1900);
       const t1 = await leak("dara family screen"); await shot("18-dara-joined");
-      check("(e) joining lands on the family dashboard, two people in it", t1.includes("The Murphys") && t1.includes("2 people"), t1.slice(0, 240));
+      check("(e) joining lands on the family dashboard, two people in it", t1.includes("The Murphys") && /Cian/.test(await page.locator('[data-tour="family-people"]').innerText()) && /Dara/.test(await page.locator('[data-tour="family-people"]').innerText()), t1.slice(0, 240));
       const people = page.locator('[data-tour="family-people"]');
       const t2 = t1; await shot("19-dara-dashboard");
       check("(e) the dashboard shows both faces under In the family and has no young players", (await people.count()) === 1 && /Cian/.test(await people.innerText()) && /You/.test(await people.innerText()) && t2.includes("No children yet"), t2.slice(0, 240));
