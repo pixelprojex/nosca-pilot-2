@@ -384,10 +384,11 @@ seeded data and no account.
   Stripe, Apple, Things, Hudl) named first as the "template kit" look.
 - **One name per thing.** The tab label is the screen's H1 — Diary opens
   "Diary" for everyone, Drills opens "Drills" — and a control carries the
-  same word on every surface: the board's footer and the plus sheet
-  both say "Edit"; the tile says Drills, not Practise. A title is a noun
-  or a verb, never a sentence or a question: "Who", "Book", "Request",
-  "Hours". A placeholder is the noun of what goes in it ("Notes", "Tip").
+  same word on every surface: the plus sheet's foot says "Edit" and the
+  Settings row "Shortcuts", and the tile says Drills, not Practise. A
+  title is a noun or a verb, never a sentence or a question: "Who",
+  "Book", "Request", "Hours". A placeholder is the noun of what goes in
+  it ("Notes", "Tip").
   Labels never carry "you", "yourself", "someone" or "it" — "Log it" is
   the one the founder chose and keeps.
 - **A count lives in one place, and only where it is acted on.** The tab
