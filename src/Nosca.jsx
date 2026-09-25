@@ -4459,7 +4459,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
   /* ---------- pick a lesson ---------- */
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Attendance")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Register")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Today")}</p>
 
       {(lessons || []).length === 0 && (
@@ -6756,14 +6756,13 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   }[tone];
   /* a filled button is an object on the paper and presses like one; an
      outlined one is a word on the page and only dims */
-  const solid = tone === "accent" || tone === "ink" || tone === "danger";
   return (
     <button data-tour={tour} onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
             className="w-full"
-            {...(disabled ? {} : sink(t, solid ? (t.elev || ELEV).cast : "none"))}
+            {...(disabled ? {} : sink(t, "none"))}
             style={{ minHeight: 54, borderRadius: R.surface, fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "0.015em",
-                     boxShadow: solid && !disabled ? (t.elev || ELEV).cast : "none",
-                     transition: `transform ${MOTION.settle}ms ${MOTION.curve}, box-shadow ${MOTION.settle}ms, opacity ${MOTION.instant}ms`,
+                     /* a filled button is a flat surface like the tiles beside it — no shadow at rest */
+                     transition: `transform ${MOTION.settle}ms ${MOTION.curve}, opacity ${MOTION.instant}ms`,
                      willChange: "transform", ...looks,
                      /* disabled is grey on grey, never white on a pale accent */
                      ...(disabled ? { background: t.wash, color: t.faint, border: "none" } : {}) }}>{children}</button>
@@ -9179,7 +9178,8 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
                     aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
                     className="relative w-full flex flex-col items-center justify-center gap-1.5"
                     style={{ minHeight: h, borderRadius: R.surface, background: bg, touchAction: "none",
-                             boxShadow: lifted ? E.float : accent ? "none" : E.rest,
+                             boxShadow: lifted ? E.float : "none",
+                             border: `1px solid ${lifted || accent ? "transparent" : HAIR(t.ink, 0.14)}`,
                              opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
               <A.Ico size={h >= 84 ? 22 : 19} color={fg} strokeWidth={1.6} />
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: fg }}>{tr(A.label)}</span>
@@ -12744,7 +12744,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code"), value: inviteCode || "——————", tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
-      prefs && { label: tr("Attendance"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Attendance"), prefs.attendance || "all",
+      prefs && { label: tr("Register"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Register"), prefs.attendance || "all",
         [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v)) },
       prefs && { label: tr("Review prompt"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
