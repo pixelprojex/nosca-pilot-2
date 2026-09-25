@@ -230,7 +230,7 @@ const leaks = [];
       await kid.click(); await page.waitForTimeout(900);
       const kidScreen = M.norm(await M.rootText(page));
       /* the last lesson is the first row of the list below, not a row of its own */
-      check("(f) her own screen carries the coach, Next, To practise and the lessons", kidScreen.includes("with Niamh Byrne") && /NEXT .*10:00 am/i.test(kidScreen) && !kidScreen.includes("LAST LESSON") && /28 AUG\s*Grip/.test(kidScreen) && kidScreen.includes("1 drill"), kidScreen.slice(0, 260));
+      check("(f) her own screen carries the coach, Next, To practise and the lessons", kidScreen.includes("with Niamh Byrne") && /NEXT .*10:00 am/i.test(kidScreen) && !kidScreen.includes("LAST LESSON") && /28 AUG\s*Grip/i.test(kidScreen) && kidScreen.includes("1 drill"), kidScreen.slice(0, 260));
       check("(f) Book a lesson is live because her coach has hours", await page.getByRole("button", { name: "Book a lesson", exact: true }).isEnabled(), kidScreen.slice(0, 160));
       await page.getByRole("button", { name: "Book a lesson", exact: true }).click(); await page.waitForTimeout(900);
       const t1 = await leak("parent book for"); await shot("22-parent-book-for");
@@ -238,7 +238,7 @@ const leaks = [];
       check("(f) the open slots are the child's coach's hours", (await page.locator('[data-tour="agenda-book"]').count()) > 0 && rpc("coach_availability").some((x) => x.args && x.args.p_player === IDS.junior), t1.slice(0, 200));
       await tap(page, '[data-tour="agenda-book"]');
       const sheetText = await text();
-      check("(f) the request sheet names the child, not the parent", sheetText.includes("A lesson for Saoirse") && sheetText.includes("Request for Saoirse"), sheetText.slice(-200));
+      check("(f) the request sheet names the child, not the parent", sheetText.includes("For Saoirse") && sheetText.includes("Request for Saoirse"), sheetText.slice(-200));
       await click(page, "Request for Saoirse", 1800);
       const bk = db.posts.filter((x) => x.table === "bookings").pop(); const brow = bk && bk.rows[0];
       /* the row must be the child's, to the child's coach — the Confirm sheet reached from an open

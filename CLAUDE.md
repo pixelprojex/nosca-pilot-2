@@ -344,11 +344,16 @@ seeded data and no account.
   nobody is named the glyph is the disc itself and there is no badge. A
   filter over the list appears only past a screenful, like every other
   narrowing control.
-- **The feed is ours.** A full-bleed clip, a right-hand column of round
-  buttons (sound only for a video, open, the coach's face), a glass
-  panel bottom-left (focus in display type, one tag line, the note cut
-  to a line with "more"), a 2px progress bar. References are for
-  example only; nothing is copied.
+- **Lessons is a list, and the lesson is the player.** A player's
+  Lessons tab is the lessons newest first — a poster of the first file,
+  the focus, one grey line — on the same paper as every other tab. The
+  clip plays on the lesson page and only when tapped: `LessonStage`
+  renders `<video>` without `controls` under one play disc, sized to
+  the clip's own shape (a portrait clip stands portrait, no black bars),
+  and hands the browser's controls over once it is playing. There was a
+  full-bleed autoplaying swipe feed here once; no professional coaching
+  tool (Hudl, CoachNow, Onform, TrainingPeaks) presents a coach's clips
+  that way, and it put a dark screen under a paper tab bar.
 - **The coach's day is two lists, not one.** *To log* is everything
   finished and not written up — today's, then the days before that were
   never written up — and every row carries Log. Below it is what is
@@ -369,6 +374,30 @@ seeded data and no account.
   coach's day is built from. The two sides are read by the same
   household; a shape that means one thing on one and another on the
   other is a bug.
+- **A surface is a fill and a hairline, never a shadow.** Tiles, cards,
+  settings groups, the time grid, the segmented control: white on the
+  paper with a 1px `HAIR(t.ink, 0.14)` edge at rest, ink when selected.
+  Shadows belong to the bottom sheet, the raised plus and a dragged
+  item, and to nothing else. White tiles floating on the tinted paper
+  under a soft blur was the one thing every reference set (Linear,
+  Stripe, Apple, Things, Hudl) named first as the "template kit" look.
+- **One name per thing.** The tab label is the screen's H1 — Diary opens
+  "Diary" for everyone, Drills opens "Drills" — and a control carries the
+  same word on every surface: the board's footer and the plus sheet
+  both say "Edit"; the tile says Drills, not Practise. A title is a noun
+  or a verb, never a sentence or a question: "Who", "Book", "Request",
+  "Hours". A placeholder is the noun of what goes in it ("Notes", "Tip").
+  Labels never carry "you", "yourself", "someone" or "it" — "Log it" is
+  the one the founder chose and keeps.
+- **A count lives in one place, and only where it is acted on.** The tab
+  bar badges unread messages and nothing else; a tile carries a plain
+  figure only for what is undone (drills to do, lessons to log), never a
+  total of the list beneath it; unread is one ink dot. No countdowns
+  ("13h 39m away"), no relative ages ("1 day ago") — a row states the
+  day and time. Two facts on a grey line, never three.
+- **One date, one time.** `Thu 24 Sep`, `9:00 am`, everywhere — rows,
+  headers, sheets, the diary's rail. Never an uppercase month, never
+  "Sept", never a time stripped of am/pm to fit a column.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: hairline rows with an
   avatar, a name and one grey line. A search field appears only when
@@ -388,6 +417,12 @@ seeded data and no account.
 - **Routes carry ids.** `player:`, `history:` and `archive:` take the
   roster id; `byKey()` in Nosca resolves a name from an older entry
   point. Two players with one name are two files.
+- **The walkthrough is seven steps at most a role**, each an imperative
+  naming the control it rings (Log a lesson · Tap what you worked on ·
+  Add a clip · Log it · Take the register · Book a lesson · Add a
+  player), a body of five words or none, dots for progress, Skip and one
+  button. No area label, no breadcrumb, no counter, no Back. It was 26
+  steps narrating settings rows; the founder asked for "Add a player".
 - **The walkthrough is the app.** Each tour step renders a second
   `<Nosca showcase={…}>` (harness data, inert, scaled) and rings a real
   control found by its `data-tour` attribute. Add a step by adding the

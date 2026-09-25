@@ -515,7 +515,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
        Settings → Walkthrough is the way back to it, and this is where
        the step counts for a real account are checked. */
     await scenario(browser, "17-live-tour-from-settings-not-on-sign-in", async ({ page, db, shot, note }) => {
-      const counter = async () => (await page.locator("[data-tour-counter]").first().textContent().catch(() => "")) || "";
+      const counter = async () => (await page.locator("[data-tour-counter]").first().getAttribute("aria-label").catch(() => "")) || "";
       const openFromSettings = async () => {
         await page.getByRole("button", { name: "You" }).first().click(); await page.waitForTimeout(700);
         await page.getByRole("button", { name: /Walkthrough/ }).first().click(); await page.waitForTimeout(1200);
@@ -528,7 +528,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await openFromSettings(); await shot("coach-tour");
       const c = (await counter()).trim();
       const cn = Number((c.match(/1 \/ (\d+)/) || [])[1]);
-      if (!cn || cn < 15 || cn > 30) note("FAIL coach tour counter is " + JSON.stringify(c)); else note(`coach tour from Settings: ${cn} steps`);
+      if (!cn || cn < 5 || cn > 8) note("FAIL coach tour counter is " + JSON.stringify(c)); else note(`coach tour from Settings: ${cn} steps`);
       await dismissTour(page);
 
       addPlayer(db, { email: "ann@example.ie", name: "Ann Burke", coachId: COACH_ID });
@@ -540,7 +540,7 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       await openFromSettings(); await shot("player-tour");
       const p = (await counter()).trim();
       const pn = Number((p.match(/1 \/ (\d+)/) || [])[1]);
-      if (!pn || pn < 8 || pn > 25) note("FAIL player tour counter is " + JSON.stringify(p)); else note(`player tour from Settings: ${pn} steps`);
+      if (!pn || pn < 4 || pn > 7) note("FAIL player tour counter is " + JSON.stringify(p)); else note(`player tour from Settings: ${pn} steps`);
       await dismissTour(page);
     });
 

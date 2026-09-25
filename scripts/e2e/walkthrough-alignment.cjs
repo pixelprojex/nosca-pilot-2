@@ -59,7 +59,7 @@ async function main() {
         const ring = document.querySelector("[data-tour-ring]");
         const overlay = ring ? ring.closest("[data-tour-ring]") : null;
         const tourText = (document.querySelector("[data-tour-title]") || {}).textContent || "";
-        const counter = (document.querySelector("[data-tour-counter]") || {}).textContent || "";
+        const cEl = document.querySelector("[data-tour-counter]"); const counter = cEl ? (cEl.getAttribute("aria-label") || cEl.textContent || "") : "";
         if (!ring) return { ring: null, tourText, counter };
         const frame = ring.parentElement;
         const id = ring.getAttribute("data-for");
@@ -142,7 +142,7 @@ async function main() {
 
       const isLast = cur === total;
       if (isLast) {
-        await page.click("text=Start using it");
+        await page.locator("button:not([data-tour])", { hasText: /^Done$/ }).last().click();
         await sleep(700);
         break;
       }
@@ -152,7 +152,7 @@ async function main() {
     }
     const after = await page.evaluate(() => {
       const cur = document.querySelector('[aria-current="page"]');
-      return { tab: cur ? cur.getAttribute("aria-label") : null, text: document.body.innerText.slice(0, 400), tourOpen: /Start using it/.test(document.body.innerText) };
+      return { tab: cur ? cur.getAttribute("aria-label") : null, text: document.body.innerText.slice(0, 400), tourOpen: !!document.querySelector("[data-tour-counter]") };
     });
     results[role] = { rows, before, after, unchanged: before.tab === after.tab && before.text === after.text };
     process.stdout.write(`${role}: after close tab=${after.tab} unchanged=${results[role].unchanged}\n`);

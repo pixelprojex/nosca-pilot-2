@@ -50,7 +50,7 @@ const { check, results, summary } = M.checker("shortcuts");
       d0.join("|") === "Log|Register|Capture|Tip|Drills|Add player" && (await boardCols(page)) === 3, `${d0.join("|")} · cols=${await boardCols(page)}`);
 
     /* --- into the editor from the home screen --- */
-    await byText(page, "Edit shortcuts").first().click(); await page.waitForTimeout(1000);
+    await page.locator('[data-tour="today-board"] ~ * button, button', { hasText: /^Edit$/ }).first().click(); await page.waitForTimeout(1000);
     const t1 = await text(); await shot("02-editor");
     /* the board is the editor now — the real grid, arranged by moving
        it, with a size control and the ones not showing underneath */
@@ -120,7 +120,7 @@ const { check, results, summary } = M.checker("shortcuts");
     await tap(page, '[data-tour="quick"]', 900);
     const t2 = await text(); await shot("05-plus");
     check("(e) the plus menu is untouched by the board's edits", /Drills/.test(t2) && /Log a lesson/.test(t2), t2.slice(-260));
-    await byText(page, "Edit this menu").first().click(); await page.waitForTimeout(1200);
+    await page.locator('[data-sheet] button', { hasText: /^Edit$/ }).first().click(); await page.waitForTimeout(1200);
     await byText(page, "Plus").first().click(); await page.waitForTimeout(700);
     await page.locator('button[aria-label="Remove Competition"]').first().click(); await page.waitForTimeout(700);
     check("(e) editing the plus writes a separate list", Array.isArray(savedLayout().quick) && !savedLayout().quick.includes("comp") && savedLayout().board.includes("log"), JSON.stringify(savedLayout()));

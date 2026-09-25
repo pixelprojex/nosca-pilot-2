@@ -85,7 +85,7 @@ function freshDb() {
       await tap('[aria-label="Your profile"]'); await page.locator('[data-tour="settings-appearance"]').first().scrollIntoViewIfNeeded().catch(() => {}); await shot("c15-settings-mid");
       await page.getByPlaceholder("Search settings").fill("drill"); await page.waitForTimeout(400); await shot("c16-settings-search");
       await page.getByPlaceholder("Search settings").fill(""); await page.waitForTimeout(300);
-      await text("Set yourself up", 800); await shot("c17-setup-1");
+      await text("Setup", 800); await shot("c17-setup-1");
       await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c18-setup-2");
       await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c19-setup-3");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
@@ -97,7 +97,7 @@ function freshDb() {
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");
       await tap('[aria-label="Lessons"]'); await shot("a2-lessons");
-      await tap('[data-tour="feed-open"], [data-tour="lesson-card"], [data-tour="lesson-row"]', 900); await shot("a3-lesson-view");
+      await tap('[data-tour="log-row"], [data-tour="lesson-row"]', 900); await shot("a3-lesson-view");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Diary"]'); await shot("a4-diary");
       await tap('[data-tour="agenda-book"]', 700); await shot("a5-request-sheet");

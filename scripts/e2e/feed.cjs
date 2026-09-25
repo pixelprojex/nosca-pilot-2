@@ -1,9 +1,10 @@
-/* THE FEED. What a player opens Lessons to see: their coach's clips,
-   full bleed, one lesson a screen. This suite proves the real files are
-   what is played — not the harness's drawn field — that the panel says
-   what the lesson was, that the right-hand column works, that the next
-   lesson is a scroll away, and that a player with nothing yet is told
-   so rather than shown a black screen.
+/* LESSONS. What a player opens the tab to see: their coach's lessons,
+   newest first, each row a poster of its first file; the lesson page is
+   the player. This suite proves nothing plays until it is tapped, that
+   the poster and the player are the coach's real files — not the
+   harness's drawn clip — that the viewer shows no browser chrome at
+   rest and plays with sound on a tap, and that a player with nothing
+   yet is told so under the same heading.
    Usage: node feed.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -32,6 +33,7 @@ function freshDb() {
 }
 
 const { check, results, summary } = M.checker("feed");
+const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
 
 (async () => {
   const server = await M.startServer(distDir, PORT);
@@ -48,84 +50,64 @@ const { check, results, summary } = M.checker("feed");
     const shot = (name) => page.screenshot({ path: path.join(outDir, `${name}.png`) });
     return { ctx, page, text: () => M.rootText(page), shot };
   };
-  const { tap, byText } = M;
+  const { tap } = M;
+  const playingCount = (page) => page.evaluate(() => Array.from(document.querySelectorAll("video")).filter((v) => !v.paused).length);
 
   try {
-    /* ---------- (a) the feed is what Lessons opens on ---------- */
+    /* ---------- (a) the list is what Lessons opens on ---------- */
     {
       const { ctx, page, text, shot } = await boot("adult");
       await tap(page, '[aria-label="Lessons"]', 1600);
       await page.waitForTimeout(1200);
-      const t0 = await text(); await shot("01-feed");
-      check("(a) Lessons opens on the feed, one card a lesson",
-        (await page.locator("[data-feed-card]").count()) === 2, `cards=${await page.locator("[data-feed-card]").count()} · ${t0.slice(0, 160)}`);
+      const t0 = await text(); await shot("01-list");
+      check("(a) Lessons opens on the list under its own heading",
+        (await page.locator("h1", { hasText: "Lessons" }).count()) === 1 && t0.includes("Short game") && t0.includes("Putting"), t0.slice(0, 200));
+      check("(a) there is no feed, and no switch to one",
+        (await page.locator("[data-feed-card]").count()) === 0 && (await page.locator('button[aria-label="Feed"], button[aria-label="List"]').count()) === 0, t0.slice(0, 200));
+      const rows = page.locator(".nsc-list > button");
+      const rowTexts = (await rows.allInnerTexts()).map(squash);
+      check("(a) a row is the focus and one grey line — the day, and the files when there is more than one",
+        rowTexts.length === 2 && /^Short game Fri 18 Sep · 2 files$/.test(rowTexts[0]) && /^Putting Fri 4 Sep$/.test(rowTexts[1]), JSON.stringify(rowTexts));
+      const posterSrc = await rows.first().locator("video").getAttribute("src");
+      check("(a) the poster is the coach's own file", !!posterSrc && /object\/sign\/.*clip-1\.mp4/.test(posterSrc), String(posterSrc));
+      check("(a) the first row is the walkthrough's row", (await page.locator('[data-tour="log-row"]').count()) === 1, "");
+      check("(a) nothing plays until it is tapped", (await playingCount(page)) === 0, `${await playingCount(page)} playing`);
+      check("(a) a real account is never shown the harness's drawn clip or its test control",
+        !t0.includes("Test media") && (await rows.locator('[aria-label="Clip"]').count()) === 0, t0.slice(0, 200));
+      check("(a) the tab bar sits on the same paper as the list",
+        await page.evaluate(() => { const b = document.querySelector('[aria-label="Lessons"]'); const bg = (el) => getComputedStyle(el).backgroundColor; let e = b; while (e && bg(e) === "rgba(0, 0, 0, 0)") e = e.parentElement; const bar = e ? bg(e) : ""; const list = document.querySelector(".nsc-list"); let f = list; while (f && bg(f) === "rgba(0, 0, 0, 0)") f = f.parentElement; const page_ = f ? bg(f) : ""; const lum = (c) => { const m = c.match(/\d+/g) || [0, 0, 0]; return (Number(m[0]) + Number(m[1]) + Number(m[2])) / 3; }; return lum(bar) > 200 && lum(page_) > 200; }),
+        "dark surface under a light bar");
 
-      /* the real file, not the drawn field. GeneratedField is the
-         harness's; a real account seeing it means the clip did not load */
-      const vids = page.locator("[data-feed-card] video");
-      const srcs = await vids.evaluateAll((els) => els.map((v) => v.currentSrc || v.src || ""));
-      check("(a) the first card plays the coach's own file", srcs.length > 0 && srcs.some((s) => /object\/sign|blob:|http/.test(s)), JSON.stringify(srcs).slice(0, 220));
-      check("(a) a real account is never shown the harness's drawn field",
-        (await page.locator("[data-feed-card] svg[data-generated-field]").count()) === 0 && !/GeneratedField/.test(t0), t0.slice(0, 120));
+      /* ---------- (b) the lesson page is the player ---------- */
+      await rows.first().click(); await page.waitForTimeout(1400);
+      const t1 = await text(); await shot("02-lesson");
+      check("(b) the row opens the lesson", t1.includes("Short game") && t1.includes("Fri 18 Sep · Niamh Byrne") && t1.includes(LONG), t1.slice(0, 240));
+      const stage = page.locator('[data-tour="lesson-clip"]');
+      const vid = stage.locator("video").first();
+      check("(b) the clip rests without the browser's controls, under one play disc",
+        (await vid.count()) === 1 && (await vid.getAttribute("controls")) === null && (await stage.locator('button[aria-label="Play"]').count()) === 1, "");
+      check("(b) the clip is the coach's real file", /object\/sign\/.*clip-1\.mp4/.test((await vid.getAttribute("src")) || ""), String(await vid.getAttribute("src")));
+      check("(b) it is not letterboxed: the frame is the clip's own shape",
+        await vid.evaluate((v) => { const r = v.getBoundingClientRect(); const box = v.parentElement.getBoundingClientRect(); const wide = v.videoWidth >= v.videoHeight; return wide ? Math.abs(r.width - box.width) < 2 : r.width < box.width - 40; }), "");
+      check("(b) the note carries no label", !/Niamh's notes/i.test(t1) && t1.includes(LONG), t1.slice(-260));
+      check("(b) two files are two thumbnails, the first chosen",
+        (await stage.locator("button[aria-pressed]").count()) === 2 && (await stage.locator('button[aria-pressed="true"]').count()) === 1, "");
+      await stage.locator('button[aria-label="Play"]').click(); await page.waitForTimeout(350);
+      const state = await vid.evaluate((v) => ({ paused: v.paused, muted: v.muted, controls: v.controls, ended: v.ended, t: v.currentTime }));
+      check("(b) a tap plays it with sound, and only then hands over the controls",
+        (state.ended || !state.paused || state.t > 0) && state.muted === false && (state.controls === true || state.ended), JSON.stringify(state));
+      await stage.locator("button[aria-pressed]").nth(1).click(); await page.waitForTimeout(600);
+      check("(b) the second thumbnail shows the photo",
+        (await stage.locator(":scope > div").first().locator("img").count()) === 1 && (await stage.locator(":scope > div").first().locator("video").count()) === 0
+          && (await stage.locator('button[aria-pressed="true"]').count()) === 1, "");
+      check("(b) Download is offered", (await page.locator("button", { hasText: "Download" }).count()) === 1, t1.slice(-200));
+      check("(b) the page names the level it was logged at", t1.includes("HI 18.4"), t1.slice(0, 240));
+      await shot("03-lesson-photo");
 
-      /* the panel: what the lesson was */
-      check("(a) the panel names the focus, the day and the coach", t0.includes("Short game") && /18 SEP|SEP/i.test(t0) && t0.includes("Niamh Byrne"), t0.slice(0, 240));
-      check("(a) and the level it was logged at", t0.includes("HI 18.4"), t0.slice(0, 240));
-      check("(a) a long note offers a way to open it out", t0.includes("more") && (await byText(page, "more").count()) === 1, t0.slice(0, 260));
-
-      /* the right-hand column */
-      const sndBtn = page.locator('[data-feed-card] [aria-label="Sound"], [data-feed-card] [aria-label="Mute"]');
-      check("(a) the column offers a sound button on a video", (await sndBtn.count()) >= 1, `sound=${await sndBtn.count()}`);
-      check("(a) and an open button", (await page.locator('[data-tour="feed-open"]').count()) >= 1, "no open button");
-      check("(a) and the coach's face", (await page.locator('[data-feed-card] [aria-label="Niamh Byrne"]').count()) >= 1, "no coach avatar");
-
-      /* two files on one lesson: the dots, and a second frame to swipe to */
-      check("(a) two files on a lesson are two dots", (await page.locator('[aria-label*="of 2"], [aria-label*=" of "]').count()) >= 1, "no frame counter");
-
-      /* the note opens out */
-      await byText(page, "more").first().click(); await page.waitForTimeout(500);
-      const t1 = await text(); await shot("02-feed-note-open");
-      check("(a) tapping more shows the whole note", t1.includes(LONG.slice(0, 60)) && t1.includes("less"), t1.slice(0, 260));
-
-      /* sound is off until asked — autoplay only works muted */
-      const muted = await vids.first().evaluate((v) => v.muted);
-      check("(a) it starts muted, which is the only way it plays by itself", muted === true, String(muted));
-      await page.locator('[data-feed-card] [aria-label="Sound"]').first().click(); await page.waitForTimeout(600);
-      const unmuted = await vids.first().evaluate((v) => v.muted);
-      const nowMute = await page.locator('[data-feed-card] [aria-label="Mute"]').count();
-      check("(a) and the sound button turns it on", unmuted === false && nowMute >= 1, `muted=${unmuted} · mute buttons=${nowMute}`);
-      await ctx.close();
-    }
-
-    /* ---------- (b) the next lesson is a scroll away ---------- */
-    {
-      const { ctx, page, text, shot } = await boot("adult");
-      await tap(page, '[aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
-      await page.locator("[data-feed-card]").nth(1).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
-      const t0 = await text(); await shot("03-feed-second");
-      check("(b) scrolling on reaches the older lesson", t0.includes("Putting") && t0.includes("Pace first."), t0.slice(0, 200));
-      /* both cards live in the one scroller, so the count is scoped to
-         the card being looked at rather than the whole page */
-      const moreOnSecond = await page.locator('[data-feed-card="1"]').getByText("more", { exact: true }).count();
-      check("(b) a short note is not given a 'more' it does not need", moreOnSecond === 0, `more on card 2 = ${moreOnSecond}`);
-      await ctx.close();
-    }
-
-    /* ---------- (c) the open button, and the two views ---------- */
-    {
-      const { ctx, page, text, shot } = await boot("adult");
-      await tap(page, '[aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
-      await tap(page, '[data-tour="feed-open"]', 1400);
-      const t0 = await text(); await shot("04-lesson-from-feed");
-      check("(c) the open button lands on that lesson", t0.includes("Short game") && t0.includes("Download lesson log"), t0.slice(0, 220));
+      /* ---------- (c) and back ---------- */
       await M.back(page); await page.waitForTimeout(1000);
-
-      await tap(page, 'button[aria-label="List"]', 1200);
-      const t1 = await text(); await shot("05-list");
-      check("(c) the list view shows every lesson as a row", t1.includes("Short game") && t1.includes("Putting") && (await page.locator("[data-feed-card]").count()) === 0, t1.slice(0, 220));
-      check("(c) there is no third view to choose between", !/Cards/.test(t1), t1.slice(0, 200));
-      await tap(page, 'button[aria-label="Feed"]', 1400);
-      check("(c) and back to the feed", (await page.locator("[data-feed-card]").count()) === 2, "feed did not come back");
+      const t2 = await text(); await shot("04-back");
+      check("(c) back lands on the list, and nothing is playing", t2.includes("Putting") && (await page.locator(".nsc-list > button").count()) === 2 && (await playingCount(page)) === 0, t2.slice(0, 200));
       await ctx.close();
     }
 
@@ -133,10 +115,10 @@ const { check, results, summary } = M.checker("feed");
     {
       const { ctx, page, text, shot } = await boot("fresh");
       await tap(page, '[aria-label="Lessons"]', 1400);
-      const t0 = await text(); await shot("06-empty");
-      check("(d) a player with no lessons is told so, not shown a black screen",
-        t0.includes("No lessons yet") && (await page.locator("[data-feed-card]").count()) === 0, t0.slice(0, 200));
-      check("(d) and is offered no view switch to use on nothing", !/Feed/.test(t0) && !/List/.test(t0), t0.slice(0, 200));
+      const t0 = await text(); await shot("05-empty");
+      check("(d) a player with no lessons is told so under the same heading",
+        t0.includes("No lessons yet") && !t0.includes("No lessons yet.") && (await page.locator("h1", { hasText: "Lessons" }).count()) === 1, t0.slice(0, 200));
+      check("(d) and is offered no switch to use on nothing", (await page.locator('button[aria-label="Feed"], button[aria-label="List"]').count()) === 0, t0.slice(0, 200));
       await ctx.close();
     }
 

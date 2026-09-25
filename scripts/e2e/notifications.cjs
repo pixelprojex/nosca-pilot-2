@@ -72,7 +72,7 @@ const { check, results, summary } = M.checker("notifications");
       check("(a) it lists the three, newest first, with their bodies", (await rows.count()) === 3 && /Lesson confirmed/.test(await rows.nth(0).innerText()) && /Niamh Byrne/.test(await rows.nth(1).innerText()) && /Lesson logged/.test(await rows.nth(2).innerText()) && t0.includes("Short game · Niamh Byrne"), t0.slice(0, 300));
       await rows.filter({ hasText: "Lesson logged" }).first().click(); await page.waitForTimeout(1200);
       const t1 = await text(); await shot("02-adult-lesson-from-catchup");
-      check("(a) tapping a lesson notification lands on that lesson", (await catchup(page).count()) === 0 && t1.includes("Short game") && t1.includes("Cleaner contact from the fringe.") && (await page.locator('button', { hasText: "Download lesson log" }).count()) === 1, t1.slice(0, 200));
+      check("(a) tapping a lesson notification lands on that lesson", (await catchup(page).count()) === 0 && t1.includes("Short game") && t1.includes("Cleaner contact from the fringe.") && (await page.locator('button', { hasText: "Download" }).count()) === 1, t1.slice(0, 200));
       const p1 = readPatches()[0];
       check("(a) …and marks only that one read (PATCH id=in.(…) read_at=is.null)", !!p1 && p1.body.read_at && /id=in\.%28|id=in\.\(/.test(p1.query) && p1.query.includes(N.lesson) && !p1.query.includes(N.message) && p1.query.includes("read_at=is.null") && p1.n === 1, p1 ? p1.query : "no PATCH");
       await M.back(page);
