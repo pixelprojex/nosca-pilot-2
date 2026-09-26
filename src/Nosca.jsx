@@ -1790,6 +1790,10 @@ const ShimmerCSS = () => (
     .nsc-list > * { background: var(--surface); border: 1px solid var(--edge) !important; border-radius: 8px;
                     margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
     .nsc-list > *:last-child { margin-bottom: 0; }
+    /* a swipeable row pads its sliding surface, not the box, so the
+       red action behind it never peeks out at the edges */
+    .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--surface) !important; padding-left: 14px; padding-right: 14px; }
     .nsc-day { background: var(--surface); border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -4111,7 +4115,7 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
        every case: two 0.5px lines with nothing between them, which on
        the coach's Today read as a bar under the one row that carries
        an action. Same defect as the list foot, one level down. */
-    <div className="relative overflow-hidden">
+    <div className="nsc-swipe relative overflow-hidden">
       {/* what sits underneath */}
       <button onClick={() => { hapticWarn(); decline(); setGone(true); setTimeout(() => onDelete && onDelete(), 180); }}
               className="absolute inset-y-0 right-0 flex flex-col items-center justify-center active:opacity-80"

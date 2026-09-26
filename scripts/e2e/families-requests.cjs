@@ -139,7 +139,10 @@ const leaks = [];
       check("(c) the accepted player is told on opening: '<coach> accepted you'", t0.includes("Niamh Byrne accepted you"), t0.slice(0, 200));
       await click(page, "Dismiss", 900);
       const t1 = await leak("eoin home"); await shot("12-eoin-home");
-      check("(c) …and opens on Home with the coach named, not the coachless screen", !t1.includes("Add your coach") && !t1.includes("Request sent") && t1.includes("Niamh Byrne"), t1.slice(0, 200));
+      check("(c) …and opens on Home, not the coachless screen", !t1.includes("Add your coach") && !t1.includes("Request sent"), t1.slice(0, 200));
+      await tap(page, '[data-tour="profile-pill"]', 900);
+      const t1b = await leak("eoin switcher"); await shot("12b-eoin-switcher");
+      check("(c) …and the switcher names the coach", t1b.includes("Your coaches") && t1b.includes("Niamh Byrne") && !t1b.includes("Add a coach"), t1b.slice(0, 200));
       await ctx.close();
     }
     {
@@ -162,8 +165,11 @@ const leaks = [];
       /* the header is the person's own now: the pill opens You, and Family
          is a row there until there is one, when it becomes its own tab */
       await tap(page, '[data-tour="profile-pill"]', 900);
+      const t0s = await leak("cian switcher"); await shot("14-cian-switcher");
+      check("(d) the header pill opens the switcher, not a family", t0s.includes("Your coaches") && !/Byrne family|Murphy family/.test(t0s) && (await page.locator('[data-tour="sheet-settings"]').count()) === 1, t0s.slice(0, 200));
+      await tap(page, '[data-tour="sheet-settings"]', 900);
       const t0 = await leak("cian you"); await shot("14-cian-you");
-      check("(d) the header pill opens the person's own account, not a family", t0.includes("Cian Murphy") && (await page.locator('[data-tour="settings-dashboard"]').count()) === 1 && t0.includes("Sign out"), t0.slice(0, 200));
+      check("(d) …and Settings on it opens the person's own account", t0.includes("Cian Murphy") && (await page.locator('[data-tour="settings-dashboard"]').count()) === 1 && t0.includes("Sign out"), t0.slice(0, 200));
       await tap(page, '[data-tour="settings-dashboard"]', 900);
       const t1 = await leak("cian family screen"); await shot("15-cian-family-screen");
       check("(d) the Family screen offers Start a family and Join a family", t1.includes("Start a family") && t1.includes("Join a family") && (await page.locator('[data-tour="family-join"] input').count()) >= 6, t1.slice(0, 200));
