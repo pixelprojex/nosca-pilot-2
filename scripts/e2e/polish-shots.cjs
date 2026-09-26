@@ -96,7 +96,7 @@ function freshDb() {
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");
       await tap('[aria-label="Lessons"]'); await shot("a2-lessons");
-      await tap('[data-tour="log-row"], [data-tour="lesson-row"]', 900); await shot("a3-lesson-view");
+      await tap('[data-tour="feed-open"], [data-tour="log-row"], [data-tour="lesson-row"]', 900); await shot("a3-lesson-view");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Diary"]'); await shot("a4-diary");
       await tap('[data-tour="agenda-book"]', 700); await shot("a5-request-sheet");

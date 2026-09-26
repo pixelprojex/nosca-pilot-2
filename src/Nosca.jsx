@@ -2572,12 +2572,12 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
       <Screen title={tr("Ahead")} onBack={pop} meta={`${all.length} ${tr("coming up")}`}
               action={<button onClick={() => { haptic(9); soft(); setAdding(!adding); }}
                               className="flex items-center justify-center active:opacity-50"
-                              style={{ width: 40, height: 40 }} aria-label={tr("Add")}>
+                              style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("Add")}>
                         <Plus size={22} color={t.ink} strokeWidth={2} />
                       </button>}>
         <div className="px-6 pb-2">
           {adding && (
-            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, border: `1px solid ${HAIR(t.ink, 0.14)}`,
+            <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
                    animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               <VoiceInput value={name} onChange={setName} ph={tr("Name")} autoFocus />
 
@@ -3131,6 +3131,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
               onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               className="w-full flex items-center justify-center gap-2 active:opacity-90"
               style={{ minHeight: 56, borderRadius: R.control, background: t.accent, willChange: "transform",
+                       boxShadow: `0 6px 18px ${t.accent}2E`,
                        transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
                        ...TYPE.subhead, color: t.onAccent }}>
         {tr("Log")}
@@ -3355,7 +3356,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
               meta={live.length ? `${live.length} ${tr("running")}` : ""}
               action={<button data-tour="recur-add" onClick={() => { hapticCommit(); soft(); onNew(); }}
                               className="flex items-center justify-center active:opacity-50"
-                              style={{ width: 40, height: 40 }} aria-label={tr("Add")}>
+                              style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("Add")}>
                         <Plus size={22} color={t.ink} strokeWidth={2} />
                       </button>}>
         <div className="px-6 pb-2">
@@ -3486,19 +3487,19 @@ const TOUR = {
   player: [
     { title: "Join your coach", body: "Enter their code", target: "nocoach-code", state: { stack: ["nocoach"] } },
     { title: "Book a lesson", body: "From their hours", target: "home-request", state: { stack: ["home"] } },
-    { title: "Watch your clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"] } },
+    { title: "Watch your clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
     { title: "Tick off drills", body: "Your coach sees it", target: "drill-row", state: { stack: ["practice"] } },
     { title: "Message your coach", body: "", target: "tab-messages", state: { stack: ["messages"] } },
   ],
   parent: [
     { title: "Book for a child", body: "", target: "kid-book", state: { stack: ["family", "familyKid:first"] } },
-    { title: "Watch the clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"] } },
+    { title: "Watch the clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
     { title: "Message their coach", body: "", target: "tab-messages", state: { stack: ["messages"] } },
     { title: "Share your family code", body: "A child enters it", target: "family-code", state: { stack: ["family", "familyCode"] } },
   ],
   juvenile: [
     { title: "Join your coach", body: "Enter their code", target: "nocoach-code", state: { stack: ["nocoach"] } },
-    { title: "Watch your clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"] } },
+    { title: "Watch your clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
     { title: "Tick off drills", body: "Your coach sees it", target: "drill-row", state: { stack: ["practice"] } },
     { title: "Ask a parent to book", body: "They book for you", target: "tab-calendar", state: { stack: ["calendar"] } },
   ],
@@ -3923,7 +3924,7 @@ function CheckIns({ role, list, onAnswer, onSend, pop, say }) {
               action={role !== "coach" ? (
                 <button onClick={() => { hapticCommit(); soft(); onSend(); }}
                         className="flex items-center justify-center active:opacity-50"
-                        style={{ width: 40, height: 40 }} aria-label={tr("Send")}>
+                        style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("Send")}>
                   <Plus size={22} color={t.ink} strokeWidth={2} />
                 </button>
               ) : null}>
@@ -4447,6 +4448,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                 className="w-full flex items-center justify-center gap-2 active:opacity-90"
                 style={{ minHeight: 56, borderRadius: R.control,
                          background: ready ? t.accent : t.wash,
+                         boxShadow: ready ? `0 6px 18px ${t.accent}2E` : "none",
                          ...TYPE.subhead, color: ready ? t.onAccent : t.faint,
                          transition: "background 220ms, color 220ms" }}>
           {tr("Submit register")}
@@ -4804,6 +4806,450 @@ function LessonRow({ lesson: l, poster, need, onOpen, saved, showWho, first, ind
    A coach decides in Settings whether it applies at all, and to which
    kind of lesson. Plenty of coaches never take a register; for them
    this simply doesn't exist. */
+const seedOf = (str) => {
+  let h = 2166136261;
+  for (let i = 0; i < (str || "").length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h);
+};
+
+function GeneratedField({ lesson, mark }) {
+  const s = seedOf(lesson.focus + lesson.d + lesson.m);
+  const angle = 120 + (s % 90);
+  return (
+    <div className="absolute inset-0" aria-hidden="true">
+      <div className="absolute inset-0"
+           style={{ background: `linear-gradient(${angle}deg, #0B0E0F 0%, ${mark} ${18 + (s % 22)}%, #0C0F10 100%)` }} />
+      <div className="absolute inset-0"
+           style={{ background: `radial-gradient(80% 55% at ${28 + (s % 40)}% ${30 + (s % 30)}%, ${mark}55 0%, transparent 70%)` }} />
+      <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.16, mixBlendMode: "overlay" }}>
+        <filter id={`gr${s % 9999}`}><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" /></filter>
+        <rect width="100%" height="100%" filter={`url(#gr${s % 9999})`} />
+      </svg>
+      <div className="absolute" style={{ left: -8, bottom: "30%", right: 0, overflow: "hidden" }}>
+        <span style={{ fontFamily: display, fontSize: 76, fontWeight: 300, lineHeight: 0.92,
+                       letterSpacing: "-0.045em", color: "#fff", opacity: 0.09, whiteSpace: "nowrap", display: "block" }}>
+          {(lesson.focus || "").toUpperCase()}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
+  const vid = useRef(null);
+  const [tk, setTk] = useState(0);
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const [blocked, setBlocked] = useState(false);
+  /* Play as soon as this card is the one on screen. Three things that
+     each left a frozen first frame on an iPhone: React sets `muted` as
+     a property and not an attribute, and Safari decides autoplay from
+     the attribute; a new URL on the same element needs load() before
+     play(); and Low Power Mode refuses every autoplay, which play()
+     reports as a rejection — so that is caught and answered with a
+     play button, and a tap starts it inside a gesture. */
+  const tryPlay = () => {
+    const el = vid.current;
+    if (!el) return;
+    /* autoplay is only ever allowed muted; sound comes on afterwards,
+       from a tap, which the browser permits */
+    el.muted = muted; el.defaultMuted = true;
+    if (muted) el.setAttribute("muted", ""); else el.removeAttribute("muted");
+    el.setAttribute("playsinline", ""); el.setAttribute("webkit-playsinline", "");
+    const p = el.play();
+    if (p && p.then) p.then(() => setBlocked(false)).catch(() => {
+      /* sound on is allowed only from a tap; a card scrolled into view
+         plays muted instead of not at all, and the switch shows it */
+      if (!muted) {
+        el.muted = true; el.setAttribute("muted", "");
+        const q = el.play();
+        if (q && q.then) q.then(() => { setBlocked(false); onAutoMuted && onAutoMuted(); }).catch(() => setBlocked(true));
+      } else setBlocked(true);
+    });
+  };
+  useEffect(() => {
+    const el = vid.current;
+    if (!el) return;
+    if (live) tryPlay();
+    else el.pause();
+  }, [live, item.url]);
+  useEffect(() => { const el = vid.current; if (el) el.muted = muted; }, [muted]);
+  useEffect(() => {
+    const el = vid.current;
+    if (el && item.type === "video") { setReady(false); setFailed(false); el.load(); if (live) tryPlay(); }
+  }, [item.url]);
+  useEffect(() => {
+    /* coming back to the tab: the browser pauses everything, and does
+       not always resume it */
+    const onVis = () => { if (document.visibilityState === "visible" && live) tryPlay(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [live]);
+
+  useEffect(() => {
+    if (!live || item.type !== "sim") return;
+    const x = setInterval(() => setTk((v) => (v + 1) % 100), 90);
+    return () => clearInterval(x);
+  }, [live, item.type]);
+
+  if (item.type === "video") {
+    return (
+      <>
+        {/* behind, so it can never hide the clip */}
+        <div className="absolute inset-0 flex items-center justify-center"
+             style={{ background: "#0B0F10", zIndex: 0,
+                      opacity: ready ? 0 : 1, transition: "opacity 420ms ease-out" }}>
+          <span style={{ opacity: 0.45, animation: "markBreathe 3s ease-in-out infinite" }}>
+            <Mark size={24} color={mark} />
+          </span>
+        </div>
+        <video ref={vid} src={item.url} muted loop playsInline autoPlay preload="auto"
+               onLoadedMetadata={() => setReady(true)}
+               onLoadedData={() => setReady(true)}
+               onCanPlay={() => { setReady(true); if (live && vid.current && vid.current.paused) tryPlay(); }}
+               onPlaying={() => { setReady(true); setBlocked(false); }}
+               onTimeUpdate={(e) => { if (onProgress && live) { const el = e.currentTarget; onProgress(el.duration ? el.currentTime / el.duration : 0); } }}
+               onError={() => setFailed(true)}
+               className="absolute inset-0 w-full h-full"
+               style={{ objectFit: "cover", zIndex: 1 }} />
+        {blocked && !failed && (
+          /* autoplay was refused (Low Power Mode, mostly): one tap, in a
+             gesture, is allowed where autoplay was not */
+          <button onClick={() => { haptic(8); tryPlay(); }} aria-label={tr("Play")}
+                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: "rgba(0,0,0,0.18)" }}>
+            <span className="rounded-full flex items-center justify-center" style={{ width: 64, height: 64, background: "rgba(255,255,255,0.92)" }}>
+              <Play size={24} color="#111" strokeWidth={2} style={{ marginLeft: 3 }} />
+            </span>
+          </button>
+        )}
+        {failed && (
+          /* say so, rather than showing a blank frame forever */
+          /* centred in the top half: the lesson's date, title and note
+             are drawn over the lower third of this frame, and a message
+             centred on the whole frame landed on top of them */
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ zIndex: 2, background: "#0B0F10", paddingBottom: "38%" }}>
+            <X size={22} color={DANGER} strokeWidth={2} />
+            <span className="mt-3 text-center" style={{ ...TYPE.small, color: "rgba(255,255,255,0.8)" }}>
+              {tr("This clip wouldn't play")}
+            </span>
+            <span className="mt-1 text-center" style={{ ...TYPE.caption, color: "rgba(255,255,255,0.45)" }}>
+              {item.name || tr("Try an MP4")}
+            </span>
+            <button onClick={() => { haptic(8); setFailed(false); if (vid.current) vid.current.load(); }}
+                    className="mt-4 px-4 active:opacity-60"
+                    style={{ minHeight: 34, borderRadius: R.pill, border: "0.5px solid rgba(255,255,255,0.3)",
+                             ...TYPE.caption, color: "#fff" }}>{tr("Try again")}</button>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (item.type === "photo") {
+    return (
+      <>
+        <div className="absolute inset-0" style={{ background: "#0B0F10", zIndex: 0,
+               opacity: ready ? 0 : 1, transition: "opacity 420ms ease-out" }} />
+        <img src={item.url} alt="" onLoad={() => setReady(true)} onError={() => setFailed(true)}
+             className="absolute inset-0 w-full h-full"
+             style={{ objectFit: "cover", zIndex: 1 }} />
+      </>
+    );
+  }
+
+  if (item.type === "audio") {
+    /* a voice note in the feed: the browser's own player, nothing drawn */
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8" style={{ background: "#0B0F10" }}>
+        <Mic size={40} color="rgba(255,255,255,0.85)" strokeWidth={1.4} />
+        <audio src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+      </div>
+    );
+  }
+
+  if (item.type === "data") {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0B0F10" }}>
+        <div className="w-full px-8">
+          <div className="mb-5" style={{ ...TYPE.eyebrow, fontSize: 9, color: "rgba(255,255,255,0.5)" }}>{item.device}</div>
+          {item.rows.map((r, i) => (
+            <div key={r[0]} className="flex items-baseline justify-between py-3"
+                 style={{ borderBottom: "0.5px solid rgba(255,255,255,0.12)",
+                          animation: live ? `settle 380ms cubic-bezier(.22,1,.36,1) ${i * 70}ms both` : "none" }}>
+              <span style={{ ...TYPE.small, color: "rgba(255,255,255,0.6)" }}>{r[0]}</span>
+              <span style={{ ...TYPE.figure, fontSize: 26, color: "#fff" }}>{r[1]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0" aria-hidden="true">
+      <div className="absolute inset-0" style={{ background: "#0C0F10" }} />
+      <div className="absolute inset-0"
+           style={{ background: `radial-gradient(70% 50% at ${45 + Math.sin(tk / 9) * 10}% ${42 + Math.cos(tk / 11) * 8}%, ${mark}4D 0%, transparent 72%), linear-gradient(180deg, ${mark}22 0%, #0A0D0E 78%)`,
+                    transition: "background 220ms linear" }} />
+      <div className="absolute" style={{ left: 0, right: 0, top: "46%", height: 1, background: `${mark}44` }} />
+    </div>
+  );
+}
+
+function Round({ label, onTap, children, solid, tour }) {
+  return (
+    <button onClick={onTap} aria-label={label} data-tour={tour} className="flex items-center justify-center active:opacity-70"
+            style={{ width: 46, height: 46, borderRadius: 23,
+                     background: solid ? "rgba(255,255,255,0.94)" : "rgba(20,24,26,0.55)",
+                     backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                     border: solid ? "none" : "0.5px solid rgba(255,255,255,0.18)",
+                     transition: "background 200ms" }}>
+      {children}
+    </button>
+  );
+}
+
+const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho, cfg }) {
+  const t = useT();
+  const live = useLive();
+  const [frame, setFrame] = useState(0);
+  const [prog, setProg] = useState(0);      // how far through the clip on screen
+  const [more, setMore] = useState(false);  // the note, opened out
+  const rail = useRef(null);
+  const items = media && media.length ? media : [];
+  const current = items[frame];
+
+  /* A lesson the prefetch never reached asks for its own files the
+     first time it comes near, so the twentieth lesson down is not a
+     black card for ever. */
+  useEffect(() => { if (near && media === undefined && onNeed) onNeed(lesson); }, [near, media, lesson, onNeed]);
+  useEffect(() => { setProg(0); }, [frame, active]);
+
+  const step = (d) => {
+    const el = rail.current;
+    if (!el || items.length < 2) return;
+    const w = el.clientWidth || 1;
+    const next = (frame + d + items.length) % items.length;
+    el.scrollTo({ left: next * w, behavior: "smooth" });
+    setFrame(next);
+  };
+
+  const tick = useRef(0);
+  const onRailScroll = (e) => {
+    const el = e.currentTarget;
+    if (tick.current) return;                 /* one read per frame, not per event */
+    tick.current = requestAnimationFrame(() => {
+      tick.current = 0;
+      const i = Math.round(el.scrollLeft / (el.clientWidth || 1));
+      if (i !== frame) setFrame(i);
+    });
+  };
+
+  const open = () => { hapticCommit(); soft(); onOpen && onOpen(lesson); };
+
+  return (
+    <div data-feed-card={index} className="relative"
+         style={{ height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always", overflow: "hidden" }}>
+
+      {media === null ? (
+        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0B0F10" }} aria-hidden="true">
+          <span style={{ opacity: 0.4, animation: "markBreathe 3s ease-in-out infinite" }}><Mark size={22} color={t.mark} /></span>
+        </div>
+      ) : items.length === 0 ? (
+        /* Nothing was attached. The harness draws its field; a real
+           lesson gets a plain ground — CLAUDE.md: no drawn placeholder
+           for a real lesson, because it reads as a clip that failed. */
+        live ? <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />
+             : <GeneratedField lesson={lesson} mark={t.mark} />
+      ) : (
+        /* `near` decides whether the heavy elements are mounted, never
+           whether the person sees their own footage: swapping a drawn
+           field in for a real clip is what read as "it didn't upload". */
+        <div ref={rail} onScroll={onRailScroll}
+             className="absolute inset-0 flex overflow-x-auto"
+             style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain", scrollbarWidth: "none" }}>
+          {items.map((it, i) => (
+            <div key={it.id || i} className="relative shrink-0"
+                 style={{ width: "100%", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>
+              {near || i === 0
+                ? <Evidence item={it} live={active && i === frame} mark={t.mark} muted={!sound} onAutoMuted={() => onSound && onSound(false)} onProgress={i === frame ? setProg : undefined} />
+                : <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* a soft floor for the words, and nothing over the picture above it */}
+      <div className="absolute inset-x-0 bottom-0" aria-hidden="true"
+           style={{ height: "48%", zIndex: 10,
+                    background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)" }} />
+
+      {/* the column: sound, open, the coach */}
+      <div className="absolute flex flex-col items-center gap-3.5" style={{ right: 16, bottom: 132, zIndex: 30 }}>
+        {current && current.type === "video" && (
+          <Round label={sound ? tr("Mute") : tr("Sound")} onTap={() => { haptic(7); onSound && onSound(!sound); }}>
+            {sound ? <Volume2 size={19} color="#fff" strokeWidth={1.9} /> : <VolumeX size={19} color="rgba(255,255,255,0.9)" strokeWidth={1.9} />}
+          </Round>
+        )}
+        <Round label={tr("Open lesson")} onTap={open} solid tour="feed-open">
+          <ArrowRight size={19} color="#111" strokeWidth={2.2} />
+        </Round>
+        {lesson.coach && (
+          <span className="rounded-full" style={{ padding: 2, background: "rgba(255,255,255,0.9)" }} aria-label={lesson.coach}>
+            <Avatar name={lesson.coach} size={38} />
+          </span>
+        )}
+      </div>
+
+      {/* what this is: the focus, the day, the coach, the note — on glass */}
+      <div className="absolute" style={{ left: 16, right: 78, bottom: 108, zIndex: 25 }}>
+        {/* the title opens the lesson; the note unfolds only when there is
+            more of it — a tap that changed nothing was a dead end */}
+        <div className="w-full text-left"
+             style={{ padding: "14px 16px 12px", borderRadius: 18, background: "rgba(10,13,14,0.38)",
+                      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                      border: "0.5px solid rgba(255,255,255,0.12)",
+                      animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
+          <button onClick={open} className="block w-full text-left active:opacity-80">
+            <span className="block" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
+              {lesson.focus}
+            </span>
+            <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+            </span>
+          </button>
+          {lesson.note && (lesson.note.length > 44 ? (
+            <button onClick={() => { haptic(6); setMore((v) => !v); }} className="flex items-baseline gap-2 mt-2 w-full text-left active:opacity-80"
+                    style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>
+              <span className={`min-w-0 ${more ? "" : "truncate"}`}>{lesson.note}</span>
+              <span className="shrink-0" style={{ color: "rgba(255,255,255,0.55)" }}>{more ? tr("less") : tr("more")}</span>
+            </button>
+          ) : (
+            <span className="block mt-2" style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>{lesson.note}</span>
+          ))}
+          {items.length > 1 && (
+            <span className="flex items-center gap-1.5 mt-3" aria-label={`${frame + 1} ${tr("of")} ${items.length}`}>
+              {items.map((it, i) => (
+                <span key={it.id || i} className="rounded-full"
+                      style={{ width: i === frame ? 14 : 4, height: 4,
+                               background: i === frame ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.38)",
+                               transition: "width 240ms cubic-bezier(.22,1,.36,1), background 240ms" }} />
+              ))}
+            </span>
+          )}
+        </div>
+        {/* how far through the clip */}
+        {current && current.type === "video" && (
+          <div className="mt-2.5 mx-1" aria-hidden="true" style={{ height: 2, borderRadius: 1, background: "rgba(255,255,255,0.22)", overflow: "hidden" }}>
+            <div style={{ width: `${Math.round(prog * 100)}%`, height: 2, background: "#fff", transition: "width 240ms linear" }} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg }) {
+  const [active, setActive] = useState(0);
+  const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
+  const wrap = useRef(null);
+
+  useEffect(() => {
+    const root = wrap.current;
+    if (!root || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const i = Number(e.target.getAttribute("data-feed-card"));
+        setActive(i);
+      });
+    }, { root, threshold: 0.6, rootMargin: "-30% 0px -30% 0px" });
+    root.querySelectorAll("[data-feed-card]").forEach((c) => io.observe(c));
+    return () => io.disconnect();
+  }, [lessons.length]);
+
+  return (
+    <div className="absolute inset-0" style={{ background: "#0A0D0E" }}>
+
+      <div className="absolute inset-x-0 pointer-events-none" aria-hidden="true"
+           style={{ top: 0, height: 104, zIndex: 20,
+                    background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)" }} />
+
+      {/* TEST CONTROL — not part of the product. Sits here because this
+          is the screen it loads into. */}
+      {onPickFiles && (
+        <label className="absolute flex items-center gap-1.5 px-3"
+               style={{ top: 70, left: 18, height: 28, borderRadius: 14, zIndex: 30, cursor: "pointer",
+                        background: "rgba(0,0,0,0.45)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                        border: `0.5px dashed rgba(255,255,255,0.4)` }}>
+          <Plus size={12} color="rgba(255,255,255,0.85)" strokeWidth={2.4} />
+          <span style={{ ...TYPE.caption, fontSize: 9.5, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>
+            {tr("Test media")}{loaded ? ` · ${loaded}` : ""}
+          </span>
+          <input type="file" accept="video/*,image/*,audio/*" multiple className="hidden"
+                 onChange={(e) => { onPickFiles(Array.from(e.target.files || [])); e.target.value = ""; }} />
+        </label>
+      )}
+
+      {/* the three views, top left — the same switch as the other two screens */}
+      <div className="absolute" style={{ top: 26, left: 16, zIndex: 30 }}>
+        <ViewSwitch onDark view={view} setView={setView} tour="log-view" />
+      </div>
+
+      <div ref={wrap} className="absolute inset-0 overflow-y-auto"
+           style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
+                    WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
+        {lessons.map((l, i) => (
+          <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active} cfg={cfg}
+                    near={Math.abs(i - active) <= 1} onNeed={onNeed}
+                    media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} showWho={showWho} />
+        ))}
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"
+           style={{ height: 120, zIndex: 20,
+                    background: "linear-gradient(to top, #0A0D0E 8%, rgba(10,13,14,0.55) 45%, transparent 100%)" }} />
+    </div>
+  );
+}
+
+function ViewSwitch({ view, setView, onDark, tour }) {
+  const t = useT();
+  /* Two views, not three. Cards and List were both "scroll your
+     lessons" — one with a big picture, one without — and a person
+     choosing between them is choosing nothing. The feed is the one
+     that is genuinely a different thing to do. */
+  const opts = [
+    { id: "feed", Ico: Play,     label: "Feed" },
+    { id: "list", Ico: FileText, label: "List" },
+  ];
+  return (
+    <div data-tour={tour} className="flex gap-1 p-1" style={{ borderRadius: R.pill,
+           background: onDark ? "rgba(255,255,255,0.14)" : t.wash,
+           backdropFilter: onDark ? "blur(14px)" : "none", WebkitBackdropFilter: onDark ? "blur(14px)" : "none" }}>
+      {opts.map((o) => {
+        const on = view === o.id;
+        return (
+          <button key={o.id} aria-pressed={on} aria-label={o.label} onClick={() => { haptic(9); soft(); setView(o.id); }}
+                  className="flex items-center gap-1.5 px-3.5 active:opacity-70"
+                  style={{ minHeight: 34, borderRadius: R.pill,
+                           background: on ? (onDark ? "rgba(255,255,255,0.92)" : t.surface) : "transparent",
+                           boxShadow: on && !onDark ? (t.elev || ELEV).rest : "none",
+                           transition: "background 220ms" }}>
+            <o.Ico size={13} strokeWidth={2}
+                   color={on ? (onDark ? "#111" : t.accent) : (onDark ? "rgba(255,255,255,0.7)" : t.faint)} />
+            <span style={{ ...TYPE.caption, fontWeight: 500,
+                           color: on ? (onDark ? "#111" : t.ink) : (onDark ? "rgba(255,255,255,0.7)" : t.faint) }}>
+              {tr(o.label)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function AttendanceScreen({ role, cfg, records, rule, pop }) {
   const t = useT();
   const rows = records || [];
@@ -5638,6 +6084,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
    and review prompt) or a control on the screen they affect (the log
    view's pill on Lessons). */
 const PREF_DEFAULTS = {
+  logView:    "feed",     // feed · list
   calView:    "list",     // list · grid
   notify:     "instant",  // instant · digest · quiet
   quietFrom:  "9:00 pm",
@@ -5670,7 +6117,8 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              hairline do the grouping; a border is reserved for emphasis. */
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `1px solid ${accent}2E` : `1px solid ${HAIR(t.ink, 0.14)}`,
+                   border: accent ? `1px solid ${accent}2E` : "1px solid transparent",
+                   boxShadow: accent ? "none" : (t.elev || ELEV).rest,
                    transition: "transform 140ms cubic-bezier(.22,1,.36,1)", willChange: "transform",
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>
       {/* one pass of light as it arrives, never again */}
@@ -6165,9 +6613,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
      come in to match; nothing is dropped, because a tab that is there
      for some people and not others is worse than a small label. */
   const tight = tabs.length >= 6;
-  /* a plain oval whoever is signed in: the plus sits inside the bar as
-     the one raised object, not as a swell in the bar's silhouette */
-  const D = barPath(w, false);
+  const D = barPath(w, hasRaised);
   const barRef = useRef(null);
   const bubbleRef = useRef(null);
   const iconRefs = useRef([]);
@@ -6237,7 +6683,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
     if (!S.current.dragging) return;
     S.current.dragging = false;
     const b = bubbleRef.current;
-    if (b) { b.style.opacity = "0"; b.style.boxShadow = "none"; }
+    if (b) { b.style.opacity = "0.12"; b.style.boxShadow = "none"; }
     const target = S.current.idx;
     snapTo(target);
     S.current.suppress = true;
@@ -6324,7 +6770,8 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
             the active tab rather than taking the ring's word for it */}
         <span ref={bubbleRef} className="absolute" aria-hidden="true" data-tour-pill=""
               style={{ left: 4, top: 5, bottom: 5, width: `calc(${100 / tabs.length}% - 8px)`,
-                       borderRadius: R.pill, background: theme.ink, opacity: 0, zIndex: 1,
+                       borderRadius: R.pill, background: theme.mark, opacity: 0.13, zIndex: 1,
+                       boxShadow: `inset 0 1px 0 rgba(255,255,255,0.4)`,
                        willChange: "transform", transform: "translate3d(0,0,0)" }} />
 
         {tabs.map((tb, i) => {
@@ -6342,13 +6789,13 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
                       onClick={() => { if (S.current.suppress) return; haptic(12); soft(); onSelect(tb.id); }}
                       className="flex-1 flex items-center justify-center"
                       style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
-                <span className="relative flex items-center justify-center rounded-full"
-                      style={{ width: 42, height: 42, marginTop: RAISED_OFFSET, background: theme.ink,
+                <span className="relative flex items-center justify-center"
+                      style={{ width: 56, height: 56, marginTop: RAISED_OFFSET,
                                /* level with the other tabs' icons, derived from
                                   their own metrics rather than hand-tuned */
                                transition: "transform 220ms cubic-bezier(.34,1.56,.64,1)",
-                               transform: on ? "scale(0.94)" : "scale(1)", willChange: "transform" }}>
-                  <Plus size={22} color={theme.page} strokeWidth={2.4} />
+                               transform: on ? "scale(0.9)" : "scale(1)", willChange: "transform" }}>
+                  <Plus size={32} color={theme.ink} strokeWidth={2.4} />
                 </span>
               </button>
             );
@@ -6362,14 +6809,14 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
               <span ref={(el) => { iconRefs.current[i] = el; }} className="relative flex flex-col items-center justify-center gap-1"
                     style={{ maxWidth: "100%", transition: "transform 260ms cubic-bezier(.22,1,.36,1), opacity 200ms",
                              transform: on ? "scale(1.04)" : "scale(1)", willChange: "transform" }}>
-                <Icon size={tight ? 18 : 19} color={on ? theme.ink : theme.faint} strokeWidth={on ? 2.1 : 1.75} style={{ transition: "color 220ms" }} />
-                <span style={{ fontFamily: ui, fontSize: 11, fontWeight: on ? 600 : 500,
+                <Icon size={tight ? 18 : 19} color={on ? theme.mark : theme.faint} strokeWidth={on ? 2.1 : 1.75} style={{ transition: "color 220ms" }} />
+                <span style={{ fontFamily: ui, fontSize: tight ? 8.5 : 9.5, fontWeight: 600,
                                letterSpacing: tight ? "-0.01em" : "0.005em", maxWidth: "100%",
-                               color: on ? theme.ink : theme.faint, transition: "color 220ms", whiteSpace: "nowrap" }}>{tb.label}</span>
+                               color: on ? theme.mark : theme.faint, transition: "color 220ms", whiteSpace: "nowrap" }}>{tb.label}</span>
                 {tb.badge && (<span className="absolute rounded-full" style={{ top: -2, right: tight ? -3 : -5, width: 7, height: 7, background: DANGER }} />)}
                 {tb.count > 0 && (<span className="absolute rounded-full flex items-center justify-center"
                                         style={{ top: -6, right: tight ? -5 : -9, minWidth: 15, height: 15, padding: "0 4px", background: DANGER,
-                                                 fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>{tb.count}</span>)}
+                                                 fontFamily: ui, fontSize: 9, fontWeight: 600, color: "#fff" }}>{tb.count}</span>)}
               </span>
             </button>
           );
@@ -6503,14 +6950,14 @@ function Toast({ msg }) {
 function Segmented({ options, value, onChange, tour }) {
   const t = useT();
   return (
-    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash }}>
+    <div data-tour={tour} className="flex rounded-xl p-0.5" style={{ background: t.wash, boxShadow: (t.elev || ELEV).groove }}>
       {options.map((o) => {
         const on = value === o;
         return (
           <button key={o} aria-pressed={on} onClick={() => { haptic(6); onChange(o); }} className="flex-1 rounded-lg"
-                  style={{ minHeight: 30, background: on ? t.surface : "transparent", border: `1px solid ${on ? HAIR(t.ink, 0.14) : "transparent"}`,
-                           transition: `background ${MOTION.move}ms ${MOTION.curve}, color ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: 13, fontWeight: 500, color: on ? t.ink : t.sub }}>{o}</button>
+                  style={{ minHeight: 34, background: on ? t.surface : "transparent", boxShadow: on ? (t.elev || ELEV).rest : "none",
+                           transition: `background ${MOTION.move}ms ${MOTION.curve}, color ${MOTION.move}ms, box-shadow ${MOTION.move}ms`,
+                           fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
         );
       })}
     </div>
@@ -6522,7 +6969,7 @@ function Toggle({ on, onChange }) {
     <button onClick={() => { haptic(6); onChange(!on); }} aria-pressed={on} className="rounded-full shrink-0 relative"
             style={{ width: 50, height: 30, background: on ? t.accent : "#D6DAD3", transition: "background 280ms cubic-bezier(.22,1,.36,1)" }}>
       <span className="absolute rounded-full" style={{ width: 26, height: 26, top: 2, left: on ? 22 : 2, background: "#fff",
-                     transition: "left 200ms cubic-bezier(.32,.72,0,1)" }} />
+                     boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 200ms cubic-bezier(.32,.72,0,1)" }} />
     </button>
   );
 }
@@ -6730,9 +7177,7 @@ const Rail = ({ children, tone, style = {} }) => {
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  /* flat: a surface is a step in fill and a hairline, never a shadow.
-     Shadows are the bottom sheet's and the raised plus's alone. */
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `1px solid ${HAIR(t.ink, 0.14)}`,
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -6756,16 +7201,15 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   }[tone];
   /* a filled button is an object on the paper and presses like one; an
      outlined one is a word on the page and only dims */
+  const solid = tone === "accent" || tone === "ink" || tone === "danger";
   return (
     <button data-tour={tour} onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
-            className="w-full"
-            {...(disabled ? {} : sink(t, "none"))}
+            className="w-full disabled:opacity-20"
+            {...sink(t, solid ? (t.elev || ELEV).cast : "none")}
             style={{ minHeight: 54, borderRadius: R.surface, fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "0.015em",
-                     /* a filled button is a flat surface like the tiles beside it — no shadow at rest */
-                     transition: `transform ${MOTION.settle}ms ${MOTION.curve}, opacity ${MOTION.instant}ms`,
-                     willChange: "transform", ...looks,
-                     /* disabled is grey on grey, never white on a pale accent */
-                     ...(disabled ? { background: t.wash, color: t.faint, border: "none" } : {}) }}>{children}</button>
+                     boxShadow: solid ? (t.elev || ELEV).cast : "none",
+                     transition: `transform ${MOTION.settle}ms ${MOTION.curve}, box-shadow ${MOTION.settle}ms, opacity ${MOTION.instant}ms`,
+                     willChange: "transform", ...looks }}>{children}</button>
   );
 }
 /* AN ICON FOR EVERY THING A COACH WORKS ON
@@ -6825,15 +7269,12 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      new paper is very nearly the page itself. */
   const bg = tone === "accent" ? t.accent : on ? t.ink : t.surface;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
-  /* A hairline at rest, no shadow. White tiles floating on the tinted
-     paper under a soft blur was the single strongest "template kit"
-     tell in every reference set; a tile is a flat surface with an edge. */
-  const edge = tone === "accent" || on ? "1px solid transparent" : `1px solid ${HAIR(t.ink, 0.14)}`;
+  const lift = tone === "accent" || on ? "none" : (t.elev || ELEV).rest;
   return (
     <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
-            {...sink(t, "none")}
+            {...sink(t, lift)}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
-            style={{ minHeight: h, borderRadius: R.surface, background: bg, border: edge, willChange: "transform",
+            style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
@@ -6843,14 +7284,11 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           Icon and the label centres on its own. */}
       {Icon && <Icon size={h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={1.6} />}
       <span className={Icon ? "truncate px-2" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: Icon ? 12 : 13, fontWeight: 500, letterSpacing: "-0.005em", lineHeight: 1.25, color: fg }}>{label}</span>
-      {/* a count is a figure, not a disc. The black badge was a third
-          count coding on one screen beside the tab's red numeral and the
-          row's grey dot; one convention — a number only on the tab bar,
-          a plain figure anywhere else. */}
+            style={{ fontFamily: ui, fontSize: Icon ? 12 : 13, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: 1.25, color: fg }}>{label}</span>
       {count > 0 && (
-        <span className="absolute" style={{ top: 10, right: 12, ...TYPE.small, fontWeight: 500, ...FIG,
-                                             color: tone === "accent" ? t.onAccent : on ? "rgba(255,255,255,0.8)" : t.sub }}>{count}</span>
+        <span className="absolute flex items-center justify-center rounded-full"
+              style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
+                       fontFamily: ui, fontSize: 11, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
       )}
       {dot && !count && <span className="absolute rounded-full" style={{ top: 12, right: 12, width: 7, height: 7, background: on ? "#fff" : t.accent }} />}
     </button>
@@ -6900,12 +7338,12 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         const on = has(x), off = disabled && disabled.includes(x);
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
-                  {...sink(t, "none")}
+                  {...sink(t, on || off ? "none" : (t.elev || ELEV).rest)}
                   style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : t.surface,
-                           border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.14)}`, opacity: off ? 0.35 : 1,
-                           fontFamily: ui, fontSize: 13, fontWeight: 500, letterSpacing: "-0.01em", ...FIG,
+                           boxShadow: on || off ? "none" : (t.elev || ELEV).rest, opacity: off ? 0.35 : 1,
+                           fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
                            color: on ? "#fff" : t.ink, willChange: "transform",
-                           transition: `background ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>{x}</button>
+                           transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>{x}</button>
         );
       })}
     </div>
@@ -7015,18 +7453,18 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
           const isMain = mainId === id;
           return (
             <button key={id} aria-label={add ? `+ ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
-                    {...sink(t, "none")}
+                    {...sink(t, on ? "none" : (t.elev || ELEV).rest)}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.surface, border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.14)}`,
-                             willChange: "transform",
-                             transition: `background ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.surface,
+                             boxShadow: on ? "none" : (t.elev || ELEV).rest, willChange: "transform",
+                             transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
               {add
                 ? <Plus size={18} color={t.sub} strokeWidth={2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: sp.theme.mark }} />}
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>
                 {add ? `+ ${sp.label}` : sp.label}
               </span>
-              {isMain && <span className="absolute" style={{ bottom: 6, ...TYPE.caption, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>· {tr("main")}</span>}
+              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, fontSize: 9.5, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>· {tr("main")}</span>}
             </button>
           );
         })}
@@ -8394,9 +8832,41 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ lessons, push, saved, right, ownMedia, liveMedia, onNeedMedia, showWho = false }) {
+function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false }) {
   const t = useT();
   const ready = useLoad();
+
+  /* Immersive is a different animal — it owns the screen, so it is not
+     a segment inside this one. */
+  if ((prefs && prefs.logView) === "feed" && lessons.length > 0) {
+    /* A real account shows what was actually attached — the sport's
+       colour field while it loads or when there is nothing. The drawn
+       frames, the device readout and the test-media control are the
+       design harness's only. */
+    const mediaFor = liveMedia
+      /* [] when the lesson has none; the signed items once they are in;
+         null while a fetch is in flight; undefined when nothing has
+         asked yet, which is the card's cue to ask for itself. */
+      ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? undefined : []))
+      : (l, i) => {
+      const own = (ownMedia && ownMedia[i]) || [];
+      if (own.length) return own;
+      const n = l.videos || 0;
+      const sim = Array.from({ length: n }, () => ({ type: "sim" }));
+      /* a readout rides alongside the clips, in the same frame */
+      if (n > 1 && CAPTURE[sport]) {
+        sim.push({ type: "data", device: CAPTURE[sport].device,
+                   rows: CAPTURE[sport].fields.slice(0, 4).map((f, k) => [f, ["112", "1.34", "58", "9.2"][k] || "—"]) });
+      }
+      return sim;
+    };
+    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg}
+                       view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
+                       onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
+                       loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
+                       onOpen={(l) => push(`lesson:${l.id}`)} />;
+  }
+
   /* the row's poster is the lesson's first file: what was attached on a
      real account ([] none · null fetching · undefined not yet asked),
      the harness's own picked files or its drawn clip otherwise */
@@ -8406,6 +8876,10 @@ function PlayerLog({ lessons, push, saved, right, ownMedia, liveMedia, onNeedMed
   const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
   return (
     <Screen title={tr("Lessons")} right={right}>
+      {/* the two views — the feed and this list; nothing to switch until there is a lesson */}
+      {lessons.length > 0 && prefs && (<div className="px-6 pt-1 mb-4">
+        <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
+      </div>)}
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
       ) : lessons.length === 0 ? (
@@ -8918,7 +9392,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
               style={{ minHeight: big ? 76 : 62, willChange: "transform",
                        borderRadius: big ? R.surface : 0,
                        background: big ? t.surface : "transparent",
-                       border: big ? `1px solid ${HAIR(t.ink, 0.14)}` : "none",
+                       boxShadow: big ? (t.elev || ELEV).rest : "none",
                        borderLeft: big && rained ? `2.5px solid ${DANGER}` : "none",
                        borderBottom: big ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`,
                        marginBottom: big ? 8 : 0,
@@ -9178,8 +9652,7 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
                     aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
                     className="relative w-full flex flex-col items-center justify-center gap-1.5"
                     style={{ minHeight: h, borderRadius: R.surface, background: bg, touchAction: "none",
-                             boxShadow: lifted ? E.float : "none",
-                             border: `1px solid ${lifted || accent ? "transparent" : HAIR(t.ink, 0.14)}`,
+                             boxShadow: lifted ? E.float : accent ? "none" : E.rest,
                              opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
               <A.Ico size={h >= 84 ? 22 : 19} color={fg} strokeWidth={1.6} />
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: fg }}>{tr(A.label)}</span>
@@ -9631,17 +10104,15 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
   const t = useT();
   return (
     <button data-tour={tour} aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
-            {...sink(t, "none")}
-            className="relative w-full flex flex-col items-center gap-2"
-            /* top-aligned, so a tile that carries a time under the name
-               keeps its face level with the tile beside it */
-            style={{ minHeight: 104, paddingTop: 16, paddingBottom: 12, borderRadius: R.surface, background: on ? t.ink : t.surface,
-                     border: `1px solid ${on ? "transparent" : HAIR(t.ink, 0.14)}`, willChange: "transform",
-                     transition: `background ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
+            {...sink(t, on ? "none" : (t.elev || ELEV).rest)}
+            className="relative w-full flex flex-col items-center justify-center gap-2"
+            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : t.surface,
+                     boxShadow: on ? "none" : (t.elev || ELEV).rest, willChange: "transform",
+                     transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
               bg={on ? "rgba(255,255,255,0.18)" : t.wash} fg={on ? "#fff" : t.sub} />
-      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 500, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
-      {caption && <span className="truncate px-2" style={{ ...TYPE.caption, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption}</span>}
+      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
+      {caption && <span className="truncate px-2" style={{ ...TYPE.caption, fontSize: 10.5, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption}</span>}
       {on && <span className="absolute rounded-full flex items-center justify-center" style={{ top: 8, right: 8, width: 18, height: 18, background: "#fff" }}><Check size={11} color={t.ink} strokeWidth={3} /></span>}
     </button>
   );
@@ -12258,7 +12729,7 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
             action={canStart ? (
               <button data-tour="chat-new" onClick={() => { hapticCommit(); soft(); onNew && onNew(); }}
                       className="flex items-center justify-center active:opacity-50"
-                      style={{ width: 40, height: 40 }} aria-label={tr("New message")}>
+                      style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("New message")}>
                 <Plus size={22} color={t.ink} strokeWidth={2} />
               </button>) : null}>
       <div className="px-6 pb-2">
@@ -13741,7 +14212,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [attendFor, setAttendFor] = useState(null);
   const [pickFor, setPickFor] = useState(null);   // what we are choosing a player for
   const [captureItems, setCaptureItems] = useState([]);
-  const [prefs, setPrefsLocal] = useState(PREF_DEFAULTS);
+  const [prefs, setPrefsLocal] = useState(sc && sc.logView ? { ...PREF_DEFAULTS, logView: sc.logView } : PREF_DEFAULTS);
   /* With a real account, preferences live in the database. The setter
      keeps the same signature the screens already call, so nothing
      downstream needs to know the difference. */
@@ -13750,7 +14221,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setPrefsLocal(value);
     if (data && data.savePrefs) {
       data.savePrefs({
-        cal_view: value.calView, notify: value.notify,
+        log_view: value.logView, cal_view: value.calView, notify: value.notify,
         attendance: value.attendance, show_record: value.showRecord,
         show_comps: value.showComps, reduce_data: value.reduceData,
         ask_for_review: value.askForReview,
@@ -13765,6 +14236,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        default rather than leaving a segmented control with nothing
        selected. */
     setPrefsLocal({
+      logView: p.log_view === "cards" ? "list" : (p.log_view ?? PREF_DEFAULTS.logView),
       calView: p.cal_view ?? PREF_DEFAULTS.calView,
       notify: p.notify ?? PREF_DEFAULTS.notify,
       quietFrom: PREF_DEFAULTS.quietFrom,
@@ -15305,6 +15777,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
       : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
+  const bleed = inApp && screen === "log" && prefs.logView === "feed" && role !== "coach";
   let body, bare = !inApp;
   /* A player with no coach has an account and nothing in it. Rather
      than show empty lessons, an empty diary and a disabled chat, the
@@ -15846,7 +16319,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
       home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
-      log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} ownMedia={ownMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
@@ -16004,9 +16477,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               entirely in the product, replaced by safe-area padding so
               content clears the real status bar. */}
           {demo ? (
-            <div className="flex items-center justify-between px-7 pt-3 shrink-0 z-30 relative">
-              <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: theme.ink }}>9:41</span>
-              <span style={{ fontFamily: ui, fontSize: 12.5, color: theme.ink }}>82%</span>
+            <div className={`flex items-center justify-between px-7 pt-3 shrink-0 z-30 ${bleed ? "absolute inset-x-0" : "relative"}`}>
+              <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600,
+                             color: bleed ? "#fff" : theme.ink,
+                             textShadow: bleed ? "0 1px 4px rgba(0,0,0,0.6)" : "none" }}>9:41</span>
+              <span style={{ fontFamily: ui, fontSize: 12.5,
+                             color: bleed ? "rgba(255,255,255,0.9)" : theme.ink,
+                             textShadow: bleed ? "0 1px 4px rgba(0,0,0,0.6)" : "none" }}>82%</span>
             </div>
           ) : (
             <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
