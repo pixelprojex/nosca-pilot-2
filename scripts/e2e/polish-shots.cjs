@@ -95,7 +95,7 @@ function freshDb() {
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");
-      await tap('[aria-label="Lessons"]'); await shot("a2-lessons");
+      await tap('[aria-label="Home"], [aria-label="Lessons"]'); await shot("a2-lessons");
       await tap('[data-tour="feed-open"], [data-tour="log-row"], [data-tour="lesson-row"]', 900); await shot("a3-lesson-view");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Diary"]'); await shot("a4-diary");
@@ -104,7 +104,7 @@ function freshDb() {
       await tap('[aria-label="Drills"]'); await shot("a6-drills");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("parent");
-      await shot("p1-family"); await tap('[aria-label="Lessons"]'); await shot("p2-lessons"); await tap('[aria-label="Diary"]'); await shot("p3-diary");
+      await shot("p1-family"); await tap('[aria-label="Home"], [aria-label="Lessons"]'); await shot("p2-lessons"); await tap('[aria-label="Diary"]'); await shot("p3-diary");
       await tap('[data-tour="agenda-book"]', 700); await shot("p4-request-for-child");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("p5-chat-list");

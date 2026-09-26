@@ -1784,8 +1784,14 @@ const ShimmerCSS = () => (
     .nsc-ruled > div > *:last-child { border-bottom: none !important; }
     /* the inset form of the same law: a lid and a foot in the section
        weight, and the last row's own hairline suppressed */
-    .nsc-list { border-top: 1px solid var(--rule-section); border-bottom: 1px solid var(--rule-section); }
-    .nsc-list > *:last-child { border-bottom: none !important; }
+    /* a list is a column of boxes: each row its own surface with a
+       clear edge, never a run of text separated by hairlines */
+    .nsc-list { border: none !important; }
+    .nsc-list > * { background: var(--surface); border: 1px solid var(--edge) !important; border-radius: 8px;
+                    margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
+    .nsc-list > *:last-child { margin-bottom: 0; }
+    .nsc-day { background: var(--surface); border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; }
+    .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
     @keyframes sp{to{transform:rotate(360deg)}}
@@ -2261,9 +2267,8 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
               )}
             </div>
 
-            {/* one card, rows inside — the chaos was every slot being
-                its own floating box */}
-            <div style={{ borderTop: RULE.section(t.ink) }}>
+            {/* one box a day, its times as rows inside */}
+            <div className="nsc-day">
               {rows.map((h, ri) => {
                 const bk = day.booked.find((b) => b.time === h);
                 const isBlocked = day.blockedHere.includes(h);
@@ -3486,7 +3491,7 @@ const TOUR = {
   ],
   player: [
     { title: "Join your coach", body: "Enter their code", target: "nocoach-code", state: { stack: ["nocoach"] } },
-    { title: "Book a lesson", body: "From their hours", target: "home-request", state: { stack: ["home"] } },
+    { title: "Book a lesson", body: "Tap a free slot", target: "agenda-book", state: { stack: ["calendar"] } },
     { title: "Watch your clips", body: "", target: "lesson-clip", state: { stack: ["log", "lesson"], logView: "list" } },
     { title: "Tick off drills", body: "Your coach sees it", target: "drill-row", state: { stack: ["practice"] } },
     { title: "Message your coach", body: "", target: "tab-messages", state: { stack: ["messages"] } },
@@ -5085,40 +5090,30 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
            style={{ height: "48%", zIndex: 10,
                     background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)" }} />
 
-      {/* the column: sound, open, the coach */}
-      <div className="absolute flex flex-col items-center gap-3.5" style={{ right: 16, bottom: 132, zIndex: 30 }}>
-        {current && current.type === "video" && (
-          <Round label={sound ? tr("Mute") : tr("Sound")} onTap={() => { haptic(7); onSound && onSound(!sound); }}>
-            {sound ? <Volume2 size={19} color="#fff" strokeWidth={1.9} /> : <VolumeX size={19} color="rgba(255,255,255,0.9)" strokeWidth={1.9} />}
-          </Round>
-        )}
-        <Round label={tr("Open lesson")} onTap={open} solid tour="feed-open">
-          <ArrowRight size={19} color="#111" strokeWidth={2.2} />
-        </Round>
-        {lesson.coach && (
-          <span className="rounded-full" style={{ padding: 2, background: "rgba(255,255,255,0.9)" }} aria-label={lesson.coach}>
-            <Avatar name={lesson.coach} size={38} />
-          </span>
-        )}
-      </div>
-
-      {/* what this is: the focus, the day, the coach, the note — on glass */}
-      <div className="absolute" style={{ left: 16, right: 78, bottom: 108, zIndex: 25 }}>
-        {/* the title opens the lesson; the note unfolds only when there is
-            more of it — a tap that changed nothing was a dead end */}
+      {/* what this is: the focus, the day, the note, and the way in — on glass */}
+      <div className="absolute" style={{ left: 16, right: 16, bottom: 108, zIndex: 25 }}>
         <div className="w-full text-left"
-             style={{ padding: "14px 16px 12px", borderRadius: 18, background: "rgba(10,13,14,0.38)",
+             style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.42)",
                       backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
                       border: "0.5px solid rgba(255,255,255,0.12)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
-          <button onClick={open} className="block w-full text-left active:opacity-80">
-            <span className="block" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
-              {lesson.focus}
-            </span>
-            <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
-            </span>
-          </button>
+          <div className="flex items-start gap-3">
+            <button onClick={open} className="flex-1 min-w-0 text-left active:opacity-80">
+              <span className="block truncate" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
+                {lesson.focus}
+              </span>
+              <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+                {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+              </span>
+            </button>
+            {current && current.type === "video" && (
+              <button onClick={() => { haptic(7); onSound && onSound(!sound); }} aria-label={sound ? tr("Mute") : tr("Sound")}
+                      className="flex items-center justify-center shrink-0 active:opacity-70"
+                      style={{ width: 40, height: 40, borderRadius: 20, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.18)" }}>
+                {sound ? <Volume2 size={18} color="#fff" strokeWidth={1.9} /> : <VolumeX size={18} color="rgba(255,255,255,0.9)" strokeWidth={1.9} />}
+              </button>
+            )}
+          </div>
           {lesson.note && (lesson.note.length > 44 ? (
             <button onClick={() => { haptic(6); setMore((v) => !v); }} className="flex items-baseline gap-2 mt-2 w-full text-left active:opacity-80"
                     style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>
@@ -5138,6 +5133,13 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
               ))}
             </span>
           )}
+          {/* the way in, said in words: the arrow in a disc was not read as one */}
+          <button data-tour="feed-open" onClick={open} aria-label={tr("View lesson")}
+                  className="w-full flex items-center justify-center gap-2 active:opacity-85"
+                  style={{ minHeight: 46, marginTop: 14, borderRadius: 12, background: "rgba(255,255,255,0.94)", ...TYPE.body, fontWeight: 600, color: "#111" }}>
+            {tr("View lesson")}
+            <ArrowRight size={16} color="#111" strokeWidth={2.2} />
+          </button>
         </div>
         {/* how far through the clip */}
         {current && current.type === "video" && (
@@ -5150,7 +5152,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   );
 });
 
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg }) {
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right }) {
   const [active, setActive] = useState(0);
   const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
   const wrap = useRef(null);
@@ -5192,10 +5194,19 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         </label>
       )}
 
-      {/* the three views, top left — the same switch as the other two screens */}
+      {/* the two views, top left */}
       <div className="absolute" style={{ top: 26, left: 16, zIndex: 30 }}>
         <ViewSwitch onDark view={view} setView={setView} tour="log-view" />
       </div>
+      {/* the header's own controls — search, the bell, the profile — ride
+          on the feed too, on a light pill so they read over any clip */}
+      {right && (
+        <div className="absolute flex items-center gap-0.5 pl-1 pr-1.5" data-tour="feed-header"
+             style={{ top: 26, right: 12, height: 42, borderRadius: R.pill, zIndex: 30,
+                      background: "rgba(255,255,255,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
+          {right}
+        </div>
+      )}
 
       <div ref={wrap} className="absolute inset-0 overflow-y-auto"
            style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
@@ -7148,16 +7159,10 @@ const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap })
    the iOS horizontal-rubber-band risk auditable: one component and
    the scrollers' overflow-x-hidden, rather than a hundred call
    sites. */
-const Ruled = ({ children, foot = true, gutter = 24, className = "", style = {} }) => {
-  const t = useT();
-  return (
-    <div className={`nsc-ruled overflow-x-hidden ${className}`}
-         style={{ marginLeft: -gutter, marginRight: -gutter, borderTop: RULE.section(t.ink),
-                  borderBottom: foot ? RULE.section(t.ink) : "none", ...style }}>
-      <div style={{ paddingLeft: gutter, paddingRight: gutter }}>{children}</div>
-    </div>
-  );
-};
+const Ruled = ({ children, className = "", style = {} }) => (
+  /* rows as boxes — the nsc-list rules draw each child as its own surface */
+  <div className={`nsc-list nsc-ruled overflow-x-hidden ${className}`} style={style}>{children}</div>
+);
 
 /* RAIL — the leading figure column.
 
@@ -8332,11 +8337,10 @@ function ConnectPlayer({ sport, onDone, onBack }) {
 function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
   const t = useT();
   return (
-    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center rounded-full active:opacity-50" style={{ padding: 7 }}>
-      {/* the face, and nothing else — it still opens the switcher. The
-          pill it replaced carried initials, a first name and a chevron
-          in every header of the app. */}
-      <Avatar name={name} size={30} tint={tint} src={src} group={group} />
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
+      <Avatar name={name} size={22} tint={tint} src={src} group={group} />
+      <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
+      <ChevronDown size={13} color={t.sub} />
     </button>
   );
 }
@@ -8375,7 +8379,7 @@ function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin 
   );
 }
 
-function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, mySports = [], main, onSetMain, onPhoto, close, say, live, hasCoach, onJoinCode }) {
+function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, onSettings, mySports = [], main, onSetMain, onPhoto, close, say, live, hasCoach, onJoinCode }) {
   const t = useT();
   /* a real account joins a coach through the database (join_coach); the
      harness's pretend lookup below is never reached with `live` */
@@ -8568,7 +8572,8 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         )}
         {!(live && hasCoach) && <Row label={tr("Add a coach")} sub={live ? tr("Enter their code") : tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage(live ? "code" : "sport")} />}
         <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
-        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
+        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last={!onSettings} icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
+        {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron onToggle={() => { close(); onSettings(); }} />}
       </Card>
     </>
   );
@@ -8861,7 +8866,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
       }
       return sim;
     };
-    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg}
+    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg} right={right}
                        view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
@@ -12738,12 +12743,12 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
           <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No conversations yet")}</p>
         ) : (<>
           {split && <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Yours")}</div>}
-          <div>
+          <div className="nsc-list">
             {mine.map((c, i) => <Thread key={c.id || c.name} c={c} tour={i === 0 ? "chat-row" : undefined} />)}
           </div>
           {kids.length > 0 && (<>
             {split && <div className="mt-6 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Children")}</div>}
-            <div>
+            <div className="nsc-list">
               {kids.map((c, i) => <Thread key={c.id || c.name} c={c} tour={!split && i === 0 ? "chat-row" : undefined} />)}
             </div>
           </>)}
@@ -13823,7 +13828,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {waiting.length > 0 && (
               <div style={{ marginBottom: SPACE.block }}>
                 <Eyeb>{tr("Requests")}</Eyeb>
-                <div style={{ borderTop: hair }}>{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
+                <div className="nsc-list">{waiting.map((w) => <Ask key={w.id} w={w} />)}</div>
               </div>
             )}
             {canFilter && (
@@ -13840,7 +13845,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
                 <div key={label} style={{ marginBottom: SPACE.block }}>
                   {/* the split is worth a head only when both halves exist */}
                   {today.length > 0 && yesterday.length + earlier.length > 0 && <Eyeb>{label}</Eyeb>}
-                  <div style={{ borderTop: hair }}>{group.map((n) => <Line key={n.id} n={n} />)}</div>
+                  <div className="nsc-list">{group.map((n) => <Line key={n.id} n={n} />)}</div>
                 </div>
               ))}
           </>)}
@@ -15710,7 +15715,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const pill = data ? null
     : (role === "player" ? <FamilyPill tour="profile-pill" name={juvenile ? tr("Family") : activeProfile.name} group={juvenile} tint={avatars[activeProfileId]} onOpen={() => (juvenile ? go("family") : setSheet("family"))} /> : null);
   const youBtn = data
-    ? <FamilyPill tour="profile-pill" label={tr("Your profile")} name={myName} src={myAvatar} onOpen={() => push("you")} />
+    /* a player's pill is the switcher: their coaches, their family, and
+       Settings behind it; a coach's goes straight to their settings */
+    ? <FamilyPill tour="profile-pill" label={tr("Your profile")} name={myName} src={myAvatar} onOpen={() => (role === "player" ? setSheet("family") : push("you"))} />
     : <YouAvatarBtn tour="you" name={myName} src={null} tint={myAvatar} onOpen={() => push("you")} />;
   /* One search. There were two — a command-bar sheet reached from a
      coach's header and a full Search screen reached from everyone
@@ -15765,7 +15772,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     : juvenile
       /* No messaging for an under-18 account. Deliberate: a child's
          contact with an adult coach runs through their parent. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : [])]
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : [])]
     : hasFamily
       /* Family stands in for Home — a parent's home IS the family view —
          so Lessons keeps its place rather than being pushed out. */
@@ -15775,10 +15782,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* Identical to a player's tabs — a parent has their own coaching
          and needs their own log. Family lives on the profile pill, which
          is already where you switch between people. */
-      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
-      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "log", icon: FileText, label: tr("Lessons") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
+      ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
+      : [{ id: "home", icon: Home, label: tr("Home") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
-  const bleed = inApp && screen === "log" && prefs.logView === "feed" && role !== "coach";
+  const bleed = inApp && (screen === "log" || screen === "home") && prefs.logView === "feed" && role !== "coach";
   let body, bare = !inApp;
   /* A player with no coach has an account and nothing in it. Rather
      than show empty lessons, an empty diary and a disabled chat, the
@@ -16319,7 +16326,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />,
+      home:   <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
@@ -16332,7 +16339,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerHome {...shared} push={push} onTick={togglePractice} attendPct={attendPct} activeProfile={activeProfile} right={navRight} nextBooking={nextBooking} upcoming={upcomingMine} practice={myPractice} tip={myTip} selectedStats={mySelected} manualStats={myManual} tool={TOOLS[sport]} pack={null} sheetRate={() => setSheet("rate")} sheetSuggest={() => setSheet("suggest")} agreed={agreedFocus[activeProfile.name]} onRequest={parentAccount ? null : () => go("calendar")} calledOff={data ? calledOffMine : calledOff} onRebook={() => go("calendar")} nextEvent={data ? (liveEvents[0] || null) : freshAccount ? null : (EVENTS[sport] || [])[0]} sport={sport} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
   }
 
   return (
@@ -16342,7 +16349,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--edge": HAIR(theme.ink, 0.24),
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
@@ -16642,7 +16649,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               const c = conns.find((x) => x.profileId === activeProfileId && x.sport === sp);
                                               if (c) { setActiveId(c.id); setCoachSport(sp); } }}
                                             close={() => setSheet(null)} />
-            : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onFamily={() => push("familyCode")} onPhoto={() => setSheet("photo")}
+            : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onFamily={() => push("familyCode")} onSettings={() => push("you")} onPhoto={() => setSheet("photo")}
                                             live={!!data} hasCoach={data ? !!data.hasCoach : false} onJoinCode={onJoinCoach}
                                             mySports={[...new Set(conns.filter((c) => c.profileId === activeProfileId).map((c) => c.sport))]}
                                             main={mainSport[activeProfileId]}
