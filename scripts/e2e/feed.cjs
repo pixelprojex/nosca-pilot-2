@@ -54,7 +54,7 @@ const { check, results, summary } = M.checker("feed");
     /* ---------- (a) the feed is what Lessons opens on ---------- */
     {
       const { ctx, page, text, shot } = await boot("adult");
-      await tap(page, '[aria-label="Lessons"]', 1600);
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 1600);
       await page.waitForTimeout(1200);
       const t0 = await text(); await shot("01-feed");
       check("(a) Lessons opens on the feed, one card a lesson",
@@ -77,7 +77,8 @@ const { check, results, summary } = M.checker("feed");
       const sndBtn = page.locator('[data-feed-card] [aria-label="Sound"], [data-feed-card] [aria-label="Mute"]');
       check("(a) the column offers a sound button on a video", (await sndBtn.count()) >= 1, `sound=${await sndBtn.count()}`);
       check("(a) and an open button", (await page.locator('[data-tour="feed-open"]').count()) >= 1, "no open button");
-      check("(a) and the coach's face", (await page.locator('[data-feed-card] [aria-label="Niamh Byrne"]').count()) >= 1, "no coach avatar");
+      check("(a) no coach's face on the card, and the way in says View lesson", (await page.locator('[data-feed-card] [aria-label="Niamh Byrne"]').count()) === 0 && (await page.locator('[data-feed-card] button[data-tour="feed-open"]', { hasText: "View lesson" }).count()) >= 1, "coach avatar present or no View lesson");
+      check("(a) the header's controls ride on the feed", (await page.locator('[data-tour="feed-header"] [aria-label="Alerts"]').count()) === 1 && (await page.locator('[data-tour="feed-header"] [aria-label="Search"]').count()) === 1 && (await page.locator('[data-tour="feed-header"] [aria-label="Your profile"]').count()) === 1, "");
 
       /* two files on one lesson: the dots, and a second frame to swipe to */
       check("(a) two files on a lesson are two dots", (await page.locator('[aria-label*="of 2"], [aria-label*=" of "]').count()) >= 1, "no frame counter");
@@ -100,7 +101,7 @@ const { check, results, summary } = M.checker("feed");
     /* ---------- (b) the next lesson is a scroll away ---------- */
     {
       const { ctx, page, text, shot } = await boot("adult");
-      await tap(page, '[aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
       await page.locator("[data-feed-card]").nth(1).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
       const t0 = await text(); await shot("03-feed-second");
       check("(b) scrolling on reaches the older lesson", t0.includes("Putting") && t0.includes("Pace first."), t0.slice(0, 200));
@@ -114,7 +115,7 @@ const { check, results, summary } = M.checker("feed");
     /* ---------- (c) the open button, and the two views ---------- */
     {
       const { ctx, page, text, shot } = await boot("adult");
-      await tap(page, '[aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
       await tap(page, '[data-tour="feed-open"]', 1400);
       const t0 = await text(); await shot("04-lesson-from-feed");
       check("(c) the open button lands on that lesson", t0.includes("Short game") && t0.includes("Download"), t0.slice(0, 220));
@@ -132,7 +133,7 @@ const { check, results, summary } = M.checker("feed");
     /* ---------- (d) nothing logged yet ---------- */
     {
       const { ctx, page, text, shot } = await boot("fresh");
-      await tap(page, '[aria-label="Lessons"]', 1400);
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 1400);
       const t0 = await text(); await shot("06-empty");
       check("(d) a player with no lessons is told so, not shown a black screen",
         t0.includes("No lessons yet") && (await page.locator("[data-feed-card]").count()) === 0, t0.slice(0, 200));

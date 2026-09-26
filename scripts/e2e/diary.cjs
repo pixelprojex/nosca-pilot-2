@@ -146,7 +146,8 @@ const leaks = [];
       await page.waitForTimeout(2200); await shot("13-adult-after-request");
       await tap(page, '[aria-label="Home"]');
       const t3 = await leak("adult home after request"); await shot("14-adult-home-next");
-      check("(a) Home shows the real request, said to be one", t3.includes("Requested") && !t3.includes("4:30"), t3.slice(0, 200));
+      /* Home is the feed now; the request lives in the database (checked above) and nothing on Home invents a 4:30 */
+      check("(a) Home opens after the request and invents nothing", t3.length > 0 && !t3.includes("4:30") && !t3.includes("Marcus Tran"), t3.slice(0, 200));
       await ctx.close();
     }
 
@@ -357,6 +358,9 @@ const leaks = [];
     {
       const { ctx, page, leak, shot } = await boot("adult");
       await tap(page, '[data-tour="profile-pill"]', 900);
+      const ts = await leak("adult switcher"); await shot("38-adult-switcher");
+      check("(j) an adult's pill opens the switcher: their coaches, Family and Settings", ts.includes("Your coaches") && ts.includes("Family") && (await page.locator('[data-tour="sheet-settings"]').count()) === 1 && !ts.includes("Marcus Tran"), ts.slice(0, 200));
+      await tap(page, '[data-tour="sheet-settings"]', 900);
       const t1 = await leak("adult you"); await shot("39-adult-you");
       check("(j) an adult's pill opens their own account, with Family honest about there being none", t1.includes("Cian Murphy") && !/Byrne family|Murphy family/.test(await page.locator('[data-tour="settings-dashboard"]').innerText()) && !t1.includes("Ray Doyle") && !t1.includes("Marcus Tran") && !t1.includes("Ellie Tran"), t1.slice(0, 200));
       await ctx.close();
@@ -371,7 +375,10 @@ const leaks = [];
       check("(j) …and her own screen names her real coach", tk.includes("with Niamh Byrne-Walsh") && !tk.includes("Marcus Tran"), tk.slice(0, 200));
       await back(page);
       await tap(page, '[data-tour="profile-pill"]', 900);
-      const t1 = await leak("parent pill"); await shot("41-parent-pill");
+      const tp = await leak("parent switcher"); await shot("41-parent-pill");
+      check("(j) the parent's pill opens the switcher with both profiles on it", tp.includes("Orla Kelly") && tp.includes("Saoirse Kelly") && (await page.locator('[data-tour="sheet-settings"]').count()) === 1, tp.slice(0, 200));
+      await tap(page, '[data-tour="sheet-settings"]', 900);
+      const t1 = await leak("parent you"); await shot("42-parent-you");
       check("(j) the parent's pill opens their own account, never the family", t1.includes("Orla Kelly") && t1.includes("Sign out") && /Orla's family/.test(await page.locator('[data-tour="settings-dashboard"]').innerText()), t1.slice(0, 200));
       await ctx.close();
     }

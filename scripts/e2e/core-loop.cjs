@@ -73,7 +73,7 @@ const leaks = [];
     {
       const { db, ctx, page, text, leak, shot } = await boot("adult");
       await leak("adult home"); await shot("adult-home");
-      await tap(page, '[aria-label="Lessons"]');
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]');
       if (await page.locator('[aria-label="List"]').count()) await tap(page, '[aria-label="List"]', 800);
       const listText = await leak("adult lessons list"); await shot("adult-lessons");
       check("(a) list shows both lessons, newest first", /Short game.*Putting/.test(listText), listText.slice(0, 200));
@@ -103,6 +103,8 @@ const leaks = [];
       await shot("adult-after-download");
       /* You → Lesson logs */
       await tap(page, '[aria-label="Back"]'); await tap(page, '[aria-label="Your profile"]');
+      /* a player's pill opens the switcher; Settings is a row on it */
+      if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 800);
       await byText(page, "Lesson logs").click(); await page.waitForTimeout(700);
       const t2 = await leak("adult lesson logs"); await shot("adult-lesson-logs");
       check("(b) You → Lesson logs lists the person's lessons with Download", t2.includes("Short game") && t2.includes("Putting") && (await page.getByRole("button", { name: /Download Putting/ }).count()) === 1, t2.slice(0, 200));
@@ -315,7 +317,7 @@ const leaks = [];
     {
       const { ctx, page, leak, shot } = await boot("junior");
       await leak("junior home"); await shot("junior-home");
-      await tap(page, '[aria-label="Lessons"]');
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]');
       if (await page.locator('[aria-label="List"]').count()) await tap(page, '[aria-label="List"]', 800);
       await leak("junior lessons");
       await page.locator("button", { hasText: "28 AUG" }).first().click(); await page.waitForTimeout(1000);
@@ -345,7 +347,7 @@ const leaks = [];
       {
         /* the same session, from the other side: the player's own log */
         const { ctx, page, leak } = await boot("adult", gdb);
-        await tap(page, '[aria-label="Lessons"]', 900);
+        await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 900);
         if (await page.locator('[aria-label="List"]').count()) await tap(page, '[aria-label="List"]', 800);
         const t = await leak("player log with a group");
         check("(i) the player's own log carries the group session they attended", t.includes("Serve"), t.slice(0, 240));

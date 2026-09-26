@@ -345,18 +345,36 @@ seeded data and no account.
   nobody is named the glyph is the disc itself and there is no badge. A
   filter over the list appears only past a screenful, like every other
   narrowing control.
-- **The feed is ours, and it stays.** A player's Lessons tab opens on
-  the feed: a full-bleed clip, a right-hand column of round buttons
-  (sound only for a video, open, the coach's face), a glass panel
-  bottom-left (focus in display type, one tag line, the note cut to a
-  line with "more"), a 2px progress bar, the Feed · List switch top
-  left. List is the second view — a poster of the first file, the focus,
-  one grey line — and the lesson page is the player (`LessonStage`:
-  one play disc, the clip at its own shape, browser controls only once
-  it plays). The feed was deleted once on a research finding that no
-  competitor has one; the founder wanted it back within the hour —
-  improve it, never remove it. References are for example only;
-  nothing is copied.
+- **The feed is the player's home, and it stays.** A player's Home tab
+  (the house icon; there is no separate Lessons tab for a player) opens
+  on the feed: a full-bleed clip, the Feed · List switch top left, the
+  header's own controls (profile pill, search, bell) on a light pill
+  top right so they are reachable from every screen, a glass panel
+  bottom (focus in display type, one tag line, the note cut to a line
+  with "more", the sound toggle beside the title for a video) ending
+  on a full-width **View lesson** button, and a 2px progress bar. No
+  arrow-in-a-disc and no coach's face: the founder found the arrow
+  unclear and the face confusing. List is the second view — a poster
+  of the first file, the focus, one grey line — and the lesson page is
+  the player (`LessonStage`: one play disc, the clip at its own shape,
+  browser controls only once it plays). A parent keeps the Family tab
+  as home and Lessons as the feed. The feed was deleted once on a
+  research finding that no competitor has one; the founder wanted it
+  back within the hour — improve it, never remove it.
+- **A player's profile pill is the switcher.** Face, first name and a
+  chevron in the header; tapping it opens `FamilySheet`: their coaches
+  (or Add a coach), Family (their code and who is in it, or Start /
+  Join), and Settings. It was cut to a bare face that opened Settings
+  once, and the founder asked for it back the same day. A coach's face
+  still opens their settings directly.
+- **A list is a column of boxes.** `.nsc-list` draws every child as its
+  own surface — a fill, a 1px `--edge` border, 8px corners, 10px
+  between — and `.nsc-day` boxes a diary day with its times as rows
+  inside. The bell, Chat, the coach's day (`Ruled`), the diary and the
+  Lessons list all use it. Rows of text separated by hairlines were the
+  thing the founder called out on the bell, Chat and the diary; a box
+  per item is what reads as compartmentalised. Square-ish corners are
+  fine; the app does not need round-edged boxes everywhere.
 - **The coach's day is two lists, not one.** *To log* is everything
   finished and not written up — today's, then the days before that were
   never written up — and every row carries Log. Below it is what is
@@ -367,16 +385,11 @@ seeded data and no account.
   block the size of the thing it leads to: the number of lessons, when
   the last one was, and the whole archive behind it. Nothing above it,
   and the header does not repeat those two facts in small grey type.
-- **A player's home leads with when they are next on**, at the size the
-  coach's date is. The board comes before the tip, because the loudest
-  thing on the screen should be something to do; the tip is a bordered
-  block, never a filled slab of the accent. Under it the page is the
-  coach's page: *Coming up* is the rest of what is booked and *Recent
-  lessons* the last three with the way through to the rest, both as
-  `RowHead` over a column of hairline rows — the same two sections the
-  coach's day is built from. The two sides are read by the same
-  household; a shape that means one thing on one and another on the
-  other is a bug.
+- **There is no player home page besides the feed.** `PlayerHome` (next
+  lesson, tip, coming up, recent lessons) is no longer routed; the
+  founder asked for Home and Lessons to be one thing. Booking lives in
+  the Diary, the tip on the lesson and the player file, the coach in
+  the profile pill's switcher.
 - **The approved look has depth: a tile rests on `ELEV.rest`, the
   plus is raised out of the bar.** `ActTile`, `Card`, `Tile`, the
   segmented control, the face tiles and the time grid carry the soft
