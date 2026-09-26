@@ -6117,7 +6117,7 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              hairline do the grouping; a border is reserved for emphasis. */
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `1px solid ${accent}2E` : `1px solid ${HAIR(t.ink, 0.14)}`,
+                   border: accent ? `1px solid ${accent}2E` : `1px solid ${HAIR(t.ink, 0.24)}`,
                    boxShadow: accent ? "none" : (t.elev || ELEV).rest,
                    transition: "transform 140ms cubic-bezier(.22,1,.36,1)", willChange: "transform",
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>
@@ -7177,7 +7177,7 @@ const Rail = ({ children, tone, style = {} }) => {
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest, border: `1px solid ${HAIR(t.ink, 0.14)}`,
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest, border: `1px solid ${HAIR(t.ink, 0.24)}`,
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -7275,7 +7275,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...sink(t, lift)}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
-                     border: tone === "accent" || on ? "1px solid transparent" : `1px solid ${HAIR(t.ink, 0.16)}`,
+                     border: tone === "accent" || on ? "1px solid transparent" : `1px solid ${HAIR(t.ink, 0.28)}`,
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
