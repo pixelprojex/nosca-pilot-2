@@ -345,16 +345,18 @@ seeded data and no account.
   nobody is named the glyph is the disc itself and there is no badge. A
   filter over the list appears only past a screenful, like every other
   narrowing control.
-- **Lessons is a list, and the lesson is the player.** A player's
-  Lessons tab is the lessons newest first — a poster of the first file,
-  the focus, one grey line — on the same paper as every other tab. The
-  clip plays on the lesson page and only when tapped: `LessonStage`
-  renders `<video>` without `controls` under one play disc, sized to
-  the clip's own shape (a portrait clip stands portrait, no black bars),
-  and hands the browser's controls over once it is playing. There was a
-  full-bleed autoplaying swipe feed here once; no professional coaching
-  tool (Hudl, CoachNow, Onform, TrainingPeaks) presents a coach's clips
-  that way, and it put a dark screen under a paper tab bar.
+- **The feed is ours, and it stays.** A player's Lessons tab opens on
+  the feed: a full-bleed clip, a right-hand column of round buttons
+  (sound only for a video, open, the coach's face), a glass panel
+  bottom-left (focus in display type, one tag line, the note cut to a
+  line with "more"), a 2px progress bar, the Feed · List switch top
+  left. List is the second view — a poster of the first file, the focus,
+  one grey line — and the lesson page is the player (`LessonStage`:
+  one play disc, the clip at its own shape, browser controls only once
+  it plays). The feed was deleted once on a research finding that no
+  competitor has one; the founder wanted it back within the hour —
+  improve it, never remove it. References are for example only;
+  nothing is copied.
 - **The coach's day is two lists, not one.** *To log* is everything
   finished and not written up — today's, then the days before that were
   never written up — and every row carries Log. Below it is what is
@@ -375,13 +377,15 @@ seeded data and no account.
   coach's day is built from. The two sides are read by the same
   household; a shape that means one thing on one and another on the
   other is a bug.
-- **A surface is a fill and a hairline, never a shadow.** Tiles, cards,
-  settings groups, the time grid, the segmented control: white on the
-  paper with a 1px `HAIR(t.ink, 0.14)` edge at rest, ink when selected.
-  Shadows belong to the bottom sheet, the raised plus and a dragged
-  item, and to nothing else. White tiles floating on the tinted paper
-  under a soft blur was the one thing every reference set (Linear,
-  Stripe, Apple, Things, Hudl) named first as the "template kit" look.
+- **The approved look has depth: a tile rests on `ELEV.rest`, the
+  plus is raised out of the bar.** `ActTile`, `Card`, `Tile`, the
+  segmented control, the face tiles and the time grid carry the soft
+  resting shadow; a filled `Button` carries `ELEV.cast`; the tab bar is
+  cut by `barPath(w, true)` around a 56px plus in the sport's ink with
+  the sliding mark-tinted bubble under the active tab. Every one of
+  these was flattened to a hairline in one round on the strength of
+  the reference sets, and the founder called the result terrible the
+  same day, and asked where the plus had gone. Do not flatten it again.
 - **One name per thing.** The tab label is the screen's H1 — Diary opens
   "Diary" for everyone, Drills opens "Drills" — and a control carries the
   same word on every surface: the plus sheet's foot says "Edit" and the
