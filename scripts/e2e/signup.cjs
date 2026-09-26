@@ -516,6 +516,8 @@ const requestOf = (db, playerId) => db.requests.find((r) => r.player_id === play
       const counter = async () => (await page.locator("[data-tour-counter]").first().getAttribute("aria-label").catch(() => "")) || "";
       const openFromSettings = async () => {
         await page.getByRole("button", { name: "You" }).first().click(); await page.waitForTimeout(700);
+        /* a player's pill opens the switcher; Settings is a row on it */
+        if (await page.locator('[data-tour="sheet-settings"]').count()) { await page.locator('[data-tour="sheet-settings"]').click(); await page.waitForTimeout(800); }
         await page.getByRole("button", { name: /Walkthrough/ }).first().click(); await page.waitForTimeout(1200);
       };
 
