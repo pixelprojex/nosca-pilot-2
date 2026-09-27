@@ -110,7 +110,7 @@ function SignedIn({ profile, signOut, email, invite, onInviteUsed }) {
        always gives a way out, even if the database itself is broken. */
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
-           style={{ background: "#FAF7F0" }}>
+           style={{ background: "#FEFEFE" }}>
         <p style={{ color: "#1A1815", fontSize: 15, marginBottom: 8 }}>Couldn't load your data.</p>
         <p style={{ color: "#A39E93", fontSize: 13, marginBottom: 24 }}>{data.loadError}</p>
         <button onClick={data.reload}
@@ -191,7 +191,7 @@ function Gate() {
   if (loadError && !loadingProfile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
-           style={{ background: "#FAF7F0" }}>
+           style={{ background: "#FEFEFE" }}>
         <p style={{ color: "#1A1815", fontSize: 17, marginBottom: 10 }}>Couldn't load your account</p>
         <p style={{ color: "#6B6560", fontSize: 13.5, lineHeight: 1.55, maxWidth: 340, marginBottom: 8 }}>
           The database returned:
@@ -221,7 +221,7 @@ function Gate() {
   if (needsProfile && !loadingProfile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-8 text-center"
-           style={{ background: "#FAF7F0" }}>
+           style={{ background: "#FEFEFE" }}>
         <p style={{ color: "#1A1815", fontSize: 17, marginBottom: 10 }}>Couldn't load your account</p>
         <p style={{ color: "#6B6560", fontSize: 14, lineHeight: 1.55, maxWidth: 340, marginBottom: 26 }}>
           Your account is there, but its details couldn't be read. If

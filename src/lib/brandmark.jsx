@@ -91,7 +91,7 @@ const KEYFRAMES = `
    three seconds, as a sign that something is taking too long, and the
    way out after longer still. The sport splash is the front door; the
    founder wants it kept and the loading page gone. */
-const LOADER_PAPER = "#FDFDFC";
+const LOADER_PAPER = "#FEFEFE";   // the same paper as every theme's page
 export function BrandLoader({ onTap, action, absolute = false, delay = 3000 }) {
   const Tag = onTap ? "button" : "div";
   const [shown, setShown] = React.useState(delay === 0);
