@@ -1798,6 +1798,10 @@ const ShimmerCSS = () => (
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
     .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
+    /* a row that unfolds (Settings' value lists) pads its own head and
+       options so the open list's wash runs to the box's edge and the
+       head's label lines up with every other row */
+    .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
     .nsc-list > .nsc-swipe > div:last-child { background: var(--surface) !important; padding-left: 14px; padding-right: 14px; }
     .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
     .nsc-day > *:last-child { border-bottom: none !important; }
@@ -4775,6 +4779,28 @@ function SportGlyph({ sport, size = 22, color }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{body}</svg>;
 }
 
+/* which of the six this config is — the feed and the posters key their
+   glyph off it, and a config is handed around by reference */
+const sportKeyOf = (cfg) => Object.keys(SPORTS).find((k) => SPORTS[k] === cfg)
+  || Object.keys(SPORTS).find((k) => cfg && SPORTS[k].label === cfg.label) || "golf";
+
+/* A lesson with nothing attached is still a lesson. The feed drew it as
+   a black void, which read as a clip that never loaded; this is the
+   sport's own dark tone with its glyph high on the card, above the
+   glass, so the card says "no clip" and nothing looks broken. Not a
+   drawn field — a real lesson never gets a picture it did not take. */
+function SportGround({ sport, mark }) {
+  return (
+    <div className="absolute inset-0 flex justify-center" aria-hidden="true"
+         style={{ paddingTop: "24%",
+                  background: `linear-gradient(172deg, rgba(11,15,16,0) 0%, rgba(11,15,16,0.55) 58%, #0B0F10 100%), ${mark}` }}>
+      <span style={{ opacity: 0.22, animation: "fadeIn 600ms ease-out both" }}>
+        <SportGlyph sport={sport} size={124} color="#FFFFFF" />
+      </span>
+    </div>
+  );
+}
+
 function Poster({ item, size = 56, radius = 8, sport }) {
   const t = useT();
   if (!item) return (
@@ -5097,7 +5123,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
         /* Nothing was attached. The harness draws its field; a real
            lesson gets a plain ground — CLAUDE.md: no drawn placeholder
            for a real lesson, because it reads as a clip that failed. */
-        live ? <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />
+        live ? <SportGround sport={sportKeyOf(cfg)} mark={t.mark} />
              : <GeneratedField lesson={lesson} mark={t.mark} />
       ) : (
         /* `near` decides whether the heavy elements are mounted, never
@@ -7373,9 +7399,10 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         const on = has(x), off = disabled && disabled.includes(x);
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
-                  {...sink(t, on || off ? "none" : (t.elev || ELEV).rest)}
+                  {...sink(t, "none")}
                   style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : t.surface,
-                           boxShadow: on || off ? "none" : (t.elev || ELEV).rest, opacity: off ? 0.35 : 1,
+                           /* a bordered tile casts nothing — the shadow read as a glow */
+                           boxShadow: "none", border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, opacity: off ? 0.35 : 1,
                            fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
                            color: on ? "#fff" : t.ink, willChange: "transform",
                            transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>{x}</button>
@@ -12982,7 +13009,34 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
 
    Every lesson this person can see, each with a Download — the same
    file the download icon on an open lesson makes. */
-function LessonLogs({ role, lessons, onDownload, pop }) {
+/* one lesson: the poster, the focus, the day — and the file */
+function LogLine({ l, i, role, sport, poster, need, onOpen, onDownload }) {
+  const t = useT();
+  const asked = useRef(false);
+  useEffect(() => { if (need && !asked.current) { asked.current = true; need(); } }, [need]);
+  const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
+  const sub = [role === "coach" && l.who ? l.who : null, when].filter(Boolean).join(" · ");
+  return (
+    <div className="flex items-center gap-2"
+         style={{ minHeight: 64, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+      <button onClick={() => { haptic(8); soft(); onOpen && onOpen(l); }} aria-label={l.focus}
+              className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ paddingTop: 8, paddingBottom: 8 }}>
+        <Poster item={poster} sport={sport} />
+        <span className="flex-1 min-w-0">
+          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+          <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
+        </span>
+      </button>
+      <button onClick={() => { haptic(8); onDownload(l); }} aria-label={`${tr("Download")} ${l.focus}`}
+              className="shrink-0 flex items-center justify-center active:opacity-60"
+              style={{ width: 40, height: 40, borderRadius: 20, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+        <Download size={15} color={t.ink} strokeWidth={2} />
+      </button>
+    </div>
+  );
+}
+
+function LessonLogs({ role, lessons, onDownload, onOpen, pop, liveMedia, onNeedMedia, sport }) {
   const t = useT();
   const all = lessons || [];
   /* A season is hundreds of these. Rendering them all at once is what
@@ -12990,35 +13044,30 @@ function LessonLogs({ role, lessons, onDownload, pop }) {
   const [shownCount, setShownCount] = useState(ARCHIVE_PAGE);
   const list = all.slice(0, shownCount);
   const left = all.length - list.length;
+  /* the lesson's first file as its poster, like every other list of
+     lessons; the sport's glyph where there is none */
+  const posterFor = liveMedia
+    ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
+    : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
+  const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Lesson logs")} onBack={pop}
-              meta={all.length ? `${all.length} ${all.length === 1 ? tr("lesson") : tr("lessons")}` : tr("Nothing logged yet")}>
+              meta={all.length ? `${all.length} ${all.length === 1 ? tr("lesson") : tr("lessons")}` : ""}>
         <div className="px-6 pb-2">
           {all.length === 0 ? (
-            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-              {tr("Each lesson can be saved as a file once it's logged.")}
-            </p>
+            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No lessons yet")}</p>
           ) : (
-            <Card>
+            <div className="nsc-list">
               {list.map((l, i) => (
-                <Row key={l.id} label={l.focus}
-                     sub={`${l.d} ${l.m}${role === "coach" && l.who ? ` · ${l.who}` : ""}${l.subs && l.subs.length ? ` · ${l.subs.join(", ")}` : ""}`}
-                     last={i === list.length - 1}
-                     icon={<span className="rounded-xl flex items-center justify-center shrink-0" style={{ width: 38, height: 38, background: t.wash }}>
-                             <span style={{ fontFamily: display, fontSize: 15, color: t.ink }}>{l.d}</span></span>}
-                     right={<button onClick={() => { haptic(8); onDownload(l); }} className="shrink-0 flex items-center gap-1.5 px-3 active:opacity-60"
-                                    aria-label={`${tr("Download")} ${l.focus}`}
-                                    style={{ minHeight: 34, borderRadius: R.pill, border: `0.5px solid ${HAIR(t.ink, 0.2)}`,
-                                             ...TYPE.caption, fontWeight: 600, color: t.ink }}>
-                              <Download size={13} strokeWidth={2} />{tr("Download")}
-                            </button>} />
+                <LogLine key={l.id} l={l} i={i} role={role} sport={sport} poster={posterFor(l)} need={needFor(l)}
+                         onOpen={onOpen} onDownload={onDownload} />
               ))}
-            </Card>
+            </div>
           )}
           {left > 0 && (
             <button onClick={() => { haptic(6); setShownCount((n) => n + ARCHIVE_PAGE); }} className="w-full mt-4 active:opacity-60"
-                    style={{ minHeight: 46, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                    style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
               {tr("Show")} {Math.min(ARCHIVE_PAGE, left)} {tr("more")} · {left} {tr("left")}
             </button>
           )}
@@ -13203,7 +13252,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     return (
       <div>
         <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }}
-                className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50" style={{ minHeight: 62 }}>
+                className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62, paddingLeft: 14, paddingRight: 14 }}>
           {Ico && <I C={Ico} />}
           <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, color: t.ink }}>{label}</span>
           <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
@@ -13213,8 +13262,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           <div style={{ background: t.wash }}>
             {options.map((o) => (
               <button key={o.id} aria-pressed={value === o.id} onClick={() => { haptic(6); onPick(o.id); setOpenPick(null); }}
-                      className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-50"
-                      style={{ minHeight: 50, borderTop: `1px solid ${t.hair}` }}>
+                      className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                      style={{ minHeight: 50, paddingLeft: 14, paddingRight: 14, borderTop: `1px solid ${t.hair}` }}>
                 {Ico && <span className="shrink-0" style={{ width: 17 }} />}
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
                 {value === o.id && <Check size={15} color={t.accent} strokeWidth={2.4} />}
@@ -13343,7 +13392,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
             {g.title && <Eyebrow>{g.title}</Eyebrow>}
             <div className="px-6 mb-6" data-tour={g.tour}><Ruled>
               {g.rows.map((r, i) => r.custom
-                ? <div key={r.label} style={{ borderBottom: i === g.rows.length - 1 ? "none" : `1px solid ${t.hair}` }}>{r.custom}</div>
+                ? <div key={r.label} className="nsc-flush">{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
                        last={i === g.rows.length - 1} right={r.right}
                        /* No glyph on a settings row. Half the rows had one and
@@ -15992,12 +16041,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     onJoin={async (code) => { const r = await data.joinCoach(code); if (!(r && r.error)) { hapticSuccess(); chime(); done(tr("Request sent"), tr("They accept from their app")); pop(); } return r; }} />;
     bare = true;
   } else if (screen === "myLessons" && data) {
-    body = <LessonLogs role="player" lessons={mineOnly(data.lessons)} pop={pop}
+    body = <LessonLogs role="player" lessons={mineOnly(data.lessons)} pop={pop} sport={sport}
+                       liveMedia={liveMedia} onNeedMedia={needMedia} onOpen={(l) => push(`lesson:${l.id}`)}
                        onDownload={async (l) => { const media = await data.lessonMedia(l.id);
                          downloadLessonLog({ lesson: l, coach: l.coach || "", who: null, media, say }); }} />;
   } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={role === "coach" ? myLibrary : (myPractice || [])} tips={myTips} lessons={data ? (role === "coach" ? taught(data.lessons) : playerLessons) : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
     body = <LessonLogs role={role} lessons={data ? (role === "coach" ? taught(data.lessons) : playerLessons) : playerLessons} pop={pop}
+                       sport={role === "coach" ? coachSport : sport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
+                       onOpen={(l) => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)}
                        onDownload={async (l) => {
                          const media = data ? await data.lessonMedia(l.id) : [];
                          downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName), who: role === "coach" || l.type === "Group" ? l.who : null, media, say });

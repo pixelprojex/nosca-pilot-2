@@ -110,16 +110,24 @@ const toLesson = (r, attendeeIds = []) => {
   };
 };
 
-/* "now", "8m", "14:20", "3 Sep" — how long ago, in as few characters
-   as will do. Notifications and message threads both read it, so a
-   time never reads one way in the bell and another in Chat. */
+/* Notifications and the Chat list both read this, so a time never
+   reads one way in the bell and another in Chat.
+   A row states the day and the time, never an age: `3:24 pm` today,
+   Yesterday, otherwise `Thu 24 Sep` — the one date and one time the
+   app writes everywhere else. "30m" and a 24-hour "15:24" were the
+   two exceptions, both on the bell and in Chat. */
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const relTime = (iso) => {
   const d = new Date(iso), now = new Date();
-  const mins = Math.round((now - d) / 60000);
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  if (mins < 60 * 24 && d.getDate() === now.getDate()) return d.toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" });
-  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  if (Number.isNaN(d.getTime())) return "";
+  if (sameDay(d, now)) {
+    const h = d.getHours(), m = d.getMinutes();
+    return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "pm" : "am"}`;
+  }
+  const y = new Date(now); y.setDate(y.getDate() - 1);
+  if (sameDay(d, y)) return "Yesterday";
+  return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 };
 
 const toNotification = (n) => ({
