@@ -5134,7 +5134,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                 {lesson.focus}
               </span>
               <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-                {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+                {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
               </span>
             </button>
             {current && current.type === "video" && (
@@ -10926,13 +10926,11 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
-            <div className="mb-7">
-              {f.tip && (
-                <div className="flex items-baseline gap-3 py-2">
-                  <Rail>{tr("Tip")}</Rail>
-                  <span style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
-                </div>
-              )}
+            <div className="mb-7 nsc-list">
+              <div className="flex items-baseline gap-3" style={{ minHeight: 56 }}>
+                <span style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Tip")}</span>
+                <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
+              </div>
             </div>
           )}
 
@@ -14199,17 +14197,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const signupPath = signupRole === "coach" ? "coach" : "player";
   const [juvenile, setJuvenile] = useState(sc ? !!sc.juvenile : false);
   const [familyGuide, setFamilyGuide] = useState(false);
-  /* the branded opening once every so often, not on every open: a
-     coach opening the app twenty times a day should see their day, not
-     a ceremony. The harness keeps it (no account), so its screens and
-     the walkthrough are unchanged. */
-  const SPLASH_EVERY = 12 * 60 * 60 * 1000;
-  const [splash, setSplash] = useState(() => {
-    if (sc) return false;
-    if (!account) return true;
-    try { const at = Number(localStorage.getItem("nosca.splash.at") || 0); if (Date.now() - at < SPLASH_EVERY) return false; localStorage.setItem("nosca.splash.at", String(Date.now())); } catch { /* private mode */ }
-    return true;
-  });
+  /* the branded opening plays on every open — it is the app's front
+     door and the founder wants it kept exactly so */
+  const [splash, setSplash] = useState(!sc);
   useEffect(() => {
     if (!account) return;               // demo/harness path — untouched
     if (account.sport) setCoachSport(account.sport);

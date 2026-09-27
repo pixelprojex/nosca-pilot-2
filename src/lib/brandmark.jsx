@@ -86,11 +86,13 @@ const KEYFRAMES = `
   [data-brand-loader] *{animation-duration:2.4s!important}
 }`;
 
-/* Plain: white paper and the mark, breathing — and only after a
-   moment, so a session that restores in a blink shows nothing at all
-   rather than a flash of loading screen. */
+/* There is no loading page to speak of: white until the app is there,
+   which for a restored session is a blink. The mark appears only after
+   three seconds, as a sign that something is taking too long, and the
+   way out after longer still. The sport splash is the front door; the
+   founder wants it kept and the loading page gone. */
 const LOADER_PAPER = "#FDFDFC";
-export function BrandLoader({ onTap, action, absolute = false, delay = 380 }) {
+export function BrandLoader({ onTap, action, absolute = false, delay = 3000 }) {
   const Tag = onTap ? "button" : "div";
   const [shown, setShown] = React.useState(delay === 0);
   React.useEffect(() => { if (delay === 0) return; const x = setTimeout(() => setShown(true), delay); return () => clearTimeout(x); }, [delay]);

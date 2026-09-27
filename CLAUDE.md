@@ -90,16 +90,15 @@ seeded data and no account.
   repeated as a literal in `scripts/icons.mjs`, `manifest.webmanifest`,
   `index.html` and `public/sw.js`, which run outside the bundle — change
   all five together. Contrast: paper on it 11:1, white 12:1.
-- **The loading screen is white paper and the mark, breathing, and it
-  is seen as little as possible.** `BrandLoader` in `brandmark.jsx` is
-  `#FDFDFC` with the two rings in brand green pulsing gently, shown
-  only after 380ms so a session that restores in a blink shows nothing.
-  It was the brand green with a grey ring, then plain paper with a grey
-  ring; the founder called the first a weird colour and did not like
-  the second. No text, no wordmark; the only thing that ever joins the
-  mark is the way out after a long wait. The sport splash on opening plays for a real
-  account at most once every twelve hours (`nosca.splash.at`); the
-  harness and the walkthrough keep it every time.
+- **There is no loading page; the sport splash is the front door.**
+  `BrandLoader` in `brandmark.jsx` is white and empty: the mark appears
+  only after three seconds, as a sign that something is taking too
+  long, and the way out after longer still. The splash (`Splash`, the
+  mark landing on the sport's colour) plays on every open, for every
+  account — it was gated to once every twelve hours for an hour and the
+  founder wanted it back immediately. The loader was the brand green
+  with a grey ring, then paper with a ring, then paper with the mark;
+  the founder wanted it gone, not redesigned.
 - **One mark.** `brandmark.jsx` owns the two rings, because the gate in
   App.jsx renders before Nosca.jsx exists. The rings weave — each is
   broken by a gap where the other passes over — so nothing is knocked
