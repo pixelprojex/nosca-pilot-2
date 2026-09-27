@@ -139,6 +139,14 @@ function onLessonInsert(db, l) {
   notify(db, l.player_id, "lesson", "Lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
   adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, l.player_id)}'s lesson logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
 }
+/* a clip added to a lesson more than half an hour after it was logged */
+function onMediaInsert(db, m) {
+  const l = db.lessons.find((x) => x.id === m.lesson_id); if (!l || !l.player_id) return;
+  if (l.created_at && new Date(m.created_at) - new Date(l.created_at) < 30 * 60 * 1000) return;
+  const what = `${m.kind === "video" ? "New clip" : m.kind === "photo" ? "New photo" : "New voice note"} on ${l.focus}`;
+  notify(db, l.player_id, "lesson", what, nameOf(db, l.coach_id), { screen: "lesson", id: l.id });
+  adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${what} for ${firstOf(db, l.player_id)}`, nameOf(db, l.coach_id), { screen: "family", id: l.id }));
+}
 function onRequestInsert(db, r) { notify(db, r.coach_id, "request", `${nameOf(db, r.player_id)} asked to join`, null, { screen: "requests", id: r.id }); }
 function onRequestDecided(db, r) {
   if (r.status === "accepted") notify(db, r.player_id, "accepted", `${nameOf(db, r.coach_id)} accepted you`, null, { screen: "home", id: r.id });
@@ -549,6 +557,7 @@ async function attach(page, db, opts = {}) {
       target.push(...made);
       made.forEach((r) => { if (table === "lesson_media") db.files.media[r.storage_path] = db.files.media[r.storage_path] || { size: 10 }; });
       if (table === "lessons") made.forEach((r) => onLessonInsert(db, r));
+      if (table === "lesson_media") made.forEach((r) => onMediaInsert(db, r));
       if (table === "bookings") made.forEach((r) => onBookingInsert(db, r, meId));
       if (table === "messages") made.forEach((r) => onMessageInsert(db, r));
       if (table === "drills") onDrillsInsert(db, made);

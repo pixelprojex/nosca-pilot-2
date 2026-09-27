@@ -441,20 +441,47 @@ seeded data and no account.
   `LessonRow`s in a boxed list — the lesson's first file as a 56px
   poster, or the sport's glyph (`SportGlyph`: flag, racket, oar, squash
   racket, padel bat, horseshoe) in the same box when nothing was filmed,
-  so every row lines up — with a List · Feed switch beside the head (the
-  feed is `LessonFeed` over that player's lessons, with Back on its
-  header pill) and an "All N lessons" button under them. No hero count
+  so every row lines up — with the app's full-width `Segmented` List ·
+  Feed above the list (the same control as the Diary's List · Calendar;
+  the small pill beside a heading was missed, and the founder asked
+  twice for the switch to be easier to find; the feed is `LessonFeed`
+  over that player's lessons, with Back on its header pill) and an
+  "All N lessons" button under them. No hero count
   above the tiles. Settings › Lesson logs (`LessonLogs`) is the same
   boxed poster rows with a Download disc on each. `CoachArchive` (the roster's
   foot, the coach home's To do row, the file's All lessons) always
   shows its search and its filters — Year, Month, Player, Worked on,
   Kind, behind one Filter row that unfolds (what is set reads on the
   row while it is folded) — one boxed list of the same `LessonRow`s
-  with the same poster box, no month headings, and a Feed · List switch
-  in its header: the feed runs over whatever the filters left, so a
-  coach flicks through a month's clips the way a player does. The
+  with the same poster box, no month headings, and the same full-width
+  List · Feed `Segmented` at the top: the feed runs over whatever the
+  filters left, so a coach flicks through a month's clips the way a
+  player does. The
   archive is the player file's lesson list at full length, not a
   different screen.
+- **Mark it up is a coach talking over a clip and drawing on it, and
+  the take is a new clip on the lesson.** `ClipReview` (route
+  `review:<lessonId>:<mediaId>`, reached from "Mark it up" under a
+  video on the coach's lesson page) paints the clip onto a canvas every
+  frame with the marks on top (pen · line · arrow · circle, three
+  inks, Undo, Clear), lets the coach play, pause and scrub while
+  recording, records that canvas plus the microphone with the same
+  MediaRecorder negotiation as live capture (`pickMime`, `VIDEO_TYPES`
+  from useCapture), and only after the coach has watched the take back
+  sends it through `addLessonMedia` like any other file. The drawing
+  is IN the recording — never a layer only this app could replay — and
+  the original clip is never touched. No microphone records the
+  picture alone and says so; a declined microphone stops and says why.
+  The `<video>` the canvas reads must carry `crossOrigin="anonymous"`
+  or the canvas is tainted and `captureStream` throws. A file added to
+  a lesson more than half an hour after it was logged is news of its
+  own: `trg_lesson_media_notify` tells the player (and a junior's
+  adults) "New clip on <focus>" and opens the lesson; the mock's
+  `onMediaInsert` says the same. The old harness `VideoAnnotate` is the
+  design sketch this replaced and is reached only from the harness.
+  The headless test browser has no microphone at all, so
+  `scripts/e2e/review.cjs` exercises the picture-only path end to end;
+  the microphone path is the same code as live capture.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a
