@@ -87,9 +87,11 @@ seeded data and no account.
   Deep bottle green. It is the loading screen, the app icon, the splash
   before a sport, the manifest, and `NEUTRAL.accent`/`mark` on sign-up
   and sign-in. Sport palettes tint the app only inside a sport. It is
-  repeated as a literal in `scripts/icons.mjs`, `manifest.webmanifest`,
-  `index.html` and `public/sw.js`, which run outside the bundle — change
-  all five together. Contrast: paper on it 11:1, white 12:1.
+  repeated as a literal in `scripts/icons.mjs`, the manifest's
+  `background_color` and `public/sw.js`, which run outside the bundle —
+  change them together. Contrast: paper on it 11:1, white 12:1. The
+  `theme-color` meta in index.html and the manifest's `theme_color` are
+  NOT the brand: they are the paper (see below).
 - **There is no loading page; the sport splash is the front door.**
   `BrandLoader` in `brandmark.jsx` is white and empty: the mark appears
   only after three seconds, as a sign that something is taking too
@@ -324,7 +326,9 @@ seeded data and no account.
 - **The sport tints the app inside a sport; `NEUTRAL` before one.**
   `const base = inApp ? cfg.theme : NEUTRAL` — paper, ink and the greys
   are shared, the accent and wash are the sport's, and the four semantic
-  colours never change. It was collapsed to one palette once and the
+  colours never change. Golf is `#957019` (71% saturation; it was
+  `#896B27` at 56% and the founder asked for slightly more vibrant) —
+  white on it is 4.6:1, the floor for a filled button's label. It was collapsed to one palette once and the
   founder called the result outrageous within the hour; the tint is the
   approved look. The accent appears once a screen (the one action).
 - **A player's diary knows the coach's taken times, never whose.**
@@ -391,13 +395,19 @@ seeded data and no account.
   times as rows inside. A child that pads itself (a swipe row, a
   Settings row that unfolds) is `.nsc-swipe` / `.nsc-flush`, or its
   label sits 20px further in than the row above it.
-- **The paper is white, or as near as makes no difference.** Every
-  theme's `page` is within two steps of white with barely a sport cast
-  (`#FCFEFD` for tennis, `#FEFDFB` for golf); `surface` is white; the
-  sport's colour lives in `wash`, the accent, the mark, the edges and
-  the tab bar, which stays as it was. The off-white creams read as
-  busy and the founder asked twice for backgrounds much closer to
-  white. The bell, Chat, the coach's day (`Ruled`), the diary and the
+- **The paper is `#FEFEFE`, one step off pure white, the same for
+  every sport.** Every theme's `page` is that value; `surface` is
+  white; the sport's colour lives in `wash`, the accent, the mark, the
+  edges and the tab bar, which stays as it was. The off-white creams
+  read as busy and the founder asked three times for backgrounds
+  closer to white. The `<body>` background in index.html, the
+  `theme-color` meta, the manifest's `theme_color`, `LOADER_PAPER` and
+  the gate's error page are the same value, because a phone paints the
+  status bar (and Safari its chrome) from them: a cream body and a
+  green theme-colour put a band of another colour above a white app,
+  which the founder saw as blank space at the top.
+  `apple-mobile-web-app-status-bar-style` stays `default` —
+  `black-translucent` paints the clock white, invisible on this paper. The bell, Chat, the coach's day (`Ruled`), the diary and the
   Lessons list all use it. Rows of text separated by hairlines were the
   thing the founder called out on the bell, Chat and the diary; a box
   per item is what reads as compartmentalised. Square-ish corners are

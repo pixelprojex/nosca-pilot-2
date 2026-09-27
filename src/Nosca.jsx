@@ -337,7 +337,7 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
   ink: "#1A1815", sub: "#55504C", faint: "#757069", trace: "#A39C93",
-  hair: "#E8E3DA", page: "#FDFDFC", surface: "#FFFFFF",
+  hair: "#E8E3DA", page: "#FEFEFE", surface: "#FFFFFF",
   wash: "#F3F1EC", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
@@ -373,7 +373,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
     theme: { ink: "#14180F", sub: "#4B5342", faint: "#6D7264", trace: "#A8AE9C", hair: "#EDEAE1",
-             page: "#FEFDFB", surface: "#FFFFFF", wash: "#F4F0E6", mark: "#896B27", accent: "#896B27", onAccent: "#FFFFFF" },
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F7F0D9", mark: "#957019", accent: "#957019", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -462,7 +462,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
     theme: { ink: "#0A2222", sub: "#375654", faint: "#5E7573", trace: "#96ADA9", hair: "#E1EDEB",
-             page: "#FCFEFD", surface: "#FFFFFF", wash: "#EDF4F1", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EDF4F1", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -554,7 +554,7 @@ export const SPORTS = {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
     theme: { ink: "#10222E", sub: "#3F5463", faint: "#617480", trace: "#93A6B2", hair: "#E2EAEF",
-             page: "#FCFDFE", surface: "#FFFFFF", wash: "#EEF4F7", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EEF4F7", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -649,7 +649,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
     theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
-             page: "#FEFCFB", surface: "#FFFFFF", wash: "#F6EFEA", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F6EFEA", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -735,7 +735,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
     theme: { ink: "#1E1830", sub: "#544C6A", faint: "#746C86", trace: "#A199B4", hair: "#E9E5F0",
-             page: "#FDFCFE", surface: "#FFFFFF", wash: "#F2EFF8", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F2EFF8", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -821,7 +821,7 @@ export const SPORTS = {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
     theme: { ink: "#241A1D", sub: "#5D4C51", faint: "#7A6C71", trace: "#AB9AA0", hair: "#EEE6E8",
-             page: "#FEFCFD", surface: "#FFFFFF", wash: "#F6EFF2", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F6EFF2", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
