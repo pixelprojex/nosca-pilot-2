@@ -90,14 +90,14 @@ seeded data and no account.
   repeated as a literal in `scripts/icons.mjs`, `manifest.webmanifest`,
   `index.html` and `public/sw.js`, which run outside the bundle — change
   all five together. Contrast: paper on it 11:1, white 12:1.
-- **The loading screen is plain paper and one small grey ring, and it
+- **The loading screen is white paper and the mark, breathing, and it
   is seen as little as possible.** `BrandLoader` in `brandmark.jsx` is
-  near-white (`#FCFCFA`) with a grey ring that appears only after 380ms,
-  so a session that restores in a blink shows nothing; the brand green
-  is the app icon and the splash, not the loader (the founder called
-  the green loading screen a weird colour). No text, no mark, no
-  wordmark; the only thing that ever joins the ring is the way out
-  after a long wait. The sport splash on opening plays for a real
+  `#FDFDFC` with the two rings in brand green pulsing gently, shown
+  only after 380ms so a session that restores in a blink shows nothing.
+  It was the brand green with a grey ring, then plain paper with a grey
+  ring; the founder called the first a weird colour and did not like
+  the second. No text, no wordmark; the only thing that ever joins the
+  mark is the way out after a long wait. The sport splash on opening plays for a real
   account at most once every twelve hours (`nosca.splash.at`); the
   harness and the walkthrough keep it every time.
 - **One mark.** `brandmark.jsx` owns the two rings, because the gate in
@@ -386,11 +386,13 @@ seeded data and no account.
   `.nsc-list` draws every child as its own surface — a fill, the edge,
   8px corners, 10px between — and `.nsc-day` boxes a diary day with its
   times as rows inside.
-- **The paper is close to white.** Every theme's `page` is a near-white
-  with the faintest sport cast (`#FAFCFB` for tennis, `#FCFBF8` for
-  golf); `surface` is white; the sport's tint lives in `wash`, the
-  accent, the mark and the edges. The off-white creams read as busy and
-  the founder asked for backgrounds much closer to white. The bell, Chat, the coach's day (`Ruled`), the diary and the
+- **The paper is white, or as near as makes no difference.** Every
+  theme's `page` is within two steps of white with barely a sport cast
+  (`#FCFEFD` for tennis, `#FEFDFB` for golf); `surface` is white; the
+  sport's colour lives in `wash`, the accent, the mark, the edges and
+  the tab bar, which stays as it was. The off-white creams read as
+  busy and the founder asked twice for backgrounds much closer to
+  white. The bell, Chat, the coach's day (`Ruled`), the diary and the
   Lessons list all use it. Rows of text separated by hairlines were the
   thing the founder called out on the bell, Chat and the diary; a box
   per item is what reads as compartmentalised. Square-ish corners are
@@ -423,10 +425,13 @@ seeded data and no account.
   founder asked for Home and Lessons to be one thing. Booking lives in
   the Diary, the tip on the lesson and the player file, the coach in
   the profile pill's switcher.
-- **The header is solid, never glass.** `Screen`'s header, the thread's
-  header and its composer are the page colour with no backdrop blur;
-  a header that blurred what scrolled under it hid the top of every
-  screen, and the founder asked for it unblurred.
+- **Nothing blurs, except the tab bar's own frosted glass.** `Screen`'s
+  header, the thread's header and composer, the sheet's scrim, the
+  feed's switch and glass panel, the celebration: none carries a
+  `backdropFilter`. A header that blurred what scrolled under it hid
+  the top of every screen; the founder asked three times for the blur
+  gone, so the only frosted surface left is the tab bar, which they
+  asked to keep as it was.
 - **The approved look has depth: a tile rests on `ELEV.rest`, the
   plus is raised out of the bar.** `ActTile`, `Card`, `Tile`, the
   segmented control, the face tiles and the time grid carry the soft
