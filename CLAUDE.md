@@ -179,12 +179,13 @@ seeded data and no account.
   row's `sub`, and for the foot of a list: the diary ended on "End of
   your hours", which told a coach what they could already see, and
   carries Recurring lessons there now.
-- **Settings is a list, not a page.** `Settings` builds `groups` of rows
-  ({ label, sub, icon, onTap, right, tour, keys }) and renders them
-  through one loop, so the search field filters everything and every
-  row is drawn one way. Add a setting by adding a row; keep its `tour`
-  id if the walkthrough rings it. No text-size control: the type is set
-  once for everyone.
+- **Settings is a list, not a page, and it is searchable.** `Settings`
+  builds `groups` of rows ({ label, sub, icon, onTap, right, tour, keys })
+  and renders them through one loop; the search field under the profile
+  row filters every row by label, value and `keys`. Add a setting by
+  adding a row with keys; keep its `tour` id if the walkthrough rings
+  it. The search was cut once and the founder called that a big miss —
+  it stays. No text-size control: the type is set once for everyone.
 - **A coach may also be somebody's player.** `request_coach()` allows
   it, so `data.lessons` holds both what they taught and what they took.
   `taught()` is every coach-side list; `mineOnly()` is their own.
@@ -367,10 +368,13 @@ seeded data and no account.
   Join), and Settings. It was cut to a bare face that opened Settings
   once, and the founder asked for it back the same day. A coach's face
   still opens their settings directly.
-- **A list is a column of boxes.** `.nsc-list` draws every child as its
-  own surface — a fill, a 1px `--edge` border, 8px corners, 10px
-  between — and `.nsc-day` boxes a diary day with its times as rows
-  inside. The bell, Chat, the coach's day (`Ruled`), the diary and the
+- **A list is a column of boxes, and every edge is the sport's own
+  dark tone.** `EDGE(t)` is the sport's `mark` at half strength (the
+  brand green before a sport) — never black or ink — and it is the
+  `--edge` of `.nsc-list` boxes, `.nsc-day`, `ActTile`, `Card` and
+  `Tile`. `.nsc-list` draws every child as its own surface — a fill,
+  the 1px edge, 8px corners, 10px between — and `.nsc-day` boxes a
+  diary day with its times as rows inside. The bell, Chat, the coach's day (`Ruled`), the diary and the
   Lessons list all use it. Rows of text separated by hairlines were the
   thing the founder called out on the bell, Chat and the diary; a box
   per item is what reads as compartmentalised. Square-ish corners are
@@ -381,15 +385,27 @@ seeded data and no account.
   still to come, with the live one marked. One list where a lesson at
   nine this morning and one at five this evening were the same row was
   the thing the founder could not read.
-- **A player's file opens on their history.** The first thing on it is a
-  block the size of the thing it leads to: the number of lessons, when
-  the last one was, and the whole archive behind it. Nothing above it,
-  and the header does not repeat those two facts in small grey type.
+- **A player's file opens on their history, and shows it the way the
+  player sees it.** The first thing on it is a block the size of the
+  thing it leads to: the number of lessons, when the last one was, and
+  the whole archive behind it. Under the four tiles, the last five
+  lessons are `LessonRow`s in a boxed list — the lesson's first file as
+  a poster, the focus, one grey line — with a List · Feed switch beside
+  the head (the feed is `LessonFeed` over that player's lessons, with
+  Back on its header pill) and an "All N lessons" button under them.
+  `CoachArchive` (Settings › Lesson logs, the roster's foot, the coach
+  home's To do row, the file's All lessons) always shows its search and
+  its filters — Year, Month, Player, Worked on, Kind — grouped by month
+  in boxed rows.
 - **There is no player home page besides the feed.** `PlayerHome` (next
   lesson, tip, coming up, recent lessons) is no longer routed; the
   founder asked for Home and Lessons to be one thing. Booking lives in
   the Diary, the tip on the lesson and the player file, the coach in
   the profile pill's switcher.
+- **The header is solid, never glass.** `Screen`'s header, the thread's
+  header and its composer are the page colour with no backdrop blur;
+  a header that blurred what scrolled under it hid the top of every
+  screen, and the founder asked for it unblurred.
 - **The approved look has depth: a tile rests on `ELEV.rest`, the
   plus is raised out of the bar.** `ActTile`, `Card`, `Tile`, the
   segmented control, the face tiles and the time grid carry the soft

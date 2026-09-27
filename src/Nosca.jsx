@@ -310,6 +310,10 @@ const ROSTER_BANDS = ["Just starting out", "Under 20", "20 to 60", "More than 60
 /* Optical borders: a hairline that carries a little of the ink beneath
    it sits on the page, where a flat grey sits on top of it. */
 export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16).padStart(2, "0")}`;
+/* a box's edge is a dark tone of the sport's own colour, never black:
+   the mark (deep green for tennis, the brand green before a sport) at
+   half strength over the paper */
+export const EDGE = (t) => HAIR(t.mark || t.accent || t.ink, 0.5);
 /* Radius carries meaning rather than decoration: a control you press is
    nearly square, a surface that holds content is softer, and only the
    things that are genuinely pill-shaped are pills. Uniform curvature
@@ -5207,7 +5211,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
       {right && (
         <div className="absolute flex items-center gap-0.5 pl-1 pr-1.5" data-tour="feed-header"
              style={{ top: 26, right: 12, height: 42, borderRadius: R.pill, zIndex: 30,
-                      background: "rgba(255,255,255,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
+                      background: "rgba(255,255,255,0.96)" }}>
           {right}
         </div>
       )}
@@ -6132,7 +6136,7 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              hairline do the grouping; a border is reserved for emphasis. */
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `1px solid ${accent}2E` : `1px solid ${HAIR(t.ink, 0.24)}`,
+                   border: accent ? `1px solid ${accent}2E` : `1px solid ${EDGE(t)}`,
                    boxShadow: accent ? "none" : (t.elev || ELEV).rest,
                    transition: "transform 140ms cubic-bezier(.22,1,.36,1)", willChange: "transform",
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>
@@ -6852,8 +6856,9 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
   return (
     <div className="flex flex-col h-full" style={{ background: t.page }}>
       <div className="shrink-0 relative z-20"
-           style={{ background: shrunk ? `${t.page}E6` : t.page,
-                    backdropFilter: shrunk ? "saturate(180%) blur(18px)" : "none",
+           /* solid, never glass: a header that blurred what scrolled
+              under it hid the top of every screen */
+           style={{ background: t.page,
                     borderBottom: `1px solid ${shrunk ? t.hair : "transparent"}`, transition: "border-color 200ms" }}>
         <div className="flex items-center px-1.5" style={{ height: 46 }}>
           {onBack ? (
@@ -7186,7 +7191,7 @@ const Rail = ({ children, tone, style = {} }) => {
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest, border: `1px solid ${HAIR(t.ink, 0.24)}`,
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest, border: `1px solid ${EDGE(t)}`,
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -7284,7 +7289,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...sink(t, lift)}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
-                     border: tone === "accent" || on ? "1px solid transparent" : `1px solid ${HAIR(t.ink, 0.28)}`,
+                     border: tone === "accent" || on ? "1px solid transparent" : `1px solid ${EDGE(t)}`,
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
@@ -9783,7 +9788,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onLog, onCapture, onAttend, onAddPlayer, onTip, onDrills, code,
                       onAccept, onDecline, onInvite, push, go,
-                      layout, onAction }) {
+                      layout, onAction, lessonCount = 0 }) {
   const t = useT();
   const list = today || [];
   const done = list.filter((l) => l.done);
@@ -9867,7 +9872,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
              one that is running is marked, the rest are plain, and
              tomorrow's first is the grey line at the foot. ---- */}
         {(todayRows.length > 0 || upcoming.length > 0) && (<>
-          {/* no "Today" head: the H1 directly above is today's date */}
+          <RowHead>{tr("Today")}</RowHead>
           <Ruled style={{ marginBottom: SPACE.block }}>
             {todayRows.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
@@ -9925,6 +9930,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               go: () => push("requests") },
             drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
             events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            lessonCount > 0 && { key: "archive", tour: "today-archive", label: tr("All lessons"), n: lessonCount, go: () => push("archive") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           return (<>
@@ -10785,7 +10791,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -10805,7 +10811,18 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
      scroll on a small phone before the coach reached anything else on
      the screen; three is what they actually read walking out to meet
      someone, and the button is there whether or not there are more. */
-  const shown = past.slice(0, 3);
+  const shown = past.slice(0, 5);
+  /* list or feed, like the player's own home — the list by default, each
+     row with the lesson's first file as its poster */
+  const [view, setView] = useState("list");
+  const posterFor = liveMedia
+    ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
+    : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
+  const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
+  const feedMedia = liveMedia
+    ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? undefined : []))
+    : (l) => Array.from({ length: l.videos || 0 }, () => ({ type: "sim" }));
+  const openLesson = (l) => { if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + (r.id || name)); };
   /* day against day, so "today" holds until midnight and not until noon */
   const daysSince = live && r.lastLesson ? (() => { const t0 = new Date(); t0.setHours(0, 0, 0, 0); return Math.max(0, Math.round((t0 - localDate(r.lastLesson)) / 86400000)); })() : null;
   /* Private lessons and the group sessions this player was marked at —
@@ -10820,6 +10837,13 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
   return (
     <SwipeBack onBack={pop}>
+      {view === "feed" && past.length > 0 ? (
+        <div className="relative h-full">
+          <LessonFeed lessons={past} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={false} cfg={cfg}
+                      view={view} setView={setView} onOpen={openLesson}
+                      right={<button onClick={() => { haptic(6); pop(); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
+        </div>
+      ) : (
       <Screen title={name} onBack={pop} meta={meta}>
         <div className="px-6 pb-2">
 
@@ -10884,23 +10908,32 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               They had an eyebrow reading "Most recent" over them, two
               inches under a block reading "Past lessons" — the same idea
               labelled twice on one screenful. */}
-          <div className="mb-7" data-tour="player-lessons" style={{ borderTop: RULE.section(t.ink) }}>
+          {past.length > 0 && (
+            <div className="flex items-center mb-3">
+              <RowHead style={{ marginBottom: 0 }}>{tr("Lessons")}</RowHead>
+              <span className="flex-1" />
+              <ViewSwitch view={view} setView={setView} tour="player-view" />
+            </div>
+          )}
+          <div className="mb-4 nsc-list" data-tour="player-lessons">
             {live && past.length === 0 && (
               <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
             )}
             {shown.map((l, i) => (
-              <button key={l.id || i} onClick={() => { haptic(7); soft(); if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + (r.id || name)); }}
-                      className="w-full flex items-start gap-4 text-left active:opacity-50"
-                      style={{ minHeight: 56, paddingTop: 12, paddingBottom: 12,
-                               borderBottom: RULE.hair(t.ink),
-                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                <Rail style={{ paddingTop: 3 }}>{live ? `${l.d} ${l.m}` : l.d}</Rail>
-                <span className="flex-1 min-w-0">
-                  <span className="block" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
-                </span>
-              </button>
+              <LessonRow key={l.id || i} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)}
+                         saved={false} showWho={false} onOpen={openLesson} />
             ))}
           </div>
+          {/* the whole archive, said in words, under the last few — the
+              block at the top says how many; this is the door */}
+          {past.length > shown.length && (
+            <button data-tour="player-archive" onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
+                    className="w-full flex items-center justify-center gap-2 mb-7 active:opacity-70"
+                    style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `1px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+              {tr("All")} {live ? f.done : past.length} {tr("lessons")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
+            </button>
+          )}
+          {past.length > 0 && past.length <= shown.length && <div style={{ height: 12 }} />}
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
@@ -10932,6 +10965,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           <div style={{ height: 26 }} />
         </div>
       </Screen>
+      )}
     </SwipeBack>
   );
 }
@@ -11031,7 +11065,11 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
   const [focus, setFocus] = useState("All");
   const [kind, setKind] = useState("All");
   const [year, setYear] = useState("All");
+  const [month, setMonth] = useState("All");
+  const [who, setWho] = useState("All");
   const [shownCount, setShownCount] = useState(ARCHIVE_PAGE);
+  const months = ["All", ...[...new Set(lessons.map((l) => l.m).filter(Boolean))]];
+  const people = ["All", ...[...new Set(lessons.map((l) => l.who).filter((w) => w && w !== "—"))].sort()];
 
   const yearOf = (l) => (l.iso ? String(l.iso).slice(0, 4) : "");
   const years = ["All", ...[...new Set(lessons.map(yearOf).filter(Boolean))].sort().reverse()];
@@ -11043,6 +11081,8 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
         || (l.note || "").toLowerCase().includes(term))
     && (focus === "All" || String(l.focus || "").split(" · ").includes(focus))
     && (kind === "All" || l.type === kind)
+    && (month === "All" || l.m === month)
+    && (who === "All" || l.who === who)
     && (year === "All" || yearOf(l) === year));
 
   /* Only what is on screen is built. Everything else waits behind one
@@ -11053,8 +11093,10 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
      offered when the list needs narrowing. Three filter rows and a
      search field over a player's four lessons is a filing cabinet in
      front of a postcard. */
-  const sift = lessons.length > 8;
-  useEffect(() => { setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, forPlayer]);
+  /* the search and the filters are always there: this is the archive,
+     and finding one lesson among hundreds is what it is for */
+  const sift = lessons.length > 0;
+  useEffect(() => { setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, month, who, forPlayer]);
 
   /* Grouped by month AND year — two Julys a year apart are two headings,
      not one pile. */
@@ -11095,8 +11137,10 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
         {sift && (
           <div className="mb-2">
             <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
+            <FilterRow label={tr("Month")} options={months} value={month} onChange={setMonth} />
+            {!forPlayer && people.length > 2 && <FilterRow label={tr("Player")} options={people} value={who} onChange={setWho} />}
             <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
-            {!forPlayer && <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />}
+            <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />
           </div>
         )}
 
@@ -11111,7 +11155,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                 <span>{g.m} {g.y}</span>
                 <span>{g.items.length}</span>
               </div>
-              <div style={{ borderTop: RULE.section(t.ink) }}>
+              <div className="nsc-list">
                 {g.items.map((l) => (
                   <button key={l.id} onClick={() => { haptic(6); push(`clesson:${l.id}:${l.who}`); }}
                           className="w-full flex items-center gap-3.5 text-left active:opacity-50"
@@ -12860,7 +12904,7 @@ function Thread({ role, name, isGroup, pop, say, live }) {
   return (
     <SwipeBack onBack={pop}>
       <div className="flex flex-col h-full" style={{ background: t.page }}>
-        <div className="shrink-0 flex items-center px-1.5 relative z-20" style={{ height: 52, background: `${t.page}E6`, backdropFilter: "saturate(180%) blur(18px)", borderBottom: `1px solid ${t.hair}` }}>
+        <div className="shrink-0 flex items-center px-1.5 relative z-20" style={{ height: 52, background: t.page, borderBottom: `1px solid ${t.hair}` }}>
           <button onClick={() => { haptic(); pop(); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={25} color={t.ink} strokeWidth={2.1} /></button>
           {(() => {
             const inner = (<>
@@ -12889,7 +12933,7 @@ function Thread({ role, name, isGroup, pop, say, live }) {
           {typing && (<div className="flex justify-start mb-2.5"><div className="rounded-3xl px-4 py-3.5 flex gap-1.5" style={{ background: t.surface, border: `1px solid ${t.hair}`, borderBottomLeftRadius: 8 }}>
             {[0, 1, 2].map((i) => (<span key={i} className="rounded-full" style={{ width: 6, height: 6, background: t.faint, animation: `bl 1.2s ${i * 0.16}s infinite` }} />))}</div></div>)}
         </div>
-        <div className="shrink-0 px-3 pt-2 pb-3" style={{ background: `${t.surface}F2`, backdropFilter: "blur(18px)", borderTop: `1px solid ${t.hair}` }}>
+        <div className="shrink-0 px-3 pt-2 pb-3" style={{ background: t.surface, borderTop: `1px solid ${t.hair}` }}>
           <div className="flex items-end gap-2">
             <div className="flex-1 rounded-3xl px-4 py-2.5 flex items-center gap-2" style={{ background: t.wash }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
@@ -13164,6 +13208,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
 
 function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
+  const [q, setQ] = useState("");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
      It was a rail of pills running off the right of the screen — two of
      them, the second a verbatim copy of the first. Now: the label, the
@@ -13275,7 +13320,12 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     ] },
   ].filter(Boolean).map((g) => ({ ...g, rows: g.rows.filter(Boolean) }));
 
-  const shown = groups.filter((g) => g.rows.length);
+  /* find it rather than scroll for it: label, value and the row's own
+     keywords all match */
+  const norm = (x) => String(x || "").toLowerCase();
+  const needle = norm(q).trim();
+  const hit = (r) => !needle || [r.label, r.sub, r.value, ...(r.keys || [])].some((x) => norm(x).includes(needle));
+  const shown = groups.map((g) => ({ ...g, rows: g.rows.filter(hit) })).filter((g) => g.rows.length);
 
   return (
     <SwipeBack onBack={pop}>
@@ -13294,6 +13344,18 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           </button>
         </div>
 
+        <div className="px-6 mb-6">
+          <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
+            <Search size={15} color={t.trace || t.faint} strokeWidth={2} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search settings")} aria-label={tr("Search settings")}
+                   className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.trace || t.faint} strokeWidth={2} /></button>
+               : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
+          </div>
+        </div>
+        {needle && shown.length === 0 && (
+          <p className="px-6 py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing called")} “{q}”</p>
+        )}
 
         {shown.map((g, gi) => (
           <React.Fragment key={g.title || "end"}>
@@ -15930,6 +15992,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip}
+                        cfg={cfg} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                         onLog={(who) => { setPrefill({ who: who.name || pname, playerId: who.id || (pl ? pl.id : null), kind: "Private" }); go("log"); }} />;
   /* A coach searches their own drill library; anyone else searches the
      drills set for them — myLibrary is a coach's, and is empty for a
@@ -16301,7 +16364,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   onAccept={acceptAsk}
                   onDecline={(r) => { setDeclining(r); setSheet("decline"); }}
                   onInvite={() => setSheet("invite")}
-                  layout={layout} onAction={runQuick}
+                  layout={layout} onAction={runQuick} lessonCount={archive.length}
                   push={push} go={go} />
     );
     body = {
@@ -16353,7 +16416,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--edge": HAIR(theme.ink, 0.24),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--edge": EDGE(theme),
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
