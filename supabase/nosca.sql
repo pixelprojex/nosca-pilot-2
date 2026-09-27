@@ -1345,7 +1345,7 @@ revoke all on function public.first_name_of(uuid) from public, anon, authenticat
 
 create or replace function public.nice_date(p_date date)
 returns text language sql immutable set search_path = ''
-as $fn$ select trim(to_char(p_date, 'Dy DD Mon')); $fn$;
+as $fn$ select trim(to_char(p_date, 'Dy FMDD Mon')); $fn$;   -- Tue 8 Sep, never Tue 08 Sep
 
 -- ---------- a lesson is logged ----------
 create or replace function public.trg_lessons_notify()

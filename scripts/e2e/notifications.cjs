@@ -32,7 +32,7 @@ function freshDb() {
   /* what the triggers wrote while Cian was away — three unread */
   M.addNotification(db, { id: N.lesson, userId: IDS.adult, kind: "lesson", title: "Lesson logged", body: "Short game · Niamh Byrne", data: { screen: "lesson", id: LESSON.new }, createdAt: ago(120) });
   M.addNotification(db, { id: N.message, userId: IDS.adult, kind: "message", title: "Niamh Byrne", body: "See you Tuesday at nine.", data: { screen: "thread", id: IDS.adult }, createdAt: ago(90) });
-  M.addNotification(db, { id: N.booking, userId: IDS.adult, kind: "booking", title: "Lesson confirmed", body: "Tue 08 Sep 9:00 am · Niamh Byrne", data: { screen: "calendar", id: "b0" }, createdAt: ago(30) });
+  M.addNotification(db, { id: N.booking, userId: IDS.adult, kind: "booking", title: "Lesson confirmed", body: "Tue 8 Sep 9:00 am · Niamh Byrne", data: { screen: "calendar", id: "b0" }, createdAt: ago(30) });
   /* a player asking the coach: the request and the notification the trigger writes with it */
   M.addRequest(db, { playerId: IDS.eoin, coachId: IDS.coach, notify: true });
   return db;

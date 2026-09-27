@@ -365,8 +365,11 @@ seeded data and no account.
   of the first file, the focus, one grey line — and the lesson page is
   the player (`LessonStage`: one play disc, the clip at its own shape,
   browser controls only once it plays). A parent keeps the Family tab
-  as home and Lessons as the feed. The feed was deleted once on a
-  research finding that no competitor has one; the founder wanted it
+  as home and Lessons as the feed. A lesson with nothing attached is
+  `SportGround` — the sport's mark with its glyph high on the card —
+  never a black void (which read as a clip that failed) and never a
+  drawn picture the lesson did not take. The feed was deleted once on
+  a research finding that no competitor has one; the founder wanted it
   back within the hour — improve it, never remove it.
 - **A player's profile pill is the switcher.** Face, first name and a
   chevron in the header; tapping it opens `FamilySheet`: their coaches
@@ -378,13 +381,16 @@ seeded data and no account.
   dark tone, 1.5px, with nothing glowing around it.** `EDGE(t)` is the
   sport's `mark` at 72% over the paper (the brand green before a sport)
   — never black or ink — and `EDGE_W` is 1.5. It is the `--edge` of
-  `.nsc-list` boxes, `.nsc-day`, `ActTile`, `Card` and `Tile`, and a
-  bordered surface casts no shadow (the resting shadow under a bordered
+  `.nsc-list` boxes, `.nsc-day`, `ActTile`, `Card`, `Tile` and
+  `TimeGrid` (so the setup's Days · Length · Times read as the same
+  tile as the board), and a bordered surface casts no shadow (the resting shadow under a bordered
   tile read as a glow; the founder asked for it gone). Depth stays on
   the raised plus, the filled `Button`, the sheet and a dragged tile.
   `.nsc-list` draws every child as its own surface — a fill, the edge,
   8px corners, 10px between — and `.nsc-day` boxes a diary day with its
-  times as rows inside.
+  times as rows inside. A child that pads itself (a swipe row, a
+  Settings row that unfolds) is `.nsc-swipe` / `.nsc-flush`, or its
+  label sits 20px further in than the row above it.
 - **The paper is white, or as near as makes no difference.** Every
   theme's `page` is within two steps of white with barely a sport cast
   (`#FCFEFD` for tennis, `#FEFDFB` for golf); `surface` is white; the
@@ -414,7 +420,8 @@ seeded data and no account.
   so every row lines up — with a List · Feed switch beside the head (the
   feed is `LessonFeed` over that player's lessons, with Back on its
   header pill) and an "All N lessons" button under them. No hero count
-  above the tiles. `CoachArchive` (Settings › Lesson logs, the roster's
+  above the tiles. Settings › Lesson logs (`LessonLogs`) is the same
+  boxed poster rows with a Download disc on each. `CoachArchive` (the roster's
   foot, the coach home's To do row, the file's All lessons) always
   shows its search and its filters — Year, Month, Player, Worked on,
   Kind — grouped by month, its rows the same `LessonRow`s with the same
@@ -457,7 +464,12 @@ seeded data and no account.
   day and time. Two facts on a grey line, never three.
 - **One date, one time.** `Thu 24 Sep`, `9:00 am`, everywhere — rows,
   headers, sheets, the diary's rail. Never an uppercase month, never
-  "Sept", never a time stripped of am/pm to fit a column.
+  "Sept", never a time stripped of am/pm to fit a column. The time
+  column on the bell and in Chat is `relTime` in `useNoscaData`, the
+  one place: `3:24 pm` today, Yesterday, else `Thu 24 Sep` — it read
+  "30m" and a 24-hour "15:24" once. A notification's own date comes
+  from `nice_date()` in nosca.sql, `Tue 8 Sep` with no leading zero,
+  and the mock's `niceDate` says the same.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: hairline rows with an
   avatar, a name and one grey line. A search field appears only when

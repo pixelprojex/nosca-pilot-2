@@ -130,7 +130,7 @@ function session(u, db) {
 /* ---------------------------------------------------------------- section 10: telling people */
 const nameOf = (db, id) => (db.profiles[id] || {}).name || "Someone";
 const firstOf = (db, id) => nameOf(db, id).split(" ")[0];
-const niceDate = (iso) => { const d = new Date(iso); return `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]} ${pad(d.getDate())} ${MON[d.getMonth()][0] + MON[d.getMonth()].slice(1).toLowerCase()}`; };
+const niceDate = (iso) => { const d = new Date(iso); return `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]} ${d.getDate()} ${MON[d.getMonth()][0] + MON[d.getMonth()].slice(1).toLowerCase()}`; };
 const adultsFor = (db, playerId) => { const j = db.profiles[playerId]; if (!j || !j.family_id || !juniorRow(j, db.now())) return []; return Object.values(db.profiles).filter((a) => a.family_id === j.family_id && a.id !== j.id && !juniorRow(a, db.now())).map((a) => a.id); };
 function notify(db, userId, kind, title, body, data) { if (!userId) return null; return addNotification(db, { userId, kind, title, body: body || null, data: data || {} }); }
 
