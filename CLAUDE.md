@@ -25,7 +25,9 @@ never floods.
    built app against a mocked Supabase: sign-up for every role, codes
    both ways, deletion, the walkthrough's ring alignment, a seed sweep
    that crawls every screen as each role (and records console warnings
-   as failures), `dead-ends.cjs` which taps every control as every role
+   as failures), `coach-day.cjs` for the plus, the call-off and Cancel
+   behind their passwords and the Download discs, `dead-ends.cjs` which
+   taps every control as every role
    and fails on any that does nothing, and `polish-shots.cjs` for a
    screenshot of every screen the founder looks at first.
 
@@ -269,8 +271,15 @@ seeded data and no account.
   row. A tab bar to a list that is empty is not a choice either — the
   roster's Groups half appears with the first group.
 - **The board and the plus are one list of actions, and the coach owns
-  it.** `COACH_ACTIONS` is the nine, each with one name and one glyph —
-  never "Register" on one surface and "Attendance" on the other.
+  it.** `COACH_ACTIONS` is the nine (Log · Register · Capture · Tip ·
+  Drills · Add player · New group · Call off · Competition), each with
+  one name and one glyph — never "Register" on one surface and
+  "Attendance" on the other. Call off took Message's place: a coach
+  can open Chat, and calling a wet day off is the thing they need in
+  one tap. The plus sheet's top row is fixed — Log a lesson as the
+  accent tile and Call off in red (`ActTile tone="danger"`, the only
+  red tile in the app) side by side — and `QUICK_ORDER` (seven) is the
+  editable grid under it, an odd last tile spanning both columns.
   `BOARD_ORDER` and `QUICK_ORDER` are the defaults; what a coach keeps
   rides on `preferences.layout` as `{ board, boardCols, quick }` and is
   read through `pickLayout`, which drops an id it does not recognise
@@ -289,8 +298,8 @@ seeded data and no account.
   and Log for that lesson, which put the word Register on the screen
   three times); the day's own rows, where the live lesson is marked and
   carries its register; and the raised plus, which
-  keeps all eight of `QUICK_ORDER` with Log a lesson as its accent
-  tile. The plus was removed once in favour of "the plus opens the log"
+  keeps every tile of `QUICK_ORDER` under Log a lesson and Call off.
+  The plus was removed once in favour of "the plus opens the log"
   and the founder wanted every row back the same day. Register and
   capture are also on the lesson itself (the peek sheet), drills and
   tips on the player file.
@@ -355,7 +364,34 @@ seeded data and no account.
 - **Chat lists conversations, and the plus starts one.** The list is
   every thread with a message, unread first then newest; a coach's
   picker leads with "Everyone", which is the broadcast. Nothing else sits
-  above the list — the weather call-off lives in the diary on the day.
+  above the list — the weather call-off is on the plus and in the
+  diary on the day.
+- **Taking away somebody else's lesson ends on the coach's password.**
+  The weather call-off, the peek's Cancel (the `cancelLesson` sheet —
+  it was "No show", and the word is Cancel everywhere now, the toast
+  "Cancelled") and Move's "Cancel the lesson" all finish on
+  `ConfirmPassword` with `data.verifyPassword`, which signs the coach
+  in again with their own email: a wrong password is refused and
+  nothing is written, and the way back reads `closeLabel` ("Keep it",
+  "Back"). A player cancelling their own lesson is not asked — it is
+  theirs. `scripts/e2e/coach-day.cjs` walks both, wrong password first.
+- **All lessons is its own row on the coach's home, never under To
+  do.** The archive is not a chore; `today-archive` sits in a box of
+  its own under the To do list, carrying the count.
+- **Every lesson row and every feed card carries a Download disc.**
+  `LessonRow` takes `onDownload` and draws the 38px disc at its right
+  edge (the row is then a div of two buttons, so a test counting rows
+  excludes `aria-label^="Download"`); `FeedCard` draws it beside the
+  sound toggle. `downloadLesson` in Nosca is the one handler — it
+  fetches the lesson's files and calls `downloadLessonLog` — and every
+  route that lists lessons passes it. A row's grey line carries the
+  whole name: two players with one first name are two files.
+- **`TOP_AIR` (12px) sits above every header, on purpose.** The
+  `Screen` header row and the feed's header pill start 12px lower than
+  they need to, so the top of a screen is never under a phone's status
+  bar or a browser's chrome. The founder saw the old cream band there
+  as a blur three times; the air is the intentional version of that
+  space, and it stays the same on every screen.
 - **The bell reads itself.** Opening the list shows Today, Yesterday and
   Earlier with the unread ones in ink; tapping one marks it, and closing
   the list marks the rest read. The right-hand button is "Mark all read"
@@ -463,14 +499,20 @@ seeded data and no account.
   the take is a new clip on the lesson.** `ClipReview` (route
   `review:<lessonId>:<mediaId>`, reached from "Mark it up" under a
   video on the coach's lesson page) paints the clip onto a canvas every
-  frame with the marks on top (pen · line · arrow · circle, three
-  inks, Undo, Clear), lets the coach play, pause and scrub while
-  recording, records that canvas plus the microphone with the same
+  frame with the marks on top (pen · line · arrow · circle · angle,
+  three inks, Undo, Clear — the angle reads degrees from vertical, for
+  a swing plane or a spine), lets the coach play, pause, scrub, step a
+  frame either way and run at ½× while recording, records that canvas
+  plus the microphone with the same
   MediaRecorder negotiation as live capture (`pickMime`, `VIDEO_TYPES`
   from useCapture), and only after the coach has watched the take back
   sends it through `addLessonMedia` like any other file. The drawing
   is IN the recording — never a layer only this app could replay — and
-  the original clip is never touched. No microphone records the
+  the original clip is never touched. The viewer sees every mark drawn
+  live: a stroke made while recording is in the take as it happens,
+  and marks drawn before Record reveal themselves one after another
+  over `REVEAL_MS` when it starts (`paintShape(g, sh, w, h, f)` draws a
+  fraction of a shape), so a prepared page never pops in whole. No microphone records the
   picture alone and says so; a declined microphone stops and says why.
   The `<video>` the canvas reads must carry `crossOrigin="anonymous"`
   or the canvas is tainted and `captureStream` throws. A file added to

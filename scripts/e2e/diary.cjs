@@ -121,7 +121,15 @@ const leaks = [];
       await click(page, "Move");
       await page.locator("button", { hasText: /Ill|sick|Weather|Something/i }).first().click(); await page.waitForTimeout(300);
       await click(page, "Next");
-      await click(page, "Cancel the lesson", 1500);
+      await click(page, "Cancel the lesson", 900);
+      /* a coach's cancel ends on their password: a wrong one writes nothing */
+      const t4b = await text(); await shot("09b-coach-cancel-password");
+      check("(b) a coach's cancel asks for their password first", t4b.includes("Your password") && (await page.locator('input[type="password"]').count()) === 1, t4b.slice(0, 200));
+      await page.fill('input[type="password"]', "wrongone");
+      await page.locator("button", { hasText: /^Cancel the lesson$/ }).last().click(); await page.waitForTimeout(900);
+      check("(b) a wrong password is refused and nothing is written", (await text()).includes("That password isn't right.") && !db.patches.some((x) => x.table === "bookings"), (await text()).slice(0, 200));
+      await page.fill('input[type="password"]', "secret12");
+      await page.locator("button", { hasText: /^Cancel the lesson$/ }).last().click(); await page.waitForTimeout(1500);
       const c1 = last(db.patches, "bookings");
       check("(b) Cancel PATCHes the booking to cancelled", !!c1 && c1.body.status === "cancelled" && c1.query.includes(`id=eq.${b1.rows[0].id}`) && c1.n === 1, JSON.stringify(c1));
       await page.waitForTimeout(2200);

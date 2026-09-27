@@ -11,7 +11,7 @@ import {
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
-  ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle,
+  ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
   Edit3, Trophy, Star, CloudRain, Copy, Settings2, BellOff
 } from "lucide-react";
 
@@ -2394,13 +2394,25 @@ const CANCEL_REASONS = {
   player: ["Unwell", "Work or school", "Away", "Injured", "Something else"],
 };
 
-function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
+function CancelLesson({ role, lesson, slots, duration, onDone, close, verify }) {
   const t = useT();
   const [reason, setReason] = useState(null);
   const [note, setNote] = useState("");
   const [offer, setOffer] = useState(null);
-  const [stage, setStage] = useState("why");
+  const [stage, setStage] = useState("why");   // why | when | password
   const other = role === "coach" ? tr("your player") : tr("your coach");
+  const finish = () => { hapticWarn(); decline(); onDone({ reason, note, offer }); close(); };
+  const label = offer ? tr("Cancel and offer this time") : tr("Cancel the lesson");
+
+  /* a coach's cancel is somebody else's lesson, so it ends on their
+     password like the weather call-off does; a player's own does not */
+  if (stage === "password") return (
+    <ConfirmPassword title={tr("Cancel lesson")}
+                     detail={`${lesson}. ${tr("They are told straight away with the reason. Confirm with your password.")}`}
+                     actionLabel={label} closeLabel={tr("Back")}
+                     onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(); return { next: true }; }}
+                     close={() => setStage("when")} />
+  );
 
   if (stage === "when") return (
     <>
@@ -2409,8 +2421,8 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close }) {
       <div className="mb-6">
         <TimeGrid cols={3} times={slots} picked={offer} onToggle={(sl) => setOffer(offer === sl ? null : sl)} />
       </div>
-      <Button tone="danger" onClick={() => { hapticWarn(); decline(); onDone({ reason, note, offer }); close(); }}>
-        {offer ? tr("Cancel and offer this time") : tr("Cancel the lesson")}
+      <Button tone="danger" onClick={() => { if (verify) { hapticWarn(); setStage("password"); } else finish(); }}>
+        {label}
       </Button>
       <button onClick={() => { haptic(6); setStage("why"); }} className="w-full mt-3 py-3 active:opacity-50"
               style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
@@ -3178,7 +3190,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
           { Ico: CalendarDays, lbl: tr("Move"),    act: onCancel,   tone: null },
           { Ico: CloudRain,    lbl: tr("Weather"), act: onWeather,  tone: DANGER },
-          { Ico: X,            lbl: tr("No show"), act: onNoShow,   tone: DANGER }].filter(Boolean).map(({ Ico, lbl, act, tone, tour }) => (
+          { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean).map(({ Ico, lbl, act, tone, tour }) => (
           <button key={lbl} data-tour={tour} onClick={() => { haptic(7); soft(); act && act(); }}
                   onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.94)"; }}
                   onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -4189,12 +4201,15 @@ const COACH_ACTIONS = {
   drills:  { Ico: ListChecks,    label: "Drills" },
   player:  { Ico: UserPlus,      label: "Add player" },
   group:   { Ico: Users,         label: "New group" },
-  message: { Ico: MessageCircle, label: "Message" },
+  /* Message was here; a coach opens Chat for that. Calling a day off
+     is the one thing they need in a hurry, so it took the slot — and on
+     the plus sheet it sits fixed beside Log a lesson, in red. */
+  weather: { Ico: CloudRain,     label: "Call off" },
   comp:    { Ico: Trophy,        label: "Competition" },
 };
-const BOARD_ALL   = ["log", "attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
+const BOARD_ALL   = ["log", "attend", "capture", "tip", "drills", "player", "group", "weather", "comp"];
 const BOARD_ORDER = ["log", "attend", "capture", "tip", "drills", "player"];
-const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "message", "comp"];
+const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "comp"];
 
 /* What a coach chose to keep, in the order they chose, falling back to
    the defaults for anything they have never touched. A stored id that
@@ -4212,17 +4227,26 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
   const ids = pickLayout(order, QUICK_ORDER);
   return (
     <>
-      <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-      <div style={{ marginTop: 12 }}>
-        <TileGrid cols={2}>
-          {ids.map((id) => {
-            const A = COACH_ACTIONS[id];
-            return <ActTile key={id} tour={`quick-${id}`} h={74} Icon={A.Ico} label={tr(A.label)}
-                         dot={id === "attend" && !!liveLesson}
-                         aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
-                         onTap={() => onRun(id)} />;
-          })}
-        </TileGrid>
+      {/* the two a coach reaches for in a hurry: the log, and the whole
+          day called off — the second in red, fixed beside the first */}
+      <div className="grid" style={{ gap: 12, gridTemplateColumns: "1.55fr 1fr" }}>
+        <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
+        <ActTile tour="quick-weather" tone="danger" h={84} Icon={CloudRain} label={tr("Call off")} onTap={() => { hapticWarn(); onRun("weather"); }} />
+      </div>
+      <div className="grid" style={{ marginTop: 12, gap: 12, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+        {ids.map((id, i) => {
+          const A = COACH_ACTIONS[id];
+          /* an odd last tile takes the whole row rather than sitting as a widow */
+          const wide = ids.length % 2 === 1 && i === ids.length - 1;
+          return (
+            <div key={id} style={wide ? { gridColumn: "1 / -1" } : undefined}>
+              <ActTile tour={`quick-${id}`} h={74} Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
+                       dot={id === "attend" && !!liveLesson}
+                       aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
+                       onTap={() => onRun(id)} />
+            </div>
+          );
+        })}
       </div>
       {onEdit && (
         <div className="flex justify-center" style={{ marginTop: 14 }}>
@@ -4843,7 +4867,7 @@ function Poster({ item, size = 56, radius = 8, sport }) {
   );
 }
 
-function LessonRow({ lesson: l, poster, need, onOpen, saved, showWho, first, index = 0, sport }) {
+function LessonRow({ lesson: l, poster, need, onOpen, onDownload, saved, showWho, first, index = 0, sport }) {
   const t = useT();
   const asked = useRef(false);
   /* a real account asks for the lesson's files once, when the row
@@ -4852,24 +4876,37 @@ function LessonRow({ lesson: l, poster, need, onOpen, saved, showWho, first, ind
   useEffect(() => { if (need && !asked.current) { asked.current = true; need(); } }, [need]);
   const files = l.media ?? l.videos ?? 0;
   const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
-  /* two facts on the grey line, never three */
-  const sub = [showWho && l.who ? l.who.split(" ")[0] : null, when, files > 1 ? `${files} ${tr("files")}` : null].filter(Boolean).slice(0, 2).join(" · ");
+  /* two facts on the grey line, never three — and the whole name, because
+     two players with one first name are two files */
+  const sub = [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null].filter(Boolean).slice(0, 2).join(" · ");
   return (
-    <button data-tour={first ? "log-row" : undefined} onClick={() => { haptic(8); soft(); onOpen(l); }}
-            className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-            style={{ minHeight: 64, paddingTop: 8, paddingBottom: 8, borderBottom: RULE.hair(t.ink),
-                     animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(index, 5) * 22}ms backwards` }}>
-      <Poster item={poster} sport={sport} />
-      <span className="flex-1 min-w-0">
-        <span className="flex items-center gap-2">
-          {l.unread && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.ink }} />}
-          <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+    /* the row opens the lesson; the disc at its right corner saves it as
+       a file — two controls, so the row is a div and not one button */
+    <div className="flex items-center gap-2"
+         style={{ minHeight: 64, borderBottom: RULE.hair(t.ink),
+                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(index, 5) * 22}ms backwards` }}>
+      <button data-tour={first ? "log-row" : undefined} onClick={() => { haptic(8); soft(); onOpen(l); }}
+              className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50"
+              style={{ paddingTop: 8, paddingBottom: 8 }}>
+        <Poster item={poster} sport={sport} />
+        <span className="flex-1 min-w-0">
+          <span className="flex items-center gap-2">
+            {l.unread && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.ink }} />}
+            <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+          </span>
+          <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
         </span>
-        <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
-      </span>
-      {saved && <Download size={13} color={t.faint} />}
-      <ChevronRight size={14} color={t.trace || t.faint} />
-    </button>
+        {saved && !onDownload && <Download size={13} color={t.faint} />}
+        {!onDownload && <ChevronRight size={14} color={t.trace || t.faint} />}
+      </button>
+      {onDownload && (
+        <button onClick={() => { haptic(8); onDownload(l); }} aria-label={`${tr("Download")} ${l.focus}`}
+                className="shrink-0 flex items-center justify-center active:opacity-60"
+                style={{ width: 38, height: 38, borderRadius: 19, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+          <Download size={15} color={t.ink} strokeWidth={2} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -5088,7 +5125,7 @@ function Round({ label, onTap, children, solid, tour }) {
   );
 }
 
-const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho, cfg }) {
+const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho, cfg, onDownload }) {
   const t = useT();
   const live = useLive();
   const [frame, setFrame] = useState(0);
@@ -5178,6 +5215,13 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                 {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
               </span>
             </button>
+            {onDownload && (
+              <button onClick={() => { haptic(7); onDownload(lesson); }} aria-label={`${tr("Download")} ${lesson.focus}`}
+                      className="flex items-center justify-center shrink-0 active:opacity-70"
+                      style={{ width: 40, height: 40, borderRadius: 20, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.18)" }}>
+                <Download size={17} color="#fff" strokeWidth={1.9} />
+              </button>
+            )}
             {current && current.type === "video" && (
               <button onClick={() => { haptic(7); onSound && onSound(!sound); }} aria-label={sound ? tr("Mute") : tr("Sound")}
                       className="flex items-center justify-center shrink-0 active:opacity-70"
@@ -5224,7 +5268,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   );
 });
 
-function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right }) {
+function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload }) {
   const [active, setActive] = useState(0);
   const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
   const wrap = useRef(null);
@@ -5273,7 +5317,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
           on the feed too, on a light pill so they read over any clip */}
       {right && (
         <div className="absolute flex items-center gap-0.5 pl-1 pr-1.5" data-tour="feed-header"
-             style={{ top: 26, right: 12, height: 42, borderRadius: R.pill, zIndex: 30,
+             style={{ top: 26 + TOP_AIR, right: 12, height: 42, borderRadius: R.pill, zIndex: 30,
                       background: "rgba(255,255,255,0.96)" }}>
           {right}
         </div>
@@ -5285,7 +5329,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         {lessons.map((l, i) => (
           <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active} cfg={cfg}
                     near={Math.abs(i - active) <= 1} onNeed={onNeed}
-                    media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} showWho={showWho} />
+                    media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} showWho={showWho} onDownload={onDownload} />
         ))}
       </div>
 
@@ -5674,7 +5718,7 @@ function InviteOffer({ invite, lookup, currentCoach, currentCoachName, currentGu
    asks for the password to the account, the same way a bank asks
    before a transfer. Re-authenticating also proves it's the coach
    holding the phone, not someone who picked it up unlocked. */
-function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
+function ConfirmPassword({ title, detail, actionLabel, onConfirm, close, closeLabel }) {
   const t = useT();
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
@@ -5722,7 +5766,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close }) {
         </button>
         <button onClick={close} className="w-full mt-2.5 active:opacity-60"
                 style={{ minHeight: 48, ...TYPE.body, fontSize: 14.5, color: t.faint }}>
-          {tr("Cancel")}
+          {closeLabel || tr("Cancel")}
         </button>
       </div>
     </>
@@ -6404,15 +6448,30 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
    accidental cancellation costs a coach their day and their players
    their evening. Whole day or a single lesson, and everyone affected
    is offered a new time straight away. */
-function WeatherCallOff({ day, bookings, duration, onConfirm, close, ahead }) {
+function WeatherCallOff({ day, bookings, duration, onConfirm, close, ahead, verify }) {
   const t = useT();
   const [scope, setScope] = useState(null);     // day | one
   const [pick, setPick] = useState(null);       // the booking's id, not its time
-  const [stage, setStage] = useState("choose"); // choose | confirm
+  const [stage, setStage] = useState("choose"); // choose | confirm | password
   /* by id: two lessons can start at the same hour, and calling off a
      group should not take the private lesson beside it */
   const idOf = (b, i) => (b.id != null ? b.id : `i${i}`);
   const affected = scope === "day" ? bookings : bookings.filter((b, i) => idOf(b, i) === pick);
+
+  /* the last word is the password: a day cannot be called off by a
+     pocket or a child */
+  if (stage === "password") return (
+    <ConfirmPassword title={tr("Call it off")}
+                     detail={`${affected.length} ${affected.length === 1 ? tr("lesson will be called off") : tr("lessons will be called off")}. ${tr("Everyone affected is told immediately and offered a new time. Confirm with your password.")}`}
+                     actionLabel={tr("Call it off")} closeLabel={tr("Back")}
+                     onConfirm={async (pw) => {
+                       const c = verify ? await verify(pw) : {};
+                       if (c && c.error) return c;
+                       hapticWarn(); decline(); onConfirm(affected, scope); close();
+                       return { next: true };
+                     }}
+                     close={() => setStage("confirm")} />
+  );
 
   if (stage === "confirm") return (
     <>
@@ -6435,7 +6494,7 @@ function WeatherCallOff({ day, bookings, duration, onConfirm, close, ahead }) {
           </div>
         ))}
       </div>
-      <Button tone="danger" onClick={() => { hapticWarn(); decline(); onConfirm(affected, scope); close(); }}>
+      <Button tone="danger" onClick={() => { hapticWarn(); setStage("password"); }}>
         {tr("Yes, call it off")}
       </Button>
       <button onClick={() => { haptic(6); setStage("choose"); }} className="w-full mt-3 py-3 active:opacity-50"
@@ -6590,7 +6649,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             <div className="flex gap-2.5 mt-1.5">
               <button onClick={() => { hapticWarn(); onNoShow && onNoShow(item); }} className="px-4 active:opacity-60"
                       style={{ minHeight: 46, borderRadius: R.control, border: `1px solid ${t.hair}`,
-                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("No show")}</button>
+                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 active:opacity-60"
                       style={{ minHeight: 46, borderRadius: R.control, border: `1px solid ${t.hair}`,
                                fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
@@ -6910,6 +6969,13 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
    NATIVE PATTERNS
 
 ================================================================== */
+/* AIR AT THE TOP. The phone paints its status bar over the first
+   stretch of the screen — on a current iPhone as glass that softens
+   whatever sits under it. Nothing of ours belongs there, so every
+   header starts this far below the safe area; the founder saw the
+   header's own controls dimmed by it and asked for them moved down. */
+const TOP_AIR = 12;
+
 function Screen({ title, meta, onBack, right, action, children, large = true, bare }) {
   const t = useT();
   const [y, setY] = useState(0);
@@ -6921,7 +6987,7 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
               under it hid the top of every screen */
            style={{ background: t.page,
                     borderBottom: `1px solid ${shrunk ? t.hair : "transparent"}`, transition: "border-color 200ms" }}>
-        <div className="flex items-center px-1.5" style={{ height: 46 }}>
+        <div className="flex items-center px-1.5" style={{ height: 46, marginTop: TOP_AIR }}>
           {onBack ? (
             <button onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40">
               <ChevronLeft size={25} color={t.ink} strokeWidth={2.1} />
@@ -7342,15 +7408,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      because the page is now tinted and the thing you can touch has to
      be the brightest thing on the screen. It was t.wash, which on the
      new paper is very nearly the page itself. */
-  const bg = tone === "accent" ? t.accent : on ? t.ink : t.surface;
-  const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
+  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : t.surface;
+  const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? "#fff" : t.ink;
   const lift = "none";   /* a bordered tile casts nothing — the shadow read as a glow around the edge */
   return (
     <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
             {...sink(t, lift)}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
-                     border: tone === "accent" || on ? `${EDGE_W}px solid transparent` : `${EDGE_W}px solid ${EDGE(t)}`,
+                     border: tone === "accent" || tone === "danger" || on ? `${EDGE_W}px solid transparent` : `${EDGE_W}px solid ${EDGE(t)}`,
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
@@ -8911,7 +8977,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false }) {
+function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload }) {
   const t = useT();
   const ready = useLoad();
 
@@ -8939,7 +9005,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
       }
       return sim;
     };
-    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg} right={right}
+    return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg} right={right} onDownload={onDownload}
                        view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
@@ -8967,7 +9033,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
         <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
           {lessons.map((l, i) => (
             <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)} sport={sport}
-                       saved={saved.includes(l.id)} showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} />
+                       saved={saved.includes(l.id)} showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} onDownload={onDownload} />
           ))}
         </div>
       )}
@@ -9419,31 +9485,61 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
    has watched the take back and pressed Send. */
 const REVIEW_MAX = 1280;                                    // longest side of the recording
 const REVIEW_INKS = ["#FFD23F", "#FF4B3E", "#FFFFFF"];     // yellow, red, white
-const REVIEW_TOOLS = [["pen", "Pen", Pencil], ["line", "Line", Minus], ["arrow", "Arrow", MoveUpRight], ["circle", "Circle", Circle]];
+const REVIEW_TOOLS = [["pen", "Pen", Pencil], ["line", "Line", Minus], ["arrow", "Arrow", MoveUpRight], ["circle", "Circle", Circle], ["angle", "Angle", Ruler]];
+const REVEAL_MS = 380;                                    // one mark draws itself in over this long
 const secsLabel = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-function paintShape(g, sh, w, h) {
+/* One mark. `f` (0..1) is how much of it has been drawn: a line grows
+   from its start, a circle from its centre, a pen stroke point by point
+   — which is how a mark made before Record draws itself in for the
+   viewer instead of being there from the first frame. */
+function paintShape(g, sh, w, h, f = 1) {
   const px = (p) => [p.x * w, p.y * h];
   const lw = Math.max(3, Math.round(Math.min(w, h) * 0.009));
-  const [x1, y1] = px(sh.pts[0]); const [x2, y2] = px(sh.pts[sh.pts.length - 1]);
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const [x1, y1] = px(sh.pts[0]); const [xe, ye] = px(sh.pts[sh.pts.length - 1]);
+  const x2 = lerp(x1, xe, f), y2 = lerp(y1, ye, f);
   g.save();
   g.strokeStyle = sh.ink; g.lineWidth = lw; g.lineCap = "round"; g.lineJoin = "round";
   g.shadowColor = "rgba(0,0,0,0.45)"; g.shadowBlur = lw * 1.2;
   g.beginPath();
   if (sh.tool === "pen") {
-    sh.pts.forEach((p, i) => { const [x, y] = px(p); if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); });
+    /* smoothed through the midpoints, so a quick stroke does not read as a polyline */
+    const pts = sh.pts.slice(0, Math.max(2, Math.ceil(f * sh.pts.length))).map(px);
+    g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+      g.quadraticCurveTo(pts[i][0], pts[i][1], mx, my);
+    }
+    const last = pts[pts.length - 1]; g.lineTo(last[0], last[1]);
     g.stroke();
   } else if (sh.tool === "circle") {
     /* drawn from the centre out, which is how people ring the thing they mean */
     g.ellipse(x1, y1, Math.max(Math.abs(x2 - x1), lw), Math.max(Math.abs(y2 - y1), lw), 0, 0, Math.PI * 2); g.stroke();
   } else {
     g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-    if (sh.tool === "arrow") {
+    if (sh.tool === "arrow" && f > 0.2) {
       const ang = Math.atan2(y2 - y1, x2 - x1), head = lw * 4.5;
       g.beginPath();
       g.moveTo(x2, y2); g.lineTo(x2 - head * Math.cos(ang - 0.5), y2 - head * Math.sin(ang - 0.5));
       g.moveTo(x2, y2); g.lineTo(x2 - head * Math.cos(ang + 0.5), y2 - head * Math.sin(ang + 0.5));
       g.stroke();
+    }
+    if (sh.tool === "angle") {
+      /* the line against the vertical through its start — spine angle,
+         shaft lean, a racket face — with the degrees written beside it */
+      const len = Math.hypot(xe - x1, ye - y1);
+      g.setLineDash([lw * 1.5, lw * 1.5]); g.lineWidth = Math.max(2, lw * 0.6);
+      g.beginPath(); g.moveTo(x1, y1); g.lineTo(x1, y1 + (ye >= y1 ? 1 : -1) * len * f); g.stroke();
+      g.setLineDash([]);
+      if (f >= 1 && len > lw * 3) {
+        let deg = Math.round(Math.abs(Math.atan2(xe - x1, ye - y1)) * 180 / Math.PI);
+        if (deg > 90) deg = 180 - deg;
+        const fs = Math.max(14, lw * 4.2);
+        g.font = `600 ${fs}px -apple-system, system-ui, sans-serif`;
+        g.fillStyle = sh.ink; g.textBaseline = "middle";
+        g.fillText(`${deg}°`, xe + (xe >= x1 ? fs * 0.6 : -fs * 0.6 - g.measureText(`${deg}°`).width), (y1 + ye) / 2);
+      }
     }
   }
   g.restore();
@@ -9481,6 +9577,8 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
   const [err, setErr] = useState(null);
   const [notice, setNotice] = useState(null);
   const rec = useRef(null), chunks = useRef([]), mic = useRef(null), takeUrl = useRef(null);
+  const reveal = useRef(null);                                   // { at, n }: marks drawing themselves in
+  const [slow, setSlow] = useState(false);
 
   /* the picture: the clip painted every frame, the marks on top of it */
   useEffect(() => {
@@ -9492,7 +9590,12 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
         const g = c.getContext("2d");
         if (v && v.readyState >= 2) g.drawImage(v, 0, 0, c.width, c.height);
         else { g.fillStyle = "#0B0F10"; g.fillRect(0, 0, c.width, c.height); }
-        shapesRef.current.forEach((sh) => paintShape(g, sh, c.width, c.height));
+        const rv = reveal.current, now = performance.now();
+        shapesRef.current.forEach((sh, i) => {
+          const f = rv && i < rv.n ? Math.min(1, Math.max(0, (now - rv.at - i * REVEAL_MS) / REVEAL_MS)) : 1;
+          paintShape(g, sh, c.width, c.height, f);
+        });
+        if (rv && now > rv.at + rv.n * REVEAL_MS) reveal.current = null;
         if (draft.current) paintShape(g, draft.current, c.width, c.height);
       }
       raf = requestAnimationFrame(paint);
@@ -9545,6 +9648,10 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
 
   const toggle = () => { const v = vid.current; if (!v) return; haptic(7); if (v.paused) v.play().catch(() => {}); else v.pause(); };
   const seek = (x) => { const v = vid.current; if (v) { v.currentTime = x; setTime(x); } };
+  /* a frame at a time, paused — where the club is at the top, where the
+     racket meets the ball */
+  const stepFrame = (d) => { const v = vid.current; if (!v) return; haptic(5); v.pause(); const x = Math.min(Math.max(0, v.currentTime + d / 30), v.duration || 0); v.currentTime = x; setTime(x); };
+  const toggleSlow = () => { const v = vid.current; haptic(6); const next = !slow; setSlow(next); if (v) v.playbackRate = next ? 0.5 : 1; };
 
   const startRec = async () => {
     setErr(null); setNotice(null);
@@ -9589,6 +9696,9 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
       setTake({ file: new File([blob], `markup-${Date.now()}.${ext}`, { type }), url });
       setPhase("done");
     };
+    /* marks made before Record draw themselves in over the first moments
+       of the take, one after another, so the viewer watches them arrive */
+    if (shapesRef.current.length) reveal.current = { at: performance.now(), n: shapesRef.current.length };
     haptic(12);
     r.start(250);                                  // slices, so Safari hands data over as it goes
     rec.current = r; setSecs(0); setPhase("recording");
@@ -9658,16 +9768,21 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
                         style={{ width: 44, height: 44, borderRadius: 22, background: t.ink }}>
                   {playing ? <Pause size={17} color="#fff" fill="#fff" /> : <Play size={17} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                 </button>
+                <button onClick={() => stepFrame(-1)} disabled={!dims || broken} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                <button onClick={() => stepFrame(1)} disabled={!dims || broken} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur}
                        onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
-                       className="flex-1" style={{ accentColor: t.ink }} />
-                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 42, textAlign: "right" }}>
-                  {secsLabel(time)}{dur ? ` / ${secsLabel(dur)}` : ""}
-                </span>
+                       className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
+                <button onClick={toggleSlow} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60"
+                        style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
+                                 ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
+                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
               </div>
 
               {/* what you draw with */}
-              <div className="grid gap-2 mt-3" data-tour="markup-tools" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+              <div className="grid gap-2 mt-3" data-tour="markup-tools" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
                 {REVIEW_TOOLS.map(([id, label, Ico]) => {
                   const on = tool === id;
                   return (
@@ -10330,7 +10445,6 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               go: () => push("requests") },
             drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
             events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
-            lessonCount > 0 && { key: "archive", tour: "today-archive", label: tr("All lessons"), n: lessonCount, go: () => push("archive") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           return (<>
@@ -10354,6 +10468,14 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             </Ruled>
           </>);
         })()}
+
+        {/* the archive is not a chore, so it does not sit under To do:
+            its own row, on its own */}
+        {lessonCount > 0 && (
+          <Ruled style={{ marginBottom: SPACE.block }}>
+            <HomeRow tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+          </Ruled>
+        )}
 
         <div style={{ height: 26 }} />
       </div>
@@ -11191,7 +11313,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -11238,7 +11360,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
     <SwipeBack onBack={pop}>
       {view === "feed" && past.length > 0 ? (
         <div className="relative h-full">
-          <LessonFeed lessons={past} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={false} cfg={cfg}
+          <LessonFeed lessons={past} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={false} cfg={cfg} onDownload={live ? onDownload : null}
                       view={view} setView={setView} onOpen={openLesson}
                       right={<button onClick={() => { haptic(6); pop(); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
         </div>
@@ -11292,7 +11414,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
             )}
             {shown.map((l, i) => (
               <LessonRow key={l.id || i} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
-                         saved={false} showWho={false} onOpen={openLesson} />
+                         saved={false} showWho={false} onOpen={openLesson} onDownload={live ? onDownload : null} />
             ))}
           </div>
           {/* the whole archive, said in words, under the last few — the
@@ -11428,7 +11550,7 @@ function FilterRow({ options, value, onChange, label, last, plain }) {
   );
 }
 
-function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport }) {
+function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload }) {
   const posterFor = liveMedia
     ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
     : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
@@ -11490,7 +11612,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
     <SwipeBack onBack={pop}>
       {view === "feed" && shown.length > 0 ? (
         <div className="relative h-full">
-          <LessonFeed lessons={shown} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={!forPlayer} cfg={cfg}
+          <LessonFeed lessons={shown} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={!forPlayer} cfg={cfg} onDownload={onDownload}
                       view={view} setView={setView} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)}
                       right={<button onClick={() => { haptic(6); pop(); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
         </div>
@@ -11554,7 +11676,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
             <div className="nsc-list mb-6">
               {page.map((l, i) => (
                 <LessonRow key={l.id} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
-                           saved={false} showWho={!forPlayer} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)} />
+                           saved={false} showWho={!forPlayer} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)} onDownload={onDownload} />
               ))}
             </div>
           )}
@@ -13387,32 +13509,6 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
 
    Every lesson this person can see, each with a Download — the same
    file the download icon on an open lesson makes. */
-/* one lesson: the poster, the focus, the day — and the file */
-function LogLine({ l, i, role, sport, poster, need, onOpen, onDownload }) {
-  const t = useT();
-  const asked = useRef(false);
-  useEffect(() => { if (need && !asked.current) { asked.current = true; need(); } }, [need]);
-  const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
-  const sub = [role === "coach" && l.who ? l.who : null, when].filter(Boolean).join(" · ");
-  return (
-    <div className="flex items-center gap-2"
-         style={{ minHeight: 64, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-      <button onClick={() => { haptic(8); soft(); onOpen && onOpen(l); }} aria-label={l.focus}
-              className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ paddingTop: 8, paddingBottom: 8 }}>
-        <Poster item={poster} sport={sport} />
-        <span className="flex-1 min-w-0">
-          <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
-          <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
-        </span>
-      </button>
-      <button onClick={() => { haptic(8); onDownload(l); }} aria-label={`${tr("Download")} ${l.focus}`}
-              className="shrink-0 flex items-center justify-center active:opacity-60"
-              style={{ width: 40, height: 40, borderRadius: 20, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
-        <Download size={15} color={t.ink} strokeWidth={2} />
-      </button>
-    </div>
-  );
-}
 
 function LessonLogs({ role, lessons, onDownload, onOpen, pop, liveMedia, onNeedMedia, sport }) {
   const t = useT();
@@ -13438,8 +13534,8 @@ function LessonLogs({ role, lessons, onDownload, onOpen, pop, liveMedia, onNeedM
           ) : (
             <div className="nsc-list">
               {list.map((l, i) => (
-                <LogLine key={l.id} l={l} i={i} role={role} sport={sport} poster={posterFor(l)} need={needFor(l)}
-                         onOpen={onOpen} onDownload={onDownload} />
+                <LessonRow key={l.id} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
+                           showWho={role === "coach"} onOpen={onOpen} onDownload={onDownload} />
               ))}
             </div>
           )}
@@ -15048,7 +15144,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (!nx[coachSport][k].length) delete nx[coachSport][k];
       return nx;
     });
-    done(tr("Recorded"), `${bk.who} · ${tr("no show")}`, DANGER);
+    done(tr("Cancelled"), `${bk.who} · ${bk.time}`, DANGER);
   };
   /* Set when a lesson lands while the player was away. */
   const [arrival, setArrival] = useState(null);
@@ -15666,8 +15762,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (id === "drills")  { setPickFor("drills"); return later(() => setSheet("pickWho")); }
     if (id === "player")  return later(() => setSheet("invite"));
     if (id === "group")   return later(() => setSheet("newGroup"));
-    if (id === "message") return later(() => setSheet("newThread"));
+    if (id === "message") return later(() => setSheet("newThread"));   // a board saved before Call off took the slot
+    if (id === "weather") return later(() => { setCallOffFor(null); setSheet("weather"); });
     if (id === "comp")    { setSheet(null); push("events"); }
+  };
+  /* one lesson as a file, from any list: the row's disc and the feed card */
+  const downloadLesson = async (l) => {
+    if (!l) return;
+    const media = data ? await data.lessonMedia(l.id, l.media ?? l.videos) : [];
+    downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName),
+                        who: role === "coach" || l.type === "Group" ? l.who : null, media, say });
   };
   const bookedAhead = data ? new Set((liveBookingRows || [])
     .filter((b) => b.playerId && b.date >= isoOf(todayMD.m, todayMD.d) && b.status !== "cancelled" && b.status !== "weather")
@@ -16445,7 +16549,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pkey = screen.slice("player:".length);
     const pl = data ? byKey(pkey) : null;
     const pname = pl ? pl.name : pkey;
-    body = <RosterPlayer name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
+    body = <RosterPlayer onDownload={downloadLesson} name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
                         player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
@@ -16694,7 +16798,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "archive" || screen.startsWith("archive:")) {
     const onlyKey = screen.startsWith("archive:") ? screen.slice(8) : null;
     const op = onlyKey && data ? byKey(onlyKey) : null;
-    body = <CoachArchive cfg={cfg} lessons={archive} nouns={cfg.nouns} forPlayer={op ? op.name : onlyKey}
+    body = <CoachArchive onDownload={downloadLesson} cfg={cfg} lessons={archive} nouns={cfg.nouns} forPlayer={op ? op.name : onlyKey}
                          forPlayerId={op ? op.id : null} sport={coachSport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                          onClearPlayer={onlyKey ? () => { pop(); push("archive"); } : null}
                          pop={pop} push={push} say={say} />;
@@ -16825,7 +16929,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
-                  onNoShow={markNoShow}
+                  onNoShow={(b) => { setPeek(b); setSheet("cancelLesson"); }}
                   onPeek={(b) => { setPeek(b); setSheet("peek"); }}
                   onRegister={(b) => { setAttendFor(b); setSheet("attend"); }}
                   code={inviteShown}
@@ -16867,8 +16971,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
-      log:    <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      home:   <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      log:    <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? data.lessonMedia : null}
@@ -16880,7 +16984,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
   }
 
   return (
@@ -17227,7 +17331,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onEditComp={() => { setSheet(null); push("events"); }}
                                             onProfile={() => { setSheet(null); push("player:" + peek.who); }}
                                             onLog={() => { setSheet(null); setPrefill({ m: todayMD.m, d: todayMD.d, ...peek }); go("log"); }}
-                                            onNoShow={() => { markNoShow(peek); setSheet(null); }}
+                                            onNoShow={() => setSheet("cancelLesson")}
                                             onCapture={() => { setSheet(null);
                                               /* a real account films into the real capture sheet, filed under this
                                                  booking; the older capture screen with its invented readings is the harness's */
@@ -17303,6 +17407,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onDone={(parts) => done(tr("Record shared"), `${parts.length} ${tr("parts")}`)}
                                             close={() => setSheet(null)} />
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
+                                            verify={data && role === "coach" ? data.verifyPassword : null}
                                             onDone={async ({ reason, offer }) => {
                                               if (data) {
                                                 /* the booking is marked cancelled; an offered time is booked in its place */
@@ -17343,9 +17448,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               /* the day the coach picked in the diary, not whichever day it
                  happens to be — calling Thursday off on Monday is the whole
                  point of it */
+              : sheet === "cancelLesson" ? <ConfirmPassword
+                                            title={tr("Cancel this lesson")}
+                                            detail={peek ? `${peek.who} · ${peek.time}. ${tr("They are told and the time is freed. Confirm with your password.")}` : tr("Confirm with your password.")}
+                                            actionLabel={tr("Cancel the lesson")} closeLabel={tr("Keep it")}
+                                            onConfirm={async (pw) => {
+                                              if (data) { const c = await data.verifyPassword(pw); if (c.error) return c; }
+                                              await markNoShow(peek);
+                                              return {};
+                                            }}
+                                            close={() => setSheet(null)} />
               : sheet === "weather" ? <WeatherCallOff day={callOffFor ? `${DAY_NAMES[dowOf(callOffFor.m, callOffFor.d, calendar)]} ${callOffFor.d} ${monthName(callOffFor.m)}` : (weatherDay || `${DAY_NAMES[dowToday]} ${todayMD.d}`)}
                                             ahead={!!callOffFor && !(callOffFor.m === todayMD.m && callOffFor.d === todayMD.d)}
                                             bookings={callOffRows(callOffFor || todayMD)} duration={duration}
+                                            verify={data ? data.verifyPassword : async () => ({})}
                                             onConfirm={callOff} close={() => { setCallOffFor(null); setSheet(null); }} />
               : sheet === "reschedule" ? <RescheduleOffer lesson={rescheduleFor || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
                                             onPick={(sl) => { setCalledOff(null); done(tr("Rebooked"), sl); }} close={() => setSheet(null)} />
