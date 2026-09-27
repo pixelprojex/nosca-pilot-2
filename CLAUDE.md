@@ -443,10 +443,19 @@ seeded data and no account.
   boxed poster rows with a Download disc on each. `CoachArchive` (the roster's
   foot, the coach home's To do row, the file's All lessons) always
   shows its search and its filters — Year, Month, Player, Worked on,
-  Kind — grouped by month, its rows the same `LessonRow`s with the same
-  poster box, and a Feed · List switch in its header: the feed runs
-  over whatever the filters left, so a coach flicks through a month's
-  clips the way a player does.
+  Kind, behind one Filter row that unfolds (what is set reads on the
+  row while it is folded) — one boxed list of the same `LessonRow`s
+  with the same poster box, no month headings, and a Feed · List switch
+  in its header: the feed runs over whatever the filters left, so a
+  coach flicks through a month's clips the way a player does. The
+  archive is the player file's lesson list at full length, not a
+  different screen.
+- **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
+  is a lookup by name over the roster, the family, the coach and me;
+  `Avatar` falls back to it whenever it is not handed a `src`, so a
+  person's photo is the same disc on the home rows, the roster, Chat,
+  the bell, the register and the pill. Half the surfaces drew a photo
+  and half drew initials for the same person, which read as two people.
 - **There is no player home page besides the feed.** `PlayerHome` (next
   lesson, tip, coming up, recent lessons) is no longer routed; the
   founder asked for Home and Lessons to be one thing. Booking lives in

@@ -88,6 +88,11 @@ const PLAYER_FILE = {
    one, and each must keep its own answer. */
 const LiveCtx = createContext(false);
 const useLive = () => useContext(LiveCtx);
+/* ONE FACE PER PERSON, EVERYWHERE. Nosca provides a lookup by name over
+   the roster, the family, the coach and me; every Avatar that is not
+   handed a picture asks it. Half the surfaces drew a photo and half
+   drew initials for the same person, which read as two people. */
+const FaceCtx = createContext(null);
 /* The toast, reachable from anything deep in the tree that has a line
    to say and no prop to say it through — the microphone, mostly. */
 const NoticeCtx = createContext(() => {});
@@ -7638,6 +7643,8 @@ function MiniPlayer({ clip, onClose, onExpand }) {
 }
 const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const t = useT();
+  const faces = useContext(FaceCtx);
+  const pic = src || (!group && faces && name ? faces(name) : null);
   const initials = (name || "").split(" ").map((x) => x[0]).filter(Boolean).slice(0, 2).join("");
   /* a face on a wash tile would be wash on wash: `bg`/`fg` let the
      surface underneath decide, so the disc always reads */
@@ -7648,7 +7655,7 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
           style={{ width: size, height: size, background: disc,
                    fontFamily: display, fontSize: size * 0.36, fontWeight: 500,
                    letterSpacing: "-0.02em", color: mark }}>
-      {src ? <img src={src} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} />
+      {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} />
         : group ? <Users size={size * 0.42} color={mark} /> : initials}
     </span>
   );
@@ -11134,14 +11141,12 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
   const sift = lessons.length > 0;
   useEffect(() => { setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, month, who, forPlayer]);
 
-  /* Grouped by month AND year — two Julys a year apart are two headings,
-     not one pile. */
-  const groups = [];
-  page.forEach((l) => {
-    const key = `${l.m} ${yearOf(l)}`.trim();
-    const g = groups.find((x) => x.key === key);
-    if (g) g.items.push(l); else groups.push({ key, m: l.m, y: yearOf(l), items: [l] });
-  });
+  /* one Filter row, unfolding the five: five rows of chrome before the
+     first lesson was a filing cabinet in front of the list. What is set
+     reads on the row while it is folded. */
+  const [filters, setFilters] = useState(false);
+  const active = [year !== "All" ? year : null, month !== "All" ? month : null, who !== "All" ? who.split(" ")[0] : null,
+                  focus !== "All" ? focus : null, kind !== "All" ? kind : null].filter(Boolean);
 
 
   return (
@@ -11180,11 +11185,19 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
 
         {sift && (
           <div className="mb-2">
-            <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
-            <FilterRow label={tr("Month")} options={months} value={month} onChange={setMonth} />
-            {!forPlayer && people.length > 2 && <FilterRow label={tr("Player")} options={people} value={who} onChange={setWho} />}
-            <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
-            <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />
+            <button onClick={() => { haptic(6); setFilters((v) => !v); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
+                    style={{ minHeight: 52, borderTop: RULE.hair(t.ink), borderBottom: filters ? "none" : RULE.hair(t.ink) }}>
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Filter")}</span>
+              <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "60%" }}>{active.length ? active.join(" · ") : tr("All")}</span>
+              <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: filters ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+            </button>
+            {filters && (<>
+              <FilterRow label={tr("Year")} options={years} value={year} onChange={setYear} />
+              <FilterRow label={tr("Month")} options={months} value={month} onChange={setMonth} />
+              {!forPlayer && people.length > 2 && <FilterRow label={tr("Player")} options={people} value={who} onChange={setWho} />}
+              <FilterRow label={tr("Worked on")} options={["All", ...cfg.focus.map((f) => f.label)]} value={focus} onChange={setFocus} />
+              <FilterRow last label={tr("Kind")} options={["All", "Private", "Group"]} value={kind} onChange={setKind} />
+            </>)}
           </div>
         )}
 
@@ -11193,24 +11206,20 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
             <p className="py-12 text-center" style={{ ...TYPE.small, color: t.faint }}>
               {lessons.length === 0 ? tr("No lessons yet") : tr("No matches")}
             </p>
-          ) : groups.map((g) => (
-            <div key={g.key} className="mb-6">
-              <div className="mb-2 flex items-baseline justify-between" style={{ ...TYPE.eyebrow, color: t.faint }}>
-                <span>{g.m} {g.y}</span>
-                <span>{g.items.length}</span>
-              </div>
-              <div className="nsc-list">
-                {g.items.map((l, i) => (
-                  <LessonRow key={l.id} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
-                             saved={false} showWho={!forPlayer} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)} />
-                ))}
-              </div>
+          ) : (
+            /* one boxed list, newest first, the same rows as a player's
+               file — no month headings; the Filter row narrows */
+            <div className="nsc-list mb-6">
+              {page.map((l, i) => (
+                <LessonRow key={l.id} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
+                           saved={false} showWho={!forPlayer} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)} />
+              ))}
             </div>
-          ))}
+          )}
           {shown.length > page.length && (
             <button onClick={() => { haptic(7); setShownCount((n) => n + ARCHIVE_PAGE); }}
                     className="w-full mb-6 active:opacity-70"
-                    style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
+                    style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>
               {tr("Show more")}
             </button>
@@ -15173,6 +15182,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      settings — whatever their role, and whoever coaches them. */
   const myName = account ? account.name : (role === "coach" ? coachName : (activeProfile?.name || "Marcus Tran"));
   const myAvatar = account ? account.avatarUrl : (avatars[activeProfileId] || null);
+  /* the one lookup every Avatar falls back to — see FaceCtx */
+  const faces = useMemo(() => {
+    const m = new Map();
+    const put = (name, path, url) => { if (!name) return; const u = url || (path ? avatarUrl(path) : null); if (u && !m.has(name)) m.set(name, u); };
+    (data?.roster || []).forEach((r) => put(r.name, r.avatarPath));
+    ((data?.family && data.family.members) || []).forEach((r) => put(r.name, r.avatarPath));
+    (data?.dependants || []).forEach((r) => put(r.name, r.avatarPath));
+    if (data?.coach) put(coachName, data.coach.avatarPath);
+    put(myName, null, myAvatar);
+    return (name) => m.get(name) || null;
+  }, [data?.roster, data?.family, data?.dependants, data?.coach, coachName, myName, myAvatar]);
 
   const pKey = `${activeProfileId}:${sport}`;
   const myPractice = data ? data.drills.filter((d) => !account || d.playerId === account.id || role === "coach") : freshAccount ? [] : (practice[pKey] || []);
@@ -16509,7 +16529,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }
 
   return (
-    <LiveCtx.Provider value={live}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <FaceCtx.Provider value={faces}><LiveCtx.Provider value={live}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -17066,7 +17086,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></LiveCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></LiveCtx.Provider></FaceCtx.Provider>
   );
 }
 
