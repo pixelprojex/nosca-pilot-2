@@ -84,6 +84,9 @@ const NEVER = /sign out|log out|delete|leave|remove|withdraw|clear all|call off|
         if (!ok) continue;
         const key = (await state()).text.slice(0, 160); if (seenScreens.has(key)) continue; seenScreens.add(key);
         const controls = await visible();
+        /* every tap goes home through the splash, so a full run is the best
+           part of an hour: TRACE=1 says where it is on stderr */
+        if (process.env.TRACE) console.error(`${role} · ${name} · ${controls.length} controls`);
         for (const c of controls) {
           if (NEVER.test(c.label) || c.on || c.covered) continue;
           /* back to this exact screen before every tap, so each control is judged on its own */

@@ -223,7 +223,8 @@ const leaks = [];
       check("(g) the roster row carries the real lesson count", (await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).innerText()).includes("3 lessons") && /\b1 lesson\b(?!s)/.test(tr0), tr0.slice(0, 240));
       await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const tg = await leak("coach player file"); await shot("coach-player-file");
-      const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"])');
+      /* every row carries its own Download disc now — count the rows, not the discs */
+      const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"]):not([aria-label^="Download"])');
       const rowTexts = await fileRows.allInnerTexts();
       /* the two seeded plus the one just logged, newest first */
       check("(g) the player file lists that player's real lessons, newest first, with the way to them all", /All 3 lessons/.test(tg) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 Aug/i.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
