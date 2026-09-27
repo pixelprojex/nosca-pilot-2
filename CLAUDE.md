@@ -31,6 +31,11 @@ never floods.
 
 Deploys cost credits. Get it right locally first.
 
+A Routine runs `docs/cycles/README.md` every morning: research, one to
+three small items, the full verification, merge, and a dated summary in
+`docs/cycles/` that the next run reads first. Steer it with an issue
+titled "Cycle".
+
 A deploy reaches a phone only when the app is fully relaunched: a
 home-screen app that is merely backgrounded resumes the bundle it was
 opened with. So the build stamps its time into the bundle and into
