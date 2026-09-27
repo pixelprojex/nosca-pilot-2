@@ -313,7 +313,8 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
 /* a box's edge is a dark tone of the sport's own colour, never black:
    the mark (deep green for tennis, the brand green before a sport) at
    half strength over the paper */
-export const EDGE = (t) => HAIR(t.mark || t.accent || t.ink, 0.5);
+export const EDGE = (t) => HAIR(t.mark || t.accent || t.ink, 0.72);
+export const EDGE_W = 1.5;
 /* Radius carries meaning rather than decoration: a control you press is
    nearly square, a surface that holds content is softer, and only the
    things that are genuinely pill-shaped are pills. Uniform curvature
@@ -336,8 +337,8 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
   ink: "#1A1815", sub: "#55504C", faint: "#757069", trace: "#A39C93",
-  hair: "#E8E3DA", page: "#F7F5EF", surface: "#FFFFFF",
-  wash: "#F2EDE4", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
+  hair: "#E8E3DA", page: "#FCFCFA", surface: "#FFFFFF",
+  wash: "#F3F1EC", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
    Anything outside this set is decoration and does not belong. */
@@ -372,7 +373,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
     theme: { ink: "#14180F", sub: "#4B5342", faint: "#6D7264", trace: "#A8AE9C", hair: "#EDEAE1",
-             page: "#F7F4EC", surface: "#FFFFFF", wash: "#F1ECDF", mark: "#896B27", accent: "#896B27", onAccent: "#FFFFFF" },
+             page: "#FCFBF8", surface: "#FFFFFF", wash: "#F4F0E6", mark: "#896B27", accent: "#896B27", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -461,7 +462,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
     theme: { ink: "#0A2222", sub: "#375654", faint: "#5E7573", trace: "#96ADA9", hair: "#E1EDEB",
-             page: "#F2F7F5", surface: "#FFFFFF", wash: "#E8F1EE", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+             page: "#FAFCFB", surface: "#FFFFFF", wash: "#EDF4F1", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -553,7 +554,7 @@ export const SPORTS = {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
     theme: { ink: "#10222E", sub: "#3F5463", faint: "#617480", trace: "#93A6B2", hair: "#E2EAEF",
-             page: "#F2F7F9", surface: "#FFFFFF", wash: "#E9F1F5", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+             page: "#FAFCFD", surface: "#FFFFFF", wash: "#EEF4F7", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -648,7 +649,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
     theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
-             page: "#F9F3EF", surface: "#FFFFFF", wash: "#F4EBE4", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
+             page: "#FCFAF9", surface: "#FFFFFF", wash: "#F6EFEA", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -734,7 +735,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
     theme: { ink: "#1E1830", sub: "#544C6A", faint: "#746C86", trace: "#A199B4", hair: "#E9E5F0",
-             page: "#F6F3FA", surface: "#FFFFFF", wash: "#EFEBF7", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+             page: "#FBFAFD", surface: "#FFFFFF", wash: "#F2EFF8", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -820,7 +821,7 @@ export const SPORTS = {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
     theme: { ink: "#241A1D", sub: "#5D4C51", faint: "#7A6C71", trace: "#AB9AA0", hair: "#EEE6E8",
-             page: "#F9F3F5", surface: "#FFFFFF", wash: "#F4EBEE", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+             page: "#FCFAFB", surface: "#FFFFFF", wash: "#F6EFF2", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1791,14 +1792,14 @@ const ShimmerCSS = () => (
     /* a list is a column of boxes: each row its own surface with a
        clear edge, never a run of text separated by hairlines */
     .nsc-list { border: none !important; }
-    .nsc-list > * { background: var(--surface); border: 1px solid var(--edge) !important; border-radius: 8px;
+    .nsc-list > * { background: var(--surface); border: 1.5px solid var(--edge) !important; border-radius: 8px;
                     margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
     .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
     .nsc-list > .nsc-swipe > div:last-child { background: var(--surface) !important; padding-left: 14px; padding-right: 14px; }
-    .nsc-day { background: var(--surface); border: 1px solid var(--edge); border-radius: 8px; overflow: hidden; }
+    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
@@ -4757,9 +4758,32 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
    focus and one grey line; the lesson page is the player. Nothing
    plays until it is tapped, nothing snaps to the screen, and the tab
    shares the app's paper with every other tab. */
-function Poster({ item, size = 56, radius = 8 }) {
+/* the sport, drawn once: what sits in a lesson's poster box when
+   nothing was filmed. Plain line glyphs in the sport's own colour. */
+function SportGlyph({ sport, size = 22, color }) {
   const t = useT();
-  if (!item) return null;
+  const c = color || t.mark;
+  const P = { stroke: c, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+  const body = {
+    golf:       <><path d="M7 21V3" {...P} /><path d="M7 3l9 3.5L7 10" {...P} /><path d="M3 21h11" {...P} /></>,
+    tennis:     <><circle cx="14.5" cy="9" r="5.5" {...P} /><path d="M10.6 12.9L4 19.5" {...P} /><path d="M11.5 7.5l6 3M16 6l-3 6" {...P} strokeWidth={1.1} /></>,
+    rowing:     <><path d="M3 21L14 10" {...P} /><ellipse cx="17" cy="7" rx="3.2" ry="4.6" transform="rotate(45 17 7)" {...P} /></>,
+    squash:     <><ellipse cx="14" cy="8" rx="4.4" ry="6.2" transform="rotate(40 14 8)" {...P} /><path d="M10.2 12.6L4 19" {...P} /></>,
+    padel:      <><rect x="9" y="3" width="10" height="12" rx="4.5" {...P} /><path d="M12.5 15l-6.5 6" {...P} /><circle cx="12.5" cy="8" r="0.9" fill={c} /><circle cx="15.5" cy="8" r="0.9" fill={c} /><circle cx="14" cy="11" r="0.9" fill={c} /></>,
+    equestrian: <><path d="M6 20v-9a6 6 0 0 1 12 0v9" {...P} /><path d="M4.5 20h3M16.5 20h3" {...P} /></>,
+  }[sport] || <circle cx="12" cy="12" r="6" {...P} />;
+  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{body}</svg>;
+}
+
+function Poster({ item, size = 56, radius = 8, sport }) {
+  const t = useT();
+  if (!item) return (
+    /* no clip: the same box, the sport's glyph in it, so every row lines up */
+    <span className="flex items-center justify-center shrink-0" aria-hidden="true"
+          style={{ width: size, height: size, borderRadius: radius, background: t.wash, border: `${EDGE_W}px solid ${HAIR(t.mark || t.ink, 0.22)}` }}>
+      <SportGlyph sport={sport} size={Math.round(size * 0.42)} />
+    </span>
+  );
   const flat = item.type === "sim" || item.type === "audio";
   const glyph = item.type === "audio" ? <Mic size={13} color="#fff" strokeWidth={1.8} />
     : item.type === "photo" ? null
@@ -4778,7 +4802,7 @@ function Poster({ item, size = 56, radius = 8 }) {
   );
 }
 
-function LessonRow({ lesson: l, poster, need, onOpen, saved, showWho, first, index = 0 }) {
+function LessonRow({ lesson: l, poster, need, onOpen, saved, showWho, first, index = 0, sport }) {
   const t = useT();
   const asked = useRef(false);
   /* a real account asks for the lesson's files once, when the row
@@ -4794,7 +4818,7 @@ function LessonRow({ lesson: l, poster, need, onOpen, saved, showWho, first, ind
             className="w-full flex items-center gap-3.5 text-left active:opacity-50"
             style={{ minHeight: 64, paddingTop: 8, paddingBottom: 8, borderBottom: RULE.hair(t.ink),
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(index, 5) * 22}ms backwards` }}>
-      <Poster item={poster} />
+      <Poster item={poster} sport={sport} />
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
           {l.unread && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.ink }} />}
@@ -5182,9 +5206,8 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
   return (
     <div className="absolute inset-0" style={{ background: "#0A0D0E" }}>
 
-      <div className="absolute inset-x-0 pointer-events-none" aria-hidden="true"
-           style={{ top: 0, height: 104, zIndex: 20,
-                    background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)" }} />
+      {/* nothing shades the top of the clip: the switch and the header
+          sit on their own light pills */}
 
       {/* TEST CONTROL — not part of the product. Sits here because this
           is the screen it loads into. */}
@@ -6136,8 +6159,7 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
              hairline do the grouping; a border is reserved for emphasis. */
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
-                   border: accent ? `1px solid ${accent}2E` : `1px solid ${EDGE(t)}`,
-                   boxShadow: accent ? "none" : (t.elev || ELEV).rest,
+                   border: accent ? `${EDGE_W}px solid ${accent}2E` : `${EDGE_W}px solid ${EDGE(t)}`,
                    transition: "transform 140ms cubic-bezier(.22,1,.36,1)", willChange: "transform",
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms both`, ...style }}>
       {/* one pass of light as it arrives, never again */}
@@ -6194,7 +6216,7 @@ function Celebration({ label, sub, onDone, tone = "accent" }) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center" aria-live="polite"
-         style={{ zIndex: 70, background: `${t.page}F2`, backdropFilter: "blur(6px)", opacity: 1,
+         style={{ zIndex: 70, background: `${t.page}F2`, opacity: 1,
                   animation: "celebFade 1750ms ease backwards" }}>
       {/* halo pushing out from the mark */}
       <span className="absolute rounded-full" aria-hidden="true"
@@ -7191,7 +7213,7 @@ const Rail = ({ children, tone, style = {} }) => {
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest, border: `1px solid ${EDGE(t)}`,
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -7283,13 +7305,13 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      new paper is very nearly the page itself. */
   const bg = tone === "accent" ? t.accent : on ? t.ink : t.surface;
   const fg = tone === "accent" ? t.onAccent : on ? "#fff" : t.ink;
-  const lift = tone === "accent" || on ? "none" : (t.elev || ELEV).rest;
+  const lift = "none";   /* a bordered tile casts nothing — the shadow read as a glow around the edge */
   return (
     <button data-tour={tour} aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
             {...sink(t, lift)}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
-                     border: tone === "accent" || on ? "1px solid transparent" : `1px solid ${EDGE(t)}`,
+                     border: tone === "accent" || on ? `${EDGE_W}px solid transparent` : `${EDGE_W}px solid ${EDGE(t)}`,
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
@@ -8902,7 +8924,7 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
       ) : (
         <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
           {lessons.map((l, i) => (
-            <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)}
+            <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)} sport={sport}
                        saved={saved.includes(l.id)} showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} />
           ))}
         </div>
@@ -9896,7 +9918,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               </div>
             )}
             {upcoming.length > 0 && (
-              <button onClick={() => { haptic(7); soft(); go("calendar"); }}
+              <button onClick={() => { haptic(7); soft(); if (onPeek) onPeek(upcoming[0]); else go("calendar"); }}
                       className="w-full flex items-center gap-3 pr-4 text-left active:opacity-60"
                       /* No rule of its own: the last DayRow above already
                          draws a hairline, and a 1px section on top of that
@@ -10791,7 +10813,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
-function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -10824,7 +10846,6 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
     : (l) => Array.from({ length: l.videos || 0 }, () => ({ type: "sim" }));
   const openLesson = (l) => { if (live && l.id && onOpenLesson) onOpenLesson(l); else push("history:" + (r.id || name)); };
   /* day against day, so "today" holds until midnight and not until noon */
-  const daysSince = live && r.lastLesson ? (() => { const t0 = new Date(); t0.setHours(0, 0, 0, 0); return Math.max(0, Math.round((t0 - localDate(r.lastLesson)) / 86400000)); })() : null;
   /* Private lessons and the group sessions this player was marked at —
      lesson_attendees records who was there, so the coach's count and
      the player's own agree. */
@@ -10846,36 +10867,6 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
       ) : (
       <Screen title={name} onBack={pop} meta={meta}>
         <div className="px-6 pb-2">
-
-          {/* PAST LESSONS, AND NOTHING IN FRONT OF IT
-
-              A coach opening a player two minutes before a lesson wants
-              one thing: what happened last time. It used to be four
-              tiles, a note, an eyebrow and three rows down the page,
-              behind a thin outlined button at the foot of the list. It
-              is the first thing on the screen now, it is the size of the
-              thing it leads to, and it carries the two facts worth
-              knowing before you tap it. */}
-          <button data-tour="player-all-lessons"
-                  onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
-                  className="w-full flex items-center gap-4 text-left active:opacity-70"
-                  style={{ minHeight: 72, marginBottom: 12, paddingTop: 4, paddingBottom: 14 }}>
-            {/* The count at title size with the last date beside it — a
-                figure a coach reads walking, not a hero numeral bigger
-                than the screen's own H1 restating the rows beneath. */}
-            <span className="flex-1 min-w-0">
-              <span className="block" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Past lessons")}</span>
-              <span className="flex items-baseline" style={{ marginTop: SPACE.knit, gap: 10 }}>
-                <span style={{ ...TYPE.title, ...FIG, color: t.ink }}>{live ? f.done : past.length}</span>
-                <span className="truncate" style={{ ...TYPE.small, color: t.sub }}>
-                  {live
-                    ? (r.lastLesson ? `${tr("Last")} ${daysSince === 0 ? tr("today") : fmtWeekDay(localDate(r.lastLesson))}` : tr("None yet"))
-                    : `${tr("Last")} ${r.last}d ${tr("ago")}`}
-                </span>
-              </span>
-            </span>
-            <ChevronRight size={19} color={t.sub} />
-          </button>
 
           {/* the four things a coach opened this file to do, before
               anything they have to read */}
@@ -10920,20 +10911,20 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
             )}
             {shown.map((l, i) => (
-              <LessonRow key={l.id || i} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)}
+              <LessonRow key={l.id || i} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
                          saved={false} showWho={false} onOpen={openLesson} />
             ))}
           </div>
           {/* the whole archive, said in words, under the last few — the
               block at the top says how many; this is the door */}
-          {past.length > shown.length && (
-            <button data-tour="player-archive" onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
+          {past.length > 0 && (
+            <button data-tour="player-all-lessons" onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
                     className="w-full flex items-center justify-center gap-2 mb-7 active:opacity-70"
-                    style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `1px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                    style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
               {tr("All")} {live ? f.done : past.length} {tr("lessons")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
             </button>
           )}
-          {past.length > 0 && past.length <= shown.length && <div style={{ height: 12 }} />}
+
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
@@ -11059,7 +11050,11 @@ function FilterRow({ options, value, onChange, label, last, plain }) {
   );
 }
 
-function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer }) {
+function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport }) {
+  const posterFor = liveMedia
+    ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
+    : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
+  const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
   const t = useT();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState("All");
@@ -11156,19 +11151,9 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
                 <span>{g.items.length}</span>
               </div>
               <div className="nsc-list">
-                {g.items.map((l) => (
-                  <button key={l.id} onClick={() => { haptic(6); push(`clesson:${l.id}:${l.who}`); }}
-                          className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                          style={{ minHeight: 62, borderBottom: RULE.hair(t.ink) }}>
-                    <span className="shrink-0 text-center" style={{ width: 26, fontFamily: display, fontSize: 16, color: t.faint }}>{l.d}</span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{forPlayer ? l.focus : l.who}</span>
-                      <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>
-                        {forPlayer ? ((l.subs || []).join(" · ") || l.note || "") : l.focus}
-                      </span>
-                    </span>
-                    <ChevronRight size={15} color={t.trace || t.faint} />
-                  </button>
+                {g.items.map((l, i) => (
+                  <LessonRow key={l.id} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
+                             saved={false} showWho={!forPlayer} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)} />
                 ))}
               </div>
             </div>
@@ -14216,7 +14201,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const signupPath = signupRole === "coach" ? "coach" : "player";
   const [juvenile, setJuvenile] = useState(sc ? !!sc.juvenile : false);
   const [familyGuide, setFamilyGuide] = useState(false);
-  const [splash, setSplash] = useState(!sc);
+  /* the branded opening once every so often, not on every open: a
+     coach opening the app twenty times a day should see their day, not
+     a ceremony. The harness keeps it (no account), so its screens and
+     the walkthrough are unchanged. */
+  const SPLASH_EVERY = 12 * 60 * 60 * 1000;
+  const [splash, setSplash] = useState(() => {
+    if (sc) return false;
+    if (!account) return true;
+    try { const at = Number(localStorage.getItem("nosca.splash.at") || 0); if (Date.now() - at < SPLASH_EVERY) return false; localStorage.setItem("nosca.splash.at", String(Date.now())); } catch { /* private mode */ }
+    return true;
+  });
   useEffect(() => {
     if (!account) return;               // demo/harness path — untouched
     if (account.sport) setCoachSport(account.sport);
@@ -15992,7 +15987,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip}
-                        cfg={cfg} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
+                        cfg={cfg} sport={coachSport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                         onLog={(who) => { setPrefill({ who: who.name || pname, playerId: who.id || (pl ? pl.id : null), kind: "Private" }); go("log"); }} />;
   /* A coach searches their own drill library; anyone else searches the
      drills set for them — myLibrary is a coach's, and is empty for a
@@ -16221,7 +16216,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const onlyKey = screen.startsWith("archive:") ? screen.slice(8) : null;
     const op = onlyKey && data ? byKey(onlyKey) : null;
     body = <CoachArchive cfg={cfg} lessons={archive} nouns={cfg.nouns} forPlayer={op ? op.name : onlyKey}
-                         forPlayerId={op ? op.id : null}
+                         forPlayerId={op ? op.id : null} sport={coachSport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                          onClearPlayer={onlyKey ? () => { pop(); push("archive"); } : null}
                          pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {

@@ -90,9 +90,16 @@ seeded data and no account.
   repeated as a literal in `scripts/icons.mjs`, `manifest.webmanifest`,
   `index.html` and `public/sw.js`, which run outside the bundle — change
   all five together. Contrast: paper on it 11:1, white 12:1.
-- **The loading screen is the brand colour and one small grey ring.**
-  No text, no mark, no wordmark. `BrandLoader` in `brandmark.jsx`; the
-  only thing that ever joins the ring is the way out after a long wait.
+- **The loading screen is plain paper and one small grey ring, and it
+  is seen as little as possible.** `BrandLoader` in `brandmark.jsx` is
+  near-white (`#FCFCFA`) with a grey ring that appears only after 380ms,
+  so a session that restores in a blink shows nothing; the brand green
+  is the app icon and the splash, not the loader (the founder called
+  the green loading screen a weird colour). No text, no mark, no
+  wordmark; the only thing that ever joins the ring is the way out
+  after a long wait. The sport splash on opening plays for a real
+  account at most once every twelve hours (`nosca.splash.at`); the
+  harness and the walkthrough keep it every time.
 - **One mark.** `brandmark.jsx` owns the two rings, because the gate in
   App.jsx renders before Nosca.jsx exists. The rings weave — each is
   broken by a gap where the other passes over — so nothing is knocked
@@ -369,34 +376,48 @@ seeded data and no account.
   once, and the founder asked for it back the same day. A coach's face
   still opens their settings directly.
 - **A list is a column of boxes, and every edge is the sport's own
-  dark tone.** `EDGE(t)` is the sport's `mark` at half strength (the
-  brand green before a sport) — never black or ink — and it is the
-  `--edge` of `.nsc-list` boxes, `.nsc-day`, `ActTile`, `Card` and
-  `Tile`. `.nsc-list` draws every child as its own surface — a fill,
-  the 1px edge, 8px corners, 10px between — and `.nsc-day` boxes a
-  diary day with its times as rows inside. The bell, Chat, the coach's day (`Ruled`), the diary and the
+  dark tone, 1.5px, with nothing glowing around it.** `EDGE(t)` is the
+  sport's `mark` at 72% over the paper (the brand green before a sport)
+  — never black or ink — and `EDGE_W` is 1.5. It is the `--edge` of
+  `.nsc-list` boxes, `.nsc-day`, `ActTile`, `Card` and `Tile`, and a
+  bordered surface casts no shadow (the resting shadow under a bordered
+  tile read as a glow; the founder asked for it gone). Depth stays on
+  the raised plus, the filled `Button`, the sheet and a dragged tile.
+  `.nsc-list` draws every child as its own surface — a fill, the edge,
+  8px corners, 10px between — and `.nsc-day` boxes a diary day with its
+  times as rows inside.
+- **The paper is close to white.** Every theme's `page` is a near-white
+  with the faintest sport cast (`#FAFCFB` for tennis, `#FCFBF8` for
+  golf); `surface` is white; the sport's tint lives in `wash`, the
+  accent, the mark and the edges. The off-white creams read as busy and
+  the founder asked for backgrounds much closer to white. The bell, Chat, the coach's day (`Ruled`), the diary and the
   Lessons list all use it. Rows of text separated by hairlines were the
   thing the founder called out on the bell, Chat and the diary; a box
   per item is what reads as compartmentalised. Square-ish corners are
   fine; the app does not need round-edged boxes everywhere.
+- **Tapping a lesson on the coach's home opens the lesson, never the
+  diary.** Today's rows and tomorrow's foot row open `LessonPeek`, whose
+  Profile action opens the player's file; the foot row used to jump to
+  the diary and the founder did not want to be taken there.
 - **The coach's day is two lists, not one.** *To log* is everything
   finished and not written up — today's, then the days before that were
   never written up — and every row carries Log. Below it is what is
   still to come, with the live one marked. One list where a lesson at
   nine this morning and one at five this evening were the same row was
   the thing the founder could not read.
-- **A player's file opens on their history, and shows it the way the
-  player sees it.** The first thing on it is a block the size of the
-  thing it leads to: the number of lessons, when the last one was, and
-  the whole archive behind it. Under the four tiles, the last five
-  lessons are `LessonRow`s in a boxed list — the lesson's first file as
-  a poster, the focus, one grey line — with a List · Feed switch beside
-  the head (the feed is `LessonFeed` over that player's lessons, with
-  Back on its header pill) and an "All N lessons" button under them.
-  `CoachArchive` (Settings › Lesson logs, the roster's foot, the coach
-  home's To do row, the file's All lessons) always shows its search and
-  its filters — Year, Month, Player, Worked on, Kind — grouped by month
-  in boxed rows.
+- **A player's file is simple, and shows the lessons the way the player
+  sees them.** The four tiles first, then the last five lessons as
+  `LessonRow`s in a boxed list — the lesson's first file as a 56px
+  poster, or the sport's glyph (`SportGlyph`: flag, racket, oar, squash
+  racket, padel bat, horseshoe) in the same box when nothing was filmed,
+  so every row lines up — with a List · Feed switch beside the head (the
+  feed is `LessonFeed` over that player's lessons, with Back on its
+  header pill) and an "All N lessons" button under them. No hero count
+  above the tiles. `CoachArchive` (Settings › Lesson logs, the roster's
+  foot, the coach home's To do row, the file's All lessons) always
+  shows its search and its filters — Year, Month, Player, Worked on,
+  Kind — grouped by month, its rows the same `LessonRow`s with the same
+  poster box.
 - **There is no player home page besides the feed.** `PlayerHome` (next
   lesson, tip, coming up, recent lessons) is no longer routed; the
   founder asked for Home and Lessons to be one thing. Booking lives in
