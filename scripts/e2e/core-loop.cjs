@@ -341,7 +341,7 @@ const leaks = [];
         check("(i) the coach's roster counts a group session for the players who were at it", /3 lessons/.test(rowText), rowText);
         await row.click(); await page.waitForTimeout(1200);
         const t = await leak("coach player file with a group");
-        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && /PAST LESSONS\s*3/i.test(t.replace(/\s+/g, " ")) && !t.includes("private"), t.slice(0, 240));
+        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && /All 3 lessons/.test(t) && !t.includes("private"), t.slice(0, 240));
         await ctx.close();
       }
       {

@@ -90,9 +90,16 @@ seeded data and no account.
   repeated as a literal in `scripts/icons.mjs`, `manifest.webmanifest`,
   `index.html` and `public/sw.js`, which run outside the bundle — change
   all five together. Contrast: paper on it 11:1, white 12:1.
-- **The loading screen is the brand colour and one small grey ring.**
-  No text, no mark, no wordmark. `BrandLoader` in `brandmark.jsx`; the
-  only thing that ever joins the ring is the way out after a long wait.
+- **The loading screen is plain paper and one small grey ring, and it
+  is seen as little as possible.** `BrandLoader` in `brandmark.jsx` is
+  near-white (`#FCFCFA`) with a grey ring that appears only after 380ms,
+  so a session that restores in a blink shows nothing; the brand green
+  is the app icon and the splash, not the loader (the founder called
+  the green loading screen a weird colour). No text, no mark, no
+  wordmark; the only thing that ever joins the ring is the way out
+  after a long wait. The sport splash on opening plays for a real
+  account at most once every twelve hours (`nosca.splash.at`); the
+  harness and the walkthrough keep it every time.
 - **One mark.** `brandmark.jsx` owns the two rings, because the gate in
   App.jsx renders before Nosca.jsx exists. The rings weave — each is
   broken by a gap where the other passes over — so nothing is knocked

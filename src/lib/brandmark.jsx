@@ -85,9 +85,15 @@ const KEYFRAMES = `
   [data-brand-loader] *{animation-duration:2.4s!important}
 }`;
 
-export function BrandLoader({ onTap, action, absolute = false }) {
+/* Plain: the paper colour and one small grey ring — and the ring only
+   after a moment, so a session that restores in a blink shows nothing
+   at all rather than a flash of loading screen. */
+const LOADER_PAPER = "#FCFCFA";
+export function BrandLoader({ onTap, action, absolute = false, delay = 380 }) {
   const Tag = onTap ? "button" : "div";
   const D = 28, W = 2.5, R = (D - W) / 2, C = 2 * Math.PI * R;
+  const [shown, setShown] = React.useState(delay === 0);
+  React.useEffect(() => { if (delay === 0) return; const x = setTimeout(() => setShown(true), delay); return () => clearTimeout(x); }, [delay]);
   return (
     <Tag
       data-brand-loader
@@ -95,15 +101,17 @@ export function BrandLoader({ onTap, action, absolute = false }) {
       aria-label="Loading"
       aria-busy="true"
       className={`${absolute ? "absolute inset-0" : "min-h-screen w-full"} flex flex-col items-center justify-center`}
-      style={{ background: BRAND, zIndex: absolute ? 65 : undefined, cursor: onTap ? "pointer" : "default", border: "none", padding: 0 }}
+      style={{ background: LOADER_PAPER, zIndex: absolute ? 65 : undefined, cursor: onTap ? "pointer" : "default", border: "none", padding: 0 }}
     >
       <style>{KEYFRAMES}</style>
-      <svg width={D} height={D} viewBox={`0 0 ${D} ${D}`} aria-hidden="true"
-           style={{ animation: "nsSpin 900ms linear infinite" }}>
-        <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(244,246,243,0.22)" strokeWidth={W} />
-        <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(244,246,243,0.85)" strokeWidth={W}
-                strokeLinecap="round" strokeDasharray={`${C * 0.28} ${C}`} transform={`rotate(-90 ${D / 2} ${D / 2})`} />
-      </svg>
+      {shown && (
+        <svg width={D} height={D} viewBox={`0 0 ${D} ${D}`} aria-hidden="true"
+             style={{ animation: "nsSpin 900ms linear infinite" }}>
+          <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(20,24,20,0.10)" strokeWidth={W} />
+          <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(20,24,20,0.45)" strokeWidth={W}
+                  strokeLinecap="round" strokeDasharray={`${C * 0.28} ${C}`} transform={`rotate(-90 ${D / 2} ${D / 2})`} />
+        </svg>
+      )}
       {action && (
         <div style={{ position: "absolute", bottom: "max(40px, env(safe-area-inset-bottom, 40px))",
                       animation: "nsFadeUp 400ms ease both" }}>{action}</div>

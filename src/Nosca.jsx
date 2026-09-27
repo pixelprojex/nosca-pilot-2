@@ -14201,7 +14201,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const signupPath = signupRole === "coach" ? "coach" : "player";
   const [juvenile, setJuvenile] = useState(sc ? !!sc.juvenile : false);
   const [familyGuide, setFamilyGuide] = useState(false);
-  const [splash, setSplash] = useState(!sc);
+  /* the branded opening once every so often, not on every open: a
+     coach opening the app twenty times a day should see their day, not
+     a ceremony. The harness keeps it (no account), so its screens and
+     the walkthrough are unchanged. */
+  const SPLASH_EVERY = 12 * 60 * 60 * 1000;
+  const [splash, setSplash] = useState(() => {
+    if (sc) return false;
+    if (!account) return true;
+    try { const at = Number(localStorage.getItem("nosca.splash.at") || 0); if (Date.now() - at < SPLASH_EVERY) return false; localStorage.setItem("nosca.splash.at", String(Date.now())); } catch { /* private mode */ }
+    return true;
+  });
   useEffect(() => {
     if (!account) return;               // demo/harness path — untouched
     if (account.sport) setCoachSport(account.sport);
