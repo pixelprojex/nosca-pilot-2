@@ -22,7 +22,18 @@ export const BRAND = "NOSCA";
 /* Where "Email support" goes. Unset in a build, and the help rows are
    not shown — nothing offers a route that leads nowhere. */
 const SUPPORT_EMAIL = (import.meta.env && import.meta.env.VITE_SUPPORT_EMAIL) || "";
-const VERSION = "1.2.0 (38)";
+/* when this bundle was built — Settings › Version, so a phone can say
+   which build it is running before anyone chases a fix that "did not
+   come through" */
+const BUILT_AT = (() => {
+  const iso = import.meta.env && import.meta.env.VITE_BUILD_TIME;
+  const d = iso ? new Date(iso) : null;
+  return d && !Number.isNaN(d.getTime()) ? d : null;
+})();
+/* the build's own stamp — in a support mail's signature, so a report
+   names the build it came from. It was an invented "1.2.0 (38)" that
+   never changed. */
+const VERSION = BUILT_AT ? `build ${BUILT_AT.toISOString().slice(0, 16).replace("T", " ")} UTC` : "";
 
 /* The mark lives in lib/brandmark.jsx, because the loading screen is
    drawn from the same geometry and both are on screen before this file
@@ -13343,6 +13354,10 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Terms"), tour: "settings-terms", onTap: () => push("legal:terms") },
       { label: tr("Privacy"), tour: "settings-privacy", onTap: () => push("legal:privacy") },
       { label: tr("Licences"), tour: "settings-licences", onTap: () => push("legal:licences") },
+      /* which build this phone is running: a home-screen app can carry
+         yesterday's bundle until it is fully relaunched */
+      BUILT_AT && { label: tr("Version"), value: `${fmtWeekDay(BUILT_AT)} · ${fmtTime(BUILT_AT.getHours() * 60 + BUILT_AT.getMinutes())}`,
+        keys: ["build", "update", "release", "deploy"] },
     ] },
     { title: null, rows: [
       { label: tr("Sign out"), tour: "settings-signout", onTap: restart, keys: ["log out", "logout"] },
@@ -13407,7 +13422,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         ))}
 
         {/* the version, at the very foot, and not under a search result */}
-        <p className="text-center pb-6" style={{ ...TYPE.caption, color: t.faint }}>Nosca {VERSION}</p>
+        {/* the build lives on the Version row above — one place */}
+        <div style={{ height: 24 }} />
       </Screen>
     </SwipeBack>
   );
@@ -13565,7 +13581,7 @@ function Legal({ docKey, pop }) {
       <Screen title={d.title} onBack={pop} meta={d.updated}>
         <div className="px-6 pb-4">
           {d.body.map(([h, p]) => (<div key={h} className="mb-6"><h3 className="mb-2" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{h}</h3><p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.65, color: t.sub }}>{p}</p></div>))}
-          <p className="pt-2" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{BRAND} · Registered in Ireland · {VERSION}</p>
+          <p className="pt-2" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{BRAND} · Registered in Ireland</p>
         </div>
       </Screen>
     </SwipeBack>
@@ -14598,6 +14614,38 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     navigator.serviceWorker.addEventListener("message", onMsg);
     return () => navigator.serviceWorker.removeEventListener("message", onMsg);
   }, [!!data]);
+
+  /* A NEW BUILD TAKES EFFECT WHEN THE APP COMES BACK. A home-screen app
+     that is only backgrounded resumes the bundle it was opened with, so
+     a deploy appeared to do nothing until the phone killed and
+     relaunched it. On every return to the front, ask the server which
+     build it is serving (/version.json, written by the build, never
+     cached); if it is newer than this one and nothing is open — a
+     top-level tab, no sheet — reload. Mid-anything, leave it: the next
+     quiet return picks it up. At most once a minute. */
+  const quietRef = useRef(true);
+  quietRef.current = stack.length <= 1 && !sheet;
+  useEffect(() => {
+    if (demo || sc || !import.meta.env.PROD || typeof document === "undefined") return;
+    const mine = import.meta.env.VITE_BUILD_TIME || "";
+    if (!mine) return;
+    let last = 0;
+    const check = async () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - last < 60000) return;
+      last = now;
+      try {
+        const r = await fetch(`/version.json?t=${now}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (j && typeof j.built === "string" && j.built > mine && quietRef.current) window.location.reload();
+      } catch (e) { /* offline, or a server without a stamp yet */ }
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => { document.removeEventListener("visibilitychange", check); window.removeEventListener("focus", check); };
+  }, [demo, sc]);
 
   /* A join link opened by someone already signed in. Taken from the app
      once (onInviteUsed) and kept here until it is dealt with: a player

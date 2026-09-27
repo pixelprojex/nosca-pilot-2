@@ -31,6 +31,15 @@ never floods.
 
 Deploys cost credits. Get it right locally first.
 
+A deploy reaches a phone only when the app is fully relaunched: a
+home-screen app that is merely backgrounded resumes the bundle it was
+opened with. So the build stamps its time into the bundle and into
+`/version.json` (vite.config.js), Settings › Version shows which build
+a phone is running, and the app compares itself against the server on
+every return to the front and reloads itself when it is newer and
+nothing is open. Before chasing a fix that "did not come through", ask
+for the Version row — three rounds were spent on fixes that had landed.
+
 ## The live tree — nothing else is reached
 
 ```
