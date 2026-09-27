@@ -13,7 +13,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
  *     on after the component unmounts.
  */
 
-const pickMime = (kinds) => {
+export const pickMime = (kinds) => {
   if (typeof MediaRecorder === "undefined") return null;
   for (const m of kinds) {
     try { if (MediaRecorder.isTypeSupported(m)) return m; } catch (e) { /* older browsers throw */ }
@@ -21,7 +21,7 @@ const pickMime = (kinds) => {
   return null;                      // let the browser choose its default
 };
 
-const VIDEO_TYPES = ["video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+export const VIDEO_TYPES = ["video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
 const AUDIO_TYPES = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
 
 export function useCapture() {

@@ -1367,6 +1367,30 @@ drop trigger if exists lessons_notify on public.lessons;
 create trigger lessons_notify after insert on public.lessons
   for each row execute function public.trg_lessons_notify();
 
+-- ---------- a clip added to a lesson later — a coach's markup ----------
+-- Files uploaded with the lesson ride on "Lesson logged"; one added after
+-- that half hour is news of its own, so the player (and a junior's
+-- adults) hear about it and are taken to the lesson.
+create or replace function public.trg_lesson_media_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare l record; a uuid; what text;
+begin
+  select id, player_id, coach_id, focus, created_at into l from public.lessons where id = new.lesson_id;
+  if l.id is null or l.player_id is null then return new; end if;
+  if new.created_at < l.created_at + interval '30 minutes' then return new; end if;
+  what := case new.kind when 'video' then 'New clip' when 'photo' then 'New photo' else 'New voice note' end || ' on ' || l.focus;
+  perform public.notify(l.player_id, 'lesson', what, public.name_of(l.coach_id), jsonb_build_object('screen', 'lesson', 'id', l.id));
+  for a in select public.adults_for(l.player_id) loop
+    perform public.notify(a, 'lesson', what || ' for ' || public.first_name_of(l.player_id), public.name_of(l.coach_id),
+      jsonb_build_object('screen', 'family', 'id', l.id));
+  end loop;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists lesson_media_notify on public.lesson_media;
+create trigger lesson_media_notify after insert on public.lesson_media
+  for each row execute function public.trg_lesson_media_notify();
+
 -- ---------- a player asks to join; the coach answers ----------
 create or replace function public.trg_requests_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$

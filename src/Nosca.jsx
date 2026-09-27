@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useContext, createContext } from "react";
-import { useCapture } from "./lib/useCapture";
+import { useCapture, pickMime, VIDEO_TYPES } from "./lib/useCapture";
 import QRCode from "qrcode";
 import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import { MAX_UPLOAD_MB, avatarUrl, registerKey, localDate } from "./lib/useNoscaData";
@@ -11,7 +11,7 @@ import {
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
-  ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus,
+  ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle,
   Edit3, Trophy, Star, CloudRain, Copy, Settings2, BellOff
 } from "lucide-react";
 
@@ -3357,7 +3357,6 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
               <div className="flex flex-col gap-2.5">
                 {mine.map((it, i) => (
                   <MediaRow key={it.id} item={{ ...it, secs: 12 }} cfg={cfg} sport={sport} delay={i * 55}
-                            onAnnotate={() => say(tr("Mark it up in the log"))}
                             onTranscribe={() => {}}
                             onRemove={() => setCaptured({ ...captured, [booking.who]: mine.filter((x) => x.id !== it.id) })} />
                 ))}
@@ -9142,6 +9141,7 @@ function LessonStage({ item, onAnnotate }) {
       );
     }
     return (
+      <>
       <div className="relative flex justify-center" style={{ minHeight: ratio ? 0 : 200 }}>
         {!ratio && <div className="absolute inset-0"><Bone h={200} r={16} /></div>}
         <video ref={ref} key={`${item.url}#${tries}`} src={item.url} playsInline preload="metadata" controls={playing}
@@ -9161,6 +9161,15 @@ function LessonStage({ item, onAnnotate }) {
           </button>
         )}
       </div>
+      {/* the coach's way in: talk over this clip and draw on it */}
+      {onAnnotate && item.id && (
+        <button data-tour="lesson-markup" onClick={() => { haptic(8); soft(); onAnnotate(item); }}
+                className="w-full flex items-center justify-center gap-2 mt-3 active:opacity-60"
+                style={{ minHeight: 46, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+          <Palette size={16} color={t.ink} strokeWidth={1.8} />{tr("Mark it up")}
+        </button>
+      )}
+      </>
     );
   }
   if (item.type === "photo") {
@@ -9184,7 +9193,7 @@ function LessonStage({ item, onAnnotate }) {
     <div style={{ borderRadius: 16, overflow: "hidden", background: "#0B0F10" }}>
       <Clip angle={item.angle || tr("Clip")} />
       {onAnnotate && (
-        <button onClick={() => { haptic(8); onAnnotate(item.angle); }} className="w-full flex items-center justify-center gap-2 active:opacity-60"
+        <button onClick={() => { haptic(8); onAnnotate(item); }} className="w-full flex items-center justify-center gap-2 active:opacity-60"
                 style={{ minHeight: 44, background: "#191D1B", borderTop: "0.5px solid rgba(255,255,255,0.12)" }}>
           <Palette size={14} color="#fff" /><span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: "#fff" }}>{tr("Mark it up")}</span>
         </button>
@@ -9400,6 +9409,332 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
 
 /* What the coach sees when they open a lesson they gave: the same
    record the player has, plus what they set afterwards. */
+/* MARK IT UP. A coach talks over a clip and draws on it — pause, ring the
+   elbow, say the thing, play on — and what they said and drew becomes a
+   new clip on the lesson, which the player watches in the feed like any
+   other. The picture is a canvas the clip is painted onto every frame,
+   so the drawing is IN the recording rather than a layer only this app
+   could replay, and the recording is that canvas plus the microphone;
+   the original clip is never touched. Nothing is sent until the coach
+   has watched the take back and pressed Send. */
+const REVIEW_MAX = 1280;                                    // longest side of the recording
+const REVIEW_INKS = ["#FFD23F", "#FF4B3E", "#FFFFFF"];     // yellow, red, white
+const REVIEW_TOOLS = [["pen", "Pen", Pencil], ["line", "Line", Minus], ["arrow", "Arrow", MoveUpRight], ["circle", "Circle", Circle]];
+const secsLabel = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+function paintShape(g, sh, w, h) {
+  const px = (p) => [p.x * w, p.y * h];
+  const lw = Math.max(3, Math.round(Math.min(w, h) * 0.009));
+  const [x1, y1] = px(sh.pts[0]); const [x2, y2] = px(sh.pts[sh.pts.length - 1]);
+  g.save();
+  g.strokeStyle = sh.ink; g.lineWidth = lw; g.lineCap = "round"; g.lineJoin = "round";
+  g.shadowColor = "rgba(0,0,0,0.45)"; g.shadowBlur = lw * 1.2;
+  g.beginPath();
+  if (sh.tool === "pen") {
+    sh.pts.forEach((p, i) => { const [x, y] = px(p); if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); });
+    g.stroke();
+  } else if (sh.tool === "circle") {
+    /* drawn from the centre out, which is how people ring the thing they mean */
+    g.ellipse(x1, y1, Math.max(Math.abs(x2 - x1), lw), Math.max(Math.abs(y2 - y1), lw), 0, 0, Math.PI * 2); g.stroke();
+  } else {
+    g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    if (sh.tool === "arrow") {
+      const ang = Math.atan2(y2 - y1, x2 - x1), head = lw * 4.5;
+      g.beginPath();
+      g.moveTo(x2, y2); g.lineTo(x2 - head * Math.cos(ang - 0.5), y2 - head * Math.sin(ang - 0.5));
+      g.moveTo(x2, y2); g.lineTo(x2 - head * Math.cos(ang + 0.5), y2 - head * Math.sin(ang + 0.5));
+      g.stroke();
+    }
+  }
+  g.restore();
+}
+
+function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
+  const t = useT();
+  const first = (who || "").split(" ")[0];
+  const [item, setItem] = useState(null);
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    let on = true;
+    Promise.resolve(mediaFor ? mediaFor(lesson.id, lesson.media ?? lesson.videos) : []).then((items) => {
+      if (!on) return;
+      const it = (items || []).find((x) => String(x.id) === String(mediaId)) || (items || []).find((x) => x.type === "video") || null;
+      if (it) setItem(it); else setMissing(true);
+    }).catch(() => { if (on) setMissing(true); });
+    return () => { on = false; };
+  }, [lesson.id, mediaId]);
+
+  const canvas = useRef(null), vid = useRef(null);
+  const [dims, setDims] = useState(null);
+  const [broken, setBroken] = useState(false);
+  const [tool, setTool] = useState("pen");
+  const [ink, setInk] = useState(REVIEW_INKS[0]);
+  const [shapes, setShapes] = useState([]);
+  const shapesRef = useRef([]); shapesRef.current = shapes;
+  const draft = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [time, setTime] = useState(0);
+  const [dur, setDur] = useState(0);
+  const [phase, setPhase] = useState("draw");                 // draw · recording · done · sending
+  const [secs, setSecs] = useState(0);
+  const [take, setTake] = useState(null);
+  const [err, setErr] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const rec = useRef(null), chunks = useRef([]), mic = useRef(null), takeUrl = useRef(null);
+
+  /* the picture: the clip painted every frame, the marks on top of it */
+  useEffect(() => {
+    if (!dims) return;
+    let raf = 0;
+    const paint = () => {
+      const c = canvas.current, v = vid.current;
+      if (c) {
+        const g = c.getContext("2d");
+        if (v && v.readyState >= 2) g.drawImage(v, 0, 0, c.width, c.height);
+        else { g.fillStyle = "#0B0F10"; g.fillRect(0, 0, c.width, c.height); }
+        shapesRef.current.forEach((sh) => paintShape(g, sh, c.width, c.height));
+        if (draft.current) paintShape(g, draft.current, c.width, c.height);
+      }
+      raf = requestAnimationFrame(paint);
+    };
+    raf = requestAnimationFrame(paint);
+    return () => cancelAnimationFrame(raf);
+  }, [dims]);
+
+  useEffect(() => {
+    if (phase !== "recording") return;
+    const i = setInterval(() => setSecs((n) => n + 1), 1000);
+    return () => clearInterval(i);
+  }, [phase]);
+
+  /* leaving mid-way: stop the recorder, release the microphone, drop the take */
+  useEffect(() => () => {
+    try { if (rec.current && rec.current.state !== "inactive") { rec.current.onstop = null; rec.current.stop(); } } catch (e) { /* fine */ }
+    if (mic.current) mic.current.getTracks().forEach((x) => x.stop());
+    if (takeUrl.current) URL.revokeObjectURL(takeUrl.current);
+  }, []);
+
+  const onMeta = (e) => {
+    const v = e.currentTarget;
+    const vw = v.videoWidth || 720, vh = v.videoHeight || 1280;
+    const k = Math.min(1, REVIEW_MAX / Math.max(vw, vh));
+    /* even numbers: encoders want them */
+    setDims({ w: Math.round((vw * k) / 2) * 2, h: Math.round((vh * k) / 2) * 2 });
+    setDur(v.duration && Number.isFinite(v.duration) ? v.duration : 0);
+  };
+
+  const rel = (e) => {
+    const r = canvas.current.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
+  };
+  const down = (e) => {
+    if (!dims || phase === "done" || phase === "sending") return;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) { /* fine */ }
+    const pt = rel(e); draft.current = { tool, ink, pts: [pt, pt] }; haptic(5);
+  };
+  const move = (e) => {
+    const d = draft.current; if (!d) return;
+    const pt = rel(e);
+    draft.current = d.tool === "pen" ? { ...d, pts: [...d.pts, pt] } : { ...d, pts: [d.pts[0], pt] };
+  };
+  const up = () => {
+    const d = draft.current; if (!d) return;
+    draft.current = null;
+    setShapes((sh) => [...sh, d]); haptic(8);
+  };
+
+  const toggle = () => { const v = vid.current; if (!v) return; haptic(7); if (v.paused) v.play().catch(() => {}); else v.pause(); };
+  const seek = (x) => { const v = vid.current; if (v) { v.currentTime = x; setTime(x); } };
+
+  const startRec = async () => {
+    setErr(null); setNotice(null);
+    const c = canvas.current;
+    if (!c || typeof c.captureStream !== "function" || typeof MediaRecorder === "undefined" || !navigator.mediaDevices) {
+      setErr(tr("This browser can't record over a clip")); return;
+    }
+    /* the microphone first: declined is a stop (they can allow it and
+       press again), none at all records the picture on its own and says
+       so, anything else is named so it can be fixed rather than guessed */
+    let audio = null;
+    try {
+      audio = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch (e) {
+      const nm = (e && e.name) || "";
+      if (nm === "NotAllowedError" || nm === "SecurityError") { setErr(tr("Allow the microphone to talk over the clip")); return; }
+      if (nm !== "NotFoundError" && nm !== "OverconstrainedError") { setErr(`${tr("Couldn't start the microphone")} · ${nm || tr("unknown")}`); return; }
+      setNotice(tr("No microphone — recording the picture on its own"));
+    }
+    mic.current = audio;
+    let stream;
+    try {
+      const vs = c.captureStream(30);
+      stream = new MediaStream([...vs.getVideoTracks(), ...(audio ? audio.getAudioTracks() : [])]);
+    } catch (e) {
+      if (audio) audio.getTracks().forEach((x) => x.stop());
+      setErr(`${tr("This browser can't record over a clip")} · ${(e && e.name) || ""}`.trim()); return;
+    }
+    chunks.current = [];
+    const mime = pickMime(VIDEO_TYPES);
+    let r;
+    try { r = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 2500000 }); }
+    catch (e) { r = new MediaRecorder(stream); }
+    r.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.current.push(ev.data); };
+    r.onstop = () => {
+      const type = r.mimeType || mime || "video/webm";
+      const ext = type.includes("mp4") ? "mp4" : "webm";
+      const blob = new Blob(chunks.current, { type }); chunks.current = [];
+      if (mic.current) { mic.current.getTracks().forEach((x) => x.stop()); mic.current = null; }
+      const v = vid.current; if (v) v.pause();
+      const url = URL.createObjectURL(blob); takeUrl.current = url;
+      setTake({ file: new File([blob], `markup-${Date.now()}.${ext}`, { type }), url });
+      setPhase("done");
+    };
+    haptic(12);
+    r.start(250);                                  // slices, so Safari hands data over as it goes
+    rec.current = r; setSecs(0); setPhase("recording");
+  };
+  const stopRec = () => { const r = rec.current; if (r && r.state !== "inactive") { hapticSuccess(); r.stop(); } };
+  const again = () => { if (takeUrl.current) URL.revokeObjectURL(takeUrl.current); takeUrl.current = null; setTake(null); setSecs(0); setPhase("draw"); haptic(6); };
+  const send = async () => {
+    if (!take) return;
+    hapticCommit(); setPhase("sending");
+    const r = await onSend(take.file);
+    if (r && r.failed) { setPhase("done"); say(tr("Couldn't send it — it's on Today with Retry")); return; }
+    hapticSuccess(); chime(); say(tr("Sent")); pop();
+  };
+
+  const portrait = !dims || dims.h > dims.w;
+  /* 330 tall keeps the stage, the transport, the tools, the inks and
+     Record on one phone screen — a Record button under the fold is a
+     tool nobody finds mid-lesson */
+  const frame = { borderRadius: 16, background: "#0B0F10", maxHeight: 330, maxWidth: "100%", width: portrait ? "auto" : "100%", height: portrait ? 330 : "auto" };
+  const busy = phase === "done" || phase === "sending";
+
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Mark it up")} onBack={pop} meta={[lesson.focus, first].filter(Boolean).join(" · ")}>
+        <div className="px-6 pb-8">
+          {missing ? (
+            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That clip isn't available")}</p>
+          ) : (<>
+            {/* the stage */}
+            <div className="relative flex justify-center" data-tour="markup-stage" style={{ minHeight: 200 }}>
+              {busy && take ? (
+                <video key={take.url} src={take.url} controls playsInline preload="metadata" className="block" style={frame} />
+              ) : (<>
+                {!dims && !broken && <div className="absolute inset-0"><Bone h={200} r={16} /></div>}
+                {broken && (
+                  <div className="flex items-center justify-center w-full" style={{ minHeight: 220, borderRadius: 16, background: t.wash }}>
+                    <span style={{ ...TYPE.small, color: t.sub }}>{tr("Couldn't load this clip")}</span>
+                  </div>
+                )}
+                <canvas ref={canvas} width={dims ? dims.w : 2} height={dims ? dims.h : 2}
+                        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+                        className="block"
+                        style={{ ...frame, touchAction: "none", cursor: "crosshair",
+                                 aspectRatio: dims ? `${dims.w} / ${dims.h}` : undefined, visibility: dims ? "visible" : "hidden", display: broken ? "none" : "block" }} />
+                {phase === "recording" && (
+                  <span className="absolute flex items-center gap-2 px-3 py-1.5" style={{ top: 10, left: 10, borderRadius: R.pill, background: "rgba(0,0,0,0.55)" }}>
+                    <span className="rounded-full" style={{ width: 8, height: 8, background: DANGER, animation: "pulseDot 1.2s ease-in-out infinite" }} />
+                    <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{secsLabel(secs)}</span>
+                  </span>
+                )}
+              </>)}
+              {/* the clip decodes here; the canvas is what you see and what is recorded */}
+              {item && !busy && (
+                <video ref={vid} src={item.url} crossOrigin="anonymous" playsInline muted preload="auto"
+                       onLoadedMetadata={onMeta} onError={() => setBroken(true)}
+                       onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+                       onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
+                       style={{ position: "absolute", left: 0, top: 0, width: 2, height: 2, opacity: 0.01, pointerEvents: "none" }} />
+              )}
+            </div>
+
+            {!busy && (<>
+              {/* play, pause, scrub — while recording too: that is the point */}
+              <div className="flex items-center gap-3 mt-3">
+                <button onClick={toggle} disabled={!dims || broken} aria-label={playing ? tr("Pause") : tr("Play")}
+                        className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
+                        style={{ width: 44, height: 44, borderRadius: 22, background: t.ink }}>
+                  {playing ? <Pause size={17} color="#fff" fill="#fff" /> : <Play size={17} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
+                </button>
+                <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur}
+                       onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
+                       className="flex-1" style={{ accentColor: t.ink }} />
+                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 42, textAlign: "right" }}>
+                  {secsLabel(time)}{dur ? ` / ${secsLabel(dur)}` : ""}
+                </span>
+              </div>
+
+              {/* what you draw with */}
+              <div className="grid gap-2 mt-3" data-tour="markup-tools" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+                {REVIEW_TOOLS.map(([id, label, Ico]) => {
+                  const on = tool === id;
+                  return (
+                    <button key={id} aria-pressed={on} aria-label={tr(label)} onClick={() => { haptic(6); setTool(id); }}
+                            className="flex flex-col items-center justify-center gap-1 active:opacity-70"
+                            style={{ minHeight: 52, borderRadius: R.control, background: on ? t.ink : t.surface, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}` }}>
+                      <Ico size={17} color={on ? "#fff" : t.ink} strokeWidth={1.9} />
+                      <span style={{ ...TYPE.caption, fontWeight: 600, color: on ? "#fff" : t.ink }}>{tr(label)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-3 mt-3">
+                {REVIEW_INKS.map((c) => (
+                  <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
+                          className="shrink-0 active:opacity-70"
+                          style={{ width: 28, height: 28, borderRadius: 14, background: c, border: `2px solid ${HAIR(t.ink, 0.25)}`,
+                                   boxShadow: ink === c ? `0 0 0 2px ${t.page}, 0 0 0 3.5px ${t.ink}` : "none" }} />
+                ))}
+                <span className="flex-1" />
+                <button onClick={() => { haptic(7); setShapes((sh) => sh.slice(0, -1)); }} disabled={!shapes.length} aria-label={tr("Undo")}
+                        className="flex items-center gap-1.5 px-3 active:opacity-60 disabled:opacity-30"
+                        style={{ minHeight: 36, borderRadius: R.pill, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                  <Undo2 size={14} strokeWidth={2} />{tr("Undo")}
+                </button>
+                <button onClick={() => { haptic(7); setShapes([]); }} disabled={!shapes.length} aria-label={tr("Clear")}
+                        className="px-3 active:opacity-60 disabled:opacity-30"
+                        style={{ minHeight: 36, borderRadius: R.pill, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                  {tr("Clear")}
+                </button>
+              </div>
+            </>)}
+
+            {/* record · stop · watch it back · send */}
+            <div className="mt-4" data-tour="markup-record">
+              {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+              {!err && notice && phase !== "draw" && <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{notice}</p>}
+              {phase === "draw" && (
+                <Button onClick={startRec} disabled={!dims || broken}>
+                  <span className="flex items-center justify-center gap-2"><Mic size={17} strokeWidth={2} />{tr("Record")}</span>
+                </Button>
+              )}
+              {phase === "recording" && (
+                <button onClick={stopRec} className="w-full flex items-center justify-center gap-2 active:opacity-80"
+                        style={{ minHeight: 54, borderRadius: R.control, background: DANGER, color: "#fff", ...TYPE.body, fontWeight: 600, boxShadow: (t.elev || ELEV).cast }}>
+                  <Square size={15} color="#fff" fill="#fff" />{tr("Stop")} · {secsLabel(secs)}
+                </button>
+              )}
+              {busy && take && (
+                <div className="flex gap-2">
+                  <button onClick={again} disabled={phase === "sending"} className="flex-1 active:opacity-60 disabled:opacity-40"
+                          style={{ minHeight: 54, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                    {tr("Again")}
+                  </button>
+                  <div style={{ flex: 2 }}>
+                    <Button onClick={send} disabled={phase === "sending"}>{phase === "sending" ? tr("Sending…") : `${tr("Send to")} ${first || tr("them")}`}</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>)}
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload, drills, tips, attendance, onEdit, onDelete, onRemoveMedia, banner }) {
   const count = lesson.media ?? lesson.videos ?? 0;
   const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
@@ -9419,7 +9754,7 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
                   onEdit={live && onEdit ? () => onEdit(lesson) : null}
                   onDelete={live && onDelete ? () => onDelete(lesson) : null}
                   onRemoveMedia={live && onRemoveMedia ? (item) => onRemoveMedia(lesson, item) : null}
-                  onAnnotate={live ? null : (angle) => push("annotate:" + angle)} pop={pop} />
+                  onAnnotate={live ? (it) => push(`review:${lesson.id}:${it.id}`) : (it) => push("annotate:" + it.angle)} pop={pop} />
   );
 }
 
@@ -10942,11 +11277,13 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               They had an eyebrow reading "Most recent" over them, two
               inches under a block reading "Past lessons" — the same idea
               labelled twice on one screenful. */}
+          {/* the same switch the Diary uses, full width — the small pill
+              beside a heading was missed; this is the one control on the
+              way to the list */}
           {past.length > 0 && (
-            <div className="flex items-center mb-3">
-              <RowHead style={{ marginBottom: 0 }}>{tr("Lessons")}</RowHead>
-              <span className="flex-1" />
-              <ViewSwitch view={view} setView={setView} tour="player-view" />
+            <div className="mb-3">
+              <Segmented tour="player-view" options={[tr("List"), tr("Feed")]} value={view === "feed" ? tr("Feed") : tr("List")}
+                         onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
             </div>
           )}
           <div className="mb-4 nsc-list" data-tour="player-lessons">
@@ -11161,9 +11498,14 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
       /* "Cian Murphy" over a screen you reached from "Cian Murphy" told
          nobody where they had got to. */
       <Screen title={tr("Lessons")} onBack={pop}
-              right={lessons.length > 0 ? <ViewSwitch view={view} setView={setView} tour="archive-view" /> : null}
               meta={shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
                                                     : `${shown.length} ${tr("of")} ${lessons.length}`}>
+        {lessons.length > 0 && (
+          <div className="px-6 mb-3">
+            <Segmented tour="archive-view" options={[tr("List"), tr("Feed")]} value={view === "feed" ? tr("Feed") : tr("List")}
+                       onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
+          </div>
+        )}
         {sift && (<div className="px-6 mb-3">
           <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
             <Search size={16} color={t.trace || t.faint} />
@@ -16226,6 +16568,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* their private lessons and the group sessions they were marked at —
        the same count as the file's header */
     body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? taught(data.lessons).filter((l) => (hp ? (l.playerId === hp.id || (l.attendeeIds || []).includes(hp.id)) : l.who === hname)) : null} attendance={realAtt || attendance} pop={pop} push={push} say={say} />;
+  } else if (screen.startsWith("review:") && data) {
+    /* review:<lessonId>:<mediaId> — the coach marks up one clip */
+    const rest0 = screen.slice("review:".length);
+    const cut0 = rest0.indexOf(":");
+    const lid = cut0 < 0 ? rest0 : rest0.slice(0, cut0);
+    const mid = cut0 < 0 ? null : rest0.slice(cut0 + 1);
+    const les = (data.lessons || []).find((x) => String(x.id) === lid) || null;
+    body = les
+      ? <ClipReview lesson={les} mediaId={mid} mediaFor={data.lessonMedia} who={les.who} pop={pop} say={say}
+                    onSend={(file) => data.addLessonMedia(les.id, [file])} />
+      : <SwipeBack onBack={pop}><Screen title={tr("Mark it up")} onBack={pop}>
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
+        </Screen></SwipeBack>;
   } else if (screen.startsWith("clesson:")) {
     /* THE ID COMES FIRST and the name is whatever is left, taken with
        indexOf rather than split. It used to be `clesson:<who>:<id>`
