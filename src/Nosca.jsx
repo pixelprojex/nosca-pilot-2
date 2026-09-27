@@ -337,7 +337,7 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
   ink: "#1A1815", sub: "#55504C", faint: "#757069", trace: "#A39C93",
-  hair: "#E8E3DA", page: "#FCFCFA", surface: "#FFFFFF",
+  hair: "#E8E3DA", page: "#FDFDFC", surface: "#FFFFFF",
   wash: "#F3F1EC", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
@@ -373,7 +373,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
     theme: { ink: "#14180F", sub: "#4B5342", faint: "#6D7264", trace: "#A8AE9C", hair: "#EDEAE1",
-             page: "#FCFBF8", surface: "#FFFFFF", wash: "#F4F0E6", mark: "#896B27", accent: "#896B27", onAccent: "#FFFFFF" },
+             page: "#FEFDFB", surface: "#FFFFFF", wash: "#F4F0E6", mark: "#896B27", accent: "#896B27", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -462,7 +462,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
     theme: { ink: "#0A2222", sub: "#375654", faint: "#5E7573", trace: "#96ADA9", hair: "#E1EDEB",
-             page: "#FAFCFB", surface: "#FFFFFF", wash: "#EDF4F1", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+             page: "#FCFEFD", surface: "#FFFFFF", wash: "#EDF4F1", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -554,7 +554,7 @@ export const SPORTS = {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
     theme: { ink: "#10222E", sub: "#3F5463", faint: "#617480", trace: "#93A6B2", hair: "#E2EAEF",
-             page: "#FAFCFD", surface: "#FFFFFF", wash: "#EEF4F7", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+             page: "#FCFDFE", surface: "#FFFFFF", wash: "#EEF4F7", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -649,7 +649,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
     theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
-             page: "#FCFAF9", surface: "#FFFFFF", wash: "#F6EFEA", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
+             page: "#FEFCFB", surface: "#FFFFFF", wash: "#F6EFEA", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -735,7 +735,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
     theme: { ink: "#1E1830", sub: "#544C6A", faint: "#746C86", trace: "#A199B4", hair: "#E9E5F0",
-             page: "#FBFAFD", surface: "#FFFFFF", wash: "#F2EFF8", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+             page: "#FDFCFE", surface: "#FFFFFF", wash: "#F2EFF8", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -821,7 +821,7 @@ export const SPORTS = {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
     theme: { ink: "#241A1D", sub: "#5D4C51", faint: "#7A6C71", trace: "#AB9AA0", hair: "#EEE6E8",
-             page: "#FCFAFB", surface: "#FFFFFF", wash: "#F6EFF2", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+             page: "#FEFCFD", surface: "#FFFFFF", wash: "#F6EFF2", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -5125,8 +5125,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
       {/* what this is: the focus, the day, the note, and the way in — on glass */}
       <div className="absolute" style={{ left: 16, right: 16, bottom: 108, zIndex: 25 }}>
         <div className="w-full text-left"
-             style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.42)",
-                      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+             style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.62)",
                       border: "0.5px solid rgba(255,255,255,0.12)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
           <div className="flex items-start gap-3">
@@ -5135,7 +5134,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                 {lesson.focus}
               </span>
               <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-                {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.d} {lesson.m}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+                {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
               </span>
             </button>
             {current && current.type === "video" && (
@@ -5268,8 +5267,7 @@ function ViewSwitch({ view, setView, onDark, tour }) {
   ];
   return (
     <div data-tour={tour} className="flex gap-1 p-1" style={{ borderRadius: R.pill,
-           background: onDark ? "rgba(255,255,255,0.14)" : t.wash,
-           backdropFilter: onDark ? "blur(14px)" : "none", WebkitBackdropFilter: onDark ? "blur(14px)" : "none" }}>
+           background: onDark ? "rgba(255,255,255,0.18)" : t.wash }}>
       {opts.map((o) => {
         const on = view === o.id;
         return (
@@ -6938,7 +6936,7 @@ function Sheet({ open, onClose, children }) {
   const up = () => { if (dy > 88) { haptic(); onClose(); } setDy(0); st.current = null; };
   return (
     <div className="absolute inset-0 z-40" style={{ pointerEvents: open ? "auto" : "none" }}>
-      <div data-sheet-scrim onClick={() => { haptic(7); onClose && onClose(); }} className="absolute inset-0" style={{ background: "rgba(10,16,12,0.26)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)",
+      <div data-sheet-scrim onClick={() => { haptic(7); onClose && onClose(); }} className="absolute inset-0" style={{ background: "rgba(10,16,12,0.30)",
                        opacity: open ? 1 : 0, transition: "opacity 280ms" }} />
       <div className="absolute left-0 right-0 bottom-0 overflow-hidden"
            style={{ background: t.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, transform: `translateY(${open ? dy : 760}px)`,
@@ -10928,13 +10926,11 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
-            <div className="mb-7">
-              {f.tip && (
-                <div className="flex items-baseline gap-3 py-2">
-                  <Rail>{tr("Tip")}</Rail>
-                  <span style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
-                </div>
-              )}
+            <div className="mb-7 nsc-list">
+              <div className="flex items-baseline gap-3" style={{ minHeight: 56 }}>
+                <span style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Tip")}</span>
+                <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
+              </div>
             </div>
           )}
 
@@ -14201,17 +14197,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const signupPath = signupRole === "coach" ? "coach" : "player";
   const [juvenile, setJuvenile] = useState(sc ? !!sc.juvenile : false);
   const [familyGuide, setFamilyGuide] = useState(false);
-  /* the branded opening once every so often, not on every open: a
-     coach opening the app twenty times a day should see their day, not
-     a ceremony. The harness keeps it (no account), so its screens and
-     the walkthrough are unchanged. */
-  const SPLASH_EVERY = 12 * 60 * 60 * 1000;
-  const [splash, setSplash] = useState(() => {
-    if (sc) return false;
-    if (!account) return true;
-    try { const at = Number(localStorage.getItem("nosca.splash.at") || 0); if (Date.now() - at < SPLASH_EVERY) return false; localStorage.setItem("nosca.splash.at", String(Date.now())); } catch { /* private mode */ }
-    return true;
-  });
+  /* the branded opening plays on every open — it is the app's front
+     door and the founder wants it kept exactly so */
+  const [splash, setSplash] = useState(!sc);
   useEffect(() => {
     if (!account) return;               // demo/harness path — untouched
     if (account.sport) setCoachSport(account.sport);

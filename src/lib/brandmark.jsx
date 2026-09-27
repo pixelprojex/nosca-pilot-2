@@ -81,17 +81,19 @@ export function Mark({ size = 34, color = "#16201A", accent, weight = MARK.weigh
 const KEYFRAMES = `
 @keyframes nsSpin{to{transform:rotate(360deg)}}
 @keyframes nsFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes nsBreathe{0%,100%{opacity:.35;transform:scale(.96)}50%{opacity:1;transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){
   [data-brand-loader] *{animation-duration:2.4s!important}
 }`;
 
-/* Plain: the paper colour and one small grey ring — and the ring only
-   after a moment, so a session that restores in a blink shows nothing
-   at all rather than a flash of loading screen. */
-const LOADER_PAPER = "#FCFCFA";
-export function BrandLoader({ onTap, action, absolute = false, delay = 380 }) {
+/* There is no loading page to speak of: white until the app is there,
+   which for a restored session is a blink. The mark appears only after
+   three seconds, as a sign that something is taking too long, and the
+   way out after longer still. The sport splash is the front door; the
+   founder wants it kept and the loading page gone. */
+const LOADER_PAPER = "#FDFDFC";
+export function BrandLoader({ onTap, action, absolute = false, delay = 3000 }) {
   const Tag = onTap ? "button" : "div";
-  const D = 28, W = 2.5, R = (D - W) / 2, C = 2 * Math.PI * R;
   const [shown, setShown] = React.useState(delay === 0);
   React.useEffect(() => { if (delay === 0) return; const x = setTimeout(() => setShown(true), delay); return () => clearTimeout(x); }, [delay]);
   return (
@@ -105,12 +107,9 @@ export function BrandLoader({ onTap, action, absolute = false, delay = 380 }) {
     >
       <style>{KEYFRAMES}</style>
       {shown && (
-        <svg width={D} height={D} viewBox={`0 0 ${D} ${D}`} aria-hidden="true"
-             style={{ animation: "nsSpin 900ms linear infinite" }}>
-          <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(20,24,20,0.10)" strokeWidth={W} />
-          <circle cx={D / 2} cy={D / 2} r={R} fill="none" stroke="rgba(20,24,20,0.45)" strokeWidth={W}
-                  strokeLinecap="round" strokeDasharray={`${C * 0.28} ${C}`} transform={`rotate(-90 ${D / 2} ${D / 2})`} />
-        </svg>
+        <span aria-hidden="true" style={{ display: "block", animation: "nsBreathe 1600ms ease-in-out infinite" }}>
+          <Mark size={34} color={BRAND} />
+        </span>
       )}
       {action && (
         <div style={{ position: "absolute", bottom: "max(40px, env(safe-area-inset-bottom, 40px))",
