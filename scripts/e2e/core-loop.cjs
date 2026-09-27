@@ -226,13 +226,13 @@ const leaks = [];
       const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"])');
       const rowTexts = await fileRows.allInnerTexts();
       /* the two seeded plus the one just logged, newest first */
-      check("(g) the player file lists that player's real lessons, newest first, under the count that opens them all", /PAST LESSONS\s*3/i.test(tg.replace(/\s+/g, " ")) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 Aug/i.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
+      check("(g) the player file lists that player's real lessons, newest first, with the way to them all", /All 3 lessons/.test(tg) && rowTexts.length === 3 && /Chipping/.test(rowTexts[0]) && /Short game/.test(rowTexts[1]) && /20 Aug/i.test(rowTexts[2]) && /Putting/.test(rowTexts[2]) && !tg.includes("Grip"), JSON.stringify(rowTexts));
       check("(g) the file's rows are the coach's own — nothing seeded (14 Jun, Driving)", !tg.includes("14 Jun") && !tg.includes("Held the finish"), tg.slice(0, 200));
       /* the archive is one tap away whether or not there are more than
          the few shown — three lessons still get a way through to all */
       /* the archive is the first thing on the file now, at the size of
          the thing it opens, rather than a thin outline at the foot of a list */
-      check("(g) the whole archive is the first thing on the file", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /Past lessons/i.test(tg) && /\bLast\b/.test(tg), tg.slice(0, 200));
+      check("(g) the whole archive is one button under the rows", (await page.locator('[data-tour="player-all-lessons"]').count()) === 1 && /All 3 lessons/.test(tg), tg.slice(0, 200));
       await fileRows.filter({ hasText: "Putting" }).first().click(); await page.waitForTimeout(1200);
       await page.locator('[data-tour="lesson-clip"] video').first().waitFor({ timeout: 8000 }).catch(() => {});
       const t10 = await leak("coach lesson view"); await shot("coach-lesson-view");
