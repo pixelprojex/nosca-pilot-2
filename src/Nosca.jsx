@@ -11089,6 +11089,13 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
     ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
     : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
   const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
+  /* list or feed, like the player file and the player's own home: the
+     list by default, the feed over whatever the filters left, so a
+     coach flicks through a month's clips the way a player does */
+  const [view, setView] = useState("list");
+  const feedMedia = liveMedia
+    ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? undefined : []))
+    : (l) => Array.from({ length: l.videos || 0 }, () => ({ type: "sim" }));
   const t = useT();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState("All");
@@ -11139,9 +11146,17 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
 
   return (
     <SwipeBack onBack={pop}>
-      {/* "Cian Murphy" over a screen you reached from "Cian Murphy" told
-          nobody where they had got to. */}
+      {view === "feed" && shown.length > 0 ? (
+        <div className="relative h-full">
+          <LessonFeed lessons={shown} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={!forPlayer} cfg={cfg}
+                      view={view} setView={setView} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)}
+                      right={<button onClick={() => { haptic(6); pop(); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
+        </div>
+      ) : (
+      /* "Cian Murphy" over a screen you reached from "Cian Murphy" told
+         nobody where they had got to. */
       <Screen title={tr("Lessons")} onBack={pop}
+              right={lessons.length > 0 ? <ViewSwitch view={view} setView={setView} tour="archive-view" /> : null}
               meta={shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
                                                     : `${shown.length} ${tr("of")} ${lessons.length}`}>
         {sift && (<div className="px-6 mb-3">
@@ -11202,6 +11217,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           )}
         </div>
       </Screen>
+      )}
     </SwipeBack>
   );
 }

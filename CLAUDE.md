@@ -444,7 +444,9 @@ seeded data and no account.
   foot, the coach home's To do row, the file's All lessons) always
   shows its search and its filters — Year, Month, Player, Worked on,
   Kind — grouped by month, its rows the same `LessonRow`s with the same
-  poster box.
+  poster box, and a Feed · List switch in its header: the feed runs
+  over whatever the filters left, so a coach flicks through a month's
+  clips the way a player does.
 - **There is no player home page besides the feed.** `PlayerHome` (next
   lesson, tip, coming up, recent lessons) is no longer routed; the
   founder asked for Home and Lessons to be one thing. Booking lives in
