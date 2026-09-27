@@ -30,7 +30,10 @@ const BUILT_AT = (() => {
   const d = iso ? new Date(iso) : null;
   return d && !Number.isNaN(d.getTime()) ? d : null;
 })();
-const VERSION = "1.2.0 (38)";
+/* the build's own stamp — in a support mail's signature, so a report
+   names the build it came from. It was an invented "1.2.0 (38)" that
+   never changed. */
+const VERSION = BUILT_AT ? `build ${BUILT_AT.toISOString().slice(0, 16).replace("T", " ")} UTC` : "";
 
 /* The mark lives in lib/brandmark.jsx, because the loading screen is
    drawn from the same geometry and both are on screen before this file
@@ -13419,7 +13422,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         ))}
 
         {/* the version, at the very foot, and not under a search result */}
-        <p className="text-center pb-6" style={{ ...TYPE.caption, color: t.faint }}>Nosca {VERSION}</p>
+        {/* the build lives on the Version row above — one place */}
+        <div style={{ height: 24 }} />
       </Screen>
     </SwipeBack>
   );
@@ -13577,7 +13581,7 @@ function Legal({ docKey, pop }) {
       <Screen title={d.title} onBack={pop} meta={d.updated}>
         <div className="px-6 pb-4">
           {d.body.map(([h, p]) => (<div key={h} className="mb-6"><h3 className="mb-2" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{h}</h3><p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.65, color: t.sub }}>{p}</p></div>))}
-          <p className="pt-2" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{BRAND} · Registered in Ireland · {VERSION}</p>
+          <p className="pt-2" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{BRAND} · Registered in Ireland</p>
         </div>
       </Screen>
     </SwipeBack>
