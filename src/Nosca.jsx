@@ -5057,7 +5057,7 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
   const [failed, setFailed] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [held, setHeld] = useState(false);    // paused by a tap on the picture
-  const [wide, setWide] = useState(false);    // landscape: shown whole, never cropped to a strip
+  const parked = useRef(false);               // let go while the app is away
   const rateRef = useRef(rate); rateRef.current = rate;
   const heldRef = useRef(false); heldRef.current = held;
   const holdRef = useRef(false);              // a thumb on the strip
@@ -5110,15 +5110,32 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
   useEffect(() => { const el = vid.current; if (el) el.playbackRate = rate; }, [rate]);
   useEffect(() => {
     const el = vid.current;
-    if (el && item.type === "video") { setReady(false); setFailed(false); setWide(false); el.load(); if (live) tryPlay(); }
+    if (el && item.type === "video") { setReady(false); setFailed(false); el.load(); if (live) tryPlay(); }
   }, [item.url]);
   useEffect(() => {
-    /* coming back to the tab: the browser pauses everything, and does
-       not always resume it */
-    const onVis = () => { if (document.visibilityState === "visible" && live && !heldRef.current) tryPlay(); };
+    /* AWAY. Leaving the app stops the clip dead — paused, muted, and its
+       source let go — so the phone's lock screen and control centre have
+       nothing to offer play on: a merely paused clip stayed there as a
+       Now Playing card with a play button, which no social feed does.
+       Coming back, the card on screen picks its clip up again. */
+    const park = () => {
+      const v = vid.current;
+      if (v && !parked.current) { parked.current = true; v.pause(); v.muted = true; v.removeAttribute("src"); v.load(); }
+      if (aud.current && !aud.current.paused) aud.current.pause();
+    };
+    const onVis = () => {
+      if (document.visibilityState === "hidden") { park(); return; }
+      const v = vid.current;
+      if (v && parked.current) {
+        parked.current = false;
+        v.setAttribute("src", item.url); v.load();
+        if (live && !heldRef.current) tryPlay();
+      }
+    };
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [live]);
+    window.addEventListener("pagehide", park);
+    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", park); };
+  }, [live, item.url]);
   /* a tap on the picture pauses and resumes; the strip under the panel
      scrubs (`bind` is how the card reaches this clip) */
   const toggle = () => {
@@ -5156,16 +5173,18 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
         </div>
         {/* no autoPlay: the card decides, through `live` */}
         <video ref={vid} data-feed-video="" src={item.url} muted loop playsInline preload="auto"
-               onLoadedMetadata={(e) => { setReady(true); const v = e.currentTarget; setWide(v.videoWidth > v.videoHeight); v.playbackRate = rateRef.current; }}
+               onLoadedMetadata={(e) => { setReady(true); e.currentTarget.playbackRate = rateRef.current; }}
                onLoadedData={() => setReady(true)}
                onCanPlay={() => { setReady(true); const el = vid.current; if (live && el && el.paused && !heldRef.current && !holdRef.current) tryPlay(); }}
                onPlaying={() => { setReady(true); setBlocked(false); }}
                onTimeUpdate={(e) => { if (onProgress && live) { const el = e.currentTarget; onProgress(el.duration ? el.currentTime / el.duration : 0); } }}
                onError={() => setFailed(true)}
                className="absolute inset-0 w-full h-full"
-               /* a landscape clip is shown whole, a little above centre so
-                  it clears the panel; `cover` cut a swing to a strip */
-               style={{ objectFit: wide ? "contain" : "cover", objectPosition: wide ? "50% 36%" : "50% 50%", zIndex: 1 }} />
+               /* the feed fills the screen whatever the clip's shape — a
+                  landscape clip too; the lesson page shows it at its own
+                  shape. It was contained for a round and the founder wanted
+                  the full screen back */
+               style={{ objectFit: "cover", zIndex: 1 }} />
         {live && !blocked && !held && !failed && (
           /* the picture is the pause button */
           <button onClick={toggle} aria-label={tr("Pause")} className="absolute inset-0" style={{ zIndex: 2, background: "transparent" }} />
@@ -5211,9 +5230,9 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
       <>
         <div className="absolute inset-0" style={{ background: "#0B0F10", zIndex: 0,
                opacity: ready ? 0 : 1, transition: "opacity 420ms ease-out" }} />
-        <img src={item.url} alt="" onLoad={(e) => { setReady(true); const im = e.currentTarget; setWide(im.naturalWidth > im.naturalHeight); }} onError={() => setFailed(true)}
+        <img src={item.url} alt="" onLoad={() => setReady(true)} onError={() => setFailed(true)}
              className="absolute inset-0 w-full h-full"
-             style={{ objectFit: wide ? "contain" : "cover", objectPosition: wide ? "50% 36%" : "50% 50%", zIndex: 1 }} />
+             style={{ objectFit: "cover", zIndex: 1 }} />
       </>
     );
   }
