@@ -13,7 +13,8 @@ const PORT = Number(portArg || 4308), BASE = `http://localhost:${PORT}`;
 fs.mkdirSync(outDir, { recursive: true });
 
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", fresh: "00000000-0000-4000-8000-00000000f9e5" };
-const L = { one: "10000000-0000-4000-8000-0000000fe001", two: "10000000-0000-4000-8000-0000000fe002" };
+const L = { one: "10000000-0000-4000-8000-0000000fe001", two: "10000000-0000-4000-8000-0000000fe002", five: "10000000-0000-4000-8000-0000000fe005" };
+const FIVE = "Full swing · Chipping · Bunker play · Course management · Mental game";
 const LONG = "Cleaner contact from the fringe all session, and the low runner is starting to look like a shot he trusts under pressure.";
 
 function freshDb() {
@@ -28,6 +29,9 @@ function freshDb() {
   M.addMedia(db, { lessonId: L.one, kind: "photo", path: `${IDS.coach}/${L.one}/still-1.jpg` });
   M.addLesson(db, { id: L.two, coachId: IDS.coach, playerId: IDS.adult, date: "2026-09-04", focus: "Putting", notes: "Pace first." });
   M.addMedia(db, { lessonId: L.two, kind: "video", path: `${IDS.coach}/${L.two}/clip-2.mp4` });
+  /* the oldest: five areas worked on in one lesson */
+  M.addLesson(db, { id: L.five, coachId: IDS.coach, playerId: IDS.adult, date: "2026-08-20", focus: FIVE });
+  M.addMedia(db, { lessonId: L.five, kind: "video", path: `${IDS.coach}/${L.five}/clip-5.mp4` });
   return db;
 }
 
@@ -58,7 +62,7 @@ const { check, results, summary } = M.checker("feed");
       await page.waitForTimeout(1200);
       const t0 = await text(); await shot("01-feed");
       check("(a) Lessons opens on the feed, one card a lesson",
-        (await page.locator("[data-feed-card]").count()) === 2, `cards=${await page.locator("[data-feed-card]").count()} · ${t0.slice(0, 160)}`);
+        (await page.locator("[data-feed-card]").count()) === 3, `cards=${await page.locator("[data-feed-card]").count()} · ${t0.slice(0, 160)}`);
 
       /* the real file, not the drawn field. GeneratedField is the
          harness's; a real account seeing it means the clip did not load */
@@ -69,7 +73,13 @@ const { check, results, summary } = M.checker("feed");
         (await page.locator("[data-feed-card] svg[data-generated-field]").count()) === 0 && !/GeneratedField/.test(t0), t0.slice(0, 120));
 
       /* the panel: what the lesson was */
-      check("(a) the panel names the focus, the day and the coach", t0.includes("Short game") && /18 SEP|SEP/i.test(t0) && t0.includes("Niamh Byrne"), t0.slice(0, 240));
+      check("(a) the panel names the focus and the day, and not the coach — a player has one", t0.includes("Short game") && /18 SEP|SEP/i.test(t0) && !t0.includes("Niamh Byrne"), t0.slice(0, 240));
+      /* five areas in one lesson read whole, on at most two lines, none cut mid-word */
+      await page.locator("[data-feed-card]").nth(2).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
+      const five = await page.locator('[data-feed-card="2"] [data-tour="feed-focus"]').evaluate((el) => { const cs = getComputedStyle(el); return { text: el.innerText.replace(/\s+/g, " "), lines: Math.round(el.getBoundingClientRect().height / parseFloat(cs.lineHeight)), size: parseFloat(cs.fontSize), cutDown: el.scrollHeight > el.clientHeight + 2, cutAcross: el.scrollWidth > el.clientWidth + 1 }; });
+      check("(a) five areas worked on read whole — every word there, on two lines, at a smaller size, nothing cut down or across", ["Full swing", "Chipping", "Bunker play", "Course management", "Mental game"].every((w) => five.text.includes(w)) && five.lines === 2 && five.size < 27 && !five.cutDown && !five.cutAcross, JSON.stringify(five));
+      await page.screenshot({ path: path.join(outDir, "00-feed-five-areas.png") });
+      await page.locator("[data-feed-card]").nth(0).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
       check("(a) and the level it was logged at", t0.includes("HI 18.4"), t0.slice(0, 240));
       check("(a) a long note offers a way to open it out", t0.includes("more") && (await byText(page, "more").count()) === 1, t0.slice(0, 260));
 
@@ -126,7 +136,7 @@ const { check, results, summary } = M.checker("feed");
       check("(c) the list view shows every lesson as a row", t1.includes("Short game") && t1.includes("Putting") && (await page.locator("[data-feed-card]").count()) === 0, t1.slice(0, 220));
       check("(c) there is no third view to choose between", !/Cards/.test(t1), t1.slice(0, 200));
       await tap(page, 'button[aria-label="Feed"]', 1400);
-      check("(c) and back to the feed", (await page.locator("[data-feed-card]").count()) === 2, "feed did not come back");
+      check("(c) and back to the feed", (await page.locator("[data-feed-card]").count()) === 3, "feed did not come back");
       await ctx.close();
     }
 
@@ -203,6 +213,50 @@ const { check, results, summary } = M.checker("feed");
       await setVis("visible"); await page.waitForTimeout(1500);
       const back = (await state())[0]; const srcBack = await page.evaluate(() => !!document.querySelector('[data-feed-card="0"] video').getAttribute("src"));
       check("(j) coming back, the card on screen picks its clip up again", srcBack && !back.paused, JSON.stringify(back));
+      await ctx.close();
+    }
+
+    /* ---------- (k) a star on a lesson, and the Starred section ---------- */
+    {
+      const { ctx, page, text, shot } = await boot("adult");
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
+      const starBtn = page.locator('[data-feed-card="0"] [data-tour="feed-star"]');
+      check("(k) the card carries a Star beside View lesson, unpressed", (await starBtn.count()) === 1 && (await starBtn.getAttribute("aria-pressed")) === "false" && (await starBtn.getAttribute("aria-label")) === "Star");
+      await starBtn.click(); await page.waitForTimeout(800);
+      const pref = db.prefs[IDS.adult];
+      check("(k) a tap stars it: the button reads Starred, and the lesson id is on the person's own preferences row", (await starBtn.getAttribute("aria-pressed")) === "true" && (await starBtn.getAttribute("aria-label")) === "Starred" && !!pref && Array.isArray(pref.starred) && pref.starred.includes(L.one), JSON.stringify(pref && pref.starred));
+      await shot("10-feed-starred");
+      await tap(page, 'button[aria-label="List"]', 1200);
+      const t0 = (await text()).replace(/\s+/g, " ");
+      check("(k) the list carries a Starred row with the count, above the lessons", (await page.locator('[data-tour="log-starred"]').count()) === 1 && /Starred 1/.test(t0), t0.slice(0, 200));
+      check("(k) and the starred lesson's row carries the star", (await page.locator('[data-tour="log-row"] [aria-label="Starred"]').count()) === 1);
+      await tap(page, '[data-tour="log-starred"]', 1200);
+      const t1 = await text(); await shot("11-starred");
+      check("(k) Starred lists that lesson alone, under its own title", /Starred/.test(t1) && t1.includes("Short game") && !t1.includes("Putting"), t1.slice(0, 200));
+      await page.locator(".nsc-list button", { hasText: "Short game" }).first().click(); await page.waitForTimeout(1200);
+      const pageStar = page.locator('[data-tour="lesson-star"]');
+      check("(k) the lesson page's header carries the star, pressed", (await pageStar.count()) === 1 && (await pageStar.getAttribute("aria-pressed")) === "true");
+      await pageStar.click(); await page.waitForTimeout(700);
+      check("(k) a tap there unstars it, on the preferences row too", (await pageStar.getAttribute("aria-pressed")) === "false" && !((db.prefs[IDS.adult] || {}).starred || []).includes(L.one), JSON.stringify((db.prefs[IDS.adult] || {}).starred));
+      await M.back(page); await page.waitForTimeout(900); await M.back(page); await page.waitForTimeout(900);
+      check("(k) with nothing starred the Starred row is gone and the list is whole", (await page.locator('[data-tour="log-starred"]').count()) === 0 && (await page.locator('[data-tour="log-row"]').count()) === 1, (await text()).slice(0, 160));
+      await ctx.close();
+    }
+
+    /* ---------- (l) a coach stars from the lesson page; the home says so ---------- */
+    {
+      const { ctx, page, text } = await boot("coach");
+      check("(l) a coach with nothing starred has no Starred row on the home", (await page.locator('[data-tour="today-starred"]').count()) === 0);
+      await tap(page, '[data-tour="today-archive"]', 1200);
+      await page.locator(".nsc-list button", { hasText: "Putting" }).first().click(); await page.waitForTimeout(1200);
+      await page.locator('[data-tour="lesson-star"]').click(); await page.waitForTimeout(700);
+      check("(l) the coach's star lands on the coach's own preferences, never the player's", ((db.prefs[IDS.coach] || {}).starred || []).includes(L.two) && !((db.prefs[IDS.adult] || {}).starred || []).includes(L.two), JSON.stringify((db.prefs[IDS.coach] || {}).starred));
+      await M.back(page); await page.waitForTimeout(800); await M.back(page); await page.waitForTimeout(800);
+      const home = (await text()).replace(/\s+/g, " ");
+      check("(l) the home carries a Starred row under All lessons, with the count", (await page.locator('[data-tour="today-starred"]').count()) === 1 && /Starred 1/.test(home), home.slice(0, 200));
+      await tap(page, '[data-tour="today-starred"]', 1200);
+      const t2 = await text();
+      check("(l) Starred shows the putting lesson with the player's name, and not the other", t2.includes("Putting") && t2.includes("Cian Murphy") && !t2.includes("Short game"), t2.slice(0, 200));
       await ctx.close();
     }
 

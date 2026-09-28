@@ -97,6 +97,13 @@ const useLive = () => useContext(LiveCtx);
    handed a picture asks it. Half the surfaces drew a photo and half
    drew initials for the same person, which read as two people. */
 const FaceCtx = createContext(null);
+/* STARRED. A person's own marks on lessons — a coach's on the ones they
+   taught, a player's on their own — kept on their preferences row
+   (`starred`, a list of lesson ids; the device until the SQL is re-run)
+   and read here by every row, card and lesson page, so nothing threads
+   it through props. "Starred", never "favourite": a coach favouriting
+   clips of children reads wrong, and the founder said so. */
+const StarCtx = createContext({ ids: [], has: () => false, toggle: null });
 /* The toast, reachable from anything deep in the tree that has a line
    to say and no prop to say it through — the microphone, mostly. */
 const NoticeCtx = createContext(() => {});
@@ -4950,8 +4957,9 @@ function Poster({ item, size = 56, radius = 8, sport }) {
   );
 }
 
-function LessonRow({ lesson: l, poster, need, onOpen, onDownload, saved, showWho, first, index = 0, sport }) {
+function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first, index = 0, sport }) {
   const t = useT();
+  const star = useContext(StarCtx); const isStar = star.has(l.id);
   const asked = useRef(false);
   /* a real account asks for the lesson's files once, when the row
      first mounts, so the list has its posters without loading every
@@ -4979,7 +4987,7 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, saved, showWho
           </span>
           <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
         </span>
-        {saved && !onDownload && <Download size={13} color={t.faint} />}
+        {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={t.mark} fill={t.mark} strokeWidth={1.6} /></span>}
         {!onDownload && <ChevronRight size={14} color={t.trace || t.faint} />}
       </button>
       {onDownload && (
@@ -5356,6 +5364,20 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   };
 
   const open = () => { hapticCommit(); soft(); onOpen && onOpen(lesson); };
+  const star = useContext(StarCtx); const isStar = star.has(lesson.id);
+  /* THE FOCUS IS A SET OF AREAS, not a sentence: what was worked on,
+     split on the " · " the log joined it with, each area kept whole (no
+     break inside "Course management"), on a line of its own across the
+     whole panel. The size comes from the length: the full 27 while it
+     sits on one line, one line at a size down to 21 while that holds,
+     and past that two balanced lines at the size that fits them (22 at
+     most, 16 at least), so five areas read whole. One line that cut
+     "Short game · Driving · Putt…" mid-word was the thing to fix. */
+  const areas = String(lesson.focus || "").split(" · ").map((a) => a.trim()).filter(Boolean);
+  const chars = areas.join(" · ").length || 1;
+  const panelW = (typeof window !== "undefined" ? window.innerWidth : 390) - 64;   // 16 margin and 16 padding a side
+  const oneLine = panelW / (0.5 * chars);                                            // the size at which it sits on one line
+  const titleSize = oneLine >= 27 ? 27 : oneLine >= 21 ? Math.floor(oneLine) : Math.max(16, Math.min(22, Math.floor((2 * panelW) / (0.5 * chars))));
 
   return (
     <div data-feed-card={index} className="relative"
@@ -5402,12 +5424,26 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
         <div className="w-full text-left"
              style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.62)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
-          <div className="flex items-start gap-3">
-            <button onClick={open} className="flex-1 min-w-0 text-left active:opacity-80">
-              <span className="block truncate" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>{lesson.focus}</span>
-              <span className="block mt-3 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-                {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+          {/* the focus on a line of its own, the whole width of the panel */}
+          <button onClick={open} className="w-full min-w-0 text-left active:opacity-80">
+              <span data-tour="feed-focus" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", textWrap: "balance", whiteSpace: "normal",
+                                                     fontFamily: display, fontSize: titleSize, lineHeight: 1.08, letterSpacing: "-0.03em", color: "#fff" }}>
+                {/* a real space either side of the dot: the areas are nowrap
+                    spans, so the spaces are the only places a line may break */}
+                {areas.map((area, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <>{" "}<span aria-hidden="true" style={{ opacity: 0.45 }}>·</span>{" "}</>}
+                    <span style={{ whiteSpace: "nowrap" }}>{area}</span>
+                  </React.Fragment>
+                ))}
               </span>
+          </button>
+          {/* under it the day, the kind and the level — never the coach's
+              name: a player has one, a coach knows their own — with the
+              discs at the right of that line */}
+          <div className="flex items-center gap-3" style={{ marginTop: 6 }}>
+            <button onClick={open} className="flex-1 min-w-0 text-left truncate active:opacity-80" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
             </button>
             {onDownload && (
               <button onClick={() => { haptic(7); onDownload(lesson); }} aria-label={`${tr("Download")} ${lesson.focus}`}
@@ -5443,13 +5479,24 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
           ) : (
             <span className="block mt-2" style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>{lesson.note}</span>
           ))}
-          {/* the way in, said in words: the arrow in a disc was not read as one */}
-          <button data-tour="feed-open" onClick={open} aria-label={tr("View lesson")}
-                  className="w-full flex items-center justify-center gap-2 active:opacity-85"
-                  style={{ minHeight: 46, marginTop: 14, borderRadius: 12, background: "rgba(255,255,255,0.94)", ...TYPE.body, fontWeight: 600, color: "#111" }}>
-            {tr("View lesson")}
-            <ArrowRight size={16} color="#111" strokeWidth={2.2} />
-          </button>
+          {/* the way in, said in words: the arrow in a disc was not read as
+              one — and beside it the star, the person's own mark on this
+              lesson, filled once it is starred */}
+          <div className="flex items-stretch gap-2" style={{ marginTop: 14 }}>
+            <button data-tour="feed-open" onClick={open} aria-label={tr("View lesson")}
+                    className="flex-1 flex items-center justify-center gap-2 active:opacity-85"
+                    style={{ minHeight: 46, borderRadius: 12, background: "rgba(255,255,255,0.94)", ...TYPE.body, fontWeight: 600, color: "#111" }}>
+              {tr("View lesson")}
+              <ArrowRight size={16} color="#111" strokeWidth={2.2} />
+            </button>
+            {star.toggle && (
+              <button data-tour="feed-star" onClick={() => star.toggle(lesson)} aria-label={isStar ? tr("Starred") : tr("Star")} aria-pressed={isStar}
+                      className="shrink-0 flex items-center justify-center active:opacity-70"
+                      style={{ width: 46, minHeight: 46, borderRadius: 12, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.18)" }}>
+                <Star size={19} color="#fff" fill={isStar ? "#fff" : "none"} strokeWidth={1.8} />
+              </button>
+            )}
+          </div>
         </div>
         {/* the strip: which file, how far through it, and where to scrub */}
         {current && (items.length > 1 || current.type === "video") && (
@@ -9204,9 +9251,11 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload }) {
+function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload }) {
   const t = useT();
   const ready = useLoad();
+  const star = useContext(StarCtx);
+  const nStar = lessons.filter((l) => star.has(l.id)).length;
 
   /* Immersive is a different animal — it owns the screen, so it is not
      a segment inside this one. */
@@ -9258,12 +9307,19 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
       ) : lessons.length === 0 ? (
         <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No lessons yet")}</p>
       ) : (
-        <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
-          {lessons.map((l, i) => (
-            <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)} sport={sport}
-                       saved={saved.includes(l.id)} showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} onDownload={onDownload} />
-          ))}
-        </div>
+        <>
+          {/* the starred ones, as a section of their own — a row that is
+              there only while something is starred */}
+          {nStar > 0 && (
+            <div className="px-6 mb-3"><Ruled><HomeRow tour="log-starred" label={tr("Starred")} value={String(nStar)} onPress={() => push("starred")} /></Ruled></div>
+          )}
+          <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
+            {lessons.map((l, i) => (
+              <LessonRow key={l.id ?? i} lesson={l} index={i} first={i === 0} poster={posterFor(l, i)} need={needFor(l)} sport={sport}
+                         showWho={showWho} onOpen={(x) => push(`lesson:${x.id}`)} onDownload={onDownload} />
+            ))}
+          </div>
+        </>
       )}
     </Screen>
   );
@@ -9500,6 +9556,7 @@ function LessonStage({ item, onAnnotate }) {
 function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson, banner, cfg,
                         onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight }) {
   const t = useT();
+  const star = useContext(StarCtx); const isStar = star.has(lesson.id);
   const [a, setA] = useState(0);
   const [menu, setMenu] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -9537,7 +9594,13 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen bare onBack={pop} right={<>{extraTitleRight}{more}</>}>
+      <Screen bare onBack={pop} right={<>
+        {star.toggle && (
+          <button data-tour="lesson-star" onClick={() => star.toggle(lesson)} aria-label={isStar ? tr("Starred") : tr("Star")} aria-pressed={isStar} className="p-2 active:opacity-50">
+            <Star size={21} color={t.ink} fill={isStar ? t.ink : "none"} strokeWidth={1.6} />
+          </button>
+        )}
+        {extraTitleRight}{more}</>}>
         {banner}
         {menu && (
           <div className="absolute" style={{ top: 50, right: 14, zIndex: 40, minWidth: 220, borderRadius: R.surface, background: t.surface, boxShadow: (t.elev || ELEV).float, overflow: "hidden" }}>
@@ -10739,7 +10802,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
    timeline, not as a wall of boxes — and everything else as tiles with
    a number on them rather than a sentence to read. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
-                      roster, drifting = 0, toWriteUp = [], upcoming = [], unread = 0,
+                      roster, drifting = 0, toWriteUp = [], upcoming = [], unread = 0, starredCount = 0,
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onLog, onCapture, onAttend, onAddPlayer, onTip, onDrills, code,
                       onAccept, onDecline, onInvite, push, go,
@@ -10942,6 +11005,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.block }}>
             <HomeRow tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+            {starredCount > 0 && <HomeRow tour="today-starred" label={tr("Starred")} value={String(starredCount)} onPress={() => push("starred")} />}
           </Ruled>
         )}
 
@@ -12047,7 +12111,9 @@ function FilterRow({ options, value, onChange, label, last, plain }) {
   );
 }
 
-function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload }) {
+function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload, title, onOpen, showWho }) {
+  const openRow = onOpen || ((x) => push(`clesson:${x.id}:${x.who}`));
+  const showName = showWho ?? !forPlayer;
   const posterFor = liveMedia
     ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
     : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
@@ -12109,14 +12175,14 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
     <SwipeBack onBack={pop}>
       {view === "feed" && shown.length > 0 ? (
         <div className="relative h-full">
-          <LessonFeed lessons={shown} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={!forPlayer} cfg={cfg} onDownload={onDownload}
-                      view={view} setView={setView} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)}
+          <LessonFeed lessons={shown} mediaFor={feedMedia} onNeed={onNeedMedia} showWho={showName} cfg={cfg} onDownload={onDownload}
+                      view={view} setView={setView} onOpen={openRow}
                       right={<button onClick={() => { haptic(6); pop(); }} aria-label={tr("Back")} className="flex items-center justify-center active:opacity-50" style={{ width: 36, height: 36 }}><ChevronLeft size={22} color={t.ink} strokeWidth={2.1} /></button>} />
         </div>
       ) : (
       /* "Cian Murphy" over a screen you reached from "Cian Murphy" told
          nobody where they had got to. */
-      <Screen title={tr("Lessons")} onBack={pop}
+      <Screen title={title || tr("Lessons")} onBack={pop}
               meta={shown.length === lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("lesson") : tr("lessons")}`
                                                     : `${shown.length} ${tr("of")} ${lessons.length}`}>
         {lessons.length > 0 && (
@@ -12173,7 +12239,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
             <div className="nsc-list mb-6">
               {page.map((l, i) => (
                 <LessonRow key={l.id} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
-                           saved={false} showWho={!forPlayer} onOpen={(x) => push(`clesson:${x.id}:${x.who}`)} onDownload={onDownload} />
+                           showWho={showName} onOpen={openRow} onDownload={onDownload} />
               ))}
             </div>
           )}
@@ -15353,6 +15419,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       reduceData: p.reduce_data ?? PREF_DEFAULTS.reduceData,
       askForReview: p.ask_for_review ?? PREF_DEFAULTS.askForReview,
     });
+    if (Array.isArray(p.starred)) setStarred(p.starred);
     /* A coach's own saved drills, layered onto the sport's starter set
        so they show up as suggestions again after signing back in —
        not just for the rest of the session they were typed in. */
@@ -15946,6 +16013,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [selectedStats, setSelectedStats] = useState({});
   const [manualStats, setManualStats] = useState({});
   const [saved, setSaved] = useState({});
+  /* the person's starred lessons: preferences.starred once the SQL has
+     been re-run, the device until then */
+  const starKey = account ? `nosca.starred.${account.id}` : null;
+  const [starred, setStarred] = useState(() => { if (!starKey) return []; try { const v = JSON.parse(localStorage.getItem(starKey) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } });
   const [swatch, setSwatch] = useState(SWATCHES[0]);
   const [brandName, setBrandName] = useState(account && account.club ? account.club : clubName);
   /* the club is the profile's: a save from Personal details or Branding
@@ -16721,6 +16792,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const cur = s[pKey] || []; const has = cur.includes(id); haptic(has ? 8 : 16); say(has ? "Removed from downloads" : "Saved for offline");
     return { ...s, [pKey]: has ? cur.filter((x) => x !== id) : [...cur, id] };
   });
+  const toggleStar = (l) => {
+    if (!l || l.id == null) return;
+    const has = starred.includes(l.id);
+    haptic(has ? 6 : 12);
+    const next = has ? starred.filter((x) => x !== l.id) : [l.id, ...starred];
+    setStarred(next);
+    if (starKey) { try { localStorage.setItem(starKey, JSON.stringify(next)); } catch (e) { /* private mode */ } }
+    if (data && data.savePrefs) data.savePrefs({ starred: next });
+  };
+  const starCtx = useMemo(() => ({ ids: starred, has: (id) => id != null && starred.includes(id), toggle: toggleStar }), [starred, data]);
   const togglePractice = (id) => {
     if (data) {                                   // real account: persist it
       const cur = (data.drills || []).find((d) => d.id === id);
@@ -17349,6 +17430,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          forPlayerId={op ? op.id : null} sport={coachSport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                          onClearPlayer={onlyKey ? () => { pop(); push("archive"); } : null}
                          pop={pop} push={push} say={say} />;
+  } else if (screen === "starred") {
+    /* the starred ones, for either side: the archive's own screen over
+       just those lessons, opening each the way that side opens a lesson */
+    const mine = role === "coach" ? archive : playerLessons;
+    body = <CoachArchive title={tr("Starred")} onDownload={downloadLesson} cfg={cfg} lessons={mine.filter((l) => starCtx.has(l.id))} nouns={cfg.nouns}
+                         sport={role === "coach" ? coachSport : sport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
+                         onOpen={role === "coach" ? (x) => push(`clesson:${x.id}:${x.who}`) : (x) => push(`lesson:${x.id}`)}
+                         showWho={role === "coach" || !!(account && account.accountType === "parent")}
+                         pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {
     body = <MyGroups groups={myGroupsForMe} cfg={cfg} nouns={cfg.nouns} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("mygroup:")) {
@@ -17463,7 +17553,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        map entry and the fallback — byte for byte, so every change had
        to be made in both or the two homes drifted apart. */
     const coachToday = (
-      <CoachToday right={slimRight} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
+      <CoachToday starredCount={archive.filter((l) => starCtx.has(l.id)).length} right={slimRight} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
                   dateLine={`${DAY_NAMES[dowToday]} ${todayMD.d} ${monthName(todayMD.m)}`}
                   nouns={cfg.nouns}
                   today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE}
@@ -17535,7 +17625,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }
 
   return (
-    <FaceCtx.Provider value={faces}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -18108,7 +18198,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></FaceCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
   );
 }
 

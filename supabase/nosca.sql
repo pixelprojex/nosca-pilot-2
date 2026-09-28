@@ -280,6 +280,10 @@ alter table public.preferences add column if not exists layout         jsonb not
 -- their tips. False until they finish it or skip it, so it is offered
 -- once rather than every time the app opens.
 alter table public.preferences add column if not exists setup_done     boolean not null default false;
+-- The lessons this person has starred — a coach the ones they taught, a
+-- player their own — as a list of lesson ids. Theirs alone: a star is
+-- a private mark, never shown to the other side.
+alter table public.preferences add column if not exists starred        jsonb not null default '[]'::jsonb;
 
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the

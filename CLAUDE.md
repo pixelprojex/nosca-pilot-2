@@ -537,9 +537,15 @@ seeded data and no account.
   for one style), the
   header's own controls (profile pill, search, bell) on a light pill
   top right so they are reachable from every screen, a glass panel
-  bottom (focus in display type, one tag line, the note cut to a line
-  with "more", the sound toggle beside the title for a video) ending
-  on a full-width **View lesson** button, and a 2px progress bar. No
+  bottom (the focus in display type as a set of areas — split on the
+  " · " the log joined them with, each kept whole, the size stepping
+  down with the count so five areas read on two balanced lines rather
+  than one line cut mid-word; one tag line of the day, the kind and
+  the level, never the coach's name — a player has one and a coach
+  knows their own, and the founder asked for the box cleaned; the note
+  cut to a line with "more", the sound toggle beside the title for a
+  video) ending on a full-width **View lesson** button with the star
+  beside it, and the strip. No
   arrow-in-a-disc and no coach's face: the founder found the arrow
   unclear and the face confusing. List is the second view — a poster
   of the first file, the focus, one grey line — and the lesson page is
@@ -579,6 +585,25 @@ seeded data and no account.
   back, the card on screen picks its clip up again. The gradient floor
   under the panel is `pointer-events: none`, or it eats the taps on the
   lower half of the picture. `scripts/e2e/feed.cjs` walks all of it.
+- **Starred, never favourites.** A person's own mark on a lesson — a
+  coach's on the ones they taught, a player's on their own — is
+  `preferences.starred`, a list of lesson ids, theirs alone and never
+  shown to the other side (the founder's word: a coach "favouriting"
+  clips of children reads wrong). `StarCtx` (provided by Nosca:
+  `ids`, `has(id)`, `toggle(lesson)`) is how every surface reads it, so
+  nothing threads it through props. The control is a star: beside View
+  lesson on the feed card (`feed-star`), in the header of the lesson
+  page (`lesson-star`), filled once starred; a starred row carries a
+  small filled star as a value, not a control. The section is
+  **Starred**: a row above a player's lesson list (`log-starred`) and
+  under All lessons on the coach's home (`today-starred`), there only
+  while something is starred and carrying the count, opening the
+  archive screen (`CoachArchive` with `title`, `onOpen`, `showWho`)
+  over just those lessons with its List · Feed. Until the SQL has been
+  re-run the star lives on the device (`nosca.starred.<id>` in
+  localStorage) and the preferences write fails quietly; once it has,
+  the row wins whenever it carries the list. No toast on a star — the
+  fill is the confirmation. `feed.cjs` (k) and (l) walk both sides.
 - **A player's profile pill is the switcher.** Face, first name and a
   chevron in the header; tapping it opens `FamilySheet`: their coaches
   (or Add a coach), Family (their code and who is in it, or Start /
