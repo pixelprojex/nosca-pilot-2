@@ -81,7 +81,7 @@ const { check, results, summary } = M.checker("feed");
       check("(a) the header's controls ride on the feed", (await page.locator('[data-tour="feed-header"] [aria-label="Alerts"]').count()) === 1 && (await page.locator('[data-tour="feed-header"] [aria-label="Search"]').count()) === 1 && (await page.locator('[data-tour="feed-header"] [aria-label="Your profile"]').count()) === 1, "");
 
       /* two files on one lesson: the dots, and a second frame to swipe to */
-      check("(a) two files on a lesson are two dots", (await page.locator('[aria-label*="of 2"], [aria-label*=" of "]').count()) >= 1, "no frame counter");
+      check("(a) two files on a lesson are two segments of the strip, counted", (await page.locator('[data-tour="feed-strip"][aria-label*="of 2"]').count()) >= 1, "no frame counter");
 
       /* the note opens out */
       await byText(page, "more").first().click(); await page.waitForTimeout(500);
@@ -127,6 +127,72 @@ const { check, results, summary } = M.checker("feed");
       check("(c) there is no third view to choose between", !/Cards/.test(t1), t1.slice(0, 200));
       await tap(page, 'button[aria-label="Feed"]', 1400);
       check("(c) and back to the feed", (await page.locator("[data-feed-card]").count()) === 2, "feed did not come back");
+      await ctx.close();
+    }
+
+    /* ---------- (e) one clip plays: a scroll moves the sound, never adds to it ---------- */
+    {
+      const { ctx, page, shot } = await boot("adult");
+      await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 1600); await page.waitForTimeout(1200);
+      const vids = page.locator("[data-feed-card] video");
+      const state = () => vids.evaluateAll((els) => els.map((v) => ({ paused: v.paused, muted: v.muted, t: +v.currentTime.toFixed(2), d: +(v.duration || 0).toFixed(2), rate: v.playbackRate, fit: getComputedStyle(v).objectFit })));
+      const card = (i) => page.locator("[data-feed-card]").nth(i);
+      await page.locator('[data-feed-card] [aria-label="Sound"]').first().click(); await page.waitForTimeout(900);
+      const s0 = await state();
+      check("(e) with the sound on, the first clip plays with sound and the next waits silent on its first frame", s0.length >= 2 && !s0[0].paused && !s0[0].muted && s0[1].paused && s0[1].muted && s0[1].t === 0, JSON.stringify(s0));
+      await card(1).scrollIntoViewIfNeeded(); await page.waitForTimeout(1500);
+      const s1 = await state();
+      check("(e) a scroll to the next lesson stops the first clip and plays the second with the sound — one clip at a time", s1.filter((v) => !v.paused).length === 1 && !s1[1].paused && !s1[1].muted && s1[0].paused && s1[0].muted && s1[0].t === 0, JSON.stringify(s1));
+      await card(0).scrollIntoViewIfNeeded(); await page.waitForTimeout(1500);
+      const s2 = await state();
+      check("(e) scrolling back plays the first again, from its start, and the second falls silent", s2.filter((v) => !v.paused).length === 1 && !s2[0].paused && !s2[0].muted && s2[1].paused && s2[1].muted && s2[1].t === 0, JSON.stringify(s2));
+
+      /* ---------- (f) the picture is the pause button ---------- */
+      const pauseBtn = page.locator('[data-feed-card="0"] [aria-label="Pause"]');
+      check("(f) the picture is the pause button while the clip plays", (await pauseBtn.count()) === 1);
+      await pauseBtn.click(); await page.waitForTimeout(450);
+      const p0 = (await state())[0];
+      check("(f) a tap on the picture pauses the clip and shows Play", p0.paused && (await page.locator('[data-feed-card="0"] [aria-label="Play"]').count()) === 1, JSON.stringify(p0));
+      await shot("07-feed-paused");
+      await page.locator('[data-feed-card="0"] [aria-label="Play"]').click(); await page.waitForTimeout(600);
+      check("(f) and a tap resumes it", !(await state())[0].paused && (await pauseBtn.count()) === 1);
+
+      /* ---------- (g) half speed, and it stays on ---------- */
+      await page.locator('[data-feed-card="0"] [aria-label="Slow motion"]').click(); await page.waitForTimeout(400);
+      check("(g) ½× halves the speed and the button reads Normal speed", (await state())[0].rate === 0.5 && (await page.locator('[data-feed-card="0"] [aria-label="Normal speed"]').count()) === 1, JSON.stringify(await state()));
+      await card(1).scrollIntoViewIfNeeded(); await page.waitForTimeout(1500);
+      check("(g) and it stays on for the next clip", (await state())[1].rate === 0.5 && (await page.locator('[data-feed-card="1"] [aria-label="Normal speed"]').count()) === 1, JSON.stringify(await state()));
+      await shot("08-feed-slow");
+      await page.locator('[data-feed-card="1"] [aria-label="Normal speed"]').click(); await page.waitForTimeout(300);
+      await card(0).scrollIntoViewIfNeeded(); await page.waitForTimeout(1500);
+      check("(g) Normal speed puts it back", (await state())[0].rate === 1);
+
+      /* ---------- (h) the strip: which file, how far, and where to scrub ---------- */
+      const strip0 = page.locator('[data-feed-card="0"] [data-tour="feed-strip"]');
+      check("(h) the first lesson's strip is two segments for its two files, and there are no dots", (await strip0.locator(":scope > span").count()) === 2 && /1 of 2/.test(await strip0.getAttribute("aria-label") || ""), await strip0.getAttribute("aria-label"));
+      const sb = await strip0.boundingBox(); const y = sb.y + sb.height / 2;
+      await page.mouse.move(sb.x + sb.width * 0.25, y); await page.mouse.down(); await page.waitForTimeout(200);
+      await page.mouse.move(sb.x + sb.width * 0.35, y, { steps: 5 }); await page.waitForTimeout(300);
+      const mid = (await state())[0]; const pill = page.locator('[data-tour="feed-scrub-time"]');
+      const where = mid.d ? mid.t / mid.d : -1;
+      check("(h) a thumb on the playing segment holds the clip and scrubs it, the time on a pill above", mid.paused && (await pill.count()) === 1 && where > 0.58 && where < 0.82 && /\d:\d\d · \d:\d\d/.test(await pill.innerText()), `${JSON.stringify(mid)} · at ${where.toFixed(2)}`);
+      await shot("09-feed-scrub");
+      await page.mouse.up(); await page.waitForTimeout(500);
+      check("(h) letting go plays on from there, the pill gone", !(await state())[0].paused && (await pill.count()) === 0, JSON.stringify(await state()));
+      await page.mouse.click(sb.x + sb.width * 0.75, y); await page.waitForTimeout(700);
+      check("(h) a tap on the other segment goes to that file, and the clip behind it stops", /2 of 2/.test(await strip0.getAttribute("aria-label") || "") && (await state())[0].paused, `${await strip0.getAttribute("aria-label")} · ${JSON.stringify(await state())}`);
+      await page.mouse.click(sb.x + sb.width * 0.25, y); await page.waitForTimeout(700);
+
+      /* ---------- (i) a landscape clip is shown whole ---------- */
+      const fit = await page.evaluate(() => new Promise((res) => {
+        const v = document.querySelector('[data-feed-card="0"] video');
+        const before = getComputedStyle(v).objectFit;
+        Object.defineProperty(v, "videoWidth", { get: () => 1280, configurable: true });
+        Object.defineProperty(v, "videoHeight", { get: () => 720, configurable: true });
+        v.dispatchEvent(new Event("loadedmetadata"));
+        setTimeout(() => res({ before, after: getComputedStyle(v).objectFit, pos: getComputedStyle(v).objectPosition }), 300);
+      }));
+      check("(i) a portrait clip fills the screen; a landscape one is shown whole, above centre, never cropped to a strip", fit.before === "cover" && fit.after === "contain" && /36%/.test(fit.pos), JSON.stringify(fit));
       await ctx.close();
     }
 

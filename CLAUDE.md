@@ -198,11 +198,16 @@ seeded data and no account.
   week itself still starts empty: nothing is offered to a player until
   the coach has said when. The diary's per-day sheet (`EditDay`) offers
   the same pool.
-- **The mark sits top-left on every root screen.** `Screen` puts
-  `Mark` (20px, the sport's `mark` tone) in the corner a root screen
-  leaves empty — where a pushed screen has its Back chevron. It is the
-  one piece of branding inside the app: no wordmark, no header logo, no
-  band. The founder asked for slightly more branding, unobtrusive.
+- **The mark sits top-left on every root screen, as tall as the icons
+  across from it.** `Screen` puts `Mark` (`HEADER_MARK`: 36 wide at a
+  weight of 3, so the rings stand the 18px the search and the bell's
+  glyphs do, in the sport's `mark` tone) in the corner a root screen
+  leaves empty — where a pushed screen has its Back chevron; the
+  walkthrough's own header carries the same one. It is the one piece
+  of branding inside the app: no wordmark, no header logo, no band.
+  The founder asked for slightly more branding, unobtrusive, then for
+  the mark bigger and bolder to the height of the icons: at 20px it
+  read as a detail beside them.
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
   screens, hours · drills · tips, grids and rows, a body that scrolls
   — remembered as `preferences.setup_done`, and reachable again from
@@ -546,6 +551,27 @@ seeded data and no account.
   drawn picture the lesson did not take. The feed was deleted once on
   a research finding that no competitor has one; the founder wanted it
   back within the hour — improve it, never remove it.
+- **One clip plays, and the picture is the player.** `Evidence` has
+  one rule, `live`: the card on screen plays from its start with the
+  sound the switch says, and every other card is paused, muted and
+  back on its first frame — and the clip that starts hushes every
+  other feed video in the document (`hushOthers`). No `autoPlay`
+  attribute anywhere in the feed: it started every mounted neighbour
+  the moment it loaded, and the sound switch reached all of them, so a
+  scroll with the sound on was three clips talking over each other,
+  which the founder called the most important thing to get right. A
+  voice note stops with its card. A tap on the picture pauses (a
+  translucent play disc, and a tap resumes); **½×** beside the sound
+  button halves the speed and stays on from card to card, because a
+  swing is watched slow; the **strip** under the panel is one line per
+  file — before full, the one on screen filling, after empty — a thumb
+  on the playing segment holds the clip and scrubs it with the time on
+  a pill, a tap on another segment goes to that file (it replaced a row
+  of dots and a separate progress line); a **landscape clip or photo is
+  shown whole**, a little above centre, never cropped to a strip —
+  `cover` cut a landscape swing to its middle third. The gradient floor
+  under the panel is `pointer-events: none`, or it eats the taps on the
+  lower half of the picture. `scripts/e2e/feed.cjs` walks all of it.
 - **A player's profile pill is the switcher.** Face, first name and a
   chevron in the header; tapping it opens `FamilySheet`: their coaches
   (or Add a coach), Family (their code and who is in it, or Start /
@@ -652,8 +678,10 @@ seeded data and no account.
   asked; a live-capture clip already has its copy on the phone). The
   camera in the tool row is **Photo**: the frame as it stands, marks
   and all, onto the lesson as a still (`onStill`), the coach staying
-  where they are. On the feed a marked-up clip carries a pencil beside
-  the focus. Both paths use the same MediaRecorder negotiation as live
+  where they are. The feed carries no badge for a marked-up clip: a
+  pencil sat beside the focus for a round and the founder cut it — the
+  drawing is in the clip, and the clip says so itself. Both paths use
+  the same MediaRecorder negotiation as live
   capture (`pickMime`, `VIDEO_TYPES` from useCapture) and
   `addLessonMedia`. It was one Record button with no Save for a round,
   at 330px tall under the tab bar, and the founder found no way to
