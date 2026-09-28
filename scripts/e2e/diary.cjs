@@ -296,8 +296,11 @@ const leaks = [];
       /* THE DEFAULT SPORT IS NOT A SETTING. It is what the invite code
          was handed out under, so the profile shows it and offers the
          other five as additions rather than replacements. */
-      check("(f) the sport they signed up to coach cannot be swapped, only added to", t11.includes("Sports you coach") && t11.includes("Add another") && /\+ Tennis/.test(t11), t11.slice(0, 260));
-      await page.getByRole("button", { name: "+ Tennis" }).first().click(); await page.waitForTimeout(1200);
+      check("(f) the sport they signed up to coach cannot be swapped, only added to", t11.includes("Sports you coach") && t11.includes("Add another") && (await page.locator('[aria-label="Add Tennis"]').count()) === 1 && !/\+ Tennis/.test(t11), t11.slice(0, 260));
+      /* a sport tile is its sport's colour: the add tile for tennis wears tennis' wash, one plus on it */
+      const tennisTile = page.locator('[aria-label="Add Tennis"]');
+      check("(f) the add tile is its sport's colour and carries one plus, not two", (await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor)) === "rgb(237, 244, 241)" && (await tennisTile.locator("svg").count()) === 1 && (await tennisTile.innerText()).trim() === "Tennis", await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor));
+      await tennisTile.first().click(); await page.waitForTimeout(1200);
       check("(f) adding a second sport writes preferences.extra_sports and leaves profiles.sport alone",
             JSON.stringify((db.prefs[IDS.coach] || {}).extra_sports || []) === '["tennis"]' && db.profiles[IDS.coach].sport === "golf",
             JSON.stringify({ extra: (db.prefs[IDS.coach] || {}).extra_sports, sport: db.profiles[IDS.coach].sport }));

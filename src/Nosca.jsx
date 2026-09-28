@@ -7672,24 +7672,29 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
     <div data-tour={tour}>
       <TileGrid cols={cols}>
         {ids.map((id) => {
-          const sp = SPORTS[id], on = picked === id;
+          const sp = SPORTS[id], on = picked === id, th = sp.theme;
           /* the sport the invite code was handed out under is named as
              the main one; it is never swapped, only added to */
           const isMain = mainId === id;
+          /* EVERY SPORT TILE IS ITS SPORT'S COLOUR: the wash for the fill,
+             the mark for the edge and the dot, the mark itself once chosen.
+             This grid is where the palette is the subject — a coach reads
+             here that tennis is teal and golf is grass — so the tiles say
+             it, not a grey tile with a coloured dot. An add tile carries
+             one plus: it carried the glyph and a "+ " in the word for a
+             round and the founder asked why there were two. */
           return (
-            <button key={id} aria-label={add ? `+ ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
-                    {...sink(t, on ? "none" : (t.elev || ELEV).rest)}
+            <button key={id} aria-label={add ? `${tr("Add")} ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
+                    {...sink(t, "none")}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? t.ink : t.surface,
-                             boxShadow: on ? "none" : (t.elev || ELEV).rest, willChange: "transform",
-                             transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : th.wash,
+                             border: `${EDGE_W}px solid ${on ? th.mark : `${th.mark}B8`}`, willChange: "transform",
+                             transition: `background ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
               {add
-                ? <Plus size={18} color={t.sub} strokeWidth={2} />
-                : <span className="rounded-full" style={{ width: 20, height: 20, background: sp.theme.mark }} />}
-              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>
-                {add ? `+ ${sp.label}` : sp.label}
-              </span>
-              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, fontSize: 9.5, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>· {tr("main")}</span>}
+                ? <Plus size={18} color={th.mark} strokeWidth={2.2} />
+                : <span className="rounded-full" style={{ width: 20, height: 20, background: on ? "#fff" : th.mark }} />}
+              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : th.ink }}>{sp.label}</span>
+              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, fontSize: 9.5, color: on ? "rgba(255,255,255,0.7)" : th.sub }}>· {tr("main")}</span>}
             </button>
           );
         })}
