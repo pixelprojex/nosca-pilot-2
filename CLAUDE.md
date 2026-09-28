@@ -97,8 +97,13 @@ seeded data and no account.
   note, the red square to stop; the last capture as a thumbnail
   bottom-left that opens the roll (and Remove); Choose a file
   bottom-right; and what it files under as a pill up top that cycles
-  today's bookings. One camera stream serves all three modes — a voice
-  note records off its microphone track (`useCapture.record`). It was
+  today's bookings. Its chrome is the app's, not the phone's: paper
+  pills with the ink on them over the picture, the modes as the app's
+  own `Segmented` on the paper, an ink-ring shutter, the roll and the
+  file on the wash — it was black glass and white capitals for a round
+  and the founder asked for the app's style. One camera stream serves
+  all three modes — a voice note records off its microphone track
+  (`useCapture.record`). It was
   a 3:4 viewfinder in a sheet behind "Tap to use the camera" with a
   segmented control, and the founder could not see what they were
   filming. `scripts/e2e/capture.cjs` drives it with a fake camera.
@@ -404,14 +409,17 @@ seeded data and no account.
 - **The sport tints the app inside a sport; `NEUTRAL` before one.**
   `const base = inApp ? cfg.theme : NEUTRAL` — paper, ink and the greys
   are shared, the accent and wash are the sport's, and the four semantic
-  colours never change. Golf is `#3A8032`, a grass green with the warmth
-  of a fairway (hue 114°) — white on it is 4.9:1 (4.5:1 is the floor for
-  a filled button's label). It was a mustard, `#896B27` then `#957019`,
+  colours never change. Golf is `#2F6B3A`, a deep grass green (hue 131°,
+  saturation 39%) — white on it is 6.4:1 (4.5:1 is the floor for a
+  filled button's label). It was a mustard, `#896B27` then `#957019`,
   and the founder called that obnoxious and not sporty; then `#1C6E3A`,
   which sat too close to tennis' court teal `#0F7A69` (hue 170°) and
-  the founder asked for the two to be more distinct. Tennis is the
-  reference for how a sport colour should feel — saturated, modern, the
-  sport's own; golf is grass, tennis is teal, forty degrees apart. It was collapsed to one palette once and the
+  the founder asked for the two to be more distinct; then `#3A8032`, a
+  brighter fairway green the founder found not grown up enough — green
+  is right, quieter and deeper is the professional version. Tennis is
+  the reference for how a sport colour should feel — saturated, modern,
+  the sport's own; golf is grass, tennis is teal, forty degrees apart.
+  It was collapsed to one palette once and the
   founder called the result outrageous within the hour; the tint is the
   approved look. The accent appears once a screen (the one action).
 - **A sport tile is its sport's colour.** `SportGrid` (sign-up's sport,
@@ -455,9 +463,20 @@ seeded data and no account.
   nothing is written, and the way back reads `closeLabel` ("Keep it",
   "Back"). A player cancelling their own lesson is not asked — it is
   theirs. `scripts/e2e/coach-day.cjs` walks both, wrong password first.
-- **All lessons is its own row on the coach's home, never under To
-  do.** The archive is not a chore; `today-archive` sits in a box of
-  its own under the To do list, carrying the count.
+- **All lessons is its own row on the coach's home, never under
+  Actions.** The archive is not a chore; `today-archive` sits in a box
+  of its own under the Actions list, carrying the count.
+- **The coach's home is Today, the next day folded, then Actions.**
+  Today's column is today's lessons only. The next day with lessons —
+  "Tomorrow", or the day it is — is one row under it carrying the
+  count, which opens to its rows on a tap (`today-nextday`); its first
+  lesson sat at the foot of Today's column once and the founder read
+  the column as every future lesson in one list. **Actions** (it was
+  "To do") is there only when something wants the coach: booking
+  requests with Accept · Decline, To write up, Join requests, Messages,
+  Drifting, Competitions; past two kinds of thing a row of tiles (All ·
+  each kind) narrows it, and under two there is no filter to read
+  before the first row.
 - **Every lesson row and every feed card carries a Download disc.**
   `LessonRow` takes `onDownload` and draws the 38px disc at its right
   edge (the row is then a div of two buttons, so a test counting rows

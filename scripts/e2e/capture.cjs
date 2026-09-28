@@ -103,7 +103,7 @@ const { check, results, summary } = M.checker("capture");
     await tap(page, '[data-tour="capture-shutter"]', 1500);
     const t1 = await text();
     check("(c) the shutter starts a clip: a red timer, Stop, the modes and the pill held", (await page.locator('[data-tour="capture-shutter"][aria-label="Stop"]').count()) === 1 && /0:0[1-3]/.test(t1)
-      && (await page.locator('[data-tour="capture-modes"] button[disabled]').count()) === 3, t1.slice(0, 120));
+      && (await page.locator('[data-tour="capture-modes"]').evaluate((el) => getComputedStyle(el.parentElement).pointerEvents)) === "none", t1.slice(0, 120));
     await shot("02-recording");
     await tap(page, '[data-tour="capture-shutter"]', 1500);
     check("(c) Stop keeps it: the roll bottom-left counts one", (await page.locator('[aria-label="Captured · 1"]').count()) === 1 && (await page.locator('[data-tour="capture-shutter"][aria-label="Record"]').count()) === 1);

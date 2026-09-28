@@ -4755,7 +4755,13 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
   const cycle = () => { if (live || targets.length < 2) return; haptic(6); onChoose && onChoose(targets[(Math.max(0, cur) + 1) % targets.length]); };
   const filing = chosen ? `${String(chosen.who || "").split(" ")[0]} · ${chosen.time}` : tr("Nobody yet");
   const mmss = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
-  const glass = { background: "rgba(0,0,0,0.45)", color: "#fff" };
+  /* THE CHROME IS THE APP'S, NOT THE PHONE'S: paper pills over the
+     picture with the ink on them, the modes as the app's own Segmented,
+     the shutter an ink ring, the roll and the file on the wash. It was
+     black glass and white capitals for a round, a different app inside
+     this one, and the founder asked for the app's style. */
+  const glass = { background: "rgba(254,254,254,0.92)", color: t.ink };
+  const MODE_LABELS = CAP_MODES.map((m) => tr(CAP_LABEL[m]));
 
   return (
     <div className="absolute inset-0 flex flex-col" data-tour="capture" style={{ zIndex: 68, background: "#000" }}>
@@ -4766,9 +4772,9 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
         {mode === "audio" && !cap.error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <span className="flex items-center justify-center rounded-full"
-                  style={{ width: 96, height: 96, background: live ? DANGER : "rgba(255,255,255,0.14)", border: "1.5px solid rgba(255,255,255,0.5)",
+                  style={{ width: 96, height: 96, background: live ? DANGER : "rgba(254,254,254,0.92)",
                            animation: live ? "breathe 1600ms ease-in-out infinite" : "none" }}>
-              <Mic size={40} color="#fff" strokeWidth={1.5} />
+              <Mic size={40} color={live ? "#fff" : t.ink} strokeWidth={1.5} />
             </span>
             <span style={{ ...TYPE.small, color: "rgba(255,255,255,0.8)" }}>{live ? tr("Listening") : noCamera ? tr("No camera — voice notes only") : tr("Voice note")}</span>
           </div>
@@ -4781,7 +4787,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
         {/* top: close, the timer while it records, what it files under */}
         <div className="absolute inset-x-0 flex items-center justify-between px-3" style={{ top: `calc(${TOP_AIR}px + env(safe-area-inset-top, 0px))` }}>
           <button onClick={() => { haptic(6); close(); }} aria-label={tr("Close")} className="flex items-center justify-center active:opacity-70"
-                  style={{ width: 40, height: 40, borderRadius: 20, ...glass }}><X size={20} color="#fff" strokeWidth={2} /></button>
+                  style={{ width: 40, height: 40, borderRadius: 20, ...glass }}><X size={20} color={t.ink} strokeWidth={2} /></button>
           {live ? (
             <span className="flex items-center gap-2 px-3 py-1.5" style={{ borderRadius: R.pill, background: DANGER, color: "#fff", fontFamily: ui, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
               <span className="rounded-full" style={{ width: 7, height: 7, background: "#fff", animation: "breathe 1200ms ease-in-out infinite" }} />{mmss(cap.seconds)}
@@ -4790,47 +4796,42 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
           {lessons && lessons.length > 0 ? (
             <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} className="flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
                     style={{ minHeight: 36, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, maxWidth: 180 }}>
-              <span className="truncate">{filing}</span><ChevronRight size={14} color="#fff" strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
+              <span className="truncate">{filing}</span><ChevronRight size={14} color={t.ink} strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
             </button>
           ) : <span style={{ width: 40 }} />}
         </div>
       </div>
 
-      {/* bottom: the modes, then the roll · the shutter · a file */}
-      <div className="shrink-0" style={{ background: "#000", paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))" }}>
-        <div className="flex items-center justify-center gap-7 pt-3 pb-4" data-tour="capture-modes">
-          {CAP_MODES.map((m) => (
-            <button key={m} onClick={() => pick(m)} aria-pressed={mode === m} aria-label={tr(CAP_LABEL[m])} disabled={live || (noCamera && m !== "audio")} className="active:opacity-70 disabled:opacity-40"
-                    style={{ fontFamily: ui, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "6px 4px",
-                             color: mode === m ? t.accent : "rgba(255,255,255,0.7)" }}>
-              {tr(CAP_LABEL[m])}
-            </button>
-          ))}
+      {/* bottom, on the app's paper: the modes, then the roll · the shutter · a file */}
+      <div className="shrink-0 px-6" style={{ background: t.page, borderTop: `1px solid ${t.hair}`, paddingTop: 12, paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
+        <div style={{ pointerEvents: live || noCamera ? "none" : "auto", opacity: live ? 0.5 : 1, transition: "opacity 200ms" }}>
+          <Segmented tour="capture-modes" options={MODE_LABELS} value={tr(CAP_LABEL[mode])}
+                     onChange={(lbl) => pick(CAP_MODES[MODE_LABELS.indexOf(lbl)])} />
         </div>
-        <div className="flex items-center justify-between px-8">
+        <div className="flex items-center justify-between px-2" style={{ marginTop: 14 }}>
           <button onClick={() => { if (list.length) { haptic(6); setRoll(true); } }} aria-label={`${tr("Captured")} · ${list.length}`} disabled={!list.length}
                   className="relative flex items-center justify-center active:opacity-70"
-                  style={{ width: 46, height: 46, borderRadius: 10, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.45)" }}>
+                  style={{ width: 46, height: 46, borderRadius: 10, background: t.wash, border: `${EDGE_W}px solid ${EDGE(t)}`, opacity: list.length ? 1 : 0.4 }}>
             <span className="absolute inset-0 overflow-hidden" style={{ borderRadius: 8 }}>
               {thumb && thumb.url && thumb.type === "video" ? <video src={thumb.url} muted playsInline preload="metadata" className="w-full h-full" style={{ objectFit: "cover" }} />
                 : thumb && thumb.url ? <img src={thumb.url} alt="" className="w-full h-full" style={{ objectFit: "cover" }} /> : null}
             </span>
-            {thumb && !thumb.url && <Mic size={18} color="#fff" strokeWidth={1.8} style={{ position: "relative" }} />}
+            {thumb && !thumb.url && <Mic size={18} color={t.ink} strokeWidth={1.8} style={{ position: "relative" }} />}
             {list.length > 0 && (
-              <span className="absolute" style={{ right: -6, top: -6, minWidth: 18, height: 18, borderRadius: 9, padding: "0 5px", background: "#fff", color: "#111",
+              <span className="absolute" style={{ right: -6, top: -6, minWidth: 18, height: 18, borderRadius: 9, padding: "0 5px", background: t.ink, color: t.page,
                                                    fontFamily: ui, fontSize: 11, fontWeight: 700, lineHeight: "18px", textAlign: "center" }}>{list.length}</span>
             )}
           </button>
           <button onClick={shoot} data-tour="capture-shutter" disabled={cap.state === "idle" || !!cap.error}
                   aria-label={live ? tr("Stop") : mode === "photo" ? tr("Take photo") : mode === "audio" ? tr("Record voice note") : tr("Record")}
                   className="flex items-center justify-center active:opacity-80 disabled:opacity-30"
-                  style={{ width: 76, height: 76, borderRadius: 38, border: "4px solid #fff", background: "transparent" }}>
-            <span className="block" style={{ width: live ? 28 : 60, height: live ? 28 : 60, borderRadius: live ? 6 : 30, background: mode === "photo" ? "#fff" : DANGER,
+                  style={{ width: 76, height: 76, borderRadius: 38, border: `3px solid ${t.ink}`, background: "transparent" }}>
+            <span className="block" style={{ width: live ? 28 : 60, height: live ? 28 : 60, borderRadius: live ? 6 : 30, background: mode === "photo" ? t.ink : DANGER,
                                               transition: "all 200ms cubic-bezier(.22,1,.36,1)" }} />
           </button>
           <button onClick={() => fileRef.current && fileRef.current.click()} aria-label={tr("Choose a file")} disabled={live}
-                  className="flex items-center justify-center active:opacity-70 disabled:opacity-40" style={{ width: 46, height: 46, borderRadius: 23, background: "rgba(255,255,255,0.14)" }}>
-            <Paperclip size={19} color="#fff" strokeWidth={1.9} />
+                  className="flex items-center justify-center active:opacity-70 disabled:opacity-40" style={{ width: 46, height: 46, borderRadius: 23, background: t.wash }}>
+            <Paperclip size={19} color={t.ink} strokeWidth={1.9} />
           </button>
         </div>
         <input ref={fileRef} type="file" accept="video/*,image/*,audio/*" multiple className="hidden"
@@ -10595,7 +10596,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
    timeline, not as a wall of boxes — and everything else as tiles with
    a number on them rather than a sentence to read. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
-                      roster, drifting = 0, toWriteUp = [], upcoming = [],
+                      roster, drifting = 0, toWriteUp = [], upcoming = [], unread = 0,
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onLog, onCapture, onAttend, onAddPlayer, onTip, onDrills, code,
                       onAccept, onDecline, onInvite, push, go,
@@ -10637,6 +10638,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
   /* the badge on Log: everything waiting, today's and older */
   const waiting = list.filter((l) => l.done).length + toLog.length;
   const avatarFor = (l) => avatarUrl(((roster || []).find((r) => r.name === l.who) || {}).avatarPath);
+  /* THE NEXT DAY IS ITS OWN ROW, FOLDED. Today's column is today's; the
+     next day with lessons — Tomorrow, or the day it is — is one row
+     under it carrying the count, and opens to its rows on a tap. Its
+     first lesson used to sit at the foot of Today's column, and the
+     founder read the column as every future lesson in one list. */
+  const nextDay = upcoming.length ? upcoming[0].dayLabel : null;
+  const nextRows = nextDay ? upcoming.filter((u) => u.dayLabel === nextDay) : [];
+  const [nextOpen, setNextOpen] = useState(false);
+  /* ACTIONS: one list of what wants the coach, only when something
+     does, and past two kinds of thing a row of tiles narrows it */
+  const [actKind, setActKind] = useState("all");
 
 
   return (
@@ -10706,25 +10718,26 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                 <span style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked")}</span>
               </div>
             )}
-            {upcoming.length > 0 && (
-              <button onClick={() => { haptic(7); soft(); if (onPeek) onPeek(upcoming[0]); else go("calendar"); }}
-                      className="w-full flex items-center gap-3 pr-4 text-left active:opacity-60"
-                      /* No rule of its own: the last DayRow above already
-                         draws a hairline, and a 1px section on top of that
-                         0.5px is 1.5px of stacked grey sitting mid-list —
-                         heavier than the lid the list opened on. Tomorrow's
-                         first lesson is the foot of the same column, not a
-                         new section. */
-                      style={{ minHeight: 60, paddingLeft: 20 }}>
-                <Rail>{upcoming[0].dayLabel.replace(/ \w+$/, "")}</Rail>
-                <Avatar name={upcoming[0].who} size={30} src={avatarFor(upcoming[0])} />
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{upcoming[0].who}</span>
-                <span className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{upcoming[0].time}</span>
-                <ChevronRight size={14} color={t.trace || t.faint} />
-              </button>
-            )}
           </Ruled>
         </>)}
+
+        {/* ---- THE NEXT DAY, FOLDED ---- */}
+        {nextRows.length > 0 && (
+          <Ruled style={{ marginBottom: SPACE.block }}>
+            <button onClick={() => { haptic(6); soft(); setNextOpen(!nextOpen); }} aria-expanded={nextOpen} data-tour="today-nextday"
+                    className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 56, paddingLeft: 20, paddingRight: 16 }}>
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nextDay}</span>
+              <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{nextRows.length}</span>
+              <ChevronDown size={15} color={t.trace || t.faint} style={{ transform: nextOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+            </button>
+            {nextOpen && nextRows.map((l, i) => (
+              <div key={l.id || `n${i}`} style={{ borderTop: RULE.hair(t.ink), animation: "fadeUp 200ms cubic-bezier(.22,1,.36,1) both" }}>
+                <DayRow l={l} variant="ahead" emphasis={false} last={i === nextRows.length - 1} avatar={avatarFor(l)} until={null}
+                        onLogFor={(x) => onLogFor && onLogFor(x)} onPeek={(x) => onPeek && onPeek(x)} onRegister={(x) => onRegister && onRegister(x)} />
+              </div>
+            ))}
+          </Ruled>
+        )}
 
         {/* ---- WAITING ON YOU ----
 
@@ -10739,14 +10752,30 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
             (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
+            unread > 0 && { key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
             drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
             events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
+          /* the kinds of thing here; past two, a row of tiles narrows the list */
+          const kinds = [...(asks.length ? [{ key: "ask", label: tr("Requests") }] : []), ...jobs.map((j) => ({ key: j.key, label: j.label }))];
+          const narrow = kinds.length > 2;
+          const kind = narrow && kinds.some((k) => k.key === actKind) ? actKind : "all";
+          const showAsks = kind === "all" || kind === "ask";
+          const shownJobs = jobs.filter((j) => kind === "all" || j.key === kind);
           return (<>
-            <RowHead>{tr("To do")}</RowHead>
+            <RowHead>{tr("Actions")}</RowHead>
+            {narrow && (
+              <div data-tour="today-actions-filter" style={{ marginBottom: SPACE.tight }}>
+                <TileGrid cols={evenCols(kinds.length + 1)}>
+                  {[{ key: "all", label: tr("All") }, ...kinds].map((k) => (
+                    <ActTile key={k.key} h={40} label={k.label} on={kind === k.key} onTap={() => setActKind(k.key)} />
+                  ))}
+                </TileGrid>
+              </div>
+            )}
             <Ruled style={{ marginBottom: SPACE.block }}>
-              {asks.slice(0, 3).map((r, i) => (
+              {showAsks && asks.slice(0, 3).map((r, i) => (
                 <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
                      style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
                   <Avatar name={r.who} size={30} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
@@ -10758,14 +10787,14 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                   <TextBtn color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
                 </div>
               ))}
-              {jobs.map((j) => (
+              {shownJobs.map((j) => (
                 <HomeRow key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
               ))}
             </Ruled>
           </>);
         })()}
 
-        {/* the archive is not a chore, so it does not sit under To do:
+        {/* the archive is not a chore, so it does not sit under Actions:
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.block }}>
@@ -16207,7 +16236,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return (liveBookingRows || [])
       .filter((b) => b.status === "confirmed" && b.date > todayIso)
       .sort((a, b) => a.date.localeCompare(b.date) || ((parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0)))
-      .slice(0, 3)
+      .slice(0, 12)   /* a whole day's worth, for the folded next-day row on Today */
       .map((b) => ({ ...b, dayLabel: b.date === tomorrowIso ? tr("Tomorrow") : `${short[localDate(b.date).getDay()]} ${b.d} ${monthName(b.m).slice(0, 3)}` }));
   })() : [];
 
@@ -17300,7 +17329,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   asks={data ? liveAsks : freshAccount ? [] : askedFor}
                   events={data ? liveEvents : freshAccount ? [] : (EVENTS[coachSport] || [])}
                   drifting={atRisk(roster, mySeriesLive, live, bookedAhead).length}
-                  upcoming={upcomingForCoach}
+                  upcoming={upcomingForCoach} unread={unread}
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
