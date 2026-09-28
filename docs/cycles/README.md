@@ -1,9 +1,12 @@
 # The daily cycle
 
-A Routine starts a fresh session at 4:48 every morning (Europe/Dublin)
-and runs this cycle inside the plan's five-hour cap. Each run writes
-`docs/cycles/YYYY-MM-DD.md`; the next run reads the newest one first.
-The founder can steer a run by opening an issue titled "Cycle".
+A Routine fires at 4:48 every morning (Europe/Dublin) — twelve minutes
+before five, so it is not queued behind everything else scheduled on
+the hour — into the founder's standing session, which keeps its memory
+of the project, and runs this cycle inside the plan's five-hour cap.
+Each run writes `docs/cycles/YYYY-MM-DD.md`; the next run reads the
+newest one first. The founder can steer a run by opening an issue
+titled "Cycle". Nothing in a run waits for approval.
 
 ## Time (from the session's start)
 
@@ -25,10 +28,15 @@ Stability and a clean main beat feature count.
    the previous summary, the suites under `scripts/e2e`, and a
    screenshot sweep of the current build (`polish-shots.cjs`), read by
    eye. Pick the smallest, most certain items first; fix what is broken
-   or inconsistent before adding anything. Never redesign what
-   CLAUDE.md records the founder asked to keep.
+   or inconsistent before adding anything. Split the items 50/50
+   between functionality and visuals: half fix or add something that
+   works, half improve something the founder can see, every one
+   verified the same way. Never redesign what CLAUDE.md records the
+   founder asked to keep.
 2. **Implementation.** Branch `claude/daily-YYYY-MM-DD` from
-   `origin/main`; small atomic commits; the architecture in CLAUDE.md.
+   `origin/main` — or, when the cycle runs inside a standing session
+   that was given a branch, that branch, restarted from `origin/main`;
+   small atomic commits; the architecture in CLAUDE.md.
    No test is disabled, skipped or weakened. No force-push, no history
    rewriting, no direct changes to the live Supabase project or
    Netlify. No model names in commits, pull requests or code.
@@ -46,6 +54,14 @@ summary file, push, open a second small pull request and merge it. If
 the GitHub tools are missing from the session, merge locally:
 `git fetch origin main && git checkout -B main origin/main &&
 git merge --no-ff claude/daily-YYYY-MM-DD && git push origin main`.
+
+## When something fails
+
+A red check or build, a failing suite, a blocked merge or push, or a
+dead end the crawl finds that cannot be fixed inside the window: send
+the founder a push notification naming the step and the reason (the
+`PushNotification` tool), write it under "Found, not fixed" in the
+summary, and leave main clean. A failure is never quietly dropped.
 
 ## The summary file
 
