@@ -3702,7 +3702,7 @@ function Walkthrough({ role, juvenile, isParent, sport, onClose }) {
     <div className="absolute inset-0 flex flex-col" style={{ zIndex: 72, background: t.page,
            animation: "liftIn 420ms cubic-bezier(.22,1,.36,1) both" }}>
       <div className="flex items-center px-5 shrink-0" style={{ height: 56 }}>
-        <Mark size={19} color={t.mark} />
+        <Mark size={HEADER_MARK.size} weight={HEADER_MARK.weight} color={t.mark} />
         <span className="flex-1" />
         <button onClick={() => { haptic(6); onClose(); }} className="px-3 active:opacity-60"
                 style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Skip")}</button>
@@ -5292,11 +5292,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
           <div className="flex items-start gap-3">
             <button onClick={open} className="flex-1 min-w-0 text-left active:opacity-80">
-              <span className="flex items-center gap-2" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
-                <span className="min-w-0 truncate">{lesson.focus}</span>
-                {/* a coach drew on this lesson */}
-                {items.some((it) => /^markup-/.test(it.name || "")) && <Pencil size={17} color="#fff" strokeWidth={2} aria-label={tr("Marked up")} style={{ flexShrink: 0 }} />}
-              </span>
+              <span className="block truncate" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>{lesson.focus}</span>
               <span className="block mt-3 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
                 {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
               </span>
@@ -7045,6 +7041,14 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
    header starts this far below the safe area; the founder saw the
    header's own controls dimmed by it and asked for them moved down. */
 const TOP_AIR = 12;
+/* THE MARK IN THE HEADER stands as tall as the icons across from it.
+   The search and the bell are 21px line icons whose glyphs run about
+   18px tall; the rings are 17.2 of the mark's 25-unit height plus the
+   stroke, so at 36 wide (scale 0.9) they stand 18px and the weight of
+   3 draws at 2.7px — a shade heavier than the icons' 1.6, which is the
+   "bolder" the founder asked for after a 20px mark read as a detail
+   beside them. Its ink starts at the text margin, like theirs ends. */
+const HEADER_MARK = { size: 36, weight: 3 };
 
 function Screen({ title, meta, onBack, right, action, children, large = true, bare, fill }) {
   const t = useT();
@@ -7065,7 +7069,7 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
           ) : (
             /* the mark, small, in the corner a root screen leaves empty: the
                one piece of branding inside the app, in the sport's own tone */
-            <span className="flex items-center justify-center" aria-hidden="true" data-tour="brand-mark" style={{ width: 41, height: 41 }}><Mark size={20} color={t.mark} /></span>
+            <span className="flex items-center" aria-hidden="true" data-tour="brand-mark" style={{ width: 50, height: 41, paddingLeft: 9 }}><Mark size={HEADER_MARK.size} weight={HEADER_MARK.weight} color={t.mark} /></span>
           )}
           <span className="flex-1 text-center truncate px-2"
                 style={{ fontFamily: ui, fontSize: 16, fontWeight: 600, color: t.ink,

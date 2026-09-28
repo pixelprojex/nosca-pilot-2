@@ -198,11 +198,16 @@ seeded data and no account.
   week itself still starts empty: nothing is offered to a player until
   the coach has said when. The diary's per-day sheet (`EditDay`) offers
   the same pool.
-- **The mark sits top-left on every root screen.** `Screen` puts
-  `Mark` (20px, the sport's `mark` tone) in the corner a root screen
-  leaves empty — where a pushed screen has its Back chevron. It is the
-  one piece of branding inside the app: no wordmark, no header logo, no
-  band. The founder asked for slightly more branding, unobtrusive.
+- **The mark sits top-left on every root screen, as tall as the icons
+  across from it.** `Screen` puts `Mark` (`HEADER_MARK`: 36 wide at a
+  weight of 3, so the rings stand the 18px the search and the bell's
+  glyphs do, in the sport's `mark` tone) in the corner a root screen
+  leaves empty — where a pushed screen has its Back chevron; the
+  walkthrough's own header carries the same one. It is the one piece
+  of branding inside the app: no wordmark, no header logo, no band.
+  The founder asked for slightly more branding, unobtrusive, then for
+  the mark bigger and bolder to the height of the icons: at 20px it
+  read as a detail beside them.
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
   screens, hours · drills · tips, grids and rows, a body that scrolls
   — remembered as `preferences.setup_done`, and reachable again from
@@ -652,8 +657,10 @@ seeded data and no account.
   asked; a live-capture clip already has its copy on the phone). The
   camera in the tool row is **Photo**: the frame as it stands, marks
   and all, onto the lesson as a still (`onStill`), the coach staying
-  where they are. On the feed a marked-up clip carries a pencil beside
-  the focus. Both paths use the same MediaRecorder negotiation as live
+  where they are. The feed carries no badge for a marked-up clip: a
+  pencil sat beside the focus for a round and the founder cut it — the
+  drawing is in the clip, and the clip says so itself. Both paths use
+  the same MediaRecorder negotiation as live
   capture (`pickMime`, `VIDEO_TYPES` from useCapture) and
   `addLessonMedia`. It was one Record button with no Save for a round,
   at 330px tall under the tab bar, and the founder found no way to

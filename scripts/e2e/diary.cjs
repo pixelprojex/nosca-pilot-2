@@ -76,6 +76,18 @@ const leaks = [];
       const { ctx, page, leak, shot, text } = await boot("coach");
       const home = await leak("coach today"); await shot("03-coach-today");
       check("(d) coach Today carries no seeded competitions", !home.includes("Club Championship") && !home.includes("Captain's Prize"), home.slice(0, 200));
+      /* the mark stands as tall as the search and the bell across from
+         it: the drawn height (geometry plus stroke) within a pixel and a
+         half of theirs, and on the same line */
+      const heads = await page.evaluate(() => {
+        const ink = (sel) => { const svg = document.querySelector(sel); if (!svg) return null; const b = svg.getBBox(); const r = svg.getBoundingClientRect(); const s = r.width / svg.viewBox.baseVal.width;
+          /* lucide sets the stroke on the svg, the mark on its paths */
+          const sw = parseFloat(svg.getAttribute("stroke-width") || svg.querySelector("path, circle").getAttribute("stroke-width")) * s; return { top: r.top + b.y * s - sw / 2, h: b.height * s + sw, left: r.left + b.x * s - sw / 2 }; };
+        return { mark: ink('[data-tour="brand-mark"] svg'), search: ink('[data-tour="search"] svg'), bell: ink('[data-tour="alerts"] svg') };
+      });
+      const near = (a, b, d) => a && b && Math.abs(a - b) <= d;
+      check("(g3) the mark top-left stands as tall as the search and the bell, on their line, in from the edge", !!heads.mark && !!heads.bell && near(heads.mark.h, (heads.search.h + heads.bell.h) / 2, 1.5)
+        && near(heads.mark.top + heads.mark.h / 2, heads.bell.top + heads.bell.h / 2, 1.5) && heads.mark.left >= 16 && heads.mark.left <= 24, JSON.stringify(heads));
       await tap(page, '[aria-label="Diary"]');
       const hours = page.locator('[data-tour="cal-hours"]');
       const h0 = (await hours.count()) ? M.norm(await hours.innerText()) : ""; await shot("04-coach-diary-hours-unset");
