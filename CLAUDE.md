@@ -87,6 +87,21 @@ seeded data and no account.
   with the reason and a Retry. The per-file limit is `MAX_UPLOAD_MB`
   (50, Supabase's default; `VITE_MAX_UPLOAD_MB` if the project's limit
   is raised).
+- **Capture is the phone's camera, not a form.** `LiveCapture` is an
+  overlay of its own (rendered after the app's `<Sheet>`, never inside
+  it — a fixed layer inside the sheet's transform is positioned against
+  the sheet): the live picture fills the screen and comes up on open
+  with no tap to start it; PHOTO · VIDEO · VOICE along the bottom,
+  chosen by a tap on the word or a swipe across the picture; the
+  shutter under them, white for a still, red for a clip or a voice
+  note, the red square to stop; the last capture as a thumbnail
+  bottom-left that opens the roll (and Remove); Choose a file
+  bottom-right; and what it files under as a pill up top that cycles
+  today's bookings. One camera stream serves all three modes — a voice
+  note records off its microphone track (`useCapture.record`). It was
+  a 3:4 viewfinder in a sheet behind "Tap to use the camera" with a
+  segmented control, and the founder could not see what they were
+  filming. `scripts/e2e/capture.cjs` drives it with a fake camera.
 - **Every clip live capture records is also handed to the phone.**
   `saveToDevice()` in `LiveCapture` fires a download the moment the
   recorder stops (`nosca-<player>-<date>-<hhmm>.<ext>`), because until

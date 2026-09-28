@@ -187,7 +187,16 @@ const leaks = [];
       await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(800);
       await byText(page, "Capture").click(); await page.waitForTimeout(800);
       const t5 = await leak("coach live capture"); await shot("coach-live-capture");
-      check("(5) Live capture files under today's real bookings or nobody", /filing under/i.test(t5) && t5.includes("Cian Murphy · 9:00 am") && t5.includes("Saoirse Kelly · 10:30 am") && t5.includes("Nobody yet"), t5.slice(0, 200));
+      /* the camera fills the screen; what it files under is a pill up top
+         that cycles today's real bookings, opened from a booking on Cian */
+      const pill5 = page.locator('[aria-label="Filing under"]');
+      const pillText = async () => ((await pill5.count()) ? M.norm(await pill5.innerText()) : "");
+      const p0 = await pillText(); await pill5.click().catch(() => {}); await page.waitForTimeout(300);
+      const p1 = await pillText(); await pill5.click().catch(() => {}); await page.waitForTimeout(300);
+      const p2 = await pillText();
+      const seen = [p0, p1, p2].join(" | ");
+      check("(5) Live capture files under today's real bookings or nobody", (await page.locator('[data-tour="capture"]').count()) === 1 && /Cian · 9:00 am/.test(seen) && /Saoirse · 10:30 am/.test(seen) && /Nobody yet/.test(seen), seen);
+      await page.locator('[data-tour="capture"] [aria-label="Close"]').first().click().catch(() => {}); await page.waitForTimeout(400);
 
       /* (e) log a lesson with a typed note — one screen, no pages */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);

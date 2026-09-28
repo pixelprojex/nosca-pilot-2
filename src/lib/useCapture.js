@@ -58,10 +58,19 @@ export function useCapture() {
       return null;
     }
     try {
-      const constraints = mode === "audio"
-        ? { audio: true }
-        : { video: { facingMode: "environment", width: { ideal: 1280 } }, audio: true };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      /* the rear camera first; failing that any camera; failing that the
+         microphone alone, so a device without a camera still takes a
+         voice note — a refusal stops the chain, because asking again is
+         asking the same question */
+      const tries = mode === "audio"
+        ? [{ audio: true }]
+        : [{ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: true }, { video: true, audio: true }, { audio: true }];
+      let stream = null, lastErr = null;
+      for (const c of tries) {
+        try { stream = await navigator.mediaDevices.getUserMedia(c); break; }
+        catch (e) { lastErr = e; if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) break; }
+      }
+      if (!stream) throw lastErr || new Error("no stream");
       streamRef.current = stream;
       setState("ready");
       return stream;
@@ -84,11 +93,14 @@ export function useCapture() {
     if (!stream) return;
     chunksRef.current = [];
     const mimeType = pickMime(mode === "audio" ? AUDIO_TYPES : VIDEO_TYPES);
+    /* one camera stream serves photo, video and voice: a voice note is
+       recorded off its microphone track alone */
+    const src = mode === "audio" && stream.getAudioTracks().length ? new MediaStream(stream.getAudioTracks()) : stream;
     let rec;
     try {
-      rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      rec = new MediaRecorder(src, mimeType ? { mimeType } : undefined);
     } catch (e) {
-      rec = new MediaRecorder(stream);          // fall back to the browser default
+      rec = new MediaRecorder(src);             // fall back to the browser default
     }
     rec.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
     rec.start();

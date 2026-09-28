@@ -4662,193 +4662,209 @@ const deviceName = (who, file) => {
   return `nosca-${slug}-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.${ext}`;
 };
 
+/* THE CAMERA. Capture is the phone's own camera, not a form in a sheet:
+   the live picture fills the screen, PHOTO · VIDEO · VOICE are swiped or
+   tapped along the bottom, the shutter sits under them and becomes the
+   red stop, the last capture is a thumbnail bottom-left (tap it for the
+   roll, and to take one off), Choose a file bottom-right, and what it
+   files under is a pill up top that cycles today's bookings. It comes up
+   live on open, as a camera does. It renders outside the app's Sheet as
+   an overlay of its own under the toasts, because a fixed layer inside
+   the sheet's transform is positioned against the sheet. It was a 3:4
+   viewfinder in a sheet behind "Tap to use the camera", and the founder
+   could not see what they were filming. */
+const CAP_MODES = ["photo", "video", "audio"];
+const CAP_LABEL = { photo: "Photo", video: "Video", audio: "Voice" };
 function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, say }) {
   const t = useT();
-  const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
-  const [mode, setMode] = useState("video");        // video | photo | audio
+  const [mode, setMode] = useState("video");        // photo | video | audio
   const cap = useCapture();
-  const videoRef = useRef(null);
-  const fileRef = useRef(null);
+  const videoRef = useRef(null), fileRef = useRef(null), swipe = useRef(null), thumbRef = useRef(null);
+  const [roll, setRoll] = useState(false);
+  const [thumb, setThumb] = useState(null);         // { url, type } — the last capture
+  const [noCamera, setNoCamera] = useState(false);  // the microphone answered, no camera did
+  const live = cap.state === "recording";
+  const list = items || [];
 
-  /* Attach the live stream to the preview once both exist. */
+  /* one stream serves photo, video and voice; the camera is released on
+     leaving. A device with a microphone and no camera opens on Voice. */
   useEffect(() => {
-    const el = videoRef.current;
-    const stream = cap.stream();
-    if (el && stream && mode !== "audio") {
-      el.srcObject = stream;
-      el.play().catch(() => {});                     /* autoplay policy — harmless */
-    }
-  }, [cap.state, mode]);
+    cap.start("video").then((s) => { if (s && !s.getVideoTracks().length) { setNoCamera(true); setMode("audio"); } });
+    return () => { cap.cancel(); if (thumbRef.current) URL.revokeObjectURL(thumbRef.current); };
+  }, []);
+  useEffect(() => {
+    const el = videoRef.current, stream = cap.stream();
+    if (el && stream && el.srcObject !== stream) { el.srcObject = stream; el.play().catch(() => {}); }
+  }, [cap.state]);
 
-  useEffect(() => () => cap.cancel(), []);           // release the camera on leaving
-
-  const begin = async () => { haptic(10); await cap.start(mode === "audio" ? "audio" : "video"); };
-
+  const keep = (file, type) => {
+    onAdd({ type, file, name: file.name });
+    if (thumbRef.current) URL.revokeObjectURL(thumbRef.current);
+    const url = type === "audio" ? null : URL.createObjectURL(file);
+    thumbRef.current = url; setThumb({ url, type });
+  };
   const shoot = async () => {
-    if (cap.state === "recording") {
+    if (live) {
       const file = await cap.stop(mode === "audio" ? "audio" : "video");
       hapticCommit(); soft();
       if (file) {
-        onAdd({ type: mode === "audio" ? "audio" : "video", file, name: file.name });
+        keep(file, mode === "audio" ? "audio" : "video");
         if (mode === "video") saveToDevice(file, deviceName(chosen && chosen.who, file));
         say && say(tr("Saved"));
       }
       return;
     }
     if (mode === "photo") {
-      /* A still is a frame off the live stream, drawn to a canvas. */
-      const el = videoRef.current;
-      if (!el) return;
+      /* a still is a frame off the live stream, drawn to a canvas */
+      const el = videoRef.current; if (!el) return;
       const c = document.createElement("canvas");
       c.width = el.videoWidth || 1280; c.height = el.videoHeight || 720;
       c.getContext("2d").drawImage(el, 0, 0, c.width, c.height);
       c.toBlob((blob) => {
         if (!blob) return;
-        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" });
         hapticCommit(); soft();
-        onAdd({ type: "photo", file, name: file.name });
+        keep(new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" }), "photo");
         say && say(tr("Saved"));
       }, "image/jpeg", 0.92);
       return;
     }
-    cap.record(mode === "audio" ? "audio" : "video");
     hapticWarn();
+    cap.record(mode === "audio" ? "audio" : "video");
   };
 
+  /* the modes: a tap on the word, or a swipe across the picture */
+  const pick = (m) => { if (live || m === mode || (noCamera && m !== "audio")) return; haptic(6); setMode(m); };
+  const onDown = (e) => { swipe.current = { x: e.clientX, y: e.clientY }; };
+  const onUp = (e) => {
+    const s = swipe.current; swipe.current = null; if (!s) return;
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (Math.abs(dx) < 48 || Math.abs(dy) > 70) return;
+    const i = CAP_MODES.indexOf(mode);
+    pick(CAP_MODES[Math.min(CAP_MODES.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1)))]);
+  };
+
+  /* what it files under: one of today's bookings, or the holding pile
+     that is offered when the next lesson is logged */
+  const targets = [...(lessons || []), null];
+  const cur = chosen ? targets.findIndex((l) => l && l.who === chosen.who && l.time === chosen.time) : targets.length - 1;
+  const cycle = () => { if (live || targets.length < 2) return; haptic(6); onChoose && onChoose(targets[(Math.max(0, cur) + 1) % targets.length]); };
+  const filing = chosen ? `${String(chosen.who || "").split(" ")[0]} · ${chosen.time}` : tr("Nobody yet");
   const mmss = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
-  const live = cap.state === "recording";
+  const glass = { background: "rgba(0,0,0,0.45)", color: "#fff" };
 
   return (
-    <>
-      {/* This body already sits inside the app's one Sheet. Wrapping it
-          in a second <Sheet> with no `open` slid the whole thing 760px
-          off the bottom, so the plus menu's Live capture opened onto an
-          empty panel. */}
-      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Capture")}</h2>
-      <div className="pb-2">
-        {/* where it files: one of today's bookings, or the holding pile
-            that is offered when the next lesson is logged */}
-        {lessons && lessons.length > 0 && (
-          <div className="mb-4">
-            <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Filing under")}</div>
-            <div style={{ borderTop: RULE.section(t.ink) }}>
-              {[...lessons, null].map((l) => {
-                const on = l ? !!(chosen && chosen.who === l.who && chosen.time === l.time) : !chosen;
+    <div className="absolute inset-0 flex flex-col" data-tour="capture" style={{ zIndex: 68, background: "#000" }}>
+      {/* the picture, the whole frame the camera sees */}
+      <div className="relative flex-1 min-h-0" onPointerDown={onDown} onPointerUp={onUp} style={{ touchAction: "none" }}>
+        <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full"
+               style={{ objectFit: "contain", opacity: cap.state === "idle" || cap.error ? 0 : mode === "audio" ? 0.22 : 1, transition: "opacity 300ms" }} />
+        {mode === "audio" && !cap.error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <span className="flex items-center justify-center rounded-full"
+                  style={{ width: 96, height: 96, background: live ? DANGER : "rgba(255,255,255,0.14)", border: "1.5px solid rgba(255,255,255,0.5)",
+                           animation: live ? "breathe 1600ms ease-in-out infinite" : "none" }}>
+              <Mic size={40} color="#fff" strokeWidth={1.5} />
+            </span>
+            <span style={{ ...TYPE.small, color: "rgba(255,255,255,0.8)" }}>{live ? tr("Listening") : noCamera ? tr("No camera — voice notes only") : tr("Voice note")}</span>
+          </div>
+        )}
+        {cap.error && (
+          <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
+            <p style={{ ...TYPE.body, color: "#fff", lineHeight: 1.5 }}>{cap.error}</p>
+          </div>
+        )}
+        {/* top: close, the timer while it records, what it files under */}
+        <div className="absolute inset-x-0 flex items-center justify-between px-3" style={{ top: `calc(${TOP_AIR}px + env(safe-area-inset-top, 0px))` }}>
+          <button onClick={() => { haptic(6); close(); }} aria-label={tr("Close")} className="flex items-center justify-center active:opacity-70"
+                  style={{ width: 40, height: 40, borderRadius: 20, ...glass }}><X size={20} color="#fff" strokeWidth={2} /></button>
+          {live ? (
+            <span className="flex items-center gap-2 px-3 py-1.5" style={{ borderRadius: R.pill, background: DANGER, color: "#fff", fontFamily: ui, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+              <span className="rounded-full" style={{ width: 7, height: 7, background: "#fff", animation: "breathe 1200ms ease-in-out infinite" }} />{mmss(cap.seconds)}
+            </span>
+          ) : <span />}
+          {lessons && lessons.length > 0 ? (
+            <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} className="flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
+                    style={{ minHeight: 36, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, maxWidth: 180 }}>
+              <span className="truncate">{filing}</span><ChevronRight size={14} color="#fff" strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
+            </button>
+          ) : <span style={{ width: 40 }} />}
+        </div>
+      </div>
+
+      {/* bottom: the modes, then the roll · the shutter · a file */}
+      <div className="shrink-0" style={{ background: "#000", paddingBottom: "calc(18px + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="flex items-center justify-center gap-7 pt-3 pb-4" data-tour="capture-modes">
+          {CAP_MODES.map((m) => (
+            <button key={m} onClick={() => pick(m)} aria-pressed={mode === m} aria-label={tr(CAP_LABEL[m])} disabled={live || (noCamera && m !== "audio")} className="active:opacity-70 disabled:opacity-40"
+                    style={{ fontFamily: ui, fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "6px 4px",
+                             color: mode === m ? t.accent : "rgba(255,255,255,0.7)" }}>
+              {tr(CAP_LABEL[m])}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center justify-between px-8">
+          <button onClick={() => { if (list.length) { haptic(6); setRoll(true); } }} aria-label={`${tr("Captured")} · ${list.length}`} disabled={!list.length}
+                  className="relative flex items-center justify-center active:opacity-70"
+                  style={{ width: 46, height: 46, borderRadius: 10, background: "rgba(255,255,255,0.12)", border: "1.5px solid rgba(255,255,255,0.45)" }}>
+            <span className="absolute inset-0 overflow-hidden" style={{ borderRadius: 8 }}>
+              {thumb && thumb.url && thumb.type === "video" ? <video src={thumb.url} muted playsInline preload="metadata" className="w-full h-full" style={{ objectFit: "cover" }} />
+                : thumb && thumb.url ? <img src={thumb.url} alt="" className="w-full h-full" style={{ objectFit: "cover" }} /> : null}
+            </span>
+            {thumb && !thumb.url && <Mic size={18} color="#fff" strokeWidth={1.8} style={{ position: "relative" }} />}
+            {list.length > 0 && (
+              <span className="absolute" style={{ right: -6, top: -6, minWidth: 18, height: 18, borderRadius: 9, padding: "0 5px", background: "#fff", color: "#111",
+                                                   fontFamily: ui, fontSize: 11, fontWeight: 700, lineHeight: "18px", textAlign: "center" }}>{list.length}</span>
+            )}
+          </button>
+          <button onClick={shoot} data-tour="capture-shutter" disabled={cap.state === "idle" || !!cap.error}
+                  aria-label={live ? tr("Stop") : mode === "photo" ? tr("Take photo") : mode === "audio" ? tr("Record voice note") : tr("Record")}
+                  className="flex items-center justify-center active:opacity-80 disabled:opacity-30"
+                  style={{ width: 76, height: 76, borderRadius: 38, border: "4px solid #fff", background: "transparent" }}>
+            <span className="block" style={{ width: live ? 28 : 60, height: live ? 28 : 60, borderRadius: live ? 6 : 30, background: mode === "photo" ? "#fff" : DANGER,
+                                              transition: "all 200ms cubic-bezier(.22,1,.36,1)" }} />
+          </button>
+          <button onClick={() => fileRef.current && fileRef.current.click()} aria-label={tr("Choose a file")} disabled={live}
+                  className="flex items-center justify-center active:opacity-70 disabled:opacity-40" style={{ width: 46, height: 46, borderRadius: 23, background: "rgba(255,255,255,0.14)" }}>
+            <Paperclip size={19} color="#fff" strokeWidth={1.9} />
+          </button>
+        </div>
+        <input ref={fileRef} type="file" accept="video/*,image/*,audio/*" multiple className="hidden"
+               onChange={(e) => {
+                 const files = Array.from(e.target.files || []);
+                 files.forEach((f) => keep(f, f.type.startsWith("video") ? "video" : f.type.startsWith("audio") ? "audio" : "photo"));
+                 if (files.length) { hapticCommit(); say && say(`${files.length} ${tr("added")}`); }
+                 e.target.value = "";
+               }} />
+      </div>
+
+      {/* the roll: what has been captured, and the way to take one off */}
+      {roll && (
+        <div className="absolute inset-0 flex flex-col justify-end" style={{ zIndex: 2, background: "rgba(0,0,0,0.5)" }} onClick={() => setRoll(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: t.page, borderRadius: "18px 18px 0 0", paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
+            <div className="flex items-center px-5" style={{ minHeight: 52 }}>
+              <span className="flex-1" style={{ ...TYPE.subhead, color: t.ink }}>{tr("Captured")} · {list.length}</span>
+              <button onClick={() => { haptic(6); setRoll(false); }} aria-label={tr("Close")} className="p-2 active:opacity-60"><X size={18} color={t.ink} /></button>
+            </div>
+            <div className="px-5" style={{ maxHeight: 300, overflowY: "auto" }}>
+              {list.map((it, i) => {
+                /* what comes back is the mapped capture: `kind` video · action · voice */
+                const k = it.kind === "video" || it.type === "video" ? "video" : it.kind === "voice" || it.type === "audio" ? "audio" : "photo";
+                const K = k === "audio" ? Mic : k === "video" ? Play : ImageIcon;
                 return (
-                  <button key={l ? l.time + l.who : "none"} disabled={live} aria-pressed={on}
-                          onClick={() => { haptic(6); onChoose && onChoose(l); }}
-                          className="w-full flex items-center gap-3 text-left active:opacity-60"
-                          style={{ minHeight: 50, borderBottom: RULE.hair(t.ink), opacity: live ? 0.5 : 1 }}>
-                    <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>
-                      {l ? `${l.who} · ${l.time}` : tr("Nobody yet")}
-                    </span>
-                    {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
+                <div key={i} className="flex items-center gap-3" style={{ minHeight: 50, borderBottom: RULE.hair(t.ink) }}>
+                  <K size={16} color={t.sub} strokeWidth={1.8} />
+                  <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{k === "audio" ? tr("Voice note") : k === "video" ? tr("Clip") : tr("Photo")}</span>
+                  <button onClick={() => { hapticWarn(); onDrop && onDrop(i); if (list.length <= 1) setRoll(false); }} aria-label={tr("Remove")} className="p-2 active:opacity-50">
+                    <X size={15} color={t.trace || t.faint} />
                   </button>
+                </div>
                 );
               })}
             </div>
           </div>
-        )}
-
-        {/* which kind */}
-        {/* the app's own segmented control, not a hand-rolled row of pills */}
-        <div className="mb-5">
-          <Segmented tour="capture-modes" options={[tr("Film"), tr("Photo"), tr("Voice")]}
-                     value={{ video: tr("Film"), photo: tr("Photo"), audio: tr("Voice") }[mode]}
-                     onChange={(lbl) => { cap.cancel(); setMode({ [tr("Film")]: "video", [tr("Photo")]: "photo", [tr("Voice")]: "audio" }[lbl]); }} />
         </div>
-
-        {/* the viewfinder */}
-        <div className="relative overflow-hidden mb-5"
-             style={{ borderRadius: R.surface, background: "#0B0F0C", aspectRatio: "3 / 4" }}>
-          {mode !== "audio" && (
-            <video ref={videoRef} muted playsInline
-                   className="absolute inset-0 w-full h-full"
-                   style={{ objectFit: "cover", opacity: cap.state === "idle" ? 0 : 1,
-                            transition: "opacity 300ms" }} />
-          )}
-
-          {cap.state === "idle" && (
-            <button onClick={begin} className="absolute inset-0 flex flex-col items-center justify-center gap-3 active:opacity-70">
-              {mode === "audio" ? <Mic size={30} color="rgba(255,255,255,0.8)" strokeWidth={1.6} />
-                                : <Camera size={30} color="rgba(255,255,255,0.8)" strokeWidth={1.6} />}
-              <span style={{ ...TYPE.small, color: "rgba(255,255,255,0.75)" }}>
-                {mode === "audio" ? tr("Tap to use the microphone") : tr("Tap to use the camera")}
-              </span>
-            </button>
-          )}
-
-          {mode === "audio" && cap.state !== "idle" && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Mic size={44} color="#fff" strokeWidth={1.4}
-                   style={{ animation: live ? "breathe 1600ms ease-in-out infinite" : "none" }} />
-            </div>
-          )}
-
-          {live && (
-            <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full"
-                 style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(10px)" }}>
-              <span className="rounded-full" style={{ width: 7, height: 7, background: DANGER,
-                                                      animation: "breathe 1200ms ease-in-out infinite" }} />
-              <span style={{ ...TYPE.small, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{mmss(cap.seconds)}</span>
-            </div>
-          )}
-
-          {cap.error && (
-            <div className="absolute inset-x-0 bottom-0 px-5 py-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-              <p style={{ ...TYPE.small, color: "#fff", lineHeight: 1.5 }}>{cap.error}</p>
-            </div>
-          )}
-        </div>
-
-        {/* the shutter */}
-        {cap.state !== "idle" && !cap.error && (
-          <button onClick={shoot} className="mx-auto block active:opacity-80"
-                  style={{ width: 68, height: 68, borderRadius: 999,
-                           background: live ? DANGER : "#fff",
-                           border: `3px solid ${live ? DANGER : t.ink}`,
-                           boxShadow: (t.elev || ELEV).raise,
-                           transition: "background 200ms, border-radius 200ms" }}>
-            {live && <span className="block mx-auto" style={{ width: 22, height: 22, borderRadius: 4, background: "#fff" }} />}
-          </button>
-        )}
-
-        {/* always available, whatever the camera does */}
-        <button onClick={() => fileRef.current && fileRef.current.click()}
-                className="w-full flex items-center justify-center gap-2 mt-5 active:opacity-70"
-                style={{ minHeight: 50, borderRadius: R.control, border: `1px solid ${HAIR(t.ink, 0.18)}`,
-                         ...TYPE.subhead, fontSize: 15, color: t.ink }}>
-          <Paperclip size={15} strokeWidth={1.9} />
-          {tr("Choose a file instead")}
-        </button>
-        <input ref={fileRef} type="file" accept="video/*,image/*,audio/*" multiple className="hidden"
-               onChange={(e) => {
-                 const files = Array.from(e.target.files || []);
-                 files.forEach((f) => onAdd({
-                   type: f.type.startsWith("video") ? "video" : f.type.startsWith("audio") ? "audio" : "photo",
-                   file: f, name: f.name,
-                 }));
-                 if (files.length) { hapticCommit(); say && say(`${files.length} ${tr("added")}`); }
-                 e.target.value = "";
-               }} />
-
-        {/* what's been captured so far */}
-        {items && items.length > 0 && (
-          <div className="mt-6">
-            <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Captured")}</div>
-            <Card>
-              {items.map((it, i) => (
-                <Row key={i} label={it.name || `${it.type} ${i + 1}`}
-                     sub={it.type === "audio" ? tr("Voice note") : it.type === "video" ? tr("Clip") : tr("Photo")}
-                     last={i === items.length - 1}
-                     icon={<I C={it.type === "audio" ? Mic : it.type === "video" ? Play : ImageIcon} />}
-                     onToggle={() => onDrop && onDrop(i)} />
-              ))}
-            </Card>
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 }
 
@@ -17534,7 +17550,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             </div>
           )}
 
-          <Sheet open={!!sheet} onClose={() => setSheet(null)}>
+          <Sheet open={!!sheet && sheet !== "capture"} onClose={() => setSheet(null)}>
             {sheet === "pickWho" ? <PickPerson roster={roster}
                                             title={pickFor === "tip" ? tr("Set a tip") : tr("Set drills")}
                                             sub={tr("For")}
@@ -17568,36 +17584,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               done(tr("Register taken"), `${n} ${tr("present")}`);
                                             }}
                                             close={() => setSheet(null)} say={say} />
-            : sheet === "capture" ? <LiveCapture lessons={todayList || []} chosen={captureFor}
-                                            onChoose={setCaptureFor}
-                                            items={(captured[captureFor ? captureFor.who : "__unassigned"] || [])}
-                                            onAdd={(item) => {
-                                              /* LiveCapture hands back { type, file, name }. The
-                                                 file is the whole point — it's what uploads with
-                                                 the lesson — so it's kept on the item rather than
-                                                 dropped. A real account with nothing scheduled
-                                                 today still needs somewhere to put a capture, so
-                                                 it goes under a holding key and is offered when
-                                                 the next lesson is logged. */
-                                              const who = captureFor ? captureFor.who : "__unassigned";
-                                              /* Date.now() alone gave every file picked in one go
-                                                 the same id, and the wizard filters captures BY id
-                                                 — so pulling one into the write-up took the rest
-                                                 with it, or dropped them. One id per item. */
-                                              const id = captureSeq();
-                                              const kind = item.type || item.kind;
-                                              const mapped = kind === "video" ? { id, kind: "video", angle: tr("Live capture"), file: item.file, name: item.name }
-                                                : kind === "photo" ? { id, kind: "action", file: item.file, name: item.name }
-                                                : kind === "audio" || kind === "voice" ? { id, kind: "voice", file: item.file, name: item.name }
-                                                : { id, kind: "note", text: item.label };
-                                              setCaptured((c) => ({ ...c, [who]: [...(c[who] || []), mapped] }));
-                                            }}
-                                            onDrop={(i) => {
-                                              const who = captureFor ? captureFor.who : "__unassigned";
-                                              const mine = captured[who] || [];
-                                              setCaptured((c) => ({ ...c, [who]: mine.filter((_, k) => k !== i) }));
-                                            }}
-                                            close={() => setSheet(null)} say={say} />
+            : sheet === "capture" ? null   /* the camera is an overlay of its own, after the Sheet */
             : sheet === "photo" ? <PhotoSheet name={(activeProfile || {}).name || coachName}
                                             current={avatars[activeProfileId]}
                                             onSet={(c) => { setAvatars((v) => ({ ...v, [activeProfileId]: c })); setSheet(null); }}
@@ -17869,6 +17856,37 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} onSend={data ? (text) => data.broadcast(text) : null} />
               : null}
           </Sheet>
+          {sheet === "capture" && (
+            <LiveCapture lessons={todayList || []} chosen={captureFor}
+                         onChoose={setCaptureFor}
+                         items={(captured[captureFor ? captureFor.who : "__unassigned"] || [])}
+                         onAdd={(item) => {
+                           /* LiveCapture hands back { type, file, name }. The file is
+                              the whole point — it's what uploads with the lesson — so
+                              it's kept on the item rather than dropped. A real account
+                              with nothing scheduled today still needs somewhere to put
+                              a capture, so it goes under a holding key and is offered
+                              when the next lesson is logged. */
+                           const who = captureFor ? captureFor.who : "__unassigned";
+                           /* Date.now() alone gave every file picked in one go the same
+                              id, and the wizard filters captures BY id — so pulling one
+                              into the write-up took the rest with it, or dropped them.
+                              One id per item. */
+                           const id = captureSeq();
+                           const kind = item.type || item.kind;
+                           const mapped = kind === "video" ? { id, kind: "video", angle: tr("Live capture"), file: item.file, name: item.name }
+                             : kind === "photo" ? { id, kind: "action", file: item.file, name: item.name }
+                             : kind === "audio" || kind === "voice" ? { id, kind: "voice", file: item.file, name: item.name }
+                             : { id, kind: "note", text: item.label };
+                           setCaptured((c) => ({ ...c, [who]: [...(c[who] || []), mapped] }));
+                         }}
+                         onDrop={(i) => {
+                           const who = captureFor ? captureFor.who : "__unassigned";
+                           const mine = captured[who] || [];
+                           setCaptured((c) => ({ ...c, [who]: mine.filter((_, k) => k !== i) }));
+                         }}
+                         close={() => setSheet(null)} say={say} />
+          )}
           <Toast msg={toast} />
         </div>
       </div>
