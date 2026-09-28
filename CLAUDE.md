@@ -555,20 +555,32 @@ seeded data and no account.
   player does. The
   archive is the player file's lesson list at full length, not a
   different screen.
-- **Mark it up is a coach talking over a clip and drawing on it, and
-  the take is a new clip on the lesson.** `ClipReview` (route
+- **Mark it up is a coach drawing on a clip, and the take is a new clip
+  on the lesson — with or without a voice.** `ClipReview` (route
   `review:<lessonId>:<mediaId>`, reached from "Mark it up" under a
-  video on the coach's lesson page) paints the clip onto a canvas every
-  frame with the marks on top (pen · line · arrow · circle · angle,
-  three inks, Undo, Clear — the angle reads degrees from vertical, for
-  a swing plane or a spine), lets the coach play, pause, scrub, step a
-  frame either way and run at ½× while recording, records that canvas
-  plus the microphone with the same
-  MediaRecorder negotiation as live capture (`pickMime`, `VIDEO_TYPES`
-  from useCapture), and only after the coach has watched the take back
-  sends it through `addLessonMedia` like any other file. The drawing
-  is IN the recording — never a layer only this app could replay — and
-  the original clip is never touched. The viewer sees every mark drawn
+  video on the coach's lesson page) is laid out like a phone's markup
+  sheet over a screenshot: the clip on a dark stage that fills the
+  screen from the header to a compact bar (`Screen fill`, the route is
+  `bare` so no tab bar sits under it; the canvas is sized to the
+  measured stage in real pixels, never object-fit, because the pointer
+  maths reads its box), Undo and Clear in the header, one row of icon
+  tools (pen · line · arrow · circle · angle — the angle reads degrees
+  from vertical, for a swing plane or a spine) with the three inks, the
+  transport (play, a frame either way, scrub, ½×), and **two actions,
+  never only a Record**: **Save** plays the clip through once from the
+  start with the marks drawing themselves in, records the canvas as it
+  goes with no microphone asked for (the clip's own sound rides along
+  through Web Audio where the browser allows it) and uploads the take
+  at once; **Talk over it** takes the microphone, lets the coach play,
+  scrub and draw live, and plays the take back (Again · Save) before
+  it goes. Both use the same MediaRecorder negotiation as live capture
+  (`pickMime`, `VIDEO_TYPES` from useCapture) and `addLessonMedia`.
+  It was one Record button with no Save for a round, at 330px tall
+  under the tab bar, and the founder found no way to keep a drawing and
+  could not work at that size. The drawing is IN the recording — never
+  a layer only this app could replay — and `review.cjs` decodes the
+  file the app sent and reads the ink's pixels back out of it. The
+  original clip is never touched. The viewer sees every mark drawn
   live: a stroke made while recording is in the take as it happens,
   and marks drawn before Record reveal themselves one after another
   over `REVEAL_MS` when it starts (`paintShape(g, sh, w, h, f)` draws a
