@@ -4131,28 +4131,48 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
   const t = useT();
   const [dx, setDx] = useState(0);
   const [gone, setGone] = useState(false);
+  const [armed, setArmed] = useState(false);
   const st = useRef(null);
   const OPEN = 88;
-  const DELETE_THRESHOLD = -140;  // swipe far enough left and it auto-deletes
+  /* THE PULL-THROUGH. The first 88px reveal Remove and the row rests
+     there. Keep pulling and the red follows the thumb across the row;
+     past ARM of its width the label jumps to the far edge and the hand
+     feels one firm tick — letting go now deletes, letting go before it
+     does not, and coming back under it ticks lightly and disarms.
+     Nothing goes while the thumb is down, so a row can always be pulled
+     back, and a cancelled pointer (the page scrolled) never deletes. */
+  const ARM = 0.6;
 
-  const down = (e) => { st.current = { x: e.clientX, base: dx }; };
+  /* a pull that moved is a pull, not a tap: the click the browser fires
+     when the thumb lifts over the same control it landed on (the row
+     slides along under it) is swallowed, so a swipe that began on the
+     row's own button never presses it */
+  const swallow = useRef(false);
+  const down = (e) => { swallow.current = false; st.current = { x: e.clientX, base: dx, w: e.currentTarget.getBoundingClientRect().width || 320, armed: false, moved: false }; };
   const move = (e) => {
-    if (!st.current) return;
-    const d = Math.min(0, Math.max(-180, st.current.base + (e.clientX - st.current.x)));
+    const s = st.current; if (!s) return;
+    const d = Math.min(0, Math.max(-s.w, s.base + (e.clientX - s.x)));
+    if (Math.abs(d - s.base) > 6) s.moved = true;
     setDx(d);
-    /* if swiped far enough, auto-delete immediately */
-    if (d <= DELETE_THRESHOLD && !gone) {
-      st.current = null;
-      hapticWarn();
-      decline();
-      setGone(true);
-      setTimeout(() => onDelete && onDelete(), 180);
-    }
+    const past = -d >= s.w * ARM;
+    if (past && !s.armed) { s.armed = true; setArmed(true); haptic(14); }
+    else if (!past && s.armed) { s.armed = false; setArmed(false); haptic(5); }
   };
+  const remove = () => { hapticWarn(); decline(); setGone(true); setTimeout(() => onDelete && onDelete(), 180); };
   const up = () => {
-    if (!st.current) return;
+    const s = st.current; if (!s) return;
+    st.current = null; swallow.current = s.moved;
+    if (s.armed) {
+      setArmed(false); hapticWarn(); decline(); setDx(-s.w);
+      setTimeout(() => { setGone(true); setTimeout(() => onDelete && onDelete(), 180); }, 160);
+      return;
+    }
     if (dx < -OPEN * 0.6) { setDx(-OPEN); haptic(9); } else { setDx(0); }
-    st.current = null;
+  };
+  const cancel = () => {
+    const s = st.current; if (!s) return;
+    st.current = null; swallow.current = s.moved; setArmed(false);
+    setDx(dx < -OPEN * 0.6 ? -OPEN : 0);
   };
 
   if (gone) return null;
@@ -4166,12 +4186,15 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
        an action. Same defect as the list foot, one level down. */
     <div className="nsc-swipe relative overflow-hidden">
       {/* what sits underneath */}
-      <button onClick={() => { hapticWarn(); decline(); setGone(true); setTimeout(() => onDelete && onDelete(), 180); }}
-              className="absolute inset-y-0 right-0 flex flex-col items-center justify-center active:opacity-80"
-              style={{ width: OPEN, background: DANGER }}
+      <button onClick={remove}
+              className="absolute inset-y-0 right-0 flex items-center active:opacity-80"
+              style={{ width: Math.max(OPEN, -dx), background: DANGER, justifyContent: armed ? "flex-start" : "flex-end",
+                       transition: st.current ? "none" : "width 320ms cubic-bezier(.22,1,.36,1)" }}
               aria-label={deleteLabel || tr("Remove")}>
-        {(!deleteLabel || /remove|clear|delete/i.test(deleteLabel)) && <Trash2 size={16} color="#fff" strokeWidth={1.9} />}
-        <span className={(!deleteLabel || /remove|clear|delete/i.test(deleteLabel)) ? "mt-1" : ""} style={{ ...TYPE.caption, color: "#fff" }}>{deleteLabel || tr("Remove")}</span>
+        <span className="flex flex-col items-center justify-center" style={{ width: OPEN, height: "100%" }}>
+          {(!deleteLabel || /remove|clear|delete/i.test(deleteLabel)) && <Trash2 size={16} color="#fff" strokeWidth={1.9} />}
+          <span className={(!deleteLabel || /remove|clear|delete/i.test(deleteLabel)) ? "mt-1" : ""} style={{ ...TYPE.caption, color: "#fff" }}>{deleteLabel || tr("Remove")}</span>
+        </span>
       </button>
 
       {/* THE SLIDING LAYER IS THE PAGE, NOT A SURFACE. Its job is to be
@@ -4182,7 +4205,8 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
           rows on the paper, which made "you can swipe this" look like
           a different kind of object. It reads as the page until a
           thumb actually moves it. */}
-      <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+      <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}
+           onClickCapture={(e) => { if (swallow.current) { swallow.current = false; e.stopPropagation(); e.preventDefault(); } }}
            style={{ transform: `translateX(${dx}px)`, background: t.page,
                     transition: st.current ? "none" : "transform 320ms cubic-bezier(.22,1,.36,1)",
                     touchAction: "pan-y" }}>
@@ -4614,6 +4638,30 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
    Recording can fail for ordinary reasons: permission declined, no
    camera on a desktop, a browser that does not support it. Every one of
    those falls back to choosing a file rather than to a dead end. */
+/* A COPY ON THE PHONE. A clip filmed mid-lesson exists nowhere else
+   until the lesson is logged, and a swipe on the log takes it off for
+   good. So every clip live capture records is also handed to the
+   device the moment it stops — a download the phone files under
+   Downloads, named for the player and the minute. The app never
+   depends on that copy being there, and says nothing it cannot see. */
+function saveToDevice(file, name) {
+  try {
+    if (!file || !("download" in HTMLAnchorElement.prototype)) return false;
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url; a.download = name || file.name; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return true;
+  } catch (e) { return false; }
+}
+const deviceName = (who, file) => {
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  const slug = String(who || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "clip";
+  const ext = (String(file.name || "").split(".").pop() || "mp4").toLowerCase();
+  return `nosca-${slug}-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.${ext}`;
+};
+
 function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, say }) {
   const t = useT();
   const I = ({ C }) => <C size={17} color={t.sub} strokeWidth={1.6} />;
@@ -4640,7 +4688,11 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
     if (cap.state === "recording") {
       const file = await cap.stop(mode === "audio" ? "audio" : "video");
       hapticCommit(); soft();
-      if (file) { onAdd({ type: mode === "audio" ? "audio" : "video", file, name: file.name }); say && say(tr("Saved")); }
+      if (file) {
+        onAdd({ type: mode === "audio" ? "audio" : "video", file, name: file.name });
+        if (mode === "video") saveToDevice(file, deviceName(chosen && chosen.who, file));
+        say && say(tr("Saved"));
+      }
       return;
     }
     if (mode === "photo") {
@@ -9540,12 +9592,17 @@ function paintShape(g, sh, w, h, f = 1) {
   g.restore();
 }
 
-function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
+function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, pop, say }) {
   const t = useT();
   const first = (who || "").split(" ")[0];
-  const [item, setItem] = useState(null);
+  /* a clip on no lesson yet — one attached to the log being written —
+     arrives as a File and is reviewed the same way */
+  const localUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => () => { if (localUrl) URL.revokeObjectURL(localUrl); }, [localUrl]);
+  const [item, setItem] = useState(file ? { id: "local", type: "video", url: localUrl } : null);
   const [missing, setMissing] = useState(false);
   useEffect(() => {
+    if (file) return undefined;
     let on = true;
     Promise.resolve(mediaFor ? mediaFor(lesson.id, lesson.media ?? lesson.videos) : []).then((items) => {
       if (!on) return;
@@ -9705,7 +9762,7 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
     hapticCommit(); setPhase("sending");
     const r = await onSend(take.file);
     if (r && r.failed) { setPhase("done"); say(tr("Couldn't send it — it's on Today with Retry")); return; }
-    hapticSuccess(); chime(); say(tr("Sent")); pop();
+    hapticSuccess(); chime(); say(doneLabel || tr("Sent")); pop();
   };
 
   const portrait = !dims || dims.h > dims.w;
@@ -10651,7 +10708,7 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
   );
 }
 
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer }) {
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, say }) {
   const t = useT(); const L = useL();
   const live = useLive();
   const POOL_W = (livePlayers ?? ROSTER).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
@@ -10695,6 +10752,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   /* ---------- what was taken during it ---------- */
   const [rec, setRec] = useState("idle"); const [secs, setSecs] = useState(0); const [note, setNote] = useState(null);
   const [videos, setVideos] = useState([]); const [cam, setCam] = useState(false);
+  const [reviewing, setReviewing] = useState(null);       // the attached clip being marked up
   const [photos, setPhotos] = useState([]);
   const [voice, setVoice] = useState(null);
 
@@ -10763,7 +10821,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const addFiles = (files) => {
     files.forEach((f, k) => {
       const at = Date.now() + k;
-      if (f.type.startsWith("video")) setVideos((v) => [...v, { angle: f.name, secs: 0, file: f, name: f.name }]);
+      if (f.type.startsWith("video")) setVideos((v) => [...v, { at: captureSeq(), angle: f.name, secs: 0, file: f, name: f.name }]);
       else if (f.type.startsWith("audio")) setPhotos((ps) => [...ps, { at, kind: "voice", file: f, name: f.name, values: null, reading: false }]);
       else setPhotos((ps) => [...ps, { at, kind: "action", file: f, name: f.name, values: null, reading: false }]);
     });
@@ -10785,7 +10843,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     }, 1300);
   };
   const items = [
-    ...videos.map((v, i) => ({ id: `v${i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name })),
+    /* keyed by when it arrived, not its place in the list: with index
+       keys, removing the first clip handed its key — and its swiped-away
+       state — to the one that moved up, which then vanished too */
+    ...videos.map((v, i) => ({ id: `v${v.at ?? i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name, file: v.file })),
     ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
     ...pulled.map((it) => ({ ...it, id: `c${it.id}`, capturedId: it.id })),
     ...(voice ? [{ id: "voice", kind: "voice", secs: voice.secs, url: voice.url }] : []),
@@ -10794,7 +10855,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     haptic(9);
     if (it.id === "voice") { if (voice && voice.url) URL.revokeObjectURL(voice.url); setVoice(null); return; }
     if (it.capturedId != null) { forget(new Set([it.capturedId])); return; }
-    if (it.id.startsWith("v")) setVideos(videos.filter((_, i) => `v${i}` !== it.id));
+    if (it.id.startsWith("v")) setVideos(videos.filter((v, i) => `v${v.at ?? i}` !== it.id));
     else setPhotos(photos.filter((p) => `p${p.at}` !== it.id));
   };
   useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
@@ -10887,6 +10948,17 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 
   const hair = RULE.hair(t.ink);
   const back = () => { haptic(6); setView("main"); };
+
+  /* MARK IT UP FROM THE LOG. A clip attached to the write-up is reviewed
+     the same way as one on a logged lesson, and the take joins the
+     attachments — it uploads with the lesson like any other file. */
+  if (view === "review" && reviewing) {
+    return (
+      <ClipReview key="review" lesson={{ id: "draft", focus: chosen.join(" · ") }} file={reviewing.file} who={(who[0] || {}).name || ""}
+                  say={say || (() => {})} doneLabel={tr("Attached")} pop={() => { setReviewing(null); back(); }}
+                  onSend={(f) => { setVideos((v) => [...v, { at: captureSeq(), angle: tr("Mark-up"), secs: 0, file: f, name: f.name }]); return {}; }} />
+    );
+  }
 
   if (view === "who") {
     return (
@@ -11161,6 +11233,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                         </span>
                         {it.from && who.length > 1 && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{wizFirst(it.from)}</span>}
                       </span>
+                      {it.kind === "video" && it.file && (
+                        <button data-tour="wiz-markup" onClick={() => { haptic(8); soft(); setReviewing(it); setView("review"); }}
+                                className="shrink-0 px-3 active:opacity-60"
+                                style={{ minHeight: 36, borderRadius: R.pill, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                          {tr("Mark it up")}
+                        </button>
+                      )}
                     </div>
                   </SwipeRow>
                 ))}
@@ -16952,7 +17031,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} onAnnotate={(a) => push("annotate:" + a)}
+      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
                          lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
                          recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
                          onAddPlayer={() => setSheet("invite")}
