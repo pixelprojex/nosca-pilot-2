@@ -87,6 +87,10 @@ const PLAYER_FILE = {
    walkthrough renders a second, seeded instance of the app inside a real
    one, and each must keep its own answer. */
 const LiveCtx = createContext(false);
+/* the feed is on screen: the tab bar lies over it and turns solid */
+const BleedCtx = createContext(() => {});
+/* inside a grid of more than six tiles: no rims, a wash fill instead */
+const ClusterCtx = createContext(false);
 const useLive = () => useContext(LiveCtx);
 /* ONE FACE PER PERSON, EVERYWHERE. Nosca provides a lookup by name over
    the roster, the family, the coach and me; every Avatar that is not
@@ -4230,17 +4234,19 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
       {/* the log first and full width; then the eight, four to a row,
           in the order the coach keeps — Call off among them, in red */}
       <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-      <div className="grid" style={{ marginTop: 12, gap: 10, gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
-        {ids.map((id, i) => {
-          const A = COACH_ACTIONS[id];
-          return (
-            <ActTile key={id} tour={`quick-${id}`} h={72} wrap Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
-                     tone={id === "weather" ? "danger" : "quiet"}
-                     dot={id === "attend" && !!liveLesson}
-                     aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
-                     onTap={() => { if (id === "weather") hapticWarn(); onRun(id); }} />
-          );
-        })}
+      <div style={{ marginTop: 12 }}>
+        <TileGrid cols={4}>
+          {ids.map((id, i) => {
+            const A = COACH_ACTIONS[id];
+            return (
+              <ActTile key={id} tour={`quick-${id}`} h={72} wrap Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
+                       tone={id === "weather" ? "danger" : "quiet"}
+                       dot={id === "attend" && !!liveLesson}
+                       aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
+                       onTap={() => { if (id === "weather") hapticWarn(); onRun(id); }} />
+            );
+          })}
+        </TileGrid>
       </div>
       {onEdit && (
         <div className="flex justify-center" style={{ marginTop: 14 }}>
@@ -5195,7 +5201,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                     background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)" }} />
 
       {/* what this is: the focus, the day, the note, and the way in — on glass */}
-      <div className="absolute" style={{ left: 16, right: 16, bottom: 108, zIndex: 25 }}>
+      <div className="absolute" style={{ left: 16, right: 16, bottom: `calc(${108 + BAR_H}px + env(safe-area-inset-bottom, 0px))`, zIndex: 25 }}>
         <div className="w-full text-left"
              style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.62)",
                       border: "0.5px solid rgba(255,255,255,0.12)",
@@ -5264,6 +5270,9 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
 
 function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload }) {
   const [active, setActive] = useState(0);
+  /* the clip runs to the very bottom of the screen, under the tab bar */
+  const setBleed = useContext(BleedCtx);
+  useEffect(() => { setBleed(true); return () => setBleed(false); }, [setBleed]);
   const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
   const wrap = useRef(null);
 
@@ -5303,9 +5312,11 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         </label>
       )}
 
-      {/* the two views, top left */}
-      <div className="absolute" style={{ top: 26, left: 16, zIndex: 30 }}>
-        <ViewSwitch onDark view={view} setView={setView} tour="log-view" />
+      {/* the two views, top left — the same List · Feed control as the
+          player file and the archive, at the same height as the pill */}
+      <div className="absolute" style={{ top: 26 + TOP_AIR + 2, left: 16, width: 172, zIndex: 30 }}>
+        <Segmented tour="log-view" options={[tr("List"), tr("Feed")]} value={view === "feed" ? tr("Feed") : tr("List")}
+                   onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
       </div>
       {/* the header's own controls — search, the bell, the profile — ride
           on the feed too, on a light pill so they read over any clip */}
@@ -5328,46 +5339,12 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
       </div>
 
       <div className="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"
-           style={{ height: 120, zIndex: 20,
+           style={{ height: 120 + BAR_H + 40, zIndex: 20,
                     background: "linear-gradient(to top, #0A0D0E 8%, rgba(10,13,14,0.55) 45%, transparent 100%)" }} />
     </div>
   );
 }
 
-function ViewSwitch({ view, setView, onDark, tour }) {
-  const t = useT();
-  /* Two views, not three. Cards and List were both "scroll your
-     lessons" — one with a big picture, one without — and a person
-     choosing between them is choosing nothing. The feed is the one
-     that is genuinely a different thing to do. */
-  const opts = [
-    { id: "feed", Ico: Play,     label: "Feed" },
-    { id: "list", Ico: FileText, label: "List" },
-  ];
-  return (
-    <div data-tour={tour} className="flex gap-1 p-1" style={{ borderRadius: R.pill,
-           background: onDark ? "rgba(255,255,255,0.18)" : t.wash }}>
-      {opts.map((o) => {
-        const on = view === o.id;
-        return (
-          <button key={o.id} aria-pressed={on} aria-label={o.label} onClick={() => { haptic(9); soft(); setView(o.id); }}
-                  className="flex items-center gap-1.5 px-3.5 active:opacity-70"
-                  style={{ minHeight: 34, borderRadius: R.pill,
-                           background: on ? (onDark ? "rgba(255,255,255,0.92)" : t.surface) : "transparent",
-                           boxShadow: on && !onDark ? (t.elev || ELEV).rest : "none",
-                           transition: "background 220ms" }}>
-            <o.Ico size={13} strokeWidth={2}
-                   color={on ? (onDark ? "#111" : t.accent) : (onDark ? "rgba(255,255,255,0.7)" : t.faint)} />
-            <span style={{ ...TYPE.caption, fontWeight: 500,
-                           color: on ? (onDark ? "#111" : t.ink) : (onDark ? "rgba(255,255,255,0.7)" : t.faint) }}>
-              {tr(o.label)}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function AttendanceScreen({ role, cfg, records, rule, pop }) {
   const t = useT();
@@ -6731,7 +6708,7 @@ const barPath = (w, raised) => {
   ].join(" ");
 };
 
-const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSelect }) {
+const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid, onSelect }) {
   const clipId = useMemo(() => "barclip" + Math.random().toString(36).slice(2, 8), []);
   const shellRef = useRef(null);
   const [w, setW] = useState(358);
@@ -6897,7 +6874,9 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, onSele
               <feDropShadow dx="0" dy="16" stdDeviation="20" floodColor="#0E141A" floodOpacity="0.06" />
             </filter>
           </defs>
-          <path d={D} fill={dark ? "rgba(20,25,27,0.84)" : "rgba(255,255,255,0.72)"}
+          {/* over the feed the glass goes nearly solid: a clip running
+              under a translucent bar made the labels unreadable */}
+          <path d={D} fill={solid ? (dark ? "rgba(20,25,27,0.96)" : "rgba(255,255,255,0.94)") : (dark ? "rgba(20,25,27,0.84)" : "rgba(255,255,255,0.72)")}
                 stroke={`${theme.mark}16`} strokeWidth="1" filter={`url(#${clipId}-sh)`} />
           {/* a faint wash of the sport, so the bar carries a hint of it
               without losing the glass */}
@@ -7106,7 +7085,7 @@ function Segmented({ options, value, onChange, tour }) {
       {options.map((o) => {
         const on = value === o;
         return (
-          <button key={o} aria-pressed={on} onClick={() => { haptic(6); onChange(o); }} className="flex-1 rounded-lg"
+          <button key={o} aria-pressed={on} aria-label={o} onClick={() => { haptic(6); onChange(o); }} className="flex-1 rounded-lg"
                   style={{ minHeight: 34, background: on ? t.surface : "transparent", boxShadow: on ? (t.elev || ELEV).rest : "none",
                            transition: `background ${MOTION.move}ms ${MOTION.curve}, color ${MOTION.move}ms, box-shadow ${MOTION.move}ms`,
                            fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
@@ -7409,11 +7388,11 @@ export const sink = (t, restShadow) => {
 
 function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false }) {
   const t = useT();
-  /* The quiet tile is the SURFACE — white, on the sport's paper —
-     because the page is now tinted and the thing you can touch has to
-     be the brightest thing on the screen. It was t.wash, which on the
-     new paper is very nearly the page itself. */
-  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : t.surface;
+  const cluster = useContext(ClusterCtx);
+  /* The quiet tile is the SURFACE — white with the sport's edge — so
+     the thing you can touch is the brightest thing on the screen. In a
+     cluster (see TileGrid) it is the wash with no rim instead. */
+  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : cluster ? t.wash : t.surface;
   const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? "#fff" : t.ink;
   const lift = "none";   /* a bordered tile casts nothing — the shadow read as a glow around the edge */
   return (
@@ -7421,7 +7400,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...sink(t, lift)}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: lift, willChange: "transform",
-                     border: tone === "accent" || tone === "danger" || on ? `${EDGE_W}px solid transparent` : `${EDGE_W}px solid ${EDGE(t)}`,
+                     border: tone === "accent" || tone === "danger" || on || cluster ? `${EDGE_W}px solid transparent` : `${EDGE_W}px solid ${EDGE(t)}`,
                      animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
                      transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
@@ -7445,12 +7424,17 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
 /* and a grid deals its own tiles, 22ms apart and capped at six, so a
    nine-tile sheet finishes settling in 310ms rather than 692 */
 const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
-  <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-    {stagger === 0 ? children : React.Children.map(children, (c, i) =>
-      (c && c.type === ActTile && c.props.delay == null)
-        ? React.cloneElement(c, { delay: Math.min(i, 5) * stagger })
-        : c)}
-  </div>
+  /* more than six tiles is a cluster: they lose their rims and take the
+     wash instead, because a grid of rimmed boxes reads busy; the few
+     prominent tiles — a board, a pair — keep the edge */
+  <ClusterCtx.Provider value={React.Children.count(children) > 6}>
+    <div className="grid" style={{ gap: 12, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {stagger === 0 ? children : React.Children.map(children, (c, i) =>
+        (c && c.type === ActTile && c.props.delay == null)
+          ? React.cloneElement(c, { delay: Math.min(i, 5) * stagger })
+          : c)}
+    </div>
+  </ClusterCtx.Provider>
 );
 
 /* a fact and its value, on one line. A label over a value in two lines
@@ -7480,6 +7464,7 @@ const HomeRow = ({ label, value, tone, onPress, tour }) => {
 const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled }) => {
   const t = useT();
   const has = (x) => (Array.isArray(picked) ? picked.includes(x) : picked === x);
+  const cluster = times.length > 6;   // the same rule as TileGrid: many cells, no rims
   return (
     <div data-tour={tour} className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {times.map((x, i) => {
@@ -7487,9 +7472,9 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
                   {...sink(t, "none")}
-                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : t.surface,
+                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : cluster ? t.wash : t.surface,
                            /* a bordered tile casts nothing — the shadow read as a glow */
-                           boxShadow: "none", border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, opacity: off ? 0.35 : 1,
+                           boxShadow: "none", border: `${EDGE_W}px solid ${on ? t.ink : cluster ? "transparent" : EDGE(t)}`, opacity: off ? 0.35 : 1,
                            fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
                            color: on ? "#fff" : t.ink, willChange: "transform",
                            transition: `background ${MOTION.settle}ms, box-shadow ${MOTION.settle}ms, transform ${MOTION.settle}ms ${MOTION.curve}` }}>{x}</button>
@@ -9024,7 +9009,8 @@ function PlayerLog({ cfg, lessons, push, saved, right, prefs, setPrefs, sport, o
     <Screen title={tr("Lessons")} right={right}>
       {/* the two views — the feed and this list; nothing to switch until there is a lesson */}
       {lessons.length > 0 && prefs && (<div className="px-6 pt-1 mb-4">
-        <ViewSwitch tour="log-view" view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))} />
+        <Segmented tour="log-view" options={[tr("List"), tr("Feed")]} value={prefs.logView === "feed" ? tr("Feed") : tr("List")}
+                   onChange={(o) => setPrefs((p2) => ({ ...p2, logView: o === tr("Feed") ? "feed" : "list" }))} />
       </div>)}
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
@@ -14169,7 +14155,6 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
     : live ? (liveThreads || []).filter((c) => hit(c.who) || hit(c.last)).map((c) => ({ id: c.playerId, name: c.who, text: c.last }))
     : THREADS[role].filter((c) => hit(c.name) || hit(preview(c.lastId))).map((c) => ({ id: c.name, name: c.name, text: preview(c.lastId) }));
   const total = lessons.length + drills.length + tipHits.length + people.length + msgs.length;
-  const suggestions = [...(cfg.focus || []).slice(0, 3).map((f) => f.label), tr("Drills")];
   return (
     <SwipeBack onBack={pop}>
       <div className="flex flex-col h-full" style={{ background: t.page }}>
@@ -14188,13 +14173,8 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
           <TextBtn onClick={pop}>{tr("Cancel")}</TextBtn>
         </div>
         <div className="flex-1 overflow-y-auto pt-5">
-          {!term ? (<div className="px-6">
-            {/* a set to choose from is a grid of tiles, like everywhere else */}
-            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Try")}</div>
-            <TileGrid cols={evenCols(suggestions.length)}>
-              {suggestions.map((s) => <ActTile key={s} h={50} label={s} onTap={() => setQ(s)} />)}
-            </TileGrid>
-          </div>) : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
+          {/* nothing until there is a term: the field is the whole screen */}
+          {!term ? null : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
           ) : (<>
             {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<FileText size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
@@ -15155,6 +15135,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      both sides. The player is then offered a new time. */
   /* Which day the call-off sheet is about. Null means today. */
   const [callOffFor, setCallOffFor] = useState(null);
+  const [feedUp, setFeedUp] = useState(false);   // a feed is on screen: the bar lies over it, solid
   /* the lesson being edited or removed, while its sheet is open */
   const [editLesson, setEditLesson] = useState(null);
   /* Exactly the rows a call-off will touch on a given day: confirmed
@@ -17004,7 +16985,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   }
 
   return (
-    <FaceCtx.Provider value={faces}><LiveCtx.Provider value={live}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <FaceCtx.Provider value={faces}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -17155,7 +17136,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              textShadow: bleed ? "0 1px 4px rgba(0,0,0,0.6)" : "none" }}>82%</span>
             </div>
           ) : (
-            <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
+            /* the feed runs under the status bar too: its own controls sit below it */
+            <div className="shrink-0" style={{ height: feedUp ? 0 : "env(safe-area-inset-top, 0px)" }} />
           )}
           <div className={`flex-1 overflow-hidden relative${reduceMotion ? " calm" : ""}`}>
             {familyGuide && inApp
@@ -17221,7 +17203,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           {mini && !bare && !familyGuide && (<MiniPlayer clip={mini.label} onClose={() => { haptic(8); setMini(null); }} onExpand={() => { setMini(null); go(mini.id != null ? "lesson:" + mini.id : "lesson"); }} />)}
 
           {!bare && !familyGuide && (
-            <TabBar tabs={tabs} theme={theme} dark={dark}
+            <div className={feedUp ? "absolute inset-x-0 bottom-0" : "shrink-0"} style={feedUp ? { zIndex: 40 } : undefined}>
+            <TabBar tabs={tabs} theme={theme} dark={dark} solid={feedUp}
                     onSelect={(id) => { if (id === "quick") { hapticCommit(); soft(); setSheet("quick"); return; } go(id); }}
                     /* go() resets the stack to a single tab id; push() only ever
                        adds on top of it. So stack[0] is always the tab a
@@ -17232,6 +17215,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                        anything not on that list — most pushed screens,
                        including a player's profile opened from Roster. */
                     activeIdx={Math.max(0, tabs.findIndex((tb) => tb.id === stack[0]))} />
+            </div>
           )}
 
           <Sheet open={!!sheet} onClose={() => setSheet(null)}>
@@ -17572,7 +17556,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></LiveCtx.Provider></FaceCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></FaceCtx.Provider>
   );
 }
 
