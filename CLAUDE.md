@@ -414,6 +414,13 @@ seeded data and no account.
   sport's own; golf is grass, tennis is teal, forty degrees apart. It was collapsed to one palette once and the
   founder called the result outrageous within the hour; the tint is the
   approved look. The accent appears once a screen (the one action).
+- **A sport tile is its sport's colour.** `SportGrid` (sign-up's sport,
+  the profile's Sports you coach and Add another, a player's main
+  sport) fills each tile with that sport's wash, edges and dots it with
+  that sport's mark, and fills it with the mark once chosen — the one
+  grid where the palette is the subject, so it says what each sport's
+  colour is. An add tile carries one plus, the glyph, and the word
+  alone; it carried a "+ " in the word as well for a round.
 - **A player's diary knows the coach's taken times, never whose.**
   `coach_busy_slots(p_player)` is a security-definer function returning
   date, time and length of the coach's requested and confirmed
