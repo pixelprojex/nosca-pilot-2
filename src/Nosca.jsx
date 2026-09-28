@@ -9833,7 +9833,7 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
                     {tr("Again")}
                   </button>
                   <div style={{ flex: 2 }}>
-                    <Button onClick={send} disabled={phase === "sending"}>{phase === "sending" ? tr("Sending…") : `${tr("Send to")} ${first || tr("them")}`}</Button>
+                    <Button onClick={send} disabled={phase === "sending"}>{phase === "sending" ? tr("Saving…") : tr("Save")}</Button>
                   </div>
                 </div>
               )}
