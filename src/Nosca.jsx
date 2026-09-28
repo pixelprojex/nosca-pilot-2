@@ -5262,14 +5262,18 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                     background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)" }} />
 
       {/* what this is: the focus, the day, the note, and the way in — on glass */}
-      <div className="absolute" style={{ left: 16, right: 16, bottom: `calc(${108 + BAR_H}px + env(safe-area-inset-bottom, 0px))`, zIndex: 25 }}>
+      {/* low on the picture — it sat 170px up for a round and the founder
+          asked twice for it lower; 40px clear of the bar's bulge */}
+      <div className="absolute" style={{ left: 16, right: 16, bottom: `calc(${40 + BAR_H}px + env(safe-area-inset-bottom, 0px))`, zIndex: 25 }}>
         <div className="w-full text-left"
              style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.62)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
           <div className="flex items-start gap-3">
             <button onClick={open} className="flex-1 min-w-0 text-left active:opacity-80">
-              <span className="block truncate" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
-                {lesson.focus}
+              <span className="flex items-center gap-2" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
+                <span className="min-w-0 truncate">{lesson.focus}</span>
+                {/* a coach drew on this lesson */}
+                {items.some((it) => /^markup-/.test(it.name || "")) && <Pencil size={17} color="#fff" strokeWidth={2} aria-label={tr("Marked up")} style={{ flexShrink: 0 }} />}
               </span>
               <span className="block mt-3 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
                 {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
@@ -9536,6 +9540,8 @@ const REVIEW_MAX = 1280;                                    // longest side of t
 const REVIEW_INKS = ["#FFD23F", "#FF4B3E", "#FFFFFF"];     // yellow, red, white
 const REVIEW_TOOLS = [["pen", "Pen", Pencil], ["line", "Line", Minus], ["arrow", "Arrow", MoveUpRight], ["circle", "Circle", Circle], ["angle", "Angle", Ruler]];
 const REVEAL_MS = 380;                                    // one mark draws itself in over this long
+const FADE_MS = 450;                                      // the last moment's marks leave over this long
+const HOLD_MS = 900;                                      // Save rests on a moment this long after its marks arrive
 const secsLabel = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /* One mark. `f` (0..1) is how much of it has been drawn: a line grows
@@ -9594,7 +9600,7 @@ function paintShape(g, sh, w, h, f = 1) {
   g.restore();
 }
 
-function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, pop, say }) {
+function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, doneLabel, pop, say }) {
   const t = useT();
   const first = (who || "").split(" ")[0];
   /* a clip on no lesson yet — one attached to the log being written —
@@ -9619,8 +9625,18 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
   const [broken, setBroken] = useState(false);
   const [tool, setTool] = useState("pen");
   const [ink, setInk] = useState(REVIEW_INKS[0]);
-  const [shapes, setShapes] = useState([]);
-  const shapesRef = useRef([]); shapesRef.current = shapes;
+  /* EVERY MARK BELONGS TO A MOMENT — the video time it was drawn at. On
+     playback a moment's marks arrive when the head reaches its time and
+     stay until the next moment's, when they fade; the player sees each
+     drawing where the coach made it, never all of them at 0:00. Pausing
+     somewhere new and drawing starts a new moment, and the old marks go. */
+  const [moments, setMoments] = useState([]);                 // [{ t, shapes: [{ tool, ink, pts, at }] }], by t
+  const momentsRef = useRef([]); momentsRef.current = moments;
+  const shown = useRef({ idx: -1, prev: -1, at: 0 });         // the moment the picture is on, and since when
+  const pass = useRef(null);                                  // the Save pass: { held, holdUntil, ended }
+  const capTrack = useRef(null);
+  const [zoom, setZoom] = useState({ z: 1, x: 0, y: 0 });     // a working view only; the take is the whole frame
+  const pinch = useRef(null), pointers = useRef(new Map()), fitRef = useRef({ w: 0, h: 0 });
   const draft = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -9635,26 +9651,53 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
   const [err, setErr] = useState(null);
   const [notice, setNotice] = useState(null);
   const rec = useRef(null), chunks = useRef([]), mic = useRef(null), takeUrl = useRef(null);
-  const reveal = useRef(null);                                   // { at, n }: marks drawing themselves in
   const [slow, setSlow] = useState(false);
 
-  /* the picture: the clip painted every frame, the marks on top of it */
+  /* the picture: the clip painted every frame, the marks of the moment
+     the head is on over it, the moment before on its way out */
   useEffect(() => {
     if (!dims) return;
-    let raf = 0;
+    let raf = 0, lastReq = 0;
     const paint = () => {
       const c = canvas.current, v = vid.current;
       if (c) {
         const g = c.getContext("2d");
         if (v && v.readyState >= 2) g.drawImage(v, 0, 0, c.width, c.height);
         else { g.fillStyle = "#0B0F10"; g.fillRect(0, 0, c.width, c.height); }
-        const rv = reveal.current, now = performance.now();
-        shapesRef.current.forEach((sh, i) => {
-          const f = rv && i < rv.n ? Math.min(1, Math.max(0, (now - rv.at - i * REVEAL_MS) / REVEAL_MS)) : 1;
-          paintShape(g, sh, c.width, c.height, f);
-        });
-        if (rv && now > rv.at + rv.n * REVEAL_MS) reveal.current = null;
+        const now = performance.now(), T = v ? v.currentTime : 0;
+        const ms = momentsRef.current;
+        let cur = -1;
+        for (let i = 0; i < ms.length; i++) { if (ms[i].t <= T + 0.03) cur = i; else break; }
+        if (cur !== shown.current.idx) shown.current = { idx: cur, prev: shown.current.idx, at: now };
+        const s = shown.current;
+        const gone = Math.min(1, (now - s.at) / FADE_MS);
+        if (s.prev >= 0 && s.prev !== cur && gone < 1 && ms[s.prev]) {
+          g.save(); g.globalAlpha = 1 - gone;
+          ms[s.prev].shapes.forEach((x) => paintShape(g, x, c.width, c.height, 1));
+          g.restore();
+        }
+        if (cur >= 0 && ms[cur]) {
+          ms[cur].shapes.forEach((x, i) => {
+            /* a mark made since the picture arrived here is whole; one
+               that was waiting draws itself in, one after another */
+            const f = x.at <= s.at ? Math.min(1, Math.max(0, (now - s.at - i * REVEAL_MS) / REVEAL_MS)) : 1;
+            paintShape(g, x, c.width, c.height, f);
+          });
+        }
         if (draft.current) paintShape(g, draft.current, c.width, c.height);
+        /* the Save pass rests on each moment while its marks arrive,
+           then goes on; at the end it waits for the last hold and stops */
+        const p = pass.current;
+        if (p && v) {
+          if (cur >= 0 && !p.held.has(cur)) { p.held.add(cur); v.pause(); p.holdUntil = now + ms[cur].shapes.length * REVEAL_MS + HOLD_MS; }
+          else if (p.holdUntil && now >= p.holdUntil) { p.holdUntil = 0; if (p.ended) { pass.current = null; stopRec(); } else v.play().catch(() => {}); }
+          else if (p.ended && !p.holdUntil) { pass.current = null; stopRec(); }
+        }
+        /* a steady 30 frames a second into the recorder, whatever the
+           screen's rate — a canvas track left to itself has come back
+           from Safari running fast */
+        const tk = capTrack.current;
+        if (tk && typeof tk.requestFrame === "function" && now - lastReq >= 33) { lastReq = now; try { tk.requestFrame(); } catch (e) { /* fine */ } }
       }
       raf = requestAnimationFrame(paint);
     };
@@ -9703,20 +9746,88 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
     const r = canvas.current.getBoundingClientRect();
     return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
   };
+  const vt = () => { const v = vid.current; return v ? v.currentTime : 0; };
+  const setMs = (next) => { momentsRef.current = next; setMoments(next); };
+  /* the moment at this time, made if there is none within a frame */
+  const momentAt = (T) => {
+    const ms = momentsRef.current;
+    const i = ms.findIndex((m) => Math.abs(m.t - T) < 0.04);
+    if (i >= 0) return i;
+    const next = [...ms, { t: T, shapes: [] }].sort((a, b) => a.t - b.t);
+    setMs(next);
+    return next.findIndex((m) => m.t === T);
+  };
+  const dropEmpty = () => { const ms = momentsRef.current; if (ms.some((m) => !m.shapes.length)) setMs(ms.filter((m) => m.shapes.length)); };
+  const clampZoom = (zm) => {
+    const { w, h } = fitRef.current, z = Math.min(4, Math.max(1, zm.z));
+    const mx = (w * (z - 1)) / 2, my = (h * (z - 1)) / 2;
+    return { z, x: Math.min(mx, Math.max(-mx, zm.x)), y: Math.min(my, Math.max(-my, zm.y)) };
+  };
   const down = (e) => {
     if (!dims || phase === "done" || phase === "sending") return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) { /* fine */ }
+    if (pointers.current.size >= 2) {
+      /* a second finger: a pinch, not a mark — the one begun is dropped */
+      draft.current = null; dropEmpty();
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: zoom.z, x: zoom.x, y: zoom.y, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+      return;
+    }
+    momentAt(vt());
     const pt = rel(e); draft.current = { tool, ink, pts: [pt, pt] }; haptic(5);
   };
   const move = (e) => {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const p = pinch.current;
+    if (p && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+      setZoom(clampZoom({ z: p.z * (d / p.d), x: p.x + (cx - p.cx), y: p.y + (cy - p.cy) }));
+      return;
+    }
     const d = draft.current; if (!d) return;
     const pt = rel(e);
     draft.current = d.tool === "pen" ? { ...d, pts: [...d.pts, pt] } : { ...d, pts: [d.pts[0], pt] };
   };
-  const up = () => {
-    const d = draft.current; if (!d) return;
+  const up = (e) => {
+    pointers.current.delete(e.pointerId);
+    if (pinch.current) {
+      if (pointers.current.size < 2) { pinch.current = null; setZoom((zm) => (zm.z < 1.05 ? { z: 1, x: 0, y: 0 } : zm)); }
+      return;
+    }
+    const d = draft.current; if (!d) { dropEmpty(); return; }
     draft.current = null;
-    setShapes((sh) => [...sh, d]); haptic(8);
+    const i = momentAt(vt());
+    setMs(momentsRef.current.map((m, k) => (k === i ? { ...m, shapes: [...m.shapes, { ...d, at: performance.now() }] } : m)));
+    haptic(8);
+  };
+  const cancelDraw = (e) => { pointers.current.delete(e.pointerId); pinch.current = null; draft.current = null; dropEmpty(); };
+  const marks = moments.reduce((n, m) => n + m.shapes.length, 0);
+  /* Undo takes the last mark off the moment the head is on */
+  const undo = () => {
+    haptic(7);
+    const ms = momentsRef.current; if (!ms.length) return;
+    const T = vt(); let i = -1;
+    for (let k = 0; k < ms.length; k++) if (ms[k].t <= T + 0.03) i = k;
+    if (i < 0) i = ms.length - 1;
+    const shapes = ms[i].shapes.slice(0, -1);
+    setMs(shapes.length ? ms.map((m, k) => (k === i ? { ...m, shapes } : m)) : ms.filter((_, k) => k !== i));
+  };
+  const clearAll = () => { haptic(7); setMs([]); };
+  /* THE FRAME AS A PHOTO. The picture as it stands — this frame, its
+     marks — goes onto the lesson as a still, and the coach stays here. */
+  const still = () => {
+    const c = canvas.current; if (!c || !dims) return;
+    haptic(9);
+    c.toBlob((blob) => {
+      if (!blob) { say(tr("Couldn't make the photo")); return; }
+      const f = new File([blob], `markup-still-${Date.now()}.jpg`, { type: "image/jpeg" });
+      Promise.resolve((onStill || onSend)(f)).then((r) => {
+        if (r && r.failed) say(tr("Couldn't save the photo — it's on Today with Retry"));
+        else { hapticSuccess(); say(tr("Photo saved")); }
+      });
+    }, "image/jpeg", 0.92);
   };
 
   const toggle = () => { const v = vid.current; if (!v) return; haptic(7); if (v.paused) v.play().catch(() => {}); else v.pause(); };
@@ -9736,7 +9847,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
   const beginTake = (tracks, onDone) => {
     const c = canvas.current;
     let stream;
-    try { stream = new MediaStream([...c.captureStream(30).getVideoTracks(), ...tracks]); }
+    try { const vt0 = c.captureStream(30).getVideoTracks(); capTrack.current = vt0[0] || null; stream = new MediaStream([...vt0, ...tracks]); }
     catch (e) { setErr(`${tr("This browser can't record over a clip")} · ${(e && e.name) || ""}`.trim()); return false; }
     chunks.current = [];
     const mime = pickMime(VIDEO_TYPES);
@@ -9751,9 +9862,6 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
       if (mic.current) { mic.current.getTracks().forEach((x) => x.stop()); mic.current = null; }
       onDone(new File([blob], `markup-${Date.now()}.${ext}`, { type }));
     };
-    /* marks made before the take draw themselves in over its first
-       moments, one after another, so the viewer watches them arrive */
-    if (shapesRef.current.length) reveal.current = { at: performance.now(), n: shapesRef.current.length };
     r.start(250);                                  // slices, so Safari hands data over as it goes
     rec.current = r; setSecs(0);
     return true;
@@ -9823,21 +9931,23 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
     const ok = beginTake(tracks, async (f) => {
       v.muted = true;
       setPhase("sending");
-      const r = await onSend(f);
+      const r = await onSend(f, item);
       if (r && r.failed) { setPhase("draw"); say(tr("Couldn't save it — it's on Today with Retry")); return; }
       hapticSuccess(); chime(); say(doneLabel || tr("Saved")); pop();
     });
     if (!ok) { v.muted = true; return; }
     setPhase("rendering");
+    pass.current = { held: new Set(), holdUntil: 0, ended: false };
+    shown.current = { idx: -1, prev: -1, at: 0 };
     v.currentTime = 0;
     v.play().catch(() => stopRec());
   };
-  const stopRec = () => { const r = rec.current; if (r && r.state !== "inactive") { hapticSuccess(); r.stop(); } };
+  const stopRec = () => { pass.current = null; capTrack.current = null; const r = rec.current; if (r && r.state !== "inactive") { hapticSuccess(); r.stop(); } };
   const again = () => { if (takeUrl.current) URL.revokeObjectURL(takeUrl.current); takeUrl.current = null; setTake(null); setSecs(0); setPhase("draw"); haptic(6); };
   const send = async () => {
     if (!take) return;
     hapticCommit(); setPhase("sending");
-    const r = await onSend(take.file);
+    const r = await onSend(take.file, item);
     if (r && r.failed) { setPhase("done"); say(tr("Couldn't send it — it's on Today with Retry")); return; }
     hapticSuccess(); chime(); say(doneLabel || tr("Sent")); pop();
   };
@@ -9847,6 +9957,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
   /* the clip at the largest size that fits the stage, in real pixels */
   const fit = dims && box ? Math.min(box.w / dims.w, box.h / dims.h) : 0;
   const cssW = fit ? Math.floor(dims.w * fit) : 0, cssH = fit ? Math.floor(dims.h * fit) : 0;
+  fitRef.current = { w: cssW, h: cssH };
   const frozen = !dims || broken || rendering;                 // the transport while Save runs the clip itself
   const round = (on) => ({ width: 40, height: 40, borderRadius: 20, background: on ? t.ink : "transparent" });
 
@@ -9859,9 +9970,9 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
      Save for one round and the founder found no way to keep a drawing. */
   const topRight = !missing && !busy ? (
     <>
-      <button onClick={() => { haptic(7); setShapes((sh) => sh.slice(0, -1)); }} disabled={!shapes.length} aria-label={tr("Undo")}
+      <button onClick={undo} disabled={!marks} aria-label={tr("Undo")}
               className="p-1.5 active:opacity-60 disabled:opacity-30"><Undo2 size={20} color={t.ink} strokeWidth={2} /></button>
-      <button onClick={() => { haptic(7); setShapes([]); }} disabled={!shapes.length} aria-label={tr("Clear")}
+      <button onClick={clearAll} disabled={!marks} aria-label={tr("Clear")}
               className="px-1 active:opacity-60 disabled:opacity-30" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Clear")}</button>
     </>
   ) : null;
@@ -9881,10 +9992,16 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
               ) : (<>
                 {broken && <span style={{ ...TYPE.small, color: "rgba(255,255,255,0.7)" }}>{tr("Couldn't load this clip")}</span>}
                 <canvas ref={canvas} width={dims ? dims.w : 2} height={dims ? dims.h : 2}
-                        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+                        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancelDraw}
                         className="block"
                         style={{ width: cssW || 2, height: cssH || 2, touchAction: "none", cursor: "crosshair",
+                                 transform: zoom.z !== 1 ? `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.z})` : undefined, transformOrigin: "center",
                                  visibility: fit ? "visible" : "hidden", display: broken ? "none" : "block" }} />
+                {zoom.z > 1 && (
+                  <button onClick={() => { haptic(6); setZoom({ z: 1, x: 0, y: 0 }); }} aria-label={tr("Reset zoom")}
+                          className="absolute px-3 py-1.5 active:opacity-70"
+                          style={{ top: 10, right: 10, borderRadius: R.pill, background: "rgba(0,0,0,0.55)", fontFamily: ui, fontSize: 12, fontWeight: 700, color: "#fff" }}>1×</button>
+                )}
                 {(live || rendering) && (
                   <span className="absolute flex items-center gap-2 px-3 py-1.5" style={{ top: 10, left: 10, borderRadius: R.pill, background: "rgba(0,0,0,0.55)" }}>
                     <span className="rounded-full" style={{ width: 8, height: 8, background: live ? DANGER : "#fff", animation: "pulseDot 1.2s ease-in-out infinite" }} />
@@ -9940,6 +10057,10 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
                     );
                   })}
                   <span className="flex-1" />
+                  <button onClick={still} disabled={!dims || broken} aria-label={tr("Photo")} title={tr("Photo")}
+                          className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30" style={round(false)}>
+                    <Camera size={19} color={t.ink} strokeWidth={1.9} />
+                  </button>
                   {REVIEW_INKS.map((c) => (
                     <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
                             className="shrink-0 active:opacity-70 ml-2"
@@ -10938,7 +11059,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     /* keyed by when it arrived, not its place in the list: with index
        keys, removing the first clip handed its key — and its swiped-away
        state — to the one that moved up, which then vanished too */
-    ...videos.map((v, i) => ({ id: `v${v.at ?? i}`, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name, file: v.file })),
+    ...videos.map((v, i) => ({ id: `v${v.at ?? i}`, at: v.at, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name, file: v.file })),
     ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
     ...pulled.map((it) => ({ ...it, id: `c${it.id}`, capturedId: it.id })),
     ...(voice ? [{ id: "voice", kind: "voice", secs: voice.secs, url: voice.url }] : []),
@@ -11048,7 +11169,14 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     return (
       <ClipReview key="review" lesson={{ id: "draft", focus: chosen.join(" · ") }} file={reviewing.file} who={(who[0] || {}).name || ""}
                   say={say || (() => {})} doneLabel={tr("Attached")} pop={() => { setReviewing(null); back(); }}
-                  onSend={(f) => { setVideos((v) => [...v, { at: captureSeq(), angle: tr("Mark-up"), secs: 0, file: f, name: f.name }]); return {}; }} />
+                  /* the take stands in for the clip it was drawn on */
+                  onSend={(f) => {
+                    const take = { at: captureSeq(), angle: tr("Mark-up"), secs: 0, file: f, name: f.name };
+                    if (reviewing.capturedId != null) { forget(new Set([reviewing.capturedId])); setVideos((v) => [...v, take]); }
+                    else setVideos((v) => v.map((x) => (x.at != null && x.at === reviewing.at ? take : x)));
+                    return {};
+                  }}
+                  onStill={(f) => { setPhotos((ps) => [...ps, { at: captureSeq(), kind: "action", file: f, name: f.name, values: null, reading: false }]); return {}; }} />
     );
   }
 
@@ -16859,7 +16987,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const les = (data.lessons || []).find((x) => String(x.id) === lid) || null;
     body = les
       ? <ClipReview lesson={les} mediaId={mid} mediaFor={data.lessonMedia} who={les.who} pop={pop} say={say}
-                    onSend={(file) => data.addLessonMedia(les.id, [file])} />
+                    /* the marked-up clip stands in for the one it was drawn
+                       on — one video on the lesson, not two; a still is added */
+                    onSend={async (file, orig) => {
+                      const r = await data.addLessonMedia(les.id, [file]);
+                      if (!(r && r.failed) && orig && orig.id && orig.id !== "local") await data.removeLessonMedia(les.id, orig.id);
+                      return r;
+                    }}
+                    onStill={(file) => data.addLessonMedia(les.id, [file])} />
       : <SwipeBack onBack={pop}><Screen title={tr("Mark it up")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;

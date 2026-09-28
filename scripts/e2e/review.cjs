@@ -107,6 +107,40 @@ const { check, results, summary } = M.checker("review");
     const red = await c.evaluate((el) => { const d = el.getContext("2d").getImageData(0, 0, el.width, el.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] < 120 && d[i + 2] < 120) n++; return n; });
     check("(c) a second ink draws in that ink", red > 30, `${red} red pixels`);
 
+    /* a new moment: step on half a second and draw — the marks made at
+       0:00 fade, and only the new one stands */
+    const count = (kind) => c.evaluate((el, k) => { const d = el.getContext("2d").getImageData(0, 0, el.width, el.height).data; let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (k === "y" ? (d[i] > 200 && d[i + 1] > 170 && d[i + 2] < 120) : (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235)) n++; return n; }, kind);
+    const wBefore = await count("w");
+    for (let k = 0; k < 15; k++) await page.locator('[aria-label="On a frame"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('[aria-label="Colour"]').nth(2).click(); await page.waitForTimeout(100);
+    await tap(page, '[aria-label="Line"]', 100); await drag(0.2, 0.2, 0.8, 0.25);
+    await page.waitForTimeout(800);
+    const yAfter = await count("y"), wAfter = await count("w");
+    check("(c2) pausing on and drawing starts a new moment: the 0:00 marks are gone, the new white line stands", yAfter < yellow * 0.15 && wAfter - wBefore > 40, `yellow ${yellow} → ${yAfter} · white +${wAfter - wBefore}`);
+    await shot("03b-second-moment");
+    /* back to the start: the first moment is the picture again */
+    for (let k = 0; k < 15; k++) await page.locator('[aria-label="Back a frame"]').click();
+    await page.waitForTimeout(1900);
+    const yBack = await count("y");
+    check("(c2) stepping back to 0:00 brings the first moment back", yBack > yellow * 0.6, `yellow ${yBack}`);
+
+    /* pinch: two fingers on the stage zoom the working view; 1× resets */
+    const zoomed = await c.evaluate((el) => {
+      const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const ev = (type, id, x, y) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: "touch", isPrimary: id === 1, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+      ev("pointerdown", 1, cx - 30, cy); ev("pointerdown", 2, cx + 30, cy);
+      for (let k = 1; k <= 6; k++) { ev("pointermove", 1, cx - 30 - k * 15, cy); ev("pointermove", 2, cx + 30 + k * 15, cy); }
+      ev("pointerup", 1, cx - 120, cy); ev("pointerup", 2, cx + 120, cy);
+      return new Promise((res) => setTimeout(() => res(new DOMMatrixReadOnly(getComputedStyle(el).transform).a), 250));
+    });
+    check("(c3) a pinch zooms the working view", zoomed > 1.5 && zoomed <= 4, `scale ${zoomed}`);
+    await shot("03c-zoomed");
+    await tap(page, '[aria-label="Reset zoom"]', 300);
+    const unz = await c.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).a);
+    check("(c3) 1× brings it back, and the pinch made no mark", unz === 1 && (await count("y")) > yellow * 0.6, `scale ${unz}`);
+
     /* play, then record over it */
     await tap(page, '[aria-label="Play"]', 600);
     check("(d) the clip plays from the transport", (await page.locator('[aria-label="Pause"]').count()) === 1);
@@ -131,12 +165,12 @@ const { check, results, summary } = M.checker("review");
     await page.waitForTimeout(1200);
     const after = db.media.filter((m) => m.lesson_id === LESSON.old);
     const added = after[after.length - 1];
-    check("(f) Send uploads the take as a video on the lesson", after.length === before + 1 && added && added.kind === "video" && /markup-\d+\.(webm|mp4)$/.test(added.storage_path), JSON.stringify(added));
+    check("(f) Save puts the take on the lesson in place of the clip it was drawn on — one video, not two", after.length === before && added && added.kind === "video" && /markup-\d+\.(webm|mp4)$/.test(added.storage_path) && !after.some((m) => /1-swing\.mp4$/.test(m.storage_path)), JSON.stringify(after.map((m) => m.storage_path.split("/").pop())));
     const stored = added && db.files.media[added.storage_path];
     check("(f) the file itself reached storage under the lesson's folder", !!stored && added.storage_path.startsWith(`${IDS.coach}/${LESSON.old}/`), JSON.stringify(stored));
     const t3 = await text();
-    check("(g) back on the lesson, the take is among its files", /Putting/.test(t3) && !/Mark it up · /.test(t3) && (await page.locator('[data-tour="lesson-clip"] video').count()) >= 1
-      && (await page.locator('[data-tour="lesson-clip"] button').count()) >= 3, `${t3.slice(0, 120)} · buttons ${await page.locator('[data-tour="lesson-clip"] button').count()}`);
+    check("(g) back on the lesson, the take is its clip", /Putting/.test(t3) && !/Mark it up · /.test(t3) && (await page.locator('[data-tour="lesson-clip"] video').count()) >= 1
+      && (await page.locator('[data-tour="lesson-clip"] button').count()) >= 2, `${t3.slice(0, 120)} · buttons ${await page.locator('[data-tour="lesson-clip"] button').count()}`);
     await shot("06-lesson-after");
     const note = db.notifications.find((n) => n.user_id === IDS.adult && /New clip on Putting/.test(n.title));
     check("(h) the player is told: New clip on Putting, from the coach, opening the lesson", !!note && note.body === "Niamh Byrne" && note.data && note.data.screen === "lesson" && note.data.id === LESSON.old, JSON.stringify(note));
@@ -154,6 +188,11 @@ const { check, results, summary } = M.checker("review");
     };
     await tap(page, '[aria-label="Circle"]', 100); await dragOn(box2, 0.35, 0.35, 0.65, 0.65);
     await tap(page, '[aria-label="Pen"]', 100); await dragOn(box2, 0.2, 0.7, 0.8, 0.75);
+    /* the frame as a photo: this moment, its marks, onto the lesson */
+    const stillsBefore = db.media.filter((m) => m.lesson_id === LESSON.old && m.kind === "photo").length;
+    await tap(page, '[aria-label="Photo"]', 1600);
+    const stills = db.media.filter((m) => m.lesson_id === LESSON.old && m.kind === "photo");
+    check("(h2) Photo puts the frame with its marks on the lesson as a still, and the coach stays on the screen", stills.length === stillsBefore + 1 && /markup-still-\d+\.jpg$/.test(stills[stills.length - 1].storage_path) && /Mark it up · Cian/.test(await text()), JSON.stringify(stills.map((m) => m.storage_path.split("/").pop())));
     const takesBefore = await page.evaluate(() => (window.__takes || []).length);
     const mediaBefore2 = db.media.filter((m) => m.lesson_id === LESSON.old).length;
     await page.locator("button", { hasText: /^Save$/ }).first().click();
@@ -164,7 +203,7 @@ const { check, results, summary } = M.checker("review");
     await page.waitForFunction(() => !document.body.innerText.includes("Saving") && !document.body.innerText.includes("Mark it up · "), null, { timeout: 45000 }).catch(() => {});
     await page.waitForTimeout(900);
     const after2 = db.media.filter((m) => m.lesson_id === LESSON.old);
-    check("(h2) it uploads the take and lands back on the lesson", after2.length === mediaBefore2 + 1 && /markup-\d+\.(webm|mp4)$/.test(after2[after2.length - 1].storage_path) && !/Mark it up · /.test(await text()), JSON.stringify(after2.map((m) => m.storage_path.split("/").pop())));
+    check("(h2) it uploads the take in place of the clip and lands back on the lesson", after2.length === mediaBefore2 && /markup-\d+\.(webm|mp4)$/.test(after2[after2.length - 1].storage_path) && after2.filter((m) => m.kind === "video").length === 1 && !/Mark it up · /.test(await text()), JSON.stringify(after2.map((m) => m.storage_path.split("/").pop())));
     /* the marks are IN the file: decode the take the app sent and read its pixels */
     const probe = await page.evaluate(async (n) => {
       const t = (window.__takes || [])[n]; if (!t) return { none: true, takes: (window.__takes || []).length };
@@ -230,7 +269,10 @@ const { check, results, summary } = M.checker("review");
     await page.waitForFunction(() => !document.body.innerText.includes("Saving"), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(900);
     const tl2 = await text();
-    check("(l) Save puts the take on the log as a second clip, nothing uploaded yet", (tl2.match(/Video/g) || []).length >= 2 && (await page.locator('[data-tour="wiz-markup"]').count()) === 2 && !/Mark it up · /.test(tl2), tl2.slice(0, 200));
+    check("(l) Save puts the take on the log in the clip's place — one row, nothing uploaded yet", (await page.locator(".nsc-swipe").count()) === 1 && (await page.locator('[data-tour="wiz-markup"]').count()) === 1 && !/Mark it up · /.test(tl2), `rows ${await page.locator(".nsc-swipe").count()} · ${tl2.slice(0, 160)}`);
+    /* a second clip, so there are two rows to pull */
+    await page.locator('input[type="file"]').first().setInputFiles([{ name: "swing-2.webm", mimeType: "video/webm", buffer: clip }]);
+    await page.waitForTimeout(700);
     await shot("12-log-two-clips");
     /* the pull-through: a short pull rests at Remove, a long one deletes on release */
     const rows = page.locator(".nsc-swipe");
@@ -241,12 +283,12 @@ const { check, results, summary } = M.checker("review");
       await page.waitForTimeout(80);
       return b;
     };
-    await pull(rows.nth(1), 0.35); await page.mouse.up(); await page.waitForTimeout(500);
+    await pull(rows.nth(0), 0.35); await page.mouse.up(); await page.waitForTimeout(500);
     /* the pull began on the row's Mark it up button: a swipe must not press it */
-    const tx = await page.evaluate(() => { const r = document.querySelectorAll(".nsc-swipe")[1]; const d = r && r.querySelector(":scope > div"); return d ? new DOMMatrixReadOnly(getComputedStyle(d).transform).m41 : null; });
-    check("(l) a short pull opens Remove and stops there, and does not press the button it began on", (await rows.count()) === 2 && tx != null && Math.round(tx) === -88 && !/Record/.test(await text()), `rows ${await rows.count()} · tx ${tx} · ${(await text()).slice(0, 80)}`);
-    const b0 = await pull(rows.nth(0), 0.75);
-    const wide = await rows.nth(0).locator('button[aria-label="Remove"]').evaluate((el) => el.getBoundingClientRect().width);
+    const tx = await page.evaluate(() => { const r = document.querySelectorAll(".nsc-swipe")[0]; const d = r && r.querySelector(":scope > div"); return d ? new DOMMatrixReadOnly(getComputedStyle(d).transform).m41 : null; });
+    check("(l) a short pull opens Remove and stops there, and does not press the button it began on", (await rows.count()) === 2 && tx != null && Math.round(tx) === -88 && !/Talk over it/.test(await text()), `rows ${await rows.count()} · tx ${tx} · ${(await text()).slice(0, 80)}`);
+    const b0 = await pull(rows.nth(1), 0.75);
+    const wide = await rows.nth(1).locator('button[aria-label="Remove"]').evaluate((el) => el.getBoundingClientRect().width);
     check("(l) a long pull stretches the red across the row before anything goes", wide > b0.width * 0.6 && (await rows.count()) === 2, `red ${Math.round(wide)} of ${Math.round(b0.width)}`);
     await page.mouse.up(); await page.waitForTimeout(900);
     check("(l) letting go past the mark deletes that row and no other", (await rows.count()) === 1 && (await page.locator('[data-tour="wiz-markup"]').count()) === 1, String(await rows.count()));
