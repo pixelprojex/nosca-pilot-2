@@ -87,6 +87,21 @@ seeded data and no account.
   with the reason and a Retry. The per-file limit is `MAX_UPLOAD_MB`
   (50, Supabase's default; `VITE_MAX_UPLOAD_MB` if the project's limit
   is raised).
+- **Capture is the phone's camera, not a form.** `LiveCapture` is an
+  overlay of its own (rendered after the app's `<Sheet>`, never inside
+  it — a fixed layer inside the sheet's transform is positioned against
+  the sheet): the live picture fills the screen and comes up on open
+  with no tap to start it; PHOTO · VIDEO · VOICE along the bottom,
+  chosen by a tap on the word or a swipe across the picture; the
+  shutter under them, white for a still, red for a clip or a voice
+  note, the red square to stop; the last capture as a thumbnail
+  bottom-left that opens the roll (and Remove); Choose a file
+  bottom-right; and what it files under as a pill up top that cycles
+  today's bookings. One camera stream serves all three modes — a voice
+  note records off its microphone track (`useCapture.record`). It was
+  a 3:4 viewfinder in a sheet behind "Tap to use the camera" with a
+  segmented control, and the founder could not see what they were
+  filming. `scripts/e2e/capture.cjs` drives it with a fake camera.
 - **Every clip live capture records is also handed to the phone.**
   `saveToDevice()` in `LiveCapture` fires a download the moment the
   recorder stops (`nosca-<player>-<date>-<hhmm>.<ext>`), because until
@@ -165,6 +180,24 @@ seeded data and no account.
   only reached from sign-up. It used to key off a localStorage flag, so
   signing in on a new phone replayed the whole thing. Settings →
   Walkthrough is the way back to it.
+- **Hours: nothing goes by a tap.** `Availability`'s start times are a
+  grid of tiles under "Slots and lesson length"; **Edit** (top right of
+  the grid) turns each tile's corner into a red minus and only then
+  does a tap remove one, **Done** puts it back; **Add a time** is one
+  tap on the half hours not yet in the list (`HALF_HOURS`, six in the
+  morning to half nine at night). A tap on a time deleted it for a
+  round, and typing "7:30 pm" into a box was the only way to add one;
+  the founder asked for the phone's Edit. The pool starts as
+  `DEFAULT_SLOTS` — nine to nine, an hour each, the last lesson
+  starting at eight — and a day switched on takes the whole pool. The
+  week itself still starts empty: nothing is offered to a player until
+  the coach has said when. The diary's per-day sheet (`EditDay`) offers
+  the same pool.
+- **The mark sits top-left on every root screen.** `Screen` puts
+  `Mark` (20px, the sport's `mark` tone) in the corner a root screen
+  leaves empty — where a pushed screen has its Back chevron. It is the
+  one piece of branding inside the app: no wordmark, no header logo, no
+  band. The founder asked for slightly more branding, unobtrusive.
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
   screens, hours · drills · tips, grids and rows, a body that scrolls
   — remembered as `preferences.setup_done`, and reachable again from
@@ -371,12 +404,14 @@ seeded data and no account.
 - **The sport tints the app inside a sport; `NEUTRAL` before one.**
   `const base = inApp ? cfg.theme : NEUTRAL` — paper, ink and the greys
   are shared, the accent and wash are the sport's, and the four semantic
-  colours never change. Golf is `#1C6E3A`, a fairway green — white on
-  it is 6.3:1 (4.5:1 is the floor for a filled button's label). It was
-  a mustard, `#896B27` then `#957019`, and the founder called that
-  obnoxious and not sporty; tennis' court teal `#0F7A69` is the
-  reference for how a sport colour should feel — saturated, modern,
-  the sport's own. Golf is grass, not teal, so the two stay apart. It was collapsed to one palette once and the
+  colours never change. Golf is `#3A8032`, a grass green with the warmth
+  of a fairway (hue 114°) — white on it is 4.9:1 (4.5:1 is the floor for
+  a filled button's label). It was a mustard, `#896B27` then `#957019`,
+  and the founder called that obnoxious and not sporty; then `#1C6E3A`,
+  which sat too close to tennis' court teal `#0F7A69` (hue 170°) and
+  the founder asked for the two to be more distinct. Tennis is the
+  reference for how a sport colour should feel — saturated, modern, the
+  sport's own; golf is grass, tennis is teal, forty degrees apart. It was collapsed to one palette once and the
   founder called the result outrageous within the hour; the tint is the
   approved look. The accent appears once a screen (the one action).
 - **A player's diary knows the coach's taken times, never whose.**
