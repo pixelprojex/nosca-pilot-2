@@ -4133,12 +4133,21 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
   const [gone, setGone] = useState(false);
   const st = useRef(null);
   const OPEN = 88;
+  const DELETE_THRESHOLD = -140;  // swipe far enough left and it auto-deletes
 
   const down = (e) => { st.current = { x: e.clientX, base: dx }; };
   const move = (e) => {
     if (!st.current) return;
-    const d = Math.min(0, Math.max(-120, st.current.base + (e.clientX - st.current.x)));
+    const d = Math.min(0, Math.max(-180, st.current.base + (e.clientX - st.current.x)));
     setDx(d);
+    /* if swiped far enough, auto-delete immediately */
+    if (d <= DELETE_THRESHOLD && !gone) {
+      st.current = null;
+      hapticWarn();
+      decline();
+      setGone(true);
+      setTimeout(() => onDelete && onDelete(), 180);
+    }
   };
   const up = () => {
     if (!st.current) return;
@@ -4231,11 +4240,11 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
   const ids = pickLayout(order, QUICK_ORDER);
   return (
     <>
-      {/* the log first and full width; then the eight, four to a row,
+      {/* the log first and full width; then the eight, two to a row,
           in the order the coach keeps — Call off among them, in red */}
       <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
       <div style={{ marginTop: 12 }}>
-        <TileGrid cols={4}>
+        <TileGrid cols={2}>
           {ids.map((id, i) => {
             const A = COACH_ACTIONS[id];
             return (
@@ -5204,14 +5213,13 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
       <div className="absolute" style={{ left: 16, right: 16, bottom: `calc(${108 + BAR_H}px + env(safe-area-inset-bottom, 0px))`, zIndex: 25 }}>
         <div className="w-full text-left"
              style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.62)",
-                      border: "0.5px solid rgba(255,255,255,0.12)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
           <div className="flex items-start gap-3">
             <button onClick={open} className="flex-1 min-w-0 text-left active:opacity-80">
               <span className="block truncate" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>
                 {lesson.focus}
               </span>
-              <span className="block mt-1.5 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+              <span className="block mt-3 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
                 {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
               </span>
             </button>
@@ -9825,7 +9833,7 @@ function ClipReview({ lesson, mediaId, mediaFor, who, onSend, pop, say }) {
                     {tr("Again")}
                   </button>
                   <div style={{ flex: 2 }}>
-                    <Button onClick={send} disabled={phase === "sending"}>{phase === "sending" ? tr("Sending…") : `${tr("Send to")} ${first || tr("them")}`}</Button>
+                    <Button onClick={send} disabled={phase === "sending"}>{phase === "sending" ? tr("Saving…") : tr("Save")}</Button>
                   </div>
                 </div>
               )}
