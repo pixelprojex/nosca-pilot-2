@@ -13,7 +13,8 @@ const PORT = Number(portArg || 4308), BASE = `http://localhost:${PORT}`;
 fs.mkdirSync(outDir, { recursive: true });
 
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", fresh: "00000000-0000-4000-8000-00000000f9e5" };
-const L = { one: "10000000-0000-4000-8000-0000000fe001", two: "10000000-0000-4000-8000-0000000fe002" };
+const L = { one: "10000000-0000-4000-8000-0000000fe001", two: "10000000-0000-4000-8000-0000000fe002", five: "10000000-0000-4000-8000-0000000fe005" };
+const FIVE = "Full swing · Chipping · Bunker play · Course management · Mental game";
 const LONG = "Cleaner contact from the fringe all session, and the low runner is starting to look like a shot he trusts under pressure.";
 
 function freshDb() {
@@ -28,6 +29,9 @@ function freshDb() {
   M.addMedia(db, { lessonId: L.one, kind: "photo", path: `${IDS.coach}/${L.one}/still-1.jpg` });
   M.addLesson(db, { id: L.two, coachId: IDS.coach, playerId: IDS.adult, date: "2026-09-04", focus: "Putting", notes: "Pace first." });
   M.addMedia(db, { lessonId: L.two, kind: "video", path: `${IDS.coach}/${L.two}/clip-2.mp4` });
+  /* the oldest: five areas worked on in one lesson */
+  M.addLesson(db, { id: L.five, coachId: IDS.coach, playerId: IDS.adult, date: "2026-08-20", focus: FIVE });
+  M.addMedia(db, { lessonId: L.five, kind: "video", path: `${IDS.coach}/${L.five}/clip-5.mp4` });
   return db;
 }
 
@@ -58,7 +62,7 @@ const { check, results, summary } = M.checker("feed");
       await page.waitForTimeout(1200);
       const t0 = await text(); await shot("01-feed");
       check("(a) Lessons opens on the feed, one card a lesson",
-        (await page.locator("[data-feed-card]").count()) === 2, `cards=${await page.locator("[data-feed-card]").count()} · ${t0.slice(0, 160)}`);
+        (await page.locator("[data-feed-card]").count()) === 3, `cards=${await page.locator("[data-feed-card]").count()} · ${t0.slice(0, 160)}`);
 
       /* the real file, not the drawn field. GeneratedField is the
          harness's; a real account seeing it means the clip did not load */
@@ -69,7 +73,13 @@ const { check, results, summary } = M.checker("feed");
         (await page.locator("[data-feed-card] svg[data-generated-field]").count()) === 0 && !/GeneratedField/.test(t0), t0.slice(0, 120));
 
       /* the panel: what the lesson was */
-      check("(a) the panel names the focus, the day and the coach", t0.includes("Short game") && /18 SEP|SEP/i.test(t0) && t0.includes("Niamh Byrne"), t0.slice(0, 240));
+      check("(a) the panel names the focus and the day, and not the coach — a player has one", t0.includes("Short game") && /18 SEP|SEP/i.test(t0) && !t0.includes("Niamh Byrne"), t0.slice(0, 240));
+      /* five areas in one lesson read whole, on at most two lines, none cut mid-word */
+      await page.locator("[data-feed-card]").nth(2).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
+      const five = await page.locator('[data-feed-card="2"] [data-tour="feed-focus"]').evaluate((el) => { const cs = getComputedStyle(el); return { text: el.innerText.replace(/\s+/g, " "), lines: Math.round(el.getBoundingClientRect().height / parseFloat(cs.lineHeight)), size: parseFloat(cs.fontSize), cutDown: el.scrollHeight > el.clientHeight + 2, cutAcross: el.scrollWidth > el.clientWidth + 1 }; });
+      check("(a) five areas worked on read whole — every word there, on two lines, at a smaller size, nothing cut down or across", ["Full swing", "Chipping", "Bunker play", "Course management", "Mental game"].every((w) => five.text.includes(w)) && five.lines === 2 && five.size < 27 && !five.cutDown && !five.cutAcross, JSON.stringify(five));
+      await page.screenshot({ path: path.join(outDir, "00-feed-five-areas.png") });
+      await page.locator("[data-feed-card]").nth(0).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
       check("(a) and the level it was logged at", t0.includes("HI 18.4"), t0.slice(0, 240));
       check("(a) a long note offers a way to open it out", t0.includes("more") && (await byText(page, "more").count()) === 1, t0.slice(0, 260));
 
@@ -126,7 +136,7 @@ const { check, results, summary } = M.checker("feed");
       check("(c) the list view shows every lesson as a row", t1.includes("Short game") && t1.includes("Putting") && (await page.locator("[data-feed-card]").count()) === 0, t1.slice(0, 220));
       check("(c) there is no third view to choose between", !/Cards/.test(t1), t1.slice(0, 200));
       await tap(page, 'button[aria-label="Feed"]', 1400);
-      check("(c) and back to the feed", (await page.locator("[data-feed-card]").count()) === 2, "feed did not come back");
+      check("(c) and back to the feed", (await page.locator("[data-feed-card]").count()) === 3, "feed did not come back");
       await ctx.close();
     }
 

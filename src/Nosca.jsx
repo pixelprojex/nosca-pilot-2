@@ -5365,6 +5365,19 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
 
   const open = () => { hapticCommit(); soft(); onOpen && onOpen(lesson); };
   const star = useContext(StarCtx); const isStar = star.has(lesson.id);
+  /* THE FOCUS IS A SET OF AREAS, not a sentence: what was worked on,
+     split on the " · " the log joined it with, each area kept whole (no
+     break inside "Course management"), on a line of its own across the
+     whole panel. The size comes from the length: the full 27 while it
+     sits on one line, one line at a size down to 21 while that holds,
+     and past that two balanced lines at the size that fits them (22 at
+     most, 16 at least), so five areas read whole. One line that cut
+     "Short game · Driving · Putt…" mid-word was the thing to fix. */
+  const areas = String(lesson.focus || "").split(" · ").map((a) => a.trim()).filter(Boolean);
+  const chars = areas.join(" · ").length || 1;
+  const panelW = (typeof window !== "undefined" ? window.innerWidth : 390) - 64;   // 16 margin and 16 padding a side
+  const oneLine = panelW / (0.5 * chars);                                            // the size at which it sits on one line
+  const titleSize = oneLine >= 27 ? 27 : oneLine >= 21 ? Math.floor(oneLine) : Math.max(16, Math.min(22, Math.floor((2 * panelW) / (0.5 * chars))));
 
   return (
     <div data-feed-card={index} className="relative"
@@ -5411,12 +5424,26 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
         <div className="w-full text-left"
              style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.62)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
-          <div className="flex items-start gap-3">
-            <button onClick={open} className="flex-1 min-w-0 text-left active:opacity-80">
-              <span className="block truncate" style={{ fontFamily: display, fontSize: 27, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#fff" }}>{lesson.focus}</span>
-              <span className="block mt-3 truncate" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
-                {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{lesson.coach ? ` · ${lesson.coach}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
+          {/* the focus on a line of its own, the whole width of the panel */}
+          <button onClick={open} className="w-full min-w-0 text-left active:opacity-80">
+              <span data-tour="feed-focus" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", textWrap: "balance", whiteSpace: "normal",
+                                                     fontFamily: display, fontSize: titleSize, lineHeight: 1.08, letterSpacing: "-0.03em", color: "#fff" }}>
+                {/* a real space either side of the dot: the areas are nowrap
+                    spans, so the spaces are the only places a line may break */}
+                {areas.map((area, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <>{" "}<span aria-hidden="true" style={{ opacity: 0.45 }}>·</span>{" "}</>}
+                    <span style={{ whiteSpace: "nowrap" }}>{area}</span>
+                  </React.Fragment>
+                ))}
               </span>
+          </button>
+          {/* under it the day, the kind and the level — never the coach's
+              name: a player has one, a coach knows their own — with the
+              discs at the right of that line */}
+          <div className="flex items-center gap-3" style={{ marginTop: 6 }}>
+            <button onClick={open} className="flex-1 min-w-0 text-left truncate active:opacity-80" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+              {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
             </button>
             {onDownload && (
               <button onClick={() => { haptic(7); onDownload(lesson); }} aria-label={`${tr("Download")} ${lesson.focus}`}

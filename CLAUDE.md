@@ -537,9 +537,15 @@ seeded data and no account.
   for one style), the
   header's own controls (profile pill, search, bell) on a light pill
   top right so they are reachable from every screen, a glass panel
-  bottom (focus in display type, one tag line, the note cut to a line
-  with "more", the sound toggle beside the title for a video) ending
-  on a full-width **View lesson** button, and a 2px progress bar. No
+  bottom (the focus in display type as a set of areas — split on the
+  " · " the log joined them with, each kept whole, the size stepping
+  down with the count so five areas read on two balanced lines rather
+  than one line cut mid-word; one tag line of the day, the kind and
+  the level, never the coach's name — a player has one and a coach
+  knows their own, and the founder asked for the box cleaned; the note
+  cut to a line with "more", the sound toggle beside the title for a
+  video) ending on a full-width **View lesson** button with the star
+  beside it, and the strip. No
   arrow-in-a-disc and no coach's face: the founder found the arrow
   unclear and the face confusing. List is the second view — a poster
   of the first file, the focus, one grey line — and the lesson page is
