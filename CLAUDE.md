@@ -371,9 +371,12 @@ seeded data and no account.
 - **The sport tints the app inside a sport; `NEUTRAL` before one.**
   `const base = inApp ? cfg.theme : NEUTRAL` — paper, ink and the greys
   are shared, the accent and wash are the sport's, and the four semantic
-  colours never change. Golf is `#957019` (71% saturation; it was
-  `#896B27` at 56% and the founder asked for slightly more vibrant) —
-  white on it is 4.6:1, the floor for a filled button's label. It was collapsed to one palette once and the
+  colours never change. Golf is `#1C6E3A`, a fairway green — white on
+  it is 6.3:1 (4.5:1 is the floor for a filled button's label). It was
+  a mustard, `#896B27` then `#957019`, and the founder called that
+  obnoxious and not sporty; tennis' court teal `#0F7A69` is the
+  reference for how a sport colour should feel — saturated, modern,
+  the sport's own. Golf is grass, not teal, so the two stay apart. It was collapsed to one palette once and the
   founder called the result outrageous within the hour; the tint is the
   approved look. The accent appears once a screen (the one action).
 - **A player's diary knows the coach's taken times, never whose.**
