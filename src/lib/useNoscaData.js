@@ -1435,6 +1435,11 @@ export function useNoscaData(profile) {
     const { data: rows, error } = await supabase.from("lesson_media")
       .select("id, kind, storage_path, created_at").eq("lesson_id", lessonId).order("created_at");
     if (error || !rows || !rows.length) return [];
+    /* clips and photos first, in the order they came; voice notes after.
+       The first file is the poster and what the feed plays, and a note
+       is neither — and a marked-up take arrives newest, so this is also
+       what keeps it in front of the note beside the clip it replaced. */
+    rows.sort((a, b) => (a.kind === "audio") - (b.kind === "audio"));
     const paths = rows.map((m) => m.storage_path);
     const { data: signed, error: signErr } = await supabase.storage.from("media").createSignedUrls(paths, 3600);
     const urlFor = (path, i) => {

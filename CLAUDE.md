@@ -566,21 +566,46 @@ seeded data and no account.
   maths reads its box), Undo and Clear in the header, one row of icon
   tools (pen · line · arrow · circle · angle — the angle reads degrees
   from vertical, for a swing plane or a spine) with the three inks, the
-  transport (play, a frame either way, scrub, ½×), and **two actions,
-  never only a Record**: **Save** plays the clip through once from the
-  start with the marks drawing themselves in, records the canvas as it
-  goes with no microphone asked for (the clip's own sound rides along
-  through Web Audio where the browser allows it) and uploads the take
-  at once; **Talk over it** takes the microphone, lets the coach play,
-  scrub and draw live, and plays the take back (Again · Save) before
-  it goes. Both use the same MediaRecorder negotiation as live capture
-  (`pickMime`, `VIDEO_TYPES` from useCapture) and `addLessonMedia`.
-  It was one Record button with no Save for a round, at 330px tall
-  under the tab bar, and the founder found no way to keep a drawing and
-  could not work at that size. The drawing is IN the recording — never
-  a layer only this app could replay — and `review.cjs` decodes the
-  file the app sent and reads the ink's pixels back out of it. The
-  original clip is never touched. The viewer sees every mark drawn
+  transport (play, a frame either way, scrub, ½×), a pinch to zoom the
+  working view (a `1×` pill resets; the take is always the whole
+  frame), and **two actions, never only a Record**. **Every mark
+  belongs to a moment — the video time it was drawn at.** Pausing
+  somewhere new and drawing starts a new moment and the old marks fade
+  (`FADE_MS`); on playback a moment's marks draw themselves in when
+  the head reaches its time and stay until the next moment's. That is
+  what the coach sees pressing Play in the editor, what the take
+  holds, and so what the player sees — never every mark at 0:00 (it
+  was that for a round and the founder saw the drawings out of time
+  with the clip). **Save** runs the clip through once from the start,
+  resting on each moment (`HOLD_MS` after its marks arrive) then going
+  on, records the canvas as it goes with no microphone asked for (the
+  clip's own sound rides along through Web Audio where the browser
+  allows it; the recorder is fed a steady 30 frames a second by
+  `requestFrame`, because a canvas track left to itself came back from
+  Safari running fast) and uploads the take at once; **Talk over it**
+  takes the microphone, lets the coach play, pause, scrub and draw
+  live — the pause and the fade are in the take — and plays it back
+  (Again · Save) before it goes. **The take stands in for the clip it
+  was drawn on**: `onSend(file, original)` adds the take and removes
+  the original, so a lesson carries one video, not two (the founder
+  asked; a live-capture clip already has its copy on the phone). The
+  camera in the tool row is **Photo**: the frame as it stands, marks
+  and all, onto the lesson as a still (`onStill`), the coach staying
+  where they are. On the feed a marked-up clip carries a pencil beside
+  the focus. Both paths use the same MediaRecorder negotiation as live
+  capture (`pickMime`, `VIDEO_TYPES` from useCapture) and
+  `addLessonMedia`. It was one Record button with no Save for a round,
+  at 330px tall under the tab bar, and the founder found no way to
+  keep a drawing and could not work at that size. The drawing is IN
+  the recording — never a layer only this app could replay — and
+  `review.cjs` decodes the file the app sent and reads the ink's
+  pixels back out of it. This is the shape of OnForm, CoachNow,
+  Dartfish and Coach's Eye: the athlete receives a recording of the
+  coach's own session; drawings anchored to a moment (Dartfish still
+  shots, Kinovea key images) rather than persisting through the whole
+  clip, which is a complaint about Coach's Eye; a camera icon for a
+  snapshot (CoachNow); CoachNow replaces the original when a pending
+  post is marked up. The viewer sees every mark drawn
   live: a stroke made while recording is in the take as it happens,
   and marks drawn before Record reveal themselves one after another
   over `REVEAL_MS` when it starts (`paintShape(g, sh, w, h, f)` draws a
