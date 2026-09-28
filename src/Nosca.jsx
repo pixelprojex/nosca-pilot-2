@@ -392,8 +392,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#0F1F14", sub: "#3B5443", faint: "#5F7566", trace: "#98AC9C", hair: "#E3ECE5",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EBF4EA", mark: "#1C6E3A", accent: "#1C6E3A", onAccent: "#FFFFFF" },
+    theme: { ink: "#10200F", sub: "#3C5438", faint: "#5F755B", trace: "#9AAD95", hair: "#E4ECE1",
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#ECF5E9", mark: "#3A8032", accent: "#3A8032", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1466,6 +1466,11 @@ const endTime = (start, mins) => { const t0 = parseTime(start); return t0 == nul
 const span = (start, mins) => `${start.replace(/\s?(am|pm)$/i, "")}–${endTime(start, mins)}`;
 
 const ALL_TIMES = ["8:00 am", "9:00 am", "10:00 am", "11:00 am", "2:00 pm", "3:30 pm", "4:30 pm", "5:30 pm"];
+/* a coach's start times before they change them: nine to nine, an hour
+   each — the last lesson starts at eight and ends at nine */
+const DEFAULT_SLOTS = ["9:00 am", "10:00 am", "11:00 am", "12:00 pm", "1:00 pm", "2:00 pm", "3:00 pm", "4:00 pm", "5:00 pm", "6:00 pm", "7:00 pm", "8:00 pm"];
+/* every half hour a coach could add, six in the morning to half nine at night */
+const HALF_HOURS = Array.from({ length: 32 }, (_, i) => { const m = 6 * 60 + i * 30, h = Math.floor(m / 60); return `${((h + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`; });
 
 /* Availability, bookings, groups and libraries are all keyed by sport.
    Generating them from SPORTS means a new sport needs no plumbing. */
@@ -7056,7 +7061,11 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
             <button onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40">
               <ChevronLeft size={25} color={t.ink} strokeWidth={2.1} />
             </button>
-          ) : <span style={{ width: 41 }} />}
+          ) : (
+            /* the mark, small, in the corner a root screen leaves empty: the
+               one piece of branding inside the app, in the sport's own tone */
+            <span className="flex items-center justify-center" aria-hidden="true" data-tour="brand-mark" style={{ width: 41, height: 41 }}><Mark size={20} color={t.mark} /></span>
+          )}
           <span className="flex-1 text-center truncate px-2"
                 style={{ fontFamily: ui, fontSize: 16, fontWeight: 600, color: t.ink,
                          opacity: shrunk ? 1 : 0, transition: "opacity 180ms" }}>{title}</span>
@@ -8097,7 +8106,8 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
   const [step, setStep] = useState(0);
   const [drills, setDrills] = useState(live ? [] : cfg.drills.slice(0, 3).map((d) => d.t));
   const [days, setDays] = useState([]);
-  const [times, setTimes] = useState([]);
+  /* the times start ticked — nine to nine — so Hours is the days and Next */
+  const [times, setTimes] = useState(live ? slots.slice() : []);
   const [dur, setDur] = useState(45);
   const [tips, setTips] = useState([]);
   const [newDrill, setNewDrill] = useState("");
@@ -13124,9 +13134,12 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
 ================================================================== */
 function Availability({ avail, setAvail, slots, setSlots, duration, setDuration, pop, say }) {
   const t = useT(); const [openDay, setOpenDay] = useState(4); const [draft, setDraft] = useState(avail);
-  const [editSlots, setEditSlots] = useState(false); const [newSlot, setNewSlot] = useState("");
+  const [editSlots, setEditSlots] = useState(false); const [removing, setRemoving] = useState(false); const [addingTime, setAddingTime] = useState(false);
   const togTime = (day, time) => { haptic(5); const cur = draft[day] || []; const next = cur.includes(time) ? cur.filter((x) => x !== time) : [...cur, time]; setDraft({ ...draft, [day]: slots.filter((x) => next.includes(x)) }); };
-  const togDay = (day, on) => { haptic(8); setDraft({ ...draft, [day]: on ? ["9:00 am", "10:00 am", "11:00 am"] : [] }); };
+  /* a day switched on takes every start time — nine to nine by default */
+  const togDay = (day, on) => { haptic(8); setDraft({ ...draft, [day]: on ? slots.slice() : [] }); };
+  const addTime = (h) => { hapticSuccess(); setSlots([...slots, h].sort((a, b) => parseTime(a) - parseTime(b))); };
+  const dropTime = (sl) => { hapticWarn(); setSlots(slots.filter((x) => x !== sl)); setDraft(Object.fromEntries(Object.entries(draft).map(([d, xs]) => [d, (xs || []).filter((x) => x !== sl)]))); };
   const copyDown = (day) => { haptic(12); const src = draft[day] || []; const next = { ...draft }; [1, 2, 3, 4].forEach((d) => { next[d] = [...src]; }); setDraft(next); say("Copied to weekdays"); };
   const total = Object.values(draft).reduce((n, x) => n + x.length, 0);
   const TIMES = slots;
@@ -13147,21 +13160,49 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                 <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d}m`)} picked={`${duration}m`}
                           onToggle={(x) => setDuration(Number(String(x).replace("m", "")))} />
               </div>
-              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Start times")}</div>
-              <div className="mb-4">
-                <TimeGrid cols={3} times={slots.map((sl) => span(sl, duration))} picked={[]}
-                          onToggle={(label) => { haptic(6); const sl = slots.find((x) => span(x, duration) === label); setSlots(slots.filter((x) => x !== sl)); }} />
+              {/* THE START TIMES: a tile a time, and nothing goes by a tap.
+                  Edit turns each tile's corner into a red minus, as a phone's
+                  lists do; Add a time is one tap on the half hours not yet in
+                  the list. A tap on a time deleted it for a round, and typing
+                  "7:30 pm" into a box was the only way to add one. */}
+              <div className="flex items-center mb-2.5">
+                <span className="flex-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Start times")}</span>
+                <button onClick={() => { haptic(6); setRemoving(!removing); setAddingTime(false); }} aria-pressed={removing} className="px-2 active:opacity-60"
+                        style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{removing ? tr("Done") : tr("Edit")}</button>
               </div>
-              <div className="flex gap-2">
-                <div className="flex-1 min-w-0 flex items-center gap-2 rounded-2xl px-4" style={{ minHeight: 48, background: t.wash }}>
-                  <input value={newSlot} onChange={(e) => setNewSlot(e.target.value)} placeholder={tr("A time")} className="flex-1 min-w-0 outline-none"
-                         style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-                  <MicBtn onText={(txt) => setNewSlot(txt)} size={26} />
+              <div className="grid gap-2 mb-3" data-tour="avail-times" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+                {slots.map((sl) => (
+                  <button key={sl} onClick={() => { if (removing) dropTime(sl); }} aria-label={removing ? `${tr("Remove")} ${sl}` : sl}
+                          className="relative flex items-center justify-center active:opacity-70"
+                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: t.surface, ...TYPE.small, fontWeight: 600, color: t.ink,
+                                   animation: removing ? "wiggle 420ms ease-in-out infinite" : "none" }}>
+                    {span(sl, duration)}
+                    {removing && (
+                      <span className="absolute flex items-center justify-center" style={{ left: -6, top: -6, width: 18, height: 18, borderRadius: 9, background: DANGER }}>
+                        <Minus size={11} color="#fff" strokeWidth={3} />
+                      </span>
+                    )}
+                  </button>
+                ))}
+                {!removing && (
+                  <button onClick={() => { haptic(6); setAddingTime(!addingTime); }} aria-label={tr("Add a time")} aria-pressed={addingTime}
+                          className="flex items-center justify-center gap-1 active:opacity-70"
+                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px dashed ${EDGE(t)}`, background: addingTime ? t.wash : "transparent", ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                    <Plus size={14} strokeWidth={2.2} />{tr("Add a time")}
+                  </button>
+                )}
+              </div>
+              {addingTime && !removing && (
+                <div style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
+                  <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Tap a time to add it")}</div>
+                  <div className="grid gap-2" data-tour="avail-add" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+                    {HALF_HOURS.filter((h) => !slots.includes(h)).map((h) => (
+                      <button key={h} onClick={() => addTime(h)} className="active:opacity-70"
+                              style={{ minHeight: 40, borderRadius: R.pill, background: t.wash, ...TYPE.caption, fontWeight: 600, color: t.ink }}>{h}</button>
+                    ))}
+                  </div>
                 </div>
-                <button onClick={() => { if (newSlot.trim()) { haptic(10); setSlots([...slots, newSlot.trim()]); setNewSlot(""); } }}
-                        disabled={!newSlot.trim()} className="rounded-2xl px-5 active:opacity-60 disabled:opacity-25"
-                        style={{ minHeight: 48, background: t.ink, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.page }}>{tr("Add")}</button>
-              </div>
+              )}
             </Card>
           )}
         </div>
@@ -15544,7 +15585,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* A real coach's saved slots and lesson length; a real player gets
      their coach's. The harness keeps the designed defaults. */
   const savedHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
-  const [slots, setSlots] = useState(savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots : ALL_TIMES);
+  const [slots, setSlots] = useState(savedHours && Array.isArray(savedHours.slots) && savedHours.slots.length ? savedHours.slots : data ? DEFAULT_SLOTS : ALL_TIMES);
   const [duration, setDuration] = useState((savedHours && Number(savedHours.duration)) || 45);
   /* AND THEY FOLLOW WHAT WAS SAVED, NOT ONLY WHAT WAS THERE AT MOUNT.
 
@@ -17643,7 +17684,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onRegister={() => { const bk = peek; setSheet(null); setTimeout(() => { setAttendFor(bk); setSheet("attend"); }, 180); }}
                                             onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setCancelBk(peek); setSheet("cancel"); }}
                                             close={() => setSheet(null)} />
-              : sheet === "editDay" && editDay ? <EditDay day={editDay} slots={ALL_TIMES} duration={duration}
+              : sheet === "editDay" && editDay ? <EditDay day={editDay} slots={slots} duration={duration}
                                             avail={myAvail || {}} setAvail={writeAvail}
                                             slotKinds={slotKinds} setSlotKinds={setSlotKinds}
                                             onWeather={() => setSheet("weather")} close={() => setSheet(null)} say={say} />

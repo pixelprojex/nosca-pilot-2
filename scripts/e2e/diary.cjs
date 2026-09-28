@@ -86,6 +86,27 @@ const leaks = [];
       await hours.click(); await page.waitForTimeout(900);
       const t0 = await leak("coach availability"); await shot("05-coach-availability-empty");
       check("(g) tapping it opens Hours, starting with an empty week (no DEFAULT_AVAIL)", t0.includes("Hours") && (await page.locator('[data-tour="avail-days"]').count()) === 1 && (!/\d+ slots a week/.test(t0) || /\b0 slots a week/.test(t0)), t0.slice(0, 160));
+      /* the start times: nine to nine by default; nothing goes by a tap;
+         Edit takes one off; Add a time is one tap on a half hour */
+      await click(page, "Slots and lesson length", 600);
+      const tiles = page.locator('[data-tour="avail-times"] button:not([aria-label="Add a time"])');
+      const before = await tiles.count();
+      check("(g2) the start times open as nine to nine, an hour each, with Add a time beside them", before === 12 && /9:00/.test(await tiles.first().innerText()) && /8:00/.test(await tiles.nth(11).innerText()) && (await page.locator('[aria-label="Add a time"]').count()) === 1, `${before} tiles`);
+      await tiles.nth(3).click(); await page.waitForTimeout(300);
+      check("(g2) tapping a time does nothing to it", (await tiles.count()) === 12);
+      await click(page, "Edit", 400);
+      check("(g2) Edit marks every time with a minus", (await page.locator('[data-tour="avail-times"] button[aria-label^="Remove "]').count()) === 12);
+      /* the tiles wiggle while Edit is on, so a real click never finds them still */
+      await page.locator('[aria-label="Remove 12:00 pm"]').dispatchEvent("click"); await page.waitForTimeout(300);
+      check("(g2) …and a tap on one takes it off", (await tiles.count()) === 11 && (await page.locator('[aria-label="Remove 12:00 pm"]').count()) === 0);
+      await click(page, "Done", 300);
+      await page.locator('[aria-label="Add a time"]').click(); await page.waitForTimeout(400);
+      check("(g2) Add a time offers the half hours not yet in the list", (await page.locator('[data-tour="avail-add"] button').count()) > 12 && (await page.locator('[data-tour="avail-add"] button', { hasText: "6:30 am" }).count()) === 1 && (await page.locator('[data-tour="avail-add"] button', { hasText: /^9:00 am$/ }).count()) === 0);
+      await page.locator('[data-tour="avail-add"] button', { hasText: "12:00 pm" }).click(); await page.waitForTimeout(300);
+      check("(g2) one tap adds it back, in order", (await tiles.count()) === 12 && /12:00/.test(await tiles.nth(3).innerText()));
+      await shot("05b-coach-hours-times");
+      /* the mark: in the corner of a root screen, not where Back is */
+      check("(g3) the mark sits top-left on a root screen and gives way to Back on a pushed one", (await page.locator('[data-tour="brand-mark"]').count()) === 0 && (await page.locator('[aria-label="Back"]').count()) >= 1);
       const toggles = page.locator('[data-tour="avail-days"] button[aria-pressed]');
       const n = await toggles.count();
       for (let i = 0; i < n; i++) { const tg = toggles.nth(i); if ((await tg.getAttribute("aria-pressed")) !== "true") { await tg.click(); await page.waitForTimeout(150); } }
