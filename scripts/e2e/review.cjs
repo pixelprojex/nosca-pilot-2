@@ -43,6 +43,19 @@ const { check, results, summary } = M.checker("review");
     await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(page, db);
     errorsByRole[role] = errorsByRole[role] || []; page.on("pageerror", (e) => errorsByRole[role].push(String(e.message || e)));
     await M.injectSession(page, M.session(u, db));
+    /* every recorder's slices are kept, so a take can be decoded and read
+       back after the app has sent it — the marks must be in the file */
+    await page.addInitScript(() => {
+      const Orig = window.MediaRecorder; if (!Orig) return;
+      const Wrapped = function (stream, opts) {
+        const r = new Orig(stream, opts); const chunks = [];
+        (window.__takes = window.__takes || []).push({ r, chunks });
+        r.addEventListener("dataavailable", (e) => { if (e.data && e.data.size) chunks.push(e.data); });
+        return r;
+      };
+      Wrapped.prototype = Orig.prototype; Wrapped.isTypeSupported = (m) => Orig.isTypeSupported(m);
+      window.MediaRecorder = Wrapped;
+    });
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
     const text = () => M.rootText(page);
     const shot = (name) => page.screenshot({ path: path.join(outDir, `${name}.png`) });
@@ -66,8 +79,10 @@ const { check, results, summary } = M.checker("review");
     const dims = (await c.count()) ? await c.evaluate((el) => ({ w: el.width, h: el.height })) : null;
     check("(b) the clip is painted on a canvas at its own size", !!dims && dims.w > 2 && dims.h > 2 && dims.w % 2 === 0 && dims.h % 2 === 0, JSON.stringify(dims));
     const t0 = await text();
-    check("(b) the screen is Mark it up · Putting · Cian, with Record and the four tools", /Mark it up/.test(t0) && /Putting · Cian/.test(t0) && /Record/.test(t0)
-      && ["Pen", "Line", "Arrow", "Circle"].every((k) => t0.includes(k)), t0.slice(0, 200));
+    check("(b) the screen is Mark it up · Cian, with Save and Talk over it, and the five tools as icons", /Mark it up · Cian/.test(t0) && /\bSave\b/.test(t0) && /Talk over it/.test(t0) && !/Record/.test(t0)
+      && (await Promise.all(["Pen", "Line", "Arrow", "Circle", "Angle"].map((k) => page.locator(`[aria-label="${k}"]`).count()))).every((n) => n === 1), t0.slice(0, 200));
+    const cb = await c.boundingBox();
+    check("(b) the clip fills the stage — over 450px tall on a phone — and the tab bar is out of the way", !!cb && cb.height > 450 && (await page.locator('[aria-label="Today"]').count()) === 0, JSON.stringify(cb));
     await shot("02-markup");
 
     /* draw: a pen stroke, an arrow, a circle */
@@ -95,7 +110,7 @@ const { check, results, summary } = M.checker("review");
     /* play, then record over it */
     await tap(page, '[aria-label="Play"]', 600);
     check("(d) the clip plays from the transport", (await page.locator('[aria-label="Pause"]').count()) === 1);
-    await page.locator("button", { hasText: "Record" }).first().click(); await page.waitForTimeout(1700);
+    await page.locator("button", { hasText: "Talk over it" }).first().click(); await page.waitForTimeout(1700);
     const t1 = await text();
     check("(d) recording shows Stop and a running timer", /Stop · 0:0[1-3]/.test(t1), t1.slice(0, 160));
     await shot("04-recording");
@@ -126,6 +141,47 @@ const { check, results, summary } = M.checker("review");
     const note = db.notifications.find((n) => n.user_id === IDS.adult && /New clip on Putting/.test(n.title));
     check("(h) the player is told: New clip on Putting, from the coach, opening the lesson", !!note && note.body === "Niamh Byrne" && note.data && note.data.screen === "lesson" && note.data.id === LESSON.old, JSON.stringify(note));
     check("(h) the files uploaded with the lesson itself said nothing extra", db.notifications.filter((n) => /New clip|New photo|New voice note/.test(n.title)).length === 1);
+
+    /* ---------- (h2) Save on its own: no microphone, the marks rendered into the clip ---------- */
+    await tap(page, '[data-tour="lesson-markup"]', 900);
+    await page.waitForFunction(() => { const c = document.querySelector('[data-tour="markup-stage"] canvas'); return !!c && c.width > 2; }, null, { timeout: 10000 }).catch(() => {});
+    const c2 = page.locator('[data-tour="markup-stage"] canvas');
+    const box2 = await c2.boundingBox();
+    const dragOn = async (bx, x0, y0, x1, y1) => {
+      await page.mouse.move(bx.x + bx.width * x0, bx.y + bx.height * y0); await page.mouse.down();
+      for (let i = 1; i <= 8; i++) await page.mouse.move(bx.x + bx.width * (x0 + ((x1 - x0) * i) / 8), bx.y + bx.height * (y0 + ((y1 - y0) * i) / 8));
+      await page.mouse.up(); await page.waitForTimeout(150);
+    };
+    await tap(page, '[aria-label="Circle"]', 100); await dragOn(box2, 0.35, 0.35, 0.65, 0.65);
+    await tap(page, '[aria-label="Pen"]', 100); await dragOn(box2, 0.2, 0.7, 0.8, 0.75);
+    const takesBefore = await page.evaluate(() => (window.__takes || []).length);
+    const mediaBefore2 = db.media.filter((m) => m.lesson_id === LESSON.old).length;
+    await page.locator("button", { hasText: /^Save$/ }).first().click();
+    await page.waitForTimeout(700);
+    const ts = await text();
+    check("(h2) Save runs the clip through on its own — Saving, with a timer, and no microphone asked for", /Saving/.test(ts) && !/Allow the microphone/.test(ts) && !/can't record/.test(ts), ts.slice(0, 160));
+    await shot("05b-saving");
+    await page.waitForFunction(() => !document.body.innerText.includes("Saving") && !document.body.innerText.includes("Mark it up · "), null, { timeout: 45000 }).catch(() => {});
+    await page.waitForTimeout(900);
+    const after2 = db.media.filter((m) => m.lesson_id === LESSON.old);
+    check("(h2) it uploads the take and lands back on the lesson", after2.length === mediaBefore2 + 1 && /markup-\d+\.(webm|mp4)$/.test(after2[after2.length - 1].storage_path) && !/Mark it up · /.test(await text()), JSON.stringify(after2.map((m) => m.storage_path.split("/").pop())));
+    /* the marks are IN the file: decode the take the app sent and read its pixels */
+    const probe = await page.evaluate(async (n) => {
+      const t = (window.__takes || [])[n]; if (!t) return { none: true, takes: (window.__takes || []).length };
+      const blob = new Blob(t.chunks, { type: t.r.mimeType || "video/webm" });
+      const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto";
+      v.src = URL.createObjectURL(blob); document.body.appendChild(v);
+      await new Promise((res) => { v.onloadeddata = res; v.onerror = res; setTimeout(res, 5000); });
+      try { await v.play(); } catch (e) { /* fine */ }
+      await new Promise((res) => setTimeout(res, 1800));
+      const c = document.createElement("canvas"); c.width = v.videoWidth || 2; c.height = v.videoHeight || 2;
+      const g = c.getContext("2d"); g.drawImage(v, 0, 0, c.width, c.height);
+      const d = g.getImageData(0, 0, c.width, c.height).data; let y = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] > 170 && d[i + 1] > 140 && d[i + 2] < 130) y++;
+      const at = v.currentTime; v.pause(); v.remove();
+      return { size: blob.size, w: c.width, h: c.height, y, at };
+    }, takesBefore);
+    check("(h2) the marks are in the take itself: yellow pixels decoded from the file the app sent", !probe.none && probe.size > 2000 && probe.y > 60, JSON.stringify(probe));
 
     /* ---------- (i) List · Feed on the coach's two lesson lists ---------- */
     await tap(page, '[aria-label="Back"]', 700);
@@ -165,8 +221,8 @@ const { check, results, summary } = M.checker("review");
     await tap(page, '[data-tour="wiz-markup"]', 900);
     await page.waitForFunction(() => { const c = document.querySelector('[data-tour="markup-stage"] canvas'); return !!c && c.width > 2; }, null, { timeout: 10000 }).catch(() => {});
     const tl = await text();
-    check("(l) it opens Mark it up on that clip, for Cian, with Record", /Mark it up/.test(tl) && /Chipping · Cian/.test(tl) && /Record/.test(tl) && (await page.locator('[data-tour="markup-stage"] canvas').count()) === 1, tl.slice(0, 160));
-    await page.locator("button", { hasText: "Record" }).first().click(); await page.waitForTimeout(1500);
+    check("(l) it opens Mark it up on that clip, for Cian, with Save and Talk over it", /Mark it up · Cian/.test(tl) && /\bSave\b/.test(tl) && /Talk over it/.test(tl) && (await page.locator('[data-tour="markup-stage"] canvas').count()) === 1, tl.slice(0, 160));
+    await page.locator("button", { hasText: "Talk over it" }).first().click(); await page.waitForTimeout(1500);
     await page.locator("button", { hasText: "Stop" }).first().click();
     await page.waitForSelector('video[src^="blob:"]', { timeout: 10000 }).catch(() => {});
     check("(l) the take plays back with Save", (await page.locator('video[src^="blob:"]').count()) === 1 && /\bSave\b/.test(await text()));

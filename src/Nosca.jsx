@@ -7020,7 +7020,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
    header's own controls dimmed by it and asked for them moved down. */
 const TOP_AIR = 12;
 
-function Screen({ title, meta, onBack, right, action, children, large = true, bare }) {
+function Screen({ title, meta, onBack, right, action, children, large = true, bare, fill }) {
   const t = useT();
   const [y, setY] = useState(0);
   const shrunk = (y > 24 || !large) && !bare;
@@ -7043,13 +7043,15 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
           <span className="flex items-center justify-end gap-2.5 pr-3" style={{ minWidth: 41 }}>{right}</span>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto" onScroll={(e) => setY(e.currentTarget.scrollTop)}>
+      {/* `fill`: the body is a column the children fill, for a screen that
+          is one stage and a bar rather than a scroll */}
+      <div className={fill ? "flex-1 min-h-0 flex flex-col overflow-hidden" : "flex-1 overflow-y-auto"} onScroll={(e) => setY(e.currentTarget.scrollTop)}>
         {large && !bare && (
           <div className="pb-7" style={{ opacity: y > 24 ? 0 : 1, transition: "opacity 180ms" }}>
             <PageHead title={title} meta={meta} action={action} />
           </div>
         )}
-        {!large && <div style={{ height: 8 }} />}
+        {!large && !fill && <div style={{ height: 8 }} />}
         {children}
       </div>
     </div>
@@ -9623,7 +9625,11 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [dur, setDur] = useState(0);
-  const [phase, setPhase] = useState("draw");                 // draw · recording · done · sending
+  const [phase, setPhase] = useState("draw");                 // draw · recording · rendering · done · sending
+  const phaseRef = useRef("draw"); phaseRef.current = phase;
+  const stage = useRef(null);
+  const [box, setBox] = useState(null);                       // the stage's size, so the clip fills it
+  const audio = useRef(null);                                  // { ctx, src, dest }: the clip's own sound, for Save
   const [secs, setSecs] = useState(0);
   const [take, setTake] = useState(null);
   const [err, setErr] = useState(null);
@@ -9657,16 +9663,31 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
   }, [dims]);
 
   useEffect(() => {
-    if (phase !== "recording") return;
+    if (phase !== "recording" && phase !== "rendering") return;
     const i = setInterval(() => setSecs((n) => n + 1), 1000);
     return () => clearInterval(i);
   }, [phase]);
+  /* a clip with no end (a stream, a broken duration) still finishes */
+  useEffect(() => { if (phase === "rendering" && secs >= 600) stopRec(); }, [secs, phase]);
+
+  /* the stage is measured, and the clip is drawn at the largest size
+     that fits it — the pointer maths reads the canvas's own box, so the
+     fit has to be real pixels, never object-fit's letterbox */
+  useEffect(() => {
+    const el = stage.current; if (!el) return undefined;
+    const read = () => { const r = el.getBoundingClientRect(); setBox({ w: Math.floor(r.width), h: Math.floor(r.height) }); };
+    read();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(read) : null;
+    if (ro) ro.observe(el); else window.addEventListener("resize", read);
+    return () => { if (ro) ro.disconnect(); else window.removeEventListener("resize", read); };
+  }, [missing]);
 
   /* leaving mid-way: stop the recorder, release the microphone, drop the take */
   useEffect(() => () => {
     try { if (rec.current && rec.current.state !== "inactive") { rec.current.onstop = null; rec.current.stop(); } } catch (e) { /* fine */ }
     if (mic.current) mic.current.getTracks().forEach((x) => x.stop());
     if (takeUrl.current) URL.revokeObjectURL(takeUrl.current);
+    if (audio.current) { try { audio.current.ctx.close(); } catch (e) { /* fine */ } }
   }, []);
 
   const onMeta = (e) => {
@@ -9705,33 +9726,18 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
   const stepFrame = (d) => { const v = vid.current; if (!v) return; haptic(5); v.pause(); const x = Math.min(Math.max(0, v.currentTime + d / 30), v.duration || 0); v.currentTime = x; setTime(x); };
   const toggleSlow = () => { const v = vid.current; haptic(6); const next = !slow; setSlow(next); if (v) v.playbackRate = next ? 0.5 : 1; };
 
-  const startRec = async () => {
-    setErr(null); setNotice(null);
+  const canRecord = () => {
     const c = canvas.current;
-    if (!c || typeof c.captureStream !== "function" || typeof MediaRecorder === "undefined" || !navigator.mediaDevices) {
-      setErr(tr("This browser can't record over a clip")); return;
-    }
-    /* the microphone first: declined is a stop (they can allow it and
-       press again), none at all records the picture on its own and says
-       so, anything else is named so it can be fixed rather than guessed */
-    let audio = null;
-    try {
-      audio = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-    } catch (e) {
-      const nm = (e && e.name) || "";
-      if (nm === "NotAllowedError" || nm === "SecurityError") { setErr(tr("Allow the microphone to talk over the clip")); return; }
-      if (nm !== "NotFoundError" && nm !== "OverconstrainedError") { setErr(`${tr("Couldn't start the microphone")} · ${nm || tr("unknown")}`); return; }
-      setNotice(tr("No microphone — recording the picture on its own"));
-    }
-    mic.current = audio;
+    if (!c || typeof c.captureStream !== "function" || typeof MediaRecorder === "undefined") { setErr(tr("This browser can't record over a clip")); return false; }
+    return true;
+  };
+  /* the canvas as a stream, with whatever sound belongs on the take;
+     `onDone` gets the file when the recorder stops */
+  const beginTake = (tracks, onDone) => {
+    const c = canvas.current;
     let stream;
-    try {
-      const vs = c.captureStream(30);
-      stream = new MediaStream([...vs.getVideoTracks(), ...(audio ? audio.getAudioTracks() : [])]);
-    } catch (e) {
-      if (audio) audio.getTracks().forEach((x) => x.stop());
-      setErr(`${tr("This browser can't record over a clip")} · ${(e && e.name) || ""}`.trim()); return;
-    }
+    try { stream = new MediaStream([...c.captureStream(30).getVideoTracks(), ...tracks]); }
+    catch (e) { setErr(`${tr("This browser can't record over a clip")} · ${(e && e.name) || ""}`.trim()); return false; }
     chunks.current = [];
     const mime = pickMime(VIDEO_TYPES);
     let r;
@@ -9743,17 +9749,88 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
       const ext = type.includes("mp4") ? "mp4" : "webm";
       const blob = new Blob(chunks.current, { type }); chunks.current = [];
       if (mic.current) { mic.current.getTracks().forEach((x) => x.stop()); mic.current = null; }
-      const v = vid.current; if (v) v.pause();
-      const url = URL.createObjectURL(blob); takeUrl.current = url;
-      setTake({ file: new File([blob], `markup-${Date.now()}.${ext}`, { type }), url });
-      setPhase("done");
+      onDone(new File([blob], `markup-${Date.now()}.${ext}`, { type }));
     };
-    /* marks made before Record draw themselves in over the first moments
-       of the take, one after another, so the viewer watches them arrive */
+    /* marks made before the take draw themselves in over its first
+       moments, one after another, so the viewer watches them arrive */
     if (shapesRef.current.length) reveal.current = { at: performance.now(), n: shapesRef.current.length };
-    haptic(12);
     r.start(250);                                  // slices, so Safari hands data over as it goes
-    rec.current = r; setSecs(0); setPhase("recording");
+    rec.current = r; setSecs(0);
+    return true;
+  };
+
+  /* TALK OVER IT: the coach plays, scrubs and draws while the microphone
+     listens, then watches the take back before it goes. The microphone
+     first: declined is a stop (they can allow it and press again), none
+     at all records the picture on its own and says so, anything else is
+     named so it can be fixed rather than guessed. */
+  const talk = async () => {
+    setErr(null); setNotice(null);
+    haptic(12);
+    if (!canRecord()) return;
+    if (!navigator.mediaDevices) { setErr(tr("This browser can't record over a clip")); return; }
+    let a = null;
+    try {
+      a = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch (e) {
+      const nm = (e && e.name) || "";
+      if (nm === "NotAllowedError" || nm === "SecurityError") { setErr(tr("Allow the microphone to talk over the clip")); return; }
+      if (nm !== "NotFoundError" && nm !== "OverconstrainedError") { setErr(`${tr("Couldn't start the microphone")} · ${nm || tr("unknown")}`); return; }
+      setNotice(tr("No microphone — recording the picture on its own"));
+    }
+    mic.current = a;
+    const ok = beginTake(a ? a.getAudioTracks() : [], (f) => {
+      const v = vid.current; if (v) v.pause();
+      const url = URL.createObjectURL(f); takeUrl.current = url;
+      setTake({ file: f, url }); setPhase("done");
+    });
+    if (!ok) { if (a) a.getTracks().forEach((x) => x.stop()); mic.current = null; return; }
+    setPhase("recording");
+  };
+
+  /* SAVE RENDERS THE MARKS INTO THE CLIP, ON ITS OWN. The clip plays
+     through once from the start with the marks drawing themselves in,
+     and the canvas is recorded as it goes — the same picture a talk-over
+     makes, without asking for a microphone, so drawing and saving never
+     depends on a voice. The clip's own sound rides along through Web
+     Audio where the browser allows it; where it does not, the take is
+     silent rather than refused. What comes back is uploaded at once:
+     there is nothing to listen back to. Drawing stays live throughout,
+     so a stroke made while it saves is in the take as it happens. */
+  const clipSound = () => {
+    const v = vid.current;
+    try {
+      if (!audio.current) {
+        const AC = window.AudioContext || window.webkitAudioContext; if (!AC || !v) return [];
+        const ctx = new AC(); const src = ctx.createMediaElementSource(v); const dest = ctx.createMediaStreamDestination();
+        src.connect(dest); audio.current = { ctx, src, dest };
+      }
+      if (audio.current.ctx.state === "suspended") audio.current.ctx.resume().catch(() => {});
+      return audio.current.dest.stream.getAudioTracks();
+    } catch (e) { return []; }
+  };
+  const saveNow = () => {
+    setErr(null); setNotice(null);
+    const v = vid.current;
+    if (!v || !dims) return;
+    hapticCommit();
+    if (!canRecord()) return;
+    v.pause(); v.playbackRate = 1; setSlow(false);
+    const tracks = clipSound();
+    /* the element's sound reaches the recorder only if it is not muted;
+       routed into the graph it no longer reaches the speaker */
+    if (tracks.length) { v.muted = false; v.volume = 1; }
+    const ok = beginTake(tracks, async (f) => {
+      v.muted = true;
+      setPhase("sending");
+      const r = await onSend(f);
+      if (r && r.failed) { setPhase("draw"); say(tr("Couldn't save it — it's on Today with Retry")); return; }
+      hapticSuccess(); chime(); say(doneLabel || tr("Saved")); pop();
+    });
+    if (!ok) { v.muted = true; return; }
+    setPhase("rendering");
+    v.currentTime = 0;
+    v.play().catch(() => stopRec());
   };
   const stopRec = () => { const r = rec.current; if (r && r.state !== "inactive") { hapticSuccess(); r.stop(); } };
   const again = () => { if (takeUrl.current) URL.revokeObjectURL(takeUrl.current); takeUrl.current = null; setTake(null); setSecs(0); setPhase("draw"); haptic(6); };
@@ -9765,40 +9842,55 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
     hapticSuccess(); chime(); say(doneLabel || tr("Sent")); pop();
   };
 
-  const portrait = !dims || dims.h > dims.w;
-  /* 330 tall keeps the stage, the transport, the tools, the inks and
-     Record on one phone screen — a Record button under the fold is a
-     tool nobody finds mid-lesson */
-  const frame = { borderRadius: 16, background: "#0B0F10", maxHeight: 330, maxWidth: "100%", width: portrait ? "auto" : "100%", height: portrait ? 330 : "auto" };
   const busy = phase === "done" || phase === "sending";
+  const live = phase === "recording", rendering = phase === "rendering";
+  /* the clip at the largest size that fits the stage, in real pixels */
+  const fit = dims && box ? Math.min(box.w / dims.w, box.h / dims.h) : 0;
+  const cssW = fit ? Math.floor(dims.w * fit) : 0, cssH = fit ? Math.floor(dims.h * fit) : 0;
+  const frozen = !dims || broken || rendering;                 // the transport while Save runs the clip itself
+  const round = (on) => ({ width: 40, height: 40, borderRadius: 20, background: on ? t.ink : "transparent" });
+
+  /* THE SCREEN IS THE MARKUP SHEET OF A SCREENSHOT. The clip fills a dark
+     stage from the header to a compact bar — no card, no 330px frame —
+     because a swing at postcard size cannot be drawn on. Undo and Clear
+     sit in the header where a phone's markup puts them; one row of icon
+     tools and the three inks under the stage; and two actions, Save and
+     Talk over it, never only a Record. It was a Record button with no
+     Save for one round and the founder found no way to keep a drawing. */
+  const topRight = !missing && !busy ? (
+    <>
+      <button onClick={() => { haptic(7); setShapes((sh) => sh.slice(0, -1)); }} disabled={!shapes.length} aria-label={tr("Undo")}
+              className="p-1.5 active:opacity-60 disabled:opacity-30"><Undo2 size={20} color={t.ink} strokeWidth={2} /></button>
+      <button onClick={() => { haptic(7); setShapes([]); }} disabled={!shapes.length} aria-label={tr("Clear")}
+              className="px-1 active:opacity-60 disabled:opacity-30" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Clear")}</button>
+    </>
+  ) : null;
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Mark it up")} onBack={pop} meta={[lesson.focus, first].filter(Boolean).join(" · ")}>
-        <div className="px-6 pb-8">
-          {missing ? (
-            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That clip isn't available")}</p>
-          ) : (<>
+      <Screen title={[tr("Mark it up"), first].filter(Boolean).join(" · ")} onBack={pop} large={false} right={topRight} fill>
+        {missing ? (
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That clip isn't available")}</p>
+        ) : (
+          <div className="flex-1 min-h-0 flex flex-col">
             {/* the stage */}
-            <div className="relative flex justify-center" data-tour="markup-stage" style={{ minHeight: 200 }}>
+            <div ref={stage} className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden" data-tour="markup-stage" style={{ background: "#0B0F10" }}>
               {busy && take ? (
-                <video key={take.url} src={take.url} controls playsInline preload="metadata" className="block" style={frame} />
+                <video key={take.url} src={take.url} controls playsInline preload="metadata" className="block"
+                       style={{ maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto" }} />
               ) : (<>
-                {!dims && !broken && <div className="absolute inset-0"><Bone h={200} r={16} /></div>}
-                {broken && (
-                  <div className="flex items-center justify-center w-full" style={{ minHeight: 220, borderRadius: 16, background: t.wash }}>
-                    <span style={{ ...TYPE.small, color: t.sub }}>{tr("Couldn't load this clip")}</span>
-                  </div>
-                )}
+                {broken && <span style={{ ...TYPE.small, color: "rgba(255,255,255,0.7)" }}>{tr("Couldn't load this clip")}</span>}
                 <canvas ref={canvas} width={dims ? dims.w : 2} height={dims ? dims.h : 2}
                         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
                         className="block"
-                        style={{ ...frame, touchAction: "none", cursor: "crosshair",
-                                 aspectRatio: dims ? `${dims.w} / ${dims.h}` : undefined, visibility: dims ? "visible" : "hidden", display: broken ? "none" : "block" }} />
-                {phase === "recording" && (
+                        style={{ width: cssW || 2, height: cssH || 2, touchAction: "none", cursor: "crosshair",
+                                 visibility: fit ? "visible" : "hidden", display: broken ? "none" : "block" }} />
+                {(live || rendering) && (
                   <span className="absolute flex items-center gap-2 px-3 py-1.5" style={{ top: 10, left: 10, borderRadius: R.pill, background: "rgba(0,0,0,0.55)" }}>
-                    <span className="rounded-full" style={{ width: 8, height: 8, background: DANGER, animation: "pulseDot 1.2s ease-in-out infinite" }} />
-                    <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{secsLabel(secs)}</span>
+                    <span className="rounded-full" style={{ width: 8, height: 8, background: live ? DANGER : "#fff", animation: "pulseDot 1.2s ease-in-out infinite" }} />
+                    <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff", fontVariantNumeric: "tabular-nums" }}>
+                      {rendering ? `${tr("Saving")} · ${secsLabel(secs)}` : secsLabel(secs)}
+                    </span>
                   </span>
                 )}
               </>)}
@@ -9807,96 +9899,96 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, doneLabel, p
                 <video ref={vid} src={item.url} crossOrigin="anonymous" playsInline muted preload="auto"
                        onLoadedMetadata={onMeta} onError={() => setBroken(true)}
                        onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
-                       onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
+                       onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+                       onEnded={() => { setPlaying(false); if (phaseRef.current === "rendering") stopRec(); }}
                        style={{ position: "absolute", left: 0, top: 0, width: 2, height: 2, opacity: 0.01, pointerEvents: "none" }} />
               )}
             </div>
 
-            {!busy && (<>
-              {/* play, pause, scrub — while recording too: that is the point */}
-              <div className="flex items-center gap-3 mt-3">
-                <button onClick={toggle} disabled={!dims || broken} aria-label={playing ? tr("Pause") : tr("Play")}
-                        className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
-                        style={{ width: 44, height: 44, borderRadius: 22, background: t.ink }}>
-                  {playing ? <Pause size={17} color="#fff" fill="#fff" /> : <Play size={17} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
-                </button>
-                <button onClick={() => stepFrame(-1)} disabled={!dims || broken} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <button onClick={() => stepFrame(1)} disabled={!dims || broken} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur}
-                       onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
-                       className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                <button onClick={toggleSlow} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60"
-                        style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
-                                 ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
-                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
-              </div>
-
-              {/* what you draw with */}
-              <div className="grid gap-2 mt-3" data-tour="markup-tools" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
-                {REVIEW_TOOLS.map(([id, label, Ico]) => {
-                  const on = tool === id;
-                  return (
-                    <button key={id} aria-pressed={on} aria-label={tr(label)} onClick={() => { haptic(6); setTool(id); }}
-                            className="flex flex-col items-center justify-center gap-1 active:opacity-70"
-                            style={{ minHeight: 52, borderRadius: R.control, background: on ? t.ink : t.surface, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}` }}>
-                      <Ico size={17} color={on ? "#fff" : t.ink} strokeWidth={1.9} />
-                      <span style={{ ...TYPE.caption, fontWeight: 600, color: on ? "#fff" : t.ink }}>{tr(label)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex items-center gap-3 mt-3">
-                {REVIEW_INKS.map((c) => (
-                  <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
-                          className="shrink-0 active:opacity-70"
-                          style={{ width: 28, height: 28, borderRadius: 14, background: c, border: `2px solid ${HAIR(t.ink, 0.25)}`,
-                                   boxShadow: ink === c ? `0 0 0 2px ${t.page}, 0 0 0 3.5px ${t.ink}` : "none" }} />
-                ))}
-                <span className="flex-1" />
-                <button onClick={() => { haptic(7); setShapes((sh) => sh.slice(0, -1)); }} disabled={!shapes.length} aria-label={tr("Undo")}
-                        className="flex items-center gap-1.5 px-3 active:opacity-60 disabled:opacity-30"
-                        style={{ minHeight: 36, borderRadius: R.pill, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
-                  <Undo2 size={14} strokeWidth={2} />{tr("Undo")}
-                </button>
-                <button onClick={() => { haptic(7); setShapes([]); }} disabled={!shapes.length} aria-label={tr("Clear")}
-                        className="px-3 active:opacity-60 disabled:opacity-30"
-                        style={{ minHeight: 36, borderRadius: R.pill, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
-                  {tr("Clear")}
-                </button>
-              </div>
-            </>)}
-
-            {/* record · stop · watch it back · send */}
-            <div className="mt-4" data-tour="markup-record">
-              {err && <p className="mb-3" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
-              {!err && notice && phase !== "draw" && <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{notice}</p>}
-              {phase === "draw" && (
-                <Button onClick={startRec} disabled={!dims || broken}>
-                  <span className="flex items-center justify-center gap-2"><Mic size={17} strokeWidth={2} />{tr("Record")}</span>
-                </Button>
-              )}
-              {phase === "recording" && (
-                <button onClick={stopRec} className="w-full flex items-center justify-center gap-2 active:opacity-80"
-                        style={{ minHeight: 54, borderRadius: R.control, background: DANGER, color: "#fff", ...TYPE.body, fontWeight: 600, boxShadow: (t.elev || ELEV).cast }}>
-                  <Square size={15} color="#fff" fill="#fff" />{tr("Stop")} · {secsLabel(secs)}
-                </button>
-              )}
-              {busy && take && (
-                <div className="flex gap-2">
-                  <button onClick={again} disabled={phase === "sending"} className="flex-1 active:opacity-60 disabled:opacity-40"
-                          style={{ minHeight: 54, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
-                    {tr("Again")}
+            {/* under the stage: the transport, the tools and the inks, the two actions */}
+            <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
+              {!busy && (<>
+                {/* play, pause, scrub — while talking over it too: that is the point */}
+                <div className="flex items-center gap-2.5">
+                  <button onClick={toggle} disabled={frozen} aria-label={playing ? tr("Pause") : tr("Play")}
+                          className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
+                          style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
+                    {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                   </button>
-                  <div style={{ flex: 2 }}>
-                    <Button onClick={send} disabled={phase === "sending"}>{phase === "sending" ? tr("Saving…") : tr("Save")}</Button>
-                  </div>
+                  <button onClick={() => stepFrame(-1)} disabled={frozen} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                  <button onClick={() => stepFrame(1)} disabled={frozen} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                  <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur || rendering}
+                         onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
+                         className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
+                  <button onClick={toggleSlow} disabled={rendering} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
+                          style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
+                                   ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
+                  <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
                 </div>
-              )}
+
+                {/* the tools, as a phone's markup draws them: icons, the one in use filled */}
+                <div className="flex items-center gap-1 mt-2" data-tour="markup-tools">
+                  {REVIEW_TOOLS.map(([id, label, Ico]) => {
+                    const on = tool === id;
+                    return (
+                      <button key={id} aria-pressed={on} aria-label={tr(label)} title={tr(label)} onClick={() => { haptic(6); setTool(id); }}
+                              className="flex items-center justify-center shrink-0 active:opacity-70" style={round(on)}>
+                        <Ico size={19} color={on ? "#fff" : t.ink} strokeWidth={1.9} />
+                      </button>
+                    );
+                  })}
+                  <span className="flex-1" />
+                  {REVIEW_INKS.map((c) => (
+                    <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
+                            className="shrink-0 active:opacity-70 ml-2"
+                            style={{ width: 24, height: 24, borderRadius: 12, background: c, border: `2px solid ${HAIR(t.ink, 0.25)}`,
+                                     boxShadow: ink === c ? `0 0 0 2px ${t.page}, 0 0 0 3.5px ${t.ink}` : "none" }} />
+                  ))}
+                </div>
+              </>)}
+
+              {/* save · talk over it · stop · watch it back · save */}
+              <div className="mt-3" data-tour="markup-record">
+                {err && <p className="mb-2" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+                {!err && notice && phase !== "draw" && <p className="mb-2" style={{ ...TYPE.small, color: t.sub }}>{notice}</p>}
+                {phase === "draw" && (
+                  <div className="flex gap-2">
+                    <button onClick={talk} disabled={!dims || broken} className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40"
+                            style={{ minHeight: 52, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                      <Mic size={16} strokeWidth={2} />{tr("Talk over it")}
+                    </button>
+                    <div style={{ flex: 1.3 }}><Button onClick={saveNow} disabled={!dims || broken}>{tr("Save")}</Button></div>
+                  </div>
+                )}
+                {live && (
+                  <button onClick={stopRec} className="w-full flex items-center justify-center gap-2 active:opacity-80"
+                          style={{ minHeight: 52, borderRadius: R.control, background: DANGER, color: "#fff", ...TYPE.body, fontWeight: 600, boxShadow: (t.elev || ELEV).cast }}>
+                    <Square size={15} color="#fff" fill="#fff" />{tr("Stop")} · {secsLabel(secs)}
+                  </button>
+                )}
+                {(rendering || (phase === "sending" && !take)) && (
+                  <div className="w-full flex items-center justify-center" aria-live="polite"
+                       style={{ minHeight: 52, borderRadius: R.control, background: t.wash, ...TYPE.body, fontWeight: 600, color: t.sub }}>
+                    {tr("Saving…")}{rendering ? ` ${secsLabel(secs)}${dur ? ` / ${secsLabel(dur)}` : ""}` : ""}
+                  </div>
+                )}
+                {busy && take && (
+                  <div className="flex gap-2">
+                    <button onClick={again} disabled={phase === "sending"} className="flex-1 active:opacity-60 disabled:opacity-40"
+                            style={{ minHeight: 52, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                      {tr("Again")}
+                    </button>
+                    <div style={{ flex: 2 }}>
+                      <Button onClick={send} disabled={phase === "sending"}>{phase === "sending" ? tr("Saving…") : tr("Save")}</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </>)}
-        </div>
+          </div>
+        )}
       </Screen>
     </SwipeBack>
   );
@@ -16757,7 +16849,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        the same count as the file's header */
     body = <PlayerHistory name={hname} cfg={cfg} lessons={data ? taught(data.lessons).filter((l) => (hp ? (l.playerId === hp.id || (l.attendeeIds || []).includes(hp.id)) : l.who === hname)) : null} attendance={realAtt || attendance} pop={pop} push={push} say={say} />;
   } else if (screen.startsWith("review:") && data) {
-    /* review:<lessonId>:<mediaId> — the coach marks up one clip */
+    /* review:<lessonId>:<mediaId> — the coach marks up one clip, on the
+       whole screen: no tab bar under a stage a clip has to fill */
+    bare = true;
     const rest0 = screen.slice("review:".length);
     const cut0 = rest0.indexOf(":");
     const lid = cut0 < 0 ? rest0 : rest0.slice(0, cut0);
