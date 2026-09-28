@@ -183,7 +183,7 @@ const { check, results, summary } = M.checker("feed");
       check("(h) a tap on the other segment goes to that file, and the clip behind it stops", /2 of 2/.test(await strip0.getAttribute("aria-label") || "") && (await state())[0].paused, `${await strip0.getAttribute("aria-label")} · ${JSON.stringify(await state())}`);
       await page.mouse.click(sb.x + sb.width * 0.25, y); await page.waitForTimeout(700);
 
-      /* ---------- (i) a landscape clip is shown whole ---------- */
+      /* ---------- (i) every clip fills the screen, landscape too ---------- */
       const fit = await page.evaluate(() => new Promise((res) => {
         const v = document.querySelector('[data-feed-card="0"] video');
         const before = getComputedStyle(v).objectFit;
@@ -192,7 +192,17 @@ const { check, results, summary } = M.checker("feed");
         v.dispatchEvent(new Event("loadedmetadata"));
         setTimeout(() => res({ before, after: getComputedStyle(v).objectFit, pos: getComputedStyle(v).objectPosition }), 300);
       }));
-      check("(i) a portrait clip fills the screen; a landscape one is shown whole, above centre, never cropped to a strip", fit.before === "cover" && fit.after === "contain" && /36%/.test(fit.pos), JSON.stringify(fit));
+      check("(i) a portrait clip fills the screen, and so does a landscape one — the lesson page is where it takes its own shape", fit.before === "cover" && fit.after === "cover", JSON.stringify(fit));
+
+      /* ---------- (j) leaving the app stops the clip and lets it go ---------- */
+      const setVis = (v) => page.evaluate((v) => { Object.defineProperty(document, "visibilityState", { get: () => v, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); }, v);
+      const before = (await state())[0];
+      await setVis("hidden"); await page.waitForTimeout(400);
+      const away = await page.evaluate(() => [...document.querySelectorAll("video[data-feed-video]")].map((v) => ({ paused: v.paused, muted: v.muted, src: v.getAttribute("src") })));
+      check("(j) putting the app away stops the clip: paused, muted, and its source let go so nothing offers to play it on", !before.paused && away.every((v) => v.paused && v.muted && !v.src), JSON.stringify(away));
+      await setVis("visible"); await page.waitForTimeout(1500);
+      const back = (await state())[0]; const srcBack = await page.evaluate(() => !!document.querySelector('[data-feed-card="0"] video').getAttribute("src"));
+      check("(j) coming back, the card on screen picks its clip up again", srcBack && !back.paused, JSON.stringify(back));
       await ctx.close();
     }
 

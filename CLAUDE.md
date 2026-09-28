@@ -567,9 +567,16 @@ seeded data and no account.
   file — before full, the one on screen filling, after empty — a thumb
   on the playing segment holds the clip and scrubs it with the time on
   a pill, a tap on another segment goes to that file (it replaced a row
-  of dots and a separate progress line); a **landscape clip or photo is
-  shown whole**, a little above centre, never cropped to a strip —
-  `cover` cut a landscape swing to its middle third. The gradient floor
+  of dots and a separate progress line); **every clip fills the
+  screen**, a landscape one too — the feed is looked at, and the lesson
+  page is where a clip takes its own shape (landscape clips were
+  contained for a round and the founder wanted the full screen back).
+  **Leaving the app stops the clip dead**: on `visibilitychange` to
+  hidden (and `pagehide`) every feed video is paused, muted and has its
+  source let go, so the phone's lock screen and control centre have
+  nothing to offer play on — a merely paused clip stayed there as a Now
+  Playing card with a play button, which no social feed does; coming
+  back, the card on screen picks its clip up again. The gradient floor
   under the panel is `pointer-events: none`, or it eats the taps on the
   lower half of the picture. `scripts/e2e/feed.cjs` walks all of it.
 - **A player's profile pill is the switcher.** Face, first name and a
