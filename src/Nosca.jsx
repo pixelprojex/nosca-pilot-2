@@ -393,7 +393,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
     theme: { ink: "#10200F", sub: "#3C5438", faint: "#5F755B", trace: "#9AAD95", hair: "#E4ECE1",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#ECF5E9", mark: "#3A8032", accent: "#3A8032", onAccent: "#FFFFFF" },
+             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EBF3EA", mark: "#2F6B3A", accent: "#2F6B3A", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
