@@ -6087,8 +6087,8 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
           {!isJunior && dependants.length > 0 && (<>
             <RowHead>{tr("Children")}</RowHead>
-            <div className="mb-6" style={{ borderTop: RULE.section(t.ink) }}>
-              {dependants.map((k, i) => <KidRow key={k.id} k={k} i={i} last={i === dependants.length - 1} />)}
+            <div className="nsc-list mb-6">
+              {dependants.map((k, i) => <KidRow key={k.id} k={k} i={i} last />)}
             </div>
           </>)}
           {!isJunior && dependants.length === 0 && (
@@ -8745,12 +8745,7 @@ function TipsHistory({ cfg, tips, pop }) {
         ) : (
           <>
             {anyFocus && (
-              <div className="flex gap-2 overflow-x-auto px-6 pb-5" style={{ scrollbarWidth: "none" }}>
-                {chips.map((c) => { const on = f === c; return (
-                  <button key={c} onClick={() => { haptic(6); setF(c); }} className="rounded-full px-4 shrink-0 active:opacity-60"
-                          style={{ minHeight: 36, background: on ? t.ink : "transparent", border: `1px solid ${on ? t.ink : t.hair}`, fontFamily: ui, fontSize: 13, fontWeight: 600, color: on ? "#fff" : t.sub }}>{c}</button>
-                ); })}
-              </div>
+              <div className="pb-4"><FilterRow label={tr("Worked on")} options={chips} value={f} onChange={setF} last /></div>
             )}
             <div className="px-6 pb-4">
               {shown.length === 0 ? (
@@ -12475,11 +12470,7 @@ function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
         return (<button key={n} onClick={() => { haptic(6); setDay(i); }} className="flex-1 rounded-xl active:opacity-60"
                         style={{ minHeight: 44, background: on ? t.accent : t.wash, fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{n.slice(0,2)}</button>);
       })}</div>
-      <div className="flex flex-wrap gap-2 mb-4">{ALL_TIMES.map((tt) => {
-        const on = time === tt;
-        return (<button key={tt} onClick={() => { haptic(6); setTime(tt); }} className="rounded-full px-3.5 active:opacity-60"
-                        style={{ minHeight: 36, background: on ? t.accent : t.wash, fontFamily: ui, fontSize: 13, fontWeight: 600, color: on ? "#fff" : t.sub }}>{tt}</button>);
-      })}</div>
+      <div className="mb-4"><TimeGrid cols={4} times={ALL_TIMES} picked={time} onToggle={(tt) => { haptic(6); setTime(tt); }} /></div>
 
       <div className="flex items-center justify-between mb-5 px-1">
         <span style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>For {weeks} weeks</span>
@@ -14182,21 +14173,27 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
   return (
     <SwipeBack onBack={pop}>
       <div className="flex flex-col h-full" style={{ background: t.page }}>
-        <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-3" style={{ borderBottom: `1px solid ${t.hair}` }}>
-          <div className="flex-1 flex items-center gap-2.5 rounded-2xl px-4" style={{ minHeight: 44, background: t.wash }}>
-            <Search size={17} color={t.trace || t.faint} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
-            <MicBtn onText={(txt) => setQ(q ? `${q} ${txt}` : txt)} size={26} />
-            {q && <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={16} color={t.trace || t.faint} /></button>}
-            <MicBtn onText={(txt) => setQ(txt)} size={30} />
+        {/* the same pill as Settings' search: one microphone while the
+            field is empty, the clear cross once there is something to
+            clear — never two controls at its end, which pushed Cancel
+            off the right of the screen */}
+        <div className="shrink-0 flex items-center gap-3 px-4 pb-3" style={{ paddingTop: TOP_AIR + 6, borderBottom: `1px solid ${t.hair}` }}>
+          <div className="flex-1 min-w-0 flex items-center gap-2.5 rounded-full pl-4 pr-2" style={{ minHeight: 44, background: t.wash }}>
+            <Search size={17} color={t.trace || t.faint} />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            {q
+              ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="shrink-0 flex items-center justify-center" style={{ width: 30, height: 30 }}><X size={16} color={t.trace || t.faint} /></button>
+              : <MicBtn onText={(txt) => setQ(txt)} size={30} />}
           </div>
           <TextBtn onClick={pop}>{tr("Cancel")}</TextBtn>
         </div>
         <div className="flex-1 overflow-y-auto pt-5">
           {!term ? (<div className="px-6">
-            <Eyebrow>{tr("Try")}</Eyebrow>
-            <div className="flex flex-wrap gap-2 px-6" style={{ marginLeft: -24, marginRight: -24 }}>{suggestions.map((s) => (
-              <button key={s} onClick={() => { haptic(6); setQ(s); }} className="rounded-full px-4 active:opacity-60" style={{ minHeight: 36, background: t.surface, border: `1px solid ${t.hair}`, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{s}</button>
-            ))}</div>
+            {/* a set to choose from is a grid of tiles, like everywhere else */}
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Try")}</div>
+            <TileGrid cols={evenCols(suggestions.length)}>
+              {suggestions.map((s) => <ActTile key={s} h={50} label={s} onTap={() => setQ(s)} />)}
+            </TileGrid>
           </div>) : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
           ) : (<>
             {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<FileText size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
