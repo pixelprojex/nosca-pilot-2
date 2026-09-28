@@ -233,7 +233,13 @@ seeded data and no account.
   ink when selected, the accent **once a screen** and only on the one
   action. Five shared pickers cover every case: `TimeGrid`,
   `PersonPicker`, `DrillPicker`, `FocusGrid`, `SportGrid`. Never wrap a
-  `TileGrid` in a `Card` — the tile is the surface. `R.pill` stays: the
+  `TileGrid` in a `Card` — the tile is the surface. **A rim is for the
+  prominent few.** `TileGrid` with more than six children (and
+  `TimeGrid` with more than six times) provides `ClusterCtx`, and a
+  quiet tile inside it drops its edge and takes the wash instead —
+  eight rimmed boxes on the plus, a dozen on the log's focus grid, read
+  busy and the founder said so. The board's six, a pair, a single tile
+  keep the sport's edge. `R.pill` stays: the
   tab bar, unread badges, avatars, search fields and the toggle knob
   are legitimately pills.
 - **A tile's icon is optional, and usually wrong.** Where the word is
@@ -261,6 +267,9 @@ seeded data and no account.
 - **A grid fills its rows.** `evenCols(n)` picks the column count so a
   four-tile grid goes two by two rather than three and a widow. Any
   grid whose length varies with the data uses it.
+- **Search is the field and the results, nothing else.** No "Try"
+  suggestions under an empty search — they were cut at the founder's
+  ask — and one microphone that gives way to the clear cross.
 - **A control for narrowing a list appears when the list needs
   narrowing, and there is only ever one of them.** The roster's search
   above eight people, the drill library's filter above eight drills, the
@@ -426,7 +435,16 @@ seeded data and no account.
   narrowing control.
 - **The feed is the player's home, and it stays.** A player's Home tab
   (the house icon; there is no separate Lessons tab for a player) opens
-  on the feed: a full-bleed clip, the Feed · List switch top left, the
+  on the feed: a full-bleed clip that runs from the very top of the
+  screen to the very bottom — `LessonFeed` sets `BleedCtx` while it is
+  mounted, the shell drops the safe-area spacer and lays the tab bar
+  over the content instead of above it, and the bar's glass goes
+  nearly solid (`TabBar solid`) so its labels read over a clip; the
+  glass panel and the fade sit `BAR_H` higher to stay clear of it —
+  the List · Feed switch top left (the same `Segmented` as the player
+  file, the archive and the list view, at the height of the header
+  pill; the feed had its own two-icon pill once and the founder asked
+  for one style), the
   header's own controls (profile pill, search, bell) on a light pill
   top right so they are reachable from every screen, a glass panel
   bottom (focus in display type, one tag line, the note cut to a line
