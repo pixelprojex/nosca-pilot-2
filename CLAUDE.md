@@ -87,6 +87,12 @@ seeded data and no account.
   with the reason and a Retry. The per-file limit is `MAX_UPLOAD_MB`
   (50, Supabase's default; `VITE_MAX_UPLOAD_MB` if the project's limit
   is raised).
+- **Every clip live capture records is also handed to the phone.**
+  `saveToDevice()` in `LiveCapture` fires a download the moment the
+  recorder stops (`nosca-<player>-<date>-<hhmm>.<ext>`), because until
+  the lesson is logged the clip exists nowhere else and a swipe on the
+  log takes it off for good. The app never depends on that copy being
+  there and says nothing about it that it cannot see.
 - **Sign-up is a database trigger** (`on_auth_user_created` →
   `handle_new_user()`). The browser sends everything as metadata in one
   `signUp` call and never touches `profiles` during sign-up. Nothing on
@@ -415,6 +421,19 @@ seeded data and no account.
   fetches the lesson's files and calls `downloadLessonLog` — and every
   route that lists lessons passes it. A row's grey line carries the
   whole name: two players with one first name are two files.
+- **A swipe row is the iPhone's.** `SwipeRow`: the first 88px reveal
+  Remove and the row rests there; pulling on, the red follows the
+  thumb across the row, and past 60% of its width the label jumps to
+  the far edge with one firm tick (`haptic(14)`; a lighter one coming
+  back under). Letting go past the mark deletes; letting go before it
+  does not; nothing goes while the thumb is down, a cancelled pointer
+  never deletes, and the click the browser fires after a drag is
+  swallowed so a swipe that began on the row's own button never
+  presses it. It deleted mid-drag at 140px for one round and the
+  founder asked for the stretch and the haptic. Rows are keyed by
+  `captureSeq()`, never `Date.now()` (the harness pins the clock, so
+  two clips got one id and a swipe took both) and never the index (the
+  row that moved up inherited the swiped-away one's state).
 - **`TOP_AIR` (12px) sits above every header, on purpose.** The
   `Screen` header row and the feed's header pill start 12px lower than
   they need to, so the top of a screen is never under a phone's status
@@ -561,7 +580,12 @@ seeded data and no account.
   design sketch this replaced and is reached only from the harness.
   The headless test browser has no microphone at all, so
   `scripts/e2e/review.cjs` exercises the picture-only path end to end;
-  the microphone path is the same code as live capture.
+  the microphone path is the same code as live capture. **It is also
+  reached from the log itself**: every clip row on the write-up carries
+  a Mark it up button, `ClipReview` takes the File directly (`file=`,
+  no lesson yet), and the take joins the attachments and uploads with
+  the lesson like any other file. The founder could not find annotation
+  from the log once; it stays on the row.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a

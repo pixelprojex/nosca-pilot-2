@@ -150,6 +150,57 @@ const { check, results, summary } = M.checker("review");
     await page.locator('[data-tour="archive-view"] button', { hasText: "Feed" }).click(); await page.waitForTimeout(1200);
     check("(i) the whole archive's Feed names the player on each card", (await page.locator("[data-feed-card]").count()) >= 2 && /Cian · /.test(await text()), (await text()).slice(0, 120));
     await shot("09b-all-feed");
+
+    /* ---------- (l) Mark it up from the log itself, and the pull-through ---------- */
+    await tap(page, 'button[aria-label="List"]', 600);
+    await tap(page, '[aria-label="Today"]', 800);
+    await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
+    await page.locator('button[aria-label="Cian Murphy"]').first().click(); await page.waitForTimeout(500);
+    await page.getByRole("button", { name: "Chipping", exact: true }).click(); await page.waitForTimeout(300);
+    const clip = fs.readFileSync(path.join(__dirname, "fixtures", "clip.webm"));
+    await page.locator('input[type="file"]').first().setInputFiles([{ name: "swing.webm", mimeType: "video/webm", buffer: clip }]);
+    await page.waitForTimeout(700);
+    check("(l) a clip attached to the log carries Mark it up on its row", (await page.locator('[data-tour="wiz-markup"]').count()) === 1 && /Mark it up/.test(await text()), (await text()).slice(0, 200));
+    await shot("11-log-clip");
+    await tap(page, '[data-tour="wiz-markup"]', 900);
+    await page.waitForFunction(() => { const c = document.querySelector('[data-tour="markup-stage"] canvas'); return !!c && c.width > 2; }, null, { timeout: 10000 }).catch(() => {});
+    const tl = await text();
+    check("(l) it opens Mark it up on that clip, for Cian, with Record", /Mark it up/.test(tl) && /Chipping · Cian/.test(tl) && /Record/.test(tl) && (await page.locator('[data-tour="markup-stage"] canvas').count()) === 1, tl.slice(0, 160));
+    await page.locator("button", { hasText: "Record" }).first().click(); await page.waitForTimeout(1500);
+    await page.locator("button", { hasText: "Stop" }).first().click();
+    await page.waitForSelector('video[src^="blob:"]', { timeout: 10000 }).catch(() => {});
+    check("(l) the take plays back with Save", (await page.locator('video[src^="blob:"]').count()) === 1 && /\bSave\b/.test(await text()));
+    await page.locator("button", { hasText: /^Save$/ }).first().click();
+    await page.waitForFunction(() => !document.body.innerText.includes("Saving"), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(900);
+    const tl2 = await text();
+    check("(l) Save puts the take on the log as a second clip, nothing uploaded yet", (tl2.match(/Video/g) || []).length >= 2 && (await page.locator('[data-tour="wiz-markup"]').count()) === 2 && !/Mark it up · /.test(tl2), tl2.slice(0, 200));
+    await shot("12-log-two-clips");
+    /* the pull-through: a short pull rests at Remove, a long one deletes on release */
+    const rows = page.locator(".nsc-swipe");
+    const pull = async (row, frac) => {
+      const b = await row.boundingBox();
+      await page.mouse.move(b.x + b.width - 12, b.y + b.height / 2); await page.mouse.down();
+      for (let i = 1; i <= 10; i++) await page.mouse.move(b.x + b.width - 12 - b.width * frac * (i / 10), b.y + b.height / 2);
+      await page.waitForTimeout(80);
+      return b;
+    };
+    await pull(rows.nth(1), 0.35); await page.mouse.up(); await page.waitForTimeout(500);
+    /* the pull began on the row's Mark it up button: a swipe must not press it */
+    const tx = await page.evaluate(() => { const r = document.querySelectorAll(".nsc-swipe")[1]; const d = r && r.querySelector(":scope > div"); return d ? new DOMMatrixReadOnly(getComputedStyle(d).transform).m41 : null; });
+    check("(l) a short pull opens Remove and stops there, and does not press the button it began on", (await rows.count()) === 2 && tx != null && Math.round(tx) === -88 && !/Record/.test(await text()), `rows ${await rows.count()} · tx ${tx} · ${(await text()).slice(0, 80)}`);
+    const b0 = await pull(rows.nth(0), 0.75);
+    const wide = await rows.nth(0).locator('button[aria-label="Remove"]').evaluate((el) => el.getBoundingClientRect().width);
+    check("(l) a long pull stretches the red across the row before anything goes", wide > b0.width * 0.6 && (await rows.count()) === 2, `red ${Math.round(wide)} of ${Math.round(b0.width)}`);
+    await page.mouse.up(); await page.waitForTimeout(900);
+    check("(l) letting go past the mark deletes that row and no other", (await rows.count()) === 1 && (await page.locator('[data-tour="wiz-markup"]').count()) === 1, String(await rows.count()));
+    await shot("13-log-after-pull");
+    const mediaBefore = db.media.length;
+    await page.getByRole("button", { name: "Log it", exact: true }).click();
+    await page.waitForTimeout(3000);
+    const newLesson = db.lessons.filter((l) => l.coach_id === IDS.coach).pop();
+    const newRows = db.media.filter((m) => m.lesson_id === newLesson.id);
+    check("(l) Log it writes the lesson with the marked-up take as its one clip", !!newLesson && newRows.length === 1 && /markup-\d+\.(webm|mp4)$/.test(newRows[0].storage_path) && db.media.length === mediaBefore + 1, JSON.stringify(newRows.map((r) => r.storage_path.split("/").pop())));
     await ctx.close();
 
     /* ---------- (j) the player: the take is on the lesson ---------- */
