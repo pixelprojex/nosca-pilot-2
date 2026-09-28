@@ -275,11 +275,13 @@ seeded data and no account.
   Drills · Add player · New group · Call off · Competition), each with
   one name and one glyph — never "Register" on one surface and
   "Attendance" on the other. Call off took Message's place: a coach
-  can open Chat, and calling a wet day off is the thing they need in
-  one tap. The plus sheet's top row is fixed — Log a lesson as the
-  accent tile and Call off in red (`ActTile tone="danger"`, the only
-  red tile in the app) side by side — and `QUICK_ORDER` (seven) is the
-  editable grid under it, an odd last tile spanning both columns.
+  can open Chat, and calling lessons off is the thing they need in one
+  tap. The plus sheet is Log a lesson full width at the top, then
+  `QUICK_ORDER` — the eight, four to a row, `ActTile wrap` so a word
+  like Competition takes two lines rather than an ellipsis — with Call
+  off among them in red (`tone="danger"`, the only red tile in the
+  app). Call off sat beside Log in a top row for one round and the
+  founder called it messy; it lives in the grid.
   `BOARD_ORDER` and `QUICK_ORDER` are the defaults; what a coach keeps
   rides on `preferences.layout` as `{ board, boardCols, quick }` and is
   read through `pickLayout`, which drops an id it does not recognise
@@ -298,7 +300,7 @@ seeded data and no account.
   and Log for that lesson, which put the word Register on the screen
   three times); the day's own rows, where the live lesson is marked and
   carries its register; and the raised plus, which
-  keeps every tile of `QUICK_ORDER` under Log a lesson and Call off.
+  keeps every tile of `QUICK_ORDER` under Log a lesson.
   The plus was removed once in favour of "the plus opens the log"
   and the founder wanted every row back the same day. Register and
   capture are also on the lesson itself (the peek sheet), drills and
@@ -313,8 +315,11 @@ seeded data and no account.
   when there is none (the accent is spent on Log it) — and never blocks
   Log it; a grid of
   tiles for what was worked on, one per area in the sport's verified
-  taxonomy, carrying the word and no glyph, **one tap and done** — there
-  is no second grid of sub-areas underneath and no follow-up button; Video, Photo and Voice as three big boxes that open the
+  taxonomy, carrying the word and no glyph, **a tap per area worked
+  on** — Short game and Driving in one lesson are two ink tiles, joined
+  with " · " in `focus` (the archive's Worked on filter splits on it),
+  and there is no second grid of sub-areas underneath and no follow-up
+  button; Video, Photo and Voice as three big boxes that open the
   camera itself; everything captured mid-lesson already attached, a
   swipe to the left taking one off for good; the note on the page, not
   behind a tap; Drills and Tip opening in place as tick rows; and
@@ -366,8 +371,21 @@ seeded data and no account.
   picker leads with "Everyone", which is the broadcast. Nothing else sits
   above the list — the weather call-off is on the plus and in the
   diary on the day.
+- **Call off is a reason, the days, the lessons, the password.**
+  `CallOff` (the `weather` sheet, opened from the plus, the peek and the
+  diary) has nothing to do with weather in its name or its glyph — a
+  calendar with an X — because a coach calls off for a bug or a closed
+  course as often as for rain. Why first (`CALL_OFF_REASONS`: Weather
+  and the coach's cancel reasons), then Which days — every day ahead
+  with lessons, from `callOffDays()`, as tiles carrying the count, as
+  many as they like, the day they came from already picked — then
+  Which lessons, all ticked, untick any that still go ahead, then the
+  password. Weather writes the `weather` status; any other reason is a
+  `cancelled` booking, because those are the two statuses a booking
+  has, and the notification trigger tells the player which. Never a
+  "whole day or one lesson" fork: the ticks are that.
 - **Taking away somebody else's lesson ends on the coach's password.**
-  The weather call-off, the peek's Cancel (the `cancelLesson` sheet —
+  The call-off, the peek's Cancel (the `cancelLesson` sheet —
   it was "No show", and the word is Cancel everywhere now, the toast
   "Cancelled") and Move's "Cancel the lesson" all finish on
   `ConfirmPassword` with `data.verifyPassword`, which signs the coach

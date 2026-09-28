@@ -12,7 +12,7 @@ import {
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CloudRain, Copy, Settings2, BellOff
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff
 } from "lucide-react";
 
 /* ==================================================================
@@ -3189,7 +3189,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null },
           onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
           { Ico: CalendarDays, lbl: tr("Move"),    act: onCancel,   tone: null },
-          { Ico: CloudRain,    lbl: tr("Weather"), act: onWeather,  tone: DANGER },
+          { Ico: CalendarX,    lbl: tr("Call off"), act: onWeather, tone: DANGER },
           { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean).map(({ Ico, lbl, act, tone, tour }) => (
           <button key={lbl} data-tour={tour} onClick={() => { haptic(7); soft(); act && act(); }}
                   onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.94)"; }}
@@ -3303,7 +3303,7 @@ function EditDay({ day, slots, duration, avail, setAvail, slotKinds, setSlotKind
 
           {(day.booked || []).length > 0 && (
             <button onClick={() => { onWeather(); close(); }} className="w-full py-3 text-left active:opacity-50"
-                    style={{ ...TYPE.small, color: DANGER }}>{tr("Weather call-off")}</button>
+                    style={{ ...TYPE.small, color: DANGER }}>{tr("Call off")}</button>
           )}
         </>
       )}
@@ -4201,15 +4201,15 @@ const COACH_ACTIONS = {
   drills:  { Ico: ListChecks,    label: "Drills" },
   player:  { Ico: UserPlus,      label: "Add player" },
   group:   { Ico: Users,         label: "New group" },
-  /* Message was here; a coach opens Chat for that. Calling a day off
-     is the one thing they need in a hurry, so it took the slot — and on
-     the plus sheet it sits fixed beside Log a lesson, in red. */
-  weather: { Ico: CloudRain,     label: "Call off" },
+  /* Message was here; a coach opens Chat for that. Calling lessons off
+     is the one thing they need in a hurry, so it took the slot: a
+     calendar with an X, in red, one of the eight under Log a lesson. */
+  weather: { Ico: CalendarX,     label: "Call off" },
   comp:    { Ico: Trophy,        label: "Competition" },
 };
 const BOARD_ALL   = ["log", "attend", "capture", "tip", "drills", "player", "group", "weather", "comp"];
 const BOARD_ORDER = ["log", "attend", "capture", "tip", "drills", "player"];
-const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "comp"];
+const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "weather", "comp"];
 
 /* What a coach chose to keep, in the order they chose, falling back to
    the defaults for anything they have never touched. A stored id that
@@ -4227,24 +4227,18 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
   const ids = pickLayout(order, QUICK_ORDER);
   return (
     <>
-      {/* the two a coach reaches for in a hurry: the log, and the whole
-          day called off — the second in red, fixed beside the first */}
-      <div className="grid" style={{ gap: 12, gridTemplateColumns: "1.55fr 1fr" }}>
-        <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-        <ActTile tour="quick-weather" tone="danger" h={84} Icon={CloudRain} label={tr("Call off")} onTap={() => { hapticWarn(); onRun("weather"); }} />
-      </div>
-      <div className="grid" style={{ marginTop: 12, gap: 12, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+      {/* the log first and full width; then the eight, four to a row,
+          in the order the coach keeps — Call off among them, in red */}
+      <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
+      <div className="grid" style={{ marginTop: 12, gap: 10, gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
         {ids.map((id, i) => {
           const A = COACH_ACTIONS[id];
-          /* an odd last tile takes the whole row rather than sitting as a widow */
-          const wide = ids.length % 2 === 1 && i === ids.length - 1;
           return (
-            <div key={id} style={wide ? { gridColumn: "1 / -1" } : undefined}>
-              <ActTile tour={`quick-${id}`} h={74} Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
-                       dot={id === "attend" && !!liveLesson}
-                       aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
-                       onTap={() => onRun(id)} />
-            </div>
+            <ActTile key={id} tour={`quick-${id}`} h={72} wrap Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
+                     tone={id === "weather" ? "danger" : "quiet"}
+                     dot={id === "attend" && !!liveLesson}
+                     aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
+                     onTap={() => { if (id === "weather") hapticWarn(); onRun(id); }} />
           );
         })}
       </div>
@@ -6444,108 +6438,119 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
 }
 
 
-/* Calling lessons off for weather. Two deliberate steps, because an
-   accidental cancellation costs a coach their day and their players
-   their evening. Whole day or a single lesson, and everyone affected
-   is offered a new time straight away. */
-function WeatherCallOff({ day, bookings, duration, onConfirm, close, ahead, verify }) {
+/* Calling lessons off — a wet morning, a bug, a closed course. One
+   reason, then the days, then the lessons on them (all ticked; untick
+   any that still go ahead), and the coach's password last, because an
+   accidental call-off costs a coach their day and their players their
+   evening. Everyone affected is told and offered a new time. */
+const CALL_OFF_REASONS = ["Weather", ...CANCEL_REASONS.coach];
+function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
   const t = useT();
-  const [scope, setScope] = useState(null);     // day | one
-  const [pick, setPick] = useState(null);       // the booking's id, not its time
-  const [stage, setStage] = useState("choose"); // choose | confirm | password
-  /* by id: two lessons can start at the same hour, and calling off a
-     group should not take the private lesson beside it */
-  const idOf = (b, i) => (b.id != null ? b.id : `i${i}`);
-  const affected = scope === "day" ? bookings : bookings.filter((b, i) => idOf(b, i) === pick);
+  const [reason, setReason] = useState(null);
+  const [picked, setPicked] = useState(() => startKeys.filter((k) => days.some((d) => d.key === k)));
+  const [kept, setKept] = useState([]);          // unticked: the lessons that still go ahead
+  const [stage, setStage] = useState("why");     // why | days | which | password
+  const idOf = (b) => (b.id != null ? String(b.id) : `${b.key}·${b.time}·${b.who}`);
+  const chosenDays = days.filter((d) => picked.includes(d.key));
+  const affected = chosenDays.flatMap((d) => d.bookings).filter((b) => !kept.includes(idOf(b)));
+  const n = affected.length;
+  const noun = n === 1 ? tr("lesson") : tr("lessons");
+  const back = (to) => (
+    <button onClick={() => { haptic(6); setStage(to); }} className="w-full mt-3 py-3 active:opacity-50"
+            style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
+  );
 
   /* the last word is the password: a day cannot be called off by a
      pocket or a child */
   if (stage === "password") return (
-    <ConfirmPassword title={tr("Call it off")}
-                     detail={`${affected.length} ${affected.length === 1 ? tr("lesson will be called off") : tr("lessons will be called off")}. ${tr("Everyone affected is told immediately and offered a new time. Confirm with your password.")}`}
-                     actionLabel={tr("Call it off")} closeLabel={tr("Back")}
+    <ConfirmPassword title={tr("Call off")}
+                     detail={`${n} ${n === 1 ? tr("lesson will be called off") : tr("lessons will be called off")}. ${tr("Everyone affected is told straight away and offered a new time. Confirm with your password.")}`}
+                     actionLabel={`${tr("Call off")} ${n} ${noun}`} closeLabel={tr("Back")}
                      onConfirm={async (pw) => {
                        const c = verify ? await verify(pw) : {};
                        if (c && c.error) return c;
-                       hapticWarn(); decline(); onConfirm(affected, scope); close();
+                       hapticWarn(); decline(); onConfirm(affected, reason); close();
                        return { next: true };
                      }}
-                     close={() => setStage("confirm")} />
+                     close={() => setStage("which")} />
   );
 
-  if (stage === "confirm") return (
+  if (stage === "which") return (
     <>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: `${DANGER}14` }}>
-          <CloudRain size={18} color={DANGER} strokeWidth={2} />
-        </span>
-        <h2 style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.025em", color: t.ink }}>{tr("Confirm")}</h2>
-      </div>
-      <p className="mb-5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>
-        {affected.length} {affected.length === 1 ? tr("lesson will be called off") : tr("lessons will be called off")}.
-        {" "}{tr("Everyone affected is told immediately and offered a new time.")}
-      </p>
-      <div className="mb-6 flex flex-col gap-2">
-        {affected.map((b, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
-            <Avatar name={b.who} size={30} />
-            <span className="flex-1" style={{ fontFamily: ui, fontSize: 13.5, color: t.ink }}>{b.who}</span>
-            <span style={{ fontFamily: ui, fontSize: 12, color: b.status === "requested" ? CAUTION : t.faint }}>{span(b.time, duration)}{b.status === "requested" ? ` · ${tr("asked")}` : ""}</span>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which lessons")}</h2>
+      <p className="mb-4" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Untick any that still go ahead")}</p>
+      <div className="flex flex-col gap-3 mb-6">
+        {chosenDays.map((d) => (
+          <div key={d.key}>
+            <div className="mb-1.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{d.label}</div>
+            <div className="flex flex-col gap-2">
+              {d.bookings.map((b) => {
+                const on = !kept.includes(idOf(b));
+                return (
+                  <button key={idOf(b)} aria-pressed={on}
+                          onClick={() => { haptic(7); soft(); setKept(on ? [...kept, idOf(b)] : kept.filter((x) => x !== idOf(b))); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                          style={{ borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
+                                   border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 180ms" }}>
+                    <Avatar name={b.who} size={32} />
+                    <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{b.who}</span>
+                    <span style={{ fontFamily: ui, fontSize: 12, color: b.status === "requested" ? CAUTION : t.faint }}>{span(b.time, duration)}{b.status === "requested" ? ` · ${tr("asked")}` : ""}</span>
+                    {on ? <Check size={17} color={DANGER} strokeWidth={2.1} /> : <span style={{ width: 17 }} />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
-      <Button tone="danger" onClick={() => { hapticWarn(); setStage("password"); }}>
-        {tr("Yes, call it off")}
-      </Button>
-      <button onClick={() => { haptic(6); setStage("choose"); }} className="w-full mt-3 py-3 active:opacity-50"
-              style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
+      <Button tone="danger" disabled={n === 0} onClick={() => { hapticWarn(); setStage("password"); }}>{tr("Call off")} {n} {noun}</Button>
+      {back("days")}
+    </>
+  );
+
+  if (stage === "days") return (
+    <>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which days")}</h2>
+      <p className="mb-4" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr(reason || "")}</p>
+      {days.length === 0
+        ? <p className="mb-6" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked in the next month")}</p>
+        : (
+          <div className="mb-6">
+            <TileGrid cols={2}>
+              {days.map((d) => {
+                const on = picked.includes(d.key);
+                return <ActTile key={d.key} h={54} label={d.label} count={d.bookings.length} on={on}
+                                aria={`${d.label} · ${d.bookings.length} ${d.bookings.length === 1 ? tr("lesson") : tr("lessons")}`}
+                                onTap={() => setPicked(on ? picked.filter((k) => k !== d.key) : [...picked, d.key])} />;
+              })}
+            </TileGrid>
+          </div>
+        )}
+      <Button tone="ink" disabled={picked.length === 0} onClick={() => { haptic(9); setStage("which"); }}>{tr("Next")}</Button>
+      {back("why")}
     </>
   );
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{ahead ? tr("Call off ahead") : tr("Weather call-off")}</h2>
-      <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{day}</p>
-
-      <Tile accent={scope === "day" ? DANGER : null} className="px-5 py-4 mb-2.5" onPress={() => { setScope("day"); setPick(null); }}>
-        <div className="flex items-center gap-3.5">
-          <CalendarDays size={19} color={scope === "day" ? DANGER : t.sub} strokeWidth={1.6} />
-          <span className="flex-1">
-            <span className="block" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{tr("The whole day")}</span>
-            <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{bookings.length} {tr("lessons")}</span>
-          </span>
-          {scope === "day" && <Check size={17} color={DANGER} strokeWidth={2.1} />}
-        </div>
-      </Tile>
-
-      <Tile accent={scope === "one" ? DANGER : null} className="px-5 py-4 mb-5" onPress={() => setScope("one")}>
-        <div className="flex items-center gap-3.5">
-          <Clock size={19} color={scope === "one" ? DANGER : t.sub} strokeWidth={1.6} />
-          <span className="flex-1" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{tr("Just one lesson")}</span>
-          {scope === "one" && <Check size={17} color={DANGER} strokeWidth={2.1} />}
-        </div>
-      </Tile>
-
-      {scope === "one" && (
-        <div className="flex flex-col gap-2 mb-5" style={{ animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
-          {bookings.map((b, i) => {
-            const on = pick === idOf(b, i);
-            return (
-              <button key={idOf(b, i)} onClick={() => { haptic(7); soft(); setPick(idOf(b, i)); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                      style={{ borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                               border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 180ms" }}>
-                <Avatar name={b.who} size={32} />
-                <span className="flex-1" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{b.who}</span>
-                <span style={{ fontFamily: ui, fontSize: 12, color: b.status === "requested" ? CAUTION : t.faint }}>{span(b.time, duration)}{b.status === "requested" ? ` · ${tr("asked")}` : ""}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <Button tone="ink" disabled={!scope || (scope === "one" && !pick)}
-              onClick={() => { hapticWarn(); setStage("confirm"); }}>{tr("Next")}</Button>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Call off")}</h2>
+      <p className="mb-4" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Why")}</p>
+      <div className="flex flex-col gap-2 mb-6">
+        {CALL_OFF_REASONS.map((r, i) => {
+          const on = reason === r;
+          return (
+            <button key={r} aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
+                    className="w-full flex items-center gap-3 px-4 text-left"
+                    style={{ minHeight: 52, borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
+                             border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+              <span className="flex-1" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr(r)}</span>
+              {on && <Check size={16} color={DANGER} strokeWidth={2.1} />}
+            </button>
+          );
+        })}
+      </div>
+      <Button tone="ink" disabled={!reason} onClick={() => { haptic(9); setStage("days"); }}>{tr("Next")}</Button>
     </>
   );
 }
@@ -7402,7 +7407,7 @@ export const sink = (t, restShadow) => {
   return { onPointerDown: down, onPointerUp: up, onPointerCancel: up, onPointerLeave: up };
 };
 
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0 }) {
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false }) {
   const t = useT();
   /* The quiet tile is the SURFACE — white, on the sport's paper —
      because the page is now tinted and the thing you can touch has to
@@ -7425,8 +7430,9 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           glyphs are exactly what makes an app look generated. Pass no
           Icon and the label centres on its own. */}
       {Icon && <Icon size={h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={1.6} />}
-      <span className={Icon ? "truncate px-2" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: Icon ? 12 : 13, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: 1.25, color: fg }}>{label}</span>
+      {/* four to a row, a word like Competition needs two lines rather than an ellipsis */}
+      <span className={Icon && !wrap ? "truncate px-2" : wrap ? "px-1 text-center" : "px-2 text-center"}
+            style={{ fontFamily: ui, fontSize: Icon ? (wrap ? 11.5 : 12) : 13, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
       {count > 0 && (
         <span className="absolute flex items-center justify-center rounded-full"
               style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
@@ -11123,7 +11129,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                 {cfg.focus.map((f) => {
                   const on = focus.includes(f.id);
                   return <ActTile key={f.id} h={50} label={f.label} on={on}
-                                  onTap={() => { setFocus(on ? [] : [f.id]); if (!on) setCustom([]); }} />;
+                                  onTap={() => setFocus(on ? focus.filter((x) => x !== f.id) : [...focus, f.id])} />;
                 })}
                 {custom.map((c) => (
                   <ActTile key={c} h={50} label={c} on onTap={() => setCustom([])} aria={`${tr("Remove")} ${c}`} />
@@ -11132,7 +11138,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </TileGrid>
               {otherOpen && (
                 <div style={{ marginTop: SPACE.tight }}>
-                  <InlineField ph={tr("Other")} onCommit={(x) => { haptic(10); setCustom([x]); setFocus([]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} />
+                  <InlineField ph={tr("Other")} onCommit={(x) => { haptic(10); setCustom([x]); setOtherOpen(false); }} onCancel={() => setOtherOpen(false)} />
                 </div>
               )}
             </div>
@@ -14961,7 +14967,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setCalledOff(null); setSplash(false); setFlow("app"); setStack(["family"]);
     hapticSuccess(); chime();
   };
-  const [weatherDay, setWeatherDay] = useState(null);
   const [loader, setLoader] = useState(false);
   /* Golf courses and boathouses rarely have signal. Capture works
      regardless; only publishing waits for a connection. */
@@ -15162,17 +15167,29 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (!data) return (mySeedBooked || {})[key(day.m, day.d)] || [];
     return ((data.bookings || {})[key(day.m, day.d)] || []).filter((b) => !b.status || b.status === "confirmed" || b.status === "requested");
   };
-  const callOff = async (affected, scope) => {
-    /* Call-offs are recorded against each booking, so the players
-       affected see it on their own devices rather than only in the
-       coach's session, and the database tells them itself. A whole day
-       goes in one write; a single lesson goes on its own. */
+  /* the days ahead with anything to call off, for the Call off sheet:
+     Thu 24 Sep, the lessons on it, oldest first, a month at most */
+  const callOffDays = () => {
+    const src = data ? (data.bookings || {}) : (mySeedBooked || {});
+    const ty = yearOf(todayMD.m, calendar);
+    const ahead = (m, d) => { const y = yearOf(m, calendar); return y > ty || (y === ty && (m > todayMD.m || (m === todayMD.m && d >= todayMD.d))); };
+    return Object.keys(src)
+      .map((k) => { const [m, d] = k.split("-").map(Number); return { key: k, m, d }; })
+      .filter(({ m, d }) => ahead(m, d))
+      .sort((a, b) => yearOf(a.m, calendar) - yearOf(b.m, calendar) || a.m - b.m || a.d - b.d)
+      .map(({ key: k, m, d }) => ({ key: k, m, d, label: `${DAY_NAMES[dowOf(m, d, calendar)].slice(0, 3)} ${d} ${monthName(m).slice(0, 3)}`,
+                                    bookings: callOffRows({ m, d }).map((b) => ({ ...b, m, d, key: k })) }))
+      .filter((x) => x.bookings.length)
+      .slice(0, 31);
+  };
+  const callOff = async (affected, reason) => {
+    /* Every call-off is recorded against its booking, so the players see
+       it on their own devices and the database tells them itself. Rain
+       is the one status of its own; any other reason is a cancellation. */
+    const status = reason === "Weather" ? "weather" : "cancelled";
     if (data) {
-      hapticWarn();   /* calling a day off is felt as it is decided, not after the write */
-      const day = callOffFor || todayMD;
-      const res = scope === "day"
-        ? await data.callOffDay(isoOf(day.m, day.d), "weather")
-        : await data.callOffBookings((affected || []).map((b) => b.id).filter(Boolean), "weather");
+      hapticWarn();   /* felt as it is decided, not after the write */
+      const res = await data.callOffBookings((affected || []).map((b) => b.id).filter(Boolean), status);
       setCallOffFor(null);
       if (res && res.error) { hapticWarn(); say(res.error.message); return; }
       const n = res && typeof res.count === "number" ? res.count : (affected || []).length;
@@ -15182,9 +15199,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: { ...prev[coachSport] } };
-      const k = key(todayMD.m, todayMD.d);
-      next[coachSport][k] = (next[coachSport][k] || []).filter((b) => !affected.includes(b));
-      if (!next[coachSport][k].length) delete next[coachSport][k];
+      for (const a of affected) {
+        const k = a.key || key(a.m, a.d);
+        next[coachSport][k] = (next[coachSport][k] || []).filter((b) => (a.id != null ? b.id !== a.id : !(b.time === a.time && b.who === a.who)));
+        if (!next[coachSport][k].length) delete next[coachSport][k];
+      }
       return next;
     });
     setSeries((list) => list.map((x) => (affected.some((a) => a.who === x.who) ? { ...x, total: x.total + 1 } : x)));
@@ -17076,7 +17095,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               Jump to a state
             </div>
             {[
-              ["Weather call-off", () => { setRole("coach"); setStack(["calendar"]); setSheet("weather"); }],
+              ["Call off", () => { setRole("coach"); setStack(["calendar"]); setSheet("weather"); }],
               ["Player offered a new time", () => { setRole("player"); setRescheduleFor("Thursday 5:30 pm"); setStack(["home"]); setSheet("reschedule"); }],
               ["Lesson waiting to be logged", () => { setRole("coach"); setStack(["today"]); }],
               ["Logging — attendance first", () => { setRole("coach"); setPrefill({ who: "Marcus Tran", m: 7, d: 24, time: "11:00 am", kind: "Private" }); setStack(["log"]); }],
@@ -17458,9 +17477,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               return {};
                                             }}
                                             close={() => setSheet(null)} />
-              : sheet === "weather" ? <WeatherCallOff day={callOffFor ? `${DAY_NAMES[dowOf(callOffFor.m, callOffFor.d, calendar)]} ${callOffFor.d} ${monthName(callOffFor.m)}` : (weatherDay || `${DAY_NAMES[dowToday]} ${todayMD.d}`)}
-                                            ahead={!!callOffFor && !(callOffFor.m === todayMD.m && callOffFor.d === todayMD.d)}
-                                            bookings={callOffRows(callOffFor || todayMD)} duration={duration}
+              : sheet === "weather" ? <CallOff days={callOffDays()} duration={duration}
+                                            startKeys={[key((callOffFor || todayMD).m, (callOffFor || todayMD).d)]}
                                             verify={data ? data.verifyPassword : async () => ({})}
                                             onConfirm={callOff} close={() => { setCallOffFor(null); setSheet(null); }} />
               : sheet === "reschedule" ? <RescheduleOffer lesson={rescheduleFor || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
