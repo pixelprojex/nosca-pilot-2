@@ -99,7 +99,7 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       await page.context().close();
     }
 
-    /* ---------- (b) the plus: Log a lesson full width, the eight in rows of four, Call off in red among them ---------- */
+    /* ---------- (b) the plus: Log a lesson full width, the eight two to a row, Call off in red among them ---------- */
     {
       const { db, page, text, shot, box } = await boot();
       await tap(page, '[data-tour="quick"]', 900);
@@ -108,7 +108,7 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       const log = await box('[data-tour="quick-log"]'), off = await box('[data-tour="quick-weather"]');
       const tiles = await page.locator('[data-tour^="quick-"]:not([data-tour="quick-log"])').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { id: e.getAttribute("data-tour"), y: Math.round(r.y), w: Math.round(r.width) }; }));
       const rows = [...new Set(tiles.map((x) => x.y))];
-      check("(b) Log a lesson is the full-width tile at the top and the eight sit in two rows of four under it", !!log && !!off && log.width > 300 && tiles.length === 8 && rows.length === 2 && tiles.filter((x) => x.y === rows[0]).length === 4 && off.y > log.y + log.height - 2, JSON.stringify({ log: log && [Math.round(log.y), Math.round(log.width)], rows, n: tiles.length }));
+      check("(b) Log a lesson is the full-width tile at the top and the eight sit two to a row under it", !!log && !!off && log.width > 300 && tiles.length === 8 && rows.length === 4 && rows.every((y) => tiles.filter((x) => x.y === y).length === 2) && off.y > log.y + log.height - 2, JSON.stringify({ log: log && [Math.round(log.y), Math.round(log.width)], rows, n: tiles.length }));
       const bg = await page.locator('[data-tour="quick-weather"]').evaluate((el) => getComputedStyle(el).backgroundColor);
       check("(b) Call off is red", bg === DANGER, bg);
 

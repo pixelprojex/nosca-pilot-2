@@ -286,11 +286,13 @@ seeded data and no account.
   "Attendance" on the other. Call off took Message's place: a coach
   can open Chat, and calling lessons off is the thing they need in one
   tap. The plus sheet is Log a lesson full width at the top, then
-  `QUICK_ORDER` — the eight, four to a row, `ActTile wrap` so a word
+  `QUICK_ORDER` — the eight, two to a row, `ActTile wrap` so a word
   like Competition takes two lines rather than an ellipsis — with Call
   off among them in red (`tone="danger"`, the only red tile in the
   app). Call off sat beside Log in a top row for one round and the
-  founder called it messy; it lives in the grid.
+  founder called it messy; it lives in the grid. The eight went four
+  to a row for one round and the founder asked for two to a row back
+  the same day: the old way looked nicer.
   `BOARD_ORDER` and `QUICK_ORDER` are the defaults; what a coach keeps
   rides on `preferences.layout` as `{ board, boardCols, quick }` and is
   read through `pickLayout`, which drops an id it does not recognise
