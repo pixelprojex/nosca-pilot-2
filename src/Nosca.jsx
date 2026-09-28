@@ -5033,13 +5033,34 @@ function GeneratedField({ lesson, mark }) {
   );
 }
 
-function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
-  const vid = useRef(null);
+/* ONE CLIP PLAYS. `live` is the one rule of the feed: the card on
+   screen plays, from its start, with the sound the switch says; every
+   other card is paused, muted and back on its first frame. Nothing
+   starts on its own — an `autoPlay` attribute used to start every
+   mounted neighbour the moment it loaded, and the sound switch reached
+   all of them, so a scroll with the sound on was three clips talking
+   over each other. Belt and braces: the clip that starts hushes every
+   other feed video in the document, whatever React thinks of them. */
+const hushOthers = (el) => {
+  document.querySelectorAll("video[data-feed-video]").forEach((v) => {
+    if (v === el) return;
+    if (!v.paused) v.pause();
+    v.muted = true;
+  });
+};
+const clock = (s) => `${Math.floor((s || 0) / 60)}:${String(Math.floor((s || 0) % 60)).padStart(2, "0")}`;
+
+function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAutoMuted, bind }) {
+  const vid = useRef(null), aud = useRef(null);
   const [tk, setTk] = useState(0);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-
   const [blocked, setBlocked] = useState(false);
+  const [held, setHeld] = useState(false);    // paused by a tap on the picture
+  const [wide, setWide] = useState(false);    // landscape: shown whole, never cropped to a strip
+  const rateRef = useRef(rate); rateRef.current = rate;
+  const heldRef = useRef(false); heldRef.current = held;
+  const holdRef = useRef(false);              // a thumb on the strip
   /* Play as soon as this card is the one on screen. Three things that
      each left a frozen first frame on an iPhone: React sets `muted` as
      a property and not an attribute, and Safari decides autoplay from
@@ -5055,8 +5076,12 @@ function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
     el.muted = muted; el.defaultMuted = true;
     if (muted) el.setAttribute("muted", ""); else el.removeAttribute("muted");
     el.setAttribute("playsinline", ""); el.setAttribute("webkit-playsinline", "");
+    el.playbackRate = rateRef.current;
+    hushOthers(el);
     const p = el.play();
-    if (p && p.then) p.then(() => setBlocked(false)).catch(() => {
+    if (p && p.then) p.then(() => setBlocked(false)).catch((e) => {
+      /* load() cutting a play() short is not a refusal */
+      if (e && e.name === "AbortError") return;
       /* sound on is allowed only from a tap; a card scrolled into view
          plays muted instead of not at all, and the switch shows it */
       if (!muted) {
@@ -5068,22 +5093,49 @@ function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
   };
   useEffect(() => {
     const el = vid.current;
-    if (!el) return;
-    if (live) tryPlay();
-    else el.pause();
+    setHeld(false);
+    if (el) {
+      if (live) tryPlay();
+      else {
+        /* off screen: silent, still, and back on its first frame, so the
+           way back finds the clip as it was found the first time */
+        el.pause(); el.muted = true;
+        if (el.currentTime > 0.05) { try { el.currentTime = 0; } catch (e) { /* not seekable yet */ } }
+      }
+    }
+    /* a voice note stops with its card too */
+    if (!live && aud.current && !aud.current.paused) aud.current.pause();
   }, [live, item.url]);
-  useEffect(() => { const el = vid.current; if (el) el.muted = muted; }, [muted]);
+  useEffect(() => { const el = vid.current; if (el) el.muted = muted || !live; }, [muted, live]);
+  useEffect(() => { const el = vid.current; if (el) el.playbackRate = rate; }, [rate]);
   useEffect(() => {
     const el = vid.current;
-    if (el && item.type === "video") { setReady(false); setFailed(false); el.load(); if (live) tryPlay(); }
+    if (el && item.type === "video") { setReady(false); setFailed(false); setWide(false); el.load(); if (live) tryPlay(); }
   }, [item.url]);
   useEffect(() => {
     /* coming back to the tab: the browser pauses everything, and does
        not always resume it */
-    const onVis = () => { if (document.visibilityState === "visible" && live) tryPlay(); };
+    const onVis = () => { if (document.visibilityState === "visible" && live && !heldRef.current) tryPlay(); };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [live]);
+  /* a tap on the picture pauses and resumes; the strip under the panel
+     scrubs (`bind` is how the card reaches this clip) */
+  const toggle = () => {
+    const el = vid.current;
+    if (!el || !live) return;
+    haptic(6);
+    if (el.paused) { setHeld(false); tryPlay(); } else { el.pause(); setHeld(true); }
+  };
+  useEffect(() => {
+    if (!bind) return;
+    bind.current = {
+      time: () => { const el = vid.current; return { t: (el && el.currentTime) || 0, d: (el && el.duration) || 0 }; },
+      seek: (f) => { const el = vid.current; if (!el || !el.duration) return; try { el.currentTime = Math.max(0, Math.min(el.duration, f * el.duration)); } catch (e) { /* not seekable */ } onProgress && onProgress(f); },
+      hold: (on) => { holdRef.current = on; const el = vid.current; if (!el) return; if (on) el.pause(); else if (live && !heldRef.current) tryPlay(); },
+    };
+    return () => { bind.current = null; };
+  });
 
   useEffect(() => {
     if (!live || item.type !== "sim") return;
@@ -5102,22 +5154,32 @@ function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
             <Mark size={24} color={mark} />
           </span>
         </div>
-        <video ref={vid} src={item.url} muted loop playsInline autoPlay preload="auto"
-               onLoadedMetadata={() => setReady(true)}
+        {/* no autoPlay: the card decides, through `live` */}
+        <video ref={vid} data-feed-video="" src={item.url} muted loop playsInline preload="auto"
+               onLoadedMetadata={(e) => { setReady(true); const v = e.currentTarget; setWide(v.videoWidth > v.videoHeight); v.playbackRate = rateRef.current; }}
                onLoadedData={() => setReady(true)}
-               onCanPlay={() => { setReady(true); if (live && vid.current && vid.current.paused) tryPlay(); }}
+               onCanPlay={() => { setReady(true); const el = vid.current; if (live && el && el.paused && !heldRef.current && !holdRef.current) tryPlay(); }}
                onPlaying={() => { setReady(true); setBlocked(false); }}
                onTimeUpdate={(e) => { if (onProgress && live) { const el = e.currentTarget; onProgress(el.duration ? el.currentTime / el.duration : 0); } }}
                onError={() => setFailed(true)}
                className="absolute inset-0 w-full h-full"
-               style={{ objectFit: "cover", zIndex: 1 }} />
-        {blocked && !failed && (
-          /* autoplay was refused (Low Power Mode, mostly): one tap, in a
-             gesture, is allowed where autoplay was not */
-          <button onClick={() => { haptic(8); tryPlay(); }} aria-label={tr("Play")}
-                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: "rgba(0,0,0,0.18)" }}>
-            <span className="rounded-full flex items-center justify-center" style={{ width: 64, height: 64, background: "rgba(255,255,255,0.92)" }}>
-              <Play size={24} color="#111" strokeWidth={2} style={{ marginLeft: 3 }} />
+               /* a landscape clip is shown whole, a little above centre so
+                  it clears the panel; `cover` cut a swing to a strip */
+               style={{ objectFit: wide ? "contain" : "cover", objectPosition: wide ? "50% 36%" : "50% 50%", zIndex: 1 }} />
+        {live && !blocked && !held && !failed && (
+          /* the picture is the pause button */
+          <button onClick={toggle} aria-label={tr("Pause")} className="absolute inset-0" style={{ zIndex: 2, background: "transparent" }} />
+        )}
+        {(blocked || held) && !failed && (
+          /* paused by a tap, or autoplay refused (Low Power Mode, mostly):
+             one tap, in a gesture, is allowed where autoplay was not */
+          <button onClick={() => { haptic(8); setHeld(false); tryPlay(); }} aria-label={tr("Play")}
+                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: blocked ? "rgba(0,0,0,0.18)" : "transparent" }}>
+            <span className="rounded-full flex items-center justify-center"
+                  style={{ width: 64, height: 64, background: blocked ? "rgba(255,255,255,0.92)" : "rgba(20,24,26,0.5)",
+                           border: blocked ? "none" : "0.5px solid rgba(255,255,255,0.35)",
+                           animation: "countIn 360ms cubic-bezier(.28,1.4,.5,1) backwards" }}>
+              <Play size={24} color={blocked ? "#111" : "#fff"} strokeWidth={2} style={{ marginLeft: 3 }} />
             </span>
           </button>
         )}
@@ -5149,9 +5211,9 @@ function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
       <>
         <div className="absolute inset-0" style={{ background: "#0B0F10", zIndex: 0,
                opacity: ready ? 0 : 1, transition: "opacity 420ms ease-out" }} />
-        <img src={item.url} alt="" onLoad={() => setReady(true)} onError={() => setFailed(true)}
+        <img src={item.url} alt="" onLoad={(e) => { setReady(true); const im = e.currentTarget; setWide(im.naturalWidth > im.naturalHeight); }} onError={() => setFailed(true)}
              className="absolute inset-0 w-full h-full"
-             style={{ objectFit: "cover", zIndex: 1 }} />
+             style={{ objectFit: wide ? "contain" : "cover", objectPosition: wide ? "50% 36%" : "50% 50%", zIndex: 1 }} />
       </>
     );
   }
@@ -5161,7 +5223,7 @@ function Evidence({ item, live, mark, muted = true, onProgress, onAutoMuted }) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8" style={{ background: "#0B0F10" }}>
         <Mic size={40} color="rgba(255,255,255,0.85)" strokeWidth={1.4} />
-        <audio src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
+        <audio ref={aud} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
       </div>
     );
   }
@@ -5208,15 +5270,45 @@ function Round({ label, onTap, children, solid, tour }) {
   );
 }
 
-const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, showWho, cfg, onDownload }) {
+const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, onOpen, near, onNeed, sound, onSound, rate = 1, onRate, showWho, cfg, onDownload }) {
   const t = useT();
   const live = useLive();
   const [frame, setFrame] = useState(0);
   const [prog, setProg] = useState(0);      // how far through the clip on screen
   const [more, setMore] = useState(false);  // the note, opened out
-  const rail = useRef(null);
+  const [scrub, setScrub] = useState(null); // { f, t, d } while a thumb is on the strip
+  const rail = useRef(null), api = useRef(null), strip = useRef(null), drag = useRef(false);
   const items = media && media.length ? media : [];
   const current = items[frame];
+
+  /* THE STRIP under the panel is one line per file — the ones before
+     full, the one on screen filling as the clip plays, the ones after
+     empty — and it is touched: a thumb on the playing segment scrubs
+     the clip (held still while the thumb is down, the time on a pill
+     above it), a tap on another segment goes to that file. It replaced
+     a row of dots and a separate 2px progress line. */
+  const at = (clientX) => {
+    const r = strip.current.getBoundingClientRect();
+    const n = items.length || 1;
+    const pos = (Math.min(Math.max(0, clientX - r.left), r.width) / (r.width || 1)) * n;
+    const seg = Math.min(n - 1, Math.floor(pos));
+    return { seg, f: Math.min(1, Math.max(0, pos - seg)) };
+  };
+  const stripDown = (e) => {
+    if (!strip.current) return;
+    const { seg, f } = at(e.clientX);
+    if (seg !== frame) { haptic(6); step(seg - frame); return; }
+    if (!current || current.type !== "video" || !api.current) return;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* fine without */ }
+    drag.current = true; haptic(5);
+    api.current.hold(true);
+    const { d } = api.current.time(); api.current.seek(f); setScrub({ f, t: f * d, d });
+  };
+  const stripMove = (e) => {
+    if (!drag.current || !api.current) return;
+    const { f } = at(e.clientX); const { d } = api.current.time(); api.current.seek(f); setScrub({ f, t: f * d, d });
+  };
+  const stripUp = () => { if (!drag.current) return; drag.current = false; if (api.current) api.current.hold(false); setScrub(null); };
 
   /* A lesson the prefetch never reached asks for its own files the
      first time it comes near, so the twentieth lesson down is not a
@@ -5271,7 +5363,8 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
             <div key={it.id || i} className="relative shrink-0"
                  style={{ width: "100%", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>
               {near || i === 0
-                ? <Evidence item={it} live={active && i === frame} mark={t.mark} muted={!sound} onAutoMuted={() => onSound && onSound(false)} onProgress={i === frame ? setProg : undefined} />
+                ? <Evidence item={it} live={active && i === frame} mark={t.mark} muted={!sound} rate={rate} onAutoMuted={() => onSound && onSound(false)}
+                            onProgress={i === frame ? setProg : undefined} bind={i === frame ? api : undefined} />
                 : <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />}
             </div>
           ))}
@@ -5279,7 +5372,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
       )}
 
       {/* a soft floor for the words, and nothing over the picture above it */}
-      <div className="absolute inset-x-0 bottom-0" aria-hidden="true"
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"
            style={{ height: "48%", zIndex: 10,
                     background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0) 100%)" }} />
 
@@ -5305,6 +5398,16 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
               </button>
             )}
             {current && current.type === "video" && (
+              /* half speed, for a swing or a stroke; it stays on from card
+                 to card while the person is looking */
+              <button onClick={() => { haptic(7); onRate && onRate(rate === 1 ? 0.5 : 1); }} aria-label={rate === 1 ? tr("Slow motion") : tr("Normal speed")} aria-pressed={rate !== 1}
+                      className="flex items-center justify-center shrink-0 active:opacity-70"
+                      style={{ width: 40, height: 40, borderRadius: 20, background: rate !== 1 ? "rgba(255,255,255,0.94)" : "rgba(255,255,255,0.14)",
+                               border: `0.5px solid ${rate !== 1 ? "transparent" : "rgba(255,255,255,0.18)"}` }}>
+                <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 700, letterSpacing: "-0.01em", color: rate !== 1 ? "#111" : "#fff" }}>½×</span>
+              </button>
+            )}
+            {current && current.type === "video" && (
               <button onClick={() => { haptic(7); onSound && onSound(!sound); }} aria-label={sound ? tr("Mute") : tr("Sound")}
                       className="flex items-center justify-center shrink-0 active:opacity-70"
                       style={{ width: 40, height: 40, borderRadius: 20, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.18)" }}>
@@ -5321,16 +5424,6 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
           ) : (
             <span className="block mt-2" style={{ ...TYPE.small, lineHeight: 1.45, color: "rgba(255,255,255,0.86)" }}>{lesson.note}</span>
           ))}
-          {items.length > 1 && (
-            <span className="flex items-center gap-1.5 mt-3" aria-label={`${frame + 1} ${tr("of")} ${items.length}`}>
-              {items.map((it, i) => (
-                <span key={it.id || i} className="rounded-full"
-                      style={{ width: i === frame ? 14 : 4, height: 4,
-                               background: i === frame ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.38)",
-                               transition: "width 240ms cubic-bezier(.22,1,.36,1), background 240ms" }} />
-              ))}
-            </span>
-          )}
           {/* the way in, said in words: the arrow in a disc was not read as one */}
           <button data-tour="feed-open" onClick={open} aria-label={tr("View lesson")}
                   className="w-full flex items-center justify-center gap-2 active:opacity-85"
@@ -5339,10 +5432,29 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
             <ArrowRight size={16} color="#111" strokeWidth={2.2} />
           </button>
         </div>
-        {/* how far through the clip */}
-        {current && current.type === "video" && (
-          <div className="mt-2.5 mx-1" aria-hidden="true" style={{ height: 2, borderRadius: 1, background: "rgba(255,255,255,0.22)", overflow: "hidden" }}>
-            <div style={{ width: `${Math.round(prog * 100)}%`, height: 2, background: "#fff", transition: "width 240ms linear" }} />
+        {/* the strip: which file, how far through it, and where to scrub */}
+        {current && (items.length > 1 || current.type === "video") && (
+          <div ref={strip} data-tour="feed-strip" className="relative flex items-center gap-1 mx-1"
+               aria-label={items.length > 1 ? `${frame + 1} ${tr("of")} ${items.length}` : tr("Progress")}
+               onPointerDown={stripDown} onPointerMove={stripMove} onPointerUp={stripUp} onPointerCancel={stripUp}
+               style={{ height: 24, touchAction: "none", cursor: "pointer" }}>
+            {items.map((it, i) => {
+              const fill = i < frame ? 1 : i > frame ? 0 : it.type === "video" ? (scrub ? scrub.f : prog) : 1;
+              return (
+                <span key={it.id || i} className="flex-1"
+                      style={{ height: scrub && i === frame ? 4 : 2, borderRadius: 2, background: "rgba(255,255,255,0.26)", overflow: "hidden", transition: "height 160ms" }}>
+                  <span className="block h-full" style={{ width: `${Math.round(fill * 1000) / 10}%`, background: "#fff", transition: scrub ? "none" : "width 240ms linear" }} />
+                </span>
+              );
+            })}
+            {scrub && (
+              <span className="absolute px-2" data-tour="feed-scrub-time"
+                    style={{ bottom: 20, left: `clamp(30px, ${((frame + scrub.f) / (items.length || 1)) * 100}%, calc(100% - 30px))`, transform: "translateX(-50%)",
+                             height: 24, lineHeight: "24px", borderRadius: 12, background: "rgba(255,255,255,0.94)",
+                             fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#111", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                {clock(scrub.t)} · {clock(scrub.d)}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -5356,21 +5468,29 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
   const setBleed = useContext(BleedCtx);
   useEffect(() => { setBleed(true); return () => setBleed(false); }, [setBleed]);
   const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
+  const [rate, setRate] = useState(1);        // ½× stays on from card to card
   const wrap = useRef(null);
 
-  useEffect(() => {
-    const root = wrap.current;
-    if (!root || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (!e.isIntersecting) return;
-        const i = Number(e.target.getAttribute("data-feed-card"));
-        setActive(i);
-      });
-    }, { root, threshold: 0.6, rootMargin: "-30% 0px -30% 0px" });
-    root.querySelectorAll("[data-feed-card]").forEach((c) => io.observe(c));
-    return () => io.disconnect();
-  }, [lessons.length]);
+  /* WHICH CARD IS ON SCREEN is read off the scroll position, one read a
+     frame, the way the card's own rail reads its frame: the card whose
+     top is nearest the scroll top is the live one, so the moment the
+     next lesson covers more than half the screen it takes over. This
+     was an IntersectionObserver with a 60% threshold inside a root
+     margin that left 40% of the height — a ratio no card could ever
+     reach — so `active` never moved off the first card; autoplay on
+     every mounted card hid that for a round, and the third lesson down
+     was never mounted at all. */
+  const tick = useRef(0);
+  const onScroll = (e) => {
+    const el = e.currentTarget;
+    if (tick.current) return;
+    tick.current = requestAnimationFrame(() => {
+      tick.current = 0;
+      const i = Math.max(0, Math.min(lessons.length - 1, Math.round(el.scrollTop / (el.clientHeight || 1))));
+      setActive((a) => (a === i ? a : i));
+    });
+  };
+  useEffect(() => () => { if (tick.current) cancelAnimationFrame(tick.current); }, []);
 
   return (
     <div className="absolute inset-0" style={{ background: "#0A0D0E" }}>
@@ -5410,13 +5530,13 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         </div>
       )}
 
-      <div ref={wrap} className="absolute inset-0 overflow-y-auto"
+      <div ref={wrap} onScroll={onScroll} className="absolute inset-0 overflow-y-auto"
            style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
                     WebkitOverflowScrolling: "touch", scrollBehavior: "smooth" }}>
         {lessons.map((l, i) => (
           <FeedCard key={l.id ?? i} index={i} lesson={l} active={i === active} cfg={cfg}
                     near={Math.abs(i - active) <= 1} onNeed={onNeed}
-                    media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} showWho={showWho} onDownload={onDownload} />
+                    media={mediaFor(l, i)} onOpen={onOpen} sound={sound} onSound={setSound} rate={rate} onRate={setRate} showWho={showWho} onDownload={onDownload} />
         ))}
       </div>
 

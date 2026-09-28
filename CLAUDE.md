@@ -551,6 +551,27 @@ seeded data and no account.
   drawn picture the lesson did not take. The feed was deleted once on
   a research finding that no competitor has one; the founder wanted it
   back within the hour — improve it, never remove it.
+- **One clip plays, and the picture is the player.** `Evidence` has
+  one rule, `live`: the card on screen plays from its start with the
+  sound the switch says, and every other card is paused, muted and
+  back on its first frame — and the clip that starts hushes every
+  other feed video in the document (`hushOthers`). No `autoPlay`
+  attribute anywhere in the feed: it started every mounted neighbour
+  the moment it loaded, and the sound switch reached all of them, so a
+  scroll with the sound on was three clips talking over each other,
+  which the founder called the most important thing to get right. A
+  voice note stops with its card. A tap on the picture pauses (a
+  translucent play disc, and a tap resumes); **½×** beside the sound
+  button halves the speed and stays on from card to card, because a
+  swing is watched slow; the **strip** under the panel is one line per
+  file — before full, the one on screen filling, after empty — a thumb
+  on the playing segment holds the clip and scrubs it with the time on
+  a pill, a tap on another segment goes to that file (it replaced a row
+  of dots and a separate progress line); a **landscape clip or photo is
+  shown whole**, a little above centre, never cropped to a strip —
+  `cover` cut a landscape swing to its middle third. The gradient floor
+  under the panel is `pointer-events: none`, or it eats the taps on the
+  lower half of the picture. `scripts/e2e/feed.cjs` walks all of it.
 - **A player's profile pill is the switcher.** Face, first name and a
   chevron in the header; tapping it opens `FamilySheet`: their coaches
   (or Add a coach), Family (their code and who is in it, or Start /
