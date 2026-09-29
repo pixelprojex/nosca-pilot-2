@@ -5428,12 +5428,16 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
           <button onClick={open} className="w-full min-w-0 text-left active:opacity-80">
               <span data-tour="feed-focus" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden", textWrap: "balance", whiteSpace: "normal",
                                                      fontFamily: display, fontSize: titleSize, lineHeight: 1.08, letterSpacing: "-0.03em", color: "#fff" }}>
-                {/* a real space either side of the dot: the areas are nowrap
-                    spans, so the spaces are the only places a line may break */}
+                {/* the dot rides inside the next area's nowrap span, so a line
+                    breaks only in the space before it and never ends on a dot;
+                    that space is the one place a line may break */}
                 {areas.map((area, i) => (
                   <React.Fragment key={i}>
-                    {i > 0 && <>{" "}<span aria-hidden="true" style={{ opacity: 0.45 }}>·</span>{" "}</>}
-                    <span style={{ whiteSpace: "nowrap" }}>{area}</span>
+                    {i > 0 && " "}
+                    <span style={{ whiteSpace: "nowrap" }}>
+                      {i > 0 && <span aria-hidden="true" data-sep="" style={{ opacity: 0.45, marginRight: "0.3em" }}>·</span>}
+                      {area}
+                    </span>
                   </React.Fragment>
                 ))}
               </span>
@@ -5528,13 +5532,22 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   );
 });
 
+/* WHAT THE FEED REMEMBERS. Sound and ½× are the person's choices for
+   the sitting, not for one mount: the feed unmounts under every lesson
+   page, so a state that started over each time turned the sound off
+   again every time a lesson was opened and closed. Off until asked,
+   the way autoplay allows; kept from then on until the app is closed. */
+const FEED_MEMORY = { sound: false, rate: 1 };
+
 function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload }) {
   const [active, setActive] = useState(0);
   /* the clip runs to the very bottom of the screen, under the tab bar */
   const setBleed = useContext(BleedCtx);
   useEffect(() => { setBleed(true); return () => setBleed(false); }, [setBleed]);
-  const [sound, setSound] = useState(false);  // off until asked, the way autoplay allows
-  const [rate, setRate] = useState(1);        // ½× stays on from card to card
+  const [sound, setSoundState] = useState(FEED_MEMORY.sound);
+  const [rate, setRateState] = useState(FEED_MEMORY.rate);
+  const setSound = (v) => { FEED_MEMORY.sound = !!v; setSoundState(!!v); };
+  const setRate = (v) => { FEED_MEMORY.rate = v; setRateState(v); };
   const wrap = useRef(null);
 
   /* WHICH CARD IS ON SCREEN is read off the scroll position, one read a

@@ -78,6 +78,9 @@ const { check, results, summary } = M.checker("feed");
       await page.locator("[data-feed-card]").nth(2).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
       const five = await page.locator('[data-feed-card="2"] [data-tour="feed-focus"]').evaluate((el) => { const cs = getComputedStyle(el); return { text: el.innerText.replace(/\s+/g, " "), lines: Math.round(el.getBoundingClientRect().height / parseFloat(cs.lineHeight)), size: parseFloat(cs.fontSize), cutDown: el.scrollHeight > el.clientHeight + 2, cutAcross: el.scrollWidth > el.clientWidth + 1 }; });
       check("(a) five areas worked on read whole — every word there, on two lines, at a smaller size, nothing cut down or across", ["Full swing", "Chipping", "Bunker play", "Course management", "Mental game"].every((w) => five.text.includes(w)) && five.lines === 2 && five.size < 27 && !five.cutDown && !five.cutAcross, JSON.stringify(five));
+      /* the dots between areas sit on the same line as the word after them: a line never ends on a dot */
+      const seps = await page.locator('[data-feed-card="2"] [data-tour="feed-focus"] [data-sep]').evaluateAll((els) => els.map((d) => { const w = d.parentElement.getBoundingClientRect(); const r = d.getBoundingClientRect(); return Math.abs(r.top - w.top) < 1.5 && r.right < w.right; }));
+      check("(a) every dot between areas rides with the word after it, never left at the end of a line", seps.length === 4 && seps.every(Boolean), JSON.stringify(seps));
       await page.screenshot({ path: path.join(outDir, "00-feed-five-areas.png") });
       await page.locator("[data-feed-card]").nth(0).scrollIntoViewIfNeeded(); await page.waitForTimeout(1200);
       check("(a) and the level it was logged at", t0.includes("HI 18.4"), t0.slice(0, 240));
@@ -126,10 +129,16 @@ const { check, results, summary } = M.checker("feed");
     {
       const { ctx, page, text, shot } = await boot("adult");
       await tap(page, '[aria-label="Home"], [aria-label="Lessons"]', 1600); await page.waitForTimeout(1000);
+      /* the sound on and ½× on, then into the lesson and back: both kept */
+      await page.locator('[data-feed-card="0"] [aria-label="Sound"]').click(); await page.waitForTimeout(400);
+      await page.locator('[data-feed-card="0"] [aria-label="Slow motion"]').click(); await page.waitForTimeout(400);
       await tap(page, '[data-tour="feed-open"]', 1400);
       const t0 = await text(); await shot("04-lesson-from-feed");
       check("(c) the open button lands on that lesson", t0.includes("Short game") && t0.includes("Download"), t0.slice(0, 220));
-      await M.back(page); await page.waitForTimeout(1000);
+      await M.back(page); await page.waitForTimeout(1500);
+      const kept = await page.locator('[data-feed-card="0"] video').evaluate((v) => ({ muted: v.muted, rate: v.playbackRate, paused: v.paused }));
+      check("(c) back on the feed the sound is still on and ½× still set — the feed remembers for the sitting", kept.muted === false && kept.rate === 0.5 && !kept.paused && (await page.locator('[data-feed-card="0"] [aria-label="Mute"]').count()) === 1 && (await page.locator('[data-feed-card="0"] [aria-label="Normal speed"]').count()) === 1, JSON.stringify(kept));
+      await page.locator('[data-feed-card="0"] [aria-label="Normal speed"]').click(); await page.locator('[data-feed-card="0"] [aria-label="Mute"]').click(); await page.waitForTimeout(300);
 
       await tap(page, 'button[aria-label="List"]', 1200);
       const t1 = await text(); await shot("05-list");
