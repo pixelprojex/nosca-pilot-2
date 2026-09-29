@@ -544,8 +544,12 @@ seeded data and no account.
   the level, never the coach's name — a player has one and a coach
   knows their own, and the founder asked for the box cleaned; the note
   cut to a line with "more", the sound toggle beside the title for a
-  video) ending on a full-width **View lesson** button with the star
-  beside it, and the strip. No
+  video; the sound and the ½× are kept for the sitting in
+  `FEED_MEMORY`, because the feed unmounts under every lesson page and
+  a state that started over turned the sound off again every time a
+  lesson was opened and closed) ending on a full-width **View lesson**
+  button with the star beside it, and the strip. Between areas the dot
+  rides inside the next area's nowrap span, so a line never ends on it. No
   arrow-in-a-disc and no coach's face: the founder found the arrow
   unclear and the face confusing. List is the second view — a poster
   of the first file, the focus, one grey line — and the lesson page is
