@@ -16013,6 +16013,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      — so a downloaded lesson plays the same offline and on. */
   const downloads = useDownloads({ owner: account ? account.id : null, loader: data ? data.lessonMedia : null });
   const downloadsRef = useRef(downloads); downloadsRef.current = downloads;
+  const dataRef = useRef(data); dataRef.current = data;
   const mediaFor = React.useCallback((id, n) => {
     if (downloadsRef.current.has(id)) return downloadsRef.current.mediaOf(id);
     /* offline and never downloaded: there is nothing to wait for */
@@ -16969,11 +16970,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      player), the register's mark, and the names. */
   const [downloadFor, setDownloadFor] = useState(null);
   const extrasFor = (l) => {
+    /* read at the moment of the tap, not at the moment the tap was memoised */
+    const d0 = dataRef.current;
     const near = (x) => !!(l.createdAt && x && x.createdAt && Math.abs(new Date(x.createdAt) - new Date(l.createdAt)) < 30 * 60 * 1000);
-    const drills = data ? (data.drills || []).filter((d) => d.playerId && d.playerId === l.playerId && near(d)).map((d) => ({ id: d.id, t: d.t, done: !!d.done, createdAt: d.createdAt, playerId: d.playerId })) : [];
-    const tipRow = data ? ((data.tips || []).find((x) => x.playerId && x.playerId === l.playerId && near(x)) || null) : null;
+    const drills = d0 ? (d0.drills || []).filter((d) => d.playerId && d.playerId === l.playerId && near(d)).map((d) => ({ id: d.id, t: d.t, done: !!d.done, createdAt: d.createdAt, playerId: d.playerId })) : [];
+    const tipRow = d0 ? ((d0.tips || []).find((x) => x.playerId && x.playerId === l.playerId && near(x)) || null) : null;
     const tip = tipRow ? { title: tipRow.title, body: tipRow.body || null, createdAt: tipRow.createdAt, playerId: tipRow.playerId } : null;
-    const regs = (data && data.registers) || {};
+    const regs = (d0 && d0.registers) || {};
     const k = Object.keys(regs).find((x) => x.startsWith(`${l.d} ${l.m}`));
     const attendance = k && l.playerId ? (regs[k][l.playerId] || null) : null;
     return { who: l.who || null, coach: role === "coach" ? (coachName || null) : (l.coach || coachName || null), tip, drills, attendance };

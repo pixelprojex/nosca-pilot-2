@@ -51,6 +51,7 @@ export function useDownloads({ owner, loader }) {
   const itemsRef = useRef({}); itemsRef.current = items;
   const [ready, setReady] = useState(false);
   const urls = useRef(new Map());          // lessonId → local media items carrying object urls
+  const stale = useRef([]);                // urls a newer copy replaced: a page still showing them keeps them until unmount
   const inFlight = useRef(new Set());
   const persistAsked = useRef(false);
 
@@ -70,7 +71,7 @@ export function useDownloads({ owner, loader }) {
     }).catch(() => { if (on) { setItems({}); setReady(true); } });
     return () => { on = false; };
   }, [owner, supported]);
-  useEffect(() => () => { urls.current.forEach((_, id) => revoke(id)); }, []);
+  useEffect(() => () => { urls.current.forEach((_, id) => revoke(id)); stale.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch (e) { /* fine */ } }); stale.current = []; }, []);
 
   const patch = (id, p) => setItems((m) => ({ ...m, [id]: { ...(m[id] || { id, status: null, progress: 0, bytes: 0, savedAt: 0, error: null, record: null }), ...p } }));
 
@@ -117,7 +118,10 @@ export function useDownloads({ owner, loader }) {
       for (const k of have) if (!keep.has(k)) await store.removeFile(k);
       const record = { id, owner, savedAt: Date.now(), bytes: files.reduce((a, f) => a + (f.size || 0), 0), lesson: plain(lesson), ...(plain(extras) || {}), files };
       await store.putSaved(record);
-      revoke(id);
+      /* the next reader gets the newer files; a lesson page already open
+         on the old urls keeps them (revoking now would break its clip) */
+      const old = urls.current.get(id);
+      if (old) { stale.current.push(...old.map((m) => m.url)); urls.current.delete(id); }
       patch(id, { status: "saved", progress: 1, bytes: record.bytes, savedAt: record.savedAt, error: null, record });
       return { ok: true, record };
     } catch (e) {
