@@ -370,9 +370,9 @@ async function attach(page, db, opts = {}) {
         return json(200, paths.map((pth) => (canSee(pth)
           ? { error: null, path: pth, signedURL: `/object/sign/${bucket}/${pth}?token=t-${pth.split("/").pop()}` }
           : { error: "Either the object does not exist or you do not have access to it", path: pth, signedURL: null }))); }
-      /* a marked-up take (markup-<n>.webm) is served as the real clip too, so
+      /* a marked-up take (markup-<n>.webm) or a comparison (compare-<n>.webm) is served as the real clip too, so
          a second round of marking up has a picture to decode */
-      if (rest.startsWith("sign/") && method === "GET") { const isVid = /\.mp4$/.test(p) || /markup-\d+\.webm$/.test(p); return bytes(isVid ? (CLIP || MP4) : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, isVid ? (CLIP ? "video/webm" : "video/mp4") : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
+      if (rest.startsWith("sign/") && method === "GET") { const isVid = /\.mp4$/.test(p) || /(markup|compare)-\d+\.webm$/.test(p); return bytes(isVid ? (CLIP || MP4) : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, isVid ? (CLIP ? "video/webm" : "video/mp4") : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
       if (rest.startsWith("public/") && method === "GET") return bytes(PNG, "image/png");
       if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }
       const [bucket, ...more] = rest.split("/"); const objPath = more.join("/");
