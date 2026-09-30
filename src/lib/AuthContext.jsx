@@ -5,6 +5,18 @@ import { unsubscribePush } from "./push";
 const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
 
+/* THE PROFILE, KEPT FOR THE PLANE. The row is written to the device on
+   every good read and used only when the read fails for want of a
+   network — so the app opens offline on what it last knew, the way its
+   downloads promise. Any other failure still says what the database
+   said. */
+const CACHE_KEY = (id) => `nosca.profile.${id}`;
+const NET_RE = /Failed to fetch|Load failed|NetworkError|network|fetch/i;
+const isNetDown = (msg) => (typeof navigator !== "undefined" && navigator.onLine === false) || NET_RE.test(String(msg || ""));
+const readCached = (id) => { try { const s = localStorage.getItem(CACHE_KEY(id)); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
+const writeCached = (id, row) => { try { localStorage.setItem(CACHE_KEY(id), JSON.stringify(row)); } catch (e) { /* private mode */ } };
+const dropCached = (id) => { try { localStorage.removeItem(CACHE_KEY(id)); } catch (e) { /* fine */ } };
+
 /* AUTH
  *
  * A database trigger creates the profile in the same transaction as
@@ -43,6 +55,9 @@ export function AuthProvider({ children }) {
         .from("profiles").select("*").eq("id", userId).maybeSingle();
 
       if (error) {
+        /* no network, and a copy from the last good read: open on it */
+        const cached = isNetDown(error.message) ? readCached(userId) : null;
+        if (cached) { setLoadError(null); setProfile(cached); setLoadingProfile(false); return; }
         /* Show what the database actually said. The previous version
            reported "your account isn't finished" for any failure at
            all, which was badly misleading: the real cause was a
@@ -63,8 +78,11 @@ export function AuthProvider({ children }) {
       } else {
         setLoadError(null);
         setProfile(data);
+        writeCached(userId, data);
       }
     } catch (e) {
+      const cached = isNetDown(e && e.message) ? readCached(userId) : null;
+      if (cached) { setLoadError(null); setProfile(cached); setLoadingProfile(false); return; }
       loadedFor.current = null;
       setProfile(null);
       setLoadError((e && e.message) || "Couldn't reach the database.");
@@ -106,6 +124,7 @@ export function AuthProvider({ children }) {
        receiving the previous person's notifications. Never let it block
        the sign-out itself. */
     try { await unsubscribePush(supabase); } catch (e) { /* signing out matters more */ }
+    if (session && session.user) dropCached(session.user.id);
     await supabase.auth.signOut();
     loadedFor.current = null;
     setProfile(null);

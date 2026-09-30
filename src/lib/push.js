@@ -82,6 +82,13 @@ export async function registerSw() {
   if (!registration) {
     registration = navigator.serviceWorker
       .register(SW_URL, { scope: "/" })
+      .then((reg) => {
+        /* a new build's shell replaces the one the worker keeps for
+           offline; the worker checks /precache.json and does nothing
+           when it already has this build */
+        try { navigator.serviceWorker.ready.then((r) => { if (r && r.active) r.active.postMessage({ type: "nosca:precache" }); }).catch(() => {}); } catch (e) { /* fine */ }
+        return reg;
+      })
       .catch(() => {
         registration = null;
         return null;

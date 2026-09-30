@@ -3,6 +3,7 @@ import { useCapture, pickMime, VIDEO_TYPES } from "./lib/useCapture";
 import QRCode from "qrcode";
 import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import { MAX_UPLOAD_MB, avatarUrl, registerKey, localDate } from "./lib/useNoscaData";
+import { useDownloads, fmtBytes } from "./lib/useDownloads";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
 import { supabase } from "./lib/supabase";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
@@ -12,7 +13,7 @@ import {
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff
 } from "lucide-react";
 
 /* ==================================================================
@@ -104,6 +105,10 @@ const FaceCtx = createContext(null);
    it through props. "Starred", never "favourite": a coach favouriting
    clips of children reads wrong, and the founder said so. */
 const StarCtx = createContext({ ids: [], has: () => false, toggle: null });
+/* DOWNLOADS, BY CONTEXT: what is on the phone, how far a save has got,
+   and the one tap every disc makes — so no list threads it through
+   props. `offline` is whether the app is running on its kept copy. */
+const DownloadCtx = createContext({ supported: false, ready: false, list: [], totals: { count: 0, bytes: 0, saving: 0 }, offline: false, state: () => null, has: () => false, tap: null, mediaOf: null, remove: null, removeAll: null, showWho: false });
 /* The toast, reachable from anything deep in the tree that has a line
    to say and no prop to say it through — the microphone, mostly. */
 const NoticeCtx = createContext(() => {});
@@ -4957,7 +4962,139 @@ function Poster({ item, size = 56, radius = 8, sport }) {
   );
 }
 
-function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first, index = 0, sport }) {
+/* THE DOWNLOAD DISC. One control, four states, on every lesson row,
+   every feed card and the foot of the lesson page: the arrow (not on
+   the phone), a ring filling with the percentage inside it (coming
+   down), a filled disc with a tick (on the phone), the arrow in red
+   (it failed — a tap tries again). The tap is the context's: it
+   starts, says how far, or opens the lesson's download sheet. */
+function DownloadDisc({ lesson, onTap, size = 38, dark = false }) {
+  const t = useT();
+  const dl = useContext(DownloadCtx);
+  const st = lesson ? dl.state(lesson.id) : null;
+  const status = st ? st.status : null;
+  const pct = st ? Math.round((st.progress || 0) * 100) : 0;
+  const label = status === "saving" ? `${tr("Saving")} ${lesson.focus} · ${pct}%`
+    : status === "saved" ? `${tr("Downloaded")} ${lesson.focus}`
+    : status === "failed" ? `${tr("Download failed")} ${lesson.focus}`
+    : `${tr("Download")} ${lesson.focus}`;
+  const fg = dark ? "#fff" : t.ink;
+  const r = size / 2 - 2, c = 2 * Math.PI * r;
+  return (
+    <button onClick={() => { haptic(8); onTap && onTap(lesson); }} aria-label={label} data-download={status || "none"} title={st && st.error ? st.error : undefined}
+            className="relative shrink-0 flex items-center justify-center active:opacity-60"
+            style={{ width: size, height: size, borderRadius: size / 2,
+                     background: status === "saved" ? (dark ? "#fff" : t.ink) : dark ? "rgba(255,255,255,0.14)" : "transparent",
+                     border: status === "saved" || status === "saving" ? "none" : `${dark ? 0.5 : EDGE_W}px solid ${status === "failed" ? DANGER : dark ? "rgba(255,255,255,0.18)" : EDGE(t)}` }}>
+      {status === "saving" && (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0" aria-hidden="true" style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={fg} strokeOpacity={0.2} strokeWidth={2} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={fg} strokeWidth={2} strokeLinecap="round"
+                  strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, Math.max(0, st.progress || 0)))} style={{ transition: "stroke-dashoffset 180ms linear" }} />
+        </svg>
+      )}
+      {status === "saved" ? <Check size={Math.round(size * 0.42)} color={dark ? "#111" : "#fff"} strokeWidth={2.6} />
+        : status === "saving" ? <span style={{ fontFamily: ui, fontSize: size >= 40 ? 11 : 10, fontWeight: 700, color: fg, fontVariantNumeric: "tabular-nums" }}>{pct}</span>
+        : <Download size={Math.round(size * 0.4)} color={status === "failed" ? DANGER : fg} strokeWidth={2} />}
+    </button>
+  );
+}
+
+/* DOWNLOADS. What is on the phone, the way Netflix lists it: one row a
+   lesson — its poster from the phone, what it was, the day and the
+   size — newest first, anything still coming down or failed at the top,
+   a swipe to let one go, Remove all at the foot, and the count and the
+   room they take as the screen's own line. Opening a row opens the
+   lesson, which plays from the phone whether or not there is a network. */
+function Downloads({ role, sport, pop, push }) {
+  const t = useT();
+  const dl = useContext(DownloadCtx);
+  const list = dl.list || [];
+  const [posters, setPosters] = useState({});
+  const key = list.map((x) => `${x.id}:${x.status}`).join(",");
+  useEffect(() => {
+    let on = true;
+    list.forEach((it) => {
+      if (it.status !== "saved" || !dl.mediaOf) return;
+      dl.mediaOf(it.id).then((m) => { if (on) setPosters((p) => ({ ...p, [it.id]: m && m.length ? m[0] : null })); }).catch(() => {});
+    });
+    return () => { on = false; };
+  }, [key]);
+  const saved = list.filter((x) => x.status === "saved");
+  const meta = saved.length ? `${saved.length} ${saved.length === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(dl.totals.bytes)}` : "";
+  const open = (l) => push(role === "coach" ? `clesson:${l.id}:${l.who || ""}` : `lesson:${l.id}`);
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Downloads")} onBack={pop} meta={meta}>
+        <div className="px-6 pb-2">
+          {!dl.supported ? (
+            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Downloads aren't available in this browser")}</p>
+          ) : !dl.ready ? (
+            <div className="nsc-list">{[0, 1].map((i) => <div key={i} className="flex items-center gap-3.5" style={{ minHeight: 64 }}><Bone w={56} h={56} r={8} /><span className="flex-1"><Bone w="60%" h={14} /><Bone w="40%" h={12} mb={0} /></span></div>)}</div>
+          ) : list.length === 0 ? (
+            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing downloaded")}</p>
+          ) : (
+            <div className="nsc-list" data-tour="downloads-list">
+              {list.map((it, i) => {
+                const l = it.lesson || (it.record && it.record.lesson);
+                if (!l) return null;
+                /* two facts on the grey line: whose (or the day), and the
+                   size — or how far it has got, or why it failed */
+                const who = (role === "coach" || dl.showWho) && l.who ? l.who : (l.iso ? fmtWeekDay(localDate(l.iso)) : l.date);
+                const state = it.status === "saved" ? fmtBytes(it.bytes) : it.status === "saving" ? `${tr("Saving")} · ${Math.round((it.progress || 0) * 100)}%` : it.error || tr("Download failed");
+                return (
+                  <SwipeRow key={it.id} label={l.focus} deleteLabel={tr("Remove")} onDelete={() => { dl.remove && dl.remove(it.id); }}>
+                    <div data-tour="downloads-row" data-download-row={it.status}>
+                      <LessonRow lesson={l} index={i} first={false} poster={posters[it.id] || null} sport={sport} facts={[who, state]}
+                                 onOpen={open} onDownload={dl.tap} />
+                    </div>
+                  </SwipeRow>
+                );
+              })}
+            </div>
+          )}
+          {saved.length > 1 && (
+            <button onClick={() => { hapticWarn(); dl.removeAll && dl.removeAll(); }} className="w-full mt-4 active:opacity-60"
+                    style={{ minHeight: 46, borderRadius: R.control, border: `1px solid ${HAIR(t.ink, 0.14)}`, ...TYPE.small, fontWeight: 600, color: DANGER }}>
+              {tr("Remove all")}
+            </button>
+          )}
+          <div style={{ height: 26 }} />
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
+/* the sheet behind a downloaded lesson's disc: what is on the phone,
+   and the four things to do with it */
+function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove }) {
+  const t = useT();
+  const dl = useContext(DownloadCtx);
+  const st = dl.state(lesson.id);
+  const when = st && st.savedAt ? fmtWeekDay(new Date(st.savedAt)) : "";
+  const line = st && st.status === "saved" ? [tr("Downloaded"), fmtBytes(st.bytes), when].filter(Boolean).join(" · ")
+    : st && st.status === "saving" ? `${tr("Saving")} · ${Math.round((st.progress || 0) * 100)}%`
+    : tr("Not downloaded");
+  const quiet = { minHeight: 48, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
+  return (
+    <div data-tour="download-sheet">
+      <h2 style={{ ...TYPE.title, color: t.ink }}>{lesson.focus}</h2>
+      <p className="mt-1" style={{ ...TYPE.small, color: t.sub }}>{line}</p>
+      {st && st.error && <p className="mt-1" style={{ ...TYPE.small, color: DANGER }}>{st.error}</p>}
+      <div className="mt-5">
+        {onOpen && <Button onClick={onOpen}>{tr("Open")}</Button>}
+        <div className={`flex gap-2 ${onOpen ? "mt-2.5" : ""}`}>
+          <button onClick={onUpdate} disabled={!!(st && st.status === "saving")} className="flex-1 active:opacity-60 disabled:opacity-40" style={quiet}>{tr("Update")}</button>
+          <button onClick={onShare} className="flex-1 active:opacity-60" style={quiet}>{tr("Share as a file")}</button>
+        </div>
+        <button onClick={onRemove} className="w-full mt-2.5 active:opacity-60" style={{ ...quiet, color: DANGER }}>{tr("Remove")}</button>
+      </div>
+    </div>
+  );
+}
+
+function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first, index = 0, sport, facts }) {
   const t = useT();
   const star = useContext(StarCtx); const isStar = star.has(l.id);
   const asked = useRef(false);
@@ -4969,7 +5106,7 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
   const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
   /* two facts on the grey line, never three — and the whole name, because
      two players with one first name are two files */
-  const sub = [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null].filter(Boolean).slice(0, 2).join(" · ");
+  const sub = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean).slice(0, 2).join(" · ");
   return (
     /* the row opens the lesson; the disc at its right corner saves it as
        a file — two controls, so the row is a div and not one button */
@@ -4990,13 +5127,7 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
         {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={t.mark} fill={t.mark} strokeWidth={1.6} /></span>}
         {!onDownload && <ChevronRight size={14} color={t.trace || t.faint} />}
       </button>
-      {onDownload && (
-        <button onClick={() => { haptic(8); onDownload(l); }} aria-label={`${tr("Download")} ${l.focus}`}
-                className="shrink-0 flex items-center justify-center active:opacity-60"
-                style={{ width: 38, height: 38, borderRadius: 19, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
-          <Download size={15} color={t.ink} strokeWidth={2} />
-        </button>
-      )}
+      {onDownload && <DownloadDisc lesson={l} onTap={onDownload} size={38} />}
     </div>
   );
 }
@@ -5449,13 +5580,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
             <button onClick={open} className="flex-1 min-w-0 text-left truncate active:opacity-80" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
               {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
             </button>
-            {onDownload && (
-              <button onClick={() => { haptic(7); onDownload(lesson); }} aria-label={`${tr("Download")} ${lesson.focus}`}
-                      className="flex items-center justify-center shrink-0 active:opacity-70"
-                      style={{ width: 40, height: 40, borderRadius: 20, background: "rgba(255,255,255,0.14)", border: "0.5px solid rgba(255,255,255,0.18)" }}>
-                <Download size={17} color="#fff" strokeWidth={1.9} />
-              </button>
-            )}
+            {onDownload && <DownloadDisc lesson={lesson} onTap={onDownload} size={40} dark />}
             {current && current.type === "video" && (
               /* half speed, for a swing or a stroke; it stays on from card
                  to card while the person is looking */
@@ -9272,7 +9397,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload }) {
+function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, downloadCount = 0 }) {
   const t = useT();
   const ready = useLoad();
   const star = useContext(StarCtx);
@@ -9331,8 +9456,11 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
         <>
           {/* the starred ones, as a section of their own — a row that is
               there only while something is starred */}
-          {nStar > 0 && (
-            <div className="px-6 mb-3"><Ruled><HomeRow tour="log-starred" label={tr("Starred")} value={String(nStar)} onPress={() => push("starred")} /></Ruled></div>
+          {(nStar > 0 || downloadCount > 0) && (
+            <div className="px-6 mb-3"><Ruled>
+              {nStar > 0 && <HomeRow tour="log-starred" label={tr("Starred")} value={String(nStar)} onPress={() => push("starred")} />}
+              {downloadCount > 0 && <HomeRow tour="log-downloads" label={tr("Downloads")} value={String(downloadCount)} onPress={() => push("downloads")} />}
+            </Ruled></div>
           )}
           <div className="px-6 pb-4 nsc-list" style={{ borderTop: "none" }}>
             {lessons.map((l, i) => (
@@ -9590,6 +9718,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                         onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onCompare, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight }) {
   const t = useT();
   const star = useContext(StarCtx); const isStar = star.has(lesson.id);
+  const dl = useContext(DownloadCtx); const dlState = dl.state(lesson.id);
   const [a, setA] = useState(0);
   const [menu, setMenu] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -9665,6 +9794,9 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                 </div>
               )}
             </div>
+          ) : dl.offline && (lesson.media ?? lesson.videos ?? 0) > 0 ? (
+            /* offline, and this one was never downloaded: say so, rather than a page with a hole in it */
+            <p className="mb-6" style={{ ...TYPE.small, color: t.faint }}>{tr("Not downloaded")}</p>
           ) : null}
 
           {/* THE NOTE, WHERE THERE IS ONE. The line under the title already
@@ -9747,12 +9879,20 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                 </>
               );
             })()}
-            {onDownload && (
-              <button data-tour="lesson-save" onClick={() => { haptic(8); onDownload(list); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
-                      style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: t.sub }}>
-                <Download size={14} color={t.sub} strokeWidth={2} />{tr("Download")}
-              </button>
-            )}
+            {onDownload && (() => {
+              /* the same four states as the disc, in words */
+              const s0 = dlState ? dlState.status : null;
+              const word = s0 === "saving" ? `${tr("Saving")} · ${Math.round((dlState.progress || 0) * 100)}%`
+                : s0 === "saved" ? `${tr("Downloaded")} · ${fmtBytes(dlState.bytes)}`
+                : s0 === "failed" ? `${tr("Download failed")} · ${tr("Retry")}`
+                : tr("Download");
+              return (
+                <button data-tour="lesson-save" data-download={s0 || "none"} onClick={() => { haptic(8); onDownload(list); }} className="w-full flex items-center justify-center gap-2 active:opacity-50"
+                        style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: s0 === "failed" ? DANGER : t.sub }}>
+                  {s0 === "saved" ? <Check size={14} color={t.sub} strokeWidth={2.4} /> : <Download size={14} color={s0 === "failed" ? DANGER : t.sub} strokeWidth={2} />}{word}
+                </button>
+              );
+            })()}
           </div>
           {/* the last control clears the tab bar */}
           <div style={{ height: SPACE.section + 62 }} />
@@ -11223,7 +11363,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
    timeline, not as a wall of boxes — and everything else as tiles with
    a number on them rather than a sentence to read. */
 function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = [], events = [],
-                      roster, drifting = 0, toWriteUp = [], upcoming = [], unread = 0, starredCount = 0,
+                      roster, drifting = 0, toWriteUp = [], upcoming = [], unread = 0, starredCount = 0, downloadCount = 0,
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onLog, onCapture, onAttend, onAddPlayer, onTip, onDrills, code,
                       onAccept, onDecline, onInvite, push, go,
@@ -11427,6 +11567,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           <Ruled style={{ marginBottom: SPACE.block }}>
             <HomeRow tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
             {starredCount > 0 && <HomeRow tour="today-starred" label={tr("Starred")} value={String(starredCount)} onPress={() => push("starred")} />}
+            {downloadCount > 0 && <HomeRow tour="today-downloads" label={tr("Downloads")} value={String(downloadCount)} onPress={() => push("downloads")} />}
           </Ruled>
         )}
 
@@ -14721,7 +14862,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
   const [q, setQ] = useState("");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
@@ -14782,7 +14923,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         : { label: tr("Lessons as a player"), onTap: () => push("takeLessons") }),
       { label: tr("Shortcuts"), tour: "settings-shortcuts", onTap: () => push("layout"), keys: ["home", "board", "plus", "customise", "edit", "layout", "tiles"] },
       { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
-      { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "pdf", "file", "save"] },
+      { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "pdf", "file", "save"] },
+      live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code"), value: inviteCode || "——————", tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
       prefs && { label: tr("Register"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Register"), prefs.attendance || "all",
@@ -14794,7 +14936,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
       live ? { label: tr("Your coach"), sub: hasCoach ? (conn?.coach || "") : null, tour: "settings-family", onTap: () => hasCoach ? push("coachProfile") : sheet("family"), keys: ["join", "code"] }
            : { label: tr("Coaches & profiles"), tour: "settings-family", onTap: () => sheet("family") },
-      { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["download", "export", "file", "save"] },
+      { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "file", "save"] },
+      live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
     { title: tr("App"), tour: "settings-appearance", rows: [
@@ -15864,6 +16007,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Signed media for a player's own lessons, loaded while the log is
      open so the feed and the cards show what was actually attached. */
   const [liveMedia, setLiveMedia] = useState({});
+  /* DOWNLOADS: what is on the phone for this account. Every reader of a
+     lesson's files goes through `mediaFor`, which hands back the phone's
+     copy where there is one and signs from the server where there is not
+     — so a downloaded lesson plays the same offline and on. */
+  const downloads = useDownloads({ owner: account ? account.id : null, loader: data ? data.lessonMedia : null });
+  const downloadsRef = useRef(downloads); downloadsRef.current = downloads;
+  const mediaFor = React.useCallback((id, n) => {
+    if (downloadsRef.current.has(id)) return downloadsRef.current.mediaOf(id);
+    /* offline and never downloaded: there is nothing to wait for */
+    if (!data || data.offline || (typeof navigator !== "undefined" && navigator.onLine === false)) return Promise.resolve([]);
+    return data.lessonMedia(id, n);
+  }, [data, data && data.offline]);
   useEffect(() => {
     if (!data || !account || account.role === "coach" || stack[stack.length - 1] !== "log") return;
     /* Re-fetch a lesson whose file count has moved since we last signed
@@ -15878,7 +16033,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }).slice(0, 12);
     if (!want.length) return;
     let alive = true;
-    want.forEach((l) => data.lessonMedia(l.id, l.media ?? l.videos)
+    want.forEach((l) => mediaFor(l.id, l.media ?? l.videos)
       .then((items) => { if (alive) setLiveMedia((m) => ({ ...m, [l.id]: items })); })
       .catch(() => {}));
     return () => { alive = false; };
@@ -15890,7 +16045,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (!data || !l || l.id == null || asking.current.has(l.id)) return;
     asking.current.add(l.id);
     setLiveMedia((m) => (l.id in m ? m : { ...m, [l.id]: null }));
-    data.lessonMedia(l.id, l.media ?? l.videos)
+    mediaFor(l.id, l.media ?? l.videos)
       .then((items) => setLiveMedia((m) => ({ ...m, [l.id]: items })))
       .catch(() => setLiveMedia((m) => ({ ...m, [l.id]: [] })))
       .finally(() => asking.current.delete(l.id));
@@ -15977,6 +16132,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Golf courses and boathouses rarely have signal. Capture works
      regardless; only publishing waits for a connection. */
   const [offline, setOffline] = useState(false);
+  /* the phone's own word on the network, so the strip shows the moment
+     it goes and clears the moment it is back */
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine !== false));
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const up = () => setOnline(true), down = () => setOnline(false);
+    window.addEventListener("online", up); window.addEventListener("offline", down);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", down); };
+  }, []);
+  const offlineNow = offline || !!(data && data.offline) || !online;
   const [queued, setQueued] = useState(0);
   const [rescheduleFor, setRescheduleFor] = useState(null);
   const [calledOff, setCalledOff] = useState(null);
@@ -16796,13 +16961,57 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (id === "weather") return later(() => { setCallOffFor(null); setSheet("weather"); });
     if (id === "comp")    { setSheet(null); push("events"); }
   };
-  /* one lesson as a file, from any list: the row's disc and the feed card */
-  const downloadLesson = async (l) => {
-    if (!l) return;
-    const media = data ? await data.lessonMedia(l.id, l.media ?? l.videos) : [];
-    downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName),
-                        who: role === "coach" || l.type === "Group" ? l.who : null, media, say });
+  /* THE DISC, EVERYWHERE. A tap saves the lesson onto the phone — the
+     record and every file; on one already there it opens the download
+     sheet; while one is coming down it says how far. `extrasFor` is
+     every other part of the log the page reads: the tip and the drills
+     set alongside it (within half an hour of it being logged, for its
+     player), the register's mark, and the names. */
+  const [downloadFor, setDownloadFor] = useState(null);
+  const extrasFor = (l) => {
+    const near = (x) => !!(l.createdAt && x && x.createdAt && Math.abs(new Date(x.createdAt) - new Date(l.createdAt)) < 30 * 60 * 1000);
+    const drills = data ? (data.drills || []).filter((d) => d.playerId && d.playerId === l.playerId && near(d)).map((d) => ({ id: d.id, t: d.t, done: !!d.done, createdAt: d.createdAt, playerId: d.playerId })) : [];
+    const tipRow = data ? ((data.tips || []).find((x) => x.playerId && x.playerId === l.playerId && near(x)) || null) : null;
+    const tip = tipRow ? { title: tipRow.title, body: tipRow.body || null, createdAt: tipRow.createdAt, playerId: tipRow.playerId } : null;
+    const regs = (data && data.registers) || {};
+    const k = Object.keys(regs).find((x) => x.startsWith(`${l.d} ${l.m}`));
+    const attendance = k && l.playerId ? (regs[k][l.playerId] || null) : null;
+    return { who: l.who || null, coach: role === "coach" ? (coachName || null) : (l.coach || coachName || null), tip, drills, attendance };
   };
+  const startDownload = async (l) => {
+    if (!downloads.supported) { say(tr("Downloads aren't available in this browser")); return; }
+    hapticCommit();
+    const r = await downloads.save(l, extrasFor(l));
+    if (r && r.busy) return;
+    if (r && r.error) { hapticWarn(); say(`${tr("Couldn't download")} · ${r.error}`); return; }
+    if (r && r.ok) { hapticSuccess(); done(tr("Downloaded"), l.focus); }
+  };
+  const downloadLesson = (l) => {
+    if (!l) return;
+    if (!data) { say(tr("Sign in to download")); return; }
+    const st = downloads.state(l.id);
+    if (st && st.status === "saving") { say(`${tr("Saving")} · ${Math.round((st.progress || 0) * 100)}%`); return; }
+    if (st && st.status === "saved") { setDownloadFor(l); setSheet("download"); return; }
+    startDownload(l);
+  };
+  /* the lesson as a file, out through the share sheet — from the phone's
+     record, so the drills and the tip go with it; the links are the
+     server's, signed now, where there is a network */
+  const shareSaved = async (l) => {
+    const rec = downloads.record(l.id);
+    const online = typeof navigator === "undefined" || navigator.onLine !== false;
+    const media = data && online ? await data.lessonMedia(l.id, (l.media ?? l.videos)).catch(() => []) : [];
+    downloadLessonLog({ lesson: l, coach: rec && rec.coach ? rec.coach : (role === "coach" ? coachName : (l.coach || coachName)),
+                        who: role === "coach" || l.type === "Group" ? l.who : null, media, drills: rec ? rec.drills : [],
+                        tip: rec && rec.tip ? [rec.tip.title, rec.tip.body].filter(Boolean).join(" — ") : null, say });
+  };
+  /* a lesson that is on the phone but no longer in the list (a copy older than the load) */
+  const savedLessonOf = (id) => { const r = downloads.record(id); return r && r.lesson ? r.lesson : null; };
+  const downloadCtx = useMemo(() => ({
+    supported: downloads.supported, ready: downloads.ready, list: downloads.list, totals: downloads.totals, offline: !!(data && data.offline),
+    state: downloads.state, has: downloads.has, tap: downloadLesson, mediaOf: downloads.mediaOf, remove: downloads.remove, removeAll: downloads.removeAll,
+    showWho: !!(account && account.accountType === "parent"),
+  }), [downloads.items, downloads.ready, downloads.supported, data && data.offline]);
   const bookedAhead = data ? new Set((liveBookingRows || [])
     .filter((b) => b.playerId && b.date >= isoOf(todayMD.m, todayMD.d) && b.status !== "cancelled" && b.status !== "weather")
     .map((b) => b.playerId)) : null;
@@ -17613,17 +17822,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "myLessons" && data) {
     body = <LessonLogs role="player" lessons={mineOnly(data.lessons)} pop={pop} sport={sport}
                        liveMedia={liveMedia} onNeedMedia={needMedia} onOpen={(l) => push(`lesson:${l.id}`)}
-                       onDownload={async (l) => { const media = await data.lessonMedia(l.id);
-                         downloadLessonLog({ lesson: l, coach: l.coach || "", who: null, media, say }); }} />;
+                       onDownload={downloadLesson} />;
   } else if (screen === "search") { body = <SearchScreen role={role} cfg={cfg} library={role === "coach" ? myLibrary : (myPractice || [])} tips={myTips} lessons={data ? (role === "coach" ? taught(data.lessons) : playerLessons) : null} people={data ? data.roster : null} threads={liveThreads} pop={pop} go={go} push={push} />;
   } else if (screen === "lessonLogs") {
     body = <LessonLogs role={role} lessons={data ? (role === "coach" ? taught(data.lessons) : playerLessons) : playerLessons} pop={pop}
                        sport={role === "coach" ? coachSport : sport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                        onOpen={(l) => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)}
-                       onDownload={async (l) => {
-                         const media = data ? await data.lessonMedia(l.id) : [];
-                         downloadLessonLog({ lesson: l, coach: role === "coach" ? coachName : (l.coach || coachName), who: role === "coach" || l.type === "Group" ? l.who : null, media, say });
-                       }} />;
+                       onDownload={downloadLesson} />;
   } else if (screen === "alerts" && data) {
     /* a real account: the notifications table, plus what is waiting on a coach */
     /* The rows below already name every request, every ask and every
@@ -17722,7 +17927,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const mid = cut0 < 0 ? null : rest0.slice(cut0 + 1);
     const les = (data.lessons || []).find((x) => String(x.id) === lid) || null;
     body = les
-      ? <ClipReview lesson={les} mediaId={mid} mediaFor={data.lessonMedia} who={les.who} pop={pop} say={say}
+      ? <ClipReview lesson={les} mediaId={mid} mediaFor={mediaFor} who={les.who} pop={pop} say={say}
                     /* the marked-up clip stands in for the one it was drawn
                        on — one video on the lesson, not two; a still is added */
                     onSend={async (file, orig) => {
@@ -17734,6 +17939,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       : <SwipeBack onBack={pop}><Screen title={tr("Mark it up")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
+  } else if (screen === "downloads") {
+    body = <Downloads role={role} sport={role === "coach" ? coachSport : sport} pop={pop} push={push} />;
   } else if (screen.startsWith("compare:") && data) {
     /* compare:<lessonId>:<mediaId> — this clip beside another of the same
        person's, for the coach and the player alike */
@@ -17747,7 +17954,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* the title names the other person: the coach's player, a parent's child; never the person themselves */
     const named = les && les.playerId && account && les.playerId !== account.id ? les.who : "";
     body = les
-      ? <ClipCompare lesson={les} mediaId={mid} lessons={pool} mediaFor={data.lessonMedia} who={named} pop={pop} say={say}
+      ? <ClipCompare lesson={les} mediaId={mid} lessons={pool} mediaFor={mediaFor} who={named} pop={pop} say={say}
                      onSave={role === "coach" ? (file) => data.addLessonMedia(les.id, [file]) : null} />
       : <SwipeBack onBack={pop}><Screen title={tr("Compare")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
@@ -17764,11 +17971,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const cname = cut0 < 0 ? "" : rest0.slice(cut0 + 1);
     /* the tapped lesson, by id — a real account never falls back to the catalogue */
     const les = data
-      ? ((data.lessons || []).find((x) => String(x.id) === lid) || null)
+      ? ((data.lessons || []).find((x) => String(x.id) === lid) || savedLessonOf(lid) || null)
       : (cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0]);
     body = les
       ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
-                         live={!!data} mediaFor={data ? data.lessonMedia : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
+                         live={!!data} mediaFor={data ? mediaFor : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
                          compareLessons={data ? taught(data.lessons) : null} knownMedia={data ? liveMedia : null}
                          attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][seedId(cname)]) || null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, playerId: l.playerId || null, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
@@ -17779,7 +17986,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                            say(res && res.error ? res.error.message : tr("Removed"));
                          } : null}
                          banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
-                         onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: coachName, who: l.who, media: items, say })} />
+                         onDownload={(l) => downloadLesson(l)} />
       : <SwipeBack onBack={pop}><Screen title={tr("Lesson")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
@@ -17962,7 +18169,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
-  } else if (screen === "you") { body = <Settings demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
@@ -17993,7 +18200,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        map entry and the fallback — byte for byte, so every change had
        to be made in both or the two homes drifted apart. */
     const coachToday = (
-      <CoachToday starredCount={archive.filter((l) => starCtx.has(l.id)).length} right={slimRight} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
+      <CoachToday starredCount={archive.filter((l) => starCtx.has(l.id)).length} downloadCount={downloads.totals.count} right={slimRight} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
                   dateLine={`${DAY_NAMES[dowToday]} ${todayMD.d} ${monthName(todayMD.m)}`}
                   nouns={cfg.nouns}
                   today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE}
@@ -18043,29 +18250,31 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       </Screen>
     );
   } else {
-    const shared = { cfg, conn, lessons: playerLessons, go, fresh: published, saved: mySaved, juvenile };
+    /* a downloaded lesson opens even when the list no longer carries it */
+    const playerLessonsPlus = data ? [...playerLessons, ...downloads.list.filter((x) => x.status === "saved" && x.record && x.record.lesson && !playerLessons.some((l) => String(l.id) === x.id)).map((x) => x.record.lesson)] : playerLessons;
+    const shared = { cfg, conn, lessons: playerLessonsPlus, go, fresh: published, saved: mySaved, juvenile };
     /* The walkthrough shows the no-coach screen as a state of its own;
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
-      log:    <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      home:   <PlayerLog downloadCount={downloads.totals.count} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      log:    <PlayerLog downloadCount={downloads.totals.count} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
-                            mediaFor={data ? data.lessonMedia : null} compareLessons={data ? playerLessons : null} knownMedia={data ? liveMedia : null}
+                            mediaFor={data ? mediaFor : null} compareLessons={data ? playerLessons : null} knownMedia={data ? liveMedia : null}
                             drills={data ? data.drills : null} tips={data ? data.tips : null}
                             /* what the coach marked that day, for the person the lesson belongs to */
                             attendanceFor={(l) => { const who = data ? (l.playerId || null) : seedId(activeProfile?.name);
                               if (!who) return null; const k = Object.keys(registers || {}).find((x) => x.startsWith(`${l.d} ${l.m}`)); return k ? (registers[k][who] || null) : null; }}
                             onMessage={data ? ((l) => (l.playerId && (l.playerId === account.id || (data.dependants || []).some((k) => k.id === l.playerId)) ? push("thread:" + l.playerId) : push("thread:" + account.id))) : () => push("thread:" + (conn?.coach || ""))}
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
-                            onDownload={(l, items) => downloadLessonLog({ lesson: l, coach: l.coach || coachName, who: l.type === "Group" ? l.who : null, media: items, say })}
+                            onDownload={(l) => downloadLesson(l)}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog downloadCount={downloads.totals.count} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
   }
 
   return (
-    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><DownloadCtx.Provider value={downloadCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -18231,12 +18440,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               )}
           </div>
 
-          {offline && inApp && (
-            <div className="shrink-0 relative z-30 flex items-center gap-2.5 px-6 py-2"
+          {offlineNow && inApp && (
+            /* OFFLINE, SAID ONCE: a strip above the screen while there is no
+               network — the phone's own word, or the app running on its
+               kept copy — carrying what is on the phone to play */
+            <div className="shrink-0 relative z-30 flex items-center gap-2.5 px-6 py-2" role="status" data-tour="offline-strip"
                  style={{ background: CAUTION, animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
-              <CloudRain size={13} color="#fff" strokeWidth={2.1} />
+              <WifiOff size={13} color="#fff" strokeWidth={2.1} />
               <span className="flex-1" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: "#fff" }}>
-                {tr("Offline — recording and mark-up still work")}
+                {tr("Offline")}{downloads.totals.count ? ` · ${downloads.totals.count} ${downloads.totals.count === 1 ? tr("download") : tr("downloads")}` : ""}
               </span>
               {queued > 0 && (
                 <span className="rounded-full px-2 py-0.5" style={{ background: "rgba(255,255,255,0.25)", fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>
@@ -18351,6 +18563,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             main={mainSport[activeProfileId]}
                                             onSetMain={(sp) => { setMainSport((v) => ({ ...v, [activeProfileId]: sp })); setCoachSport(sp); }}
                                             close={() => setSheet(null)} say={say} />
+              : sheet === "download" && downloadFor ? <DownloadSheetBody lesson={downloadFor}
+                                            onOpen={/^(c?lesson):/.test(stack[stack.length - 1] || "") && (stack[stack.length - 1] || "").split(":")[1] === String(downloadFor.id) ? null
+                                              : () => { setSheet(null); push(role === "coach" ? `clesson:${downloadFor.id}:${downloadFor.who || ""}` : `lesson:${downloadFor.id}`); }}
+                                            onUpdate={() => { setSheet(null); startDownload(downloadFor); }}
+                                            onShare={() => { setSheet(null); shareSaved(downloadFor); }}
+                                            onRemove={async () => { setSheet(null); hapticWarn(); await downloads.remove(downloadFor.id); done(tr("Removed"), downloadFor.focus, DANGER); }} />
               : sheet === "invite" ? <InviteBody code={inviteShown} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
@@ -18488,6 +18706,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               if (!data) return {};
                                               const check = await data.verifyPassword(pw);
                                               if (check.error) return check;
+                                              try { await downloads.removeAll(); } catch (e) { /* the account goes either way */ }
                                               const res = await data.deleteAccount();
                                               if (res.error) return { error: res.error.message };
                                               /* The account is gone and the session with
@@ -18638,7 +18857,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></DownloadCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
   );
 }
 
