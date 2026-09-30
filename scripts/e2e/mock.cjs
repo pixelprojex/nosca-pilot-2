@@ -72,6 +72,8 @@ function emptyDb() {
     now: () => Date.now(),
     confirmEmail: false,
     failUpload: null,     // (path) => response spec | null — a way to refuse one upload
+    failFetch: null,      // (path) => true — a signed file that will not come down (a 500)
+    offline: false,       // true: every request to the mock fails as a lost connection
     alive: true,
   };
 }
@@ -312,13 +314,16 @@ async function attach(page, db, opts = {}) {
   /* Fonts are answered with an empty stylesheet rather than aborted: an
      aborted request logs "Failed to load resource" to the console, and the
      suites treat every console error as the app's. */
-  await page.route("https://api.fontshare.com/**", (r) => r.fulfill({ status: 200, contentType: "text/css", headers: { "access-control-allow-origin": "*" }, body: "" }));
+  await page.route("https://api.fontshare.com/**", (r) => (db.offline ? r.abort("internetdisconnected") : r.fulfill({ status: 200, contentType: "text/css", headers: { "access-control-allow-origin": "*" }, body: "" })));
   /* the notifications channel: the app opens a socket the moment it has a
      person; nothing needs to come down it here */
   if (typeof page.routeWebSocket === "function") await page.routeWebSocket(/realtime/, () => {});
   const confirmOn = !!(opts.confirmEmail || db.confirmEmail);
 
   await page.route(`${SB}/**`, async (route) => {
+    /* db.offline: the network is gone — every request fails the way a
+       phone in a field fails it */
+    if (db.offline) return route.abort("internetdisconnected");
     const req = route.request(), url = new URL(req.url()), p = url.pathname, method = req.method(), hdr = req.headers();
     const json = (status, body, extra = {}) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", ...extra }, body: body === undefined ? "" : JSON.stringify(body) });
     const bytes = (buf, type) => route.fulfill({ status: 200, contentType: type, headers: { "access-control-allow-origin": "*", "accept-ranges": "bytes" }, body: buf });
@@ -372,6 +377,7 @@ async function attach(page, db, opts = {}) {
           : { error: "Either the object does not exist or you do not have access to it", path: pth, signedURL: null }))); }
       /* a marked-up take (markup-<n>.webm) or a comparison (compare-<n>.webm) is served as the real clip too, so
          a second round of marking up has a picture to decode */
+      if (rest.startsWith("sign/") && method === "GET" && db.failFetch && db.failFetch(p)) return json(500, { statusCode: "500", error: "Internal", message: "boom" });
       if (rest.startsWith("sign/") && method === "GET") { const isVid = /\.mp4$/.test(p) || /(markup|compare)-\d+\.webm$/.test(p); return bytes(isVid ? (CLIP || MP4) : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, isVid ? (CLIP ? "video/webm" : "video/mp4") : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
       if (rest.startsWith("public/") && method === "GET") return bytes(PNG, "image/png");
       if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }

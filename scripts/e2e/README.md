@@ -36,6 +36,11 @@ would, so the bell and the catch-up have something real to show), and
 both storage buckets (`media` signed, `avatars` public). The realtime
 socket is swallowed.
 
+`db.offline = true` makes every request fail as a lost connection;
+`db.failFetch = (path) => true` makes one signed file answer 500; and
+the build's service worker runs in every suite's browser, so the shell
+it keeps is exercised whenever a page reloads.
+
 Every read is filtered from the caller's JWT the way the row-level
 security policies filter it, and every write is checked the way the
 with-check policies check it (refused writes come back 403) — so a
@@ -63,6 +68,7 @@ script adds the people its scenarios need.
 | `review.cjs` | Mark it up: the clip on a full-screen stage, marks anchored to their moment (a new moment fades the last), pinch zoom, Photo of the frame, Save with no microphone and Talk over it, the take standing in for the clip, the file the app sent decoded and its ink read back, and the same from the log — with a fake camera and microphone |
 | `capture.cjs` | the camera: Capture opens live on the whole screen, PHOTO · VIDEO · VOICE by tap or swipe, a clip, a still and a voice note kept, the roll and Remove, the filing pill, and the captures already on the lesson when it is logged |
 | `compare.cjs` | Compare: the button beside Mark it up under a clip (the player's on its own), the picker of the player's other clips newest first with Clip 1 · Clip 2 on a lesson with several, two clips side by side muted, Play and Pause on both, a frame on moving both, the pill's › nudging one clip alone and the pair keeping the offset, ½× on both, the scrub back to the lined-up starts, Swap, Change, the coach's Save recording the pair as a new 1280×720 clip on the lesson with both halves drawn and the player told, a parent on a child's lesson with the child named, and a player with one clip and nothing else not offered it |
+| `downloads.cjs` | downloads: the disc saves a lesson whole onto the phone (the record with its note, tip and drills, whose it is, and every file as a blob — read back out of IndexedDB), the tick, the home's Downloads row and Settings › Downloads with the count and the size, the Downloads screen with the poster from the phone, the lesson page playing from the phone, the sheet (Update saving a newer copy, Share as a file with the note, the tip and the drills in it), a file that will not fetch failing with its reason and Retry from the list, the app opening with no network at all on the worker's shell and the last load with Offline said, a downloaded lesson playing offline and one never downloaded saying so, the network coming back, a swipe removing one with its files and Remove all; the player from the feed card; a parent on a child's lesson |
 | `feed.cjs` | the feed: real files play, the panel says what the lesson was, one clip plays at a time with the sound following the scroll (the rest paused, muted, on their first frame), a tap on the picture pauses, ½× stays on from card to card, the strip scrubs and switches files, a landscape clip fills the screen like a portrait one, leaving the app stops the clip and lets it go, a star on the card and on the lesson page with the Starred section on both sides, and a player with nothing yet is told so |
 
 Every script takes `<absolute dist dir> <port> <absolute output dir>`

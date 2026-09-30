@@ -48,6 +48,15 @@ backswing to the top), a swap. A player has the same over their own
 lessons. No SQL. Adds a route (`compare:`), a button beside Mark it up,
 a screen; touches nothing that is protected. `scripts/e2e/compare.cjs`.
 
+### Built the same day, at the founder's ask: Downloads
+Not from the brief — the founder asked for downloads "done within the
+app, a system just like Netflix", a Downloads section that "works
+flawlessly and also saves every part of the log". Built as such:
+the disc's four states, the store, the Downloads screen, the sheet,
+and the app opening on its kept shell and last load with no network.
+It stands as the pattern for the next large items: a whole capability,
+both roles, its own suite, the founder's register in CLAUDE.md.
+
 ### 2. A clip from the player to the coach
 The asynchronous loop the market is built on. A player (or a parent
 for a child) films a practice swing with the app's own camera and

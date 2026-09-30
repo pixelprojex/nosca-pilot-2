@@ -1,13 +1,46 @@
-/* Nosca service worker — push only.
+/* Nosca service worker — push, and the shell for when there is no
+ * network.
  *
- * Deliberately no app-shell caching: Netlify serves the app, and a
- * stale cached shell is worse than none (a fix would appear to do
- * nothing, which is exactly the failure CLAUDE.md warns about). This
- * file exists so the browser can receive a push while the app is
- * closed and land the person on the right screen when they tap it.
+ * THE NETWORK FIRST, ALWAYS, WHEN THERE IS ONE. Every navigation goes
+ * to Netlify; the copy kept here answers only when that fails. That is
+ * the whole difference from the app-shell caching this file used to
+ * refuse: a cached shell served instead of the network made a deploy
+ * appear to do nothing, which is the failure CLAUDE.md warns about. A
+ * cached shell served only when the network is gone is what lets a
+ * downloaded lesson open on a plane. /version.json is never cached, so
+ * the app's own check against the server keeps working, and the hashed
+ * files under /assets/ are immutable, so a cached one is never wrong.
+ *
+ * The list of this build's files is /precache.json, written by the
+ * build. It is read on install and again whenever the app says
+ * "nosca:precache" on opening; a build already kept is left alone, and
+ * older builds' caches are dropped.
  */
+const SHELL_PREFIX = "nosca-shell-";
 
-self.addEventListener("install", () => {
+async function precache() {
+  let manifest;
+  try {
+    const r = await fetch("/precache.json", { cache: "no-store" });
+    if (!r.ok) return;
+    manifest = await r.json();
+  } catch { return; }
+  const name = SHELL_PREFIX + (manifest.built || "0");
+  if (!(await caches.has(name))) {
+    const c = await caches.open(name);
+    await Promise.all((manifest.files || []).map(async (f) => {
+      try {
+        const res = await fetch(f, { cache: "no-store" });
+        if (res && res.ok) await c.put(f, res);
+      } catch { /* a file that will not fetch is left out; the fallback is best effort */ }
+    }));
+  }
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((k) => k.startsWith(SHELL_PREFIX) && k !== name).map((k) => caches.delete(k)));
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(precache());
   self.skipWaiting();
 });
 
@@ -15,24 +48,62 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-/* Chrome will not offer "Install" without a fetch handler. This one
-   caches NOTHING — it passes navigations straight to the network and,
-   only when that fails, answers with a line of text. A cached shell
-   would make a deploy appear to do nothing, which is the failure
-   CLAUDE.md warns about. */
+self.addEventListener("message", (event) => {
+  const d = (event && event.data) || {};
+  if (d.type === "nosca:precache" && event.waitUntil) event.waitUntil(precache());
+});
+
+const offlinePage = () => new Response(
+  "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\">" +
+  "<title>Nosca</title><body style=\"font:16px -apple-system,system-ui,sans-serif;padding:14vh 8vw;color:#123C30\">" +
+  "<p>Nosca needs a connection.</p><p style=\"color:#7A8580\">Try again when you are back online.</p>",
+  { headers: { "content-type": "text/html; charset=utf-8" }, status: 503 }
+);
+
+/* what is kept: the shell of the current build, or any build still cached */
+const fromShell = async (req) => {
+  const hit = await caches.match(req);
+  if (hit) return hit;
+  return null;
+};
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.mode !== "navigate") return;
-  event.respondWith(
-    fetch(req).catch(() =>
-      new Response(
-        "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\">" +
-        "<title>Nosca</title><body style=\"font:16px -apple-system,system-ui,sans-serif;padding:14vh 8vw;color:#123C30\">" +
-        "<p>Nosca needs a connection.</p><p style=\"color:#7A8580\">Try again when you are back online.</p>",
-        { headers: { "content-type": "text/html; charset=utf-8" }, status: 503 }
-      )
-    )
-  );
+  if (req.method !== "GET") return;
+  let url;
+  try { url = new URL(req.url); } catch { return; }
+
+  /* a navigation: the network, and the kept shell only when it fails */
+  if (req.mode === "navigate") {
+    event.respondWith(fetch(req).catch(async () => (await fromShell("/index.html")) || (await fromShell("/")) || offlinePage()));
+    return;
+  }
+  if (url.origin !== self.location.origin) return;
+
+  /* the build's hashed files: the copy first — it cannot be stale —
+     and the network fills the current build's cache when one is missing */
+  if (url.pathname.startsWith("/assets/")) {
+    event.respondWith((async () => {
+      const hit = await fromShell(req);
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res && res.ok) {
+        try {
+          const keys = await caches.keys();
+          const k = keys.find((x) => x.startsWith(SHELL_PREFIX));
+          if (k) { const c = await caches.open(k); await c.put(req, res.clone()); }
+        } catch { /* fine */ }
+      }
+      return res;
+    })());
+    return;
+  }
+  /* icons and the manifest: the network, the copy when it fails */
+  if (url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest") {
+    event.respondWith(fetch(req).catch(async () => (await fromShell(req)) || Response.error()));
+  }
+  /* everything else — /version.json, /precache.json, the functions,
+     Supabase — is the network and only the network */
 });
 
 /* The Netlify function sends JSON { title, body, data }. `data` may

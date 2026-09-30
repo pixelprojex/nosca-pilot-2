@@ -84,18 +84,33 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       /* (e) a Download disc on every row */
       const discs = await page.getByRole("button", { name: /^Download / }).count();
       check("(e) every archive row carries its own Download disc", discs === 3, String(discs));
-      const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.getByRole("button", { name: /^Download Putting/ }).click()]);
-      check("(e) the disc saves that lesson as a file", !!dl && /\.html$/.test(dl.suggestedFilename()), dl ? dl.suggestedFilename() : "no download");
+      /* the disc saves the lesson onto the phone; a tick disc when it is there */
+      await page.getByRole("button", { name: /^Download Putting/ }).click();
+      await page.waitForSelector('button[aria-label="Downloaded Putting"]', { timeout: 15000 }).catch(() => {});
+      check("(e) the disc saves that lesson onto the phone and becomes a tick", (await page.getByRole("button", { name: "Downloaded Putting" }).count()) === 1, (await text()).slice(0, 120));
+      /* the file leaves through the download sheet's Share as a file */
+      await page.getByRole("button", { name: "Downloaded Putting" }).click(); await page.waitForTimeout(600);
+      check("(e) tapping the tick opens the download sheet: Open · Update · Share as a file · Remove", (await page.locator('[data-tour="download-sheet"]').count()) === 1 && /Downloaded · \d+ (KB|MB)/.test(await text()) && (await page.getByRole("button", { name: "Share as a file" }).count()) === 1, (await text()).slice(-200));
+      const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.getByRole("button", { name: "Share as a file" }).click()]);
+      check("(e) Share as a file saves that lesson as a file", !!dl && /\.html$/.test(dl.suggestedFilename()), dl ? dl.suggestedFilename() : "no download");
       const html = dl ? fs.readFileSync(await dl.path(), "utf8") : "";
       check("(e) …the right lesson", html.includes("Putting") && html.includes("Pace on the long ones first."), html.slice(0, 120));
+      await page.waitForTimeout(400);
       /* the feed carries the same disc on each card */
       await page.locator('[data-tour="archive-view"] button', { hasText: "Feed" }).first().click(); await page.waitForTimeout(1200);
       await shot("03-archive-feed");
       const cards = await page.locator("[data-feed-card]").count();
-      const cardDisc = await page.locator("[data-feed-card]").first().getByRole("button", { name: /^Download / }).count();
+      const firstDisc = page.locator("[data-feed-card]").first().getByRole("button", { name: /^Download(ed)? / });
+      const cardDisc = await firstDisc.count();
       check("(e) the feed's cards each carry a Download disc", cards >= 3 && cardDisc === 1, `${cards} cards · ${cardDisc} disc`);
-      const [dl2] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator("[data-feed-card]").first().getByRole("button", { name: /^Download / }).click()]);
-      check("(e) …and it saves the lesson on the card", !!dl2 && /\.html$/.test(dl2.suggestedFilename()), dl2 ? dl2.suggestedFilename() : "no download");
+      const wasSaved = /^Downloaded /.test((await firstDisc.getAttribute("aria-label")) || "");
+      await firstDisc.click(); await page.waitForTimeout(800);
+      if (wasSaved) {
+        check("(e) …and on a downloaded lesson the card's tick opens its download sheet", (await page.locator('[data-tour="download-sheet"]').count()) === 1, (await text()).slice(-160));
+      } else {
+        await page.waitForSelector('[data-feed-card] button[aria-label^="Downloaded "]', { timeout: 15000 }).catch(() => {});
+        check("(e) …and it saves the lesson on the card onto the phone", (await page.locator('[data-feed-card] button[aria-label^="Downloaded "]').count()) >= 1, (await text()).slice(0, 120));
+      }
       await page.context().close();
     }
 

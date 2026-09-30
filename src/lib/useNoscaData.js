@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
+import { putSnapshot, getSnapshot } from "./offline";
 
 /* THE DATA LAYER
  *
@@ -187,6 +188,25 @@ export function useNoscaData(profile) {
      family is reflected the moment it is written, with nothing else
      needing to remember to refresh. */
   const [links, setLinks] = useState(null);
+  /* OFFLINE. The last good load is kept on the phone (the offline store)
+     and served only when a load fails for want of a network — never for
+     any other failure, which still says what went wrong. `offline` is
+     true while the app is running on that copy; coming back online
+     loads again and clears it. */
+  const [offline, setOffline] = useState(false);
+  const offlineRef = useRef(false); offlineRef.current = offline;
+  const [goodAt, setGoodAt] = useState(0);
+  const applySnapshot = (d) => {
+    setRoster(d.roster || []); setLessons(d.lessons || []); setDrills(d.drills || []); setTips(d.tips || []); setRegisters(d.registers || {});
+    setBookings(d.bookings || []); setCompetitions(d.competitions || []); setRecurring(d.recurring || []); setPrefs(d.prefs || null);
+    setInviteCode(d.inviteCode || null); setCoachName(d.coachName || null); setCoachSport(d.coachSport || null);
+    setFamily(d.family || null); setDependants(d.dependants || []); setHoursByPlayer(d.hoursByPlayer || {});
+    setRequests(d.requests || []); setMyRequest(d.myRequest || null); setNotifications(d.notifications || []);
+    setMe(d.me || null); setDeclinedBy(d.declinedBy || null); setThreads(d.threads || []);
+    setReviewSummary(d.reviewSummary || null); setMyReview(d.myReview || null); setReviews(d.reviews || []);
+    setCoachAvailability(d.coachAvailability == null ? null : d.coachAvailability); setBusySlots(d.busySlots || []); setBusyByPlayer(d.busyByPlayer || {});
+    setLinks(d.links || null);
+  };
   const mediaCache = useRef(new Map());          // lesson id -> { at, count, items }
   const mediaFlight = useRef(new Map());         // lesson id -> the request in the air
 
@@ -200,6 +220,26 @@ export function useNoscaData(profile) {
        "Loading…" screen — unmounting every sheet, every screen and the
        navigation stack — on every save. */
     setLoadError(null);
+
+    /* a fetch that never reached the server reads as a TypeError from
+       the client; two of them on the queries everything hangs off is
+       the network gone, not the database refusing */
+    const NET_RE = /Failed to fetch|Load failed|NetworkError|network|fetch/i;
+    const netErr = (r) => !!(r && r.error && NET_RE.test(String(r.error.message || r.error.code || "")));
+    const useSnapshot = async () => {
+      try {
+        const snap = await getSnapshot(profile.id);
+        if (snap && snap.data) { applySnapshot(snap.data); setOffline(true); return true; }
+      } catch (e) { /* no copy: the error below stands */ }
+      return false;
+    };
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      /* the phone knows it is offline: straight to the copy, no waiting
+         on retries that cannot succeed */
+      if (!(await useSnapshot())) setLoadError("No connection");
+      setLoading(false);
+      return;
+    }
 
     try {
       /* Everything in parallel — these are independent queries and the
@@ -224,6 +264,12 @@ export function useNoscaData(profile) {
            so both sides count the same lesson the same way. */
         supabase.from("lesson_attendees").select("lesson_id, player_id"),
       ]);
+
+      if (netErr(pRes) && netErr(lRes)) {
+        if (await useSnapshot()) return;
+        throw new Error("No connection");
+      }
+      setOffline(false);
 
       const people = pRes.data || [];
       const personOf = (id) => people.find((x) => x.id === id) || null;
@@ -513,6 +559,7 @@ export function useNoscaData(profile) {
         : null
     );
     setMyReview(!isCoach ? (allReviews.find((r) => r.player_id === profile.id) || null) : null);
+    setGoodAt(Date.now());
     } catch (e) {
       /* Whatever went wrong — a missing table because a migration
          wasn't run, a network failure, anything — the app must be told,
@@ -527,6 +574,21 @@ export function useNoscaData(profile) {
   }, [profile?.id, isCoach]);
 
   useEffect(() => { load(); }, [load]);
+
+  /* the copy for the plane: written after every good load, and only then */
+  useEffect(() => {
+    if (!goodAt || offline || !profile) return;
+    putSnapshot(profile.id, { roster, lessons, drills, tips, registers, bookings, competitions, recurring, prefs, inviteCode, coachName, coachSport,
+                              family, dependants, hoursByPlayer, requests, myRequest, notifications, me, declinedBy, threads, reviewSummary, myReview, reviews,
+                              coachAvailability, busySlots, busyByPlayer, links }).catch(() => {});
+  }, [goodAt]);
+  /* back on a network: load for real */
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const back = () => { if (offlineRef.current) load(); };
+    window.addEventListener("online", back);
+    return () => window.removeEventListener("online", back);
+  }, [load]);
 
   /* ---------------- writes ---------------- */
 
@@ -1484,7 +1546,7 @@ export function useNoscaData(profile) {
   const mediaFor = lessonMediaShared;
 
   return {
-    loading, loadError, isCoach, inviteCode, coachName, coachSport,
+    loading, loadError, offline, isCoach, inviteCode, coachName, coachSport,
     /* the family: { id, code, name, displayName, members } or null; the
        juniors an adult looks after; each one's coach's hours */
     family, dependants, hoursByPlayer,

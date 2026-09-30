@@ -487,14 +487,70 @@ seeded data and no account.
   Drifting, Competitions; past two kinds of thing a row of tiles (All ·
   each kind) narrows it, and under two there is no filter to read
   before the first row.
-- **Every lesson row and every feed card carries a Download disc.**
-  `LessonRow` takes `onDownload` and draws the 38px disc at its right
-  edge (the row is then a div of two buttons, so a test counting rows
-  excludes `aria-label^="Download"`); `FeedCard` draws it beside the
-  sound toggle. `downloadLesson` in Nosca is the one handler — it
-  fetches the lesson's files and calls `downloadLessonLog` — and every
-  route that lists lessons passes it. A row's grey line carries the
-  whole name: two players with one first name are two files.
+- **Downloads are inside the app, the way Netflix keeps them, and a
+  download is every part of the log.** The founder asked for this in
+  those words: the disc used to hand the lesson out as an HTML file
+  through the share sheet, which is not a download anyone recognises.
+  Now `DownloadDisc` (38px on every `LessonRow`, 40px on every
+  `FeedCard`, and the foot of the lesson page in words) has four
+  states: the arrow (not on the phone), a ring filling with the
+  percentage inside it (coming down), a filled disc with a tick (on
+  the phone), the arrow in red (it failed; a tap retries). One tap
+  saves the lesson whole onto the phone — the record (focus, subs, the
+  day, who, the note, the tip and the drills set alongside it, the
+  register's mark, the coach's name) and every file as a blob — into
+  IndexedDB (`src/lib/offline.js`: `lessons`, `files`, `snapshots`,
+  each row carrying its owner, so a shared phone never shows one
+  account the other's). `src/lib/useDownloads.js` is the hook: per-file
+  progress from the stream, a failure said with its reason and kept in
+  the list with Retry (files that landed stay), the same tap on a
+  downloaded lesson opening its sheet — **Open · Update · Share as a
+  file · Remove** (Update fetches what changed and keeps the old copy
+  if it fails; Share as a file is the old HTML export, now with the
+  drills and the tip from the record). `DownloadCtx` (provided by
+  Nosca) is how every surface reads it; `downloadLesson` is the one
+  tap. **Downloads** is a screen: a row under All lessons on the
+  coach's home (`today-downloads`) and above the player's list
+  (`log-downloads`), there only while something is on the phone, and
+  Settings › Downloads with the count and the room they take; the
+  screen is a boxed list of `LessonRow`s with the poster from the
+  phone and two facts (whose, or the day; the size, or how far, or
+  why it failed), anything still coming down or failed at the top, a
+  swipe to remove, Remove all at the foot, "Nothing downloaded" when
+  empty. **A downloaded lesson plays from the phone, online or not**:
+  every reader of a lesson's files goes through `mediaFor` in Nosca,
+  which hands back the phone's copy (object urls) where there is one
+  and signs from the server where there is not; offline and never
+  downloaded, the lesson page says "Not downloaded" rather than a
+  skeleton that never ends. A row's grey line carries the whole name:
+  two players with one first name are two files. A deleted account
+  takes its downloads with it. `scripts/e2e/downloads.cjs` walks all
+  of it, offline included; `coach-day.cjs` (e) and `core-loop.cjs`
+  (b) share the file through the sheet.
+- **The app opens with no network, on its kept copy — and the network
+  comes first whenever there is one.** Three pieces. `public/sw.js`
+  keeps this build's shell (the files `/precache.json` lists, written
+  by `vite.config.js` at build) and serves it only when a navigation
+  fails; online, every navigation goes to Netlify, `/version.json` is
+  never cached, and the hashed files under `/assets/` are immutable so
+  a cached one is never wrong. The app says `nosca:precache` to the
+  worker on every open and the worker refreshes its copy when the
+  build has changed. This is the whole difference from the app-shell
+  caching this file used to refuse: a cached shell served instead of
+  the network made a deploy appear to do nothing; a cached shell
+  served only when the network is gone is what lets a download open
+  on a plane. `useNoscaData` writes the last good load to the offline
+  store (`putSnapshot`, after a load where the profile and the lessons
+  both came back) and serves it only when a load fails for want of a
+  network — the phone saying it is offline, or the client's own
+  "Failed to fetch" on both of those queries — with `data.offline`
+  true until a load succeeds again (the `online` event triggers one);
+  any other failure still shows the error page. `AuthContext` keeps
+  the profile row in localStorage the same way. The strip above the
+  screen (`offline-strip`, the CAUTION colour, "Offline · 2
+  downloads") is the phone's own word or the kept copy, and it goes
+  the moment a load succeeds. Nothing is written offline; a write
+  says what the client said.
 - **A swipe row is the iPhone's.** `SwipeRow`: the first 88px reveal
   Remove and the row rests there; pulling on, the red follows the
   thumb across the row, and past 60% of its width the label jumps to

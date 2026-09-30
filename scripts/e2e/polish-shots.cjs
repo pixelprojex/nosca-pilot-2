@@ -89,6 +89,12 @@ function freshDb() {
       await page.getByRole("button", { name: "Continue" }).click().catch(() => {}); await page.waitForTimeout(600); await shot("c19-setup-3");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Alerts"]', 900); await shot("c22-alerts");
+      /* a lesson saved onto the phone, and the Downloads screen */
+      await tap('[aria-label="Roster"]'); await tap('[data-tour="roster-row"]');
+      await page.getByRole("button", { name: /^Download Short game/ }).first().click().catch(() => {});
+      await page.waitForSelector('button[aria-label="Downloaded Short game"]', { timeout: 15000 }).catch(() => {});
+      await shot("c23-player-file-downloaded");
+      await tap('[aria-label="Today"]'); await tap('[data-tour="today-downloads"]', 900); await shot("c24-downloads");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("c20-chat-list");
       await page.locator('[data-tour="chat-row"]').first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("c21-thread-junior");
