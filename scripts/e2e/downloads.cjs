@@ -81,14 +81,21 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
     const b = [...document.querySelectorAll("button[data-download]")].find((x) => (x.getAttribute("aria-label") || "").endsWith(` ${f}`) || (x.getAttribute("aria-label") || "").includes(` ${f} · `));
     return !!b && b.getAttribute("data-download") === st;
   }, [focus, state], { timeout: ms }).then(() => true).catch(() => false);
-  /* the iPhone's swipe on a row: pull left past the mark, let go */
+  /* the iPhone's swipe on a row: a finger down at the right, pulled left
+     past the mark, lifted — the row's own pointer events, in order */
   const swipeAway = async (page, sel) => {
-    const box = await page.locator(sel).first().boundingBox(); if (!box) return false;
-    const y = box.y + box.height / 2;
-    await page.mouse.move(box.x + box.width - 20, y); await page.mouse.down();
-    for (let i = 1; i <= 12; i++) { await page.mouse.move(box.x + box.width - 20 - (box.width * 0.75 * i) / 12, y); await page.waitForTimeout(16); }
-    await page.mouse.up(); await page.waitForTimeout(700);
-    return true;
+    const ok = await page.evaluate(async (q) => {
+      const row = document.querySelector(q); if (!row) return false;
+      const r = row.getBoundingClientRect(); const y = r.top + r.height / 2;
+      const fire = (type, x) => row.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0, buttons: type === "pointerup" ? 0 : 1 }));
+      const x0 = r.right - 16, travel = r.width * 0.8;
+      fire("pointerdown", x0);
+      for (let i = 1; i <= 16; i++) { fire("pointermove", x0 - (travel * i) / 16); await new Promise((res) => setTimeout(res, 16)); }
+      fire("pointerup", x0 - travel);
+      return true;
+    }, sel);
+    await page.waitForTimeout(900);
+    return ok;
   };
 
   try {
