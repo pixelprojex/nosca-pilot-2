@@ -61,9 +61,11 @@ const NEVER = /sign out|log out|delete|leave|remove|withdraw|clear all|call off|
         const pressed = Array.from(document.querySelectorAll("[aria-pressed],[aria-current],[aria-checked],[aria-expanded]")).map((e) => e.getAttribute("aria-pressed") + e.getAttribute("aria-current") + e.getAttribute("aria-checked") + e.getAttribute("aria-expanded")).join("");
         const inputs = Array.from(document.querySelectorAll("input,textarea,select")).map((i) => i.type === "checkbox" || i.type === "radio" ? String(i.checked) : i.value).join("|");
         const backs = document.querySelectorAll('[aria-label="Back"]').length;
-        return { text, sheet, pressed, inputs, backs, opened: (window.__opened || []).length, shares: window.__shares || 0, files: document.activeElement && document.activeElement.type === "file" };
+        /* a control that renames itself — Dictate to Stop dictating, Star to Starred — has done something */
+        const labels = Array.from(document.querySelectorAll("button[aria-label]")).map((b) => b.getAttribute("aria-label")).join("|");
+        return { text, sheet, pressed, inputs, backs, labels, opened: (window.__opened || []).length, shares: window.__shares || 0, files: document.activeElement && document.activeElement.type === "file" };
       });
-      const changed = (a, b) => a.text !== b.text || a.sheet !== b.sheet || a.pressed !== b.pressed || a.inputs !== b.inputs || a.backs !== b.backs || a.opened !== b.opened || a.shares !== b.shares;
+      const changed = (a, b) => a.text !== b.text || a.sheet !== b.sheet || a.pressed !== b.pressed || a.inputs !== b.inputs || a.backs !== b.backs || a.labels !== b.labels || a.opened !== b.opened || a.shares !== b.shares;
 
       /* a control that is already in the state it would put you in — the
          tab you are on, the segment that is selected, a pressed toggle —
@@ -71,7 +73,22 @@ const NEVER = /sign out|log out|delete|leave|remove|withdraw|clear all|call off|
       /* on screen, enabled, and actually reachable by a finger: a button
          under an open sheet's scrim is not one a person can press */
       const visible = () => page.evaluate(() => Array.from(document.querySelectorAll('button, [role="button"], a[href]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < innerHeight && !b.disabled && getComputedStyle(b).pointerEvents !== "none"; }).map((b, i) => ({ i, covered: (() => { const r = b.getBoundingClientRect(); const top = document.elementFromPoint(Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2))); return !!top && top !== b && !b.contains(top) && !top.contains(b); })(), on: b.getAttribute("aria-current") === "page" || b.getAttribute("aria-pressed") === "true" || b.getAttribute("aria-selected") === "true" || b.getAttribute("aria-checked") === "true", label: (b.getAttribute("aria-label") || b.innerText || b.getAttribute("data-tour") || b.getAttribute("href") || "").replace(/\s+/g, " ").trim().slice(0, 48) })));
-      const tapNth = (i) => page.evaluate((i) => { const els = Array.from(document.querySelectorAll('button, [role="button"], a[href]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < innerHeight && !b.disabled && getComputedStyle(b).pointerEvents !== "none"; }); const el = els[i]; if (!el) return null; const lab = (el.getAttribute("aria-label") || el.innerText || "").trim().slice(0, 48); el.click(); return lab; }, i);
+      /* THE SAME CONTROL, NOT THE SAME INDEX. A tap can leave a mark that
+         outlives the reload — a view switch saved to the person's
+         preferences — so the screen the tester comes back to is not
+         always the one it listed. The control is found again by its
+         label and its place among controls with that label; one that
+         is missing now, or already in the state it would put you in,
+         is left alone rather than counted dead. */
+      const tapOne = (c) => page.evaluate(({ label, nth }) => {
+        const lab = (b) => (b.getAttribute("aria-label") || b.innerText || b.getAttribute("data-tour") || b.getAttribute("href") || "").replace(/\s+/g, " ").trim().slice(0, 48);
+        const els = Array.from(document.querySelectorAll('button, [role="button"], a[href]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < innerHeight && !b.disabled && getComputedStyle(b).pointerEvents !== "none"; });
+        const same = els.filter((b) => lab(b) === label);
+        const el = same[nth];
+        if (!el) return { skipped: "gone" };
+        if (el.getAttribute("aria-current") === "page" || el.getAttribute("aria-pressed") === "true" || el.getAttribute("aria-selected") === "true" || el.getAttribute("aria-checked") === "true") return { skipped: "on" };
+        el.click(); return { lab: lab(el) };
+      }, c);
 
       /* the screens to sweep: home, every tab, and the two header doors */
       const doors = [["home", []], ...(await page.evaluate(() => Array.from(document.querySelectorAll('[data-tour^="tab-"]')).map((t) => [t.getAttribute("data-tour"), [`[data-tour="${t.getAttribute("data-tour")}"]`]]))),
@@ -83,17 +100,22 @@ const NEVER = /sign out|log out|delete|leave|remove|withdraw|clear all|call off|
         for (const sel of steps) { const el = page.locator(sel).first(); if (!(await el.count())) { ok = false; break; } await el.dispatchEvent("click"); await page.waitForTimeout(700); }
         if (!ok) continue;
         const key = (await state()).text.slice(0, 160); if (seenScreens.has(key)) continue; seenScreens.add(key);
-        const controls = await visible();
+        const controls = (await visible()).map((c, _, all) => ({ ...c, nth: all.slice(0, c.i).filter((o) => o.label === c.label).length }));
+        /* what this role had saved when the screen was listed, put back before
+           every tap so the reload lands on the very same screen */
+        const prefsBefore = JSON.parse(JSON.stringify(db.prefs));
         /* every tap goes home through the splash, so a full run is the best
            part of an hour: TRACE=1 says where it is on stderr */
         if (process.env.TRACE) console.error(`${role} · ${name} · ${controls.length} controls`);
         for (const c of controls) {
           if (NEVER.test(c.label) || c.on || c.covered) continue;
           /* back to this exact screen before every tap, so each control is judged on its own */
+          db.prefs = JSON.parse(JSON.stringify(prefsBefore));
           await home();
           for (const sel of steps) { const el = page.locator(sel).first(); if (await el.count()) { await el.dispatchEvent("click"); await page.waitForTimeout(600); } }
           const before = await state();
-          const lab = await tapNth(c.i); if (lab == null) continue;
+          const hit = await tapOne({ label: c.label, nth: c.nth }); if (!hit || hit.skipped) continue;
+          const lab = hit.lab;
           tapped[role] = (tapped[role] || 0) + 1;
           await page.waitForTimeout(750);
           const after = await state();
