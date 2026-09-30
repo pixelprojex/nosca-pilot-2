@@ -982,6 +982,55 @@ seeded data and no account.
   and releases the element afterwards, so the element's own style is
   what remains. Anything whose visible state comes only from an
   animation needs that state in its `style=` as well.
+- **Back puts you where you were.** Every navigation remounts the
+  screen (the route is the last entry of `stack`), so React keeps
+  nothing across a Back on its own. `NavCtx` carries the screen's key
+  — `depth:screen`, or `"sc"` inside the walkthrough's showcase where
+  nothing is kept — and `SCREEN_MEMORY`, a module Map, holds what a
+  screen wants back under that key. `Screen` keeps its scroll (the box
+  is `data-scroll="screen"`) and puts it back before the first paint,
+  then again over the next moments while skeletons become rows;
+  `LessonFeed` keeps the card it was on and jumps there with its smooth
+  scroll switched off. `useKept(name, initial)` is `useState` that
+  survives the remount: the archive's List · Feed, search, filters and
+  page; the player file's view; the roster's tab and search; the home's
+  folded day and Actions filter; the Diary's month, day, For and
+  List · Calendar; the drill library's filter and the drill unfolded;
+  Settings' search and the row unfolded; the bell's filter; the tips
+  filter; the lesson-logs page; a practice row. `push` drops the new
+  key's memory so a fresh open starts at the top; `pop` drops the key
+  it leaves; `go` (a tab) drops everything deeper than the roots, so a
+  tab away and back lands on that root where it was; a notification's
+  deep link (`land`) does the same. The tab you are already on, at its
+  root, goes to its top (`nosca:top`, the phone's own convention), and
+  the memory is cleared when the account changes, so a second person on
+  the same phone starts every screen fresh. Before this every Back landed at
+  the top of a fresh screen, which the founder called very, very
+  frustrating. `scripts/e2e/back.cjs` walks both sides — a lesson
+  opened from deep in the archive and two Backs, the feed's card, a
+  filter, a tab away, the Diary.
+- **Default view: a coach opens on List, a player on Feed, and Settings
+  › Default view changes it.** `preferences.default_view` (`list` |
+  `feed`; null means the role's own) with the phone's copy in
+  `nosca.view.<uid>`, so a project whose SQL has not been re-run still
+  does what was asked; `defaultView` in Nosca resolves the row, then
+  the phone, then the role; `homeView` is the sitting's own switch on
+  top of it, and the archive and the player file start on
+  `nav.defaultView`. The row is the first of Coaching / Playing
+  (`settings-view`), the second Settings shape (a value and rows that
+  unfold), so it is found in a second and by the search. Saved opens on
+  its list whoever is looking (`startView="list"`): a row is where a
+  download's size, how far it is and why it failed are read, and where
+  a swipe removes it; the feed is the tap beside it.
+- **The plus never opens on a swipe up.** The phone's home gesture
+  starts on the tab bar: the bar's `pointerdown` began a drag along the
+  tabs and `pointercancel` — which is what the phone sends when it
+  takes the gesture — committed to the cell under the finger, so every
+  swipe up to leave the app opened the plus, and the founder saw it
+  every time. `TabBar` now selects only on a `pointerup` that was
+  neither vertical (`|dy| > 10` and more than `|dx|`) nor cancelled,
+  and ignores the click the browser fires after a drag while `settle()`
+  holds; a real tap still opens the plus. `back.cjs` (h), (h2), (i).
 - **Don't unmount the app on a refresh.** `loading` in `useNoscaData`
   is true for the first load only; the gate keeps `SignedIn` mounted
   while a profile refresh runs; `account` is memoised on its fields.

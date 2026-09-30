@@ -284,6 +284,9 @@ alter table public.preferences add column if not exists setup_done     boolean n
 -- player their own — as a list of lesson ids. Theirs alone: a star is
 -- a private mark, never shown to the other side.
 alter table public.preferences add column if not exists starred        jsonb not null default '[]'::jsonb;
+-- What lessons open on: 'list' or 'feed'. Null is the role's own default
+-- (a coach List, a player Feed); Settings › Default view sets it.
+alter table public.preferences add column if not exists default_view   text check (default_view in ('list', 'feed'));
 
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the

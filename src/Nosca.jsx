@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useContext, createContext } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, useContext, createContext } from "react";
 import { useCapture, pickMime, VIDEO_TYPES } from "./lib/useCapture";
 import QRCode from "qrcode";
 import { joinLink, shareOrCopy, copyText } from "./lib/share";
@@ -109,6 +109,33 @@ const StarCtx = createContext({ ids: [], has: () => false, toggle: null });
    and the one tap every disc makes — so no list threads it through
    props. `offline` is whether the app is running on its kept copy. */
 const DownloadCtx = createContext({ supported: false, ready: false, list: [], totals: { count: 0, bytes: 0, saving: 0 }, offline: false, state: () => null, has: () => false, tap: null, mediaOf: null, remove: null, removeAll: null, showWho: false });
+
+/* WHERE YOU WERE. Every screen remounts when it comes back — under a
+   pushed screen, or a tab away — which put a person at the top of a
+   list they had scrolled, on a list they had switched to the feed, on
+   the first card of a feed they were three deep in: "back to the
+   homepage every single time", in the founder's words. So each
+   screen's place is kept by its stack entry (depth and name) and put
+   back the moment it is on top again: the scroll of every `Screen`,
+   the card a feed was on, and the small choices a screen holds
+   (List · Feed, a filter, a search, a fold). A fresh push starts clean
+   (its entry is dropped first), a pop drops the entry it leaves, and a
+   tab switch keeps every tab's root. Nothing is kept for the
+   walkthrough's inert showcase. */
+const NavCtx = createContext({ key: "sc", defaultView: "list" });
+const SCREEN_MEMORY = new Map();
+const keep = (key, name, value) => { if (!key || key === "sc") return; SCREEN_MEMORY.set(`${key}|${name}`, value); };
+const kept = (key, name) => (!key || key === "sc" ? undefined : SCREEN_MEMORY.get(`${key}|${name}`));
+const dropMemory = (key) => { for (const k of [...SCREEN_MEMORY.keys()]) if (k.startsWith(`${key}|`)) SCREEN_MEMORY.delete(k); };
+const dropDeeperMemory = (depth) => { for (const k of [...SCREEN_MEMORY.keys()]) if (Number(k.split(":")[0]) > depth) SCREEN_MEMORY.delete(k); };
+/* a piece of screen state that is still there when the screen comes back */
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function useKept(name, initial) {
+  const nav = useContext(NavCtx);
+  const [v, setV] = useState(() => { const r = kept(nav.key, name); return r === undefined ? (typeof initial === "function" ? initial() : initial) : r; });
+  const set = useCallback((x) => { setV((p) => { const n = typeof x === "function" ? x(p) : x; keep(nav.key, name, n); return n; }); }, [nav.key, name]);
+  return [v, set];
+}
 /* The toast, reachable from anything deep in the tree that has a line
    to say and no prop to say it through — the microphone, mostly. */
 const NoticeCtx = createContext(() => {});
@@ -5648,7 +5675,8 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
 const FEED_MEMORY = { sound: false, rate: 1 };
 
 function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loaded, onNeed, showWho, cfg, right, onDownload }) {
-  const [active, setActive] = useState(0);
+  const nav = useContext(NavCtx);
+  const [active, setActive] = useState(() => Math.max(0, Math.min(lessons.length - 1, kept(nav.key, "feed") || 0)));
   /* the clip runs to the very bottom of the screen, under the tab bar */
   const setBleed = useContext(BleedCtx);
   useEffect(() => { setBleed(true); return () => setBleed(false); }, [setBleed]);
@@ -5657,6 +5685,24 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
   const setSound = (v) => { FEED_MEMORY.sound = !!v; setSoundState(!!v); };
   const setRate = (v) => { FEED_MEMORY.rate = v; setRateState(v); };
   const wrap = useRef(null);
+  /* back on the card it was on — the scroll is put there before paint,
+     and again for a few frames until the frame has its height */
+  useLayoutEffect(() => {
+    const i = kept(nav.key, "feed"); const el = wrap.current;
+    if (!i || !el) return undefined;
+    let tries = 0, raf = 0;
+    /* straight there, not a glide: the scroller's own smooth behaviour
+       would animate the restore from the first card */
+    const put = () => { const h = el.clientHeight || 0; if (h) { el.style.scrollBehavior = "auto"; el.scrollTop = i * h; el.style.scrollBehavior = ""; } if ((!h || Math.round(el.scrollTop / h) !== i) && ++tries < 12) raf = requestAnimationFrame(put); };
+    put();
+    return () => cancelAnimationFrame(raf);
+  }, [nav.key]);
+
+  useEffect(() => {
+    const top = () => { const el = wrap.current; if (el) el.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); };
+    window.addEventListener("nosca:top", top);
+    return () => window.removeEventListener("nosca:top", top);
+  }, []);
 
   /* WHICH CARD IS ON SCREEN is read off the scroll position, one read a
      frame, the way the card's own rail reads its frame: the card whose
@@ -5674,6 +5720,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
     tick.current = requestAnimationFrame(() => {
       tick.current = 0;
       const i = Math.max(0, Math.min(lessons.length - 1, Math.round(el.scrollTop / (el.clientHeight || 1))));
+      keep(nav.key, "feed", i);
       setActive((a) => (a === i ? a : i));
     });
   };
@@ -7127,7 +7174,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
   const barRef = useRef(null);
   const bubbleRef = useRef(null);
   const iconRefs = useRef([]);
-  const S = useRef({ box: null, dragging: false, idx: activeIdx, raf: 0, x: 0, suppress: false, startX: 0, id: null });
+  const S = useRef({ box: null, dragging: false, idx: activeIdx, raf: 0, x: 0, suppress: false, startX: 0, startY: 0, id: null, vertical: false, cancelled: false });
 
   /* THE PILL IS PLACED IN LAYOUT PIXELS, NOT SCREEN PIXELS.
      getBoundingClientRect() returns the width AFTER any transform above
@@ -7179,7 +7226,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
   };
 
   const begin = () => {
-    if (S.current.dragging) return;
+    if (S.current.dragging || S.current.vertical) return;
     S.current.dragging = true;
     hapticCommit();
     const b = bubbleRef.current;
@@ -7187,26 +7234,34 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
     lit(S.current.idx);
   };
 
-  /* Always safe to call, however the gesture ended. */
-  const finish = () => {
+  /* Always safe to call, however the gesture ended. A gesture the
+     system took (a swipe up from the bottom edge to leave the app
+     arrives as a cancel) commits nothing: the pill goes back to the
+     tab it was on. It used to commit to whichever cell the finger was
+     over — the plus, in the middle — so every swipe up to close the
+     app opened the plus sheet. */
+  const finish = (commit = true) => {
     if (S.current.raf) { cancelAnimationFrame(S.current.raf); S.current.raf = 0; }
     if (!S.current.dragging) return;
     S.current.dragging = false;
     const b = bubbleRef.current;
     if (b) { b.style.opacity = "0.12"; b.style.boxShadow = "none"; }
-    const target = S.current.idx;
+    const target = commit && !S.current.vertical ? S.current.idx : activeIdx;
     snapTo(target);
     S.current.suppress = true;
     setTimeout(() => { S.current.suppress = false; }, 150);
-    if (target !== activeIdx) { hapticSuccess(); onSelect(tabs[target].id); }
+    if (commit && !S.current.vertical && target !== activeIdx) { hapticSuccess(); onSelect(tabs[target].id); }
   };
+  /* a swipe or a cancelled touch is never a tap: the click the browser
+     may fire after it is swallowed, and the flags clear on their own */
+  const settle = () => setTimeout(() => { S.current.vertical = false; S.current.cancelled = false; }, 400);
 
   useEffect(() => { measure(); snapTo(activeIdx); }, [activeIdx, tabs.length]);
   useEffect(() => {
     /* Window-level listeners so a finger that leaves the bar, or a
        pointer the browser takes away, can never leave it stuck. */
-    const up = () => finish();
-    const cancel = () => finish();
+    const up = () => finish(true);
+    const cancel = () => { S.current.cancelled = true; finish(false); settle(); };
     const resize = () => { measure(); paint(S.current.idx * cell(), false); };
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancel);
@@ -7226,7 +7281,8 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
       <div ref={(el) => { barRef.current = el; shellRef.current = el; }} data-tour="tabbar"
            onPointerDown={(e) => {
              measure();
-             S.current.startX = e.clientX;
+             S.current.startX = e.clientX; S.current.startY = e.clientY;
+             S.current.vertical = false; S.current.cancelled = false;
              S.current.id = e.pointerId;
              try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
              /* Press and hold, or simply drag — either begins it. */
@@ -7234,16 +7290,20 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
            }}
            onPointerMove={(e) => {
              if (!S.current.dragging) {
-               if (Math.abs(e.clientX - S.current.startX) < 9) return;
+               const dx = e.clientX - S.current.startX, dy = e.clientY - S.current.startY;
+               /* a finger going up or down is not moving the pill */
+               if (!S.current.vertical && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { S.current.vertical = true; clearTimeout(S.current.hold); return; }
+               if (S.current.vertical) return;
+               if (Math.abs(dx) < 9) return;
                clearTimeout(S.current.hold);
                begin();
              }
              S.current.x = e.clientX;
              if (!S.current.raf) S.current.raf = requestAnimationFrame(frame);
            }}
-           onPointerUp={() => { clearTimeout(S.current.hold); finish(); }}
-           onPointerCancel={() => { clearTimeout(S.current.hold); finish(); }}
-           onLostPointerCapture={() => { clearTimeout(S.current.hold); finish(); }}
+           onPointerUp={() => { clearTimeout(S.current.hold); finish(true); if (S.current.vertical) settle(); }}
+           onPointerCancel={() => { clearTimeout(S.current.hold); S.current.cancelled = true; finish(false); settle(); }}
+           onLostPointerCapture={() => { clearTimeout(S.current.hold); if (S.current.dragging) { S.current.cancelled = true; finish(false); settle(); } }}
            className="flex items-center relative"
            style={{ height: BAR_H, touchAction: "none", userSelect: "none", WebkitUserSelect: "none",
                     background: "transparent", zIndex: 2 }}>
@@ -7298,7 +7358,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
           if (tb.raised) {
             return (
               <button key={tb.id} aria-label={tb.label || tr("Add")} data-tour="quick"
-                      onClick={() => { if (S.current.suppress) return; haptic(12); soft(); onSelect(tb.id); }}
+                      onClick={() => { if (S.current.suppress || S.current.vertical || S.current.cancelled) return; haptic(12); soft(); onSelect(tb.id); }}
                       className="flex-1 flex items-center justify-center"
                       style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
                 <span className="relative flex items-center justify-center"
@@ -7315,7 +7375,7 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
 
           return (
             <button key={tb.id} aria-label={tb.label} aria-current={on ? "page" : undefined} data-tour={"tab-" + tb.id}
-                    onClick={() => { if (S.current.suppress) return; haptic(11); soft(); onSelect(tb.id); }}
+                    onClick={() => { if (S.current.suppress || S.current.vertical || S.current.cancelled) return; haptic(11); soft(); onSelect(tb.id); }}
                     className="flex-1 flex items-center justify-center"
                     style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
               <span ref={(el) => { iconRefs.current[i] = el; }} className="relative flex flex-col items-center justify-center gap-1"
@@ -7359,7 +7419,32 @@ const HEADER_MARK = { size: 36, weight: 3 };
 
 function Screen({ title, meta, onBack, right, action, children, large = true, bare, fill }) {
   const t = useT();
-  const [y, setY] = useState(0);
+  const nav = useContext(NavCtx);
+  const body = useRef(null);
+  const [y, setY] = useState(() => (fill ? 0 : (kept(nav.key, "scroll") || 0)));
+  /* back where it was: the kept scroll goes on before the first paint,
+     and again over the next moments while the content settles (a
+     skeleton becoming rows, posters arriving), until it has been put */
+  const touched = useRef(false);
+  useLayoutEffect(() => {
+    if (fill) return undefined;
+    const want = kept(nav.key, "scroll");
+    const el = body.current;
+    if (!want || !el) return undefined;
+    let done = false; const timers = [];
+    /* the moment a finger or a wheel moves the screen, it is theirs */
+    const put = () => { if (done || touched.current) return; el.scrollTop = want; if (Math.abs(el.scrollTop - want) < 2) done = true; };
+    put();
+    [40, 120, 260, 480, 760].forEach((ms) => timers.push(setTimeout(put, ms)));
+    return () => timers.forEach(clearTimeout);
+  }, [nav.key]);
+  const onScroll = (e) => { const st = e.currentTarget.scrollTop; setY(st); keep(nav.key, "scroll", st); };
+  const onTouch = () => { touched.current = true; };
+  useEffect(() => {
+    const top = () => { const el = body.current; if (el) el.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); };
+    window.addEventListener("nosca:top", top);
+    return () => window.removeEventListener("nosca:top", top);
+  }, []);
   const shrunk = (y > 24 || !large) && !bare;
   return (
     <div className="flex flex-col h-full" style={{ background: t.page }}>
@@ -7386,7 +7471,8 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
       </div>
       {/* `fill`: the body is a column the children fill, for a screen that
           is one stage and a bar rather than a scroll */}
-      <div className={fill ? "flex-1 min-h-0 flex flex-col overflow-hidden" : "flex-1 overflow-y-auto"} onScroll={(e) => setY(e.currentTarget.scrollTop)}>
+      <div ref={body} data-scroll={fill ? undefined : "screen"} className={fill ? "flex-1 min-h-0 flex flex-col overflow-hidden" : "flex-1 overflow-y-auto"} onScroll={onScroll}
+           onTouchStart={onTouch} onWheel={onTouch} onPointerDown={onTouch}>
         {large && !bare && (
           <div className="pb-7" style={{ opacity: y > 24 ? 0 : 1, transition: "opacity 180ms" }}>
             <PageHead title={title} meta={meta} action={action} />
@@ -9137,7 +9223,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 ================================================================== */
 function TipsHistory({ cfg, tips, pop }) {
   const t = useT();
-  const [f, setF] = useState("All");
+  const [f, setF] = useKept("filter", "All");
   /* Nothing records a focus against a tip, so on a real account these
      filters could only ever empty the list, and the pill beside each
      date came out blank. Both appear when there is something to
@@ -9386,13 +9472,13 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
 
 
 
-function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload }) {
+function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia, onUpload, liveMedia, onNeedMedia, showWho = false, onDownload, view, setView }) {
   const t = useT();
   const ready = useLoad();
 
   /* Immersive is a different animal — it owns the screen, so it is not
      a segment inside this one. */
-  if ((prefs && prefs.logView) === "feed" && lessons.length > 0) {
+  if (view === "feed" && lessons.length > 0) {
     /* A real account shows what was actually attached — the sport's
        colour field while it loads or when there is nothing. The drawn
        frames, the device readout and the test-media control are the
@@ -9415,7 +9501,7 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
       return sim;
     };
     return <LessonFeed lessons={lessons} mediaFor={mediaFor} onNeed={onNeedMedia} showWho={showWho} cfg={cfg} right={right} onDownload={onDownload}
-                       view={prefs.logView} setView={(v) => setPrefs((p2) => ({ ...p2, logView: v }))}
+                       view={view} setView={setView}
                        onPickFiles={liveMedia ? null : (files) => onUpload && onUpload(0, files)}
                        loaded={liveMedia ? 0 : Object.keys(ownMedia || {}).length}
                        onOpen={(l) => push(`lesson:${l.id}`)} />;
@@ -9432,8 +9518,8 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
     <Screen title={tr("Lessons")} right={right}>
       {/* the two views — the feed and this list; nothing to switch until there is a lesson */}
       {lessons.length > 0 && prefs && (<div className="px-6 pt-1 mb-4">
-        <Segmented tour="log-view" options={[tr("List"), tr("Feed")]} value={prefs.logView === "feed" ? tr("Feed") : tr("List")}
-                   onChange={(o) => setPrefs((p2) => ({ ...p2, logView: o === tr("Feed") ? "feed" : "list" }))} />
+        <Segmented tour="log-view" options={[tr("List"), tr("Feed")]} value={view === "feed" ? tr("Feed") : tr("List")}
+                   onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
       </div>)}
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
@@ -11056,7 +11142,8 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
               style={{ width: 30, height: 30, background: `${GROUP}18` }}><Users size={13} color={GROUP} /></span>
       ) : <Avatar name={l.who} size={30} src={avatar} />}
       <span className="flex-1 min-w-0">
-        <span className="block truncate" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink }}>{l.who}</span>
+        {/* the whole name — two players with one first name are two rows — on a second line rather than an ellipsis */}
+        <span className="block" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{l.who}</span>
         {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: variant === "now" ? t.ink : t.faint }}>{until}</span>}
       </span>
     </>
@@ -11394,10 +11481,10 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
      founder read the column as every future lesson in one list. */
   const nextDay = upcoming.length ? upcoming[0].dayLabel : null;
   const nextRows = nextDay ? upcoming.filter((u) => u.dayLabel === nextDay) : [];
-  const [nextOpen, setNextOpen] = useState(false);
+  const [nextOpen, setNextOpen] = useKept("nextOpen", false);
   /* ACTIONS: one list of what wants the coach, only when something
      does, and past two kinds of thing a row of tiles narrows it */
-  const [actKind, setActKind] = useState("all");
+  const [actKind, setActKind] = useKept("actKind", "all");
 
 
   return (
@@ -12332,7 +12419,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 0, stageFor }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
-  const [tab, setTab] = useState(nounTitle); const [q, setQ] = useState("");
+  const [tab, setTab] = useKept("tab", nounTitle); const [q, setQ] = useKept("q", "");
   const all = roster || ROSTER;
   const list = all.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
   /* a search only once the list is long enough to need one */
@@ -12437,9 +12524,10 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
      the screen; three is what they actually read walking out to meet
      someone, and the button is there whether or not there are more. */
   const shown = past.slice(0, 5);
-  /* list or feed, like the player's own home — the list by default, each
+  /* list or feed, like the player's own home — the default view, each
      row with the lesson's first file as its poster */
-  const [view, setView] = useState("list");
+  const nav = useContext(NavCtx);
+  const [view, setView] = useKept("view", nav.defaultView || "list");
   const posterFor = liveMedia
     ? (l) => { const m = liveMedia[l.id]; return m && m.length ? m[0] : null; }
     : (l) => ((l.videos || 0) > 0 ? { type: "sim" } : null);
@@ -12653,7 +12741,7 @@ function FilterRow({ options, value, onChange, label, last, plain }) {
   );
 }
 
-function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload, title, onOpen, showWho, empty, head, plain, metaText, factsFor, onRemove, foot }) {
+function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload, title, onOpen, showWho, empty, head, plain, metaText, factsFor, onRemove, foot, startView }) {
   const openRow = onOpen || ((x) => push(`clesson:${x.id}:${x.who}`));
   const showName = showWho ?? !forPlayer;
   const posterFor = liveMedia
@@ -12663,19 +12751,23 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
   /* list or feed, like the player file and the player's own home: the
      list by default, the feed over whatever the filters left, so a
      coach flicks through a month's clips the way a player does */
-  const [view, setView] = useState("list");
+  const nav = useContext(NavCtx);
+  /* Saved opens on its list whoever is looking — a row is where a
+     download's size, how far it is and why it failed are read, and where
+     a swipe removes it; the feed is the tap beside it */
+  const [view, setView] = useKept("view", startView || nav.defaultView || "list");
   const dl = useContext(DownloadCtx);
   const feedMedia = liveMedia
     ? (l) => (l.id in liveMedia ? liveMedia[l.id] : ((l.media ?? l.videos) > 0 ? undefined : []))
     : (l) => Array.from({ length: l.videos || 0 }, () => ({ type: "sim" }));
   const t = useT();
-  const [q, setQ] = useState("");
-  const [focus, setFocus] = useState("All");
-  const [kind, setKind] = useState("All");
-  const [year, setYear] = useState("All");
-  const [month, setMonth] = useState("All");
-  const [who, setWho] = useState("All");
-  const [shownCount, setShownCount] = useState(ARCHIVE_PAGE);
+  const [q, setQ] = useKept("q", "");
+  const [focus, setFocus] = useKept("focus", "All");
+  const [kind, setKind] = useKept("kind", "All");
+  const [year, setYear] = useKept("year", "All");
+  const [month, setMonth] = useKept("month", "All");
+  const [who, setWho] = useKept("who", "All");
+  const [shownCount, setShownCount] = useKept("shown", ARCHIVE_PAGE);
   const months = ["All", ...[...new Set(lessons.map((l) => l.m).filter(Boolean))]];
   const people = ["All", ...[...new Set(lessons.map((l) => l.who).filter((w) => w && w !== "—"))].sort()];
 
@@ -12704,12 +12796,14 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
   /* the search and the filters are always there: this is the archive,
      and finding one lesson among hundreds is what it is for */
   const sift = plain ? lessons.length > 8 : lessons.length > 0;
-  useEffect(() => { setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, month, who, forPlayer]);
+  /* a changed filter starts the page over; coming back to the screen does not */
+  const firstSift = useRef(true);
+  useEffect(() => { if (firstSift.current) { firstSift.current = false; return; } setShownCount(ARCHIVE_PAGE); }, [term, focus, kind, year, month, who, forPlayer]);
 
   /* one Filter row, unfolding the five: five rows of chrome before the
      first lesson was a filing cabinet in front of the list. What is set
      reads on the row while it is folded. */
-  const [filters, setFilters] = useState(false);
+  const [filters, setFilters] = useKept("filters", false);
   const active = [year !== "All" ? year : null, month !== "All" ? month : null, who !== "All" ? who.split(" ")[0] : null,
                   focus !== "All" ? focus : null, kind !== "All" ? kind : null].filter(Boolean);
 
@@ -13725,7 +13819,7 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
 ================================================================== */
 function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemoveDrill, onRenameDrill, say }) {
   const t = useT(); const marcusDone = items.filter((x) => x.done).length;
-  const [open, setOpen] = useState(null);
+  const [open, setOpen] = useKept("open", null);
   const [draft, setDraft] = useState({});
   /* A real coach's roster, with what each person has been set counted
      from the drills themselves; a drill can be renamed or removed here.
@@ -13783,8 +13877,8 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
   const t = useT();
   const [adding, setAdding] = useState(false);
   const [f, setF] = useState({ t: "", d: "", focus: cfg.focus[0].id });
-  const [filter, setFilter] = useState("All");
-  const [open, setOpen] = useState(null);
+  const [filter, setFilter] = useKept("filter", "All");
+  const [open, setOpen] = useKept("open", null);
 
   const chips = ["All", ...cfg.focus.map((x) => x.label)];
   const shown = (filter === "All" ? library : library.filter((d) => cfg.focus.find((f2) => f2.id === d.focus)?.label === filter))
@@ -14043,11 +14137,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const minsNow = cx.nowMins ?? 0;
   const months = cx.months;
   const isGone = (m, d) => isPast(m, d, cx);
-  const [mi, setMi] = useState(() => Math.max(0, months.findIndex((x) => x.idx === T.m)));
-  const [sel, setSel] = useState(T.d);
+  /* the month, the day, whose diary and List · Calendar are kept for a
+     Back — a player who opened a lesson from next Thursday comes back
+     to next Thursday, not to today */
+  const [mi, setMi] = useKept("month", () => Math.max(0, months.findIndex((x) => x.idx === T.m)));
+  const [sel, setSel] = useKept("day", T.d);
   const [pick, setPick] = useState(null);
-  const [famFilter, setFamFilter] = useState("Everyone");
-  const [view, setView] = useState(tr("List"));
+  const [famFilter, setFamFilter] = useKept("for", "Everyone");
+  const [view, setView] = useKept("view", tr("List"));
   const mo = months[Math.min(mi, months.length - 1)];
   const mineOn = (m, d) => bookings.find((b) => b.m === m && b.d === d);
   const open = isGone(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx);
@@ -14233,7 +14330,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             const mine = !!mineOn(mo.idx, d);
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
             return (
-              <button key={d} onClick={() => { haptic(6); setSel(d); setPick(null); }} disabled={gone}
+              <button key={d} onClick={() => { haptic(6); setSel(d); setPick(null); }} disabled={gone} aria-pressed={on} data-day={d}
                       className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 46 }}>
                 <span className="flex items-center justify-center"
                       style={{ width: 36, height: 36, borderRadius: R.surface,
@@ -14658,7 +14755,7 @@ function LessonLogs({ role, lessons, onDownload, onOpen, pop, liveMedia, onNeedM
   const all = lessons || [];
   /* A season is hundreds of these. Rendering them all at once is what
      made this screen crawl; a screenful at a time is enough. */
-  const [shownCount, setShownCount] = useState(ARCHIVE_PAGE);
+  const [shownCount, setShownCount] = useKept("shown", ARCHIVE_PAGE);
   const list = all.slice(0, shownCount);
   const left = all.length - list.length;
   /* the lesson's first file as its poster, like every other list of
@@ -14853,16 +14950,16 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useKept("q", "");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
      It was a rail of pills running off the right of the screen — two of
      them, the second a verbatim copy of the first. Now: the label, the
      value, a chevron; tap and the choices unfold as rows with a tick.
      Every row in Settings is one of three shapes and this is the second
      of them. */
-  const [openPick, setOpenPick] = useState(null);
+  const [openPick, setOpenPick] = useKept("pick", null);
   const choice = (id, label, value, options, onPick, Ico) => {
     const cur = options.find((o) => o.id === value) || options[0];
     const isOpen = openPick === id;
@@ -14902,6 +14999,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
   const T = (on, set, extra) => <Toggle on={on} onChange={(v) => { set(v); extra && extra(v); }} />;
   const groups = [
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
+      { label: tr("Default view"), tour: "settings-view", keys: ["feed", "list", "view", "lessons", "opens", "layout"],
+        custom: choice("defaultView", tr("Default view"), defaultView || "list", [{ id: "list", label: tr("List") }, { id: "feed", label: tr("Feed") }], (v) => onDefaultView && onDefaultView(v)) },
       { label: tr("Reviews"), tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
       !live && { label: tr("Paperwork"), tour: "settings-credentials", onTap: () => push("credentials") },
       !live && { label: tr("Requests"), tour: "settings-requests", onTap: () => push("requests") },
@@ -14922,6 +15021,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         [{ id: "all", label: tr("Every lesson") }, { id: "private", label: tr("Private") }, { id: "group", label: tr("Group") }, { id: "off", label: tr("Never") }], (v) => setPref("attendance", v)) },
       prefs && { label: tr("Review prompt"), right: T(prefs.askForReview !== false, (v) => setPref("askForReview", v)), keys: ["rating", "stars", "review"] },
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
+      { label: tr("Default view"), tour: "settings-view", keys: ["feed", "list", "view", "lessons", "opens", "layout"],
+        custom: choice("defaultView", tr("Default view"), defaultView || "feed", [{ id: "list", label: tr("List") }, { id: "feed", label: tr("Feed") }], (v) => onDefaultView && onDefaultView(v)) },
       (!live || hasDependants) && { label: tr("This month"), tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
       { label: tr("Family"), sub: live ? (familyName || null) : null, tour: "settings-dashboard",
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
@@ -15015,7 +15116,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
             {g.title && <Eyebrow>{g.title}</Eyebrow>}
             <div className="px-6 mb-6" data-tour={g.tour}><Ruled>
               {g.rows.map((r, i) => r.custom
-                ? <div key={r.label} className="nsc-flush">{r.custom}</div>
+                ? <div key={r.label} className="nsc-flush" data-tour={r.tour}>{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
                        last={i === g.rows.length - 1} right={r.right}
                        /* No glyph on a settings row. Half the rows had one and
@@ -15454,7 +15555,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const BUCKET = { lesson: "Lessons", tip: "Lessons", drill: "Lessons", rating: "Lessons",
                    message: "Messages",
                    booking: "Diary", request: "Diary", weather: "Diary", comp: "Diary", family: "Diary" };
-  const [only, setOnly] = useState(tr("Everything"));
+  const [only, setOnly] = useKept("only", tr("Everything"));
   const kinds = [...new Set(list.map((n) => BUCKET[n.kind]).filter(Boolean))];
   const canFilter = list.length > 8 && kinds.length > 1;
   const shownList = canFilter && only !== tr("Everything") ? list.filter((n) => BUCKET[n.kind] === only) : list;
@@ -15941,6 +16042,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [pickFor, setPickFor] = useState(null);   // what we are choosing a player for
   const [captureItems, setCaptureItems] = useState([]);
   const [prefs, setPrefsLocal] = useState(sc && sc.logView ? { ...PREF_DEFAULTS, logView: sc.logView } : PREF_DEFAULTS);
+  /* THE DEFAULT VIEW: List for a coach, Feed for a player, unless the
+     person has said otherwise in Settings › Default view. It seeds
+     every List · Feed switch — the home, the player file, the archive,
+     Saved. The home's own switch lasts the sitting; the setting is
+     what the home opens on. Kept on the phone (`nosca.view.<id>`) and
+     on `preferences.default_view`, written on its own so a project
+     whose SQL has not been re-run keeps it on the device. */
+  const [viewPref, setViewPref] = useState(() => { try { const v = account ? localStorage.getItem(`nosca.view.${account.id}`) : null; return v === "list" || v === "feed" ? v : null; } catch (e) { return null; } });
+  const [homeView, setHomeView] = useState(sc && sc.logView ? sc.logView : null);
   /* With a real account, preferences live in the database. The setter
      keeps the same signature the screens already call, so nothing
      downstream needs to know the difference. */
@@ -15965,6 +16075,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        selected. */
     setPrefsLocal({
       logView: p.log_view === "cards" ? "list" : (p.log_view ?? PREF_DEFAULTS.logView),
+      defaultView: p.default_view === "list" || p.default_view === "feed" ? p.default_view : null,
       calView: p.cal_view ?? PREF_DEFAULTS.calView,
       notify: p.notify ?? PREF_DEFAULTS.notify,
       quietFrom: PREF_DEFAULTS.quietFrom,
@@ -17132,9 +17243,30 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      This is what used to be a full-screen celebration. */
   const done = (text, sub, tone) => { hapticSuccess(); setToast({ text, sub, done: true, tone });
                                       setTimeout(() => setToast(null), 1600); };
-  const push = (s) => { haptic(6); setStack((k) => [...k, s]); };
-  const pop = () => setStack((k) => (k.length > 1 ? k.slice(0, -1) : k));
-  const go = (s) => { haptic(6); setStack([s]); };
+  /* a fresh push starts at the top; a pop lets go of the screen it
+     leaves; a tab switch keeps every tab's own place */
+  const push = (s) => { haptic(6); dropMemory(`${stack.length + 1}:${s}`); setStack((k) => [...k, s]); };
+  const pop = () => { dropMemory(`${stack.length}:${stack[stack.length - 1]}`); setStack((k) => (k.length > 1 ? k.slice(0, -1) : k)); };
+  /* a tab: back to that root where it was; the tab you are already on,
+     at its root, goes to its top — the phone's own convention */
+  const go = (s) => {
+    haptic(6); dropDeeperMemory(1);
+    if (stack.length === 1 && stack[0] === s) { dropMemory(`1:${s}`); window.dispatchEvent(new CustomEvent("nosca:top")); return; }
+    setStack([s]);
+  };
+  const defaultView = (prefs && prefs.defaultView) || viewPref || (role === "coach" ? "list" : "feed");
+  const homeViewNow = homeView || defaultView;
+  const setDefaultView = (v) => {
+    if (v !== "list" && v !== "feed") return;
+    setViewPref(v); setHomeView(v);
+    setPrefsLocal((p) => ({ ...p, defaultView: v }));
+    try { if (account) localStorage.setItem(`nosca.view.${account.id}`, v); } catch (e) { /* private mode */ }
+    if (data && data.savePrefs) Promise.resolve(data.savePrefs({ default_view: v })).catch(() => {});
+  };
+  /* what a screen kept is one account's: another signing in on the same
+     phone starts every screen at the top */
+  useEffect(() => { SCREEN_MEMORY.clear(); }, [account ? account.id : null]);
+  const navCtx = useMemo(() => ({ key: sc ? "sc" : `${stack.length}:${stack[stack.length - 1]}`, defaultView }), [sc, stack, defaultView]);
   const enter = (r) => { setRole(r); setFlow("app"); setStack([r === "coach" ? "today" : "home"]); haptic(16); };
   const jump = (r) => { setRole(r); setFlow("app"); setStack([r === "coach" ? "today" : "home"]); };
 
@@ -17574,12 +17706,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const scr = d.screen;
     const home = role === "coach" ? "today" : (account && account.accountType === "parent") ? "family" : "home";
     setCatchUp(null);
-    if (scr === "lesson" && d.id) { setStack([home, `lesson:${d.id}`]); return; }
-    if (scr === "requests") { setStack(["roster", "requests"]); return; }
+    /* a screen a notification lands on starts at its top; the root under
+       it keeps its place */
+    const land = (st) => { dropDeeperMemory(1); setStack(st); };
+    if (scr === "lesson" && d.id) { land([home, `lesson:${d.id}`]); return; }
+    if (scr === "requests") { land(["roster", "requests"]); return; }
     /* the thread route takes the player's id — the same key for a coach,
        the player themselves, or an adult reading a junior's thread */
-    if (scr === "thread" && d.id && !juvenile) { setStack(["messages", `thread:${d.id}`]); return; }
-    if (scr === "tips") { setStack([home, "tips"]); return; }
+    if (scr === "thread" && d.id && !juvenile) { land(["messages", `thread:${d.id}`]); return; }
+    if (scr === "tips") { land([home, "tips"]); return; }
     if (scr === "family" || scr === "home" || scr === "today" || scr === "calendar" || scr === "practice" || scr === "messages") {
       const target = scr === "home" ? home : scr;
       if (tabs.some((tb) => tb.id === target) || target === "family") { go(target); return; }
@@ -17677,7 +17812,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ? [{ id: "home", icon: Home, label: tr("Home") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])]
       : [{ id: "home", icon: Home, label: tr("Home") }, { id: "practice", icon: ListChecks, label: tr("Drills") }, { id: "calendar", icon: CalendarDays, label: tr("Diary") }, ...(inFamily ? [familyTab] : []), ...(noChat ? [] : [{ id: "messages", icon: MessageCircle, label: tr("Chat"), count: unread }])];
 
-  const bleed = inApp && (screen === "log" || screen === "home") && prefs.logView === "feed" && role !== "coach";
+  const bleed = inApp && (screen === "log" || screen === "home") && homeViewNow === "feed" && role !== "coach";
   let body, bare = !inApp;
   /* A player with no coach has an account and nothing in it. Rather
      than show empty lessons, an empty diary and a disabled chat, the
@@ -18110,7 +18245,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     };
     const head = <Segmented tour="saved-kind" options={[tr("Starred"), tr("Downloads")]} value={kind === "downloads" ? tr("Downloads") : tr("Starred")}
                             onChange={(o) => { const k = o === tr("Downloads") ? "downloads" : "starred"; setSavedKind(k); if (screen !== "saved") setStack((st0) => [...st0.slice(0, -1), "saved"]); }} />;
-    body = <CoachArchive key={kind} title={tr("Saved")} head={head} plain
+    body = <CoachArchive key={kind} title={tr("Saved")} head={head} plain startView="list"
                          metaText={kind === "downloads" ? (nSaved ? `${nSaved} ${nSaved === 1 ? tr("download") : tr("downloads")} · ${fmtBytes(downloads.totals.bytes)}` : "") : (starredList.length ? `${starredList.length} ${tr("starred")}` : "")}
                          empty={kind === "downloads" ? tr("Nothing downloaded") : tr("Nothing starred")}
                          lessons={kind === "downloads" ? dlLessons : starredList} onDownload={downloadLesson} cfg={cfg} nouns={cfg.nouns}
@@ -18207,7 +18342,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
-  } else if (screen === "you") { body = <Settings downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
@@ -18295,8 +18430,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        a real account reaches it through the gate above. */
     if (sc && screen === "nocoach") { body = <NoCoach juvenile={juvenile} onJoin={async () => ({})} />; bare = true; }
     else body = {
-      home:   <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
-      log:    <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      home:   <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
+      log:    <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />,
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? mediaFor : null} compareLessons={data ? playerLessons : null} knownMedia={data ? liveMedia : null}
@@ -18308,11 +18443,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             onBook={data ? ((l) => { const kid = (data.dependants || []).find((k) => k.id === l.playerId); if (kid) { setBookFor(kid); go("calendar"); } else if (!parentAccount) go("calendar"); }) : () => go("calendar")}
                             onDownload={(l) => downloadLesson(l)}
                             onRate={data && !data.myReview ? () => push("coachProfile") : null} />,
-    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
+    }[screen.startsWith("lesson:") ? "lesson" : screen] || <PlayerLog view={homeViewNow} setView={setHomeView} onDownload={downloadLesson} cfg={cfg} lessons={playerLessons} push={push} showWho={!!(account && account.accountType === "parent")} right={navRight} saved={mySaved} prefs={prefs} setPrefs={setPrefs} sport={sport} ownMedia={ownMedia} onUpload={addOwnMedia} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null} />;
   }
 
   return (
-    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><DownloadCtx.Provider value={downloadCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
+    <FaceCtx.Provider value={faces}><StarCtx.Provider value={starCtx}><DownloadCtx.Provider value={downloadCtx}><NavCtx.Provider value={navCtx}><LiveCtx.Provider value={live}><BleedCtx.Provider value={setFeedUp}><NoticeCtx.Provider value={say}><CalendarCtx.Provider value={calendar}><ThemeCtx.Provider value={theme}><LangCtx.Provider value={L}>
       <ShimmerCSS />
       {/* In demo mode the app sits on a dark stage under a wordmark, as
           it has throughout design. In the product it simply fills the
@@ -18900,7 +19035,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <Toast msg={toast} />
         </div>
       </div>
-    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></DownloadCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
+    </LangCtx.Provider></ThemeCtx.Provider></CalendarCtx.Provider></NoticeCtx.Provider></BleedCtx.Provider></LiveCtx.Provider></NavCtx.Provider></DownloadCtx.Provider></StarCtx.Provider></FaceCtx.Provider>
   );
 }
 
