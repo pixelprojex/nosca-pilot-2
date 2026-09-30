@@ -73,6 +73,7 @@ function emptyDb() {
     confirmEmail: false,
     failUpload: null,     // (path) => response spec | null — a way to refuse one upload
     failFetch: null,      // (path) => true — a signed file that will not come down (a 500)
+    slowFetch: 0,         // ms — every signed file takes this long to start coming down
     offline: false,       // true: every request to the mock fails as a lost connection
     alive: true,
   };
@@ -378,6 +379,7 @@ async function attach(page, db, opts = {}) {
       /* a marked-up take (markup-<n>.webm) or a comparison (compare-<n>.webm) is served as the real clip too, so
          a second round of marking up has a picture to decode */
       if (rest.startsWith("sign/") && method === "GET" && db.failFetch && db.failFetch(p)) return json(500, { statusCode: "500", error: "Internal", message: "boom" });
+      if (rest.startsWith("sign/") && method === "GET" && db.slowFetch) await new Promise((res) => setTimeout(res, db.slowFetch));
       if (rest.startsWith("sign/") && method === "GET") { const isVid = /\.mp4$/.test(p) || /(markup|compare)-\d+\.webm$/.test(p); return bytes(isVid ? (CLIP || MP4) : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, isVid ? (CLIP ? "video/webm" : "video/mp4") : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
       if (rest.startsWith("public/") && method === "GET") return bytes(PNG, "image/png");
       if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }

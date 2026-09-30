@@ -81,6 +81,12 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
     const b = [...document.querySelectorAll("button[data-download]")].find((x) => (x.getAttribute("aria-label") || "").endsWith(` ${f}`) || (x.getAttribute("aria-label") || "").includes(` ${f} · `));
     return !!b && b.getAttribute("data-download") === st;
   }, [focus, state], { timeout: ms }).then(() => true).catch(() => false);
+  /* Saved, from the header star, on its Downloads half */
+  const openDownloads = async (page) => {
+    await tap(page, '[data-tour="saved"]', 900);
+    const seg = page.locator('[data-tour="saved-kind"] button[aria-label="Downloads"]');
+    if ((await seg.count()) && (await seg.getAttribute("aria-pressed")) !== "true") { await seg.click(); await page.waitForTimeout(700); }
+  };
   /* the iPhone's swipe on a row: a finger down at the right, pulled left
      past the mark, lifted — the row's own pointer events, in order */
   const swipeAway = async (page, sel) => {
@@ -124,8 +130,11 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
 
       /* the home's own row, and Settings */
       await tap(page, '[aria-label="Today"]', 900);
-      const homeRow = page.locator('[data-tour="today-downloads"]');
-      check("(e) the coach's home carries a Downloads row under All lessons, with the count", (await homeRow.count()) === 1 && /Downloads\s*1/.test(M.norm(await homeRow.innerText())), M.norm((await homeRow.count()) ? await homeRow.innerText() : "none"));
+      check("(e) the home's header carries Saved", (await page.locator('[data-tour="saved"]').count()) === 1);
+      await tap(page, '[data-tour="saved"]', 1000);
+      const seg = page.locator('[data-tour="saved-kind"]');
+      check("(e2) nothing is starred, so Saved opens on Downloads: the two halves as one control, Downloads pressed, the count and the size as the line", (await seg.count()) === 1 && (await seg.locator('button[aria-label="Downloads"]').getAttribute("aria-pressed")) === "true" && /1 download · \d+ (KB|MB)/.test(await text()), (await text()).slice(0, 120));
+      await tap(page, '[aria-label="Back"]', 700);
       await tap(page, '[aria-label="Your profile"]', 900);
       const row = page.locator('[data-tour="settings-downloads"]');
       check("(f) Settings › Downloads reads the count and the room they take", (await row.count()) === 1 && /1 lesson · \d+ (KB|MB)/.test(M.norm(await row.innerText())), M.norm((await row.count()) ? await row.innerText() : "none"));
@@ -133,7 +142,7 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
       const t1 = await text();
       const poster = page.locator('[data-tour="downloads-row"] video, [data-tour="downloads-row"] img').first();
       const psrc = (await poster.count()) ? await poster.getAttribute("src") : "";
-      check("(g) the Downloads screen: one row, the size on it, the poster from the phone", (await page.locator('[data-tour="downloads-row"]').count()) === 1 && t1.includes("Short game") && /\d+ (KB|MB)/.test(t1) && /^blob:/.test(psrc || ""), `${t1.slice(0, 120)} · ${psrc}`);
+      check("(g) Settings › Downloads opens Saved on Downloads: one row, the size on it, the poster from the phone", (await page.locator('[data-tour="downloads-row"]').count()) === 1 && t1.includes("Short game") && /\d+ (KB|MB)/.test(t1) && /^blob:/.test(psrc || ""), `${t1.slice(0, 120)} · ${psrc}`);
       await shot("02-downloads");
 
       /* open it: everything plays and reads from the phone */
@@ -170,13 +179,36 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
       const t3 = await text();
       check("(m) a file that will not fetch fails the download: the disc in red, the reason said", failed && /Couldn't download · A file could not be fetched/.test(t3), t3.slice(0, 200));
       await shot("04-failed");
-      await tap(page, '[aria-label="Today"]', 800); await tap(page, '[data-tour="today-downloads"]', 900);
+      await tap(page, '[aria-label="Today"]', 800); await openDownloads(page);
       const t4 = await text();
       check("(n) the Downloads screen lists the failed one first with its reason, the saved one under it", /Putting.*A file could not be fetched.*Short game/.test(t4) && (await page.locator('[data-download-row="failed"]').count()) === 1, t4.slice(0, 200));
       db.failFetch = null;
-      await page.locator('[data-download-row="failed"] button[data-download="failed"]').first().click();
+      /* the red disc opens the sheet: why it failed, Retry, Remove */
+      await page.locator('[data-download-row="failed"] button[data-download="failed"]').first().click(); await page.waitForTimeout(600);
+      check("(o) a tap on the red disc opens the sheet: Download failed, the reason, Retry and Remove", (await page.locator('[data-download-sheet="failed"]').count()) === 1 && /A file could not be fetched/.test(await text()) && (await page.getByRole("button", { name: "Retry" }).count()) === 1, (await text()).slice(-200));
+      await page.getByRole("button", { name: "Retry" }).click();
       const retried = await untilDisc(page, "Putting", "saved");
-      check("(o) Retry from the failed row saves it", retried && (await page.locator('[data-download-row="saved"]').count()) === 2, (await text()).slice(0, 160));
+      check("(o1) Retry saves it", retried && (await page.locator('[data-download-row="saved"]').count()) === 2, (await text()).slice(0, 160));
+      /* the Downloads half as a feed: the cards play from the phone */
+      await page.locator('[data-tour="archive-view"] button', { hasText: "Feed" }).first().click(); await page.waitForTimeout(1600);
+      const feedSrc = await page.locator("[data-feed-card] video").first().getAttribute("src").catch(() => null);
+      check("(o2) Downloads is viewable as a feed, and its clips play from the phone", (await page.locator("[data-feed-card]").count()) === 2 && /^blob:/.test(feedSrc || ""), `${await page.locator("[data-feed-card]").count()} · ${feedSrc}`);
+      await tap(page, 'button[aria-label="List"]', 1000);
+      await tap(page, '[aria-label="Back"]', 700);
+      /* a slow file: the ring, the sheet while it comes down, Cancel */
+      db.slowFetch = 6000;
+      await tap(page, '[aria-label="Roster"]', 700);
+      await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+      await page.getByRole("button", { name: "Download Driving" }).click(); await page.waitForTimeout(500);
+      const ringing = (await page.locator('button[data-download="saving"]').count()) === 1;
+      const digits = await page.locator('button[data-download="saving"]').evaluate((b) => /\d/.test(b.textContent || "")).catch(() => true);
+      check("(o3) while a file comes down the disc is a ring, with no figures crammed inside it", ringing && !digits, `${ringing} · digits ${digits}`);
+      await page.locator('button[data-download="saving"]').click(); await page.waitForTimeout(600);
+      check("(o4) a tap on the ring opens the sheet: Saving with how far, and Cancel", (await page.locator('[data-download-sheet="saving"]').count()) === 1 && (await page.getByRole("button", { name: "Cancel" }).count()) === 1, (await text()).slice(-160));
+      await page.getByRole("button", { name: "Cancel" }).click(); await page.waitForTimeout(900);
+      check("(o5) Cancel stops it and leaves nothing behind: the arrow is back, Cancelled said", (await page.getByRole("button", { name: "Download Driving" }).count()) === 1 && /Cancelled/.test(await text()), (await text()).slice(0, 160));
+      db.slowFetch = 0;
+      await tap(page, '[aria-label="Today"]', 800);
 
       /* ---------- no network at all ---------- */
       db.offline = true;
@@ -185,9 +217,9 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
       try { await page.reload({ waitUntil: "load", timeout: 30000 }); } catch (e) { opened = false; errors.push(`reload offline: ${e.message.slice(0, 120)}`); }
       await M.settle(page, { wait: 8000 });
       const t5 = await text();
-      check("(p) with no network the app opens on its kept shell and last load: the coach's home, Offline said", opened && /Offline/.test(t5) && (await page.locator('[data-tour="today-downloads"]').count()) === 1, `${opened} · ${t5.slice(0, 200)}`);
+      check("(p) with no network the app opens on its kept shell and last load: the coach's home, Offline said", opened && /Offline/.test(t5) && (await page.locator('[data-tour="saved"]').count()) === 1, `${opened} · ${t5.slice(0, 200)}`);
       await shot("05-offline-home");
-      await tap(page, '[data-tour="today-downloads"]', 900);
+      await openDownloads(page);
       check("(q) Downloads lists both, offline", (await page.locator('[data-download-row="saved"]').count()) === 2, (await text()).slice(0, 160));
       await page.locator('[data-tour="downloads-row"]', { hasText: "Short game" }).locator("button").first().click(); await page.waitForTimeout(1200);
       const t6 = await text();
@@ -209,7 +241,7 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
       check("(t) back on a network the app loads for real and Offline goes", !/Offline/.test(await text()), (await text()).slice(0, 120));
 
       /* remove: a swipe on the row, then Remove all */
-      await tap(page, '[aria-label="Back"]', 500); await tap(page, '[aria-label="Today"]', 800); await tap(page, '[data-tour="today-downloads"]', 900);
+      await tap(page, '[aria-label="Back"]', 500); await tap(page, '[aria-label="Today"]', 800); await openDownloads(page);
       await swipeAway(page, '[data-tour="downloads-row"]');
       check("(u) a swipe takes one off the phone", (await page.locator('[data-tour="downloads-row"]').count()) === 1, String(await page.locator('[data-tour="downloads-row"]').count()));
       const left = await page.evaluate(async () => new Promise((res) => { const r = indexedDB.open("nosca-offline"); r.onsuccess = () => { const t = r.result.transaction(["lessons", "files"], "readonly"); const a = t.objectStore("lessons").count(); const b = t.objectStore("files").count(); t.oncomplete = () => res({ lessons: a.result, files: b.result }); }; r.onerror = () => res(null); }));
@@ -220,12 +252,12 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
       await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       await page.getByRole("button", { name: /^Download (Short game|Putting|Driving)$/ }).first().click();
       await page.waitForFunction(() => document.querySelectorAll('[data-tour="player-lessons"] button[data-download="saved"]').length === 2, null, { timeout: 20000 }).catch(() => {});
-      await tap(page, '[aria-label="Today"]', 800); await tap(page, '[data-tour="today-downloads"]', 900);
+      await tap(page, '[aria-label="Today"]', 800); await openDownloads(page);
       await page.getByRole("button", { name: "Remove all" }).click(); await page.waitForTimeout(900);
       const t8 = await text();
       check("(w) Remove all empties the phone: Nothing downloaded, and the home row goes", t8.includes("Nothing downloaded") && (await page.locator('[data-tour="downloads-row"]').count()) === 0, t8.slice(0, 120));
       await tap(page, '[aria-label="Back"]', 700);
-      check("(w2) the home row is gone", (await page.locator('[data-tour="today-downloads"]').count()) === 0);
+      check("(w2) Saved stays in the header with nothing on the phone", (await page.locator('[data-tour="saved"]').count()) === 1);
       await ctx.close();
     }
 
@@ -245,7 +277,9 @@ const JS_ASSET = (() => { try { return JSON.parse(fs.readFileSync(path.join(dist
       await tap(page, '[aria-label="Back"]', 700);
       /* the list view carries the Downloads row */
       await page.locator('[data-tour="feed-view"] button, [data-tour="log-view"] button', { hasText: "List" }).first().click().catch(() => {}); await page.waitForTimeout(800);
-      check("(z2) the player's list carries a Downloads row with the count", (await page.locator('[data-tour="log-downloads"]').count()) === 1, (await text()).slice(0, 160));
+      check("(z2) the player's header carries Saved, which opens on Downloads with the lesson", (await page.locator('[data-tour="saved"]').count()) === 1, (await text()).slice(0, 160));
+      await openDownloads(page);
+      check("(z3) …and lists it", (await page.locator('[data-tour="downloads-row"]').count()) === 1 && /Short game/.test(await text()), (await text()).slice(0, 160));
       await ctx.close();
     }
 

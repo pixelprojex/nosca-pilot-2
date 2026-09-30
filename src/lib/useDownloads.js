@@ -21,8 +21,8 @@ const NET_RE = /Failed to fetch|Load failed|NetworkError|network|offline/i;
 const plain = (x) => { try { return JSON.parse(JSON.stringify(x === undefined ? null : x)); } catch (e) { return null; } };
 
 /* fetch a file as a blob, saying how far along it is */
-async function fetchBlob(url, onBytes) {
-  const res = await fetch(url);
+async function fetchBlob(url, onBytes, signal) {
+  const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const type = res.headers.get("content-type") || "";
   const total = Number(res.headers.get("content-length")) || 0;
@@ -32,6 +32,7 @@ async function fetchBlob(url, onBytes) {
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
+    if (signal && signal.aborted) { try { reader.cancel(); } catch (e) { /* fine */ } throw Object.assign(new Error("cancelled"), { name: "AbortError" }); }
     chunks.push(value); got += value.byteLength;
     onBytes(got, total);
   }
@@ -53,6 +54,7 @@ export function useDownloads({ owner, loader }) {
   const urls = useRef(new Map());          // lessonId → local media items carrying object urls
   const stale = useRef([]);                // urls a newer copy replaced: a page still showing them keeps them until unmount
   const inFlight = useRef(new Set());
+  const controllers = useRef(new Map());   // lessonId → the AbortController of the save in the air
   const persistAsked = useRef(false);
 
   const revoke = (id) => { const list = urls.current.get(id); if (list) { list.forEach((m) => { try { URL.revokeObjectURL(m.url); } catch (e) { /* fine */ } }); urls.current.delete(id); } };
@@ -83,6 +85,8 @@ export function useDownloads({ owner, loader }) {
     if (!owner || !loader) return { error: "Not signed in" };
     if (inFlight.current.has(id)) return { busy: true };
     inFlight.current.add(id);
+    const ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+    if (ac) controllers.current.set(id, ac);
     if (!persistAsked.current) { persistAsked.current = true; store.requestPersist(); }
     const before = (itemsRef.current[id] && itemsRef.current[id].record) || null;
     patch(id, { status: "saving", progress: 0, error: null, lesson: plain(lesson) });
@@ -107,7 +111,7 @@ export function useDownloads({ owner, loader }) {
           const f = await store.getFile(key);
           if (f && f.blob) { sizes[key] = f.size || f.blob.size; dones[key] = sizes[key]; report(true); return { key, id: m.id, type: m.type, name: m.name || "", size: sizes[key] }; }
         }
-        const blob = await fetchBlob(m.url, (got, total) => { if (total) sizes[key] = total; dones[key] = got; report(false); });
+        const blob = await fetchBlob(m.url, (got, total) => { if (total) sizes[key] = total; dones[key] = got; report(false); }, ac ? ac.signal : undefined);
         sizes[key] = blob.size; dones[key] = blob.size;
         await store.putFile({ key, lessonId: id, blob, type: m.type, name: m.name || "", size: blob.size });
         report(true);
@@ -125,6 +129,13 @@ export function useDownloads({ owner, loader }) {
       patch(id, { status: "saved", progress: 1, bytes: record.bytes, savedAt: record.savedAt, error: null, record });
       return { ok: true, record };
     } catch (e) {
+      if (e && e.name === "AbortError") {
+        /* cancelled: an update keeps the copy that was there; a first
+           download leaves nothing behind */
+        if (before) patch(id, { status: "saved", progress: 1, error: null, record: before });
+        else { try { await store.removeSaved(id); } catch (x) { /* fine */ } setItems((m) => { const n = { ...m }; delete n[id]; return n; }); }
+        return { cancelled: true };
+      }
       const msg = (e && e.message) || "";
       const why = (typeof navigator !== "undefined" && navigator.onLine === false) || NET_RE.test(msg) ? "No connection"
         : /quota/i.test(msg) || (e && e.name === "QuotaExceededError") ? "Not enough space on this phone"
@@ -136,8 +147,11 @@ export function useDownloads({ owner, loader }) {
       return { error: why };
     } finally {
       inFlight.current.delete(id);
+      controllers.current.delete(id);
     }
   }, [owner, supported, loader]);
+  /* a save in the air, stopped */
+  const cancel = useCallback((id) => { const ac = controllers.current.get(String(id)); if (ac) ac.abort(); }, []);
 
   const remove = useCallback(async (id) => {
     const k = String(id);
@@ -180,5 +194,5 @@ export function useDownloads({ owner, loader }) {
     return { count: saved.length, bytes: saved.reduce((a, x) => a + (x.bytes || 0), 0), saving: Object.values(items).filter((x) => x.status === "saving").length };
   }, [items]);
 
-  return { supported, ready, items, list, totals, state, has, record, save, remove, removeAll, mediaOf };
+  return { supported, ready, items, list, totals, state, has, record, save, cancel, remove, removeAll, mediaOf };
 }
