@@ -10433,8 +10433,6 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
   const [err, setErr] = useState(null);
   const canvas = useRef(null), rec = useRef(null), chunks = useRef([]), capTrack = useRef(null);
   const drag = useRef(null);
-  const stage = useRef(null);
-  const [box, setBox] = useState(null);
 
   /* the lesson's clips first, so A is found; then the rest of the
      player's lessons, newest first, only those with something attached */
@@ -10456,16 +10454,6 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
     return () => { on = false; };
   }, [lesson.id, mediaId]);
 
-  /* the stage is measured so the take can be shaped like it */
-  useEffect(() => {
-    const el = stage.current; if (!el) return undefined;
-    const read = () => { const r = el.getBoundingClientRect(); setBox({ w: Math.floor(r.width), h: Math.floor(r.height) }); };
-    read();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(read) : null;
-    if (ro) ro.observe(el); else window.addEventListener("resize", read);
-    return () => { if (ro) ro.disconnect(); else window.removeEventListener("resize", read); };
-  }, [view]);
-
   /* leaving mid-way: stop the recorder */
   useEffect(() => () => { try { if (rec.current && rec.current.state !== "inactive") { rec.current.onstop = null; rec.current.stop(); } } catch (e) { /* fine */ } }, []);
   useEffect(() => {
@@ -10473,10 +10461,6 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
     const i = setInterval(() => setSecs((n) => n + 1), 1000);
     return () => clearInterval(i);
   }, [phase]);
-  /* a pair that stalls still finishes: the take ends once the pair's
-     length is well past, whatever the clips did */
-  useEffect(() => { if (phase === "saving" && secs >= Math.ceil(span) + 15) stopRec(); }, [secs, phase]);
-
   const vids = () => [vA.current, vB.current];
   /* how long the pair runs together: until the first of them ends */
   const span = Math.max(0, Math.min(dur.a - start.current.a, dur.b - start.current.b));
@@ -10582,6 +10566,9 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
      it up's Save, with no sound asked for. What comes back goes onto the
      lesson at once as a new clip; the player is told by the trigger. */
   const stopRec = () => { capTrack.current = null; const r = rec.current; if (r && r.state !== "inactive") { hapticSuccess(); r.stop(); } };
+  /* a pair that stalls still finishes: the take ends once the pair's
+     length is well past, whatever the clips did */
+  useEffect(() => { if (phase === "saving" && secs >= Math.ceil(span) + 15) stopRec(); }, [secs, phase]);
   const saveNow = () => {
     setErr(null);
     const c = canvas.current, [va, vb] = vids();
@@ -10717,7 +10704,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
         ) : (
           <div className="flex-1 min-h-0 flex flex-col">
             {/* the two stages, and the take's canvas hidden behind them */}
-            <div ref={stage} className={`relative flex-1 min-h-0 flex ${sideBySide ? "flex-row" : "flex-col"}`} data-tour="compare-stage" data-compare-layout={sideBySide ? "side" : "stack"} style={{ background: "#0B0F10" }}>
+            <div className={`relative flex-1 min-h-0 flex ${sideBySide ? "flex-row" : "flex-col"}`} data-tour="compare-stage" data-compare-layout={sideBySide ? "side" : "stack"} style={{ background: "#0B0F10" }}>
               {pane("a", a, vA)}
               <span aria-hidden="true" className="shrink-0" style={{ [sideBySide ? "width" : "height"]: 2, background: "rgba(255,255,255,0.18)" }} />
               {pane("b", b, vB)}
