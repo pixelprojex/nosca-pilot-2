@@ -758,6 +758,44 @@ seeded data and no account.
   no lesson yet), and the take joins the attachments and uploads with
   the lesson like any other file. The founder could not find annotation
   from the log once; it stays on the row.
+- **Compare is two clips of the same player side by side, and both
+  sides have it.** `ClipCompare` (route `compare:<lessonId>:<mediaId>`,
+  reached from **Compare** beside Mark it up under a video on the
+  lesson page — the coach's row carries both, the player's Compare
+  alone) is the one tool every video-coaching product carries (V1,
+  OnForm, CoachNow, Skillest) and the first thing a golf or tennis
+  coach reaches for after drawing. The picker first: this clip at the
+  top, then every other clip of that person's lessons as rows, newest
+  first, `Clip 1 · Clip 2` where a lesson has several (the person's
+  lessons come in as `compareLessons`, `sameSubject()` keeps the same
+  player's or the same group's, `compareable()` decides whether the
+  button is there at all — another clip on this lesson, or another
+  lesson with a clip where its files are known and anything attached
+  where they are not; a player with nothing to set a clip beside is
+  not offered it). Then the two stages on a dark `Screen fill`: two
+  portrait clips stand side by side, anything else stacks; one
+  transport for both (play, a frame either way, the scrub, ½×, the
+  time), A leading and B pulled back into step whenever it drifts more
+  than a few frames; each clip lined up on its own — the ‹ › on its
+  pill nudge only that clip a frame, a drag across its picture scrubs
+  only it — and from then on they run locked, the pair ending when
+  the first clip does; **Swap**, **Change** (the picker again) and the
+  coach's **Save**, which plays the pair through once while a canvas
+  draws both halves and is recorded, then puts the take on the lesson
+  as a new clip (`addLessonMedia`; the originals stay; the trigger
+  tells the player "New clip on <focus>"), so the player sees the
+  comparison in their feed. Sound is off throughout: two clips talking
+  at once is noise, and a comparison is looked at. Save is the
+  coach's because only the lesson's coach may add to it, the same
+  asymmetry as Mark it up. The title names the other person — the
+  coach's player, a parent's child — never the person themselves. A
+  clip a browser recorded can carry no length in its header; asking
+  for a time past its end makes the browser find the real one
+  (`onMeta`). The harness's `VideoCompare` sheet is the design sketch
+  this replaced and is reached only from the harness.
+  `scripts/e2e/compare.cjs` walks the coach, the player, a parent on a
+  child's lesson, and a player with nothing to compare; the mock serves
+  a `compare-<n>.webm` take as a real clip like a markup take.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a
