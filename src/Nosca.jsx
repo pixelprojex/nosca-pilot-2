@@ -7446,9 +7446,17 @@ function useDictation(onText, onNotice) {
         }
         onText((settled + interim).replace(/\s+/g, " ").trim(), !!settled);
       };
+      /* every way it can fail is said: a mic that goes quiet with no
+         word is a dead end to the coach holding the phone */
       rec.onerror = (e) => {
-        if (e && e.error === "not-allowed") onNotice && onNotice("Microphone access was declined");
-        else if (e && e.error === "no-speech") onNotice && onNotice("Didn't catch that");
+        const kind = (e && e.error) || "";
+        const why = kind === "not-allowed" || kind === "service-not-allowed" ? "Microphone access was declined"
+                  : kind === "no-speech" ? "Didn't catch that"
+                  : kind === "audio-capture" ? "No microphone found"
+                  : kind === "network" ? "Dictation needs a connection"
+                  : kind === "aborted" ? null
+                  : "Couldn't start the microphone";
+        if (why && onNotice) onNotice(why);
         setState("idle"); recRef.current = null; hapticWarn();
       };
       rec.onend = () => { setState("idle"); recRef.current = null; haptic(8); };
@@ -12124,7 +12132,7 @@ function FilterRow({ options, value, onChange, label, last, plain }) {
   );
 }
 
-function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload, title, onOpen, showWho }) {
+function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlayerId, onClearPlayer, liveMedia, onNeedMedia, sport, onDownload, title, onOpen, showWho, empty }) {
   const openRow = onOpen || ((x) => push(`clesson:${x.id}:${x.who}`));
   const showName = showWho ?? !forPlayer;
   const posterFor = liveMedia
@@ -12244,7 +12252,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
         <div className="px-6 pb-2 mt-2">
           {shown.length === 0 ? (
             <p className="py-12 text-center" style={{ ...TYPE.small, color: t.faint }}>
-              {lessons.length === 0 ? tr("No lessons yet") : tr("No matches")}
+              {lessons.length === 0 ? (empty || tr("No lessons yet")) : tr("No matches")}
             </p>
           ) : (
             /* one boxed list, newest first, the same rows as a player's
@@ -17447,7 +17455,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* the starred ones, for either side: the archive's own screen over
        just those lessons, opening each the way that side opens a lesson */
     const mine = role === "coach" ? archive : playerLessons;
-    body = <CoachArchive title={tr("Starred")} onDownload={downloadLesson} cfg={cfg} lessons={mine.filter((l) => starCtx.has(l.id))} nouns={cfg.nouns}
+    body = <CoachArchive title={tr("Starred")} empty={tr("Nothing starred")} onDownload={downloadLesson} cfg={cfg} lessons={mine.filter((l) => starCtx.has(l.id))} nouns={cfg.nouns}
                          sport={role === "coach" ? coachSport : sport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                          onOpen={role === "coach" ? (x) => push(`clesson:${x.id}:${x.who}`) : (x) => push(`lesson:${x.id}`)}
                          showWho={role === "coach" || !!(account && account.accountType === "parent")}

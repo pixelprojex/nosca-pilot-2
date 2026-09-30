@@ -312,7 +312,12 @@ seeded data and no account.
   broken. `Field` drops the mic for `type="password" | "email" | "tel"`
   itself, so a form gets this right without thinking about it. `MicBtn`
   renders nothing where the browser has no speech recognition, so it is
-  safe to add anywhere.
+  safe to add anywhere — and where it exists but cannot start, every
+  failure is said in a line ("Microphone access was declined", "No
+  microphone found", "Dictation needs a connection", "Didn't catch
+  that", "Couldn't start the microphone"): a mic that went quiet with
+  no word was a dead end to the coach holding the phone, and the one
+  thing the dead-ends crawl kept finding.
 - **A grid fills its rows.** `evenCols(n)` picks the column count so a
   four-tile grid goes two by two rather than three and a widow. Any
   grid whose length varies with the data uses it.
@@ -607,7 +612,9 @@ seeded data and no account.
   re-run the star lives on the device (`nosca.starred.<id>` in
   localStorage) and the preferences write fails quietly; once it has,
   the row wins whenever it carries the list. No toast on a star — the
-  fill is the confirmation. `feed.cjs` (k) and (l) walk both sides.
+  fill is the confirmation. The Starred screen with nothing on it reads
+  "Nothing starred", never the archive's "No lessons yet". `feed.cjs`
+  (k) and (l) walk both sides.
 - **A player's profile pill is the switcher.** Face, first name and a
   chevron in the header; tapping it opens `FamilySheet`: their coaches
   (or Add a coach), Family (their code and who is in it, or Start /

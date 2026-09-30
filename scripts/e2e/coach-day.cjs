@@ -185,6 +185,10 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       const { db, page, text } = await boot();
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
       await page.locator('[data-tour="wiz-who"]').first().click(); await page.waitForTimeout(500);
+      /* dictation that cannot start says why — here a mic with no microphone behind it */
+      await page.evaluate(() => { window.webkitSpeechRecognition = class { start() { setTimeout(() => this.onerror && this.onerror({ error: "audio-capture" }), 50); } stop() {} }; window.SpeechRecognition = window.webkitSpeechRecognition; });
+      await page.locator('[aria-label="Dictate"]').first().click(); await page.waitForTimeout(800);
+      check("(g) a mic that cannot start says why — No microphone found — rather than going quiet", /No microphone found/.test(await text()), (await text()).slice(0, 200));
       await page.getByRole("button", { name: "Chipping", exact: true }).click(); await page.waitForTimeout(200);
       await page.getByRole("button", { name: "Putting", exact: true }).click(); await page.waitForTimeout(200);
       await page.getByRole("button", { name: "Full swing", exact: true }).click(); await page.waitForTimeout(200);

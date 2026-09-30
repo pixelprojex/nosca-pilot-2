@@ -247,7 +247,9 @@ const { check, results, summary } = M.checker("feed");
       check("(k) the lesson page's header carries the star, pressed", (await pageStar.count()) === 1 && (await pageStar.getAttribute("aria-pressed")) === "true");
       await pageStar.click(); await page.waitForTimeout(700);
       check("(k) a tap there unstars it, on the preferences row too", (await pageStar.getAttribute("aria-pressed")) === "false" && !((db.prefs[IDS.adult] || {}).starred || []).includes(L.one), JSON.stringify((db.prefs[IDS.adult] || {}).starred));
-      await M.back(page); await page.waitForTimeout(900); await M.back(page); await page.waitForTimeout(900);
+      await M.back(page); await page.waitForTimeout(900);
+      check("(k) the Starred screen with nothing left on it says so — Nothing starred, not No lessons yet", /Nothing starred/.test(await text()) && !/No lessons yet/.test(await text()), (await text()).slice(0, 160));
+      await M.back(page); await page.waitForTimeout(900);
       check("(k) with nothing starred the Starred row is gone and the list is whole", (await page.locator('[data-tour="log-starred"]').count()) === 0 && (await page.locator('[data-tour="log-row"]').count()) === 1, (await text()).slice(0, 160));
       await ctx.close();
     }
