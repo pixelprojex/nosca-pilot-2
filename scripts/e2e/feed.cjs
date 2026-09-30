@@ -236,12 +236,14 @@ const { check, results, summary } = M.checker("feed");
       check("(k) a tap stars it: the button reads Starred, and the lesson id is on the person's own preferences row", (await starBtn.getAttribute("aria-pressed")) === "true" && (await starBtn.getAttribute("aria-label")) === "Starred" && !!pref && Array.isArray(pref.starred) && pref.starred.includes(L.one), JSON.stringify(pref && pref.starred));
       await shot("10-feed-starred");
       await tap(page, 'button[aria-label="List"]', 1200);
-      const t0 = (await text()).replace(/\s+/g, " ");
-      check("(k) the list carries a Starred row with the count, above the lessons", (await page.locator('[data-tour="log-starred"]').count()) === 1 && /Starred 1/.test(t0), t0.slice(0, 200));
-      check("(k) and the starred lesson's row carries the star", (await page.locator('[data-tour="log-row"] [aria-label="Starred"]').count()) === 1);
-      await tap(page, '[data-tour="log-starred"]', 1200);
+      check("(k) the header carries Saved, and the starred lesson's row carries the star", (await page.locator('[data-tour="saved"]').count()) === 1 && (await page.locator('[data-tour="log-row"] [aria-label="Starred"]').count()) === 1);
+      await tap(page, '[data-tour="saved"]', 1200);
       const t1 = await text(); await shot("11-starred");
-      check("(k) Starred lists that lesson alone, under its own title", /Starred/.test(t1) && t1.includes("Short game") && !t1.includes("Putting"), t1.slice(0, 200));
+      check("(k) Saved opens on Starred and lists that lesson alone", /Saved/.test(t1) && (await page.locator('[data-tour="saved-kind"] button[aria-label="Starred"]').getAttribute("aria-pressed")) === "true" && /1 starred/.test(t1) && t1.includes("Short game") && !t1.includes("Putting"), t1.slice(0, 200));
+      /* and as a feed */
+      await page.locator('[data-tour="archive-view"] button', { hasText: "Feed" }).first().click(); await page.waitForTimeout(1500);
+      check("(k) Starred is viewable as a feed: the one card, with its clip", (await page.locator("[data-feed-card]").count()) === 1 && (await page.locator("[data-feed-card] video").count()) >= 1, String(await page.locator("[data-feed-card]").count()));
+      await tap(page, 'button[aria-label="List"]', 1200);
       await page.locator(".nsc-list button", { hasText: "Short game" }).first().click(); await page.waitForTimeout(1200);
       const pageStar = page.locator('[data-tour="lesson-star"]');
       check("(k) the lesson page's header carries the star, pressed", (await pageStar.count()) === 1 && (await pageStar.getAttribute("aria-pressed")) === "true");
@@ -250,24 +252,22 @@ const { check, results, summary } = M.checker("feed");
       await M.back(page); await page.waitForTimeout(900);
       check("(k) the Starred screen with nothing left on it says so — Nothing starred, not No lessons yet", /Nothing starred/.test(await text()) && !/No lessons yet/.test(await text()), (await text()).slice(0, 160));
       await M.back(page); await page.waitForTimeout(900);
-      check("(k) with nothing starred the Starred row is gone and the list is whole", (await page.locator('[data-tour="log-starred"]').count()) === 0 && (await page.locator('[data-tour="log-row"]').count()) === 1, (await text()).slice(0, 160));
+      check("(k) back on the list, whole", (await page.locator('[data-tour="log-row"]').count()) === 1, (await text()).slice(0, 160));
       await ctx.close();
     }
 
     /* ---------- (l) a coach stars from the lesson page; the home says so ---------- */
     {
       const { ctx, page, text } = await boot("coach");
-      check("(l) a coach with nothing starred has no Starred row on the home", (await page.locator('[data-tour="today-starred"]').count()) === 0);
+      check("(l) the coach's home carries Saved in the header, before Search", (await page.locator('[data-tour="saved"]').count()) === 1 && (await page.locator('[data-tour="search"]').count()) === 1);
       await tap(page, '[data-tour="today-archive"]', 1200);
       await page.locator(".nsc-list button", { hasText: "Putting" }).first().click(); await page.waitForTimeout(1200);
       await page.locator('[data-tour="lesson-star"]').click(); await page.waitForTimeout(700);
       check("(l) the coach's star lands on the coach's own preferences, never the player's", ((db.prefs[IDS.coach] || {}).starred || []).includes(L.two) && !((db.prefs[IDS.adult] || {}).starred || []).includes(L.two), JSON.stringify((db.prefs[IDS.coach] || {}).starred));
       await M.back(page); await page.waitForTimeout(800); await M.back(page); await page.waitForTimeout(800);
-      const home = (await text()).replace(/\s+/g, " ");
-      check("(l) the home carries a Starred row under All lessons, with the count", (await page.locator('[data-tour="today-starred"]').count()) === 1 && /Starred 1/.test(home), home.slice(0, 200));
-      await tap(page, '[data-tour="today-starred"]', 1200);
+      await tap(page, '[data-tour="saved"]', 1200);
       const t2 = await text();
-      check("(l) Starred shows the putting lesson with the player's name, and not the other", t2.includes("Putting") && t2.includes("Cian Murphy") && !t2.includes("Short game"), t2.slice(0, 200));
+      check("(l) Saved › Starred reads 1 starred and shows the putting lesson with the player's name, and not the other", /1 starred/.test(t2) && t2.includes("Putting") && t2.includes("Cian Murphy") && !t2.includes("Short game"), t2.slice(0, 200));
       await ctx.close();
     }
 

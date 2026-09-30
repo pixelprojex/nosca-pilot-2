@@ -507,17 +507,19 @@ seeded data and no account.
   downloaded lesson opening its sheet — **Open · Update · Share as a
   file · Remove** (Update fetches what changed and keeps the old copy
   if it fails; Share as a file is the old HTML export, now with the
-  drills and the tip from the record). `DownloadCtx` (provided by
-  Nosca) is how every surface reads it; `downloadLesson` is the one
-  tap. **Downloads** is a screen: a row under All lessons on the
-  coach's home (`today-downloads`) and above the player's list
-  (`log-downloads`), there only while something is on the phone, and
-  Settings › Downloads with the count and the room they take; the
-  screen is a boxed list of `LessonRow`s with the poster from the
-  phone and two facts (whose, or the day; the size, or how far, or
-  why it failed), anything still coming down or failed at the top, a
-  swipe to remove, Remove all at the foot, "Nothing downloaded" when
-  empty. **A downloaded lesson plays from the phone, online or not**:
+  drills and the tip from the record); while it comes down the sheet
+  is how far and **Cancel** (an `AbortController` in the hook; a first
+  download cancelled leaves nothing behind, an update cancelled keeps
+  the old copy); after a failure it is why, **Retry** and **Remove**.
+  The ring carries no figures — nothing in the app goes below 12px,
+  and a percentage inside a 38px disc was — the arrow fades inside it
+  instead, and the tick pops in (`tickIn`, via `usePop`) when the ring
+  completes. `DownloadCtx` (provided by Nosca) is how every surface
+  reads it; `downloadLesson` is the one tap. Downloads live in
+  **Saved** (below) — they were a row under All lessons and above the
+  player's list for a day, and the founder could not find them there;
+  Settings › Downloads opens the same half. **A downloaded lesson
+  plays from the phone, online or not**:
   every reader of a lesson's files goes through `mediaFor` in Nosca,
   which hands back the phone's copy (object urls) where there is one
   and signs from the server where there is not; offline and never
@@ -527,6 +529,37 @@ seeded data and no account.
   takes its downloads with it. `scripts/e2e/downloads.cjs` walks all
   of it, offline included; `coach-day.cjs` (e) and `core-loop.cjs`
   (b) share the file through the sheet.
+- **Saved is one star in the header, on every home, for both sides:
+  Starred and Downloads as the two halves of one screen, each with
+  List · Feed.** `IconBtn tour="saved"` sits before Search on
+  `navRight`, `slimRight` and `juvRight`; it opens on Downloads when
+  nothing is starred and something is on the phone, else on Starred.
+  The screen is `CoachArchive` (routes `saved`, `saved:starred`,
+  `saved:downloads`; the old `starred` and `downloads` names land
+  there too) with `head` (the `Segmented` Starred · Downloads,
+  `saved-kind`), `plain` (the search and the filters only past eight
+  lessons), `metaText` ("3 starred" · "2 downloads · 84 MB"),
+  `factsFor` (whose, or the day; the size, how far, or why it failed),
+  `onRemove` (each row in a `SwipeRow`, `downloads-row`) and `foot`
+  (Remove all past one). The Downloads half's posters and its feed come
+  from the phone: `downloadMediaMap` in Nosca is the local copies in
+  the shape of `liveMedia`, merged over it. "Nothing starred" and
+  "Nothing downloaded" are the empty halves. The founder asked for
+  both to be somewhere intuitive and viewable in the feed view; rows
+  at the foot of lists were neither.
+- **Motion is a glide, never a cut — and every piece of it honours
+  Reduce Motion through `.calm`.** A tab arrives with `tabIn` (a short
+  rise, `backwards` fill, keyed `root:<tab>` so it plays once per
+  change; a pushed screen keeps `pushIn`, a popped one `popIn`); the
+  `Segmented` control has one thumb that slides to the chosen option
+  (`translateX` on an absolutely placed surface) rather than a surface
+  that jumps; a `Poster` fades in when its picture has loaded, and
+  after 900ms regardless; a star pops when it fills (`starPop`) and
+  the download disc when its ring completes (`tickIn`), both through
+  `usePop(on)`, which is true for a beat after `on` turns true and
+  never on first paint. None of it changes a layout; the founder asked
+  for the app to be easier to glide through, not for it to look
+  different.
 - **The app opens with no network, on its kept copy — and the network
   comes first whenever there is one.** Three pieces. `public/sw.js`
   keeps this build's shell (the files `/precache.json` lists, written
@@ -659,12 +692,10 @@ seeded data and no account.
   nothing threads it through props. The control is a star: beside View
   lesson on the feed card (`feed-star`), in the header of the lesson
   page (`lesson-star`), filled once starred; a starred row carries a
-  small filled star as a value, not a control. The section is
-  **Starred**: a row above a player's lesson list (`log-starred`) and
-  under All lessons on the coach's home (`today-starred`), there only
-  while something is starred and carrying the count, opening the
-  archive screen (`CoachArchive` with `title`, `onOpen`, `showWho`)
-  over just those lessons with its List · Feed. Until the SQL has been
+  small filled star as a value, not a control. The section is the
+  Starred half of **Saved** (below); it was a row above a player's
+  lesson list and under All lessons on the coach's home for a day, and
+  the founder could not find it there. Until the SQL has been
   re-run the star lives on the device (`nosca.starred.<id>` in
   localStorage) and the preferences write fails quietly; once it has,
   the row wins whenever it carries the list. No toast on a star — the
