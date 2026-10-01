@@ -883,6 +883,34 @@ seeded data and no account.
   `scripts/e2e/compare.cjs` walks the coach, the player, a parent on a
   child's lesson, and a player with nothing to compare; the mock serves
   a `compare-<n>.webm` take as a real clip like a markup take.
+- **Progress is a player's journey read off the lessons, the same
+  screen on both sides, and it stores nothing.** `ProgressScreen`
+  (route `progress` for your own, `progress:<id>` for a player's) is
+  reached from the first foot row of the coach's player file
+  (`player-progress`), from the profile pill's switcher for a player
+  (`sheet-progress`), and from the child's screen for a parent
+  (`kid-progress`). `progressOf()` reads the lessons: the level over
+  time as one hand-drawn SVG line (`LevelLine`) where the sport's stage
+  is a number (HI, WTN, a padel level — the number behind the stage tag
+  on each lesson, first and last labelled), or the ladder with the
+  steps reached ticked and the current one carrying "since" its first
+  lesson where the stage is a name (the tennis balls, J15, the ball
+  dot, the Pony Club tests — golf shows both when both are there);
+  what was worked on as counts with a bar, split on the " · " the log
+  joined; the last six months as columns (`MonthBars`); drills done of
+  set. With no lessons it says "No lessons yet" and draws nothing.
+  Nothing is asked and no SQL: it is what TennisLocker draws for the
+  parents and the golf apps chart as the handicap, and perceived
+  progress is most of why a paying client stays. The calendar's `today`
+  is a 1-based month and a day with the year beside it, never a Date —
+  `progressToday()` turns it into one. `scripts/e2e/progress.cjs`
+  walks the coach, the player, a parent on a child, a player with
+  nothing and a tennis ladder.
+- **A boxed row carries no hairline of its own.** Inside `.nsc-list`
+  the box is the edge; a row that also drew its 0.5px foot rule
+  (`DayRow` on the home with `last={false}`, the bell's `Line` and
+  `Ask`) put a dark line inside every box, visible on the coach's home
+  and the alerts. Pass `last`, or leave the rule off.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a

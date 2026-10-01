@@ -13,8 +13,7 @@ import {
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff
-} from "lucide-react";
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
@@ -6547,7 +6546,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
 /* One young player, opened from the family. Everything an adult does
    for them is here, so the dashboard above can stay a glance. */
-function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onBook, onMessage, onOpenLesson, onAllLessons, todayIso, pop }) {
+function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onBook, onMessage, onOpenLesson, onAllLessons, onProgress, todayIso, pop }) {
   const t = useT();
   if (!kid) return null;
   const first = (n) => (n || "").split(" ")[0];
@@ -6598,9 +6597,15 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               ))}
             </Card>
             {mine.length > shown.length && (
-              <button onClick={() => { haptic(6); onAllLessons && onAllLessons(); }} className="w-full mb-7 active:opacity-60"
+              <button onClick={() => { haptic(6); onAllLessons && onAllLessons(); }} className="w-full mb-3 active:opacity-60"
                       style={{ minHeight: 46, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("All")} {mine.length} {tr("lessons")}
+              </button>
+            )}
+            {onProgress && (
+              <button data-tour="kid-progress" onClick={() => { haptic(6); onProgress(); }} className="w-full mb-7 active:opacity-60"
+                      style={{ minHeight: 46, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                {tr("Progress")}
               </button>
             )}
           </>)}
@@ -9018,7 +9023,7 @@ function CoachCodeStep({ t, newSport, code, setCode, found, who, onBack, onJoin 
   );
 }
 
-function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, onSettings, mySports = [], main, onSetMain, onPhoto, close, say, live, hasCoach, onJoinCode }) {
+function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, conns, activeConnId, onPickConn, onAddConn, onViewGroups, onFamily, onSettings, onProgress, mySports = [], main, onSetMain, onPhoto, close, say, live, hasCoach, onJoinCode }) {
   const t = useT();
   /* a real account joins a coach through the database (join_coach); the
      harness's pretend lookup below is never reached with `live` */
@@ -9211,7 +9216,10 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         )}
         {!(live && hasCoach) && <Row label={tr("Add a coach")} sub={live ? tr("Enter their code") : tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage(live ? "code" : "sport")} />}
         <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
-        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last={!onSettings} icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
+        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last={!onSettings && !onProgress} icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
+        {/* the journey so far, read off the lessons — the player's own
+            Progress, the same screen the coach has on their file */}
+        {onProgress && <Row label={tr("Progress")} tour="sheet-progress" last={!onSettings} chevron icon={<TrendingUp size={18} color={t.sub} strokeWidth={1.8} />} onToggle={() => { close(); onProgress(); }} />}
         {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron onToggle={() => { close(); onSettings(); }} />}
       </Card>
     </>
@@ -11536,7 +11544,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             {todayRows.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
               const row = (
-                <DayRow l={l} variant={variant} emphasis={l === liveNow} last={false}
+                <DayRow l={l} variant={variant} emphasis={l === liveNow} last
                         avatar={avatarFor(l)}
                         until={l === liveNow ? tr("Now") : l === nextUp ? untilText(l.hoursUntil ?? 1) : null}
                         onLogFor={(x) => onLogFor && onLogFor(x)}
@@ -12503,6 +12511,209 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
 /* What a coach needs before a lesson, in the order they need it. Past
    lessons come first and are large, because looking back at the last
    session is the most common reason to open a player at all. */
+/* PROGRESS — A PLAYER'S JOURNEY, READ OFF THE LESSONS.
+
+   Perceived progress is most of why a paying client stays (one survey
+   of coaching clients puts it at four in five), and every reference
+   product shows it: TennisLocker draws an athlete's trend over time for
+   the parents, CoachNow keeps a Space as the training history, the
+   golf apps chart the handicap. Nosca had four tiles on the file and
+   nothing over time. This screen says only what the lessons already
+   say — nothing is asked, nothing is stored, no SQL:
+   · the level over time: a line of the stage's number where the stage
+     is a number (HI, WTN, a padel level), the ladder with the steps
+     reached where it is a name (the tennis balls, J15, the ball dot,
+     the Pony Club tests);
+   · what was worked on, as counts, the way the log joined the areas;
+   · lessons a month, the last six;
+   · drills done of the drills set.
+   It is the same screen for the coach (the player file), the player
+   (the profile pill) and a parent (the child's screen) — parity. */
+const PROGRESS_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function progressDate(l, today) {
+  if (l && l.iso) return localDate(l.iso);
+  if (l && l.d && l.m) {
+    const mi = PROGRESS_MONTHS.indexOf(String(l.m).slice(0, 3));
+    if (mi < 0) return null;
+    const y = today.getFullYear() - (mi > today.getMonth() ? 1 : 0);
+    return new Date(y, mi, Number(l.d) || 1);
+  }
+  return null;
+}
+function progressOf(cfg, lessons, today) {
+  const stages = (cfg && cfg.stages) || [];
+  const rows = (lessons || []).map((l) => ({ l, d: progressDate(l, today) })).filter((x) => x.d).sort((a, b) => a.d - b.d);
+  /* the number behind an input stage, by date */
+  const inputStage = stages.find((st) => st.input);
+  const points = inputStage ? rows.map((x) => {
+    const tag = stageOf(cfg, x.l);
+    if (!tag || !String(tag).startsWith(`${inputStage.tag}${STAGE_INPUT_SEP}`)) return null;
+    const v = parseFloat(String(tag).slice(inputStage.tag.length + 1));
+    return Number.isFinite(v) ? { d: x.d, v, l: x.l } : null;
+  }).filter(Boolean) : [];
+  /* the named steps reached, in the sport's own order */
+  const named = stages.filter((st) => !st.input);
+  const reached = new Set();
+  let current = null;
+  /* "since" is the first lesson of the current run at that step, not the latest */
+  rows.forEach((x) => { const tag = stageOf(cfg, x.l); const st = named.find((n) => n.label === tag); if (st) { reached.add(st.id); if (!current || current.st.id !== st.id) current = { st, d: x.d }; } });
+  /* what was worked on, counted the way the log joined it */
+  const areaCount = new Map();
+  rows.forEach((x) => String(x.l.focus || "").split(" · ").map((a) => a.trim()).filter(Boolean).forEach((a) => areaCount.set(a, (areaCount.get(a) || 0) + 1)));
+  const areas = [...areaCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  /* the last six months, this one last */
+  const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(today.getFullYear(), today.getMonth() - (5 - i), 1); return { y: d.getFullYear(), m: d.getMonth(), n: 0 }; });
+  rows.forEach((x) => { const hit = months.find((mo) => mo.y === x.d.getFullYear() && mo.m === x.d.getMonth()); if (hit) hit.n++; });
+  return { rows, points, inputStage, named, reached, current, areas, months, first: rows[0] ? rows[0].d : null, last: rows.length ? rows[rows.length - 1].d : null };
+}
+/* one small line, drawn by hand — no library for forty points */
+function LevelLine({ points, tag, color, ink, faint }) {
+  const W = 320, H = 96, PX = 6, PY = 12;
+  const vs = points.map((p) => p.v);
+  const lo = Math.min(...vs), hi = Math.max(...vs), span = hi - lo || 1;
+  const x = (i) => PX + (points.length > 1 ? (i / (points.length - 1)) * (W - PX * 2) : (W - PX * 2) / 2);
+  const y = (v) => PY + (1 - (v - lo) / span) * (H - PY * 2);
+  const d = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(" ");
+  const last = points[points.length - 1];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} aria-label={`${tag} ${points[0].v} to ${tag} ${last.v}`} style={{ display: "block", overflow: "visible" }}>
+      <line x1={PX} x2={W - PX} y1={H - PY} y2={H - PY} stroke={faint} strokeWidth="0.5" />
+      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {points.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.v)} r={i === points.length - 1 ? 4 : 2.5} fill={i === points.length - 1 ? color : "#FFFFFF"} stroke={color} strokeWidth="1.5" />)}
+      <text x={x(0)} y={y(points[0].v) - 8} textAnchor={points.length > 1 ? "start" : "middle"} style={{ font: `500 11.5px ${ui}`, fill: ink }}>{points[0].v}</text>
+      {points.length > 1 && <text x={x(points.length - 1)} y={y(last.v) - 9} textAnchor="end" style={{ font: `500 11.5px ${ui}`, fill: ink }}>{last.v}</text>}
+    </svg>
+  );
+}
+function MonthBars({ months, color, ink, faint }) {
+  const W = 320, H = 92, TOP = 16, BASE = H - 18, max = Math.max(1, ...months.map((m) => m.n));
+  const cw = W / months.length, bw = 22;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} aria-label={months.map((m) => `${PROGRESS_MONTHS[m.m]} ${m.n}`).join(", ")} style={{ display: "block" }}>
+      <line x1="0" x2={W} y1={BASE} y2={BASE} stroke={faint} strokeWidth="0.5" />
+      {months.map((m, i) => {
+        const h = m.n ? Math.max(4, ((BASE - TOP) * m.n) / max) : 0; const cx = cw * i + cw / 2;
+        return (
+          <g key={`${m.y}-${m.m}`}>
+            {m.n > 0 && <rect x={cx - bw / 2} y={BASE - h} width={bw} height={h} rx="3" fill={color} />}
+            {m.n > 0 && <text x={cx} y={BASE - h - 5} textAnchor="middle" style={{ font: `500 11.5px ${ui}`, fill: ink }}>{m.n}</text>}
+            <text x={cx} y={H - 4} textAnchor="middle" style={{ font: `400 11.5px ${ui}`, fill: faint }}>{PROGRESS_MONTHS[m.m][0]}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+/* the calendar's today is a month and a day (1-based month) with the
+   year beside it — the harness pins it, a real account's is the clock */
+const progressToday = (cal) => {
+  const v = cal && cal.today;
+  if (v instanceof Date) return v;
+  if (v && typeof v.m === "number") return new Date((cal && cal.year) || new Date().getFullYear(), v.m - 1, v.d || 1);
+  return new Date();
+};
+function ProgressScreen({ title, cfg, lessons, drills, pop }) {
+  const t = useT();
+  const calendar = useCalendar();
+  const todayKey = calendar && calendar.today ? `${calendar.year || ""}-${calendar.today.m}-${calendar.today.d}` : "";
+  const today = useMemo(() => progressToday(calendar), [todayKey]);
+  const p = useMemo(() => progressOf(cfg, lessons, today), [cfg, lessons, today]);
+  const n = p.rows.length;
+  const mineDrills = drills || [];
+  const done = mineDrills.filter((d) => d.done).length;
+  const meta = n ? [`${n} ${n === 1 ? tr("lesson") : tr("lessons")}`, p.first ? `${tr("since")} ${fmtWeekDay(p.first)}` : null].filter(Boolean).join(" · ") : "";
+  const section = { ...TYPE.eyebrow, color: t.faint, marginBottom: 10 };
+  const box = { background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 8, padding: "14px 16px" };
+  const firstPoint = p.points[0], lastPoint = p.points[p.points.length - 1];
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={title} onBack={pop} meta={meta}>
+        <div className="px-6 pb-8" data-tour="progress">
+          {n === 0 ? (
+            <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
+          ) : (<>
+            {/* the level, where the lessons carry one */}
+            {p.points.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }} data-progress="level">
+                <div style={section}>{p.inputStage.label}</div>
+                <div style={box}>
+                  <div className="flex items-baseline justify-between" style={{ marginBottom: 6 }}>
+                    <span style={{ ...TYPE.title, color: t.ink }}>{p.inputStage.tag} {lastPoint.v}</span>
+                    {p.points.length > 1 && <span style={{ ...TYPE.small, color: t.sub }}>{tr("from")} {p.inputStage.tag} {firstPoint.v} · {fmtWeekDay(firstPoint.d)}</span>}
+                  </div>
+                  {p.points.length > 1
+                    ? <LevelLine points={p.points} tag={p.inputStage.tag} color={t.accent} ink={t.ink} faint={t.trace || t.faint} />
+                    : <p style={{ ...TYPE.small, color: t.sub }}>{fmtWeekDay(firstPoint.d)} · {tr("one reading so far")}</p>}
+                </div>
+              </div>
+            )}
+            {p.reached.size > 0 && (
+              <div style={{ marginBottom: SPACE.block }} data-progress="ladder">
+                <div style={section}>{tr("Level")}</div>
+                <div style={{ ...box, padding: "4px 16px" }}>
+                  {p.named.map((st, i) => {
+                    const on = p.reached.has(st.id), now = p.current && p.current.st.id === st.id;
+                    return (
+                      <div key={st.id} className="flex items-center gap-3" style={{ minHeight: 44, borderBottom: i === p.named.length - 1 ? "none" : RULE.hair(t.ink) }}>
+                        <span className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20, borderRadius: 10, background: on ? t.accent : "transparent", border: on ? "none" : `1.5px solid ${t.hair}` }}>
+                          {on && <Check size={12} color="#FFFFFF" strokeWidth={2.6} />}
+                        </span>
+                        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: now ? 600 : 400, color: on ? t.ink : t.faint }}>{st.label}</span>
+                        {now && <span style={{ ...TYPE.small, color: t.sub }}>{tr("since")} {fmtWeekDay(p.current.d)}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {/* what was worked on */}
+            {p.areas.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }} data-progress="areas">
+                <div style={section}>{tr("Worked on")}</div>
+                <div style={{ ...box, padding: "6px 16px" }}>
+                  {p.areas.map(([label, count], i) => (
+                    <div key={label} style={{ padding: "9px 0", borderBottom: i === p.areas.length - 1 ? "none" : RULE.hair(t.ink) }}>
+                      <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                        <span className="min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
+                        <span className="shrink-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, fontVariantNumeric: "tabular-nums" }}>{count}</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: t.wash }}>
+                        <div style={{ height: 5, borderRadius: 3, background: t.accent, width: `${Math.round((count / p.areas[0][1]) * 100)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* lessons a month */}
+            <div style={{ marginBottom: SPACE.block }} data-progress="months">
+              <div style={section}>{tr("Lessons a month")}</div>
+              <div style={box}>
+                <MonthBars months={p.months} color={t.accent} ink={t.ink} faint={t.trace || t.faint} />
+              </div>
+            </div>
+            {/* drills done */}
+            {mineDrills.length > 0 && (
+              <div style={{ marginBottom: SPACE.block }} data-progress="drills">
+                <div style={section}>{tr("Drills")}</div>
+                <div style={box}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                    <span style={{ ...TYPE.body, color: t.ink }}>{done} {tr("of")} {mineDrills.length} {tr("done")}</span>
+                    <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((done / mineDrills.length) * 100)}%</span>
+                  </div>
+                  <div style={{ height: 5, borderRadius: 3, background: t.wash }}>
+                    <div style={{ height: 5, borderRadius: 3, background: t.accent, width: `${Math.round((done / mineDrills.length) * 100)}%` }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>)}
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload }) {
   const t = useT();
   const seeded = !useLive();
@@ -12634,9 +12845,10 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               archive the block at the top of this screen goes to, under
               a second name. */}
           <div style={{ borderTop: RULE.section(t.ink) }}>
-            {[[tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
+            {[[tr("Progress"), () => push("progress:" + (r.id || name)), null],
+              [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
-              <button key={lbl} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
+              <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
                       style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
                 <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
                 {val && <span style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
@@ -15582,7 +15794,8 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
       <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
         <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }}
                 className="w-full flex items-start gap-3.5 px-1 text-left active:opacity-60"
-                style={{ minHeight: 66, paddingTop: 15, paddingBottom: 15, borderBottom: hair }}>
+                /* the box is the edge: no hairline at the foot of a boxed row */
+                style={{ minHeight: 66, paddingTop: 15, paddingBottom: 15 }}>
           <span className="relative shrink-0" style={{ width: 36, height: 36 }}>
             {face
               ? <Avatar name={face.name} size={36} src={face.src} />
@@ -15619,7 +15832,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
 
   /* still a question, so it is answered here rather than somewhere else */
   const Ask = ({ w }) => (
-    <div className="flex items-center gap-3 pr-1" style={{ minHeight: 60, borderBottom: hair }}>
+    <div className="flex items-center gap-3 pr-1" style={{ minHeight: 60 }}>
       <Avatar name={w.who} size={32} src={w.avatar} />
       <span className="flex-1 min-w-0">
         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{w.who}</span>
@@ -18053,6 +18266,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
   } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} nouns={cfg.nouns} lessonCount={archive.length} stageFor={lastFor} />;
+  } else if (screen === "progress" || screen.startsWith("progress:")) {
+    /* progress — my own journey; progress:<id> — a player's, for the
+       coach from the file and for a parent from the child's screen */
+    const pkey = screen.startsWith("progress:") ? screen.slice("progress:".length) : null;
+    let pwho = null, plist = [], pdrills = [], ptitle = tr("Progress");
+    if (!pkey) { plist = playerLessons || []; pdrills = myPractice || []; }
+    else if (data) {
+      pwho = byKey(pkey) || (data.dependants || []).find((k) => String(k.id) === pkey) || null;
+      const pid = pwho ? pwho.id : pkey;
+      plist = (data.lessons || []).filter((l) => l.playerId === pid || (l.attendeeIds || []).includes(pid));
+      if (role === "coach") plist = taught(plist);
+      pdrills = (data.drills || []).filter((d) => d.playerId === pid);
+      ptitle = pwho ? pwho.name : tr("Progress");
+    } else {
+      pwho = ROSTER.find((x) => String(x.id) === pkey || x.name === pkey) || null;
+      ptitle = pwho ? pwho.name : pkey;
+      plist = pwho ? (fileFor(pwho.name, false).lessons || []) : (playerLessons || []).slice(0, 3);
+    }
+    body = <ProgressScreen title={ptitle} cfg={cfg} lessons={plist} drills={pdrills} pop={pop} />;
   } else if (screen.startsWith("history:")) {
     const hkey = screen.slice("history:".length);
     const hp = data ? byKey(hkey) : null;
@@ -18330,7 +18562,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       body = <FamilyKid kid={k} lessons={famLessons} drills={famDrills} bookings={famBookings} todayIso={iso}
                         canBook={!!(k && k.coachId) && Object.values(((famHours[k && k.id] || {}).days) || {}).some((x) => x && x.length)}
                         onBook={(x) => { setBookFor(x); go("calendar"); }} onMessage={(x) => push("thread:" + x.name)}
-                        onOpenLesson={(l) => push("lesson:" + l.id)} onAllLessons={() => { pop(); go("log"); }} pop={pop} />;
+                        onOpenLesson={(l) => push("lesson:" + l.id)} onAllLessons={() => { pop(); go("log"); }} onProgress={() => push("progress:" + (k ? k.id : "first"))} pop={pop} />;
     } else {
       body = <FamilyHome family={fam} isJunior={juvenile} dependants={juvenile ? [] : kids}
                          lessons={famLessons} drills={famDrills} bookings={famBookings} todayIso={iso}
@@ -18733,7 +18965,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               const c = conns.find((x) => x.profileId === activeProfileId && x.sport === sp);
                                               if (c) { setActiveId(c.id); setCoachSport(sp); } }}
                                             close={() => setSheet(null)} />
-            : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onFamily={() => push("familyCode")} onSettings={() => push("you")} onPhoto={() => setSheet("photo")}
+            : sheet === "family" ? <FamilySheet profiles={profiles} activeProfileId={activeProfileId} onSwitchProfile={switchProfile} onAddChild={addChild} conns={conns} activeConnId={activeId} onProgress={() => push("progress")} onPickConn={(id) => { setActiveId(id); go("home"); }} onAddConn={addConn} onViewGroups={() => push("groups")} onFamily={() => push("familyCode")} onSettings={() => push("you")} onPhoto={() => setSheet("photo")}
                                             live={!!data} hasCoach={data ? !!data.hasCoach : false} onJoinCode={onJoinCoach}
                                             mySports={[...new Set(conns.filter((c) => c.profileId === activeProfileId).map((c) => c.sport))]}
                                             main={mainSport[activeProfileId]}
