@@ -71,7 +71,15 @@ SQL, so the app must say plainly where it is not yet possible rather
 than pretend. Large, and the most noticeable of all on the player's
 side.
 
-### 3. Progress — a player's journey over time
+### 3. Progress — a player's journey over time. **Built 1 October.**
+As below, as `ProgressScreen` from the player file, the profile pill
+and the child's screen; `scripts/e2e/progress.cjs`. Read on 1 October:
+TennisLocker "uses charts and graphs to show parents, players and
+coaches how an athlete is improving over time" and is free for parents
+and players; CoachNow's Space "serves as their training history";
+Pwap, SwingCoach AI, MyPlatfrm and Pro Golf Practice all sell the
+progress chart. The level line, the ladder and the month columns are
+that, read off the lessons.
 No SQL: every lesson carries its stage tag (`HI 18.4`, `WTN 22`,
 `Green ball`, `Level 3.5`, `J15`) and its areas. A Progress screen for
 the coach on the player file and for the player behind the profile
@@ -107,6 +115,10 @@ the items above; a research spike first.
 - A second camera angle: two phones, one coach.
 
 ## Sources
+- https://apps.apple.com/app/id1433835828 (TennisLocker Coach: charts over time for parents)
+- https://help.coachnow.io/en/articles/10809209-coachnow-academy-101 (a Space as the training history)
+- https://rationalgo.ai/resources/app-builder/golf-lesson-student-handicap-improvement-tracker
+- https://mwm.ai/apps/swingcoach-ai/6760660742
 - https://skillest.com/blog/best-online-golf-coaching-platforms-2026/
 - https://onform.com/blog/best-video-analysis-app-for-coaches/
 - https://play.google.com/store/apps/details?id=com.v1sports.coach
