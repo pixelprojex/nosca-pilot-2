@@ -95,7 +95,11 @@ sets drills; a `due` day on `drills` (one alter table), the player's
 Drills screen ordered by it, and the reminder as a notification from
 the trigger. Small SQL, medium build, noticeable to the player.
 
-### 5. A player's season report
+### 5. A player's season report. **Built 2 October.**
+As one page from the foot of Progress on all three sides —
+`shareSeasonReport()`; `progress.cjs` reads the file back. Taken
+ahead of 2 and 4 because both of those need the founder's re-run of
+`supabase/nosca.sql`, still outstanding, and would land invisible.
 TennisLocker sells "evaluations" to parents. Nosca has
 `downloadLessonLog` for one lesson; a per-player report — the
 lessons, the areas, the stage line, the drills, the coach's tips — as
