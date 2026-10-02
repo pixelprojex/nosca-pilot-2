@@ -906,6 +906,29 @@ seeded data and no account.
   `progressToday()` turns it into one. `scripts/e2e/progress.cjs`
   walks the coach, the player, a parent on a child, a player with
   nothing and a tennis ladder.
+- **A season report is Progress as one page for the share sheet.**
+  `shareSeasonReport()` at the foot of `ProgressScreen` ("Share a
+  report", `progress-report`) writes `seasonReportHtml()` — the lesson
+  log's own style: the player, the span of the lessons and the coach;
+  the level then and now (or the ladder's steps reached); the lessons
+  by month; what was worked on; the drills set and done; the coach's
+  tips; every lesson with the first line of its note — and hands it
+  out through `shareHtmlFile()`, the share-or-download path the lesson
+  log uses too. The coach's names the coach, a player's names their
+  coach, a parent's is the child's under the child's name (the child
+  comes from `data.dependants`, which knows the child's coach; the
+  roster's row for the same child does not). It is what TennisLocker
+  sells to parents as an evaluation at the end of a term. Nothing in
+  it is invented; a section with nothing to say is left out.
+  `progress.cjs` (f2)–(f4), (i2), (l2) read the file back.
+- **The feed's header is one row, and nothing in it overlaps.** The
+  List · Feed switch top left and the header's pill top right were two
+  absolutely placed boxes, the switch a fixed 172 wide; on a home whose
+  pill carried a longer first name the pill sat over the word Feed.
+  They are one flex row now — the switch takes what is left, never
+  wider than 172 nor narrower than 108, the pill never shrinks — with
+  the row letting taps through to the picture and only the controls
+  taking them. `progress.cjs` (m2) measures it on a junior's home.
 - **A boxed row carries no hairline of its own.** Inside `.nsc-list`
   the box is the edge; a row that also drew its 0.5px foot rule
   (`DayRow` on the home with `last={false}`, the bell's `Line` and

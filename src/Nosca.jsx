@@ -5747,21 +5747,28 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         </label>
       )}
 
-      {/* the two views, top left — the same List · Feed control as the
-          player file and the archive, at the same height as the pill */}
-      <div className="absolute" style={{ top: 26 + TOP_AIR + 2, left: 16, width: 172, zIndex: 30 }}>
-        <Segmented tour="log-view" options={[tr("List"), tr("Feed")]} value={view === "feed" ? tr("Feed") : tr("List")}
-                   onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
-      </div>
-      {/* the header's own controls — search, the bell, the profile — ride
-          on the feed too, on a light pill so they read over any clip */}
-      {right && (
-        <div className="absolute flex items-center gap-0.5 pl-1 pr-1.5" data-tour="feed-header"
-             style={{ top: 26 + TOP_AIR, right: 12, height: 42, borderRadius: R.pill, zIndex: 30,
-                      background: "rgba(255,255,255,0.96)" }}>
-          {right}
+      {/* ONE ROW ACROSS THE TOP, AND NOTHING IN IT OVERLAPS. The two views
+          top left — the same List · Feed control as the player file and
+          the archive — and the header's own controls (the star, search,
+          the bell, the profile) on a light pill top right, so they read
+          over any clip. They were two absolutely placed boxes, the switch
+          a fixed 172 wide, and on a home whose pill carried a longer
+          first name the pill sat over the word Feed. The switch now gives
+          way: it takes what is left of the row, never wider than 172 and
+          never narrower than two short words. The row itself lets taps
+          through to the picture; only the controls take them. */}
+      <div className="absolute flex items-center justify-between" style={{ top: 26 + TOP_AIR, left: 16, right: 12, height: 42, gap: 10, zIndex: 30, pointerEvents: "none" }}>
+        <div style={{ flex: "1 1 auto", maxWidth: 172, minWidth: 108, marginTop: 2, pointerEvents: "auto" }}>
+          <Segmented tour="log-view" options={[tr("List"), tr("Feed")]} value={view === "feed" ? tr("Feed") : tr("List")}
+                     onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
         </div>
-      )}
+        {right && (
+          <div className="flex items-center gap-0.5 pl-1 pr-1.5 shrink-0" data-tour="feed-header"
+               style={{ height: 42, borderRadius: R.pill, background: "rgba(255,255,255,0.96)", pointerEvents: "auto" }}>
+            {right}
+          </div>
+        )}
+      </div>
 
       <div ref={wrap} onScroll={onScroll} className="absolute inset-0 overflow-y-auto"
            style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain", scrollbarWidth: "none",
@@ -9635,15 +9642,16 @@ function lessonLogHtml({ lesson, coach, who, media = [], drills = [], tip }) {
   <footer>Saved from ${e(BRAND)}</footer>
 </main></body></html>`;
 }
-async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }) {
-  if (!lesson) return;
-  const html = lessonLogHtml({ lesson, coach, who, media: media || [], drills, tip });
-  const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const name = `nosca-lesson-${lesson.iso || slug(lesson.date) || "log"}${lesson.focus ? "-" + slug(lesson.focus) : ""}.html`;
+const fileSlug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+/* one HTML page leaves through the share sheet where there is one (iOS
+   puts it into Files, Notes or Mail), otherwise as a plain download,
+   otherwise in a new tab — the lesson log and the season report both
+   go this way */
+async function shareHtmlFile({ html, name, title, say }) {
   const file = new File([html], name, { type: "text/html" });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: lesson.focus });
+      await navigator.share({ files: [file], title });
       return;
     }
   } catch (e) { if (e && e.name === "AbortError") return; /* anything else: fall through to a download */ }
@@ -9657,6 +9665,75 @@ async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }
     window.open(url, "_blank");
   }
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }) {
+  if (!lesson) return;
+  const html = lessonLogHtml({ lesson, coach, who, media: media || [], drills, tip });
+  const name = `nosca-lesson-${lesson.iso || fileSlug(lesson.date) || "log"}${lesson.focus ? "-" + fileSlug(lesson.focus) : ""}.html`;
+  await shareHtmlFile({ html, name, title: lesson.focus, say });
+}
+
+/* A SEASON REPORT, AS A FILE
+
+   What TennisLocker sells to parents as an evaluation, read off the
+   lessons the way Progress reads them: the level then and now, the
+   lessons by month, what was worked on, the drills set and done, the
+   coach's tips, and every lesson with its note. One self-contained
+   page in the lesson log's own style, through the share sheet, from
+   the foot of Progress — the coach's for a player, a player's own, a
+   parent's for a child. Nothing in it is invented; a section with
+   nothing to say is left out. */
+function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], today }) {
+  const e = escapeHtml;
+  const p = progressOf(cfg, lessons, today || new Date());
+  const section = (label, inner) => (inner ? `<section><h2>${e(label)}</h2>${inner}</section>` : "");
+  const longDay = (d) => d.toLocaleDateString("en-IE", { day: "numeric", month: "long", year: "numeric" });
+  const span = p.first && p.last ? (p.first.getTime() === p.last.getTime() ? longDay(p.first) : `${longDay(p.first)} to ${longDay(p.last)}`) : "";
+  const n = p.rows.length;
+  const first = p.points[0], last = p.points[p.points.length - 1];
+  const level = [
+    p.points.length ? `<p>${e(p.inputStage.label)}: <strong>${e(`${p.inputStage.tag} ${last.v}`)}</strong>${p.points.length > 1 ? ` (from ${e(`${p.inputStage.tag} ${first.v}`)} on ${e(longDay(first.d))})` : ""}</p>` : "",
+    p.reached.size ? `<ul>${p.named.filter((st) => p.reached.has(st.id)).map((st) => `<li>${e(st.label)}${p.current && p.current.st.id === st.id ? ` — now, since ${e(longDay(p.current.d))}` : ""}</li>`).join("")}</ul>` : "",
+  ].join("");
+  const months = p.months.filter((m) => m.n).map((m) => `${PROGRESS_MONTHS[m.m]} ${m.n}`).join(" · ");
+  const areas = p.areas.length ? `<ul>${p.areas.map(([a, c]) => `<li>${e(a)} — ${c}</li>`).join("")}</ul>` : "";
+  const done = drills.filter((d) => d.done).length;
+  const drillList = drills.length ? `<p>${done} of ${drills.length} done</p><ul>${drills.map((d) => `<li>${d.done ? "✓" : "·"} ${e(d.t || d.title)}</li>`).join("")}</ul>` : "";
+  const tipList = tips.length ? `<ul>${tips.map((tp) => `<li>${e(tp.title || tp.t)}</li>`).join("")}</ul>` : "";
+  const list = p.rows.slice().reverse().map(({ l, d }) => `<li><strong>${e(longDay(d))}</strong> — ${e(l.focus || "")}${stageOf(cfg, l) ? ` · ${e(stageOf(cfg, l))}` : ""}${l.note ? `<br><span class="q">${e(String(l.note).split("\n")[0])}</span>` : ""}</li>`).join("");
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${e(name)} · ${e(BRAND)} report</title>
+<style>
+  body{margin:0;background:#FAF7F0;color:#1A1815;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:640px;margin:0 auto;padding:40px 24px 64px}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8A857C}
+  h1{font-size:34px;line-height:1.05;letter-spacing:-.03em;font-weight:400;margin:10px 0 6px}
+  .meta{color:#6B6560;font-size:14px;margin:0 0 28px}
+  section{border-top:1px solid rgba(26,24,21,.13);padding:20px 0}
+  h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8A857C;font-weight:600;margin:0 0 10px}
+  p,li{font-size:16px;margin:0 0 8px}
+  ul{padding-left:18px;margin:0}
+  .q{color:#6B6560}
+  footer{margin-top:40px;font-size:12px;color:#8A857C}
+</style></head><body><main>
+  <div class="eyebrow">${e(BRAND)} · ${e(cfg && cfg.label ? cfg.label : "")} report</div>
+  <h1>${e(name)}</h1>
+  <p class="meta">${e(span)}${coach ? ` · ${e(coach)}` : ""}</p>
+  ${section("Level", level)}
+  ${section("Lessons", n ? `<p>${n} ${n === 1 ? "lesson" : "lessons"}${months ? ` · ${e(months)}` : ""}</p>` : "")}
+  ${section("Worked on", areas)}
+  ${section("Drills", drillList)}
+  ${section("Tips", tipList)}
+  ${section("Every lesson", list ? `<ul>${list}</ul>` : "")}
+  <footer>Saved from ${e(BRAND)}</footer>
+</main></body></html>`;
+}
+async function shareSeasonReport({ name, coach, cfg, lessons, drills, tips, today, say }) {
+  const html = seasonReportHtml({ name, coach, cfg, lessons, drills, tips, today });
+  const d = today || new Date();
+  const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  await shareHtmlFile({ html, name: `nosca-report-${fileSlug(name) || "player"}-${stamp}.html`, title: `${name} · ${tr("Report")}`, say });
 }
 
 /* A LESSON, OPENED
@@ -12612,7 +12689,7 @@ const progressToday = (cal) => {
   if (v && typeof v.m === "number") return new Date((cal && cal.year) || new Date().getFullYear(), v.m - 1, v.d || 1);
   return new Date();
 };
-function ProgressScreen({ title, cfg, lessons, drills, pop }) {
+function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, say }) {
   const t = useT();
   const calendar = useCalendar();
   const todayKey = calendar && calendar.today ? `${calendar.year || ""}-${calendar.today.m}-${calendar.today.d}` : "";
@@ -12707,6 +12784,13 @@ function ProgressScreen({ title, cfg, lessons, drills, pop }) {
                 </div>
               </div>
             )}
+            {/* the whole journey as one page for the share sheet — what a
+                parent is handed at the end of a term */}
+            <button data-tour="progress-report" onClick={() => { hapticCommit(); soft(); shareSeasonReport({ name: name || title, coach, cfg, lessons, drills: mineDrills, tips: tips || [], today, say }); }}
+                    className="w-full flex items-center justify-center gap-2 active:opacity-70"
+                    style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+              {tr("Share a report")}
+            </button>
           </>)}
         </div>
       </Screen>
@@ -18270,21 +18354,26 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* progress — my own journey; progress:<id> — a player's, for the
        coach from the file and for a parent from the child's screen */
     const pkey = screen.startsWith("progress:") ? screen.slice("progress:".length) : null;
-    let pwho = null, plist = [], pdrills = [], ptitle = tr("Progress");
-    if (!pkey) { plist = playerLessons || []; pdrills = myPractice || []; }
+    let pwho = null, plist = [], pdrills = [], ptips = [], pcoach = null, ptitle = tr("Progress"), pname = myName;
+    if (!pkey) { plist = playerLessons || []; pdrills = myPractice || []; ptips = myTips || []; pcoach = data ? data.coachName : null; }
     else if (data) {
-      pwho = byKey(pkey) || (data.dependants || []).find((k) => String(k.id) === pkey) || null;
+      /* a parent's child comes from the family, which knows the child's
+         coach; the roster's row for the same child does not */
+      pwho = (role === "coach" ? byKey(pkey) : null) || (data.dependants || []).find((k) => String(k.id) === pkey) || byKey(pkey) || null;
       const pid = pwho ? pwho.id : pkey;
       plist = (data.lessons || []).filter((l) => l.playerId === pid || (l.attendeeIds || []).includes(pid));
       if (role === "coach") plist = taught(plist);
       pdrills = (data.drills || []).filter((d) => d.playerId === pid);
-      ptitle = pwho ? pwho.name : tr("Progress");
+      ptips = (data.tips || []).filter((tp) => tp.playerId === pid);
+      pcoach = role === "coach" ? myName : (pwho && pwho.coachName) || null;
+      ptitle = pwho ? pwho.name : tr("Progress"); pname = ptitle;
     } else {
       pwho = ROSTER.find((x) => String(x.id) === pkey || x.name === pkey) || null;
-      ptitle = pwho ? pwho.name : pkey;
+      ptitle = pwho ? pwho.name : pkey; pname = ptitle;
       plist = pwho ? (fileFor(pwho.name, false).lessons || []) : (playerLessons || []).slice(0, 3);
+      pcoach = role === "coach" ? myName : null;
     }
-    body = <ProgressScreen title={ptitle} cfg={cfg} lessons={plist} drills={pdrills} pop={pop} />;
+    body = <ProgressScreen title={ptitle} name={pname} cfg={cfg} lessons={plist} drills={pdrills} tips={ptips} coach={pcoach} say={say} pop={pop} />;
   } else if (screen.startsWith("history:")) {
     const hkey = screen.slice("history:".length);
     const hp = data ? byKey(hkey) : null;

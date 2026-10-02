@@ -38,6 +38,7 @@ function freshDb() {
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.adult, title: "Gate drill", done: true });
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.adult, title: "Ladder drill", done: true });
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.adult, title: "Towel drill", done: false });
+  db.tips.push({ id: "00000000-0000-4000-8000-00000000t1p1", coach_id: IDS.coach, player_id: IDS.adult, title: "Trust the shallow", body: null, created_at: "2026-09-12T11:00:00Z" });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.junior, date: "2026-09-05", focus: "Chipping", subs: ["Passport · Learn"], unread: false });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.junior, date: "2026-09-19", focus: "Putting", subs: ["Passport · Learn"], unread: false });
   M.addLesson(db, { coachId: IDS.tcoach, playerId: IDS.aoife, date: "2026-07-05", focus: "Serve", subs: ["Red ball · U8"], unread: false });
@@ -88,6 +89,12 @@ const { check, results, summary } = M.checker("progress");
       check("(e) Lessons a month draws a bar for each of the last six months with a lesson", rects === monthsWithLessons(), `${rects} vs ${monthsWithLessons()}`);
       check("(f) Drills reads done of set", /2 of 3 done/.test(t1), "");
       await shot("01-coach-progress");
+      /* the whole journey as one page */
+      check("(f2) Progress ends on Share a report", (await page.locator('[data-tour="progress-report"]').count()) === 1);
+      const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('[data-tour="progress-report"]').click()]);
+      const html = dl ? fs.readFileSync(await dl.path(), "utf8") : "";
+      check("(f3) the report is one .html page naming the player and the coach", !!dl && /^nosca-report-cian-murphy-\d{4}-\d\d-\d\d\.html$/.test(dl.suggestedFilename()) && html.includes("Cian Murphy") && html.includes("Niamh Byrne"), dl ? dl.suggestedFilename() : "no download");
+      check("(f4) …and carries the level then and now, the lessons, the areas, the drills, the tip and every lesson", /HI 16\.4/.test(html) && /from HI 20\.1/.test(html) && /8 lessons/.test(html) && /Short game — 4/.test(html) && /2 of 3 done/.test(html) && html.includes("Gate drill") && html.includes("Trust the shallow") && html.includes("Every lesson") && html.includes("Driving notes."), html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
       await tap(page, '[aria-label="Back"]', 900);
       check("(g) Back lands on the player file", /Cian Murphy/.test(await text()) && (await page.locator('[data-tour="player-progress"]').count()) === 1);
       await ctx.close();
@@ -101,6 +108,9 @@ const { check, results, summary } = M.checker("progress");
       const t2 = await text();
       check("(i) the player reads the same journey the coach does", /Progress/.test(t2) && /8 lessons/.test(t2) && /HI 16\.4/.test(t2) && /2 of 3 done/.test(t2) && (await page.locator('[data-progress="level"] svg circle').count()) === 8, t2.slice(0, 200));
       await shot("02-player-progress");
+      const [dl2] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('[data-tour="progress-report"]').click()]);
+      const html2 = dl2 ? fs.readFileSync(await dl2.path(), "utf8") : "";
+      check("(i2) the player's own report is the same page, under their name, naming their coach", !!dl2 && html2.includes("Cian Murphy") && html2.includes("Niamh Byrne") && /HI 16\.4/.test(html2) && html2.includes("Trust the shallow"), dl2 ? dl2.suggestedFilename() : "no download");
       await ctx.close();
     }
     /* ---------- a player with nothing yet ---------- */
@@ -121,6 +131,9 @@ const { check, results, summary } = M.checker("progress");
       const t4 = await text();
       check("(l) the parent reads the child's journey under the child's name", /Saoirse Kelly/.test(t4) && /2 lessons/.test(t4) && /Chipping/.test(t4) && /Putting/.test(t4) && /Passport · Learn/.test(t4), t4.slice(0, 200));
       await shot("03-parent-child-progress");
+      const [dl3] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('[data-tour="progress-report"]').click()]);
+      const html3 = dl3 ? fs.readFileSync(await dl3.path(), "utf8") : "";
+      check("(l2) a parent's report is the child's, under the child's name, naming the child's coach", !!dl3 && /^nosca-report-saoirse-kelly-/.test(dl3.suggestedFilename()) && html3.includes("Saoirse Kelly") && html3.includes("Niamh Byrne") && html3.includes("Passport · Learn") && /2 lessons/.test(html3), dl3 ? dl3.suggestedFilename() : "no download");
       await ctx.close();
     }
     /* ---------- tennis: the ladder, not a line ---------- */
@@ -131,6 +144,18 @@ const { check, results, summary } = M.checker("progress");
       const ticks = await page.locator('[data-progress="ladder"] svg').count();
       check("(m) a named stage is the ladder: the steps reached ticked, the current one with its date, no line", (await page.locator('[data-progress="level"]').count()) === 0 && (await page.locator('[data-progress="ladder"]').count()) === 1 && ticks === 2 && /Orange ball · U9\s*since Sun 9 Aug/.test(t5) && /Green ball/.test(t5), `${ticks} ticks · ${t5.slice(0, 200)}`);
       await shot("04-tennis-ladder");
+      await ctx.close();
+    }
+    /* ---------- the feed's header on a home with a longer first name ---------- */
+    {
+      const { ctx, page, shot } = await boot("junior");
+      const g = await page.evaluate(() => {
+        const a = document.querySelector('[data-tour="log-view"]'), b = document.querySelector('[data-tour="feed-header"]');
+        if (!a || !b) return null; const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+        return { switchWidth: ra.width, gap: rb.left - ra.right, pillRight: rb.right, top: Math.abs(ra.top + ra.height / 2 - (rb.top + rb.height / 2)) };
+      });
+      check("(m2) the feed's List · Feed switch gives way to the header pill: one row, a gap between them, nothing off the right", !!g && g.gap >= 8 && g.switchWidth >= 108 && g.pillRight <= 390 && g.top < 4, JSON.stringify(g));
+      await shot("05-junior-feed-header");
       await ctx.close();
     }
     check("(n) no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
