@@ -148,6 +148,8 @@ export function useNoscaData(profile) {
   const [roster, setRoster] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [drills, setDrills] = useState([]);
+  const [drillsDue, setDrillsDue] = useState(false);
+  const dueProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [bookings, setBookings] = useState([]);
@@ -387,7 +389,14 @@ export function useNoscaData(profile) {
       })));
 
       setLessons((lRes.data || []).map((r) => toLesson(r, attendeesBy[r.id] || [])));
-      setDrills((dRes.data || []).map((d) => ({ id: d.id, t: d.title, done: d.done, playerId: d.player_id, createdAt: d.created_at })));
+      setDrills((dRes.data || []).map((d) => ({ id: d.id, t: d.title, done: d.done, playerId: d.player_id, createdAt: d.created_at, due: d.due || null })));
+      /* does this project's drills table carry a day yet? One probe a
+         session; a project whose SQL has not been re-run answers 42703
+         and the app sets no day rather than failing the whole write */
+      if (!dueProbed.current) {
+        dueProbed.current = true;
+        supabase.from("drills").select("due").limit(1).then((pr) => setDrillsDue(!pr.error)).catch(() => setDrillsDue(false));
+      }
       /* `tips` carries no focus column, so focus stays null and every
          screen that shows it must check first. The date and the age DO
          exist — they were simply never derived, so a tip set in March
@@ -808,8 +817,9 @@ export function useNoscaData(profile) {
   };
 
   /* several at once — one insert, one reload */
-  const assignDrills = async (playerId, titles) => {
-    const rows = (titles || []).filter(Boolean).map((title) => ({ coach_id: profile.id, player_id: playerId, title }));
+  const assignDrills = async (playerId, titles, due = null) => {
+    const day = drillsDue && due ? due : null;
+    const rows = (titles || []).filter(Boolean).map((title) => ({ coach_id: profile.id, player_id: playerId, title, ...(day ? { due: day } : {}) }));
     if (!rows.length) return { error: { message: "Nothing to set." } };
     const { error } = await supabase.from("drills").insert(rows);
     if (!error) await load();
@@ -1562,7 +1572,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

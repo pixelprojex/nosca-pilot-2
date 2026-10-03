@@ -14058,6 +14058,17 @@ function Subscription({ pop, say, plan }) {
 function PlayerPractice({ conn, items, toggle, right, say }) {
   const t = useT();
   const live = useLive();
+  const calendar = useCalendar();
+  const todayIso = isoDay(progressToday(calendar));
+  /* what is to do first, the dated ones soonest first, then the rest as
+     they were set; done ones after */
+  const ordered = useMemo(() => items.slice().sort((a, b) => (a.done - b.done) || ((a.due ? 0 : 1) - (b.due ? 0 : 1)) || ((a.due || "") < (b.due || "") ? -1 : (a.due || "") > (b.due || "") ? 1 : 0)), [items]);
+  const dueLine = (iso) => {
+    if (!iso) return null;
+    if (iso === todayIso) return { text: tr("By today"), late: false };
+    if (iso < todayIso) return { text: `${tr("Was by")} ${fmtWeekDay(localDate(iso))}`, late: true };
+    return { text: `${tr("By")} ${fmtWeekDay(localDate(iso))}`, late: false };
+  };
   const done = items.filter((x) => x.done).length;
   const pct = items.length ? (done / items.length) * 100 : 0;
   const allDone = items.length > 0 && done === items.length;
@@ -14076,12 +14087,12 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
               coach sets a drill, not a length; what a player has to do
               is the rows, and the count is the subtitle. */}
           <div className="px-6 pb-2"><div className="nsc-list">
-            {items.map((x, i) => (
+            {ordered.map((x, i) => (
               <div key={x.id}>
-              <button data-tour={i === 0 ? "drill-row" : undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
+              {/* the box is the edge: no hairline at the foot of a boxed row */}
+              <button data-tour={i === 0 ? "drill-row" : undefined} data-drill-due={x.due || undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
                       className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
-                      style={{ borderBottom: `1px solid ${t.hair}`,
-                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                      style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <span className="flex items-center justify-center shrink-0"
                       style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
                                background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
@@ -14092,6 +14103,11 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
                   {/* a drill set by a real coach is a name; only the
                       starter sets carry a description */}
                   {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
+                  {/* the day it is for: By Fri 9 Oct · By today · and, gone by
+                      and not done, Was by Thu 1 Oct in the warning colour */}
+                  {x.due && !x.done && dueLine(x.due) && (
+                    <span className="block mt-0.5" style={{ ...TYPE.small, color: dueLine(x.due).late ? DANGER : t.sub }}>{dueLine(x.due).text}</span>
+                  )}
                 </span>
               </button>
               {DRILL_SECONDS(x.d) && !x.done && (
@@ -14245,9 +14261,26 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
 
 /* Suggests drills from the library matching the lesson's focus first,
    with a "write your own" option always available underneath. */
-function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, close, livePlayers }) {
+/* the days a drill can be for: nothing, the player's next lesson where
+   one is booked, tomorrow, a week, two weeks — each a real day, named */
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function dueOptions(today, nextLesson) {
+  const plus = (n) => { const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + n); return isoDay(d); };
+  const out = [{ id: "", label: tr("No day") }];
+  if (nextLesson) out.push({ id: nextLesson, label: `${tr("Next lesson")} · ${fmtWeekDay(localDate(nextLesson))}` });
+  [[1, tr("Tomorrow")], [7, tr("In a week")], [14, tr("In two weeks")]].forEach(([n, word]) => { const iso = plus(n); if (!out.some((o) => o.id === iso)) out.push({ id: iso, label: `${word} · ${fmtWeekDay(localDate(iso))}` }); });
+  return out;
+}
+function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, close, livePlayers, dueOn = false, nextLesson = null }) {
   const t = useT();
+  const calendar = useCalendar();
   const [who, setWho] = useState(preset || null);
+  /* BY WHEN. Skillest attaches a follow-up drill with a due date; a
+     coach here sets drills for the next lesson, so that is the day it
+     opens on when one is booked. The row is the second Settings shape
+     and is there only where the project's table carries the column. */
+  const dueChoices = useMemo(() => dueOptions(progressToday(calendar), nextLesson), [calendar, nextLesson]);
+  const [due, setDue] = useState(nextLesson || "");
   const [stage, setStage] = useState(preset ? "drills" : "who");
   const [picked, setPicked] = useState([]);
   const [showAll, setShowAll] = useState(false);
@@ -14302,6 +14335,14 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
         <div className="mb-2"><VoiceInput value={customDesc} onChange={setCustomDesc} ph={tr("How to do it")} /></div>
       )}
 
+      {dueOn && (
+        <Card className="mb-4" tour="assign-due">
+          <FilterRow plain label={tr("By")} options={dueChoices.map((o) => o.label)}
+                     value={(dueChoices.find((o) => o.id === due) || dueChoices[0]).label}
+                     onChange={(lbl) => setDue((dueChoices.find((o) => o.label === lbl) || dueChoices[0]).id)} />
+        </Card>
+      )}
+
       <Button disabled={total === 0} onClick={() => {
         const chosen = library.filter((dr) => picked.includes(dr.t));
         if (custom.trim()) {
@@ -14309,7 +14350,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
           onSaveDrill && onSaveDrill(fresh);   // auto-save, no extra step
           chosen.push(fresh);
         }
-        onAssign(who, chosen); close();
+        onAssign(who, chosen, dueOn && due ? due : null); close();
       }}>{total ? `Set ${total} drill${total > 1 ? "s" : ""}` : "Pick or write a drill"}</Button>
     </>
   );
@@ -17825,14 +17866,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const bumpUses = (names) => setLibrary((l) => ({
     ...l, [coachSport]: (l[coachSport] || []).map((d) => (names.includes(d.t) ? { ...d, uses: (d.uses || 0) + 1 } : d)),
   }));
-  const doAssignDrills = async (target, drills) => {
+  /* the player's next booked lesson, as a day — the day a drill opens on */
+  const nextLessonIsoFor = (person) => {
+    if (!data || !person) return null;
+    const pid = person.id, todayIso = isoDay(new Date());
+    const list = Object.values(data.bookings || {}).flat().filter((b) => b && b.playerId === pid && (!b.status || b.status === "confirmed" || b.status === "requested") && b.date && b.date >= todayIso).map((b) => b.date).sort();
+    return list[0] || null;
+  };
+  const doAssignDrills = async (target, drills, due = null) => {
     bumpUses(drills.map((d) => d.t));
     const person = personOf(target);
     const name = person ? person.name : "";
     if (data) {
       const who = (data.roster || []).find((r) => r.id === (person || {}).id);
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
-      const res = await data.setDrills(who.id, drills.map((d) => d.t));
+      const res = await data.setDrills(who.id, drills.map((d) => d.t), due);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set those drills.")); return; }
       say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${name.split(" ")[0]}`); haptic(18); return;
     }
@@ -19070,7 +19118,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onRemove={async () => { setSheet(null); hapticWarn(); await downloads.remove(downloadFor.id); done(tr("Removed"), downloadFor.focus, DANGER); }} />
               : sheet === "invite" ? <InviteBody code={inviteShown} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
-              : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)} />
+              : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)}
+                                                  dueOn={data ? !!data.drillsDue : true} nextLesson={assignTo ? nextLessonIsoFor(assignTo) : null} />
               : sheet === "tip" ? <TipBody prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
                                             onSet={doSetTip} close={() => setSheet(null)} />
               : sheet === "group" ? <GroupCreate livePlayers={data ? data.roster : null} cfg={cfg} coachSport={coachSport} onCreate={createGroup} close={() => setSheet(null)} />

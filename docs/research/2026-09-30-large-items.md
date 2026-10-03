@@ -22,7 +22,7 @@ AI, TennisLocker, CoachIQ and the coaching-app round-ups for 2026.
 | **Side-by-side comparison, synced** | yes, and overlay | yes | yes | yes | **no** → built 30 Sep |
 | Athlete sends a practice clip for the coach to review | yes (V1 Coach) | yes | yes | yes, the whole product | no |
 | Progress made visible to the client over time | swing library | per-athlete space | progress logs | AI summary per lesson | four tiles on the file, nothing over time |
-| Follow-up drill with a due date | — | — | — | yes | drills, no date |
+| Follow-up drill with a due date | — | — | — | yes | **no** → built 3 Oct |
 | Pose / skeleton overlay | yes | yes (3D) | yes | 17 points | no |
 | Model swings from the pros | yes | — | — | — | no, and not wanted (licensing; "never invented") |
 | Booking, lesson packs, payments | — | — | — | — | booking yes; no pricing anywhere, by the founder's rule |
@@ -89,7 +89,7 @@ what the lessons say; where a sport's stage is not a number (the
 Pony Club tests, the squash ball) it is the ladder with the steps
 reached. Nothing asked, nothing stored — a screen that reads.
 
-### 4. A drill with a day
+### 4. A drill with a day. **Built 3 October.**
 Skillest attaches a follow-up drill with a due date to a lesson. Nosca
 sets drills; a `due` day on `drills` (one alter table), the player's
 Drills screen ordered by it, and the reminder as a notification from

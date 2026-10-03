@@ -934,6 +934,30 @@ seeded data and no account.
   (`DayRow` on the home with `last={false}`, the bell's `Line` and
   `Ask`) put a dark line inside every box, visible on the coach's home
   and the alerts. Pass `last`, or leave the rule off.
+- **A drill carries a day, and the day comes from the next lesson.**
+  `drills.due` is one date column (`alter table … add column if not
+  exists`). The Set-drills sheet (`AssignBody`) carries a **By** row
+  (`assign-due`, the second Settings shape) above Set, offering No day,
+  Next lesson · `Thu 8 Oct`, Tomorrow, In a week and In two weeks
+  (`dueOptions`), each a named day and never a native value; it opens
+  on the player's next booked lesson (`nextLessonIsoFor`, read off
+  `data.bookings`), because a drill is practice for the next lesson
+  and a coach should not have to say so. `assignDrills(playerId,
+  titles, due)` sends the day only when the column exists: the hook
+  probes `drills.due` once (`drillsDue`) and the sheet shows no By row
+  until the SQL has been re-run, so a drill still saves. The player's
+  Drills screen (`PlayerPractice`) orders the dated ones first, soonest
+  first, then the undated, done last, and each dated row carries one
+  grey line — "By Thu 8 Oct", "By today", or "Was by Thu 1 Oct" in the
+  warning colour once the day has gone (`dueLine`). The notification
+  that sets it reads "Gate drill · by Thu 8 Oct" (`trg_drills_notify`),
+  and `remind_due_drills()` writes "Gate drill due today" once per
+  drill per day, scheduled by pg_cron at eight in the morning
+  (`nosca-drill-reminders`; the status row's `drill_reminders` says
+  whether the extension is on). Skillest attaches a due date to a
+  follow-up drill; nothing else in the field does, and a dated drill is
+  what brings a player back between lessons. `scripts/e2e/drills-due.cjs`
+  walks the coach, the player and a project without the column.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a

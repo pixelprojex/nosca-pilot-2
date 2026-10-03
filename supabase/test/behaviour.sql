@@ -112,6 +112,13 @@ select (select count(*) from public.notifications where user_id = :'j1' and kind
        (select count(*) from public.notifications where user_id = :'a1' and kind = 'drill') as da \gset
 select (:dj = 1 and :'dt' = '2 new drills' and :da = 1) as ok \gset
 \if :ok \echo PASS drills set together arrive as one notification per player ("2 new drills") \else \echo FAIL drill notifications j=:dj t=:dt a=:da \endif
+insert into public.drills (coach_id, player_id, title, due) values (:'c1', :'a1', 'Gate drill', current_date);
+select (select body from public.notifications where user_id = :'a1' and kind = 'drill' order by created_at desc limit 1) as db1 \gset
+select public.remind_due_drills() as r1 \gset
+select public.remind_due_drills() as r2 \gset
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'drill' and title = 'Gate drill due today') as rd \gset
+select (:'db1' like 'Gate drill · by %' and :r1 = 1 and :r2 = 0 and :rd = 1) as ok \gset
+\if :ok \echo PASS a drill with a day says the day in its body, and the morning reminder fires once for a drill due today \else \echo FAIL due drill body=:'db1' r1=:r1 r2=:r2 rd=:rd \endif
 select (select count(*) from public.notifications where user_id = :'a1' and kind = 'tip') as nt,
        (select count(*) from public.notifications where user_id = :'a1' and kind = 'message') as nm,
        (select count(*) from public.notifications where user_id = :'c1' and kind = 'message') as cm,
