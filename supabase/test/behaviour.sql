@@ -127,6 +127,12 @@ select (select count(*) from public.notifications where user_id = :'a1' and kind
 select (select count(*) from public.notifications where user_id = :'a1' and kind = 'drill' and title = 'Ladder drill due today') as rl \gset
 select (:'db1' like 'Gate drill · by %' and :r1 = 1 and :r2 = 0 and :r3 = 0 and :r4 = 1 and :r5 = 0 and :rd = 1 and :rl = 1) as ok \gset
 \if :ok \echo PASS a drill with a day says the day in its body, and the reminder fires once, in the hour the player chose \else \echo FAIL due drill body=:'db1' r1=:r1 r2=:r2 r3=:r3 r4=:r4 r5=:r5 rd=:rd rl=:rl \endif
+-- the coach asks for a rating after the fact: the player is told once, and the tap lands on the lesson
+update public.lessons set rating_requested = true where id = :'lesson_a';
+update public.lessons set rating_requested = true where id = :'lesson_a';
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'rating' and title like '% asked for a rating' and body = 'Serve' and data->>'screen' = 'lesson' and data->>'id' = :'lesson_a') as nr \gset
+select (:nr = 1) as ok \gset
+\if :ok \echo PASS a rating asked for after the fact tells the player once, named, and lands on the lesson \else \echo FAIL rating ask notifications=:nr \endif
 select (select count(*) from public.notifications where user_id = :'a1' and kind = 'tip') as nt,
        (select count(*) from public.notifications where user_id = :'a1' and kind = 'message') as nm,
        (select count(*) from public.notifications where user_id = :'c1' and kind = 'message') as cm,

@@ -1383,6 +1383,29 @@ drop trigger if exists lessons_notify on public.lessons;
 create trigger lessons_notify after insert on public.lessons
   for each row execute function public.trg_lessons_notify();
 
+-- ---------- the coach asks for a rating after the fact ----------
+-- The burst's "Ask for a rating" flips rating_requested on a lesson
+-- already logged. The player — each attendee, for a group — is told,
+-- and the tap lands on the lesson, where the ask sits. Asked at logging
+-- time it rides on "Lesson logged" and the arrival opens the sheet.
+create or replace function public.trg_lessons_rating_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare p uuid;
+begin
+  if new.rating_requested and not coalesce(old.rating_requested, false) then
+    for p in (select new.player_id where new.player_id is not null
+              union select la.player_id from public.lesson_attendees la where la.lesson_id = new.id) loop
+      perform public.notify(p, 'rating', public.first_name_of(new.coach_id) || ' asked for a rating', new.focus,
+        jsonb_build_object('screen', 'lesson', 'id', new.id));
+    end loop;
+  end if;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists lessons_rating_notify on public.lessons;
+create trigger lessons_rating_notify after update of rating_requested on public.lessons
+  for each row execute function public.trg_lessons_rating_notify();
+
 -- ---------- a clip added to a lesson later — a coach's markup ----------
 -- Files uploaded with the lesson ride on "Lesson logged"; one added after
 -- that half hour is news of its own, so the player (and a junior's
@@ -2467,7 +2490,7 @@ with
                         'my_attendance_session_ids',
                         'join_coach', 'respond_to_request', 'cancel_request', 'leave_coach',
                         'create_family', 'join_family', 'rename_family', 'leave_family',
-                        'notify', 'adults_for', 'trg_lessons_notify', 'trg_requests_notify', 'trg_bookings_notify',
+                        'notify', 'adults_for', 'trg_lessons_notify', 'trg_lessons_rating_notify', 'trg_requests_notify', 'trg_bookings_notify',
                         'trg_messages_notify', 'trg_drills_notify', 'trg_tips_notify', 'trg_family_notify',
                         'delete_my_account']) as f
   ),
@@ -2507,7 +2530,7 @@ select
   (select result from nosca_check where item = 'storage_bucket')                    as storage_bucket,
   (select result from nosca_check where item = 'storage_policies')                  as storage_policies,
 
-  (select count(*) from pg_trigger where tgname in ('lessons_notify', 'requests_notify', 'bookings_notify',
+  (select count(*) from pg_trigger where tgname in ('lessons_notify', 'lessons_rating_notify', 'requests_notify', 'bookings_notify',
                                                     'messages_notify', 'drills_notify', 'tips_notify', 'family_notify'))
                                                                                     as notify_triggers,
 

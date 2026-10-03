@@ -3005,6 +3005,28 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
 function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, onDone }) {
   const t = useT();
   const first = (lesson.who[0] || "").split(" ")[0];
+  /* THE ASK ANSWERS ON THE BURST. Its only word back was a toast drawn
+     under this layer, so the coach tapped and saw nothing happen. The
+     button itself turns into Asked — or says why it could not, and
+     offers the tap again — and once asked, with nothing else to offer,
+     the burst clears itself. */
+  const [ask, setAsk] = useState("idle");   // idle · busy · done · error
+  const [askErr, setAskErr] = useState("");
+  const askNow = async (e) => {
+    e.stopPropagation();
+    if (ask === "busy" || ask === "done") return;
+    hapticCommit(); soft(); setAsk("busy");
+    try {
+      const res = await onAskRating();
+      if (res && res.error) { hapticWarn(); setAskErr(res.error.message || tr("Couldn't ask")); setAsk("error"); }
+      else setAsk("done");
+    } catch (err) { hapticWarn(); setAskErr(tr("Couldn't ask")); setAsk("error"); }
+  };
+  useEffect(() => {
+    if (ask !== "done" || onLogNext) return;
+    const t0 = setTimeout(() => onDone && onDone(), 1600);
+    return () => clearTimeout(t0);
+  }, [ask]);
   /* With something to offer — the next lesson to log, a rating to ask
      for — it waits for a tap; its buttons used to fade out under the
      finger a second after they appeared. With nothing to offer it
@@ -3073,14 +3095,18 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
       )}
 
       {onAskRating && (
-        <button onClick={(e) => { e.stopPropagation(); hapticCommit(); soft(); onAskRating(); }}
-                className="absolute flex items-center gap-2 px-5 active:opacity-60"
-                style={{ bottom: 22, minHeight: 44, borderRadius: R.pill, border: "0.5px solid rgba(255,255,255,0.28)",
-                         fontFamily: ui, fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,0.92)",
-                         animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
-          <Star size={13} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />
-          {tr("Ask for a rating")}
-        </button>
+        <div className="absolute flex flex-col items-center gap-2" style={{ bottom: 22, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
+          {ask === "error" && <span data-tour="burst-ask-error" style={{ fontFamily: ui, fontSize: 12.5, color: "#FF8A80" }}>{askErr}</span>}
+          <button onClick={askNow} disabled={ask === "busy" || ask === "done"} data-ask={ask}
+                  className="flex items-center gap-2 px-5 active:opacity-60"
+                  style={{ minHeight: 44, borderRadius: R.pill, border: `0.5px solid ${ask === "done" ? "transparent" : "rgba(255,255,255,0.28)"}`,
+                           background: ask === "done" ? "rgba(255,255,255,0.14)" : "transparent", opacity: ask === "busy" ? 0.6 : 1,
+                           fontFamily: ui, fontSize: 12.5, fontWeight: ask === "done" ? 600 : 500, color: "rgba(255,255,255,0.92)",
+                           transition: `background ${MOTION.settle}ms, opacity ${MOTION.settle}ms` }}>
+            {ask === "done" ? <Check size={13} color="#fff" strokeWidth={2.4} /> : <Star size={13} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />}
+            {ask === "done" ? tr("Asked") : ask === "busy" ? tr("Asking…") : ask === "error" ? tr("Try again") : tr("Ask for a rating")}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -7558,7 +7584,7 @@ function Toast({ msg }) {
     /* pointer-events off: the wrapper is always mounted, and an invisible
        strip that swallows taps 98px above the bottom of every screen is
        exactly the kind of "button that does nothing" that gets reported. */
-    <div className="absolute left-0 right-0 flex justify-center z-50 px-6" style={{ bottom: 98, pointerEvents: "none" }}>
+    <div className="absolute left-0 right-0 flex justify-center px-6" style={{ bottom: 98, pointerEvents: "none", zIndex: 90 /* above the burst (70) and the sheet: a toast under a layer is a tap that did nothing */ }}>
       <div className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-3"
            style={{ background: t.ink, maxWidth: "100%", opacity: m ? 1 : 0,
                     transform: m ? "translateY(0)" : "translateY(12px)", transition: "opacity 200ms, transform 200ms" }}>
@@ -17814,13 +17840,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const lastLogged = useRef(null);
   const askForRating = async () => {
     const cur = lastLogged.current;
-    if (cur && cur.id) {
-      const res = await data.requestRating(cur.id);
-      say(res && res.error ? (res.error.message || tr("Couldn't ask")) : tr("They'll be asked once"));
-    } else {
-      lastLogged.current = { id: null, pending: true };
-      say(tr("They'll be asked once"));
-    }
+    if (cur && cur.id) return data.requestRating(cur.id);   // the burst says Asked, or why not
+    /* the button beat the insert: note the ask; publish() sends it once the row exists */
+    lastLogged.current = { id: null, pending: true };
+    return {};
   };
   const publish = async (l) => {
     const lesson = { ...l, when: "just now" };

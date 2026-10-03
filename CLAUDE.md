@@ -999,6 +999,24 @@ seeded data and no account.
   `supabase/test/run.sh` now adds up a FAIL from the upgrade-path run
   of behaviour.sql as well — one printed under a `uniq -c` count for a
   day and was never counted.
+- **Ask for a rating answers on the burst, and the player is told.**
+  The Logged burst's button (`PublishedBurst`, `data-ask`) marks the
+  lesson (`requestRating`, `.select()` proving the row changed) and
+  turns into **Asked** with a tick; a refused write is said on the burst
+  in red with **Try again** under it; once asked, with nothing else to
+  offer, the burst clears itself. Its only word back used to be a toast
+  drawn under the burst (the toast was layer 50, the burst 70), so the
+  coach tapped and saw nothing happen — the founder reported it dead.
+  The toast now sits above every layer (90). A `rating_requested` that
+  flips true on a logged lesson fires `trg_lessons_rating_notify`:
+  "<Coach> asked for a rating", the focus as the body, kind `rating`,
+  landing on the lesson (each attendee, for a group); the mock's
+  `onRatingAsk` says the same. The lesson page's "<Coach> asked for a
+  rating" line goes to the coach's profile, where the review is left
+  for real (`submitReview`, one per player per coach); the `rate` sheet
+  (`RateLesson`) is the harness's sketch and writes nothing, so no live
+  path opens it. `scripts/e2e/rating.cjs` walks both sides and a project
+  whose lessons table has no `rating_requested` column.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a

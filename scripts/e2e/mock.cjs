@@ -142,6 +142,12 @@ function onLessonInsert(db, l) {
   notify(db, l.player_id, "lesson", "Lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
   adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, l.player_id)}'s lesson logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
 }
+/* the coach asks for a rating after the fact: the player (each attendee
+   of a group) is told, named, and lands on the lesson */
+function onRatingAsk(db, l) {
+  const who = l.player_id ? [l.player_id] : (db.attendees || []).filter((a) => a.lesson_id === l.id).map((a) => a.player_id);
+  who.forEach((p) => notify(db, p, "rating", `${firstOf(db, l.coach_id)} asked for a rating`, l.focus, { screen: "lesson", id: l.id }));
+}
 /* a clip added to a lesson more than half an hour after it was logged */
 function onMediaInsert(db, m) {
   const l = db.lessons.find((x) => x.id === m.lesson_id); if (!l || !l.player_id) return;
@@ -598,9 +604,13 @@ async function attach(page, db, opts = {}) {
       if (table === "bookings") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && body.status === "cancelled"));
       if (table === "lessons") upd = upd.filter((r) => r.coach_id === meId);
       if (table === "messages") upd = upd.filter((r) => r.sender_id !== meId);
+      /* a project whose SQL has not been re-run: a column the app knows and the table does not */
+      { const goneP = (db.missingColumns && db.missingColumns[table]) || []; const badP = goneP.find((k) => k in body);
+        if (badP) { db.patches.push({ table, query: url.search, body, n: 0, by: meId, refused: true }); return json(400, { code: "42703", message: `column "${badP}" of relation "${table}" does not exist`, details: null, hint: null }); } }
       const before = upd.map((r) => ({ ...r }));
       upd.forEach((r) => Object.assign(r, body));
       if (table === "bookings") upd.forEach((r, i) => onBookingUpdate(db, r, before[i], meId));
+      if (table === "lessons") upd.forEach((r, i) => { if (r.rating_requested && !before[i].rating_requested) onRatingAsk(db, r); });
       db.patches.push({ table, query: url.search, body, n: upd.length, by: meId });
       return json(200, upd);
     }
