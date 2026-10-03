@@ -159,6 +159,11 @@ create table if not exists public.drills (
   done       boolean not null default false,
   created_at timestamptz not null default now()
 );
+-- The day a drill is for. Null is "whenever"; a day puts it first on the
+-- player's Drills, in the notification's body, and in the morning's
+-- reminder (remind_due_drills, below). A project that has not re-run
+-- this file has no column: the app probes for it and sets no day.
+alter table public.drills add column if not exists due date;
 
 create table if not exists public.tips (
   id         uuid primary key default gen_random_uuid(),
@@ -1539,10 +1544,12 @@ create or replace function public.trg_drills_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare r record; a uuid;
 begin
-  for r in select player_id, coach_id, count(*) as n, min(title) as one from new_rows group by player_id, coach_id loop
+  for r in select player_id, coach_id, count(*) as n, min(title) as one, min(due) as due_on from new_rows group by player_id, coach_id loop
+    -- the day rides in the body: "Gate drill · by Fri 9 Oct · Niamh Byrne"
     perform public.notify(r.player_id, 'drill',
       case when r.n = 1 then 'New drill' else r.n || ' new drills' end,
-      case when r.n = 1 then r.one || ' · ' || public.name_of(r.coach_id) else public.name_of(r.coach_id) end,
+      case when r.n = 1 then r.one || case when r.due_on is not null then ' · by ' || public.nice_date(r.due_on) else '' end || ' · ' || public.name_of(r.coach_id)
+           else case when r.due_on is not null then 'by ' || public.nice_date(r.due_on) || ' · ' else '' end || public.name_of(r.coach_id) end,
       jsonb_build_object('screen', 'practice'));
     for a in select public.adults_for(r.player_id) loop
       perform public.notify(a, 'drill', public.first_name_of(r.player_id) || ' has ' || case when r.n = 1 then 'a new drill' else r.n || ' new drills' end,
@@ -1556,6 +1563,39 @@ drop trigger if exists drills_notify on public.drills;
 create trigger drills_notify after insert on public.drills
   referencing new table as new_rows
   for each statement execute function public.trg_drills_notify();
+
+-- ---------- the morning's reminder for a drill due today ----------
+-- Once per drill per day, so a second run of the same morning adds
+-- nothing; the notification carries the drill and the day it reminded
+-- for. Returns how many it sent, so the test can count.
+create or replace function public.remind_due_drills()
+returns integer language plpgsql security definer set search_path = '' as $fn$
+declare r record; n integer := 0;
+begin
+  for r in select d.id, d.player_id, d.coach_id, d.title, d.due from public.drills d
+           where d.due = current_date and not d.done
+             and not exists (select 1 from public.notifications x
+                              where x.user_id = d.player_id and x.kind = 'drill'
+                                and x.data->>'drill' = d.id::text and x.data->>'due' = d.due::text) loop
+    perform public.notify(r.player_id, 'drill', r.title || ' due today', public.name_of(r.coach_id),
+      jsonb_build_object('screen', 'practice', 'drill', r.id, 'due', r.due));
+    n := n + 1;
+  end loop;
+  return n;
+end $fn$;
+revoke all on function public.remind_due_drills() from public, anon, authenticated;
+
+-- pg_cron runs it at eight every morning where the extension is on
+-- (Supabase: Database › Extensions › pg_cron); a bare Postgres, or a
+-- project without it, keeps the day on the drill and skips the reminder.
+do $$
+begin
+  create extension if not exists pg_cron;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'nosca-drill-reminders';
+  perform cron.schedule('nosca-drill-reminders', '0 8 * * *', 'select public.remind_due_drills()');
+exception when others then
+  raise notice 'pg_cron unavailable (%) — a drill keeps its day; the morning reminder waits for pg_cron', sqlerrm;
+end $$;
 
 -- ---------- a tip ----------
 create or replace function public.trg_tips_notify()
@@ -2466,6 +2506,9 @@ select
        then 'trigger ready — add push_url and push_secret to app_settings'
      else 'yes — notifications post to the relay'
    end)                                                                             as push,
+  (select case when exists (select 1 from pg_extension where extname = 'pg_cron')
+     then 'scheduled, 8 am'
+     else 'off — enable pg_cron under Database › Extensions and re-run' end)        as drill_reminders,
   (select count(*) from auth.users)                                                 as accounts,
   (select count(*) from public.profiles)                                            as profiles,
   (select count(*) from public.families)                                            as families;

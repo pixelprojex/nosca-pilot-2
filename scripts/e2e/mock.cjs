@@ -201,8 +201,10 @@ function onMessageInsert(db, m) {
 function onDrillsInsert(db, rows) {
   const groups = {}; rows.forEach((r) => { (groups[`${r.player_id}|${r.coach_id}`] = groups[`${r.player_id}|${r.coach_id}`] || []).push(r); });
   Object.values(groups).forEach((g) => { const r = g[0], n = g.length;
+    /* the day rides in the body, as trg_drills_notify writes it */
+    const dueOn = g.map((x) => x.due).filter(Boolean).sort()[0] || null;
     notify(db, r.player_id, "drill", n === 1 ? "New drill" : `${n} new drills`,
-      n === 1 ? `${r.title} · ${nameOf(db, r.coach_id)}` : nameOf(db, r.coach_id), { screen: "practice" });
+      n === 1 ? `${r.title}${dueOn ? ` · by ${niceDate(dueOn)}` : ""} · ${nameOf(db, r.coach_id)}` : `${dueOn ? `by ${niceDate(dueOn)} · ` : ""}${nameOf(db, r.coach_id)}`, { screen: "practice" });
     adultsFor(db, r.player_id).forEach((a) => notify(db, a, "drill", `${firstOf(db, r.player_id)} has ${n === 1 ? "a new drill" : `${n} new drills`}`, nameOf(db, r.coach_id), { screen: "family" })); });
 }
 function onTipInsert(db, t) {
@@ -512,6 +514,14 @@ async function attach(page, db, opts = {}) {
     if (!st) return json(404, { code: "42P01", message: `relation "public.${table}" does not exist` });
     if (!mine) return json(401, { message: "JWT expired" });
     const visible = () => applyQuery(st.rows().filter(st.see), url);
+    /* a project whose SQL has not been re-run answers a select naming a
+       column the table does not have with 42703, the way PostgREST does */
+    {
+      const gone0 = (db.missingColumns && db.missingColumns[table]) || [];
+      const sel = (url.searchParams.get("select") || "").split(",").map((x) => x.trim());
+      const badSel = gone0.find((k) => sel.includes(k));
+      if (badSel) return json(400, { code: "42703", message: `column ${table}.${badSel} does not exist`, details: null, hint: null });
+    }
     const prefer = hdr["prefer"] || "";
 
     if (method === "GET") return respond(visible());
@@ -548,6 +558,10 @@ async function attach(page, db, opts = {}) {
       };
       /* the not-null columns the table would refuse before any policy is asked */
       const REQUIRED = { lessons: ["coach_id", "focus"], bookings: ["coach_id", "booking_date", "start_time"], messages: ["coach_id", "player_id", "sender_id", "body"], drills: ["coach_id", "player_id", "title"], tips: ["coach_id", "player_id", "title"], lesson_media: ["lesson_id", "kind", "storage_path"], lesson_attendees: ["lesson_id", "player_id"], recurring: ["coach_id", "weekday", "start_time"], competitions: ["name", "event_date"], attendance_sessions: ["coach_id", "label"], attendance_marks: ["session_id", "player_id", "state"], reviews: ["coach_id", "player_id", "rating"] };
+      /* a project whose SQL has not been re-run: a column the app knows and the table does not */
+      const gone = (db.missingColumns && db.missingColumns[table]) || [];
+      const badCol = gone.find((k) => rows.some((r) => k in r));
+      if (badCol) { db.posts.push({ table, rows, by: meId, refused: true }); return json(400, { code: "42703", message: `column "${badCol}" of relation "${table}" does not exist`, details: null, hint: null }); }
       const missing = rows.flatMap((r) => (REQUIRED[table] || []).filter((k) => r[k] == null));
       if (missing.length) { db.posts.push({ table, rows, by: meId, refused: true }); return json(400, { code: "23502", message: `null value in column "${missing[0]}" of relation "${table}" violates not-null constraint`, details: null, hint: null }); }
       if (!rows.every(ok)) { db.posts.push({ table, rows, by: meId, refused: true }); return forbidden(); }
@@ -555,7 +569,7 @@ async function attach(page, db, opts = {}) {
         const base = { id: uuid(), created_at: nowIso(db) };
         if (table === "lessons") Object.assign(base, { player_id: null, group_name: null, kind: "private", subs: [], notes: null, lesson_date: ymd(new Date(db.now())), unread: true, rating_requested: false });
         if (table === "bookings") Object.assign(base, { player_id: null, group_name: null, duration: 45, kind: "private", status: "confirmed", logged_id: null });
-        if (table === "drills") Object.assign(base, { done: false });
+        if (table === "drills") Object.assign(base, { done: false, due: null });
         if (table === "messages") Object.assign(base, { read_at: null });
         if (table === "attendance_sessions") Object.assign(base, { session_date: ymd(new Date(db.now())) });
         return { ...base, ...r };
