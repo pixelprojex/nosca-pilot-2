@@ -292,6 +292,10 @@ alter table public.preferences add column if not exists starred        jsonb not
 -- What lessons open on: 'list' or 'feed'. Null is the role's own default
 -- (a coach List, a player Feed); Settings › Default view sets it.
 alter table public.preferences add column if not exists default_view   text check (default_view in ('list', 'feed'));
+-- When the day's drill reminder arrives, as a time of day by Ireland's
+-- clock, on the hour. Null is eight in the morning. Settings › Reminder
+-- and the foot of the player's Drills screen set it.
+alter table public.preferences add column if not exists reminder_time  time;
 
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the
@@ -1379,6 +1383,29 @@ drop trigger if exists lessons_notify on public.lessons;
 create trigger lessons_notify after insert on public.lessons
   for each row execute function public.trg_lessons_notify();
 
+-- ---------- the coach asks for a rating after the fact ----------
+-- The burst's "Ask for a rating" flips rating_requested on a lesson
+-- already logged. The player — each attendee, for a group — is told,
+-- and the tap lands on the lesson, where the ask sits. Asked at logging
+-- time it rides on "Lesson logged" and the arrival opens the sheet.
+create or replace function public.trg_lessons_rating_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare p uuid;
+begin
+  if new.rating_requested and not coalesce(old.rating_requested, false) then
+    for p in (select new.player_id where new.player_id is not null
+              union select la.player_id from public.lesson_attendees la where la.lesson_id = new.id) loop
+      perform public.notify(p, 'rating', public.first_name_of(new.coach_id) || ' asked for a rating', new.focus,
+        jsonb_build_object('screen', 'lesson', 'id', new.id));
+    end loop;
+  end if;
+  return new;
+exception when others then return new;
+end $fn$;
+drop trigger if exists lessons_rating_notify on public.lessons;
+create trigger lessons_rating_notify after update of rating_requested on public.lessons
+  for each row execute function public.trg_lessons_rating_notify();
+
 -- ---------- a clip added to a lesson later — a coach's markup ----------
 -- Files uploaded with the lesson ride on "Lesson logged"; one added after
 -- that half hour is news of its own, so the player (and a junior's
@@ -1568,12 +1595,22 @@ create trigger drills_notify after insert on public.drills
 -- Once per drill per day, so a second run of the same morning adds
 -- nothing; the notification carries the drill and the day it reminded
 -- for. Returns how many it sent, so the test can count.
-create or replace function public.remind_due_drills()
+-- Runs every hour. A drill due today is said once, in the hour the
+-- player asked for (preferences.reminder_time, eight by default), by
+-- Ireland's clock. p_hour is for the test suite; the schedule passes
+-- nothing and the hour is now. The zero-argument version is dropped
+-- first: "create or replace" cannot change a signature, and a second
+-- overload is what the cron job would have gone on calling.
+drop function if exists public.remind_due_drills();
+create or replace function public.remind_due_drills(p_hour integer default null)
 returns integer language plpgsql security definer set search_path = '' as $fn$
 declare r record; n integer := 0;
+  here  timestamp := (now() at time zone 'Europe/Dublin');
+  h     integer   := coalesce(p_hour, extract(hour from (now() at time zone 'Europe/Dublin'))::integer);
 begin
   for r in select d.id, d.player_id, d.coach_id, d.title, d.due from public.drills d
-           where d.due = current_date and not d.done
+           where d.due = here::date and not d.done
+             and extract(hour from coalesce((select p.reminder_time from public.preferences p where p.id = d.player_id), time '08:00'))::integer = h
              and not exists (select 1 from public.notifications x
                               where x.user_id = d.player_id and x.kind = 'drill'
                                 and x.data->>'drill' = d.id::text and x.data->>'due' = d.due::text) loop
@@ -1583,16 +1620,17 @@ begin
   end loop;
   return n;
 end $fn$;
-revoke all on function public.remind_due_drills() from public, anon, authenticated;
+revoke all on function public.remind_due_drills(integer) from public, anon, authenticated;
 
--- pg_cron runs it at eight every morning where the extension is on
+-- pg_cron runs it every hour where the extension is on; each person's
+-- hour is their own (reminder_time, eight by default)
 -- (Supabase: Database › Extensions › pg_cron); a bare Postgres, or a
 -- project without it, keeps the day on the drill and skips the reminder.
 do $$
 begin
   create extension if not exists pg_cron;
   perform cron.unschedule(jobid) from cron.job where jobname = 'nosca-drill-reminders';
-  perform cron.schedule('nosca-drill-reminders', '0 8 * * *', 'select public.remind_due_drills()');
+  perform cron.schedule('nosca-drill-reminders', '0 * * * *', 'select public.remind_due_drills()');
 exception when others then
   raise notice 'pg_cron unavailable (%) — a drill keeps its day; the morning reminder waits for pg_cron', sqlerrm;
 end $$;
@@ -2452,7 +2490,7 @@ with
                         'my_attendance_session_ids',
                         'join_coach', 'respond_to_request', 'cancel_request', 'leave_coach',
                         'create_family', 'join_family', 'rename_family', 'leave_family',
-                        'notify', 'adults_for', 'trg_lessons_notify', 'trg_requests_notify', 'trg_bookings_notify',
+                        'notify', 'adults_for', 'trg_lessons_notify', 'trg_lessons_rating_notify', 'trg_requests_notify', 'trg_bookings_notify',
                         'trg_messages_notify', 'trg_drills_notify', 'trg_tips_notify', 'trg_family_notify',
                         'delete_my_account']) as f
   ),
@@ -2492,7 +2530,7 @@ select
   (select result from nosca_check where item = 'storage_bucket')                    as storage_bucket,
   (select result from nosca_check where item = 'storage_policies')                  as storage_policies,
 
-  (select count(*) from pg_trigger where tgname in ('lessons_notify', 'requests_notify', 'bookings_notify',
+  (select count(*) from pg_trigger where tgname in ('lessons_notify', 'lessons_rating_notify', 'requests_notify', 'bookings_notify',
                                                     'messages_notify', 'drills_notify', 'tips_notify', 'family_notify'))
                                                                                     as notify_triggers,
 

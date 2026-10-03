@@ -150,6 +150,8 @@ export function useNoscaData(profile) {
   const [drills, setDrills] = useState([]);
   const [drillsDue, setDrillsDue] = useState(false);
   const dueProbed = useRef(false);
+  const [reminderOn, setReminderOn] = useState(false);   // does preferences.reminder_time exist on this project?
+  const reminderProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [bookings, setBookings] = useState([]);
@@ -396,6 +398,11 @@ export function useNoscaData(profile) {
       if (!dueProbed.current) {
         dueProbed.current = true;
         supabase.from("drills").select("due").limit(1).then((pr) => setDrillsDue(!pr.error)).catch(() => setDrillsDue(false));
+      }
+      /* and the reminder hour: the same one probe, the same quiet no */
+      if (!reminderProbed.current) {
+        reminderProbed.current = true;
+        supabase.from("preferences").select("reminder_time").limit(1).then((pr) => setReminderOn(!pr.error)).catch(() => setReminderOn(false));
       }
       /* `tips` carries no focus column, so focus stays null and every
          screen that shows it must check first. The date and the age DO
@@ -695,6 +702,11 @@ export function useNoscaData(profile) {
       if (!byLesson.has(it.lessonId)) byLesson.set(it.lessonId, []);
       byLesson.get(it.lessonId).push(f);
     });
+    /* what failed before it had a file — a take that did not render — is
+       re-run first, inside the tap, so a browser that wants a gesture
+       for the sound has one */
+    u.items.filter((it) => it.status === "failed" && externalRetry.current.has(it.key))
+      .forEach((it) => { try { externalRetry.current.get(it.key)(); } catch (e) { /* said by the job */ } });
     if (!byLesson.size) return { failed: 0 };
     let failed = 0;
     for (const [id, again] of byLesson) {
@@ -703,7 +715,20 @@ export function useNoscaData(profile) {
     }
     return { failed };
   };
-  const dismissUploads = () => { setUploads(null); pendingFiles.current.clear(); };
+  /* Something made in the background — a mark-up take rendering off the
+     screen — sits in the same list under its own key: making, then
+     uploading once its file exists (the file carries the key, so the
+     upload takes the row over), or failed with a Retry that re-runs it. */
+  const externalRetry = useRef(new Map());
+  const noteUpload = (key, patch) => setUploads((u) => {
+    const items = (u && u.items) || [];
+    const i = items.findIndex((x) => x.key === key);
+    const next = i >= 0 ? items.map((x, k) => (k === i ? { ...x, ...patch } : x))
+      : [...items, { key, lessonId: null, name: "", size: 0, kind: "video", status: "uploading", error: null, ...patch }];
+    return { items: next };
+  });
+  const onUploadRetry = (key, fn) => { if (fn) externalRetry.current.set(key, fn); else externalRetry.current.delete(key); };
+  const dismissUploads = () => { setUploads(null); pendingFiles.current.clear(); externalRetry.current.clear(); };
 
   const logLesson = async ({ who, playerId, groupName, focus, subs, note, files, date, ratingRequested, attendeeIds }) => {
     const row = {
@@ -737,9 +762,15 @@ export function useNoscaData(profile) {
         .insert(attendees.map((pid) => ({ lesson_id: lesson.id, player_id: pid })));
     }
 
-    const { failed } = await uploadFiles(lesson.id, files);
-    if (!(files || []).length) await load();
-    return { lesson, failed };
+    /* THE FILES FOLLOW; NOTHING WAITS ON THEM. The row is written, the
+       screen moves on, and every file uploads behind the coach's back
+       with its own status on Today (and a Retry) — Log it used to read
+       "Logging…" until the last clip was in, which on a range is a
+       minute of watching a button. */
+    const n = (files || []).filter(Boolean).length;
+    if (n) uploadFiles(lesson.id, files).catch(() => {});
+    await load();
+    return { lesson, uploading: n };
   };
 
   /* CHANGING A LESSON ALREADY LOGGED
@@ -1112,6 +1143,9 @@ export function useNoscaData(profile) {
      row as JSON — the whole value each time, so what is saved is
      exactly what the screen showed. */
   const saveAvailability = (availability) => savePrefs({ availability: availability || {} });
+  /* when the day's drill reminder arrives, "HH:00" by Ireland's clock —
+     written on its own; the database sends the reminder */
+  const setReminderTime = (hhmm) => savePrefs({ reminder_time: hhmm });
   const saveGroups = (groups) => savePrefs({ groups: groups || [] });
 
   /* Name, phone and club are the person's own to change. .select()
@@ -1572,7 +1606,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

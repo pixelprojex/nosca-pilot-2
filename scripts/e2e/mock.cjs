@@ -115,7 +115,7 @@ function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, group
 }
 function addDrill(db, { id = uuid("d0000000"), coachId, playerId, title, done = false }) { const row = { id, coach_id: coachId, player_id: playerId, title, done, created_at: nowIso(db) }; db.drills.push(row); return row; }
 function addMessage(db, { id = uuid("30000000"), coachId, playerId, senderId, body, readAt = null, createdAt }) { const row = { id, coach_id: coachId, player_id: playerId, sender_id: senderId, body, read_at: readAt, created_at: createdAt || nowIso(db) }; db.messages.push(row); return row; }
-function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], layout: {}, starred: [], default_view: null, updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
+function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], layout: {}, starred: [], default_view: null, reminder_time: null, updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
 
 /* a week of hours in the shape the app saves: Monday-first day keys */
 const weekOf = (times = ["9:00 am", "10:00 am", "11:00 am", "2:00 pm", "3:00 pm"], days = [0, 1, 2, 3, 4]) =>
@@ -141,6 +141,12 @@ function onLessonInsert(db, l) {
   if (!l.player_id) return;
   notify(db, l.player_id, "lesson", "Lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
   adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, l.player_id)}'s lesson logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
+}
+/* the coach asks for a rating after the fact: the player (each attendee
+   of a group) is told, named, and lands on the lesson */
+function onRatingAsk(db, l) {
+  const who = l.player_id ? [l.player_id] : (db.attendees || []).filter((a) => a.lesson_id === l.id).map((a) => a.player_id);
+  who.forEach((p) => notify(db, p, "rating", `${firstOf(db, l.coach_id)} asked for a rating`, l.focus, { screen: "lesson", id: l.id }));
 }
 /* a clip added to a lesson more than half an hour after it was logged */
 function onMediaInsert(db, m) {
@@ -598,9 +604,13 @@ async function attach(page, db, opts = {}) {
       if (table === "bookings") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && body.status === "cancelled"));
       if (table === "lessons") upd = upd.filter((r) => r.coach_id === meId);
       if (table === "messages") upd = upd.filter((r) => r.sender_id !== meId);
+      /* a project whose SQL has not been re-run: a column the app knows and the table does not */
+      { const goneP = (db.missingColumns && db.missingColumns[table]) || []; const badP = goneP.find((k) => k in body);
+        if (badP) { db.patches.push({ table, query: url.search, body, n: 0, by: meId, refused: true }); return json(400, { code: "42703", message: `column "${badP}" of relation "${table}" does not exist`, details: null, hint: null }); } }
       const before = upd.map((r) => ({ ...r }));
       upd.forEach((r) => Object.assign(r, body));
       if (table === "bookings") upd.forEach((r, i) => onBookingUpdate(db, r, before[i], meId));
+      if (table === "lessons") upd.forEach((r, i) => { if (r.rating_requested && !before[i].rating_requested) onRatingAsk(db, r); });
       db.patches.push({ table, query: url.search, body, n: upd.length, by: meId });
       return json(200, upd);
     }

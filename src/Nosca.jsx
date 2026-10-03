@@ -3005,6 +3005,28 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
 function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, onDone }) {
   const t = useT();
   const first = (lesson.who[0] || "").split(" ")[0];
+  /* THE ASK ANSWERS ON THE BURST. Its only word back was a toast drawn
+     under this layer, so the coach tapped and saw nothing happen. The
+     button itself turns into Asked — or says why it could not, and
+     offers the tap again — and once asked, with nothing else to offer,
+     the burst clears itself. */
+  const [ask, setAsk] = useState("idle");   // idle · busy · done · error
+  const [askErr, setAskErr] = useState("");
+  const askNow = async (e) => {
+    e.stopPropagation();
+    if (ask === "busy" || ask === "done") return;
+    hapticCommit(); soft(); setAsk("busy");
+    try {
+      const res = await onAskRating();
+      if (res && res.error) { hapticWarn(); setAskErr(res.error.message || tr("Couldn't ask")); setAsk("error"); }
+      else setAsk("done");
+    } catch (err) { hapticWarn(); setAskErr(tr("Couldn't ask")); setAsk("error"); }
+  };
+  useEffect(() => {
+    if (ask !== "done" || onLogNext) return;
+    const t0 = setTimeout(() => onDone && onDone(), 1600);
+    return () => clearTimeout(t0);
+  }, [ask]);
   /* With something to offer — the next lesson to log, a rating to ask
      for — it waits for a tap; its buttons used to fade out under the
      finger a second after they appeared. With nothing to offer it
@@ -3073,14 +3095,18 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
       )}
 
       {onAskRating && (
-        <button onClick={(e) => { e.stopPropagation(); hapticCommit(); soft(); onAskRating(); }}
-                className="absolute flex items-center gap-2 px-5 active:opacity-60"
-                style={{ bottom: 22, minHeight: 44, borderRadius: R.pill, border: "0.5px solid rgba(255,255,255,0.28)",
-                         fontFamily: ui, fontSize: 12.5, fontWeight: 500, color: "rgba(255,255,255,0.92)",
-                         animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
-          <Star size={13} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />
-          {tr("Ask for a rating")}
-        </button>
+        <div className="absolute flex flex-col items-center gap-2" style={{ bottom: 22, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
+          {ask === "error" && <span data-tour="burst-ask-error" style={{ fontFamily: ui, fontSize: 12.5, color: "#FF8A80" }}>{askErr}</span>}
+          <button onClick={askNow} disabled={ask === "busy" || ask === "done"} data-ask={ask}
+                  className="flex items-center gap-2 px-5 active:opacity-60"
+                  style={{ minHeight: 44, borderRadius: R.pill, border: `0.5px solid ${ask === "done" ? "transparent" : "rgba(255,255,255,0.28)"}`,
+                           background: ask === "done" ? "rgba(255,255,255,0.14)" : "transparent", opacity: ask === "busy" ? 0.6 : 1,
+                           fontFamily: ui, fontSize: 12.5, fontWeight: ask === "done" ? 600 : 500, color: "rgba(255,255,255,0.92)",
+                           transition: `background ${MOTION.settle}ms, opacity ${MOTION.settle}ms` }}>
+            {ask === "done" ? <Check size={13} color="#fff" strokeWidth={2.4} /> : <Star size={13} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />}
+            {ask === "done" ? tr("Asked") : ask === "busy" ? tr("Asking…") : ask === "error" ? tr("Try again") : tr("Ask for a rating")}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -7558,7 +7584,7 @@ function Toast({ msg }) {
     /* pointer-events off: the wrapper is always mounted, and an invisible
        strip that swallows taps 98px above the bottom of every screen is
        exactly the kind of "button that does nothing" that gets reported. */
-    <div className="absolute left-0 right-0 flex justify-center z-50 px-6" style={{ bottom: 98, pointerEvents: "none" }}>
+    <div className="absolute left-0 right-0 flex justify-center px-6" style={{ bottom: 98, pointerEvents: "none", zIndex: 90 /* above the burst (70) and the sheet: a toast under a layer is a tap that did nothing */ }}>
       <div className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-3"
            style={{ background: t.ink, maxWidth: "100%", opacity: m ? 1 : 0,
                     transform: m ? "translateY(0)" : "translateY(12px)", transition: "opacity 200ms, transform 200ms" }}>
@@ -10166,7 +10192,125 @@ function paintShape(g, sh, w, h, f = 1) {
   g.restore();
 }
 
-function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, doneLabel, pop, say }) {
+/* THE TAKE IS MADE BEHIND THE COACH'S BACK. Save on Mark it up used to
+   play the clip through on the screen, the coach watching a timer, and
+   only then upload; the founder asked for the tap to be the end of it.
+   startTakeJob() takes the clip and the moments to an element pair that
+   lives off the screen (a 2px host on the body), plays the clip through
+   once resting on each moment, records the canvas at a steady 30fps —
+   the same pass the screen ran — and hands back the file. Created inside
+   the tap, so the one play() the browser wants a gesture for has one,
+   and the clip's own sound rides along where the graph allows it. A job
+   survives every screen change; it does not survive the tab going to
+   sleep, which is the same bargain as a live recording. */
+const TAKE_HOST_ID = "nosca-take-host";
+const takeHost = () => {
+  let h = document.getElementById(TAKE_HOST_ID);
+  if (!h) {
+    h = document.createElement("div"); h.id = TAKE_HOST_ID; h.setAttribute("aria-hidden", "true");
+    h.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;overflow:hidden;opacity:0.01;pointer-events:none;z-index:-1";
+    document.body.appendChild(h);
+  }
+  return h;
+};
+function startTakeJob({ src, file, moments, audioCtx, onProgress, onDone, onFail }) {
+  if (typeof document === "undefined") { onFail("No screen to draw on"); return { cancel() {} }; }
+  const host = takeHost();
+  const v = document.createElement("video");
+  v.crossOrigin = "anonymous"; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto"; v.muted = true;
+  v.style.cssText = "position:absolute;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none";
+  const c = document.createElement("canvas"); c.width = 2; c.height = 2; c.style.cssText = v.style.cssText;
+  const url = file ? URL.createObjectURL(file) : src;
+  host.appendChild(v); host.appendChild(c);
+  const ms = (moments || []).filter((m) => m && m.shapes && m.shapes.length)
+    .map((m) => ({ t: m.t, shapes: m.shapes.map((x) => ({ ...x, at: 0 })) })).sort((a, b) => a.t - b.t);
+  let raf = 0, rec = null, capTrack = null, done = false, chunks = [], audio = null, lastReq = 0;
+  const t0 = performance.now();
+  const cleanup = () => {
+    cancelAnimationFrame(raf);
+    try { v.pause(); } catch (e) { /* fine */ }
+    try { v.removeAttribute("src"); v.load(); } catch (e) { /* fine */ }
+    if (file) { try { URL.revokeObjectURL(url); } catch (e) { /* fine */ } }
+    if (audio) { try { audio.ctx.close(); } catch (e) { /* fine */ } }
+    v.remove(); c.remove();
+  };
+  const fail = (why) => { if (done) return; done = true; cleanup(); onFail(why); };
+  const finish = () => {
+    if (done) return; done = true; cancelAnimationFrame(raf); capTrack = null;
+    try { if (rec && rec.state !== "inactive") rec.stop(); else { cleanup(); onFail("Nothing was recorded"); } }
+    catch (e) { cleanup(); onFail("Couldn't finish the recording"); }
+  };
+  /* the clip's own sound, through the graph and into the recorder; the
+     element then no longer reaches the speaker */
+  const tracks = (() => {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = audioCtx || (AC ? new AC() : null); if (!ctx) return [];
+      const sn = ctx.createMediaElementSource(v), dest = ctx.createMediaStreamDestination();
+      sn.connect(dest); audio = { ctx, src: sn, dest };
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      return dest.stream.getAudioTracks();
+    } catch (e) { return []; }
+  })();
+  if (tracks.length) { v.muted = false; v.volume = 1; }
+  const shown = { idx: -1, prev: -1, at: 0 }, pass = { held: new Set(), holdUntil: 0, ended: false };
+  v.onerror = () => fail("Couldn't load the clip");
+  v.onended = () => { pass.ended = true; };
+  v.onloadedmetadata = () => {
+    if (done) return;
+    const vw = v.videoWidth || 720, vh = v.videoHeight || 1280, k = Math.min(1, REVIEW_MAX / Math.max(vw, vh));
+    c.width = Math.round((vw * k) / 2) * 2; c.height = Math.round((vh * k) / 2) * 2;
+    const dur = Number.isFinite(v.duration) ? v.duration : 0;
+    let stream;
+    try { const vt0 = c.captureStream(30).getVideoTracks(); capTrack = vt0[0] || null; stream = new MediaStream([...vt0, ...tracks]); }
+    catch (e) { fail("This browser can't record over a clip"); return; }
+    const mime = pickMime(VIDEO_TYPES);
+    try { rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 2500000 }); }
+    catch (e) { try { rec = new MediaRecorder(stream); } catch (e2) { fail("This browser can't record over a clip"); return; } }
+    rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    rec.onstop = () => {
+      const type = rec.mimeType || mime || "video/webm", ext = type.includes("mp4") ? "mp4" : "webm";
+      const blob = new Blob(chunks, { type }); chunks = [];
+      cleanup();
+      if (!blob.size) { onFail("Nothing was recorded"); return; }
+      onDone(new File([blob], `markup-${Date.now()}.${ext}`, { type }));
+    };
+    try { v.pause(); v.currentTime = 0; } catch (e) { /* fine */ }
+    rec.start(250);                                        // slices, so Safari hands data over as it goes
+    const paint = () => {
+      if (done) return;
+      const g = c.getContext("2d");
+      if (v.readyState >= 2) g.drawImage(v, 0, 0, c.width, c.height); else { g.fillStyle = "#0B0F10"; g.fillRect(0, 0, c.width, c.height); }
+      const now = performance.now(), T = v.currentTime;
+      let cur = -1;
+      for (let i = 0; i < ms.length; i++) { if (ms[i].t <= T + 0.03) cur = i; else break; }
+      if (cur !== shown.idx) { shown.prev = shown.idx; shown.idx = cur; shown.at = now; }
+      const gone = Math.min(1, (now - shown.at) / FADE_MS);
+      if (shown.prev >= 0 && shown.prev !== cur && gone < 1 && ms[shown.prev]) {
+        g.save(); g.globalAlpha = 1 - gone; ms[shown.prev].shapes.forEach((x) => paintShape(g, x, c.width, c.height, 1)); g.restore();
+      }
+      if (cur >= 0 && ms[cur]) ms[cur].shapes.forEach((x, i) => paintShape(g, x, c.width, c.height, Math.min(1, Math.max(0, (now - shown.at - i * REVEAL_MS) / REVEAL_MS))));
+      /* rest on each moment while its marks arrive, then go on; after the
+         end, wait for the last hold and stop */
+      if (cur >= 0 && !pass.held.has(cur)) { pass.held.add(cur); v.pause(); pass.holdUntil = now + ms[cur].shapes.length * REVEAL_MS + HOLD_MS; }
+      else if (pass.holdUntil && now >= pass.holdUntil) { pass.holdUntil = 0; if (pass.ended) { finish(); return; } v.play().catch(() => {}); }
+      else if (pass.ended && !pass.holdUntil) { finish(); return; }
+      if (capTrack && typeof capTrack.requestFrame === "function" && now - lastReq >= 33) { lastReq = now; try { capTrack.requestFrame(); } catch (e) { /* fine */ } }
+      if (onProgress) onProgress(T, dur);
+      if (now - t0 > 600000) { finish(); return; }           // a clip with no end still finishes
+      raf = requestAnimationFrame(paint);
+    };
+    raf = requestAnimationFrame(paint);
+    v.play().catch(() => { v.muted = true; v.play().catch(() => fail("Couldn't play the clip")); });
+  };
+  v.src = url;
+  /* the one play() inside the tap: it activates the element, so the pass
+     may start it again later with the sound on */
+  v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+  return { cancel: () => fail("Cancelled") };
+}
+
+function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQueue, doneLabel, pop, say }) {
   const t = useT();
   const first = (who || "").split(" ")[0];
   /* a clip on no lesson yet — one attached to the log being written —
@@ -10490,6 +10634,17 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, don
     hapticCommit();
     if (!canRecord()) return;
     v.pause(); v.playbackRate = 1; setSlow(false);
+    /* THE TAP IS THE END OF IT. The moments and the clip go to a job off
+       the screen (startTakeJob); the coach is back where they were at
+       once, and Today's banner says Making 1 clip until it is on the
+       lesson. The audio graph is made here, inside the tap. */
+    if (onQueue) {
+      let audioCtx = null;
+      try { const AC = window.AudioContext || window.webkitAudioContext; audioCtx = AC ? new AC() : null; } catch (e) { audioCtx = null; }
+      onQueue({ src: file ? null : (item ? item.url : null), file: file || null, moments: momentsRef.current, audioCtx, original: item, who });
+      hapticSuccess(); chime(); say(doneLabel || tr("Saved")); pop();
+      return;
+    }
     const tracks = clipSound();
     /* the element's sound reaches the recorder only if it is not muted;
        routed into the graph it no longer reaches the speaker */
@@ -11882,6 +12037,27 @@ const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").t
 /* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
 const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
 const wizFirst = (name) => String(name || "").split(" ")[0];
+const wizRest = (name) => String(name || "").split(" ").slice(1).join(" ");
+
+/* AGE BANDS, the way a club runs them: under 10, under 12, under 14,
+   under 16, under 18, then adults. A junior with no date of birth is
+   under 18 by their own word at sign-up. */
+const WIZ_BANDS = [["u10", "U10", 10], ["u12", "U12", 12], ["u14", "U14", 14], ["u16", "U16", 16], ["u18", "U18", 18]];
+const yearsAt = (dob, today) => {
+  if (!dob || !today) return null;
+  const b = localDate(dob); if (!b || isNaN(b.getTime())) return null;
+  let a = today.y - b.getFullYear();
+  if (today.m - 1 < b.getMonth() || (today.m - 1 === b.getMonth() && today.d < b.getDate())) a -= 1;
+  return a;
+};
+const ageBandOf = (p, today) => {
+  if (!p) return null;
+  const age = yearsAt(p.dateOfBirth, today);
+  if (age == null) return p.junior ? "u18" : "adult";
+  if (age >= 18) return "adult";
+  const b = WIZ_BANDS.find((x) => age < x[2]);
+  return b ? b[0] : "adult";
+};
 
 /* a face is a tile too: the picture, the first name, nothing else */
 function FaceTile({ person, group, caption, on, onTap, tour }) {
@@ -11902,7 +12078,7 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
   );
 }
 
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, say }) {
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, onQueueTake, say }) {
   const t = useT(); const L = useL();
   const live = useLive();
   const POOL_W = (livePlayers ?? ROSTER).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
@@ -11933,10 +12109,15 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     return known.length ? "main" : "who";
   });
   const [q, setQ] = useState("");
+  const [whoFilter, setWhoFilter] = useState("all");   // All, an age band, Adults, or a group
   const [adding, setAdding] = useState(false);   // the who page was opened to add someone, not to start over
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  /* the mark-ups being made for this log; leaving the log lets them go
+     where publish() sent them (or nowhere, if it was cancelled) */
+  const wizJobs = useRef([]);
+  useEffect(() => () => { wizJobs.current.forEach((j) => j.drop()); }, []);
 
   /* ---------- what was worked on ---------- */
   const [focus, setFocus] = useState([]);
@@ -12040,7 +12221,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     /* keyed by when it arrived, not its place in the list: with index
        keys, removing the first clip handed its key — and its swiped-away
        state — to the one that moved up, which then vanished too */
-    ...videos.map((v, i) => ({ id: `v${v.at ?? i}`, at: v.at, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name, file: v.file })),
+    ...videos.map((v, i) => ({ id: `v${v.at ?? i}`, at: v.at, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name, file: v.file, making: !!v.making })),
     ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
     ...pulled.map((it) => ({ ...it, id: `c${it.id}`, capturedId: it.id })),
     ...(voice ? [{ id: "voice", kind: "voice", secs: voice.secs, url: voice.url }] : []),
@@ -12098,6 +12279,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     note, videos, photos, secs, voice,
     nextDrills, nextTip, wantRating, y: logY, m: logM, d: logD,
     pulled: pulled.map(({ from, ...it }) => it),
+    pendingTakes: videos.filter((v) => v.jobId && !v.file).map((v) => v.jobId),
   });
   const submit = async () => {
     if (!canLog || busy) return;
@@ -12123,22 +12305,46 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     setWho(mems); setPickedGroup(g.name); setQ(""); setView("main");
   };
   const searching = !!q.trim();
+  /* THE FILTERS: All, each age band somebody on the roster is in,
+     Adults, and each group — only what has somebody in it, so a tile
+     never narrows to nothing. The founder asked for the search and the
+     filters at the top of this page, whatever the roster's size. */
+  const bandOf = (pl) => ageBandOf(pl, today);
+  const bandCounts = {};
+  POOL_W.forEach((pl) => { const bk = bandOf(pl); bandCounts[bk] = (bandCounts[bk] || 0) + 1; });
+  const mixedAges = Object.keys(bandCounts).length > 1;
+  const whoFilters = [
+    { key: "all", label: tr("All") },
+    ...(mixedAges ? WIZ_BANDS.filter((bd) => bandCounts[bd[0]]).map((bd) => ({ key: bd[0], label: bd[1] })) : []),
+    ...(mixedAges && bandCounts.adult ? [{ key: "adult", label: tr("Adults") }] : []),
+    ...(groups || []).filter((g) => membersOf(g).length).map((g) => ({ key: `g:${g.name}`, label: g.name })),
+  ];
+  const filterOn = whoFilters.some((f) => f.key === whoFilter) ? whoFilter : "all";
+  const filterLabel = (whoFilters.find((f) => f.key === filterOn) || {}).label;
+  const groupIds = filterOn.startsWith("g:") ? new Set(membersOf((groups || []).find((g) => g.name === filterOn.slice(2)) || {}).map((m) => m.id)) : null;
+  const inFilter = (pl) => (filterOn === "all" ? true : groupIds ? groupIds.has(pl.id) : bandOf(pl) === filterOn);
+  const narrowed = searching || filterOn !== "all";
+  const byName = (x, y) => x.name.localeCompare(y.name);
   const seen = new Set();
   const take = (list) => list.filter((pl) => pl && !seen.has(pl.id) && (seen.add(pl.id), true));
   const liveKey = liveNow ? (liveNow.playerId || seedId(liveNow.who)) : null;
   const bookingFor = {};
   for (const b of (todayBookings || [])) { const id = b.playerId || seedId(b.who); if (id && !bookingFor[id]) bookingFor[id] = b; }
-  const faces = searching
-    ? POOL_W.filter((pl) => wizMatch(pl.name, q))
+  /* narrowed — by the search or a filter — the page is one grid of the
+     matches; otherwise on now and today first, then the groups, then
+     everyone */
+  const faces = narrowed
+    ? POOL_W.filter((pl) => inFilter(pl) && wizMatch(pl.name, q)).sort(byName)
     : take([byId(liveKey), ...(todayIds || []).map(byId), ...(recent || []).map((r) => byId(r.id))]).slice(0, 9);
   const faceCaption = (pl) => {
+    if (narrowed) return wizRest(pl.name);
     const b = bookingFor[pl.id];
     if (b) return b.time;
     if (pl.id === liveKey) return tr("on now");
     return null;
   };
-  const groupTiles = searching ? (groups || []).filter((g) => wizMatch(g.name, q)) : (groups || []);
-  const rest = searching ? [] : POOL_W.filter((pl) => !seen.has(pl.id)).sort((a, b) => a.name.localeCompare(b.name));
+  const groupTiles = narrowed ? (searching && filterOn === "all" ? (groups || []).filter((g) => wizMatch(g.name, q)) : []) : (groups || []);
+  const rest = narrowed ? [] : POOL_W.filter((pl) => !seen.has(pl.id)).sort(byName);
 
   const hair = RULE.hair(t.ink);
   const back = () => { haptic(6); setView("main"); };
@@ -12150,6 +12356,25 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     return (
       <ClipReview key="review" lesson={{ id: "draft", focus: chosen.join(" · ") }} file={reviewing.file} who={(who[0] || {}).name || ""}
                   say={say || (() => {})} doneLabel={tr("Attached")} pop={() => { setReviewing(null); back(); }}
+                  /* Save hands the clip to a job off the screen; its row reads
+                     Making… until the take arrives, and the clip it was drawn
+                     on comes back if it does not */
+                  onQueue={onQueueTake ? ({ file: f0, moments, audioCtx }) => {
+                    const orig = reviewing;
+                    const job = onQueueTake({ file: f0, moments, audioCtx, listener: (rec) => {
+                      if (!alive.current) return;
+                      if (rec.file) setVideos((v) => v.map((x) => (x.jobId === job.id ? { at: x.at, angle: tr("Mark-up"), secs: 0, file: rec.file, name: rec.file.name } : x)));
+                      else {
+                        setVideos((v) => v.map((x) => (x.jobId === job.id ? { at: x.at, angle: orig.angle || tr("Clip"), secs: orig.secs || 0, file: orig.file, name: orig.name } : x)));
+                        if (say) say(`${tr("Couldn't make the mark-up")}${rec.failed ? ` · ${rec.failed}` : ""}`);
+                      }
+                    } });
+                    wizJobs.current.push(job);
+                    const holder = { at: captureSeq(), angle: tr("Mark-up"), secs: 0, file: null, name: "markup", jobId: job.id, making: true };
+                    if (orig.capturedId != null) { forget(new Set([orig.capturedId])); setVideos((v) => [...v, holder]); }
+                    else setVideos((v) => v.map((x) => (x.at != null && x.at === orig.at ? holder : x)));
+                    return {};
+                  } : undefined}
                   /* the take stands in for the clip it was drawn on */
                   onSend={(f) => {
                     const take = { at: captureSeq(), angle: tr("Mark-up"), secs: 0, file: f, name: f.name };
@@ -12168,11 +12393,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           <WizBar onBack={() => (who.length ? setView("main") : onCancel())} close={!who.length} />
           <div className="flex-1 overflow-y-auto">
             <WizHero>{adding ? tr("Who else") : tr("Who")}</WizHero>
-            {POOL_W.length > 8 && (
+            {POOL_W.length > 0 && (
               <div className="px-6 pb-3" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
                 <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
                   <Search size={15} color={t.trace || t.faint} />
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} enterKeyHint="search"
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} enterKeyHint="search" aria-label={tr("Search")}
                          onKeyDown={(e) => { if (e.key === "Enter" && faces[0]) { e.preventDefault(); pickPerson(faces[0]); } }}
                          className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                   {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
@@ -12181,6 +12406,14 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             )}
             <div className="px-6 pb-6">
+              {whoFilters.length > 1 && (
+                <div data-tour="wiz-who-filter" style={{ marginBottom: SPACE.block }}>
+                  <TileGrid cols={evenCols(whoFilters.length)}>
+                    {whoFilters.map((f) => <ActTile key={f.key} h={40} label={f.label} on={filterOn === f.key} onTap={() => setWhoFilter(f.key)} />)}
+                  </TileGrid>
+                </div>
+              )}
+              {filterOn !== "all" && faces.length > 0 && <WizLabel>{filterLabel}</WizLabel>}
               {faces.length > 0 && (
                 <TileGrid>
                   {faces.map((pl, i) => <FaceTile key={pl.id} person={pl} caption={faceCaption(pl)} on={ticked(pl)} tour={i === 0 ? "wiz-who" : undefined} onTap={() => pickPerson(pl)} />)}
@@ -12194,17 +12427,16 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   </TileGrid>
                 </>
               )}
+              {/* EVERYONE IS A GRID OF FACES, like the ones above it. It was
+                  rows under the tiles, and the founder found one person in
+                  a box over a list of the rest very strange. The surname
+                  rides under the first name so two of a name are two tiles. */}
               {rest.length > 0 && (
                 <>
                   <WizLabel>{tr("Everyone")}</WizLabel>
-                  {rest.map((pl) => (
-                    <button key={pl.id} onClick={() => pickPerson(pl)} aria-label={pl.name} aria-pressed={ticked(pl)}
-                            className="w-full flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 58, borderBottom: hair }}>
-                      <Avatar name={pl.name} size={34} src={avatarUrl(pl.avatarPath)} />
-                      <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
-                      {ticked(pl) && <Check size={16} color={t.accent} strokeWidth={2.4} />}
-                    </button>
-                  ))}
+                  <TileGrid>
+                    {rest.map((pl) => <FaceTile key={pl.id} person={pl} caption={wizRest(pl.name)} on={ticked(pl)} onTap={() => pickPerson(pl)} />)}
+                  </TileGrid>
                 </>
               )}
               {faces.length === 0 && rest.length === 0 && groupTiles.length === 0 && (
@@ -12430,8 +12662,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                         return <K size={15} color={t.sub} strokeWidth={1.8} />; })()}
                       <span className="flex-1 min-w-0">
                         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>
-                          {it.kind === "video" ? tr("Video") : it.kind === "voice" ? tr("Voice") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo")}
+                          {it.making ? tr("Mark-up") : it.kind === "video" ? tr("Video") : it.kind === "voice" ? tr("Voice") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo")}
                         </span>
+                        {it.making && <span className="block truncate" data-tour="wiz-making" style={{ ...TYPE.caption, color: t.faint }}>{tr("Making…")}</span>}
                         {it.from && who.length > 1 && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{wizFirst(it.from)}</span>}
                       </span>
                       {it.kind === "video" && it.file && (
@@ -14055,27 +14288,65 @@ function Subscription({ pop, say, plan }) {
 /* ==================================================================
    PLAYER · practice
 ================================================================== */
-function PlayerPractice({ conn, items, toggle, right, say }) {
+/* the day a drill is for, as a line: By Fri 9 Oct · By today · and, gone
+   by and not done, Was by Thu 1 Oct in the warning colour */
+const dueLineFor = (iso, todayIso) => {
+  if (!iso) return null;
+  if (iso === todayIso) return { text: tr("By today"), late: false };
+  if (iso < todayIso) return { text: `${tr("Was by")} ${fmtWeekDay(localDate(iso))}`, late: true };
+  return { text: `${tr("By")} ${fmtWeekDay(localDate(iso))}`, late: false };
+};
+/* the day a drill was set, as a local day (a timestamp, so new Date is right) */
+const setDayOf = (x) => { const d = x && x.createdAt ? new Date(x.createdAt) : null; return d && !isNaN(d.getTime()) ? isoDay(d) : null; };
+
+/* ONE DRILL, AS A ROW: the tick, the name, the day it is for. The same
+   row on the Drills tab and in All drills, so a drill looks the same
+   wherever it is read. */
+function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
   const t = useT();
-  const live = useLive();
+  const line = x.due && !x.done ? dueLineFor(x.due, todayIso) : null;
+  return (
+    <button data-tour={tour} data-drill-due={x.due || undefined} data-drill-done={x.done ? "1" : undefined} aria-pressed={!!x.done}
+            onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); onToggle(x.id); }}
+            className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
+            style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards` }}>
+      <span className="flex items-center justify-center shrink-0"
+            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
+                     background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
+        {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block" style={{ ...TYPE.body, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
+        {/* a drill set by a real coach is a name; only the starter sets
+            carry a description */}
+        {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
+        {line && <span className="block mt-0.5" style={{ ...TYPE.small, color: line.late ? DANGER : t.sub }}>{line.text}</span>}
+      </span>
+    </button>
+  );
+}
+
+function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder }) {
+  const t = useT();
   const calendar = useCalendar();
   const todayIso = isoDay(progressToday(calendar));
-  /* what is to do first, the dated ones soonest first, then the rest as
-     they were set; done ones after */
-  const ordered = useMemo(() => items.slice().sort((a, b) => (a.done - b.done) || ((a.due ? 0 : 1) - (b.due ? 0 : 1)) || ((a.due || "") < (b.due || "") ? -1 : (a.due || "") > (b.due || "") ? 1 : 0)), [items]);
-  const dueLine = (iso) => {
-    if (!iso) return null;
-    if (iso === todayIso) return { text: tr("By today"), late: false };
-    if (iso < todayIso) return { text: `${tr("Was by")} ${fmtWeekDay(localDate(iso))}`, late: true };
-    return { text: `${tr("By")} ${fmtWeekDay(localDate(iso))}`, late: false };
-  };
-  const done = items.filter((x) => x.done).length;
-  const pct = items.length ? (done / items.length) * 100 : 0;
-  const allDone = items.length > 0 && done === items.length;
+  /* THE TAB IS WHAT IS TO DO, AND THE LATEST SET. Everything not yet
+     done; every drill from the last day drills were set, so a set reads
+     whole once it is ticked off; and anything ticked this sitting, so a
+     drill never vanishes under the thumb. Everything older is in All
+     drills, by the day it was set. */
+  const [justDone, setJustDone] = useKept("justDone", []);
+  const latestDay = useMemo(() => items.reduce((m, x) => { const d = setDayOf(x); return d && (!m || d > m) ? d : m; }, null), [items]);
+  const shown = useMemo(() => items.filter((x) => !x.done || setDayOf(x) === latestDay || justDone.includes(x.id)), [items, latestDay, justDone]);
+  /* to do first, the dated ones soonest first, then the rest as they were
+     set; done ones after */
+  const ordered = useMemo(() => shown.slice().sort((a, b) => (a.done - b.done) || ((a.due ? 0 : 1) - (b.due ? 0 : 1)) || ((a.due || "") < (b.due || "") ? -1 : (a.due || "") > (b.due || "") ? 1 : 0)), [shown]);
+  const tick = (id) => { setJustDone((j) => (j.includes(id) ? j : [...j, id])); toggle(id); };
+  const todo = items.filter((x) => !x.done).length;
+  const allDone = items.length > 0 && todo === 0;
   useEffect(() => { if (allDone) { hapticCommit(); swell(); } }, [allDone]);
-  const who = conn?.coach?.split(" ")[0] || "your coach";
   return (
-    <Screen title={tr("Drills")} meta={items.length ? (items.length - done > 0 ? `${items.length - done} ${tr("to do")}` : tr("All done")) : ""} right={right}>
+    <Screen title={tr("Drills")} meta={items.length ? (todo > 0 ? `${todo} ${tr("to do")}` : tr("All done")) : ""} right={right}>
       {items.length === 0 ? (
         <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No drills yet")}</p>
       ) : (
@@ -14089,40 +14360,87 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
           <div className="px-6 pb-2"><div className="nsc-list">
             {ordered.map((x, i) => (
               <div key={x.id}>
-              {/* the box is the edge: no hairline at the foot of a boxed row */}
-              <button data-tour={i === 0 ? "drill-row" : undefined} data-drill-due={x.due || undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
-                      className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
-                      style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                <span className="flex items-center justify-center shrink-0"
-                      style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
-                               background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
-                  {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block" style={{ ...TYPE.body, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
-                  {/* a drill set by a real coach is a name; only the
-                      starter sets carry a description */}
-                  {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
-                  {/* the day it is for: By Fri 9 Oct · By today · and, gone by
-                      and not done, Was by Thu 1 Oct in the warning colour */}
-                  {x.due && !x.done && dueLine(x.due) && (
-                    <span className="block mt-0.5" style={{ ...TYPE.small, color: dueLine(x.due).late ? DANGER : t.sub }}>{dueLine(x.due).text}</span>
-                  )}
-                </span>
-              </button>
-              {DRILL_SECONDS(x.d) && !x.done && (
-                <div className="pb-4" style={{ marginTop: -4 }}>
-                  <DrillTimer seconds={DRILL_SECONDS(x.d)} onDone={() => toggle(x.id)} />
-                </div>
-              )}
+                <DrillRow x={x} todayIso={todayIso} onToggle={tick} tour={i === 0 ? "drill-row" : undefined} delay={Math.min(i, 5) * 22} />
+                {DRILL_SECONDS(x.d) && !x.done && (
+                  <div className="pb-4" style={{ marginTop: -4 }}>
+                    <DrillTimer seconds={DRILL_SECONDS(x.d)} onDone={() => tick(x.id)} />
+                  </div>
+                )}
               </div>
             ))}
-          </div>
-
-          </div>
+          </div></div>
+          {/* every drill ever set, by the day it was set — the door, in
+              words, under the list */}
+          {onAll && (
+            <div className="px-6 pt-3">
+              <button data-tour="drills-all" onClick={() => { hapticCommit(); soft(); onAll(); }}
+                      className="w-full flex items-center justify-center gap-2 active:opacity-70"
+                      style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                {tr("All")} {items.length} {items.length === 1 ? tr("drill") : tr("drills")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
+              </button>
+            </div>
+          )}
         </>
       )}
+      {/* WHEN THE DAY'S REMINDER ARRIVES — asked here, where the first
+          drills land, and in Settings; the second Settings shape */}
+      {reminder && items.length > 0 && (
+        <div className="px-6" style={{ marginTop: SPACE.section }}>
+          <Card tour="drills-reminder"><FilterRow plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></Card>
+        </div>
+      )}
     </Screen>
+  );
+}
+
+/* EVERY DRILL EVER SET, BY THE DAY IT WAS SET. The Drills tab is what is
+   to do; this is the record — the founder asked for a library of past
+   drills and when they were given, one tap away and plain. A search
+   above eight, the day as a heading, the same rows. */
+function PlayerDrillLibrary({ items, toggle, pop }) {
+  const t = useT();
+  const calendar = useCalendar();
+  const todayD = progressToday(calendar);
+  const todayIso = isoDay(todayD);
+  const yIso = isoDay(new Date(todayD.getFullYear(), todayD.getMonth(), todayD.getDate() - 1));
+  const [q, setQ] = useKept("q", "");
+  const needle = q.trim();
+  const list = useMemo(() => (needle ? items.filter((x) => wizMatch(x.t, needle)) : items), [items, needle]);
+  const days = useMemo(() => {
+    const by = new Map();
+    list.forEach((x) => { const d = setDayOf(x) || ""; if (!by.has(d)) by.set(d, []); by.get(d).push(x); });
+    return [...by.entries()].sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0));
+  }, [list]);
+  const dayLabel = (d) => (!d ? tr("Earlier") : d === todayIso ? tr("Today") : d === yIso ? tr("Yesterday") : fmtWeekDay(localDate(d)));
+  const done = items.filter((x) => x.done).length;
+  return (
+    <SwipeBack onBack={pop}>
+    <Screen title={tr("All drills")} onBack={pop} meta={items.length ? `${items.length} ${items.length === 1 ? tr("drill") : tr("drills")}${done ? ` · ${done} ${tr("done")}` : ""}` : ""}>
+      {items.length > 8 && (
+        <div className="px-6 pb-3">
+          <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
+            <Search size={15} color={t.trace || t.faint} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} aria-label={tr("Search")} enterKeyHint="search"
+                   className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
+               : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
+          </div>
+        </div>
+      )}
+      {items.length === 0 ? (
+        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No drills yet")}</p>
+      ) : days.length === 0 ? (
+        <p className="px-6 py-8 text-center" style={{ ...TYPE.body, color: t.faint }}>{`${tr("Nothing called")} “${needle}”`}</p>
+      ) : days.map(([d, rows], gi) => (
+        <div key={d || "earlier"} className="px-6" data-tour={gi === 0 ? "drills-day" : undefined} style={{ marginBottom: SPACE.block }}>
+          <RowHead>{dayLabel(d)}</RowHead>
+          <div className="nsc-list">
+            {rows.map((x, i) => <DrillRow key={x.id} x={x} todayIso={todayIso} onToggle={toggle} delay={Math.min(i, 5) * 22} />)}
+          </div>
+        </div>
+      ))}
+    </Screen>
+    </SwipeBack>
   );
 }
 
@@ -14264,6 +14582,9 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
 /* the days a drill can be for: nothing, the player's next lesson where
    one is booked, tomorrow, a week, two weeks — each a real day, named */
 const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/* the hours a reminder can arrive at: six in the morning to nine at night */
+const REMINDER_HOURS = Array.from({ length: 16 }, (_, k) => k + 6);
+const hourLabel = (h) => `${h % 12 || 12}:00 ${h < 12 ? "am" : "pm"}`;
 function dueOptions(today, nextLesson) {
   const plus = (n) => { const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + n); return isoDay(d); };
   const out = [{ id: "", label: tr("No day") }];
@@ -15287,7 +15608,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
   const [q, setQ] = useKept("q", "");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
@@ -15338,6 +15659,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
       { label: tr("Default view"), tour: "settings-view", keys: ["feed", "list", "view", "lessons", "opens", "layout"],
         custom: choice("defaultView", tr("Default view"), defaultView || "list", [{ id: "list", label: tr("List") }, { id: "feed", label: tr("Feed") }], (v) => onDefaultView && onDefaultView(v)) },
+      reminderOn && { label: tr("Reminder"), tour: "settings-reminder", keys: ["remind", "drills", "time", "morning", "alarm", "notification", "daily", "hour"],
+        custom: choice("reminder", tr("Reminder"), reminderTime || "08:00", reminderOpts, (v) => onReminderTime && onReminderTime(v)) },
       { label: tr("Reviews"), tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
       !live && { label: tr("Paperwork"), tour: "settings-credentials", onTap: () => push("credentials") },
       !live && { label: tr("Requests"), tour: "settings-requests", onTap: () => push("requests") },
@@ -15360,6 +15683,9 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
       { label: tr("Default view"), tour: "settings-view", keys: ["feed", "list", "view", "lessons", "opens", "layout"],
         custom: choice("defaultView", tr("Default view"), defaultView || "feed", [{ id: "list", label: tr("List") }, { id: "feed", label: tr("Feed") }], (v) => onDefaultView && onDefaultView(v)) },
+      reminderOn && { label: tr("Reminder"), tour: "settings-reminder", keys: ["remind", "drills", "time", "morning", "alarm", "notification", "daily", "hour"],
+        custom: choice("reminder", tr("Reminder"), reminderTime || "08:00", reminderOpts, (v) => onReminderTime && onReminderTime(v)) },
+      { label: tr("Drills"), sub: drillCount ? `${drillCount} ${drillCount === 1 ? tr("drill") : tr("drills")}` : null, tour: "settings-drills", onTap: () => push("drillsAll"), keys: ["library", "practice", "past", "history", "all", "set"] },
       (!live || hasDependants) && { label: tr("This month"), tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
       { label: tr("Family"), sub: live ? (familyName || null) : null, tour: "settings-dashboard",
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
@@ -16028,7 +16354,9 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
      so an early return above the effect crashed the next render with
      "rendered fewer hooks than expected" the moment the strip cleared. */
   const items = (uploads && uploads.items) || [];
-  const moving = items.filter((it) => it.status === "uploading");
+  const making = items.filter((it) => it.status === "making");          // a mark-up rendering off the screen
+  const sending = items.filter((it) => it.status === "uploading");
+  const moving = [...making, ...sending];
   const failed = items.filter((it) => it.status === "failed");
   const done = items.filter((it) => it.status === "done");
   useEffect(() => {
@@ -16047,7 +16375,9 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
             ? <span className="rounded-full shrink-0" style={{ width: 8, height: 8, background: t.accent, animation: "breathe 1.4s ease-in-out infinite" }} />
             : failed.length > 0 ? <X size={14} color={DANGER} strokeWidth={2.2} /> : <Check size={14} color={STEADY} strokeWidth={2.4} />}
           <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
-            {moving.length > 0 ? `${tr("Uploading")} ${moving.length} ${noun(moving.length)}${done.length ? ` · ${done.length} ${tr("in")}` : ""}`
+            {moving.length > 0 ? [making.length ? `${tr("Making")} ${making.length} ${making.length === 1 ? tr("clip") : tr("clips")}` : null,
+                                  sending.length ? `${tr("Uploading")} ${sending.length} ${noun(sending.length)}` : null,
+                                  done.length && !(making.length && sending.length) ? `${done.length} ${tr("in")}` : null].filter(Boolean).join(" · ")
               : failed.length > 0 ? `${failed.length} ${noun(failed.length)} ${failed.length === 1 ? tr("didn't upload") : tr("didn't upload")}${done.length ? ` · ${done.length} ${tr("in")}` : ""}`
               : `${done.length} ${noun(done.length)} ${tr("attached")}`}
           </span>
@@ -16414,6 +16744,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setPrefsLocal({
       logView: p.log_view === "cards" ? "list" : (p.log_view ?? PREF_DEFAULTS.logView),
       defaultView: p.default_view === "list" || p.default_view === "feed" ? p.default_view : null,
+      reminderTime: p.reminder_time ? String(p.reminder_time).slice(0, 5) : null,
       calView: p.cal_view ?? PREF_DEFAULTS.calView,
       notify: p.notify ?? PREF_DEFAULTS.notify,
       quietFrom: PREF_DEFAULTS.quietFrom,
@@ -17604,6 +17935,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* what a screen kept is one account's: another signing in on the same
      phone starts every screen at the top */
   useEffect(() => { SCREEN_MEMORY.clear(); }, [account ? account.id : null]);
+  /* WHEN THE DAY'S DRILL REMINDER ARRIVES. preferences.reminder_time, on
+     the hour by Ireland's clock; null is eight in the morning. The
+     database sends it (remind_due_drills() on pg_cron, every hour), so
+     there is nothing to keep on the phone — and until the SQL has been
+     re-run there is no column, and no row is offered: a setting that
+     stores nothing is worse than none. A coach is offered it only when
+     they take lessons themselves. */
+  const reminderTime = (prefs && prefs.reminderTime) || "08:00";
+  const reminderOn = data ? !!data.reminderOn && (role !== "coach" || !!data.hasCoach) : role !== "coach";
+  const reminderOpts = REMINDER_HOURS.map((h) => ({ id: `${String(h).padStart(2, "0")}:00`, label: hourLabel(h) }));
+  const setReminderTime = (v) => {
+    setPrefsLocal((p) => ({ ...p, reminderTime: v }));
+    if (data && data.setReminderTime) Promise.resolve(data.setReminderTime(v)).catch(() => {});
+  };
+  const reminderCtl = reminderOn ? {
+    label: (reminderOpts.find((o) => o.id === reminderTime) || reminderOpts[2]).label,
+    options: reminderOpts.map((o) => o.label),
+    onPick: (lab) => { const o = reminderOpts.find((x) => x.label === lab); if (o) setReminderTime(o.id); },
+  } : null;
   const navCtx = useMemo(() => ({ key: sc ? "sc" : `${stack.length}:${stack[stack.length - 1]}`, defaultView }), [sc, stack, defaultView]);
   const enter = (r) => { setRole(r); setFlow("app"); setStack([r === "coach" ? "today" : "home"]); haptic(16); };
   const jump = (r) => { setRole(r); setFlow("app"); setStack([r === "coach" ? "today" : "home"]); };
@@ -17646,15 +17996,72 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* the lesson just written, so the burst's "Ask for a rating" can mark
      it after the fact — or note the ask if the button beat the insert */
   const lastLogged = useRef(null);
+  /* A TAKE FOR A LESSON ALREADY LOGGED: making → uploading → on the
+     lesson, the clip it was drawn on removed; or failed, with a Retry on
+     Today that re-runs the job inside the tap. The file carries the
+     job's key, so the upload takes the same row over. */
+  const queueTake = ({ lessonId, src, file, moments, audioCtx, original, who }) => {
+    if (!data) return null;
+    const key = `take:${captureSeq()}`;
+    const name = `${tr("Mark-up")}${who ? ` · ${wizFirst(who)}` : ""}`;
+    const run = (ctx) => {
+      data.noteUpload(key, { lessonId, name, kind: "video", size: 0, status: "making", error: null });
+      startTakeJob({ src, file, moments, audioCtx: ctx,
+        onFail: (why) => data.noteUpload(key, { status: "failed", error: why }),
+        onDone: async (f) => {
+          f.__noscaKey = key;
+          const r = await data.addLessonMedia(lessonId, [f]);
+          if (!(r && r.failed) && original && original.id && original.id !== "local") await data.removeLessonMedia(lessonId, original.id);
+        } });
+    };
+    data.onUploadRetry(key, () => run(null));
+    run(audioCtx);
+    return key;
+  };
+  /* A TAKE FOR THE LOG BEING WRITTEN. The log shows a row for it while
+     it is made; the file joins the attachments if it is ready before Log
+     it, and follows the lesson up if it is not — publish() claims the
+     jobs still making with the new lesson's id. */
+  const TAKES = useRef(new Map());
+  const queueWizardTake = ({ file, moments, audioCtx, listener }) => {
+    const id = captureSeq();
+    const rec = { id, lessonId: null, file: null, failed: null, listener, src: { file, moments } };
+    const key = `take:${id}`;
+    const run = (ctx) => startTakeJob({ file: rec.src.file, moments: rec.src.moments, audioCtx: ctx,
+      onDone: (f) => { rec.file = f; rec.failed = null; rec.settle(); }, onFail: (why) => { rec.failed = why; rec.settle(); } });
+    rec.settle = () => {
+      if (rec.listener) { rec.listener(rec); TAKES.current.delete(id); return; }   // the log is open: it takes the file
+      if (!rec.lessonId || !data) return;                                          // not logged yet: publish() will claim it
+      if (rec.file) {
+        rec.file.__noscaKey = key;
+        data.noteUpload(key, { lessonId: rec.lessonId, name: tr("Mark-up"), kind: "video", status: "uploading", error: null });
+        data.addLessonMedia(rec.lessonId, [rec.file]).catch(() => {});
+        TAKES.current.delete(id);
+        return;
+      }
+      /* the take failed after Log it: the clip goes up as it was filmed,
+         so the lesson is never left without it, and the mark-up is on
+         Today as failed, with a Retry that renders it again */
+      if (!rec.origSent && rec.src.file) { rec.origSent = true; data.addLessonMedia(rec.lessonId, [rec.src.file]).catch(() => {}); }
+      data.noteUpload(key, { lessonId: rec.lessonId, name: tr("Mark-up"), kind: "video", status: "failed", error: `${rec.failed || tr("Couldn't make the mark-up")} · ${tr("the clip went up as filmed")}` });
+      data.onUploadRetry(key, () => { data.noteUpload(key, { status: "making", error: null }); run(null); });
+    };
+    TAKES.current.set(id, rec);
+    run(audioCtx);
+    return { id, drop: () => { rec.listener = null; } };
+  };
+  const claimTakes = (ids, lessonId) => (ids || []).forEach((id) => {
+    const rec = TAKES.current.get(id); if (!rec) return;
+    rec.listener = null; rec.lessonId = lessonId;
+    if (data) data.noteUpload(`take:${id}`, { lessonId, name: tr("Mark-up"), kind: "video", size: 0, status: "making", error: null });
+    if (rec.file || rec.failed) rec.settle();
+  });
   const askForRating = async () => {
     const cur = lastLogged.current;
-    if (cur && cur.id) {
-      const res = await data.requestRating(cur.id);
-      say(res && res.error ? (res.error.message || tr("Couldn't ask")) : tr("They'll be asked once"));
-    } else {
-      lastLogged.current = { id: null, pending: true };
-      say(tr("They'll be asked once"));
-    }
+    if (cur && cur.id) return data.requestRating(cur.id);   // the burst says Asked, or why not
+    /* the button beat the insert: note the ask; publish() sends it once the row exists */
+    lastLogged.current = { id: null, pending: true };
+    return {};
   };
   const publish = async (l) => {
     const lesson = { ...l, when: "just now" };
@@ -17727,6 +18134,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
       lastLogged.current = { id: res.lesson.id, pending: false };
       if (askedMeanwhile) data.requestRating(res.lesson.id);
+      /* a mark-up still being made follows the lesson up when it is done */
+      claimTakes(l.pendingTakes, res.lesson.id);
       /* anything the coach set alongside the lesson — for everyone who
          was there, not the first name on the list */
       const recipients = isGroup ? attendeeIds : (match?.id ? [match.id] : []);
@@ -18448,13 +18857,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = les
       ? <ClipReview lesson={les} mediaId={mid} mediaFor={mediaFor} who={les.who} pop={pop} say={say}
                     /* the marked-up clip stands in for the one it was drawn
-                       on — one video on the lesson, not two; a still is added */
-                    onSend={async (file, orig) => {
-                      const r = await data.addLessonMedia(les.id, [file]);
-                      if (!(r && r.failed) && orig && orig.id && orig.id !== "local") await data.removeLessonMedia(les.id, orig.id);
-                      return r;
+                       on — one video on the lesson, not two; a still is added.
+                       Nothing here waits on an upload: the file goes up behind
+                       the coach's back with its status on Today */
+                    onQueue={(job) => queueTake({ ...job, lessonId: les.id })}
+                    onSend={(file, orig) => {
+                      data.addLessonMedia(les.id, [file]).then((r) => {
+                        if (!(r && r.failed) && orig && orig.id && orig.id !== "local") return data.removeLessonMedia(les.id, orig.id);
+                        return null;
+                      }).catch(() => {});
+                      return {};
                     }}
-                    onStill={(file) => data.addLessonMedia(les.id, [file])} />
+                    onStill={(file) => { data.addLessonMedia(les.id, [file]).catch(() => {}); return {}; }} />
       : <SwipeBack onBack={pop}><Screen title={tr("Mark it up")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
@@ -18472,7 +18886,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const named = les && les.playerId && account && les.playerId !== account.id ? les.who : "";
     body = les
       ? <ClipCompare lesson={les} mediaId={mid} lessons={pool} mediaFor={mediaFor} who={named} pop={pop} say={say}
-                     onSave={role === "coach" ? (file) => data.addLessonMedia(les.id, [file]) : null} />
+                     onSave={role === "coach" ? (file) => { data.addLessonMedia(les.id, [file]).catch(() => {}); return {}; } : null} />
       : <SwipeBack onBack={pop}><Screen title={tr("Compare")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
@@ -18711,7 +19125,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
-  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
@@ -18735,7 +19149,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             selfCanBook={data ? !!data.hasCoach : true}
                                                             onBookFor={(k) => { setBookFor(k); }} />;
   } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} />;
-  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
+  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} onAll={() => push("drillsAll")} reminder={reminderCtl} />;
+  } else if (screen === "drillsAll") { body = <PlayerDrillLibrary items={myPractice} toggle={togglePractice} pop={pop} />;
   } else if (role === "coach") {
     bare = screen === "log";
     /* One element, one set of props. It was written out twice — the
@@ -18773,7 +19188,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
+      log:       <Wizard onQueueTake={queueWizardTake} library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
                          lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
                          recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
                          onAddPlayer={() => setSheet("invite")}
@@ -18947,7 +19362,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         </>)}
 
         <div className="overflow-hidden w-full flex flex-col relative"
-             style={{ maxWidth: demo ? 384 : "none",
+             /* THE FRAME NEVER SCROLLS. Its only overflow is the closed sheet
+                parked below it, and an overflow-hidden box still scrolls
+                programmatically — a focus, a scrollIntoView, iOS making room
+                for the keyboard — which shoved the whole app 760px up under
+                the Logged burst in the harness. `clip` forbids every scroll;
+                a browser without it keeps `hidden`. Screens scroll in their
+                own boxes. */
+             style={{ overflow: "clip", maxWidth: demo ? 384 : "none",
                       height: demo ? 768 : sc ? 780 : "100dvh",
                       borderRadius: demo ? 34 : 0, background: theme.page,
                    ...(reduceMotion ? { ["--motion"]: "none" } : {}), border: demo ? "6px solid #05070A" : "none", boxShadow: demo ? "0 2px 8px rgba(0,0,0,0.4), 0 40px 100px rgba(0,0,0,0.62)" : "none" }}>
@@ -19355,13 +19777,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                           close={() => setSheet(null)} say={say} />
               : sheet === "lessonEdit" && editLesson && data ? <LessonEditBody lesson={editLesson} cfg={cfg} say={say}
                                           onSave={(v) => data.updateLesson(editLesson.id, v)}
-                                          onAddFiles={async (files) => {
-                                            say(`${tr("Adding")} ${files.length}…`);
-                                            const res = await data.addLessonMedia(editLesson.id, files);
-                                            const failed = (res && res.failed) || 0;
-                                            /* never silently: the same rule as logging a lesson */
-                                            if (failed) { hapticWarn(); say(`${failed} ${failed === 1 ? tr("file didn't upload") : tr("files didn't upload")}`); }
-                                            else { hapticSuccess(); say(tr("Added")); }
+                                          onAddFiles={(files) => {
+                                            /* behind the coach's back, with the status on Today —
+                                               never silently: the same rule as logging a lesson */
+                                            data.addLessonMedia(editLesson.id, files).then((res) => {
+                                              const failed = (res && res.failed) || 0;
+                                              if (failed) { hapticWarn(); say(`${failed} ${failed === 1 ? tr("file didn't upload") : tr("files didn't upload")}`); }
+                                            }).catch(() => {});
+                                            hapticSuccess(); say(`${files.length} ${files.length === 1 ? tr("file") : tr("files")} · ${tr("uploading")}`);
                                           }}
                                           close={() => { setEditLesson(null); setSheet(null); }} />
               : sheet === "lessonDelete" && editLesson && data ? <LessonDeleteBody lesson={editLesson} say={say}

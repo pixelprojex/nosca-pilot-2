@@ -82,9 +82,16 @@ seeded data and no account.
   nosca.sql), in the same transaction as the thing they describe. The
   app reads, marks read and clears; it never inserts. New kinds go in
   the trigger, and the mock in `scripts/e2e/` must produce them too.
-- **Uploads never fail silently.** Every attached file uploads in
-  parallel with a status per file (`data.uploads`), shown on Today
-  with the reason and a Retry. The per-file limit is `MAX_UPLOAD_MB`
+- **Uploads never fail silently, and nothing waits on them.** Every
+  attached file uploads in parallel with a status per file
+  (`data.uploads`), shown on Today with the reason and a Retry.
+  `logLesson` returns the moment the row is written and the files
+  follow behind the coach's back — Log it read "Logging…" until the
+  last clip was in, which on a range is a minute of watching a button;
+  the founder asked for every upload to go on in the background rather
+  than stall a page. The same for a file added to a logged lesson, a
+  mark-up take, a still, a comparison: the screen is left at once and
+  Today's banner carries it ("Uploading 2 files", "Making 1 clip"). The per-file limit is `MAX_UPLOAD_MB`
   (50, Supabase's default; `VITE_MAX_UPLOAD_MB` if the project's limit
   is raised).
 - **Capture is the phone's camera, not a form.** `LiveCapture` is an
@@ -333,6 +340,8 @@ seeded data and no account.
   a filter row over a sort switch is two things to read before the first
   row. A tab bar to a list that is empty is not a choice either — the
   roster's Groups half appears with the first group.
+  The Who page is the one exception, at the founder's ask: its search
+  and its filter tiles are always there.
 - **The board and the plus are one list of actions, and the coach owns
   it.** `COACH_ACTIONS` is the nine (Log · Register · Capture · Tip ·
   Drills · Add player · New group · Call off · Competition), each with
@@ -371,10 +380,18 @@ seeded data and no account.
   capture are also on the lesson itself (the peek sheet), drills and
   tips on the player file.
 - **Logging a lesson is two screens: a face, then one page.** Who? is
-  faces — on now and today first, then the groups, then Everyone as
-  rows, with a search pill above eight people (prefix on any word,
-  diacritic-insensitive; Return picks the top match); one tap picks and
-  returns. Everything else is one scroll: the name and the day, the
+  faces: the search at the top whatever the roster's size; a row of
+  filter tiles under it — All, the age bands somebody on the roster is
+  in (U10 to U18, `WIZ_BANDS` and `ageBandOf`; a junior with no date of
+  birth is U18 by their own word), Adults, and each group, only what
+  has somebody in it (`wiz-who-filter`); then on now and today first,
+  then the groups, then **Everyone as the same grid of face tiles**,
+  the surname under the first name so two of a name are two tiles —
+  never rows: one person in a box over a list of the rest was the
+  thing the founder called very strange. A filter narrows the page to
+  one grid that names itself; the search narrows further (prefix on
+  any word, diacritic-insensitive; Return picks the top match); one
+  tap picks and returns. `scripts/e2e/who.cjs`. Everything else is one scroll: the name and the day, the
   level they are already on (`HI 18.4`, `Green ball · U10`) which is
   touched only when it has changed and reads **`Set level`** in ink
   when there is none (the accent is spent on Log it) — and never blocks
@@ -793,13 +810,24 @@ seeded data and no account.
   what the coach sees pressing Play in the editor, what the take
   holds, and so what the player sees — never every mark at 0:00 (it
   was that for a round and the founder saw the drawings out of time
-  with the clip). **Save** runs the clip through once from the start,
-  resting on each moment (`HOLD_MS` after its marks arrive) then going
-  on, records the canvas as it goes with no microphone asked for (the
-  clip's own sound rides along through Web Audio where the browser
-  allows it; the recorder is fed a steady 30 frames a second by
-  `requestFrame`, because a canvas track left to itself came back from
-  Safari running fast) and uploads the take at once; **Talk over it**
+  with the clip). **Save** is the end of it for the coach: the
+  moments and the clip go to `startTakeJob()`, a video and a canvas on
+  a 2px host on the body (`nosca-take-host`), created inside the tap so
+  the one `play()` a browser wants a gesture for has one, which plays
+  the clip through once from the start, resting on each moment
+  (`HOLD_MS` after its marks arrive) then going on, records the canvas
+  as it goes with no microphone asked for (the clip's own sound rides
+  along through Web Audio where the browser allows it; the recorder is
+  fed a steady 30 frames a second by `requestFrame`, because a canvas
+  track left to itself came back from Safari running fast) and then
+  uploads the take — the coach is back on the lesson the moment they
+  tap, Today's banner reads "Making 1 clip" and then "Uploading", and
+  a failed render is there with Retry (`queueTake`; from the log,
+  `queueWizardTake`: the row reads "Making…", the file joins the
+  attachments if it is ready before Log it and follows the lesson up
+  if not, `claimTakes` in `publish()`; the clip it was drawn on comes
+  back if the take fails). It played through on the screen with a timer
+  for a round, and the founder did not want to sit and watch it; **Talk over it**
   takes the microphone, lets the coach play, pause, scrub and draw
   live — the pause and the fade are in the take — and plays it back
   (Again · Save) before it goes. **The take stands in for the clip it
@@ -952,12 +980,61 @@ seeded data and no account.
   warning colour once the day has gone (`dueLine`). The notification
   that sets it reads "Gate drill · by Thu 8 Oct" (`trg_drills_notify`),
   and `remind_due_drills()` writes "Gate drill due today" once per
-  drill per day, scheduled by pg_cron at eight in the morning
-  (`nosca-drill-reminders`; the status row's `drill_reminders` says
-  whether the extension is on). Skillest attaches a due date to a
+  drill per day, at the hour the player chose (two bullets on;
+  `nosca-drill-reminders` on pg_cron, hourly; the status row's
+  `drill_reminders` says whether the extension is on). Skillest attaches a due date to a
   follow-up drill; nothing else in the field does, and a dated drill is
   what brings a player back between lessons. `scripts/e2e/drills-due.cjs`
   walks the coach, the player and a project without the column.
+- **The Drills tab is what is to do; All drills is the record.**
+  `PlayerPractice` shows every drill not yet done, every drill from the
+  last day drills were set (so a set reads whole once it is ticked
+  off), and anything ticked this sitting (`justDone`, kept) — a drill
+  never vanishes under the thumb. Under the list, "All N drills"
+  (`drills-all`) opens `PlayerDrillLibrary` (route `drillsAll`; Settings
+  › Drills carries the count and opens it too): every drill ever set
+  under the day it was set (`setDayOf` on `createdAt` — Today ·
+  Yesterday · `Thu 1 Oct`, newest day first), done ones ticked and
+  struck, a search above eight, and the same `DrillRow` on both screens
+  so a drill looks the same wherever it is read; a tap there toggles it
+  for real. The founder asked for a library of past drills and when
+  they were given, easy to reach and plain. `scripts/e2e/drill-library.cjs`.
+- **The day's reminder arrives at the hour the person chose.**
+  `preferences.reminder_time` (a `time`, on the hour; null is eight in
+  the morning; Ireland's clock). `remind_due_drills(p_hour)` runs on
+  pg_cron every hour (`0 * * * *`) and says a drill due today once, in
+  the player's own hour — the zero-argument version is dropped first,
+  because `create or replace` cannot change a signature and a second
+  overload is what the job would have gone on calling. Set from the
+  Reminder row at the foot of the Drills tab (`drills-reminder`, a
+  `FilterRow` in a `Card`, there once the first drills land) and from
+  Settings › Reminder (`settings-reminder`, the second shape, 6:00 am to
+  9:00 pm); a coach is offered it only when they take lessons
+  themselves. The database sends it, so nothing lives on the phone: the
+  hook probes the column once (`reminderOn`) and until the SQL has been
+  re-run no row is offered anywhere — a setting that stores nothing is
+  worse than none. It is not asked at sign-up; nothing joins that flow.
+  `supabase/test/run.sh` now adds up a FAIL from the upgrade-path run
+  of behaviour.sql as well — one printed under a `uniq -c` count for a
+  day and was never counted.
+- **Ask for a rating answers on the burst, and the player is told.**
+  The Logged burst's button (`PublishedBurst`, `data-ask`) marks the
+  lesson (`requestRating`, `.select()` proving the row changed) and
+  turns into **Asked** with a tick; a refused write is said on the burst
+  in red with **Try again** under it; once asked, with nothing else to
+  offer, the burst clears itself. Its only word back used to be a toast
+  drawn under the burst (the toast was layer 50, the burst 70), so the
+  coach tapped and saw nothing happen — the founder reported it dead.
+  The toast now sits above every layer (90). A `rating_requested` that
+  flips true on a logged lesson fires `trg_lessons_rating_notify`:
+  "<Coach> asked for a rating", the focus as the body, kind `rating`,
+  landing on the lesson (each attendee, for a group); the mock's
+  `onRatingAsk` says the same. The lesson page's "<Coach> asked for a
+  rating" line goes to the coach's profile, where the review is left
+  for real (`submitReview`, one per player per coach); the `rate` sheet
+  (`RateLesson`) is the harness's sketch and writes nothing, so no live
+  path opens it. `scripts/e2e/rating.cjs` walks both sides and a project
+  whose lessons table has no `rating_requested` column.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a

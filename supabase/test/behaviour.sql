@@ -112,13 +112,27 @@ select (select count(*) from public.notifications where user_id = :'j1' and kind
        (select count(*) from public.notifications where user_id = :'a1' and kind = 'drill') as da \gset
 select (:dj = 1 and :'dt' = '2 new drills' and :da = 1) as ok \gset
 \if :ok \echo PASS drills set together arrive as one notification per player ("2 new drills") \else \echo FAIL drill notifications j=:dj t=:dt a=:da \endif
-insert into public.drills (coach_id, player_id, title, due) values (:'c1', :'a1', 'Gate drill', current_date);
-select (select body from public.notifications where user_id = :'a1' and kind = 'drill' order by created_at desc limit 1) as db1 \gset
-select public.remind_due_drills() as r1 \gset
-select public.remind_due_drills() as r2 \gset
+insert into public.drills (coach_id, player_id, title, due) values (:'c1', :'a1', 'Gate drill', (now() at time zone 'Europe/Dublin')::date);
+select body as db1 from public.notifications where user_id = :'a1' and kind = 'drill' order by created_at desc limit 1 \gset
+-- a1 has not chosen an hour: eight in the morning is the default
+select public.remind_due_drills(8) as r1 \gset
+select public.remind_due_drills(8) as r2 \gset
+-- a1 asks for seven in the evening: the eight o'clock run says nothing, the seven o'clock run says it once
+insert into public.preferences (id, reminder_time) values (:'a1', '19:00') on conflict (id) do update set reminder_time = excluded.reminder_time;
+insert into public.drills (coach_id, player_id, title, due) values (:'c1', :'a1', 'Ladder drill', (now() at time zone 'Europe/Dublin')::date);
+select public.remind_due_drills(8) as r3 \gset
+select public.remind_due_drills(19) as r4 \gset
+select public.remind_due_drills(19) as r5 \gset
 select (select count(*) from public.notifications where user_id = :'a1' and kind = 'drill' and title = 'Gate drill due today') as rd \gset
-select (:'db1' like 'Gate drill · by %' and :r1 = 1 and :r2 = 0 and :rd = 1) as ok \gset
-\if :ok \echo PASS a drill with a day says the day in its body, and the morning reminder fires once for a drill due today \else \echo FAIL due drill body=:'db1' r1=:r1 r2=:r2 rd=:rd \endif
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'drill' and title = 'Ladder drill due today') as rl \gset
+select (:'db1' like 'Gate drill · by %' and :r1 = 1 and :r2 = 0 and :r3 = 0 and :r4 = 1 and :r5 = 0 and :rd = 1 and :rl = 1) as ok \gset
+\if :ok \echo PASS a drill with a day says the day in its body, and the reminder fires once, in the hour the player chose \else \echo FAIL due drill body=:'db1' r1=:r1 r2=:r2 r3=:r3 r4=:r4 r5=:r5 rd=:rd rl=:rl \endif
+-- the coach asks for a rating after the fact: the player is told once, and the tap lands on the lesson
+update public.lessons set rating_requested = true where id = :'lesson_a';
+update public.lessons set rating_requested = true where id = :'lesson_a';
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'rating' and title like '% asked for a rating' and body = 'Serve' and data->>'screen' = 'lesson' and data->>'id' = :'lesson_a') as nr \gset
+select (:nr = 1) as ok \gset
+\if :ok \echo PASS a rating asked for after the fact tells the player once, named, and lands on the lesson \else \echo FAIL rating ask notifications=:nr \endif
 select (select count(*) from public.notifications where user_id = :'a1' and kind = 'tip') as nt,
        (select count(*) from public.notifications where user_id = :'a1' and kind = 'message') as nm,
        (select count(*) from public.notifications where user_id = :'c1' and kind = 'message') as cm,
@@ -199,14 +213,16 @@ select (:'seen' = 'Aoife Nolan, Ellie Tran, Marcus Tran, Sinéad Walsh') as ok \
 select (:nl = 2 and :nm = 2 and :nb = 3 and :nr = 1 and :nq = 2 and :nf = 0) as ok \gset
 \if :ok \echo PASS coach sees their lessons, messages, bookings, reviews, requests — and no family that is not theirs \else \echo FAIL coach counts lessons=:nl messages=:nm bookings=:nb reviews=:nr requests=:nq families=:nf \endif
 
+-- what a1 has been set, counted by the owner, so the read below is measured against it
+select count(*) as nd_all from public.drills where player_id = :'a1' \gset
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true);
 select string_agg(name, ', ' order by name) as seen from public.profiles \gset
 select (select count(*) from public.lessons) as nl, (select count(*) from public.lessons_view where who is not null or coach_name is not null) as nv, (select coalesce(max(videos),0) from public.lessons_view) as vids, (select count(*) from public.drills) as nd, (select count(*) from public.notifications) as nn \gset
 rollback;
 select (:'seen' = 'Aoife Nolan, Sinéad Walsh') as ok \gset
 \if :ok \echo PASS adult player sees self + coach only \else \echo FAIL adult player sees: :seen \endif
-select (:nl = 1 and :nv = 1 and :vids = 1 and :nd = 1) as ok \gset
-\if :ok \echo PASS adult player sees only their own lesson, with coach_name and a video count, and only their own drill \else \echo FAIL player lessons=:nl view=:nv videos=:vids drills=:nd \endif
+select (:nl = 1 and :nv = 1 and :vids = 1 and :nd = :nd_all and :nd_all >= 1) as ok \gset
+\if :ok \echo PASS adult player sees only their own lesson, with coach_name and a video count, and only their own drills \else \echo FAIL player lessons=:nl view=:nv videos=:vids drills=:nd of :nd_all \endif
 
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'p1'), true);
 select string_agg(name, ', ' order by name) as seen from public.profiles \gset

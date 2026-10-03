@@ -161,8 +161,11 @@ const { check, results, summary } = M.checker("review");
     check("(e) the take is a real recording, not an empty file", takeBytes > 2000, `${takeBytes} bytes`);
     const before = db.media.filter((m) => m.lesson_id === LESSON.old).length;
     await page.locator("button", { hasText: /^Save$/ }).first().click();
-    await page.waitForFunction(() => !document.body.innerText.includes("Saving"), null, { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(500);
+    check("(f) Save leaves the screen at once — the upload follows behind the coach's back", !/Mark it up · /.test(await text()) && !/Saving/.test(await text()), (await text()).slice(0, 120));
+    /* the file goes up behind the coach's back; wait for it, then for the clip it stood in for to go */
+    for (let i = 0; i < 60 && !(db.media.some((m) => m.lesson_id === LESSON.old && /markup-\d+\.(webm|mp4)$/.test(m.storage_path)) && !db.media.some((m) => m.lesson_id === LESSON.old && /1-swing\.mp4$/.test(m.storage_path))); i++) await page.waitForTimeout(250);
+    await page.waitForTimeout(900);
     const after = db.media.filter((m) => m.lesson_id === LESSON.old);
     const added = after[after.length - 1];
     check("(f) Save puts the take on the lesson in place of the clip it was drawn on — one video, not two", after.length === before && added && added.kind === "video" && /markup-\d+\.(webm|mp4)$/.test(added.storage_path) && !after.some((m) => /1-swing\.mp4$/.test(m.storage_path)), JSON.stringify(after.map((m) => m.storage_path.split("/").pop())));
@@ -198,12 +201,16 @@ const { check, results, summary } = M.checker("review");
     await page.locator("button", { hasText: /^Save$/ }).first().click();
     await page.waitForTimeout(700);
     const ts = await text();
-    check("(h2) Save runs the clip through on its own — Saving, with a timer, and no microphone asked for", /Saving/.test(ts) && !/Allow the microphone/.test(ts) && !/can't record/.test(ts), ts.slice(0, 160));
-    await shot("05b-saving");
-    await page.waitForFunction(() => !document.body.innerText.includes("Saving") && !document.body.innerText.includes("Mark it up · "), null, { timeout: 45000 }).catch(() => {});
+    /* THE TAP IS THE END OF IT: the coach is back on the lesson at once; the
+       take is made off the screen and uploaded behind their back */
+    check("(h2) Save leaves the screen at once — no Saving to watch, no microphone asked for", !/Mark it up · /.test(ts) && !/Saving/.test(ts) && !/Allow the microphone/.test(ts) && !/can't record/.test(ts) && /Putting/.test(ts), ts.slice(0, 160));
+    check("(h2) …the take is being made off the screen while the coach moves on", (await page.evaluate(() => { const h = document.getElementById("nosca-take-host"); return !!h && h.querySelectorAll("video").length; })) >= 1);
+    await shot("05b-after-save");
+    for (let i = 0; i < 180 && db.media.filter((m) => m.lesson_id === LESSON.old && /markup-\d+\.(webm|mp4)$/.test(m.storage_path)).length < 2; i++) await page.waitForTimeout(250);
+    for (let i = 0; i < 40 && db.media.filter((m) => m.lesson_id === LESSON.old && m.kind === "video").length > 1; i++) await page.waitForTimeout(250);
     await page.waitForTimeout(900);
     const after2 = db.media.filter((m) => m.lesson_id === LESSON.old);
-    check("(h2) it uploads the take in place of the clip and lands back on the lesson", after2.length === mediaBefore2 && /markup-\d+\.(webm|mp4)$/.test(after2[after2.length - 1].storage_path) && after2.filter((m) => m.kind === "video").length === 1 && !/Mark it up · /.test(await text()), JSON.stringify(after2.map((m) => m.storage_path.split("/").pop())));
+    check("(h2) the take arrives on the lesson in place of the clip it was drawn on, and the host is clear again", after2.length === mediaBefore2 && /markup-\d+\.(webm|mp4)$/.test(after2[after2.length - 1].storage_path) && after2.filter((m) => m.kind === "video").length === 1 && (await page.evaluate(() => { const h = document.getElementById("nosca-take-host"); return !h || h.querySelectorAll("video").length === 0; })), JSON.stringify(after2.map((m) => m.storage_path.split("/").pop())));
     /* the marks are IN the file: decode the take the app sent and read its pixels */
     const probe = await page.evaluate(async (n) => {
       const t = (window.__takes || [])[n]; if (!t) return { none: true, takes: (window.__takes || []).length };
