@@ -8251,7 +8251,12 @@ function MiniPlayer({ clip, onClose, onExpand }) {
 const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const t = useT();
   const faces = useContext(FaceCtx);
-  const pic = src || (!group && faces && name ? faces(name) : null);
+  const want = src || (!group && faces && name ? faces(name) : null);
+  /* a file that will not load — removed, renamed, a phone with no
+     network and no cached copy — is initials, never the browser's
+     broken-picture glyph in a disc; a new url gets its own chance */
+  const [broken, setBroken] = useState(null);
+  const pic = want && broken !== want ? want : null;
   const initials = (name || "").split(" ").map((x) => x[0]).filter(Boolean).slice(0, 2).join("");
   /* a face on a wash tile would be wash on wash: `bg`/`fg` let the
      surface underneath decide, so the disc always reads */
@@ -8262,7 +8267,7 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
           style={{ width: size, height: size, background: disc,
                    fontFamily: display, fontSize: size * 0.36, fontWeight: 500,
                    letterSpacing: "-0.02em", color: mark }}>
-      {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} />
+      {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} onError={() => setBroken(pic)} />
         : group ? <Users size={size * 0.42} color={mark} /> : initials}
     </span>
   );
@@ -9228,8 +9233,11 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         {myConns.length === 0 ? (
           <div className="p-6 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No coach yet")}</p></div>
         ) : myConns.map((c, i) => (
+          /* a coach is a person in a list, so the row carries their face
+             like the family rows above it — it carried a 10px sport dot,
+             and the sport is on the grey line */
           <Row key={c.id} label={c.coach} sub={c.club ? `${SPORTS[c.sport].label} · ${c.club}` : SPORTS[c.sport].label} checked={c.id === activeConnId} last={i === myConns.length - 1}
-               icon={<span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: SPORTS[c.sport].theme.mark }} />}
+               icon={<Avatar name={c.coach} size={38} />}
                onToggle={live ? undefined : () => { onPickConn(c.id); close(); }} />
         ))}
       </Card>
@@ -17658,13 +17666,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const faces = useMemo(() => {
     const m = new Map();
     const put = (name, path, url) => { if (!name) return; const u = url || (path ? avatarUrl(path) : null); if (u && !m.has(name)) m.set(name, u); };
+    /* my own first: a picture just changed is on the account before the next load */
+    put(myName, null, myAvatar);
+    /* then every profile row the database lets me read — my players, my
+       coach, my family, my children's coaches, my juniors' guardians —
+       so a player's coach and a parent's children's coaches have their
+       faces on every surface. The coach was looked for under `data.coach`
+       and the harness's coach name, and neither was ever there: a coach's
+       picture was initials on the player's side everywhere. */
+    (data?.people || []).forEach((r) => put(r.name, r.avatarPath));
+    if (data?.coach) put(myCoachName || data.coach.name, data.coach.avatarPath);
     (data?.roster || []).forEach((r) => put(r.name, r.avatarPath));
     ((data?.family && data.family.members) || []).forEach((r) => put(r.name, r.avatarPath));
     (data?.dependants || []).forEach((r) => put(r.name, r.avatarPath));
-    if (data?.coach) put(coachName, data.coach.avatarPath);
-    put(myName, null, myAvatar);
     return (name) => m.get(name) || null;
-  }, [data?.roster, data?.family, data?.dependants, data?.coach, coachName, myName, myAvatar]);
+  }, [data?.people, data?.roster, data?.family, data?.dependants, data?.coach, myCoachName, myName, myAvatar]);
 
   const pKey = `${activeProfileId}:${sport}`;
   const myPractice = data ? data.drills.filter((d) => !account || d.playerId === account.id || role === "coach") : freshAccount ? [] : (practice[pKey] || []);
@@ -18842,7 +18858,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* somebody asking to join is not on the roster yet, and theirs is
          the one line on this screen that is about a stranger */
       ...(openRequests || []).map((r) => ({ name: r.name, path: r.avatarPath })),
-      ...(coachName ? [{ name: coachName, path: (data.coach && data.coach.avatarPath) || null }] : []),
+      /* everyone else the person can read: their coach, their family,
+         their children's coaches */
+      ...(data.people || []).map((r) => ({ name: r.name, path: r.avatarPath })),
+      ...(myCoachName ? [{ name: myCoachName, path: (data.coach && data.coach.avatarPath) || null }] : []),
     ].filter((p) => p.name);
     /* And where the title names nobody, the kind does. A tip, a lesson,
        a drill and a rating reach a player from one person — their coach
@@ -18854,8 +18873,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const title = String(n.title || "");
       const hit = faces.find((p) => title.startsWith(p.name));
       if (hit) return { name: hit.name, src: avatarUrl(hit.path) };
-      if (!data.isCoach && coachName && FROM_COACH.includes(n.kind)) {
-        return { name: coachName, src: avatarUrl((data.coach && data.coach.avatarPath) || null) };
+      if (!data.isCoach && myCoachName && FROM_COACH.includes(n.kind)) {
+        return { name: myCoachName, src: avatarUrl((data.coach && data.coach.avatarPath) || null) };
       }
       return null;
     };

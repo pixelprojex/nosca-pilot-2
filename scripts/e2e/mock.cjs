@@ -389,7 +389,8 @@ async function attach(page, db, opts = {}) {
       if (rest.startsWith("sign/") && method === "GET" && db.failFetch && db.failFetch(p)) return json(500, { statusCode: "500", error: "Internal", message: "boom" });
       if (rest.startsWith("sign/") && method === "GET" && db.slowFetch) await new Promise((res) => setTimeout(res, db.slowFetch));
       if (rest.startsWith("sign/") && method === "GET") { const isVid = /\.mp4$/.test(p) || /(markup|compare)-\d+\.webm$/.test(p); return bytes(isVid ? (CLIP || MP4) : /\.(webm|m4a)$/.test(p) ? WEBM : PNG, isVid ? (CLIP ? "video/webm" : "video/mp4") : /\.(webm|m4a)$/.test(p) ? "audio/webm" : "image/png"); }
-      if (rest.startsWith("public/") && method === "GET") return bytes(PNG, "image/png");
+      /* a public picture: a PNG, or a 404 for a path a suite has declared gone (db.failPublic) */
+      if (rest.startsWith("public/") && method === "GET") { if (db.failPublic && db.failPublic(rest.slice(7))) return json(404, { statusCode: "404", error: "not_found", message: "Object not found" }); return bytes(PNG, "image/png"); }
       if (rest.startsWith("list/") && method === "POST") { const bucket = rest.slice(5); return json(200, listPrefix(db.files[bucket] || {}, body && body.prefix)); }
       const [bucket, ...more] = rest.split("/"); const objPath = more.join("/");
       if ((method === "DELETE" || (method === "POST" && body && Array.isArray(body.prefixes))) && !objPath) {

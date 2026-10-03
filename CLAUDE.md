@@ -1045,11 +1045,23 @@ seeded data and no account.
   path opens it. `scripts/e2e/rating.cjs` walks both sides and a project
   whose lessons table has no `rating_requested` column.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
-  is a lookup by name over the roster, the family, the coach and me;
-  `Avatar` falls back to it whenever it is not handed a `src`, so a
-  person's photo is the same disc on the home rows, the roster, Chat,
-  the bell, the register and the pill. Half the surfaces drew a photo
-  and half drew initials for the same person, which read as two people.
+  is a lookup by name over every profile row the person can read —
+  `data.people` from the hook: their players, their coach, their
+  family, their children's coaches, their juniors' guardians — then
+  the roster, the family, `data.coach` (the coach's own row: name,
+  sport, picture, bio, club) under `myCoachName`, and me; `Avatar`
+  falls back to it whenever it is not handed a `src`, so a person's
+  photo is the same disc on the home rows, the roster, Chat, the bell,
+  the register, the switcher's coach rows and the pill. Half the
+  surfaces drew a photo and half drew initials for the same person,
+  which read as two people. For a long time the coach was looked for
+  under a `data.coach` the hook never gave and the harness's coach
+  name, so a coach's picture was initials on every player surface —
+  the founder reported it; `scripts/e2e/faces.cjs` walks the player,
+  a junior, a parent on a child's coach, and the coach's roster. A
+  picture that will not load (removed, renamed, no network) is
+  initials, never the browser's broken-picture glyph in a disc
+  (`onError` in `Avatar`); the mock's `db.failPublic` plays that.
 - **There is no player home page besides the feed.** `PlayerHome` (next
   lesson, tip, coming up, recent lessons) is no longer routed; the
   founder asked for Home and Lessons to be one thing. Booking lives in

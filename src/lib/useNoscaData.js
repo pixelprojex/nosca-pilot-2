@@ -160,6 +160,17 @@ export function useNoscaData(profile) {
   const [prefs, setPrefs] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [coachName, setCoachName] = useState(null);
+  /* THE COACH'S OWN ROW, as the player may read it — name, sport,
+     picture, bio, club. coachName alone was kept for a long time, and
+     the app's one face lookup looked for `data.coach`, which never
+     existed: every coach's picture was initials on the player's side. */
+  const [coach, setCoach] = useState(null);
+  /* EVERY PROFILE ROW THIS PERSON MAY READ — themselves, their players,
+     their coach, their family, their children's coaches, their junior
+     players' guardians, a coach they asked — as { id, name, role,
+     avatarPath }. It is what the face lookup is built over, so a face
+     is the same disc on every surface for everyone the person can see. */
+  const [people, setPeople] = useState([]);
   const [coachSport, setCoachSport] = useState(null);
   /* the family this person is in — { id, code, name, members } — or null */
   const [family, setFamily] = useState(null);
@@ -204,6 +215,7 @@ export function useNoscaData(profile) {
     setRoster(d.roster || []); setLessons(d.lessons || []); setDrills(d.drills || []); setTips(d.tips || []); setRegisters(d.registers || {});
     setBookings(d.bookings || []); setCompetitions(d.competitions || []); setRecurring(d.recurring || []); setPrefs(d.prefs || null);
     setInviteCode(d.inviteCode || null); setCoachName(d.coachName || null); setCoachSport(d.coachSport || null);
+    setCoach(d.coach || null); setPeople(d.people || []);
     setFamily(d.family || null); setDependants(d.dependants || []); setHoursByPlayer(d.hoursByPlayer || {});
     setRequests(d.requests || []); setMyRequest(d.myRequest || null); setNotifications(d.notifications || []);
     setMe(d.me || null); setDeclinedBy(d.declinedBy || null); setThreads(d.threads || []);
@@ -351,6 +363,8 @@ export function useNoscaData(profile) {
       const theCoach = mine?.coach_id ? personOf(mine.coach_id) : null;
       setCoachName(theCoach?.name || null);
       setCoachSport(theCoach?.sport || null);
+      setCoach(theCoach ? { id: theCoach.id, name: theCoach.name, sport: theCoach.sport || null, avatarPath: theCoach.avatar_path || null, bio: theCoach.bio || null, club: theCoach.club || null } : null);
+      setPeople(people.map((x) => ({ id: x.id, name: x.name, role: x.role, avatarPath: x.avatar_path || null })));
 
       /* Requests: the ones waiting on this coach, with who is asking;
          or, for a player, the one they have out, with who they asked. */
@@ -594,7 +608,7 @@ export function useNoscaData(profile) {
   /* the copy for the plane: written after every good load, and only then */
   useEffect(() => {
     if (!goodAt || offline || !profile) return;
-    putSnapshot(profile.id, { roster, lessons, drills, tips, registers, bookings, competitions, recurring, prefs, inviteCode, coachName, coachSport,
+    putSnapshot(profile.id, { roster, lessons, drills, tips, registers, bookings, competitions, recurring, prefs, inviteCode, coachName, coachSport, coach, people,
                               family, dependants, hoursByPlayer, requests, myRequest, notifications, me, declinedBy, threads, reviewSummary, myReview, reviews,
                               coachAvailability, busySlots, busyByPlayer, links }).catch(() => {});
   }, [goodAt]);
@@ -1590,7 +1604,7 @@ export function useNoscaData(profile) {
   const mediaFor = lessonMediaShared;
 
   return {
-    loading, loadError, offline, isCoach, inviteCode, coachName, coachSport,
+    loading, loadError, offline, isCoach, inviteCode, coachName, coachSport, coach, people,
     /* the family: { id, code, name, displayName, members } or null; the
        juniors an adult looks after; each one's coach's hours */
     family, dependants, hoursByPlayer,
