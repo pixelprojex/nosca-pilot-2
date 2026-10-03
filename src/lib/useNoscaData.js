@@ -119,13 +119,13 @@ const toLesson = (r, attendeeIds = []) => {
    two exceptions, both on the bell and in Chat. */
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+/* `3:24 pm` — the one clock, never the locale's: en-IE hands back a
+   24-hour "15:24", which is what the time under a message read */
+const clock = (d) => { const h = d.getHours(), m = d.getMinutes(); return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "pm" : "am"}`; };
 const relTime = (iso) => {
   const d = new Date(iso), now = new Date();
   if (Number.isNaN(d.getTime())) return "";
-  if (sameDay(d, now)) {
-    const h = d.getHours(), m = d.getMinutes();
-    return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "pm" : "am"}`;
-  }
+  if (sameDay(d, now)) return clock(d);
   const y = new Date(now); y.setDate(y.getDate() - 1);
   if (sameDay(d, y)) return "Yesterday";
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -532,7 +532,7 @@ export function useNoscaData(profile) {
              must never read as the child's, or as the coach's. */
           senderId: msg.sender_id,
           fromCoach: msg.sender_id === msg.coach_id,
-          at: new Date(msg.created_at).toLocaleTimeString("en-IE", { hour: "numeric", minute: "2-digit" }),
+          at: clock(new Date(msg.created_at)),
           /* the day it was sent, so a thread can put a divider between
              one day and the next rather than saying "Today" over
              everything ever written */
