@@ -42,7 +42,7 @@ echo "== upgrade path: old schema.sql, then nosca.sql"; git -C "$ROOT" show b164
 # was never added up
 $PU -d upgrade --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null
 up=$($PU -d upgrade -f "$HERE/behaviour.sql" 2>&1); echo "$up" | grep -E "^(PASS|FAIL)" | sort | uniq -c | sort -rn | sed -n 1,3p
-echo "$up" | grep "^FAIL"; extra=$((extra + $(echo "$up" | grep -c "^FAIL" || true)))
+echo "$up" | grep "^FAIL" || true; extra=$((extra + $(echo "$up" | grep -c "^FAIL" || true)))
 echo "== upgrade path: the previous nosca.sql with a guardian-linked family, then this one"
 createdb -h "$D" -p $PORT -U super -O supa prev; $PS -d prev -f "$D/fixture-db.sql"
 if git -C "$ROOT" show 51ca5a2:supabase/nosca.sql > "$D/prev.sql" 2>/dev/null; then
