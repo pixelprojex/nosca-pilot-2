@@ -181,18 +181,24 @@ const near = (x, y, tol) => Math.abs(x - y) <= tol;
       await rows2.filter({ hasText: "Short game" }).first().click(); await page.waitForTimeout(600);
       await untilReady(page);
 
-      /* save: the pair plays through once and lands on the lesson as a new clip */
+      /* save: the tap is the end of it — the pair is rendered off the screen and lands on the lesson as a new clip */
       const mediaBefore = db.media.filter((m) => m.lesson_id === L.new).length;
       const notesBefore = db.notifications.filter((n) => n.user_id === IDS.adult).length;
       await page.getByRole("button", { name: "Save" }).click();
-      const popped = await page.waitForFunction(() => !document.querySelector('[data-tour="compare-stage"]'), null, { timeout: 60000 }).then(() => true).catch(() => false);
+      await page.waitForTimeout(500);
+      const t5 = await text();
+      check("(k) Save leaves the screen at once — no Saving to watch — and the lesson page is back with Saved said", !(await page.locator('[data-tour="compare-stage"]').count()) && !/Saving/.test(t5) && /Short game/.test(t5) && (await page.getByRole("button", { name: "Save" }).count()) === 0, t5.slice(0, 120));
+      check("(k0) …the pair is being rendered off the screen while the coach moves on", (await page.evaluate(() => { const h = document.getElementById("nosca-take-host"); return !!h && h.querySelectorAll("video").length; })) === 2);
+      let landed = false;
+      for (let i = 0; i < 120 && !landed; i++) { landed = db.media.filter((m) => m.lesson_id === L.new).length > mediaBefore; if (!landed) await page.waitForTimeout(500); }
       await page.waitForTimeout(800);
       const added = db.media.filter((m) => m.lesson_id === L.new).slice(mediaBefore);
-      check("(k) Save records the pair and puts it on the lesson as a new clip", popped && added.length === 1 && added[0].kind === "video" && /compare-\d+\.(webm|mp4)$/.test(added[0].storage_path), JSON.stringify({ popped, added: added.map((m) => m.storage_path) }));
+      const hostClear = await page.evaluate(() => { const h = document.getElementById("nosca-take-host"); return !h || h.querySelectorAll("video").length === 0; });
+      check("(k1) the take lands on the lesson as a new clip, and the host is clear again", landed && added.length === 1 && added[0].kind === "video" && /compare-\d+\.(webm|mp4)$/.test(added[0].storage_path) && hostClear, JSON.stringify({ landed, hostClear, added: added.map((m) => m.storage_path) }));
       check("(k2) the original clips stay", db.media.filter((m) => m.lesson_id === L.new && m.kind === "video").length === 2, String(db.media.filter((m) => m.lesson_id === L.new).length));
       const told = db.notifications.filter((n) => n.user_id === IDS.adult).slice(notesBefore);
       check("(k3) the player is told: New clip on Short game", told.some((n) => n.title === "New clip on Short game"), JSON.stringify(told.map((n) => n.title)));
-      check("(k4) the lesson page is back with Saved said", /Saved/.test(await text()) || /Short game/.test(await text()), (await text()).slice(0, 120));
+      check("(k4) the lesson page now carries the comparison as a clip", /Short game/.test(await text()) && (await page.locator('[data-tour="lesson-compare"]').count()) >= 1, (await text()).slice(0, 120));
       await shot("05-after-save");
 
       /* the take itself: a landscape picture twice a portrait clip wide, both halves drawn */

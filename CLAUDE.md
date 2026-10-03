@@ -44,8 +44,12 @@ opened with. So the build stamps its time into the bundle and into
 `/version.json` (vite.config.js), Settings › Version shows which build
 a phone is running, and the app compares itself against the server on
 every return to the front and reloads itself when it is newer and
-nothing is open. Before chasing a fix that "did not come through", ask
-for the Version row — three rounds were spent on fixes that had landed.
+nothing is open. **Sync**, the row beneath Version, is the same check
+by hand (`syncBuild`): the newest build loads, or the toast says "Up to
+date" with the build it has, or why the server could not be asked —
+the founder asked for one tap to be sure of being current. Before
+chasing a fix that "did not come through", ask for the Version row —
+three rounds were spent on fixes that had landed.
 
 ## The live tree — nothing else is reached
 
@@ -895,11 +899,16 @@ seeded data and no account.
   pill nudge only that clip a frame, a drag across its picture scrubs
   only it — and from then on they run locked, the pair ending when
   the first clip does; **Swap**, **Change** (the picker again) and the
-  coach's **Save**, which plays the pair through once while a canvas
-  draws both halves and is recorded, then puts the take on the lesson
-  as a new clip (`addLessonMedia`; the originals stay; the trigger
-  tells the player "New clip on <focus>"), so the player sees the
-  comparison in their feed. Sound is off throughout: two clips talking
+  coach's **Save**, which leaves the screen at once: the pair, lined
+  up as the coach left it, goes to `startCompareJob` on the off-screen
+  host (`queueCompare` in Nosca, the same making → uploading → Retry
+  shape as a take), which plays it through once drawing both halves to
+  a recorded canvas and puts the file on the lesson as a new clip
+  (`addLessonMedia`; the originals stay; the trigger tells the player
+  "New clip on <focus>"), so the player sees the comparison in their
+  feed. It played through on the stage under a Saving pill for a
+  round; the founder asked for every render and upload to happen
+  behind the coach's back. Sound is off throughout: two clips talking
   at once is noise, and a comparison is looked at. Save is the
   coach's because only the lesson's coach may add to it, the same
   asymmetry as Mark it up. The title names the other person — the

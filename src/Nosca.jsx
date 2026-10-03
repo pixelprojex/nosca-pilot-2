@@ -34,6 +34,8 @@ const BUILT_AT = (() => {
    names the build it came from. It was an invented "1.2.0 (38)" that
    never changed. */
 const VERSION = BUILT_AT ? `build ${BUILT_AT.toISOString().slice(0, 16).replace("T", " ")} UTC` : "";
+/* the build as Settings › Version shows it: `Sat 3 Oct · 3:18 pm` */
+const buildLabel = () => (BUILT_AT ? `${fmtWeekDay(BUILT_AT)} · ${fmtTime(BUILT_AT.getHours() * 60 + BUILT_AT.getMinutes())}` : "");
 
 /* The mark lives in lib/brandmark.jsx, because the loading screen is
    drawn from the same geometry and both are on screen before this file
@@ -3474,10 +3476,13 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
     <SwipeBack onBack={pop}>
       <Screen title={tr("Recurring lessons")} onBack={pop}
               meta={live.length ? `${live.length} ${tr("running")}` : ""}
+              /* the app's filled control — its corner, its cast shadow and
+                 its white glyph; it was a sharp square with an ink plus,
+                 the one control in the app drawn that way */
               action={<button data-tour="recur-add" onClick={() => { hapticCommit(); soft(); onNew(); }}
                               className="flex items-center justify-center active:opacity-50"
-                              style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("Add")}>
-                        <Plus size={22} color={t.ink} strokeWidth={2} />
+                              style={{ width: 40, height: 40, borderRadius: R.control, background: t.accent, boxShadow: ELEV.cast }} aria-label={tr("Add")}>
+                        <Plus size={22} color={t.onAccent} strokeWidth={2} />
                       </button>}>
         <div className="px-6 pb-2">
           {live.length === 0 && (
@@ -10857,6 +10862,113 @@ const COMPARE_DRAG_PX = 6;                                  // one frame of nudg
 const COMPARE_MAX_LESSONS = 24;                             // how far back the picker looks for clips
 const COMPARE_TAKE = { w: 1280, h: 720 };                   // the take's longer side; the shorter follows the layout
 const lessonDay = (l) => (l.iso ? fmtWeekDay(localDate(l.iso)) : (l.date || `${l.d} ${l.m}`));
+/* THE COMPARISON IS MADE BEHIND THE COACH'S BACK TOO. Save on Compare
+   used to play the pair through on the stage under a Saving pill, the
+   coach watching the seconds; it goes the way of Mark it up's Save now.
+   startCompareJob() puts two elements on the off-screen host, lined up
+   where the coach left them, runs the pair once from the start with B
+   held in step with A, draws both halves to a canvas recorded at a
+   steady 30fps, and hands back the file. No sound: a comparison is
+   looked at. Created inside the tap, like a take. */
+function startCompareJob({ a, b, startA = 0, startB = 0, sideBySide = true, onDone, onFail }) {
+  if (typeof document === "undefined") { onFail("No screen to draw on"); return { cancel() {} }; }
+  const host = takeHost();
+  const mk = () => {
+    const v = document.createElement("video");
+    v.crossOrigin = "anonymous"; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto"; v.muted = true;
+    v.style.cssText = "position:absolute;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none";
+    return v;
+  };
+  const va = mk(), vb = mk();
+  const c = document.createElement("canvas"); c.width = 2; c.height = 2; c.style.cssText = va.style.cssText;
+  host.appendChild(va); host.appendChild(vb); host.appendChild(c);
+  const start = { a: startA, b: startB };
+  let raf = 0, rec = null, capTrack = null, done = false, chunks = [], lastReq = 0, span = 0, began = 0;
+  const t0 = performance.now();
+  const cleanup = () => {
+    cancelAnimationFrame(raf);
+    [va, vb].forEach((v) => {
+      try { v.pause(); } catch (e) { /* fine */ }
+      try { v.removeAttribute("src"); v.load(); } catch (e) { /* fine */ }
+      v.remove();
+    });
+    c.remove();
+  };
+  const fail = (why) => { if (done) return; done = true; cleanup(); onFail(why); };
+  const finish = () => {
+    if (done) return; done = true; cancelAnimationFrame(raf); capTrack = null;
+    try { if (rec && rec.state !== "inactive") rec.stop(); else { cleanup(); onFail("Nothing was recorded"); } }
+    catch (e) { cleanup(); onFail("Couldn't finish the recording"); }
+  };
+  /* a clip's length — a clip a browser recorded can carry none in its
+     header, and asking for a time past its end makes the browser find
+     the real one (the stage's onMeta does the same) */
+  const lengthOf = (v) => new Promise((res) => {
+    const ok = () => Number.isFinite(v.duration) && v.duration > 0;
+    const onDur = () => { if (ok()) { v.removeEventListener("durationchange", onDur); res(v.duration); } };
+    const onMeta = () => { if (ok()) { res(v.duration); return; } v.addEventListener("durationchange", onDur); try { v.currentTime = 1e101; } catch (e) { /* fine */ } };
+    v.addEventListener("error", () => res(0), { once: true });
+    if (v.readyState >= 1) onMeta(); else v.addEventListener("loadedmetadata", onMeta, { once: true });
+    setTimeout(() => res(ok() ? v.duration : 0), 15000);
+  });
+  va.src = a; vb.src = b;
+  [va, vb].forEach((v) => v.play().catch(() => {}));                 // the one play() inside the tap
+  Promise.all([lengthOf(va), lengthOf(vb)]).then(([da, db]) => {
+    if (done) return;
+    if (!da || !db) { fail("Couldn't load the clips"); return; }
+    /* how long the pair runs together: until the first of them ends */
+    span = Math.max(0, Math.min(da - start.a, db - start.b));
+    if (span <= 0.05) { fail("The clips don't overlap"); return; }
+    c.width = sideBySide ? COMPARE_TAKE.w : COMPARE_TAKE.h; c.height = sideBySide ? COMPARE_TAKE.h : COMPARE_TAKE.w;
+    let stream;
+    try { const vt0 = c.captureStream(30).getVideoTracks(); capTrack = vt0[0] || null; stream = new MediaStream(vt0); }
+    catch (e) { fail("This browser can't record a comparison"); return; }
+    const mime = pickMime(VIDEO_TYPES);
+    try { rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 2500000 }); }
+    catch (e) { try { rec = new MediaRecorder(stream); } catch (e2) { fail("This browser can't record a comparison"); return; } }
+    rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    rec.onstop = () => {
+      const type = rec.mimeType || mime || "video/webm", ext = type.includes("mp4") ? "mp4" : "webm";
+      const blob = new Blob(chunks, { type }); chunks = [];
+      cleanup();
+      if (!blob.size) { onFail("Nothing was recorded"); return; }
+      onDone(new File([blob], `compare-${Date.now()}.${ext}`, { type }));
+    };
+    [va, vb].forEach((v) => { try { v.pause(); v.playbackRate = 1; } catch (e) { /* fine */ } });
+    try { va.currentTime = start.a; vb.currentTime = start.b; } catch (e) { /* fine */ }
+    rec.start(250);                                        // slices, so Safari hands data over as it goes
+    began = performance.now();
+    const halves = sideBySide ? [[0, 0, c.width / 2, c.height], [c.width / 2, 0, c.width / 2, c.height]] : [[0, 0, c.width, c.height / 2], [0, c.height / 2, c.width, c.height / 2]];
+    /* both clips every frame, each contained in its half */
+    const paint = () => {
+      if (done) return;
+      const g = c.getContext("2d");
+      g.fillStyle = "#0B0F10"; g.fillRect(0, 0, c.width, c.height);
+      [va, vb].forEach((v, i) => {
+        if (v.readyState < 2) return;
+        const [hx, hy, hw, hh] = halves[i];
+        const k = Math.min(hw / (v.videoWidth || 1), hh / (v.videoHeight || 1));
+        const w = (v.videoWidth || 1) * k, h = (v.videoHeight || 1) * k;
+        g.drawImage(v, hx + (hw - w) / 2, hy + (hh - h) / 2, w, h);
+      });
+      g.fillStyle = "rgba(255,255,255,0.25)";
+      if (sideBySide) g.fillRect(c.width / 2 - 1, 0, 2, c.height); else g.fillRect(0, c.height / 2 - 1, c.width, 2);
+      /* A leads, B is pulled back into step whenever it drifts */
+      const T = va.currentTime - start.a, want = start.b + T;
+      if (Math.abs(vb.currentTime - want) > 0.09 && !vb.seeking) { try { vb.currentTime = want; } catch (e) { /* fine */ } }
+      const now = performance.now();
+      if (capTrack && typeof capTrack.requestFrame === "function" && now - lastReq >= 33) { lastReq = now; try { capTrack.requestFrame(); } catch (e) { /* fine */ } }
+      /* the pair ends when the first clip does — or, should a clip
+         stall, once its length is well past */
+      if (T >= span - 0.02 || va.ended || vb.ended || now - began > span * 1000 + 15000 || now - t0 > 600000) { finish(); return; }
+      raf = requestAnimationFrame(paint);
+    };
+    raf = requestAnimationFrame(paint);
+    Promise.all([va.play(), vb.play()]).catch(() => fail("Couldn't play the clips"));
+  });
+  return { cancel: () => fail("Cancelled") };
+}
+
 function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave }) {
   const t = useT();
   const first = (who || "").split(" ")[0];
@@ -10875,11 +10987,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
   const [playing, setPlaying] = useState(false);
   const [slow, setSlow] = useState(false);
   const [broken, setBroken] = useState({ a: false, b: false });
-  const [phase, setPhase] = useState("idle");                // idle · saving · sending
-  const phaseRef = useRef("idle"); phaseRef.current = phase;
-  const [secs, setSecs] = useState(0);
   const [err, setErr] = useState(null);
-  const canvas = useRef(null), rec = useRef(null), chunks = useRef([]), capTrack = useRef(null);
   const drag = useRef(null);
 
   /* the lesson's clips first, so A is found; then the rest of the
@@ -10902,13 +11010,6 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
     return () => { on = false; };
   }, [lesson.id, mediaId]);
 
-  /* leaving mid-way: stop the recorder */
-  useEffect(() => () => { try { if (rec.current && rec.current.state !== "inactive") { rec.current.onstop = null; rec.current.stop(); } } catch (e) { /* fine */ } }, []);
-  useEffect(() => {
-    if (phase !== "saving") return;
-    const i = setInterval(() => setSecs((n) => n + 1), 1000);
-    return () => clearInterval(i);
-  }, [phase]);
   const vids = () => [vA.current, vB.current];
   /* how long the pair runs together: until the first of them ends */
   const span = Math.max(0, Math.min(dur.a - start.current.a, dur.b - start.current.b));
@@ -10958,10 +11059,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
         if (Math.abs(vb.currentTime - want) > 0.09 && !vb.seeking) vb.currentTime = want;
         const now = performance.now();
         if (now - last > 80) { last = now; setTime(Math.max(0, T)); }
-        if (T >= span - 0.02 || va.ended || vb.ended) {
-          va.pause(); vb.pause(); setPlaying(false);
-          if (phaseRef.current === "saving") stopRec();
-        }
+        if (T >= span - 0.02 || va.ended || vb.ended) { va.pause(); vb.pause(); setPlaying(false); }
       }
       raf = requestAnimationFrame(tick);
     };
@@ -10983,7 +11081,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
 
   /* a drag across a picture scrubs that clip alone, paused */
   const dragDown = (side) => (e) => {
-    if (playing || phase !== "idle") return;
+    if (playing) return;
     drag.current = { side, x: e.clientX, from: start.current[side] };
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) { /* fine */ }
   };
@@ -11009,83 +11107,36 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
     setTime(0);
   };
 
-  /* SAVE. The pair plays through once from the start while a canvas
-     draws both every frame and is recorded — the same pipeline as Mark
-     it up's Save, with no sound asked for. What comes back goes onto the
-     lesson at once as a new clip; the player is told by the trigger. */
-  const stopRec = () => { capTrack.current = null; const r = rec.current; if (r && r.state !== "inactive") { hapticSuccess(); r.stop(); } };
-  /* a pair that stalls still finishes: the take ends once the pair's
-     length is well past, whatever the clips did */
-  useEffect(() => { if (phase === "saving" && secs >= Math.ceil(span) + 15) stopRec(); }, [secs, phase]);
+  /* SAVE. The tap is the end of it: the pair, lined up as the coach
+     left it, goes to a job off the screen (startCompareJob) that plays
+     it through once and records both halves — no sound asked for. The
+     file lands on the lesson as a new clip, the player is told by the
+     trigger, and Today's banner says Making 1 clip until it is there.
+     It used to play through on the stage under a Saving pill. */
   const saveNow = () => {
     setErr(null);
-    const c = canvas.current, [va, vb] = vids();
-    if (!c || !va || !vb || typeof c.captureStream !== "function" || typeof MediaRecorder === "undefined") { setErr(tr("This browser can't record a comparison")); return; }
+    const [va, vb] = vids();
+    const canRec = typeof HTMLCanvasElement !== "undefined" && typeof HTMLCanvasElement.prototype.captureStream === "function" && typeof MediaRecorder !== "undefined";
+    if (!va || !vb || !a || !b || !canRec) { setErr(tr("This browser can't record a comparison")); return; }
     hapticCommit();
     pauseBoth();
-    vids().forEach((v) => { v.playbackRate = 1; }); setSlow(false);
-    const side = sideBySide;
-    c.width = side ? COMPARE_TAKE.w : COMPARE_TAKE.h; c.height = side ? COMPARE_TAKE.h : COMPARE_TAKE.w;
-    let stream;
-    try { const vt0 = c.captureStream(30).getVideoTracks(); capTrack.current = vt0[0] || null; stream = new MediaStream(vt0); }
-    catch (e) { setErr(`${tr("This browser can't record a comparison")} · ${(e && e.name) || ""}`.trim()); return; }
-    chunks.current = [];
-    const mime = pickMime(VIDEO_TYPES);
-    let r;
-    try { r = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 2500000 }); }
-    catch (e) { r = new MediaRecorder(stream); }
-    r.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.current.push(ev.data); };
-    r.onstop = async () => {
-      const type = r.mimeType || mime || "video/webm";
-      const ext = type.includes("mp4") ? "mp4" : "webm";
-      const blob = new Blob(chunks.current, { type }); chunks.current = [];
-      const f = new File([blob], `compare-${Date.now()}.${ext}`, { type });
-      setPhase("sending");
-      const res = await onSave(f);
-      if (res && res.failed) { setPhase("idle"); say(tr("Couldn't save it — it's on Today with Retry")); return; }
-      hapticSuccess(); chime(); say(tr("Saved")); pop();
-    };
-    r.start(250);
-    rec.current = r; setSecs(0); setPhase("saving");
-    /* paint both clips every frame, each contained in its half */
-    let raf = 0, lastReq = 0;
-    const paint = () => {
-      const g = c.getContext("2d");
-      g.fillStyle = "#0B0F10"; g.fillRect(0, 0, c.width, c.height);
-      const halves = side ? [[0, 0, c.width / 2, c.height], [c.width / 2, 0, c.width / 2, c.height]] : [[0, 0, c.width, c.height / 2], [0, c.height / 2, c.width, c.height / 2]];
-      [va, vb].forEach((v, i) => {
-        if (!v || v.readyState < 2) return;
-        const [hx, hy, hw, hh] = halves[i];
-        const k = Math.min(hw / (v.videoWidth || 1), hh / (v.videoHeight || 1));
-        const w = (v.videoWidth || 1) * k, h = (v.videoHeight || 1) * k;
-        g.drawImage(v, hx + (hw - w) / 2, hy + (hh - h) / 2, w, h);
-      });
-      g.fillStyle = "rgba(255,255,255,0.25)";
-      if (side) g.fillRect(c.width / 2 - 1, 0, 2, c.height); else g.fillRect(0, c.height / 2 - 1, c.width, 2);
-      const now = performance.now();
-      const tk = capTrack.current;
-      if (tk && typeof tk.requestFrame === "function" && now - lastReq >= 33) { lastReq = now; try { tk.requestFrame(); } catch (e) { /* fine */ } }
-      if (rec.current === r && r.state !== "inactive") raf = requestAnimationFrame(paint);
-    };
-    raf = requestAnimationFrame(paint);
-    seekBoth(0);
-    Promise.all([va.play(), vb.play()]).then(() => setPlaying(true)).catch(() => { cancelAnimationFrame(raf); stopRec(); setPhase("idle"); setErr(tr("Couldn't play the clips")); });
+    onSave({ a: a.item.url, b: b.item.url, startA: start.current.a, startB: start.current.b, sideBySide });
+    hapticSuccess(); chime(); say(tr("Saved")); pop();
   };
 
   const sideBySide = ratio.a != null && ratio.b != null ? ratio.a < 1 && ratio.b < 1 : true;
-  const busy = phase !== "idle";
   const ready = dur.a > 0 && dur.b > 0 && !broken.a && !broken.b;
   const pill = (side, x) => {
     const on = ratio[side] != null;
     return (
       <span className="absolute flex items-center" style={{ left: 8, right: 8, bottom: 8, justifyContent: "center", pointerEvents: "none" }}>
         <span className="flex items-center" onPointerDown={(e) => e.stopPropagation()} style={{ borderRadius: R.pill, background: "rgba(0,0,0,0.55)", pointerEvents: "auto", maxWidth: "100%" }}>
-          <button onClick={() => nudge(side, -1)} disabled={!on || playing || busy} aria-label={`${tr("Back a frame")} · ${lessonDay(x.lesson)}`}
+          <button onClick={() => nudge(side, -1)} disabled={!on || playing} aria-label={`${tr("Back a frame")} · ${lessonDay(x.lesson)}`}
                   className="flex items-center justify-center active:opacity-60 disabled:opacity-30" style={{ width: 32, height: 30 }}>
             <ChevronLeft size={14} color="#fff" strokeWidth={2.4} />
           </button>
           <span className="truncate" data-compare-label={side} style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: "#fff", maxWidth: 150 }}>{clipLabel(x)}</span>
-          <button onClick={() => nudge(side, 1)} disabled={!on || playing || busy} aria-label={`${tr("On a frame")} · ${lessonDay(x.lesson)}`}
+          <button onClick={() => nudge(side, 1)} disabled={!on || playing} aria-label={`${tr("On a frame")} · ${lessonDay(x.lesson)}`}
                   className="flex items-center justify-center active:opacity-60 disabled:opacity-30" style={{ width: 32, height: 30 }}>
             <ChevronRight size={14} color="#fff" strokeWidth={2.4} />
           </button>
@@ -11099,8 +11150,8 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
          style={{ touchAction: "none", cursor: playing ? "default" : "ew-resize" }}>
       <video ref={ref} key={x.item.url} src={x.item.url} crossOrigin="anonymous" playsInline muted preload="auto" data-compare-video={side}
              onLoadedMetadata={onMeta(side)} onError={() => setBroken((k) => ({ ...k, [side]: true }))}
-             /* the first to end ends the pair — and the take, when one is being made */
-             onEnded={() => { if (phaseRef.current === "saving") stopRec(); pauseBoth(); }}
+             /* the first to end ends the pair */
+             onEnded={() => pauseBoth()}
              className="absolute inset-0 w-full h-full" style={{ objectFit: "contain", background: "#0B0F10" }} />
       {broken[side] && <span className="absolute inset-0 flex items-center justify-center" style={{ ...TYPE.small, color: "rgba(255,255,255,0.7)" }}>{tr("Couldn't load this clip")}</span>}
       {pill(side, x)}
@@ -11151,50 +11202,43 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col">
-            {/* the two stages, and the take's canvas hidden behind them */}
+            {/* the two stages */}
             <div className={`relative flex-1 min-h-0 flex ${sideBySide ? "flex-row" : "flex-col"}`} data-tour="compare-stage" data-compare-layout={sideBySide ? "side" : "stack"} style={{ background: "#0B0F10" }}>
               {pane("a", a, vA)}
               <span aria-hidden="true" className="shrink-0" style={{ [sideBySide ? "width" : "height"]: 2, background: "rgba(255,255,255,0.18)" }} />
               {pane("b", b, vB)}
-              <canvas ref={canvas} width={2} height={2} style={{ position: "absolute", left: 0, top: 0, width: 2, height: 2, opacity: 0.01, pointerEvents: "none" }} />
-              {busy && (
-                <span className="absolute flex items-center gap-2 px-3 py-1.5" style={{ top: 10, left: 10, borderRadius: R.pill, background: "rgba(0,0,0,0.55)" }}>
-                  <span className="rounded-full" style={{ width: 8, height: 8, background: "#fff", animation: "pulseDot 1.2s ease-in-out infinite" }} />
-                  <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{tr("Saving")} · {secsLabel(secs)}</span>
-                </span>
-              )}
             </div>
 
             {/* under the stages: one transport for both, then swap · change · save */}
             <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
               <div className="flex items-center gap-2.5" data-tour="compare-transport">
-                <button onClick={toggle} disabled={!ready || busy} aria-label={playing ? tr("Pause") : tr("Play")}
+                <button onClick={toggle} disabled={!ready} aria-label={playing ? tr("Pause") : tr("Play")}
                         className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
                         style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
                   {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                 </button>
-                <button onClick={() => stepFrame(-1)} disabled={!ready || busy} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                <button onClick={() => stepFrame(-1)} disabled={!ready} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
                         style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <button onClick={() => stepFrame(1)} disabled={!ready || busy} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                <button onClick={() => stepFrame(1)} disabled={!ready} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
                         style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
-                <input type="range" min={0} max={Math.max(span, 0.1)} step={0.05} value={Math.min(time, span || 0)} disabled={!ready || busy}
+                <input type="range" min={0} max={Math.max(span, 0.1)} step={0.05} value={Math.min(time, span || 0)} disabled={!ready}
                        onChange={(e) => { pauseBoth(); seekBoth(Number(e.target.value)); }} aria-label={tr("Scrub")}
                        className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
-                <button onClick={toggleSlow} disabled={busy} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
+                <button onClick={toggleSlow} aria-pressed={slow} aria-label={tr("Half speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
                         style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: slow ? t.ink : "transparent", border: `${EDGE_W}px solid ${slow ? t.ink : EDGE(t)}`,
                                  ...TYPE.caption, fontWeight: 700, color: slow ? "#fff" : t.ink }}>½×</button>
                 <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
               </div>
               {err && <p className="mt-2" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
               <div className="flex gap-2 mt-3" data-tour="compare-actions">
-                <button onClick={swap} disabled={busy} className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40" style={quiet}>
+                <button onClick={swap} className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40" style={quiet}>
                   <ArrowLeftRight size={15} color={t.ink} strokeWidth={2} />{tr("Swap")}
                 </button>
-                <button onClick={change} disabled={busy} className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40" style={quiet}>
+                <button onClick={change} className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40" style={quiet}>
                   {tr("Change")}
                 </button>
                 {onSave && (
-                  <div style={{ flex: 1.3 }}><Button onClick={saveNow} disabled={!ready || busy}>{phase === "sending" ? tr("Saving…") : phase === "saving" ? `${tr("Saving")} · ${secsLabel(secs)}` : tr("Save")}</Button></div>
+                  <div style={{ flex: 1.3 }}><Button onClick={saveNow} disabled={!ready}>{tr("Save")}</Button></div>
                 )}
               </div>
             </div>
@@ -15608,7 +15652,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
   const [q, setQ] = useKept("q", "");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
@@ -15728,8 +15772,13 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Licences"), tour: "settings-licences", onTap: () => push("legal:licences") },
       /* which build this phone is running: a home-screen app can carry
          yesterday's bundle until it is fully relaunched */
-      BUILT_AT && { label: tr("Version"), value: `${fmtWeekDay(BUILT_AT)} · ${fmtTime(BUILT_AT.getHours() * 60 + BUILT_AT.getMinutes())}`,
+      BUILT_AT && { label: tr("Version"), tour: "settings-version", value: buildLabel(),
         keys: ["build", "update", "release", "deploy"] },
+      /* and the way to the newest one by hand: the same check the app
+         runs on every return to the front, forced, and it says when
+         there is nothing newer — a phone that was not sure whether a
+         fix had landed had no way to ask */
+      BUILT_AT && onSync && { label: tr("Sync"), tour: "settings-sync", onTap: () => onSync(), keys: ["update", "refresh", "latest", "reload", "newest", "version", "build"] },
     ] },
     { title: null, rows: [
       { label: tr("Sign out"), tour: "settings-signout", onTap: restart, keys: ["log out", "logout"] },
@@ -17036,27 +17085,45 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      quiet return picks it up. At most once a minute. */
   const quietRef = useRef(true);
   quietRef.current = stack.length <= 1 && !sheet;
+  /* what the server is serving against what this phone runs: "newer",
+     "same", or null when it could not be asked */
+  const serverBuild = async () => {
+    const mine = import.meta.env.VITE_BUILD_TIME || "";
+    if (!mine || typeof fetch === "undefined") return null;
+    try {
+      const r = await fetch(`/version.json?t=${Date.now()}`, { cache: "no-store" });
+      if (!r.ok) return null;
+      const j = await r.json();
+      if (!j || typeof j.built !== "string") return null;
+      return j.built > mine ? "newer" : "same";
+    } catch (e) { return null; }                                  // offline, or a server without a stamp yet
+  };
   useEffect(() => {
     if (demo || sc || !import.meta.env.PROD || typeof document === "undefined") return;
-    const mine = import.meta.env.VITE_BUILD_TIME || "";
-    if (!mine) return;
+    if (!import.meta.env.VITE_BUILD_TIME) return;
     let last = 0;
     const check = async () => {
       if (document.visibilityState !== "visible") return;
       const now = Date.now();
       if (now - last < 60000) return;
       last = now;
-      try {
-        const r = await fetch(`/version.json?t=${now}`, { cache: "no-store" });
-        if (!r.ok) return;
-        const j = await r.json();
-        if (j && typeof j.built === "string" && j.built > mine && quietRef.current) window.location.reload();
-      } catch (e) { /* offline, or a server without a stamp yet */ }
+      if ((await serverBuild()) === "newer" && quietRef.current) window.location.reload();
     };
     document.addEventListener("visibilitychange", check);
     window.addEventListener("focus", check);
     return () => { document.removeEventListener("visibilitychange", check); window.removeEventListener("focus", check); };
   }, [demo, sc]);
+  /* SETTINGS › SYNC: the same check by hand — no quiet guard and no
+     once-a-minute, because the person asked — and an answer either way:
+     the newest build loads, or "Up to date" with the build it already
+     has, or why the server could not be asked. */
+  const syncBuild = async () => {
+    if (!BUILT_AT) return;
+    const r = await serverBuild();
+    if (r === "newer") { say(tr("Updating…")); window.location.reload(); return; }
+    if (r === "same") { done(tr("Up to date"), buildLabel()); return; }
+    hapticWarn(); say(typeof navigator !== "undefined" && navigator.onLine === false ? tr("No connection") : tr("Couldn't reach the server"));
+  };
 
   /* A join link opened by someone already signed in. Taken from the app
      once (onInviteUsed) and kept here until it is dealt with: a player
@@ -18018,6 +18085,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     run(audioCtx);
     return key;
   };
+  /* A COMPARISON FOR A LESSON ALREADY LOGGED: the same shape as a take —
+     making → uploading → on the lesson as a new clip (the originals
+     stay), or failed with a Retry on Today that renders it again. */
+  const queueCompare = ({ lessonId, a, b, startA, startB, sideBySide, who }) => {
+    if (!data) return null;
+    const key = `compare:${captureSeq()}`;
+    const name = `${tr("Compare")}${who ? ` · ${wizFirst(who)}` : ""}`;
+    const run = () => {
+      data.noteUpload(key, { lessonId, name, kind: "video", size: 0, status: "making", error: null });
+      startCompareJob({ a, b, startA, startB, sideBySide,
+        onFail: (why) => data.noteUpload(key, { status: "failed", error: why }),
+        onDone: (f) => { f.__noscaKey = key; data.addLessonMedia(lessonId, [f]).catch(() => {}); } });
+    };
+    data.onUploadRetry(key, run);
+    run();
+    return key;
+  };
   /* A TAKE FOR THE LOG BEING WRITTEN. The log shows a row for it while
      it is made; the file joins the attachments if it is ready before Log
      it, and follows the lesson up if it is not — publish() claims the
@@ -18886,7 +18970,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const named = les && les.playerId && account && les.playerId !== account.id ? les.who : "";
     body = les
       ? <ClipCompare lesson={les} mediaId={mid} lessons={pool} mediaFor={mediaFor} who={named} pop={pop} say={say}
-                     onSave={role === "coach" ? (file) => { data.addLessonMedia(les.id, [file]).catch(() => {}); return {}; } : null} />
+                     onSave={role === "coach" ? (spec) => queueCompare({ ...spec, lessonId: les.id, who: named }) : null} />
       : <SwipeBack onBack={pop}><Screen title={tr("Compare")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
@@ -19125,7 +19209,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
-  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} onSync={syncBuild} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
