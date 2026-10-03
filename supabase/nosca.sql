@@ -292,6 +292,10 @@ alter table public.preferences add column if not exists starred        jsonb not
 -- What lessons open on: 'list' or 'feed'. Null is the role's own default
 -- (a coach List, a player Feed); Settings › Default view sets it.
 alter table public.preferences add column if not exists default_view   text check (default_view in ('list', 'feed'));
+-- When the day's drill reminder arrives, as a time of day by Ireland's
+-- clock, on the hour. Null is eight in the morning. Settings › Reminder
+-- and the foot of the player's Drills screen set it.
+alter table public.preferences add column if not exists reminder_time  time;
 
 -- ---------- messages ----------
 -- A thread is one coach and one player. sender_id is whoever wrote the
@@ -1568,12 +1572,22 @@ create trigger drills_notify after insert on public.drills
 -- Once per drill per day, so a second run of the same morning adds
 -- nothing; the notification carries the drill and the day it reminded
 -- for. Returns how many it sent, so the test can count.
-create or replace function public.remind_due_drills()
+-- Runs every hour. A drill due today is said once, in the hour the
+-- player asked for (preferences.reminder_time, eight by default), by
+-- Ireland's clock. p_hour is for the test suite; the schedule passes
+-- nothing and the hour is now. The zero-argument version is dropped
+-- first: "create or replace" cannot change a signature, and a second
+-- overload is what the cron job would have gone on calling.
+drop function if exists public.remind_due_drills();
+create or replace function public.remind_due_drills(p_hour integer default null)
 returns integer language plpgsql security definer set search_path = '' as $fn$
 declare r record; n integer := 0;
+  here  timestamp := (now() at time zone 'Europe/Dublin');
+  h     integer   := coalesce(p_hour, extract(hour from (now() at time zone 'Europe/Dublin'))::integer);
 begin
   for r in select d.id, d.player_id, d.coach_id, d.title, d.due from public.drills d
-           where d.due = current_date and not d.done
+           where d.due = here::date and not d.done
+             and extract(hour from coalesce((select p.reminder_time from public.preferences p where p.id = d.player_id), time '08:00'))::integer = h
              and not exists (select 1 from public.notifications x
                               where x.user_id = d.player_id and x.kind = 'drill'
                                 and x.data->>'drill' = d.id::text and x.data->>'due' = d.due::text) loop
@@ -1583,16 +1597,17 @@ begin
   end loop;
   return n;
 end $fn$;
-revoke all on function public.remind_due_drills() from public, anon, authenticated;
+revoke all on function public.remind_due_drills(integer) from public, anon, authenticated;
 
--- pg_cron runs it at eight every morning where the extension is on
+-- pg_cron runs it every hour where the extension is on; each person's
+-- hour is their own (reminder_time, eight by default)
 -- (Supabase: Database › Extensions › pg_cron); a bare Postgres, or a
 -- project without it, keeps the day on the drill and skips the reminder.
 do $$
 begin
   create extension if not exists pg_cron;
   perform cron.unschedule(jobid) from cron.job where jobname = 'nosca-drill-reminders';
-  perform cron.schedule('nosca-drill-reminders', '0 8 * * *', 'select public.remind_due_drills()');
+  perform cron.schedule('nosca-drill-reminders', '0 * * * *', 'select public.remind_due_drills()');
 exception when others then
   raise notice 'pg_cron unavailable (%) — a drill keeps its day; the morning reminder waits for pg_cron', sqlerrm;
 end $$;

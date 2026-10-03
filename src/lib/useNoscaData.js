@@ -150,6 +150,8 @@ export function useNoscaData(profile) {
   const [drills, setDrills] = useState([]);
   const [drillsDue, setDrillsDue] = useState(false);
   const dueProbed = useRef(false);
+  const [reminderOn, setReminderOn] = useState(false);   // does preferences.reminder_time exist on this project?
+  const reminderProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [bookings, setBookings] = useState([]);
@@ -396,6 +398,11 @@ export function useNoscaData(profile) {
       if (!dueProbed.current) {
         dueProbed.current = true;
         supabase.from("drills").select("due").limit(1).then((pr) => setDrillsDue(!pr.error)).catch(() => setDrillsDue(false));
+      }
+      /* and the reminder hour: the same one probe, the same quiet no */
+      if (!reminderProbed.current) {
+        reminderProbed.current = true;
+        supabase.from("preferences").select("reminder_time").limit(1).then((pr) => setReminderOn(!pr.error)).catch(() => setReminderOn(false));
       }
       /* `tips` carries no focus column, so focus stays null and every
          screen that shows it must check first. The date and the age DO
@@ -1112,6 +1119,9 @@ export function useNoscaData(profile) {
      row as JSON — the whole value each time, so what is saved is
      exactly what the screen showed. */
   const saveAvailability = (availability) => savePrefs({ availability: availability || {} });
+  /* when the day's drill reminder arrives, "HH:00" by Ireland's clock —
+     written on its own; the database sends the reminder */
+  const setReminderTime = (hhmm) => savePrefs({ reminder_time: hhmm });
   const saveGroups = (groups) => savePrefs({ groups: groups || [] });
 
   /* Name, phone and club are the person's own to change. .select()
@@ -1572,7 +1582,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

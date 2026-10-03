@@ -11882,6 +11882,27 @@ const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").t
 /* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
 const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
 const wizFirst = (name) => String(name || "").split(" ")[0];
+const wizRest = (name) => String(name || "").split(" ").slice(1).join(" ");
+
+/* AGE BANDS, the way a club runs them: under 10, under 12, under 14,
+   under 16, under 18, then adults. A junior with no date of birth is
+   under 18 by their own word at sign-up. */
+const WIZ_BANDS = [["u10", "U10", 10], ["u12", "U12", 12], ["u14", "U14", 14], ["u16", "U16", 16], ["u18", "U18", 18]];
+const yearsAt = (dob, today) => {
+  if (!dob || !today) return null;
+  const b = localDate(dob); if (!b || isNaN(b.getTime())) return null;
+  let a = today.y - b.getFullYear();
+  if (today.m - 1 < b.getMonth() || (today.m - 1 === b.getMonth() && today.d < b.getDate())) a -= 1;
+  return a;
+};
+const ageBandOf = (p, today) => {
+  if (!p) return null;
+  const age = yearsAt(p.dateOfBirth, today);
+  if (age == null) return p.junior ? "u18" : "adult";
+  if (age >= 18) return "adult";
+  const b = WIZ_BANDS.find((x) => age < x[2]);
+  return b ? b[0] : "adult";
+};
 
 /* a face is a tile too: the picture, the first name, nothing else */
 function FaceTile({ person, group, caption, on, onTap, tour }) {
@@ -11933,6 +11954,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     return known.length ? "main" : "who";
   });
   const [q, setQ] = useState("");
+  const [whoFilter, setWhoFilter] = useState("all");   // All, an age band, Adults, or a group
   const [adding, setAdding] = useState(false);   // the who page was opened to add someone, not to start over
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
@@ -12123,22 +12145,46 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     setWho(mems); setPickedGroup(g.name); setQ(""); setView("main");
   };
   const searching = !!q.trim();
+  /* THE FILTERS: All, each age band somebody on the roster is in,
+     Adults, and each group — only what has somebody in it, so a tile
+     never narrows to nothing. The founder asked for the search and the
+     filters at the top of this page, whatever the roster's size. */
+  const bandOf = (pl) => ageBandOf(pl, today);
+  const bandCounts = {};
+  POOL_W.forEach((pl) => { const bk = bandOf(pl); bandCounts[bk] = (bandCounts[bk] || 0) + 1; });
+  const mixedAges = Object.keys(bandCounts).length > 1;
+  const whoFilters = [
+    { key: "all", label: tr("All") },
+    ...(mixedAges ? WIZ_BANDS.filter((bd) => bandCounts[bd[0]]).map((bd) => ({ key: bd[0], label: bd[1] })) : []),
+    ...(mixedAges && bandCounts.adult ? [{ key: "adult", label: tr("Adults") }] : []),
+    ...(groups || []).filter((g) => membersOf(g).length).map((g) => ({ key: `g:${g.name}`, label: g.name })),
+  ];
+  const filterOn = whoFilters.some((f) => f.key === whoFilter) ? whoFilter : "all";
+  const filterLabel = (whoFilters.find((f) => f.key === filterOn) || {}).label;
+  const groupIds = filterOn.startsWith("g:") ? new Set(membersOf((groups || []).find((g) => g.name === filterOn.slice(2)) || {}).map((m) => m.id)) : null;
+  const inFilter = (pl) => (filterOn === "all" ? true : groupIds ? groupIds.has(pl.id) : bandOf(pl) === filterOn);
+  const narrowed = searching || filterOn !== "all";
+  const byName = (x, y) => x.name.localeCompare(y.name);
   const seen = new Set();
   const take = (list) => list.filter((pl) => pl && !seen.has(pl.id) && (seen.add(pl.id), true));
   const liveKey = liveNow ? (liveNow.playerId || seedId(liveNow.who)) : null;
   const bookingFor = {};
   for (const b of (todayBookings || [])) { const id = b.playerId || seedId(b.who); if (id && !bookingFor[id]) bookingFor[id] = b; }
-  const faces = searching
-    ? POOL_W.filter((pl) => wizMatch(pl.name, q))
+  /* narrowed — by the search or a filter — the page is one grid of the
+     matches; otherwise on now and today first, then the groups, then
+     everyone */
+  const faces = narrowed
+    ? POOL_W.filter((pl) => inFilter(pl) && wizMatch(pl.name, q)).sort(byName)
     : take([byId(liveKey), ...(todayIds || []).map(byId), ...(recent || []).map((r) => byId(r.id))]).slice(0, 9);
   const faceCaption = (pl) => {
+    if (narrowed) return wizRest(pl.name);
     const b = bookingFor[pl.id];
     if (b) return b.time;
     if (pl.id === liveKey) return tr("on now");
     return null;
   };
-  const groupTiles = searching ? (groups || []).filter((g) => wizMatch(g.name, q)) : (groups || []);
-  const rest = searching ? [] : POOL_W.filter((pl) => !seen.has(pl.id)).sort((a, b) => a.name.localeCompare(b.name));
+  const groupTiles = narrowed ? (searching && filterOn === "all" ? (groups || []).filter((g) => wizMatch(g.name, q)) : []) : (groups || []);
+  const rest = narrowed ? [] : POOL_W.filter((pl) => !seen.has(pl.id)).sort(byName);
 
   const hair = RULE.hair(t.ink);
   const back = () => { haptic(6); setView("main"); };
@@ -12168,11 +12214,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           <WizBar onBack={() => (who.length ? setView("main") : onCancel())} close={!who.length} />
           <div className="flex-1 overflow-y-auto">
             <WizHero>{adding ? tr("Who else") : tr("Who")}</WizHero>
-            {POOL_W.length > 8 && (
+            {POOL_W.length > 0 && (
               <div className="px-6 pb-3" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
                 <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
                   <Search size={15} color={t.trace || t.faint} />
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} enterKeyHint="search"
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} enterKeyHint="search" aria-label={tr("Search")}
                          onKeyDown={(e) => { if (e.key === "Enter" && faces[0]) { e.preventDefault(); pickPerson(faces[0]); } }}
                          className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                   {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
@@ -12181,6 +12227,14 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </div>
             )}
             <div className="px-6 pb-6">
+              {whoFilters.length > 1 && (
+                <div data-tour="wiz-who-filter" style={{ marginBottom: SPACE.block }}>
+                  <TileGrid cols={evenCols(whoFilters.length)}>
+                    {whoFilters.map((f) => <ActTile key={f.key} h={40} label={f.label} on={filterOn === f.key} onTap={() => setWhoFilter(f.key)} />)}
+                  </TileGrid>
+                </div>
+              )}
+              {filterOn !== "all" && faces.length > 0 && <WizLabel>{filterLabel}</WizLabel>}
               {faces.length > 0 && (
                 <TileGrid>
                   {faces.map((pl, i) => <FaceTile key={pl.id} person={pl} caption={faceCaption(pl)} on={ticked(pl)} tour={i === 0 ? "wiz-who" : undefined} onTap={() => pickPerson(pl)} />)}
@@ -12194,17 +12248,16 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                   </TileGrid>
                 </>
               )}
+              {/* EVERYONE IS A GRID OF FACES, like the ones above it. It was
+                  rows under the tiles, and the founder found one person in
+                  a box over a list of the rest very strange. The surname
+                  rides under the first name so two of a name are two tiles. */}
               {rest.length > 0 && (
                 <>
                   <WizLabel>{tr("Everyone")}</WizLabel>
-                  {rest.map((pl) => (
-                    <button key={pl.id} onClick={() => pickPerson(pl)} aria-label={pl.name} aria-pressed={ticked(pl)}
-                            className="w-full flex items-center gap-3 text-left active:opacity-50" style={{ minHeight: 58, borderBottom: hair }}>
-                      <Avatar name={pl.name} size={34} src={avatarUrl(pl.avatarPath)} />
-                      <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{pl.name}</span>
-                      {ticked(pl) && <Check size={16} color={t.accent} strokeWidth={2.4} />}
-                    </button>
-                  ))}
+                  <TileGrid>
+                    {rest.map((pl) => <FaceTile key={pl.id} person={pl} caption={wizRest(pl.name)} on={ticked(pl)} onTap={() => pickPerson(pl)} />)}
+                  </TileGrid>
                 </>
               )}
               {faces.length === 0 && rest.length === 0 && groupTiles.length === 0 && (
@@ -14055,27 +14108,65 @@ function Subscription({ pop, say, plan }) {
 /* ==================================================================
    PLAYER · practice
 ================================================================== */
-function PlayerPractice({ conn, items, toggle, right, say }) {
+/* the day a drill is for, as a line: By Fri 9 Oct · By today · and, gone
+   by and not done, Was by Thu 1 Oct in the warning colour */
+const dueLineFor = (iso, todayIso) => {
+  if (!iso) return null;
+  if (iso === todayIso) return { text: tr("By today"), late: false };
+  if (iso < todayIso) return { text: `${tr("Was by")} ${fmtWeekDay(localDate(iso))}`, late: true };
+  return { text: `${tr("By")} ${fmtWeekDay(localDate(iso))}`, late: false };
+};
+/* the day a drill was set, as a local day (a timestamp, so new Date is right) */
+const setDayOf = (x) => { const d = x && x.createdAt ? new Date(x.createdAt) : null; return d && !isNaN(d.getTime()) ? isoDay(d) : null; };
+
+/* ONE DRILL, AS A ROW: the tick, the name, the day it is for. The same
+   row on the Drills tab and in All drills, so a drill looks the same
+   wherever it is read. */
+function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
   const t = useT();
-  const live = useLive();
+  const line = x.due && !x.done ? dueLineFor(x.due, todayIso) : null;
+  return (
+    <button data-tour={tour} data-drill-due={x.due || undefined} data-drill-done={x.done ? "1" : undefined} aria-pressed={!!x.done}
+            onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); onToggle(x.id); }}
+            className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
+            style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards` }}>
+      <span className="flex items-center justify-center shrink-0"
+            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
+                     background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
+        {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block" style={{ ...TYPE.body, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
+        {/* a drill set by a real coach is a name; only the starter sets
+            carry a description */}
+        {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
+        {line && <span className="block mt-0.5" style={{ ...TYPE.small, color: line.late ? DANGER : t.sub }}>{line.text}</span>}
+      </span>
+    </button>
+  );
+}
+
+function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder }) {
+  const t = useT();
   const calendar = useCalendar();
   const todayIso = isoDay(progressToday(calendar));
-  /* what is to do first, the dated ones soonest first, then the rest as
-     they were set; done ones after */
-  const ordered = useMemo(() => items.slice().sort((a, b) => (a.done - b.done) || ((a.due ? 0 : 1) - (b.due ? 0 : 1)) || ((a.due || "") < (b.due || "") ? -1 : (a.due || "") > (b.due || "") ? 1 : 0)), [items]);
-  const dueLine = (iso) => {
-    if (!iso) return null;
-    if (iso === todayIso) return { text: tr("By today"), late: false };
-    if (iso < todayIso) return { text: `${tr("Was by")} ${fmtWeekDay(localDate(iso))}`, late: true };
-    return { text: `${tr("By")} ${fmtWeekDay(localDate(iso))}`, late: false };
-  };
-  const done = items.filter((x) => x.done).length;
-  const pct = items.length ? (done / items.length) * 100 : 0;
-  const allDone = items.length > 0 && done === items.length;
+  /* THE TAB IS WHAT IS TO DO, AND THE LATEST SET. Everything not yet
+     done; every drill from the last day drills were set, so a set reads
+     whole once it is ticked off; and anything ticked this sitting, so a
+     drill never vanishes under the thumb. Everything older is in All
+     drills, by the day it was set. */
+  const [justDone, setJustDone] = useKept("justDone", []);
+  const latestDay = useMemo(() => items.reduce((m, x) => { const d = setDayOf(x); return d && (!m || d > m) ? d : m; }, null), [items]);
+  const shown = useMemo(() => items.filter((x) => !x.done || setDayOf(x) === latestDay || justDone.includes(x.id)), [items, latestDay, justDone]);
+  /* to do first, the dated ones soonest first, then the rest as they were
+     set; done ones after */
+  const ordered = useMemo(() => shown.slice().sort((a, b) => (a.done - b.done) || ((a.due ? 0 : 1) - (b.due ? 0 : 1)) || ((a.due || "") < (b.due || "") ? -1 : (a.due || "") > (b.due || "") ? 1 : 0)), [shown]);
+  const tick = (id) => { setJustDone((j) => (j.includes(id) ? j : [...j, id])); toggle(id); };
+  const todo = items.filter((x) => !x.done).length;
+  const allDone = items.length > 0 && todo === 0;
   useEffect(() => { if (allDone) { hapticCommit(); swell(); } }, [allDone]);
-  const who = conn?.coach?.split(" ")[0] || "your coach";
   return (
-    <Screen title={tr("Drills")} meta={items.length ? (items.length - done > 0 ? `${items.length - done} ${tr("to do")}` : tr("All done")) : ""} right={right}>
+    <Screen title={tr("Drills")} meta={items.length ? (todo > 0 ? `${todo} ${tr("to do")}` : tr("All done")) : ""} right={right}>
       {items.length === 0 ? (
         <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No drills yet")}</p>
       ) : (
@@ -14089,40 +14180,87 @@ function PlayerPractice({ conn, items, toggle, right, say }) {
           <div className="px-6 pb-2"><div className="nsc-list">
             {ordered.map((x, i) => (
               <div key={x.id}>
-              {/* the box is the edge: no hairline at the foot of a boxed row */}
-              <button data-tour={i === 0 ? "drill-row" : undefined} data-drill-due={x.due || undefined} onClick={() => { if (!x.done) { hapticSuccess(); tone(760, 0.1, 0.045); tone(1010, 0.14, 0.04, 0.07); } else haptic(6); toggle(x.id); }}
-                      className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
-                      style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                <span className="flex items-center justify-center shrink-0"
-                      style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
-                               background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
-                  {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block" style={{ ...TYPE.body, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
-                  {/* a drill set by a real coach is a name; only the
-                      starter sets carry a description */}
-                  {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
-                  {/* the day it is for: By Fri 9 Oct · By today · and, gone by
-                      and not done, Was by Thu 1 Oct in the warning colour */}
-                  {x.due && !x.done && dueLine(x.due) && (
-                    <span className="block mt-0.5" style={{ ...TYPE.small, color: dueLine(x.due).late ? DANGER : t.sub }}>{dueLine(x.due).text}</span>
-                  )}
-                </span>
-              </button>
-              {DRILL_SECONDS(x.d) && !x.done && (
-                <div className="pb-4" style={{ marginTop: -4 }}>
-                  <DrillTimer seconds={DRILL_SECONDS(x.d)} onDone={() => toggle(x.id)} />
-                </div>
-              )}
+                <DrillRow x={x} todayIso={todayIso} onToggle={tick} tour={i === 0 ? "drill-row" : undefined} delay={Math.min(i, 5) * 22} />
+                {DRILL_SECONDS(x.d) && !x.done && (
+                  <div className="pb-4" style={{ marginTop: -4 }}>
+                    <DrillTimer seconds={DRILL_SECONDS(x.d)} onDone={() => tick(x.id)} />
+                  </div>
+                )}
               </div>
             ))}
-          </div>
-
-          </div>
+          </div></div>
+          {/* every drill ever set, by the day it was set — the door, in
+              words, under the list */}
+          {onAll && (
+            <div className="px-6 pt-3">
+              <button data-tour="drills-all" onClick={() => { hapticCommit(); soft(); onAll(); }}
+                      className="w-full flex items-center justify-center gap-2 active:opacity-70"
+                      style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                {tr("All")} {items.length} {items.length === 1 ? tr("drill") : tr("drills")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
+              </button>
+            </div>
+          )}
         </>
       )}
+      {/* WHEN THE DAY'S REMINDER ARRIVES — asked here, where the first
+          drills land, and in Settings; the second Settings shape */}
+      {reminder && items.length > 0 && (
+        <div className="px-6" style={{ marginTop: SPACE.section }}>
+          <Card tour="drills-reminder"><FilterRow plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></Card>
+        </div>
+      )}
     </Screen>
+  );
+}
+
+/* EVERY DRILL EVER SET, BY THE DAY IT WAS SET. The Drills tab is what is
+   to do; this is the record — the founder asked for a library of past
+   drills and when they were given, one tap away and plain. A search
+   above eight, the day as a heading, the same rows. */
+function PlayerDrillLibrary({ items, toggle, pop }) {
+  const t = useT();
+  const calendar = useCalendar();
+  const todayD = progressToday(calendar);
+  const todayIso = isoDay(todayD);
+  const yIso = isoDay(new Date(todayD.getFullYear(), todayD.getMonth(), todayD.getDate() - 1));
+  const [q, setQ] = useKept("q", "");
+  const needle = q.trim();
+  const list = useMemo(() => (needle ? items.filter((x) => wizMatch(x.t, needle)) : items), [items, needle]);
+  const days = useMemo(() => {
+    const by = new Map();
+    list.forEach((x) => { const d = setDayOf(x) || ""; if (!by.has(d)) by.set(d, []); by.get(d).push(x); });
+    return [...by.entries()].sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0));
+  }, [list]);
+  const dayLabel = (d) => (!d ? tr("Earlier") : d === todayIso ? tr("Today") : d === yIso ? tr("Yesterday") : fmtWeekDay(localDate(d)));
+  const done = items.filter((x) => x.done).length;
+  return (
+    <SwipeBack onBack={pop}>
+    <Screen title={tr("All drills")} onBack={pop} meta={items.length ? `${items.length} ${items.length === 1 ? tr("drill") : tr("drills")}${done ? ` · ${done} ${tr("done")}` : ""}` : ""}>
+      {items.length > 8 && (
+        <div className="px-6 pb-3">
+          <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
+            <Search size={15} color={t.trace || t.faint} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} aria-label={tr("Search")} enterKeyHint="search"
+                   className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
+               : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
+          </div>
+        </div>
+      )}
+      {items.length === 0 ? (
+        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No drills yet")}</p>
+      ) : days.length === 0 ? (
+        <p className="px-6 py-8 text-center" style={{ ...TYPE.body, color: t.faint }}>{`${tr("Nothing called")} “${needle}”`}</p>
+      ) : days.map(([d, rows], gi) => (
+        <div key={d || "earlier"} className="px-6" data-tour={gi === 0 ? "drills-day" : undefined} style={{ marginBottom: SPACE.block }}>
+          <RowHead>{dayLabel(d)}</RowHead>
+          <div className="nsc-list">
+            {rows.map((x, i) => <DrillRow key={x.id} x={x} todayIso={todayIso} onToggle={toggle} delay={Math.min(i, 5) * 22} />)}
+          </div>
+        </div>
+      ))}
+    </Screen>
+    </SwipeBack>
   );
 }
 
@@ -14264,6 +14402,9 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
 /* the days a drill can be for: nothing, the player's next lesson where
    one is booked, tomorrow, a week, two weeks — each a real day, named */
 const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/* the hours a reminder can arrive at: six in the morning to nine at night */
+const REMINDER_HOURS = Array.from({ length: 16 }, (_, k) => k + 6);
+const hourLabel = (h) => `${h % 12 || 12}:00 ${h < 12 ? "am" : "pm"}`;
 function dueOptions(today, nextLesson) {
   const plus = (n) => { const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + n); return isoDay(d); };
   const out = [{ id: "", label: tr("No day") }];
@@ -15287,7 +15428,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
   const [q, setQ] = useKept("q", "");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
@@ -15338,6 +15479,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     role === "coach" ? { title: tr("Coaching"), tour: "settings-coaching", rows: [
       { label: tr("Default view"), tour: "settings-view", keys: ["feed", "list", "view", "lessons", "opens", "layout"],
         custom: choice("defaultView", tr("Default view"), defaultView || "list", [{ id: "list", label: tr("List") }, { id: "feed", label: tr("Feed") }], (v) => onDefaultView && onDefaultView(v)) },
+      reminderOn && { label: tr("Reminder"), tour: "settings-reminder", keys: ["remind", "drills", "time", "morning", "alarm", "notification", "daily", "hour"],
+        custom: choice("reminder", tr("Reminder"), reminderTime || "08:00", reminderOpts, (v) => onReminderTime && onReminderTime(v)) },
       { label: tr("Reviews"), tour: "settings-reviews", onTap: () => push("reviews"), keys: ["rating", "stars"] },
       !live && { label: tr("Paperwork"), tour: "settings-credentials", onTap: () => push("credentials") },
       !live && { label: tr("Requests"), tour: "settings-requests", onTap: () => push("requests") },
@@ -15360,6 +15503,9 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     ] } : { title: tr("Playing"), tour: "settings-playing", rows: [
       { label: tr("Default view"), tour: "settings-view", keys: ["feed", "list", "view", "lessons", "opens", "layout"],
         custom: choice("defaultView", tr("Default view"), defaultView || "feed", [{ id: "list", label: tr("List") }, { id: "feed", label: tr("Feed") }], (v) => onDefaultView && onDefaultView(v)) },
+      reminderOn && { label: tr("Reminder"), tour: "settings-reminder", keys: ["remind", "drills", "time", "morning", "alarm", "notification", "daily", "hour"],
+        custom: choice("reminder", tr("Reminder"), reminderTime || "08:00", reminderOpts, (v) => onReminderTime && onReminderTime(v)) },
+      { label: tr("Drills"), sub: drillCount ? `${drillCount} ${drillCount === 1 ? tr("drill") : tr("drills")}` : null, tour: "settings-drills", onTap: () => push("drillsAll"), keys: ["library", "practice", "past", "history", "all", "set"] },
       (!live || hasDependants) && { label: tr("This month"), tour: "settings-digest", onTap: () => push("digest"), keys: ["progress", "summary"] },
       { label: tr("Family"), sub: live ? (familyName || null) : null, tour: "settings-dashboard",
         onTap: () => { if (live && !familyName) { push("familyCode"); return; } pop(); go("family"); }, keys: ["children", "parent", "code"] },
@@ -16414,6 +16560,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     setPrefsLocal({
       logView: p.log_view === "cards" ? "list" : (p.log_view ?? PREF_DEFAULTS.logView),
       defaultView: p.default_view === "list" || p.default_view === "feed" ? p.default_view : null,
+      reminderTime: p.reminder_time ? String(p.reminder_time).slice(0, 5) : null,
       calView: p.cal_view ?? PREF_DEFAULTS.calView,
       notify: p.notify ?? PREF_DEFAULTS.notify,
       quietFrom: PREF_DEFAULTS.quietFrom,
@@ -17604,6 +17751,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* what a screen kept is one account's: another signing in on the same
      phone starts every screen at the top */
   useEffect(() => { SCREEN_MEMORY.clear(); }, [account ? account.id : null]);
+  /* WHEN THE DAY'S DRILL REMINDER ARRIVES. preferences.reminder_time, on
+     the hour by Ireland's clock; null is eight in the morning. The
+     database sends it (remind_due_drills() on pg_cron, every hour), so
+     there is nothing to keep on the phone — and until the SQL has been
+     re-run there is no column, and no row is offered: a setting that
+     stores nothing is worse than none. A coach is offered it only when
+     they take lessons themselves. */
+  const reminderTime = (prefs && prefs.reminderTime) || "08:00";
+  const reminderOn = data ? !!data.reminderOn && (role !== "coach" || !!data.hasCoach) : role !== "coach";
+  const reminderOpts = REMINDER_HOURS.map((h) => ({ id: `${String(h).padStart(2, "0")}:00`, label: hourLabel(h) }));
+  const setReminderTime = (v) => {
+    setPrefsLocal((p) => ({ ...p, reminderTime: v }));
+    if (data && data.setReminderTime) Promise.resolve(data.setReminderTime(v)).catch(() => {});
+  };
+  const reminderCtl = reminderOn ? {
+    label: (reminderOpts.find((o) => o.id === reminderTime) || reminderOpts[2]).label,
+    options: reminderOpts.map((o) => o.label),
+    onPick: (lab) => { const o = reminderOpts.find((x) => x.label === lab); if (o) setReminderTime(o.id); },
+  } : null;
   const navCtx = useMemo(() => ({ key: sc ? "sc" : `${stack.length}:${stack[stack.length - 1]}`, defaultView }), [sc, stack, defaultView]);
   const enter = (r) => { setRole(r); setFlow("app"); setStack([r === "coach" ? "today" : "home"]); haptic(16); };
   const jump = (r) => { setRole(r); setFlow("app"); setStack([r === "coach" ? "today" : "home"]); };
@@ -18711,7 +18877,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
-  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
@@ -18735,7 +18901,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             selfCanBook={data ? !!data.hasCoach : true}
                                                             onBookFor={(k) => { setBookFor(k); }} />;
   } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} />;
-  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} />;
+  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} onAll={() => push("drillsAll")} reminder={reminderCtl} />;
+  } else if (screen === "drillsAll") { body = <PlayerDrillLibrary items={myPractice} toggle={togglePractice} pop={pop} />;
   } else if (role === "coach") {
     bare = screen === "log";
     /* One element, one set of props. It was written out twice — the

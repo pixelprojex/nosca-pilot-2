@@ -37,7 +37,12 @@ echo "== fresh project: nosca.sql"; $PU -d fresh --single-transaction -f "$ROOT/
 echo "== again (must be a no-op)"; $PU -d fresh --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null && echo ok
 echo "== behaviour"; $PU -d fresh -f "$HERE/behaviour.sql" 2>&1 | grep -E "^(PASS|FAIL)"
 echo "== upgrade path: old schema.sql, then nosca.sql"; git -C "$ROOT" show b164831:supabase/schema.sql | $PU -d upgrade -f - >/dev/null 2>&1 || true
-$PU -d upgrade --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null && $PU -d upgrade -f "$HERE/behaviour.sql" 2>&1 | grep -E "^(PASS|FAIL)" | sort | uniq -c | sort -rn | sed -n 1,3p
+# the same behaviour checks on the upgraded project — and a FAIL here
+# fails the run too: for a day one printed under a "uniq -c" count and
+# was never added up
+$PU -d upgrade --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null
+up=$($PU -d upgrade -f "$HERE/behaviour.sql" 2>&1); echo "$up" | grep -E "^(PASS|FAIL)" | sort | uniq -c | sort -rn | sed -n 1,3p
+echo "$up" | grep "^FAIL"; extra=$((extra + $(echo "$up" | grep -c "^FAIL" || true)))
 echo "== upgrade path: the previous nosca.sql with a guardian-linked family, then this one"
 createdb -h "$D" -p $PORT -U super -O supa prev; $PS -d prev -f "$D/fixture-db.sql"
 if git -C "$ROOT" show 51ca5a2:supabase/nosca.sql > "$D/prev.sql" 2>/dev/null; then

@@ -333,6 +333,8 @@ seeded data and no account.
   a filter row over a sort switch is two things to read before the first
   row. A tab bar to a list that is empty is not a choice either — the
   roster's Groups half appears with the first group.
+  The Who page is the one exception, at the founder's ask: its search
+  and its filter tiles are always there.
 - **The board and the plus are one list of actions, and the coach owns
   it.** `COACH_ACTIONS` is the nine (Log · Register · Capture · Tip ·
   Drills · Add player · New group · Call off · Competition), each with
@@ -371,10 +373,18 @@ seeded data and no account.
   capture are also on the lesson itself (the peek sheet), drills and
   tips on the player file.
 - **Logging a lesson is two screens: a face, then one page.** Who? is
-  faces — on now and today first, then the groups, then Everyone as
-  rows, with a search pill above eight people (prefix on any word,
-  diacritic-insensitive; Return picks the top match); one tap picks and
-  returns. Everything else is one scroll: the name and the day, the
+  faces: the search at the top whatever the roster's size; a row of
+  filter tiles under it — All, the age bands somebody on the roster is
+  in (U10 to U18, `WIZ_BANDS` and `ageBandOf`; a junior with no date of
+  birth is U18 by their own word), Adults, and each group, only what
+  has somebody in it (`wiz-who-filter`); then on now and today first,
+  then the groups, then **Everyone as the same grid of face tiles**,
+  the surname under the first name so two of a name are two tiles —
+  never rows: one person in a box over a list of the rest was the
+  thing the founder called very strange. A filter narrows the page to
+  one grid that names itself; the search narrows further (prefix on
+  any word, diacritic-insensitive; Return picks the top match); one
+  tap picks and returns. `scripts/e2e/who.cjs`. Everything else is one scroll: the name and the day, the
   level they are already on (`HI 18.4`, `Green ball · U10`) which is
   touched only when it has changed and reads **`Set level`** in ink
   when there is none (the accent is spent on Log it) — and never blocks
@@ -952,12 +962,43 @@ seeded data and no account.
   warning colour once the day has gone (`dueLine`). The notification
   that sets it reads "Gate drill · by Thu 8 Oct" (`trg_drills_notify`),
   and `remind_due_drills()` writes "Gate drill due today" once per
-  drill per day, scheduled by pg_cron at eight in the morning
-  (`nosca-drill-reminders`; the status row's `drill_reminders` says
-  whether the extension is on). Skillest attaches a due date to a
+  drill per day, at the hour the player chose (two bullets on;
+  `nosca-drill-reminders` on pg_cron, hourly; the status row's
+  `drill_reminders` says whether the extension is on). Skillest attaches a due date to a
   follow-up drill; nothing else in the field does, and a dated drill is
   what brings a player back between lessons. `scripts/e2e/drills-due.cjs`
   walks the coach, the player and a project without the column.
+- **The Drills tab is what is to do; All drills is the record.**
+  `PlayerPractice` shows every drill not yet done, every drill from the
+  last day drills were set (so a set reads whole once it is ticked
+  off), and anything ticked this sitting (`justDone`, kept) — a drill
+  never vanishes under the thumb. Under the list, "All N drills"
+  (`drills-all`) opens `PlayerDrillLibrary` (route `drillsAll`; Settings
+  › Drills carries the count and opens it too): every drill ever set
+  under the day it was set (`setDayOf` on `createdAt` — Today ·
+  Yesterday · `Thu 1 Oct`, newest day first), done ones ticked and
+  struck, a search above eight, and the same `DrillRow` on both screens
+  so a drill looks the same wherever it is read; a tap there toggles it
+  for real. The founder asked for a library of past drills and when
+  they were given, easy to reach and plain. `scripts/e2e/drill-library.cjs`.
+- **The day's reminder arrives at the hour the person chose.**
+  `preferences.reminder_time` (a `time`, on the hour; null is eight in
+  the morning; Ireland's clock). `remind_due_drills(p_hour)` runs on
+  pg_cron every hour (`0 * * * *`) and says a drill due today once, in
+  the player's own hour — the zero-argument version is dropped first,
+  because `create or replace` cannot change a signature and a second
+  overload is what the job would have gone on calling. Set from the
+  Reminder row at the foot of the Drills tab (`drills-reminder`, a
+  `FilterRow` in a `Card`, there once the first drills land) and from
+  Settings › Reminder (`settings-reminder`, the second shape, 6:00 am to
+  9:00 pm); a coach is offered it only when they take lessons
+  themselves. The database sends it, so nothing lives on the phone: the
+  hook probes the column once (`reminderOn`) and until the SQL has been
+  re-run no row is offered anywhere — a setting that stores nothing is
+  worse than none. It is not asked at sign-up; nothing joins that flow.
+  `supabase/test/run.sh` now adds up a FAIL from the upgrade-path run
+  of behaviour.sql as well — one printed under a `uniq -c` count for a
+  day and was never counted.
 - **One face per person, everywhere.** `FaceCtx` (provided by Nosca)
   is a lookup by name over the roster, the family, the coach and me;
   `Avatar` falls back to it whenever it is not handed a `src`, so a
