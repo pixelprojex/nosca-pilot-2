@@ -19137,7 +19137,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         </>)}
 
         <div className="overflow-hidden w-full flex flex-col relative"
-             style={{ maxWidth: demo ? 384 : "none",
+             /* THE FRAME NEVER SCROLLS. Its only overflow is the closed sheet
+                parked below it, and an overflow-hidden box still scrolls
+                programmatically — a focus, a scrollIntoView, iOS making room
+                for the keyboard — which shoved the whole app 760px up under
+                the Logged burst in the harness. `clip` forbids every scroll;
+                a browser without it keeps `hidden`. Screens scroll in their
+                own boxes. */
+             style={{ overflow: "clip", maxWidth: demo ? 384 : "none",
                       height: demo ? 768 : sc ? 780 : "100dvh",
                       borderRadius: demo ? 34 : 0, background: theme.page,
                    ...(reduceMotion ? { ["--motion"]: "none" } : {}), border: demo ? "6px solid #05070A" : "none", boxShadow: demo ? "0 2px 8px rgba(0,0,0,0.4), 0 40px 100px rgba(0,0,0,0.62)" : "none" }}>

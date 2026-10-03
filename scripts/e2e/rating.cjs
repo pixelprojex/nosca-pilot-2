@@ -55,7 +55,8 @@ const { check, results, summary } = M.checker("rating");
       const ask = burst(page).locator('button[data-ask]');
       check("(a) the burst carries Ask for a rating", (await ask.count()) === 1 && /Ask for a rating/.test(M.norm(await ask.innerText())), M.norm(await text()).slice(0, 160));
       await shot("01-burst");
-      await ask.click(); await page.waitForTimeout(1000);
+      /* a finger's tap, not a retrying robot's: dispatched, like every tap in the suites */
+      await ask.dispatchEvent("click"); await page.waitForTimeout(1000);
       const lesson = db.lessons.find((l) => l.player_id === IDS.adult);
       check("(b) the tap answers on the burst: the button reads Asked", (await burst(page).locator('button[data-ask="done"]').count()) === 1 && /Asked/.test(M.norm(await burst(page).innerText())), M.norm(await burst(page).innerText().catch(() => "gone")).slice(0, 160));
       await shot("02-asked");
@@ -90,7 +91,7 @@ const { check, results, summary } = M.checker("rating");
       const db2 = freshDb(); db2.missingColumns = { lessons: ["rating_requested"] };
       const { ctx, page, shot } = await boot(db2, "coach");
       await logOne(page);
-      await burst(page).locator('button[data-ask]').click(); await page.waitForTimeout(1000);
+      await burst(page).locator('button[data-ask]').dispatchEvent("click"); await page.waitForTimeout(1000);
       const err = burst(page).locator('[data-tour="burst-ask-error"]');
       check("(i) a refused ask is said on the burst, and the tap is offered again", (await err.count()) === 1 && /rating_requested/.test(M.norm(await err.innerText())) && (await burst(page).locator('button[data-ask="error"]').count()) === 1 && /Try again/.test(M.norm(await burst(page).innerText())), M.norm(await burst(page).innerText().catch(() => "gone")).slice(0, 200));
       check("(j) …and no notification went out", !db2.notifications.some((x) => x.kind === "rating"));
