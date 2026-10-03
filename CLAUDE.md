@@ -82,9 +82,16 @@ seeded data and no account.
   nosca.sql), in the same transaction as the thing they describe. The
   app reads, marks read and clears; it never inserts. New kinds go in
   the trigger, and the mock in `scripts/e2e/` must produce them too.
-- **Uploads never fail silently.** Every attached file uploads in
-  parallel with a status per file (`data.uploads`), shown on Today
-  with the reason and a Retry. The per-file limit is `MAX_UPLOAD_MB`
+- **Uploads never fail silently, and nothing waits on them.** Every
+  attached file uploads in parallel with a status per file
+  (`data.uploads`), shown on Today with the reason and a Retry.
+  `logLesson` returns the moment the row is written and the files
+  follow behind the coach's back — Log it read "Logging…" until the
+  last clip was in, which on a range is a minute of watching a button;
+  the founder asked for every upload to go on in the background rather
+  than stall a page. The same for a file added to a logged lesson, a
+  mark-up take, a still, a comparison: the screen is left at once and
+  Today's banner carries it ("Uploading 2 files", "Making 1 clip"). The per-file limit is `MAX_UPLOAD_MB`
   (50, Supabase's default; `VITE_MAX_UPLOAD_MB` if the project's limit
   is raised).
 - **Capture is the phone's camera, not a form.** `LiveCapture` is an
@@ -803,13 +810,24 @@ seeded data and no account.
   what the coach sees pressing Play in the editor, what the take
   holds, and so what the player sees — never every mark at 0:00 (it
   was that for a round and the founder saw the drawings out of time
-  with the clip). **Save** runs the clip through once from the start,
-  resting on each moment (`HOLD_MS` after its marks arrive) then going
-  on, records the canvas as it goes with no microphone asked for (the
-  clip's own sound rides along through Web Audio where the browser
-  allows it; the recorder is fed a steady 30 frames a second by
-  `requestFrame`, because a canvas track left to itself came back from
-  Safari running fast) and uploads the take at once; **Talk over it**
+  with the clip). **Save** is the end of it for the coach: the
+  moments and the clip go to `startTakeJob()`, a video and a canvas on
+  a 2px host on the body (`nosca-take-host`), created inside the tap so
+  the one `play()` a browser wants a gesture for has one, which plays
+  the clip through once from the start, resting on each moment
+  (`HOLD_MS` after its marks arrive) then going on, records the canvas
+  as it goes with no microphone asked for (the clip's own sound rides
+  along through Web Audio where the browser allows it; the recorder is
+  fed a steady 30 frames a second by `requestFrame`, because a canvas
+  track left to itself came back from Safari running fast) and then
+  uploads the take — the coach is back on the lesson the moment they
+  tap, Today's banner reads "Making 1 clip" and then "Uploading", and
+  a failed render is there with Retry (`queueTake`; from the log,
+  `queueWizardTake`: the row reads "Making…", the file joins the
+  attachments if it is ready before Log it and follows the lesson up
+  if not, `claimTakes` in `publish()`; the clip it was drawn on comes
+  back if the take fails). It played through on the screen with a timer
+  for a round, and the founder did not want to sit and watch it; **Talk over it**
   takes the microphone, lets the coach play, pause, scrub and draw
   live — the pause and the fade are in the take — and plays it back
   (Again · Save) before it goes. **The take stands in for the clip it

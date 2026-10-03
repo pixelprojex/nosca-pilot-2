@@ -10192,7 +10192,125 @@ function paintShape(g, sh, w, h, f = 1) {
   g.restore();
 }
 
-function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, doneLabel, pop, say }) {
+/* THE TAKE IS MADE BEHIND THE COACH'S BACK. Save on Mark it up used to
+   play the clip through on the screen, the coach watching a timer, and
+   only then upload; the founder asked for the tap to be the end of it.
+   startTakeJob() takes the clip and the moments to an element pair that
+   lives off the screen (a 2px host on the body), plays the clip through
+   once resting on each moment, records the canvas at a steady 30fps —
+   the same pass the screen ran — and hands back the file. Created inside
+   the tap, so the one play() the browser wants a gesture for has one,
+   and the clip's own sound rides along where the graph allows it. A job
+   survives every screen change; it does not survive the tab going to
+   sleep, which is the same bargain as a live recording. */
+const TAKE_HOST_ID = "nosca-take-host";
+const takeHost = () => {
+  let h = document.getElementById(TAKE_HOST_ID);
+  if (!h) {
+    h = document.createElement("div"); h.id = TAKE_HOST_ID; h.setAttribute("aria-hidden", "true");
+    h.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;overflow:hidden;opacity:0.01;pointer-events:none;z-index:-1";
+    document.body.appendChild(h);
+  }
+  return h;
+};
+function startTakeJob({ src, file, moments, audioCtx, onProgress, onDone, onFail }) {
+  if (typeof document === "undefined") { onFail("No screen to draw on"); return { cancel() {} }; }
+  const host = takeHost();
+  const v = document.createElement("video");
+  v.crossOrigin = "anonymous"; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto"; v.muted = true;
+  v.style.cssText = "position:absolute;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none";
+  const c = document.createElement("canvas"); c.width = 2; c.height = 2; c.style.cssText = v.style.cssText;
+  const url = file ? URL.createObjectURL(file) : src;
+  host.appendChild(v); host.appendChild(c);
+  const ms = (moments || []).filter((m) => m && m.shapes && m.shapes.length)
+    .map((m) => ({ t: m.t, shapes: m.shapes.map((x) => ({ ...x, at: 0 })) })).sort((a, b) => a.t - b.t);
+  let raf = 0, rec = null, capTrack = null, done = false, chunks = [], audio = null, lastReq = 0;
+  const t0 = performance.now();
+  const cleanup = () => {
+    cancelAnimationFrame(raf);
+    try { v.pause(); } catch (e) { /* fine */ }
+    try { v.removeAttribute("src"); v.load(); } catch (e) { /* fine */ }
+    if (file) { try { URL.revokeObjectURL(url); } catch (e) { /* fine */ } }
+    if (audio) { try { audio.ctx.close(); } catch (e) { /* fine */ } }
+    v.remove(); c.remove();
+  };
+  const fail = (why) => { if (done) return; done = true; cleanup(); onFail(why); };
+  const finish = () => {
+    if (done) return; done = true; cancelAnimationFrame(raf); capTrack = null;
+    try { if (rec && rec.state !== "inactive") rec.stop(); else { cleanup(); onFail("Nothing was recorded"); } }
+    catch (e) { cleanup(); onFail("Couldn't finish the recording"); }
+  };
+  /* the clip's own sound, through the graph and into the recorder; the
+     element then no longer reaches the speaker */
+  const tracks = (() => {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = audioCtx || (AC ? new AC() : null); if (!ctx) return [];
+      const sn = ctx.createMediaElementSource(v), dest = ctx.createMediaStreamDestination();
+      sn.connect(dest); audio = { ctx, src: sn, dest };
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      return dest.stream.getAudioTracks();
+    } catch (e) { return []; }
+  })();
+  if (tracks.length) { v.muted = false; v.volume = 1; }
+  const shown = { idx: -1, prev: -1, at: 0 }, pass = { held: new Set(), holdUntil: 0, ended: false };
+  v.onerror = () => fail("Couldn't load the clip");
+  v.onended = () => { pass.ended = true; };
+  v.onloadedmetadata = () => {
+    if (done) return;
+    const vw = v.videoWidth || 720, vh = v.videoHeight || 1280, k = Math.min(1, REVIEW_MAX / Math.max(vw, vh));
+    c.width = Math.round((vw * k) / 2) * 2; c.height = Math.round((vh * k) / 2) * 2;
+    const dur = Number.isFinite(v.duration) ? v.duration : 0;
+    let stream;
+    try { const vt0 = c.captureStream(30).getVideoTracks(); capTrack = vt0[0] || null; stream = new MediaStream([...vt0, ...tracks]); }
+    catch (e) { fail("This browser can't record over a clip"); return; }
+    const mime = pickMime(VIDEO_TYPES);
+    try { rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), videoBitsPerSecond: 2500000 }); }
+    catch (e) { try { rec = new MediaRecorder(stream); } catch (e2) { fail("This browser can't record over a clip"); return; } }
+    rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    rec.onstop = () => {
+      const type = rec.mimeType || mime || "video/webm", ext = type.includes("mp4") ? "mp4" : "webm";
+      const blob = new Blob(chunks, { type }); chunks = [];
+      cleanup();
+      if (!blob.size) { onFail("Nothing was recorded"); return; }
+      onDone(new File([blob], `markup-${Date.now()}.${ext}`, { type }));
+    };
+    try { v.pause(); v.currentTime = 0; } catch (e) { /* fine */ }
+    rec.start(250);                                        // slices, so Safari hands data over as it goes
+    const paint = () => {
+      if (done) return;
+      const g = c.getContext("2d");
+      if (v.readyState >= 2) g.drawImage(v, 0, 0, c.width, c.height); else { g.fillStyle = "#0B0F10"; g.fillRect(0, 0, c.width, c.height); }
+      const now = performance.now(), T = v.currentTime;
+      let cur = -1;
+      for (let i = 0; i < ms.length; i++) { if (ms[i].t <= T + 0.03) cur = i; else break; }
+      if (cur !== shown.idx) { shown.prev = shown.idx; shown.idx = cur; shown.at = now; }
+      const gone = Math.min(1, (now - shown.at) / FADE_MS);
+      if (shown.prev >= 0 && shown.prev !== cur && gone < 1 && ms[shown.prev]) {
+        g.save(); g.globalAlpha = 1 - gone; ms[shown.prev].shapes.forEach((x) => paintShape(g, x, c.width, c.height, 1)); g.restore();
+      }
+      if (cur >= 0 && ms[cur]) ms[cur].shapes.forEach((x, i) => paintShape(g, x, c.width, c.height, Math.min(1, Math.max(0, (now - shown.at - i * REVEAL_MS) / REVEAL_MS))));
+      /* rest on each moment while its marks arrive, then go on; after the
+         end, wait for the last hold and stop */
+      if (cur >= 0 && !pass.held.has(cur)) { pass.held.add(cur); v.pause(); pass.holdUntil = now + ms[cur].shapes.length * REVEAL_MS + HOLD_MS; }
+      else if (pass.holdUntil && now >= pass.holdUntil) { pass.holdUntil = 0; if (pass.ended) { finish(); return; } v.play().catch(() => {}); }
+      else if (pass.ended && !pass.holdUntil) { finish(); return; }
+      if (capTrack && typeof capTrack.requestFrame === "function" && now - lastReq >= 33) { lastReq = now; try { capTrack.requestFrame(); } catch (e) { /* fine */ } }
+      if (onProgress) onProgress(T, dur);
+      if (now - t0 > 600000) { finish(); return; }           // a clip with no end still finishes
+      raf = requestAnimationFrame(paint);
+    };
+    raf = requestAnimationFrame(paint);
+    v.play().catch(() => { v.muted = true; v.play().catch(() => fail("Couldn't play the clip")); });
+  };
+  v.src = url;
+  /* the one play() inside the tap: it activates the element, so the pass
+     may start it again later with the sound on */
+  v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+  return { cancel: () => fail("Cancelled") };
+}
+
+function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQueue, doneLabel, pop, say }) {
   const t = useT();
   const first = (who || "").split(" ")[0];
   /* a clip on no lesson yet — one attached to the log being written —
@@ -10516,6 +10634,17 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, don
     hapticCommit();
     if (!canRecord()) return;
     v.pause(); v.playbackRate = 1; setSlow(false);
+    /* THE TAP IS THE END OF IT. The moments and the clip go to a job off
+       the screen (startTakeJob); the coach is back where they were at
+       once, and Today's banner says Making 1 clip until it is on the
+       lesson. The audio graph is made here, inside the tap. */
+    if (onQueue) {
+      let audioCtx = null;
+      try { const AC = window.AudioContext || window.webkitAudioContext; audioCtx = AC ? new AC() : null; } catch (e) { audioCtx = null; }
+      onQueue({ src: file ? null : (item ? item.url : null), file: file || null, moments: momentsRef.current, audioCtx, original: item, who });
+      hapticSuccess(); chime(); say(doneLabel || tr("Saved")); pop();
+      return;
+    }
     const tracks = clipSound();
     /* the element's sound reaches the recorder only if it is not muted;
        routed into the graph it no longer reaches the speaker */
@@ -11949,7 +12078,7 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
   );
 }
 
-function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, say }) {
+function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate, onPublish, onCancel, livePlayers, askReview = true, lessonCounts, onSaveDrill, startView, library, tipPrompts, lastFor, todayIds, todayBookings, liveNow, recent, recentMounts, pinnedToday, onAddPlayer, onQueueTake, say }) {
   const t = useT(); const L = useL();
   const live = useLive();
   const POOL_W = (livePlayers ?? ROSTER).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
@@ -11985,6 +12114,10 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  /* the mark-ups being made for this log; leaving the log lets them go
+     where publish() sent them (or nowhere, if it was cancelled) */
+  const wizJobs = useRef([]);
+  useEffect(() => () => { wizJobs.current.forEach((j) => j.drop()); }, []);
 
   /* ---------- what was worked on ---------- */
   const [focus, setFocus] = useState([]);
@@ -12088,7 +12221,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     /* keyed by when it arrived, not its place in the list: with index
        keys, removing the first clip handed its key — and its swiped-away
        state — to the one that moved up, which then vanished too */
-    ...videos.map((v, i) => ({ id: `v${v.at ?? i}`, at: v.at, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name, file: v.file })),
+    ...videos.map((v, i) => ({ id: `v${v.at ?? i}`, at: v.at, kind: "video", angle: v.angle, secs: v.secs, transcript: v.transcript, working: v.working, name: v.name, file: v.file, making: !!v.making })),
     ...photos.map((p) => ({ id: `p${p.at}`, kind: p.kind, values: p.values, reading: p.reading, name: p.name })),
     ...pulled.map((it) => ({ ...it, id: `c${it.id}`, capturedId: it.id })),
     ...(voice ? [{ id: "voice", kind: "voice", secs: voice.secs, url: voice.url }] : []),
@@ -12146,6 +12279,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     note, videos, photos, secs, voice,
     nextDrills, nextTip, wantRating, y: logY, m: logM, d: logD,
     pulled: pulled.map(({ from, ...it }) => it),
+    pendingTakes: videos.filter((v) => v.jobId && !v.file).map((v) => v.jobId),
   });
   const submit = async () => {
     if (!canLog || busy) return;
@@ -12222,6 +12356,25 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
     return (
       <ClipReview key="review" lesson={{ id: "draft", focus: chosen.join(" · ") }} file={reviewing.file} who={(who[0] || {}).name || ""}
                   say={say || (() => {})} doneLabel={tr("Attached")} pop={() => { setReviewing(null); back(); }}
+                  /* Save hands the clip to a job off the screen; its row reads
+                     Making… until the take arrives, and the clip it was drawn
+                     on comes back if it does not */
+                  onQueue={onQueueTake ? ({ file: f0, moments, audioCtx }) => {
+                    const orig = reviewing;
+                    const job = onQueueTake({ file: f0, moments, audioCtx, listener: (rec) => {
+                      if (!alive.current) return;
+                      if (rec.file) setVideos((v) => v.map((x) => (x.jobId === job.id ? { at: x.at, angle: tr("Mark-up"), secs: 0, file: rec.file, name: rec.file.name } : x)));
+                      else {
+                        setVideos((v) => v.map((x) => (x.jobId === job.id ? { at: x.at, angle: orig.angle || tr("Clip"), secs: orig.secs || 0, file: orig.file, name: orig.name } : x)));
+                        if (say) say(`${tr("Couldn't make the mark-up")}${rec.failed ? ` · ${rec.failed}` : ""}`);
+                      }
+                    } });
+                    wizJobs.current.push(job);
+                    const holder = { at: captureSeq(), angle: tr("Mark-up"), secs: 0, file: null, name: "markup", jobId: job.id, making: true };
+                    if (orig.capturedId != null) { forget(new Set([orig.capturedId])); setVideos((v) => [...v, holder]); }
+                    else setVideos((v) => v.map((x) => (x.at != null && x.at === orig.at ? holder : x)));
+                    return {};
+                  } : undefined}
                   /* the take stands in for the clip it was drawn on */
                   onSend={(f) => {
                     const take = { at: captureSeq(), angle: tr("Mark-up"), secs: 0, file: f, name: f.name };
@@ -12509,8 +12662,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                         return <K size={15} color={t.sub} strokeWidth={1.8} />; })()}
                       <span className="flex-1 min-w-0">
                         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>
-                          {it.kind === "video" ? tr("Video") : it.kind === "voice" ? tr("Voice") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo")}
+                          {it.making ? tr("Mark-up") : it.kind === "video" ? tr("Video") : it.kind === "voice" ? tr("Voice") : it.kind === "note" ? (it.text || tr("Note")) : tr("Photo")}
                         </span>
+                        {it.making && <span className="block truncate" data-tour="wiz-making" style={{ ...TYPE.caption, color: t.faint }}>{tr("Making…")}</span>}
                         {it.from && who.length > 1 && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{wizFirst(it.from)}</span>}
                       </span>
                       {it.kind === "video" && it.file && (
@@ -16200,7 +16354,9 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
      so an early return above the effect crashed the next render with
      "rendered fewer hooks than expected" the moment the strip cleared. */
   const items = (uploads && uploads.items) || [];
-  const moving = items.filter((it) => it.status === "uploading");
+  const making = items.filter((it) => it.status === "making");          // a mark-up rendering off the screen
+  const sending = items.filter((it) => it.status === "uploading");
+  const moving = [...making, ...sending];
   const failed = items.filter((it) => it.status === "failed");
   const done = items.filter((it) => it.status === "done");
   useEffect(() => {
@@ -16219,7 +16375,9 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
             ? <span className="rounded-full shrink-0" style={{ width: 8, height: 8, background: t.accent, animation: "breathe 1.4s ease-in-out infinite" }} />
             : failed.length > 0 ? <X size={14} color={DANGER} strokeWidth={2.2} /> : <Check size={14} color={STEADY} strokeWidth={2.4} />}
           <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
-            {moving.length > 0 ? `${tr("Uploading")} ${moving.length} ${noun(moving.length)}${done.length ? ` · ${done.length} ${tr("in")}` : ""}`
+            {moving.length > 0 ? [making.length ? `${tr("Making")} ${making.length} ${making.length === 1 ? tr("clip") : tr("clips")}` : null,
+                                  sending.length ? `${tr("Uploading")} ${sending.length} ${noun(sending.length)}` : null,
+                                  done.length && !(making.length && sending.length) ? `${done.length} ${tr("in")}` : null].filter(Boolean).join(" · ")
               : failed.length > 0 ? `${failed.length} ${noun(failed.length)} ${failed.length === 1 ? tr("didn't upload") : tr("didn't upload")}${done.length ? ` · ${done.length} ${tr("in")}` : ""}`
               : `${done.length} ${noun(done.length)} ${tr("attached")}`}
           </span>
@@ -17838,6 +17996,66 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* the lesson just written, so the burst's "Ask for a rating" can mark
      it after the fact — or note the ask if the button beat the insert */
   const lastLogged = useRef(null);
+  /* A TAKE FOR A LESSON ALREADY LOGGED: making → uploading → on the
+     lesson, the clip it was drawn on removed; or failed, with a Retry on
+     Today that re-runs the job inside the tap. The file carries the
+     job's key, so the upload takes the same row over. */
+  const queueTake = ({ lessonId, src, file, moments, audioCtx, original, who }) => {
+    if (!data) return null;
+    const key = `take:${captureSeq()}`;
+    const name = `${tr("Mark-up")}${who ? ` · ${wizFirst(who)}` : ""}`;
+    const run = (ctx) => {
+      data.noteUpload(key, { lessonId, name, kind: "video", size: 0, status: "making", error: null });
+      startTakeJob({ src, file, moments, audioCtx: ctx,
+        onFail: (why) => data.noteUpload(key, { status: "failed", error: why }),
+        onDone: async (f) => {
+          f.__noscaKey = key;
+          const r = await data.addLessonMedia(lessonId, [f]);
+          if (!(r && r.failed) && original && original.id && original.id !== "local") await data.removeLessonMedia(lessonId, original.id);
+        } });
+    };
+    data.onUploadRetry(key, () => run(null));
+    run(audioCtx);
+    return key;
+  };
+  /* A TAKE FOR THE LOG BEING WRITTEN. The log shows a row for it while
+     it is made; the file joins the attachments if it is ready before Log
+     it, and follows the lesson up if it is not — publish() claims the
+     jobs still making with the new lesson's id. */
+  const TAKES = useRef(new Map());
+  const queueWizardTake = ({ file, moments, audioCtx, listener }) => {
+    const id = captureSeq();
+    const rec = { id, lessonId: null, file: null, failed: null, listener, src: { file, moments } };
+    const key = `take:${id}`;
+    const run = (ctx) => startTakeJob({ file: rec.src.file, moments: rec.src.moments, audioCtx: ctx,
+      onDone: (f) => { rec.file = f; rec.failed = null; rec.settle(); }, onFail: (why) => { rec.failed = why; rec.settle(); } });
+    rec.settle = () => {
+      if (rec.listener) { rec.listener(rec); TAKES.current.delete(id); return; }   // the log is open: it takes the file
+      if (!rec.lessonId || !data) return;                                          // not logged yet: publish() will claim it
+      if (rec.file) {
+        rec.file.__noscaKey = key;
+        data.noteUpload(key, { lessonId: rec.lessonId, name: tr("Mark-up"), kind: "video", status: "uploading", error: null });
+        data.addLessonMedia(rec.lessonId, [rec.file]).catch(() => {});
+        TAKES.current.delete(id);
+        return;
+      }
+      /* the take failed after Log it: the clip goes up as it was filmed,
+         so the lesson is never left without it, and the mark-up is on
+         Today as failed, with a Retry that renders it again */
+      if (!rec.origSent && rec.src.file) { rec.origSent = true; data.addLessonMedia(rec.lessonId, [rec.src.file]).catch(() => {}); }
+      data.noteUpload(key, { lessonId: rec.lessonId, name: tr("Mark-up"), kind: "video", status: "failed", error: `${rec.failed || tr("Couldn't make the mark-up")} · ${tr("the clip went up as filmed")}` });
+      data.onUploadRetry(key, () => { data.noteUpload(key, { status: "making", error: null }); run(null); });
+    };
+    TAKES.current.set(id, rec);
+    run(audioCtx);
+    return { id, drop: () => { rec.listener = null; } };
+  };
+  const claimTakes = (ids, lessonId) => (ids || []).forEach((id) => {
+    const rec = TAKES.current.get(id); if (!rec) return;
+    rec.listener = null; rec.lessonId = lessonId;
+    if (data) data.noteUpload(`take:${id}`, { lessonId, name: tr("Mark-up"), kind: "video", size: 0, status: "making", error: null });
+    if (rec.file || rec.failed) rec.settle();
+  });
   const askForRating = async () => {
     const cur = lastLogged.current;
     if (cur && cur.id) return data.requestRating(cur.id);   // the burst says Asked, or why not
@@ -17916,6 +18134,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const askedMeanwhile = !!(lastLogged.current && lastLogged.current.pending);
       lastLogged.current = { id: res.lesson.id, pending: false };
       if (askedMeanwhile) data.requestRating(res.lesson.id);
+      /* a mark-up still being made follows the lesson up when it is done */
+      claimTakes(l.pendingTakes, res.lesson.id);
       /* anything the coach set alongside the lesson — for everyone who
          was there, not the first name on the list */
       const recipients = isGroup ? attendeeIds : (match?.id ? [match.id] : []);
@@ -18637,13 +18857,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = les
       ? <ClipReview lesson={les} mediaId={mid} mediaFor={mediaFor} who={les.who} pop={pop} say={say}
                     /* the marked-up clip stands in for the one it was drawn
-                       on — one video on the lesson, not two; a still is added */
-                    onSend={async (file, orig) => {
-                      const r = await data.addLessonMedia(les.id, [file]);
-                      if (!(r && r.failed) && orig && orig.id && orig.id !== "local") await data.removeLessonMedia(les.id, orig.id);
-                      return r;
+                       on — one video on the lesson, not two; a still is added.
+                       Nothing here waits on an upload: the file goes up behind
+                       the coach's back with its status on Today */
+                    onQueue={(job) => queueTake({ ...job, lessonId: les.id })}
+                    onSend={(file, orig) => {
+                      data.addLessonMedia(les.id, [file]).then((r) => {
+                        if (!(r && r.failed) && orig && orig.id && orig.id !== "local") return data.removeLessonMedia(les.id, orig.id);
+                        return null;
+                      }).catch(() => {});
+                      return {};
                     }}
-                    onStill={(file) => data.addLessonMedia(les.id, [file])} />
+                    onStill={(file) => { data.addLessonMedia(les.id, [file]).catch(() => {}); return {}; }} />
       : <SwipeBack onBack={pop}><Screen title={tr("Mark it up")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
@@ -18661,7 +18886,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const named = les && les.playerId && account && les.playerId !== account.id ? les.who : "";
     body = les
       ? <ClipCompare lesson={les} mediaId={mid} lessons={pool} mediaFor={mediaFor} who={named} pop={pop} say={say}
-                     onSave={role === "coach" ? (file) => data.addLessonMedia(les.id, [file]) : null} />
+                     onSave={role === "coach" ? (file) => { data.addLessonMedia(les.id, [file]).catch(() => {}); return {}; } : null} />
       : <SwipeBack onBack={pop}><Screen title={tr("Compare")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
@@ -18963,7 +19188,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
+      log:       <Wizard onQueueTake={queueWizardTake} library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
                          lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
                          recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
                          onAddPlayer={() => setSheet("invite")}
@@ -19552,13 +19777,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                           close={() => setSheet(null)} say={say} />
               : sheet === "lessonEdit" && editLesson && data ? <LessonEditBody lesson={editLesson} cfg={cfg} say={say}
                                           onSave={(v) => data.updateLesson(editLesson.id, v)}
-                                          onAddFiles={async (files) => {
-                                            say(`${tr("Adding")} ${files.length}…`);
-                                            const res = await data.addLessonMedia(editLesson.id, files);
-                                            const failed = (res && res.failed) || 0;
-                                            /* never silently: the same rule as logging a lesson */
-                                            if (failed) { hapticWarn(); say(`${failed} ${failed === 1 ? tr("file didn't upload") : tr("files didn't upload")}`); }
-                                            else { hapticSuccess(); say(tr("Added")); }
+                                          onAddFiles={(files) => {
+                                            /* behind the coach's back, with the status on Today —
+                                               never silently: the same rule as logging a lesson */
+                                            data.addLessonMedia(editLesson.id, files).then((res) => {
+                                              const failed = (res && res.failed) || 0;
+                                              if (failed) { hapticWarn(); say(`${failed} ${failed === 1 ? tr("file didn't upload") : tr("files didn't upload")}`); }
+                                            }).catch(() => {});
+                                            hapticSuccess(); say(`${files.length} ${files.length === 1 ? tr("file") : tr("files")} · ${tr("uploading")}`);
                                           }}
                                           close={() => { setEditLesson(null); setSheet(null); }} />
               : sheet === "lessonDelete" && editLesson && data ? <LessonDeleteBody lesson={editLesson} say={say}
