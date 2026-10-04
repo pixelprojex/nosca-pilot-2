@@ -349,7 +349,7 @@ select (:ls = 1 and :lm = 1 and :mm = 1 and :'refused'::boolean) as ok \gset
 select (select count(*) from public.notifications where user_id = :'c1' and kind = 'clip' and title = 'Aoife sent a clip' and body = 'Chipping' and data->>'screen' = 'lesson' and data->>'id' = :'clip_a') as nc,
        (select count(*) from public.notifications where user_id = :'a1' and data->>'id' = :'clip_a') as na \gset
 select (:nc = 1 and :na = 0) as ok \gset
-\if :ok \echo PASS a sent clip tells the coach once, by the player's first name, landing on the lesson — and tells the player nothing \else \echo FAIL sent clip notifications coach=:nc player=:na \endif
+\if :ok \echo PASS a sent clip tells the coach once, by the player s first name, landing on the lesson, and tells the player nothing \else \echo FAIL sent clip notifications coach=:nc player=:na \endif
 -- the coach replies with a take: the player is told at once, inside the half hour a logged lesson would hold
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 insert into public.lesson_media (lesson_id, kind, storage_path) values (:'clip_a', 'video', :'c1' || '/' || :'clip_a' || '/markup-1.webm');
@@ -358,7 +358,7 @@ commit;
 select (select count(*) from public.notifications where user_id = :'a1' and kind = 'lesson' and title = 'New clip on Chipping' and data->>'id' = :'clip_a') as nr,
        (select unread from public.lessons where id = :'clip_a') as un \gset
 select (:nr = 1 and not :'un'::boolean) as ok \gset
-\if :ok \echo PASS the coach's take on a sent clip tells the player at once, and the coach may mark the clip seen \else \echo FAIL reply notifications=:nr unread=:un \endif
+\if :ok \echo PASS the coach s take on a sent clip tells the player at once, and the coach may mark the clip seen \else \echo FAIL reply notifications=:nr unread=:un \endif
 
 \echo === 9. delete_my_account cascades, and links held by others are released
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
