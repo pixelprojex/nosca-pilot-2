@@ -920,6 +920,44 @@ seeded data and no account.
   `scripts/e2e/compare.cjs` walks the coach, the player, a parent on a
   child's lesson, and a player with nothing to compare; the mock serves
   a `compare-<n>.webm` take as a real clip like a markup take.
+- **A clip from the player to the coach.** The asynchronous loop every
+  video-coaching product is built on (Skillest's whole product; V1
+  Coach, OnForm, CoachNow): a player films a practice swing and the
+  coach marks it up between lessons. The camera sits in the thread's
+  composer, beside the message field (`thread-clip`), for a player on
+  their own thread and an adult on a child's — the thread is where a
+  person already talks to their coach, so no tab bar or home changed.
+  It opens `LiveCapture` itself (the `clipCapture` overlay, no bookings
+  pill); the first capture goes straight to the send sheet
+  (`ClipSendBody`, `clip-send`): "Send to <coach>", the clip, the
+  sport's areas as one optional tap (`clip-focus`), a note, **Send**.
+  `data.sendClip()` writes a `lessons` row of the player's own —
+  `sent_by` them, for themselves or the child, addressed to that
+  player's coach, kind private, focus the area or "Practice" — uploads
+  the file behind their back under the sender's folder (the thread
+  carries the banner), and puts one line in the thread, "Sent a clip",
+  with `messages.lesson_id`, drawn in the bubble as **Open the clip**
+  (`thread-clip-card`) on both sides. Nothing is asked of the coach's
+  side to receive it: `trg_lessons_notify` tells the coach once
+  ("Cian sent a clip" · the focus, kind `clip`, landing on their own
+  lesson page), the player not at all; `trg_lesson_media_notify` says
+  nothing for the sender's own upload and tells the player at once
+  when the coach's take lands, inside the half hour a logged lesson
+  would hold. On the coach's home it is **To review** under Actions
+  (`today-review`) → `ClipsToReview` (route `clips`, `data-clip-row`:
+  face, name, focus · day) → the lesson page, where Mark it up is;
+  opening it marks it seen (`markLessonSeen`, `unread` false) and the
+  row goes. A sent lesson reads **Practice** wherever a kind is shown.
+  The policies: "lessons: a player sends a clip to their coach"
+  (insert only, sent_by = me, the player me or a junior I look after,
+  the coach that player's own) and "lesson_media: the sender attaches
+  their clip"; a player still cannot log a lesson any other way. Until
+  the founder re-runs `supabase/nosca.sql` no camera is offered
+  anywhere: the hook probes `lessons.sent_by` once (`canSendClip`),
+  the same quiet no as a drill's day. `scripts/e2e/send-clip.cjs`
+  walks the player, a parent for a child, the coach's To review and
+  bell, and a project without the column; behaviour.sql 8b the
+  policies and the triggers.
 - **Progress is a player's journey read off the lessons, the same
   screen on both sides, and it stores nothing.** `ProgressScreen`
   (route `progress` for your own, `progress:<id>` for a player's) is

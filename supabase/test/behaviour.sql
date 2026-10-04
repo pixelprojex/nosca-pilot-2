@@ -319,6 +319,47 @@ rollback;
 select (:sees = 1 and :told = 1 and (select coach_id from public.profiles where id = :'t1') is null) as ok \gset
 \if :ok \echo PASS a declined player is told, stays unlinked, and can still see the coach s name \else \echo FAIL decline sees=:sees told=:told \endif
 
+\echo === 8b. a clip from the player to the coach, while Aoife is still coached by Sinéad
+-- Aoife (a1, Sinéad's player) sends a practice clip: her own lesson row,
+-- the file under her folder, a line in the thread that opens it
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true);
+insert into public.lessons (coach_id, player_id, focus, sent_by) values (:'c1', :'a1', 'Chipping', :'a1') returning id as clip_a \gset
+insert into public.lesson_media (lesson_id, kind, storage_path) values (:'clip_a', 'video', :'a1' || '/' || :'clip_a' || '/swing.mp4');
+insert into public.messages (coach_id, player_id, sender_id, body, lesson_id) values (:'c1', :'a1', :'a1', 'Sent a clip', :'clip_a');
+-- and may not log a lesson any other way: no sent_by, or sent as somebody else
+create temp table if not exists t_clip (k text, ok boolean);
+do $t$ declare refused boolean := false; begin
+  begin
+    insert into public.lessons (coach_id, player_id, focus) values ('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', 'Sneaky');
+  exception when others then refused := true; end;
+  insert into t_clip values ('no_sent_by', refused);
+  refused := false;
+  begin
+    insert into public.lessons (coach_id, player_id, focus, sent_by) values ('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', 'Sneaky', '11111111-1111-4111-8111-111111111111');
+  exception when others then refused := true; end;
+  insert into t_clip values ('as_coach', refused);
+end $t$;
+commit;
+select (select count(*) from public.lessons where id = :'clip_a' and sent_by = :'a1' and coach_id = :'c1') as ls,
+       (select count(*) from public.lesson_media where lesson_id = :'clip_a') as lm,
+       (select count(*) from public.messages where lesson_id = :'clip_a' and sender_id = :'a1') as mm,
+       (select bool_and(ok) from t_clip) as refused \gset
+select (:ls = 1 and :lm = 1 and :mm = 1 and :'refused'::boolean) as ok \gset
+\if :ok \echo PASS a player sends a clip to their coach — the lesson, the file and the thread line — and cannot log a lesson any other way \else \echo FAIL sent clip rows lesson=:ls media=:lm msg=:mm refused=:refused \endif
+select (select count(*) from public.notifications where user_id = :'c1' and kind = 'clip' and title = 'Aoife sent a clip' and body = 'Chipping' and data->>'screen' = 'lesson' and data->>'id' = :'clip_a') as nc,
+       (select count(*) from public.notifications where user_id = :'a1' and data->>'id' = :'clip_a') as na \gset
+select (:nc = 1 and :na = 0) as ok \gset
+\if :ok \echo PASS a sent clip tells the coach once, by the player's first name, landing on the lesson — and tells the player nothing \else \echo FAIL sent clip notifications coach=:nc player=:na \endif
+-- the coach replies with a take: the player is told at once, inside the half hour a logged lesson would hold
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.lesson_media (lesson_id, kind, storage_path) values (:'clip_a', 'video', :'c1' || '/' || :'clip_a' || '/markup-1.webm');
+update public.lessons set unread = false where id = :'clip_a';
+commit;
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'lesson' and title = 'New clip on Chipping' and data->>'id' = :'clip_a') as nr,
+       (select unread from public.lessons where id = :'clip_a') as un \gset
+select (:nr = 1 and not :'un'::boolean) as ok \gset
+\if :ok \echo PASS the coach's take on a sent clip tells the player at once, and the coach may mark the clip seen \else \echo FAIL reply notifications=:nr unread=:un \endif
+
 \echo === 9. delete_my_account cascades, and links held by others are released
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 select public.delete_my_account();

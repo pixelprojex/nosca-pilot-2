@@ -117,6 +117,12 @@ alter table public.lessons add column if not exists subs   text[] not null defau
 alter table public.lessons add column if not exists unread boolean not null default true;
 -- the coach asked, on this lesson, for a rating; the player is prompted once
 alter table public.lessons add column if not exists rating_requested boolean not null default false;
+-- A CLIP THE PLAYER SENT THEIR COACH: who sent it (null for a lesson the
+-- coach logged). The row is the player's own — for themselves, or an
+-- adult's for a junior in the family — addressed to that player's
+-- coach; it lands on the coach's home as To review, the coach marks it
+-- up, and the take goes back as a new clip on the same lesson.
+alter table public.lessons add column if not exists sent_by uuid references public.profiles (id) on delete set null;
 
 -- ---------- lesson_media ----------
 -- One row per uploaded file. storage_path is the path inside the
@@ -309,6 +315,9 @@ create table if not exists public.messages (
   read_at    timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- a line in the thread that carries a lesson — "Sent a clip" opens it
+alter table public.messages add column if not exists lesson_id uuid references public.lessons (id) on delete set null;
 
 -- ---------- reviews ----------
 -- One per player per coach; leaving another replaces it.
@@ -1368,6 +1377,15 @@ create or replace function public.trg_lessons_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare a uuid;
 begin
+  /* a clip the player sent: the coach is told, nobody else — the
+     player knows what they sent */
+  if new.sent_by is not null then
+    if new.coach_id is not null and new.player_id is not null then
+      perform public.notify(new.coach_id, 'clip', public.first_name_of(new.player_id) || ' sent a clip',
+        new.focus, jsonb_build_object('screen', 'lesson', 'id', new.id));
+    end if;
+    return new;
+  end if;
   if new.player_id is not null then
     perform public.notify(new.player_id, 'lesson', 'Lesson logged',
       new.focus || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'lesson', 'id', new.id));
@@ -1414,9 +1432,14 @@ create or replace function public.trg_lesson_media_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare l record; a uuid; what text;
 begin
-  select id, player_id, coach_id, focus, created_at into l from public.lessons where id = new.lesson_id;
+  select id, player_id, coach_id, focus, created_at, sent_by into l from public.lessons where id = new.lesson_id;
   if l.id is null or l.player_id is null then return new; end if;
-  if new.created_at < l.created_at + interval '30 minutes' then return new; end if;
+  /* a clip the player sent: their own upload (the file sits under the
+     sender's folder) says nothing; the coach's reply is told at once,
+     however soon it comes */
+  if l.sent_by is not null then
+    if split_part(new.storage_path, '/', 1) = l.sent_by::text then return new; end if;
+  elsif new.created_at < l.created_at + interval '30 minutes' then return new; end if;
   what := case new.kind when 'video' then 'New clip' when 'photo' then 'New photo' else 'New voice note' end || ' on ' || l.focus;
   perform public.notify(l.player_id, 'lesson', what, public.name_of(l.coach_id), jsonb_build_object('screen', 'lesson', 'id', l.id));
   for a in select public.adults_for(l.player_id) loop
@@ -1874,6 +1897,7 @@ select
   l.lesson_date,
   l.unread,
   l.rating_requested,
+  l.sent_by,
   l.created_at,
   to_char(l.lesson_date, 'DD')          as d,
   upper(to_char(l.lesson_date, 'Mon'))  as m,
@@ -2055,6 +2079,19 @@ create policy "lessons: the coach writes them" on public.lessons
   for all to authenticated
   using (coach_id = auth.uid()) with check (coach_id = auth.uid());
 
+-- A PLAYER SENDS A PRACTICE CLIP. The row is theirs to insert — for
+-- themselves, or an adult's for a junior in their family — marked
+-- sent_by and addressed to that player's own coach; the coach's policy
+-- above then lets the coach work on it (Mark it up, a reply) like any
+-- lesson of theirs. A player may not log a lesson any other way.
+create policy "lessons: a player sends a clip to their coach" on public.lessons
+  for insert to authenticated with check (
+    sent_by = auth.uid()
+    and (player_id = auth.uid() or player_id in (select public.my_family_ids()))
+    and coach_id is not null
+    and coach_id = (select p.coach_id from public.profiles p where p.id = player_id)
+  );
+
 -- ---------- lesson_media ----------
 -- Whether you may see a file follows from whether you may see its
 -- lesson; the lessons policy is applied inside the subquery.
@@ -2067,6 +2104,13 @@ create policy "lesson_media: the lesson's coach writes them" on public.lesson_me
   for all to authenticated
   using      (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()))
   with check (exists (select 1 from public.lessons l where l.id = lesson_id and l.coach_id = auth.uid()));
+
+-- the sender attaches the clip to the lesson they sent (the file itself
+-- goes under their own folder in the media bucket, as every upload does)
+create policy "lesson_media: the sender attaches their clip" on public.lesson_media
+  for insert to authenticated with check (
+    exists (select 1 from public.lessons l where l.id = lesson_id and l.sent_by = auth.uid())
+  );
 
 -- ---------- lesson_attendees ----------
 -- Same shape as lesson_media: whether you may see who was at a lesson
