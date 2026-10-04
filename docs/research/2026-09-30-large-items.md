@@ -57,7 +57,14 @@ and the app opening on its kept shell and last load with no network.
 It stands as the pattern for the next large items: a whole capability,
 both roles, its own suite, the founder's register in CLAUDE.md.
 
-### 2. A clip from the player to the coach
+### 2. A clip from the player to the coach. **Built 4 October.**
+As a camera in the thread's composer (the player's own thread, a
+parent's for a child) → the app's camera → "Send to <coach>" with the
+area and a note; a `lessons` row of the player's own (`sent_by`), the
+file under their folder, "Sent a clip" in the thread opening it; the
+coach's To review under Actions, then Mark it up; triggers tell the
+coach once and the player when the take lands. No camera until the
+SQL is re-run (`canSendClip` probes the column). `send-clip.cjs`.
 The asynchronous loop the market is built on. A player (or a parent
 for a child) films a practice swing with the app's own camera and
 sends it to their coach; it lands on the coach's home under Actions as

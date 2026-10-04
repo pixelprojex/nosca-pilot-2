@@ -90,7 +90,8 @@ const toLesson = (r, attendeeIds = []) => {
     subs: r.subs || [],
     d: String(dt.getDate()).padStart(2, "0"),
     m: MONTHS[dt.getMonth()],
-    type: r.kind === "group" ? "Group" : "Private",
+    /* a clip the player sent reads Practice wherever a kind is shown */
+    type: r.sent_by ? "Practice" : r.kind === "group" ? "Group" : "Private",
     videos: r.videos || 0,
     /* everything attached, not just clips — a lesson with one photo
        or one voice note still has media to open */
@@ -107,6 +108,7 @@ const toLesson = (r, attendeeIds = []) => {
     date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
     iso: r.lesson_date,
     ratingRequested: !!r.rating_requested,
+    sentBy: r.sent_by || null,
     createdAt: r.created_at,
   };
 };
@@ -152,6 +154,8 @@ export function useNoscaData(profile) {
   const dueProbed = useRef(false);
   const [reminderOn, setReminderOn] = useState(false);   // does preferences.reminder_time exist on this project?
   const reminderProbed = useRef(false);
+  const [canSendClip, setCanSendClip] = useState(false); // does lessons.sent_by exist on this project?
+  const clipProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [bookings, setBookings] = useState([]);
@@ -160,6 +164,17 @@ export function useNoscaData(profile) {
   const [prefs, setPrefs] = useState(null);
   const [inviteCode, setInviteCode] = useState(null);
   const [coachName, setCoachName] = useState(null);
+  /* THE COACH'S OWN ROW, as the player may read it — name, sport,
+     picture, bio, club. coachName alone was kept for a long time, and
+     the app's one face lookup looked for `data.coach`, which never
+     existed: every coach's picture was initials on the player's side. */
+  const [coach, setCoach] = useState(null);
+  /* EVERY PROFILE ROW THIS PERSON MAY READ — themselves, their players,
+     their coach, their family, their children's coaches, their junior
+     players' guardians, a coach they asked — as { id, name, role,
+     avatarPath }. It is what the face lookup is built over, so a face
+     is the same disc on every surface for everyone the person can see. */
+  const [people, setPeople] = useState([]);
   const [coachSport, setCoachSport] = useState(null);
   /* the family this person is in — { id, code, name, members } — or null */
   const [family, setFamily] = useState(null);
@@ -204,6 +219,7 @@ export function useNoscaData(profile) {
     setRoster(d.roster || []); setLessons(d.lessons || []); setDrills(d.drills || []); setTips(d.tips || []); setRegisters(d.registers || {});
     setBookings(d.bookings || []); setCompetitions(d.competitions || []); setRecurring(d.recurring || []); setPrefs(d.prefs || null);
     setInviteCode(d.inviteCode || null); setCoachName(d.coachName || null); setCoachSport(d.coachSport || null);
+    setCoach(d.coach || null); setPeople(d.people || []);
     setFamily(d.family || null); setDependants(d.dependants || []); setHoursByPlayer(d.hoursByPlayer || {});
     setRequests(d.requests || []); setMyRequest(d.myRequest || null); setNotifications(d.notifications || []);
     setMe(d.me || null); setDeclinedBy(d.declinedBy || null); setThreads(d.threads || []);
@@ -351,6 +367,8 @@ export function useNoscaData(profile) {
       const theCoach = mine?.coach_id ? personOf(mine.coach_id) : null;
       setCoachName(theCoach?.name || null);
       setCoachSport(theCoach?.sport || null);
+      setCoach(theCoach ? { id: theCoach.id, name: theCoach.name, sport: theCoach.sport || null, avatarPath: theCoach.avatar_path || null, bio: theCoach.bio || null, club: theCoach.club || null } : null);
+      setPeople(people.map((x) => ({ id: x.id, name: x.name, role: x.role, avatarPath: x.avatar_path || null })));
 
       /* Requests: the ones waiting on this coach, with who is asking;
          or, for a player, the one they have out, with who they asked. */
@@ -398,6 +416,11 @@ export function useNoscaData(profile) {
       if (!dueProbed.current) {
         dueProbed.current = true;
         supabase.from("drills").select("due").limit(1).then((pr) => setDrillsDue(!pr.error)).catch(() => setDrillsDue(false));
+      }
+      /* and whether a player may send a clip: the same one probe */
+      if (!clipProbed.current) {
+        clipProbed.current = true;
+        supabase.from("lessons").select("sent_by").limit(1).then((pr) => setCanSendClip(!pr.error)).catch(() => setCanSendClip(false));
       }
       /* and the reminder hour: the same one probe, the same quiet no */
       if (!reminderProbed.current) {
@@ -537,6 +560,8 @@ export function useNoscaData(profile) {
              one day and the next rather than saying "Today" over
              everything ever written */
           iso: msg.created_at,
+          /* a line that carries a lesson — "Sent a clip" — opens it */
+          lessonId: msg.lesson_id || null,
           unread: !msg.read_at && msg.sender_id !== profile.id,
         });
       });
@@ -594,7 +619,7 @@ export function useNoscaData(profile) {
   /* the copy for the plane: written after every good load, and only then */
   useEffect(() => {
     if (!goodAt || offline || !profile) return;
-    putSnapshot(profile.id, { roster, lessons, drills, tips, registers, bookings, competitions, recurring, prefs, inviteCode, coachName, coachSport,
+    putSnapshot(profile.id, { roster, lessons, drills, tips, registers, bookings, competitions, recurring, prefs, inviteCode, coachName, coachSport, coach, people,
                               family, dependants, hoursByPlayer, requests, myRequest, notifications, me, declinedBy, threads, reviewSummary, myReview, reviews,
                               coachAvailability, busySlots, busyByPlayer, links }).catch(() => {});
   }, [goodAt]);
@@ -1250,7 +1275,7 @@ export function useNoscaData(profile) {
      \"messages\"". Nobody reading that learns anything they can act on,
      and it was going straight into the toast. */
   const cannotSend = { message: "That message didn't send. Check you're still with this coach." };
-  const sendMessage = async (playerId, body) => {
+  const sendMessage = async (playerId, body, lessonId = null) => {
     if (!isCoach && isJunior) {
       return { error: { message: "Messages with your coach are handled by your parent or guardian." } };
     }
@@ -1258,10 +1283,42 @@ export function useNoscaData(profile) {
     if (!thread.coach_id || !thread.player_id) {
       return { error: { message: isCoach ? "Add them to your roster first." : "You don't have a coach yet." } };
     }
-    const { error } = await supabase.from("messages").insert({ ...thread, sender_id: profile.id, body });
+    const { error } = await supabase.from("messages").insert({ ...thread, sender_id: profile.id, body, ...(lessonId ? { lesson_id: lessonId } : {}) });
     if (error) return { error: cannotSend };
     await load();
     return {};
+  };
+
+  /* A CLIP FROM THE PLAYER TO THE COACH. A lesson row of the player's
+     own — sent_by them, for themselves or for a child in their family,
+     addressed to that player's coach — with the file uploaded behind
+     their back under the sender's folder (the banner carries it), and
+     one line in the thread that opens it. Offered only where the
+     project's SQL has the column (canSendClip), like a drill's day. */
+  const sendClip = async ({ playerId, file, focus, note }) => {
+    if (!isCoach && isJunior) return { error: { message: "Clips to your coach go through your parent or guardian." } };
+    const who = playerId || profile.id;
+    const thread = threadFor(who);
+    if (!thread.coach_id || !thread.player_id) return { error: { message: "You don't have a coach yet." } };
+    if (!file) return { error: { message: "Nothing to send." } };
+    const now = new Date();
+    const row = { coach_id: thread.coach_id, player_id: who, kind: "private", focus: focus || "Practice", subs: [], notes: note || null,
+                  lesson_date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+                  unread: true, sent_by: profile.id };
+    const { data: made, error } = await supabase.from("lessons").insert(row).select().single();
+    if (error) {
+      const m = String(error.message || "");
+      return { error: { message: /sent_by|42703/.test(m) ? "Your coach's app needs updating before clips can be sent." : /row-level|policy|42501/i.test(m) ? "That didn't send. Check you're still with this coach." : (m || "That didn't send.") } };
+    }
+    uploadFiles(made.id, [file]).catch(() => {});
+    await supabase.from("messages").insert({ ...thread, sender_id: profile.id, body: "Sent a clip", lesson_id: made.id });
+    await load();
+    return { lesson: made };
+  };
+  /* the coach has looked at a sent clip: it leaves To review */
+  const markLessonSeen = async (lessonId) => {
+    const { data: rows } = await supabase.from("lessons").update({ unread: false }).eq("id", lessonId).select("id");
+    if (rows && rows.length) setLessons((v) => v.map((l) => (l.id === lessonId ? { ...l, unread: false } : l)));
   };
 
   /* One message to every player on the roster, as separate threads —
@@ -1590,7 +1647,7 @@ export function useNoscaData(profile) {
   const mediaFor = lessonMediaShared;
 
   return {
-    loading, loadError, offline, isCoach, inviteCode, coachName, coachSport,
+    loading, loadError, offline, isCoach, inviteCode, coachName, coachSport, coach, people,
     /* the family: { id, code, name, displayName, members } or null; the
        juniors an adult looks after; each one's coach's hours */
     family, dependants, hoursByPlayer,
@@ -1606,7 +1663,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, sendClip, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
