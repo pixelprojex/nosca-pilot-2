@@ -9968,7 +9968,10 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {/* what this is */}
           <div className="mb-5" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) both" }}>
             <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>
-              {when}{withWhom ? ` · ${withWhom}` : ""}{groupLesson ? ` · ${tr("Group")}` : ""}
+              {/* a clip the player sent says so first: who sent it to the coach, who the player sent it to */}
+              {lesson.sentBy && withWhom
+                ? `${role === "coach" ? tr("Sent by") : tr("Sent to")} ${withWhom} · ${when}`
+                : <>{when}{withWhom ? ` · ${withWhom}` : ""}{groupLesson ? ` · ${tr("Group")}` : ""}</>}
             </span>
             <h1 className="mt-2" style={{ ...TYPE.screen, color: t.ink }}>{lesson.focus}</h1>
             <LessonTags lesson={lesson} cfg={cfg} className="mt-2.5" />
@@ -11726,8 +11729,13 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
 /* CLIPS TO REVIEW. What players have sent and the coach has not looked
    at: a face, the name, what it is about and the day; a tap opens the
    lesson, where Mark it up is, and the row goes once it has been seen. */
-function ClipsToReview({ lessons, pop, onOpen }) {
+function ClipsToReview({ lessons, pop, onOpen, liveMedia, onNeedMedia, sport }) {
   const t = useT();
+  /* the clip is the subject, so the row is the archive's: the clip's own
+     poster, what it is about, the player and the day on the grey line —
+     it was a face and a name for a round, which read as a roster */
+  const posterFor = (l) => { const m = liveMedia ? liveMedia[l.id] : null; return m && m.length ? m[0] : null; };
+  const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("To review")} onBack={pop} meta={lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("clip") : tr("clips")}` : ""}>
@@ -11735,15 +11743,11 @@ function ClipsToReview({ lessons, pop, onOpen }) {
           {lessons.length === 0
             ? <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing to review")}</p>
             : <div className="nsc-list" data-tour="clips-list">
-                {lessons.map((l) => (
-                  <button key={l.id} data-clip-row="" onClick={() => { haptic(7); soft(); onOpen(l); }} className="w-full flex items-center gap-3.5 px-4 text-left active:opacity-50" style={{ minHeight: 66 }}>
-                    <Avatar name={l.who} size={40} />
-                    <span className="flex-1 min-w-0">
-                      <span className="block truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{l.who}</span>
-                      <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{[l.focus, lessonDay(l)].filter(Boolean).join(" · ")}</span>
-                    </span>
-                    <ChevronRight size={16} color={t.trace || t.faint} />
-                  </button>
+                {lessons.map((l, i) => (
+                  <div key={l.id} data-clip-row="">
+                    <LessonRow lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
+                               showWho onOpen={() => onOpen(l)} onDownload={null} facts={[l.who, lessonDay(l)]} />
+                  </div>
                 ))}
               </div>}
         </div>
@@ -19267,7 +19271,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "layout") {
     body = <LayoutEditor layout={layout} onSave={saveLayout} pop={pop} say={say} />;
   } else if (screen === "clips") {
-    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread) : []} pop={pop}
+    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread) : []} pop={pop} sport={coachSport}
+                          liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                           onOpen={(l) => push(`clesson:${l.id}:${l.who || ""}`)} />;
   } else if (screen === "unlogged") {
     body = <UnloggedLessons items={openUnlogged} onLog={(u) => { setPrefill(u); go("log"); }}

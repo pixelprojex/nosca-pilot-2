@@ -1658,6 +1658,64 @@ exception when others then
   raise notice 'pg_cron unavailable (%) — a drill keeps its day; the morning reminder waits for pg_cron', sqlerrm;
 end $$;
 
+-- ---------- the evening's reminder for tomorrow's lessons ----------
+-- Once per booking, at six in the evening by Ireland's clock the day
+-- before: the player is told "Lesson tomorrow · 10:00 am" with the
+-- coach's name, a junior's adults "Ellie's lesson tomorrow · 10:00 am",
+-- and the coach once, "3 lessons tomorrow", private and group lessons
+-- together. Confirmed bookings only — a requested one is not a lesson
+-- yet. A second run of the same evening adds nothing; the notification
+-- carries the booking it reminded for. Returns how many it sent, so the
+-- test can count. p_hour is for the test suite; the schedule passes
+-- nothing and the hour is now. The day before at six is what the field
+-- does (TeamSnap's days-before notice, CoachAccountable's day-before
+-- mail); nothing is asked of anyone.
+drop function if exists public.remind_bookings();
+create or replace function public.remind_bookings(p_hour integer default null)
+returns integer language plpgsql security definer set search_path = '' as $fn$
+declare r record; c record; a uuid; n integer := 0;
+  here  timestamp := (now() at time zone 'Europe/Dublin');
+  h     integer   := coalesce(p_hour, extract(hour from (now() at time zone 'Europe/Dublin'))::integer);
+  tmrw  date      := here::date + 1;
+begin
+  if h <> 18 then return 0; end if;
+  for r in select b.id, b.player_id, b.coach_id, b.start_time from public.bookings b
+           where b.booking_date = tmrw and b.status = 'confirmed' and b.player_id is not null
+             and not exists (select 1 from public.notifications x
+                              where x.user_id = b.player_id and x.kind = 'booking' and x.data->>'remind' = b.id::text)
+           order by b.start_time loop
+    perform public.notify(r.player_id, 'booking', 'Lesson tomorrow · ' || r.start_time, public.name_of(r.coach_id),
+      jsonb_build_object('screen', 'calendar', 'id', r.id, 'remind', r.id));
+    for a in select public.adults_for(r.player_id) loop
+      perform public.notify(a, 'booking', public.first_name_of(r.player_id) || '''s lesson tomorrow · ' || r.start_time,
+        public.name_of(r.coach_id), jsonb_build_object('screen', 'family', 'id', r.id, 'remind', r.id));
+    end loop;
+    n := n + 1;
+  end loop;
+  /* the coach: one line with the count, once per evening */
+  for c in select b.coach_id, count(*) as k from public.bookings b
+           where b.booking_date = tmrw and b.status = 'confirmed' group by b.coach_id loop
+    if not exists (select 1 from public.notifications x
+                   where x.user_id = c.coach_id and x.kind = 'booking' and x.data->>'remind_day' = tmrw::text) then
+      perform public.notify(c.coach_id, 'booking', c.k || case when c.k = 1 then ' lesson tomorrow' else ' lessons tomorrow' end, null,
+        jsonb_build_object('screen', 'calendar', 'remind_day', tmrw));
+      n := n + 1;
+    end if;
+  end loop;
+  return n;
+end $fn$;
+revoke all on function public.remind_bookings(integer) from public, anon, authenticated;
+
+-- the same hourly clock as the drills; the function itself keeps to six
+do $$
+begin
+  create extension if not exists pg_cron;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'nosca-lesson-reminders';
+  perform cron.schedule('nosca-lesson-reminders', '0 * * * *', 'select public.remind_bookings()');
+exception when others then
+  raise notice 'pg_cron unavailable (%) — the evening reminder waits for pg_cron', sqlerrm;
+end $$;
+
 -- ---------- a tip ----------
 create or replace function public.trg_tips_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
@@ -2591,6 +2649,9 @@ select
   (select case when exists (select 1 from pg_extension where extname = 'pg_cron')
      then 'scheduled, 8 am'
      else 'off — enable pg_cron under Database › Extensions and re-run' end)        as drill_reminders,
+  (select case when exists (select 1 from pg_extension where extname = 'pg_cron')
+     then 'scheduled, 6 pm the evening before'
+     else 'off — enable pg_cron under Database › Extensions and re-run' end)        as lesson_reminders,
   (select count(*) from auth.users)                                                 as accounts,
   (select count(*) from public.profiles)                                            as profiles,
   (select count(*) from public.families)                                            as families;

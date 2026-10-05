@@ -360,6 +360,26 @@ select (select count(*) from public.notifications where user_id = :'a1' and kind
 select (:nr = 1 and not :'un'::boolean) as ok \gset
 \if :ok \echo PASS the coach s take on a sent clip tells the player at once, and the coach may mark the clip seen \else \echo FAIL reply notifications=:nr unread=:un \endif
 
+\echo === 8c. the evening before a lesson
+-- tomorrow by Ireland's clock: Aoife at ten, Ellie at eleven (her mother Marcus is told too), and a group slot
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values (:'c1', :'a1', (now() at time zone 'Europe/Dublin')::date + 1, '10:00 am', 45, 'private', 'confirmed') returning id as bk_a \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values (:'c1', :'j1', (now() at time zone 'Europe/Dublin')::date + 1, '11:00 am', 45, 'private', 'confirmed');
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Saturday squad', (now() at time zone 'Europe/Dublin')::date + 1, '2:00 pm', 60, 'group', 'confirmed');
+-- a lesson only asked for is not a lesson yet
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values (:'c1', :'a1', (now() at time zone 'Europe/Dublin')::date + 1, '4:00 pm', 45, 'private', 'requested');
+commit;
+select public.remind_bookings(8) as b0 \gset
+select public.remind_bookings(18) as b1 \gset
+select public.remind_bookings(18) as b2 \gset
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title = 'Lesson tomorrow · 10:00 am' and body = 'Sinéad Walsh' and data->>'screen' = 'calendar' and data->>'id' = :'bk_a') as ra,
+       (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title like 'Lesson tomorrow%') as ra_all,
+       (select count(*) from public.notifications where user_id = :'j1' and kind = 'booking' and title = 'Lesson tomorrow · 11:00 am') as rj,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'booking' and title = 'Ellie''s lesson tomorrow · 11:00 am' and data->>'screen' = 'family') as rp,
+       (select count(*) from public.notifications where user_id = :'c1' and kind = 'booking' and title = '3 lessons tomorrow' and body is null and data->>'screen' = 'calendar') as rc \gset
+select (:b0 = 0 and :b1 = 3 and :b2 = 0 and :ra = 1 and :ra_all = 1 and :rj = 1 and :rp = 1 and :rc = 1) as ok \gset
+\if :ok \echo PASS the evening before, each player is reminded once of tomorrow s lesson, a junior s adult too, and the coach once with the count; nothing at other hours, nothing twice, nothing for a lesson only asked for \else \echo FAIL lesson reminders b0=:b0 b1=:b1 b2=:b2 a=:ra all=:ra_all j=:rj p=:rp c=:rc \endif
+
 \echo === 9. delete_my_account cascades, and links held by others are released
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 select public.delete_my_account();
