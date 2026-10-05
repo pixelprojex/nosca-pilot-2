@@ -113,7 +113,7 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
       await shot("03-thread-card");
       await card.first().click(); await page.waitForTimeout(1200);
       const t4 = await text();
-      check("(e3) …which opens the clip as a lesson of theirs, with the note and the coach named", /Chipping/.test(t4) && /Niamh Byrne/.test(t4) && /weight too far back/.test(t4), t4.slice(0, 200));
+      check("(e3) …which opens the clip as a lesson of theirs, reading Sent to Niamh Byrne, with the note", /Chipping/.test(t4) && /Sent to Niamh Byrne/.test(t4) && /weight too far back/.test(t4), t4.slice(0, 200));
       await shot("04-player-lesson");
       const told = db.notifications.filter((n) => n.data && n.data.id === (sent && sent.id));
       check("(f) the coach is told once — Cian sent a clip · Chipping, landing on the lesson — and the player is not", told.length === 1 && told[0].user_id === IDS.coach && told[0].kind === "clip" && told[0].title === "Cian sent a clip" && told[0].body === "Chipping" && told[0].data.screen === "lesson", JSON.stringify(told.map((n) => [n.user_id === IDS.coach ? "coach" : "other", n.kind, n.title])));
@@ -145,11 +145,12 @@ const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now
       await tap(page, '[data-tour="today-review"]', 900);
       const rows = page.locator("[data-clip-row]");
       const rt = []; for (let i = 0; i < await rows.count(); i++) rt.push(M.norm(await rows.nth(i).innerText()));
-      check("(j) To review lists both clips with the player's name and what they are about", rt.length === 2 && rt.some((x) => /Cian Murphy.*Chipping/.test(x)) && rt.some((x) => /Saoirse Kelly.*Practice/.test(x)), JSON.stringify(rt));
+      check("(j) To review lists both clips as lesson rows: what it is about, the player and the day", rt.length === 2 && rt.some((x) => /Chipping/.test(x) && /Cian Murphy/.test(x)) && rt.some((x) => /Practice/.test(x) && /Saoirse Kelly/.test(x)), JSON.stringify(rt));
+      check("(j2) …each with the clip's poster, the archive's row", (await page.locator("[data-clip-row] img, [data-clip-row] video, [data-clip-row] canvas").count()) >= 1 || (await page.locator("[data-clip-row] svg").count()) >= 2, String(await page.locator("[data-clip-row] img").count()));
       await shot("07-to-review");
       await rows.filter({ hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(1500);
       const t5 = await text();
-      check("(k) the clip opens as a lesson page with Mark it up on offer", /Chipping/.test(t5) && (await page.locator('[data-tour="lesson-markup"]').count()) >= 1, t5.slice(0, 200));
+      check("(k) the clip opens as a lesson page reading Sent by Cian Murphy, with Mark it up on offer", /Chipping/.test(t5) && /Sent by Cian Murphy/.test(t5) && (await page.locator('[data-tour="lesson-markup"]').count()) >= 1, t5.slice(0, 200));
       await shot("08-coach-lesson");
       const sent = db.lessons.find((l) => l.sent_by === IDS.adult);
       const seen = await until(() => sent && sent.unread === false, 6000);

@@ -945,7 +945,9 @@ seeded data and no account.
   when the coach's take lands, inside the half hour a logged lesson
   would hold. On the coach's home it is **To review** under Actions
   (`today-review`) → `ClipsToReview` (route `clips`, `data-clip-row`:
-  face, name, focus · day) → the lesson page, where Mark it up is;
+  the archive's `LessonRow` — the clip's poster, what it is about, the
+  player and the day; it was a face and a name for a round, which read
+  as a roster) → the lesson page, where Mark it up is;
   opening it marks it seen (`markLessonSeen`, `unread` false) and the
   row goes. A sent lesson reads **Practice** wherever a kind is shown.
   The policies: "lessons: a player sends a clip to their coach"
@@ -1033,6 +1035,22 @@ seeded data and no account.
   follow-up drill; nothing else in the field does, and a dated drill is
   what brings a player back between lessons. `scripts/e2e/drills-due.cjs`
   walks the coach, the player and a project without the column.
+- **The evening before a lesson, everyone is reminded once.**
+  `remind_bookings(p_hour)` runs on pg_cron every hour beside the
+  drills' job (`nosca-lesson-reminders`) and acts at six in the
+  evening by Ireland's clock: for every confirmed booking tomorrow the
+  player is told "Lesson tomorrow · 10:00 am" with the coach's name
+  (kind `booking`, landing on the Diary), a junior's adults "Ellie's
+  lesson tomorrow · 10:00 am" (landing on Family), and the coach once,
+  "3 lessons tomorrow", private and group together. A requested
+  booking is not a lesson yet and says nothing; the notification
+  carries the booking (`data.remind`) so a second run of the same
+  evening adds nothing. Nothing is asked of anyone and nothing lives
+  on the phone: the database sends it, the bell already draws it, and
+  the status row's `lesson_reminders` says whether pg_cron is on. The
+  day before is what the field does (TeamSnap's days-before notice,
+  CoachAccountable's day-before mail with a second half an hour out —
+  one is enough here). behaviour.sql 8c counts it.
 - **The Drills tab is what is to do; All drills is the record.**
   `PlayerPractice` shows every drill not yet done, every drill from the
   last day drills were set (so a set reads whole once it is ticked

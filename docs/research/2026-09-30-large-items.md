@@ -113,6 +113,23 @@ lessons, the areas, the stage line, the drills, the coach's tips — as
 one HTML page for the share sheet, from the player file and the
 family screen. No SQL. Noticeable to a parent at the end of a term.
 
+### 7. The evening before a lesson. **Built 5 October.**
+Not from the first reading of the field but from its second: TeamSnap
+messages a few days before an event, CoachAccountable mails the day
+before and again half an hour out, CoachRx pushes at a time the coach
+sets. Nosca had the bookings and the bell and no reminder at all.
+`remind_bookings()` on the drills' hourly pg_cron, at six the evening
+before: the player, a junior's adults, the coach once with the count.
+No app change; nothing asked of anyone. behaviour.sql 8c.
+
+### Next candidates (added 4–5 October, unranked until read against the field)
+- The coach's written reply on a sent clip — a line back with the take,
+  not only the clip (CoachNow's post has both).
+- A sent clip's standing on the player's side — "Waiting on Niamh" on
+  the Drills tab or the thread until the take lands.
+- A second reminder the morning of, or an hour before, if the founder
+  asks; CoachAccountable sends both.
+
 ### 6. Pose overlay
 Every reference product draws a skeleton over the swing now. Possible
 on the phone with a pose model in the bundle, at a cost of several
