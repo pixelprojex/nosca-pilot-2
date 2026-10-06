@@ -1616,6 +1616,9 @@ export function useNoscaData(profile) {
       type: m.kind,                                   // video · photo · audio
       kind: m.kind,
       url: urlFor(m.storage_path, i),
+      /* whose folder it is under — the first segment is the uploader's
+         id, so a sent clip can tell the coach's take from its own file */
+      path: m.storage_path,
       /* strip the "<millis>-<token>-" the upload prefixes, and the older
          "<millis>-" shape from files stored before that changed */
       name: m.storage_path.split("/").pop().replace(/^\d+-[0-9a-z]{6,8}-/i, "").replace(/^\d+-/, ""),

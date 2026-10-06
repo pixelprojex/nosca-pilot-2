@@ -360,6 +360,30 @@ select (select count(*) from public.notifications where user_id = :'a1' and kind
 select (:nr = 1 and not :'un'::boolean) as ok \gset
 \if :ok \echo PASS the coach s take on a sent clip tells the player at once, and the coach may mark the clip seen \else \echo FAIL reply notifications=:nr unread=:un \endif
 
+\echo === 8d. the coach s reply in words on a sent clip
+-- Sinéad replies from the clip's page: Aoife is told "replied", with the words, and lands on the clip — not a plain message
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.messages (coach_id, player_id, sender_id, body, lesson_id) values (:'c1', :'a1', :'c1', 'Weight is fine, hands ahead at impact', :'clip_a');
+commit;
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'message' and title = 'Sinéad Walsh replied' and body = 'Weight is fine, hands ahead at impact' and data->>'screen' = 'lesson' and data->>'id' = :'clip_a') as rr,
+       (select count(*) from public.notifications where user_id = :'a1' and kind = 'message' and title = 'Sinéad Walsh' and body = 'Weight is fine, hands ahead at impact') as rplain \gset
+select (:rr = 1 and :rplain = 0) as ok \gset
+\if :ok \echo PASS the coach s reply on a sent clip tells the player replied, with the words, landing on the clip \else \echo FAIL clip reply a=:rr plain=:rplain \endif
+-- Marcus sends a clip for Ellie: the Sent a clip line tells the coach nothing twice; Sinéad's reply tells Marcus on the thread and Ellie on the clip
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'p1'), true);
+insert into public.lessons (coach_id, player_id, focus, sent_by) values (:'c1', :'j1', 'Serve', :'p1') returning id as clip_j \gset
+insert into public.messages (coach_id, player_id, sender_id, body, lesson_id) values (:'c1', :'j1', :'p1', 'Sent a clip', :'clip_j');
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.messages (coach_id, player_id, sender_id, body, lesson_id) values (:'c1', :'j1', :'c1', 'Toss a touch further forward', :'clip_j');
+commit;
+select (select count(*) from public.notifications where user_id = :'c1' and kind = 'message' and body = 'Sent a clip') as cm,
+       (select count(*) from public.notifications where user_id = :'c1' and kind = 'clip' and title = 'Ellie sent a clip' and data->>'id' = :'clip_j') as cc,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'message' and title = 'Sinéad Walsh replied to Ellie' and body = 'Toss a touch further forward' and data->>'screen' = 'thread' and data->>'id' = :'j1') as rp,
+       (select count(*) from public.notifications where user_id = :'j1' and kind = 'message' and title = 'Sinéad Walsh replied' and data->>'screen' = 'lesson' and data->>'id' = :'clip_j') as rj \gset
+select (:cm = 0 and :cc = 1 and :rp = 1 and :rj = 1) as ok \gset
+\if :ok \echo PASS a sent clip line tells the coach nothing twice; the reply tells the adult on the thread and the junior on the clip \else \echo FAIL clip reply family cm=:cm cc=:cc p=:rp j=:rj \endif
+
 \echo === 8c. the evening before a lesson
 -- tomorrow by Ireland's clock: Aoife at ten, Ellie at eleven (her mother Marcus is told too), and a group slot
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
