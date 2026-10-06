@@ -9906,7 +9906,7 @@ function LessonStage({ item, onAnnotate, onCompare }) {
 
 
 function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson, banner, cfg,
-                        onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onCompare, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight }) {
+                        onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onCompare, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight, replies = [], onReply, standing }) {
   const t = useT();
   const star = useContext(StarCtx); const isStar = star.has(lesson.id);
   const dl = useContext(DownloadCtx); const dlState = dl.state(lesson.id);
@@ -9975,6 +9975,9 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             </span>
             <h1 className="mt-2" style={{ ...TYPE.screen, color: t.ink }}>{lesson.focus}</h1>
             <LessonTags lesson={lesson} cfg={cfg} className="mt-2.5" />
+            {/* a sent clip's standing: the coach has not answered yet. It goes
+                the moment their words or their take land. */}
+            {standing && <span data-tour="clip-standing" className="block mt-2.5" style={{ ...TYPE.small, color: t.faint }}>{standing}</span>}
           </div>
 
           {/* the clip, and the others as thumbnails — the ring says which */}
@@ -10002,6 +10005,21 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {lesson.note && (
             <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
               <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{lesson.note}</p>
+            </div>
+          )}
+
+          {/* THE COACH'S REPLY ON A SENT CLIP, in words, under the player's
+              question: the line the coach wrote from this page, which also
+              sits in the thread tied to the clip. Who wrote it and the day
+              as the eyebrow; the words in the note's own type. */}
+          {replies.length > 0 && (
+            <div className="py-5" data-tour="lesson-reply" style={{ borderTop: hair }}>
+              {replies.map((r, i) => (
+                <div key={r.id || i} className={i ? "mt-4" : ""}>
+                  <Label>{[role === "coach" ? tr("Replied") : (first(coachName) || tr("Coach")), r.iso ? fmtWeekDay(new Date(r.iso)) : null].filter(Boolean).join(" · ")}</Label>
+                  <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{r.text}</p>
+                </div>
+              ))}
             </div>
           )}
 
@@ -10053,16 +10071,22 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             {(() => {
               /* one primary button, then the secondary verbs as a quiet row */
               const acts = (role === "coach"
-                ? [onSetDrills && { k: "d", lbl: tr("Set drills"), act: onSetDrills, accent: true },
-                   onMessage && { k: "m", lbl: tr("Message"), act: onMessage },
-                   onLogAnother && { k: "l", lbl: tr("Log"), act: onLogAnother }]
+                ? (lesson.sentBy && onReply
+                    /* a clip the player sent is answered: Reply is the one
+                       action, and there is no lesson here to log again */
+                    ? [{ k: "r", lbl: tr("Reply"), act: onReply, accent: true, tour: "clip-reply" },
+                       onSetDrills && { k: "d", lbl: tr("Set drills"), act: onSetDrills },
+                       onMessage && { k: "m", lbl: tr("Message"), act: onMessage }]
+                    : [onSetDrills && { k: "d", lbl: tr("Set drills"), act: onSetDrills, accent: true },
+                       onMessage && { k: "m", lbl: tr("Message"), act: onMessage },
+                       onLogAnother && { k: "l", lbl: tr("Log"), act: onLogAnother }])
                 : [onMessage && !juvenile && { k: "m", lbl: tr("Message"), act: onMessage, accent: true }]).filter(Boolean);
               if (!acts.length) return null;
               const primary = acts.find((a) => a.accent) || acts[0];
               const rest = acts.filter((a) => a !== primary);
               return (
                 <>
-                  <Button onClick={primary.act}>{primary.lbl}</Button>
+                  <Button onClick={primary.act} tour={primary.tour}>{primary.lbl}</Button>
                   {rest.length > 0 && (
                     <div className="flex gap-2 mt-2.5">
                       {rest.map((a) => (
@@ -10097,7 +10121,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
   );
 }
 
-function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance, attendanceFor, lessonId, mediaFor, onDownload, onRate, juvenile, drills, tips, onMessage, onBook, compareLessons, knownMedia }) {
+function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleSave, minimise, attendance, attendanceFor, lessonId, mediaFor, onDownload, onRate, juvenile, drills, tips, onMessage, onBook, compareLessons, knownMedia, replies = [] }) {
   const live = !!mediaFor;
   /* the one that was tapped — by id, never "the newest" */
   const base = lessonId != null
@@ -10113,6 +10137,16 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
   const items = live ? (media || []) : (l ? cfg.angles.slice(0, typeof l.videos === "number" ? l.videos : (l.videos || []).length || 0).map((angle) => ({ type: "sim", angle })) : []);
   const t = useT();
   const canCompare = live && !fresh && !!l && compareable(l, items, compareLessons, knownMedia);
+  /* A SENT CLIP'S STANDING. Until the coach's words or their take land
+     the page reads "Waiting on Niamh"; it goes the moment either does. A
+     file under any folder but the sender's own is the coach's. The files
+     must have been read first (and be the server's, which carry their
+     path — a kept copy does not), so a take already there never flashes
+     a wait. */
+  const coachNameOf = l ? (l.coach || conn?.coach || "") : "";
+  const knowable = media !== null && (items || []).every((it) => it.path);
+  const answered = (replies || []).length > 0 || (items || []).some((it) => it.path && l && l.sentBy && !String(it.path).startsWith(`${l.sentBy}/`));
+  const standing = live && !fresh && l && l.sentBy && knowable && !answered ? `${tr("Waiting on")} ${(coachNameOf || tr("the coach")).split(" ")[0]}` : null;
   if (!fresh && lessonId != null && !base) {
     return (
       <SwipeBack onBack={pop}>
@@ -10130,7 +10164,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
                   onDownload={live ? (its) => onDownload && onDownload(l, its) : () => toggleSave && toggleSave(l.id)}
                   onMessage={onMessage ? () => onMessage(l) : null} onBook={onBook ? () => onBook(l) : null} onGoDrills={() => go("practice")}
                   onCompare={canCompare ? (it) => push(`compare:${l.id}:${it.id}`) : null}
-                  onRate={onRate} pop={pop} />
+                  onRate={onRate} replies={replies} standing={standing} pop={pop} />
   );
 }
 
@@ -11275,7 +11309,7 @@ const compareable = (lesson, items, lessons, known) => {
   });
 };
 
-function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload, drills, tips, attendance, onEdit, onDelete, onRemoveMedia, banner, compareLessons, knownMedia }) {
+function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live, mediaFor, onDuplicate, onDownload, drills, tips, attendance, onEdit, onDelete, onRemoveMedia, banner, compareLessons, knownMedia, replies, onReply }) {
   const count = lesson.media ?? lesson.videos ?? 0;
   const media = useLessonMedia(live ? lesson.id : null, mediaFor, count);
   const items = live ? (media || []) : cfg.angles.slice(0, lesson.videos || 1).map((angle) => ({ type: "sim", angle }));
@@ -11296,7 +11330,9 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
                   onDelete={live && onDelete ? () => onDelete(lesson) : null}
                   onRemoveMedia={live && onRemoveMedia ? (item) => onRemoveMedia(lesson, item) : null}
                   onAnnotate={live ? (it) => push(`review:${lesson.id}:${it.id}`) : (it) => push("annotate:" + it.angle)}
-                  onCompare={canCompare ? (it) => push(`compare:${lesson.id}:${it.id}`) : null} pop={pop} />
+                  onCompare={canCompare ? (it) => push(`compare:${lesson.id}:${it.id}`) : null}
+                  /* a clip the player sent: the coach's words back, from this page */
+                  replies={replies || []} onReply={live && onReply && lesson.sentBy && lesson.playerId ? () => onReply(lesson) : null} pop={pop} />
   );
 }
 
@@ -15357,6 +15393,50 @@ function ClipSendBody({ who, child, areas, file, say, close, onSend }) {
     </>
   );
 }
+/* THE COACH'S REPLY ON A SENT CLIP: words back, from the clip's own page.
+   The line goes into the thread tied to the clip, so it reads there with
+   Open the clip beside it, and on both lesson pages under the player's
+   question; the player is told "<Coach> replied" and lands on the clip. */
+function ClipReplyBody({ who, focus, say, close, onSend }) {
+  const t = useT();
+  const [text, setText] = useState(""); const [busy, setBusy] = useState(false);
+  const send = async () => {
+    const body = text.trim(); if (!body || busy) return;
+    setBusy(true); hapticCommit();
+    const res = await onSend(body);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("That didn't send")); return; }
+    close();
+  };
+  return (
+    <>
+      <h2 className="mb-1" data-tour="clip-reply-sheet" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Reply")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[`${tr("To")} ${who}`, focus].filter(Boolean).join(" · ")}</p>
+      <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Reply")} /></div>
+      <Button disabled={busy || !text.trim()} onClick={send} tour="clip-reply-send">{busy ? tr("Sending…") : tr("Send")}</Button>
+    </>
+  );
+}
+/* A CLIP IN THE THREAD LOOKS LIKE A CLIP: the lesson's first file as a
+   small poster beside Open the clip — the way every messenger draws a
+   video it was sent — asked for once as the card mounts, the way a
+   lesson row asks for its own. Before the file is known, the sport's
+   glyph in the same box, so the card never jumps. */
+function ClipCard({ lessonId, live, mine }) {
+  const t = useT();
+  const poster = live.posterFor ? live.posterFor(lessonId) : undefined;
+  useEffect(() => { if (live.needFor) live.needFor(lessonId); }, [lessonId]);
+  const pill = poster === undefined;
+  return (
+    <button data-tour="thread-clip-card" onClick={() => { haptic(7); live.openLesson(lessonId); }}
+            className="mt-2 flex items-center gap-2.5 active:opacity-60"
+            style={{ minHeight: pill ? 34 : 48, padding: pill ? "0 12px 0 10px" : "4px 12px 4px 4px", borderRadius: pill ? R.pill : 10,
+                     background: mine ? "rgba(255,255,255,0.14)" : t.wash, ...TYPE.caption, fontWeight: 600, color: mine ? "#fff" : t.ink }}>
+      {pill ? <VideoIcon size={14} color={mine ? "#fff" : t.ink} strokeWidth={2} /> : <Poster item={poster} size={40} radius={7} sport={live.sport} />}
+      {tr("Open the clip")}<ChevronRight size={13} color={mine ? "#fff" : t.ink} />
+    </button>
+  );
+}
 /* The day a message was sent, and how to head it. Yesterday and today
    are named; anything older gets its date. */
 const dayOf = (iso) => (iso ? new Date(iso).toDateString() : null);
@@ -15421,14 +15501,8 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
               author of the line under it. */}
           {m.via && <span className="block mb-0.5" style={{ ...TYPE.caption, color: t.faint }}>{m.via}</span>}
           <p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.45, color: mine ? "#fff" : t.ink }}>{body}</p>
-          {/* a line that carries a clip opens it */}
-          {m.lessonId && live && live.openLesson && (
-            <button data-tour="thread-clip-card" onClick={() => { haptic(7); live.openLesson(m.lessonId); }}
-                    className="mt-2 flex items-center gap-2 active:opacity-60"
-                    style={{ minHeight: 34, padding: "0 12px 0 10px", borderRadius: R.pill, background: mine ? "rgba(255,255,255,0.14)" : t.wash, ...TYPE.caption, fontWeight: 600, color: mine ? "#fff" : t.ink }}>
-              <VideoIcon size={14} color={mine ? "#fff" : t.ink} strokeWidth={2} />{tr("Open the clip")}<ChevronRight size={13} color={mine ? "#fff" : t.ink} />
-            </button>
-          )}
+          {/* a line that carries a clip opens it, and looks like one */}
+          {m.lessonId && live && live.openLesson && <ClipCard lessonId={m.lessonId} live={live} mine={mine} />}
         </div>
         {m.at && <span className="block mt-1 px-1" style={{ ...TYPE.caption, color: t.faint }}>{m.at}</span>}
       </div>
@@ -17150,6 +17224,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* a clip on its way to the coach: whose thread it goes to, then the file */
   const [clipFor, setClipFor] = useState(null);
   const [clipFile, setClipFile] = useState(null);
+  const [replyFor, setReplyFor] = useState(null);   // the sent clip the coach is replying to
   useEffect(() => {
     if (!data || sc) return;
     /* the service worker opens the app at ?open=<screen>, or tells an open app */
@@ -18608,6 +18683,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     (data.dependants || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.coachName || tr("Their coach"), `${tr("For")} ${f.name.split(" ")[0]}`, { kind: "child", child: f.name.split(" ")[0], childName: f.name, coachId: f.coachId })));
     return rows.sort((a, b) => (a.kind === "own") - (b.kind === "own") ? (a.kind === "own" ? -1 : 1) : order(a, b));
   })() : null;
+  /* THE COACH'S WORDS ON A SENT CLIP: every line in any thread the person
+     can read that carries this lesson's id and was written by the coach.
+     Read, never stored twice — the thread is the record. */
+  const clipReplies = (lid) => data && lid != null
+    ? (data.threads || []).flatMap((th) => (th.messages || []).filter((m) => m.lessonId && String(m.lessonId) === String(lid) && m.fromCoach)
+        .map((m) => ({ id: m.id, text: m.body, iso: m.iso, mine: m.mine })))
+    : [];
   const unread = data ? (liveThreads || []).reduce((n, c) => n + (c.unread || 0), 0) : freshAccount ? 0 : THREADS[role].reduce((n, c) => n + c.unread, 0);
   const waiting = freshAccount || role !== "coach" ? 0
     : openRequests.length + checkIns.filter((x) => x.state === "waiting").length
@@ -18877,6 +18959,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       sendClip: data.canSendClip && !juvenile && ((open.playerId === (account && account.id) && data.hasCoach) || open.kind === "child")
         ? () => { setClipFor({ playerId: open.playerId, who: open.who, child: open.child || null }); setSheet("clipCapture"); } : null,
       openLesson: (id) => push(role === "coach" ? `clesson:${id}` : `lesson:${id}`),
+      /* the clip's poster for a line that carries one, from the same map
+         the lesson rows read; the card asks for it once as it mounts */
+      sport: role === "coach" ? coachSport : sport,
+      posterFor: (lid) => { const m = liveMedia[lid]; return m && m.length ? m[0] : null; },
+      needFor: (lid) => { const l = (data.lessons || []).find((x) => String(x.id) === String(lid)); if (l && !(l.id in liveMedia)) needMedia(l); },
       onDetails: role === "coach" ? () => push("player:" + (open.playerId || open.who))
                : open.playerId === account.id ? () => push("coachProfile") : null,
     } : {
@@ -19104,10 +19191,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       : (cfg.lessons.find((x) => String(x.id) === lid) || cfg.lessons[0]);
     /* a clip the player sent leaves To review once the coach has opened it */
     if (data && les && les.sentBy && les.unread && !seenClips.current.has(les.id)) { seenClips.current.add(les.id); data.markLessonSeen(les.id); }
+    /* opened from the thread's card or the bell the route carries no name:
+       the lesson knows whose it is, so the page still says Sent by Cian */
     body = les
-      ? <CoachLessonView name={cname} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
+      ? <CoachLessonView name={cname || les.who || ""} lesson={les} cfg={cfg} pop={pop} push={push} say={say} assignDrills={openAssignDrills}
                          live={!!data} mediaFor={data ? mediaFor : null} drills={data ? data.drills : null} tips={data ? data.tips : null}
                          compareLessons={data ? taught(data.lessons) : null} knownMedia={data ? liveMedia : null}
+                         replies={clipReplies(les.id)} onReply={data ? (l) => { setReplyFor(l); setSheet("clipReply"); } : null}
                          attendance={(() => { const k = Object.keys(registers || {}).find((x) => x.startsWith(`${les.d} ${les.m}`)); if (!k) return null; return (data ? registers[k][les.playerId] : registers[k][seedId(cname)]) || null; })()}
                          onDuplicate={(l) => { setPrefill({ who: l.who, playerId: l.playerId || null, kind: l.type === "Group" ? "Group" : "Private" }); go("log"); }}
                          onEdit={data ? (l) => { setEditLesson(l); setSheet("lessonEdit"); } : null}
@@ -19425,6 +19515,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       lesson: <PlayerLesson {...shared} pop={pop} push={push} toggleSave={toggleSave} minimise={(clip, lid) => { setMini({ label: clip, id: lid }); go("log"); say("Playing in the corner"); }}
                             lessonId={screen.startsWith("lesson:") ? screen.slice(7) : null}
                             mediaFor={data ? mediaFor : null} compareLessons={data ? playerLessons : null} knownMedia={data ? liveMedia : null}
+                            replies={data && screen.startsWith("lesson:") ? clipReplies(screen.slice(7)) : []}
                             drills={data ? data.drills : null} tips={data ? data.tips : null}
                             /* what the coach marked that day, for the person the lesson belongs to */
                             attendanceFor={(l) => { const who = data ? (l.playerId || null) : seedId(activeProfile?.name);
@@ -20006,6 +20097,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                                               done(tr("Sent"), clipFor.who);
                                                                               return res;
                                                                             }} />
+              : sheet === "clipReply" && replyFor && data ? <ClipReplyBody who={replyFor.who} focus={replyFor.focus} say={say}
+                                                                 close={() => { setSheet(null); setReplyFor(null); }}
+                                                                 onSend={async (text) => {
+                                                                   const res = await data.sendMessage(replyFor.playerId, text, replyFor.id);
+                                                                   if (res && res.error) return res;
+                                                                   done(tr("Sent"), replyFor.who);
+                                                                   return res;
+                                                                 }} />
               : null}
           </Sheet>
           {sheet === "clipCapture" && (

@@ -122,13 +122,27 @@ sets. Nosca had the bookings and the bell and no reminder at all.
 before: the player, a junior's adults, the coach once with the count.
 No app change; nothing asked of anyone. behaviour.sql 8c.
 
-### Next candidates (added 4–5 October, unranked until read against the field)
-- The coach's written reply on a sent clip — a line back with the take,
-  not only the clip (CoachNow's post has both).
-- A sent clip's standing on the player's side — "Waiting on Niamh" on
-  the Drills tab or the thread until the take lands.
+### 8. A sent clip is answered. **Built 6 October.**
+The two candidates below it, read against the field on 6 October and
+built as one: V1 Golf's athlete sees a sent swing move through Sent ·
+Accepted · Completed on their Lessons tab; Skillest's coach "records
+their own videos with their analysis as well as additional drills and
+sends them back inside the lesson"; CoachNow's reply to a post is
+video, text or audio in the same Space. Nosca: Reply on the coach's
+page for a sent clip, the line in the thread tied to the clip and on
+both lesson pages under the player's question, "Niamh Byrne replied"
+landing on the clip, and "Waiting on Niamh" on the player's side until
+the words or the take land. The thread's clip lines carry the clip's
+poster. `clip-reply.cjs`; behaviour.sql 8d.
+
+### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
+- An acknowledgement from the player on a reply — CoachNow's "fist
+  bump" — if the coaches ask for one; a tap, never a form.
+- Lessons in the phone's calendar: a confirmed booking as an `.ics`
+  through the share sheet (TeamSnap and CoachIQ sync calendars). No
+  SQL; a row on the booking sheet.
 
 ### 6. Pose overlay
 Every reference product draws a skeleton over the swing now. Possible
@@ -159,3 +173,6 @@ the items above; a research spike first.
 - https://play.google.com/store/apps/details?id=com.sportsanalyticsinc.coachapp (TennisLocker)
 - https://goodcoach.app/blog/post/48/top-online-coaching-apps-comparison (the 80% figure)
 - https://coachnow.com/
+- https://help.v1sports.com/en/articles/2981457-send-swings-to-instructor (Sent · Accepted · Completed on the athlete's Lessons tab)
+- https://skillest.com/blog/app-why-skillest (the coach's analysis sent back inside the lesson)
+- https://help.coachnow.io/en/articles/362744-how-do-i-post-media and https://coachnow.io/athletes (reply with video, text or audio; the fist bump)

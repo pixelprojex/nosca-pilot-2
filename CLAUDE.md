@@ -960,6 +960,35 @@ seeded data and no account.
   walks the player, a parent for a child, the coach's To review and
   bell, and a project without the column; behaviour.sql 8b the
   policies and the triggers.
+- **A sent clip is answered, and the player sees where it stands.**
+  The coach's reply in words lives on the clip: **Reply** is the one
+  action (the accent) on the coach's page for a sent clip, with Set
+  drills and Message beside it and no Log — there is no lesson there to
+  log again. It opens the app's sheet (`ClipReplyBody`, `clip-reply`,
+  `clip-reply-sheet`, `clip-reply-send`: Reply · To Cian Murphy ·
+  Chipping, a `VoiceArea`, Send asleep until there are words) and
+  writes one `messages` row with `lesson_id` through `sendMessage`, so
+  the line sits in the thread tied to the clip and on both lesson pages
+  under the player's question (`lesson-reply`: "Replied · Tue 6 Oct"
+  for the coach, "Niamh · Tue 6 Oct" for the player; `clipReplies()`
+  reads the threads, nothing is stored twice). `trg_messages_notify`
+  tells the player "Niamh Byrne replied" with the words, landing on the
+  clip — a junior too, the clip is their own — and a junior's adults
+  "Niamh Byrne replied to Saoirse" on the thread; and the player's own
+  "Sent a clip" line no longer tells the coach a second time (the clip
+  itself did). On the player's side the clip reads **Waiting on Niamh**
+  (`clip-standing`, under the tags) until the coach's words or their
+  take land — a file under any folder but the sender's own is the
+  coach's, which is why `lessonMedia` items carry `path` — and the line
+  goes the moment either does. V1 Golf shows Sent · Accepted · Completed
+  on the athlete's list; Skillest and CoachNow send words back with the
+  video. A line in a thread that carries a clip is drawn as a card with
+  the clip's poster (`ClipCard`, the same `Poster` as a lesson row,
+  asked for once as the card mounts through `liveThread.needFor`), on
+  the player's line and the coach's reply alike. The coach's `clesson:`
+  route falls back to the lesson's own `who` when it is opened with no
+  name (the thread's card, the bell), so the page still reads Sent by
+  Cian. `scripts/e2e/clip-reply.cjs`; behaviour.sql 8d.
 - **Progress is a player's journey read off the lessons, the same
   screen on both sides, and it stores nothing.** `ProgressScreen`
   (route `progress` for your own, `progress:<id>` for a player's) is

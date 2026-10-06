@@ -95,8 +95,8 @@ function addProfile(db, { id, role, name, sport = "golf", type = null, coachId =
   return row;
 }
 function addFamily(db, { id = uuid("fa000000"), code = code6(), name = null, createdBy = null }) { const f = { id, code, name, created_by: createdBy, created_at: nowIso(db) }; db.families[id] = f; return f; }
-function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupName = null, date, focus, subs = [], notes = null, unread = true, ratingRequested = false }) {
-  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, kind: groupName ? "group" : "private", focus, subs, notes, lesson_date: date, unread, rating_requested: ratingRequested, created_at: `${date}T10:00:00Z` };
+function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupName = null, date, focus, subs = [], notes = null, unread = true, ratingRequested = false, sentBy = null, createdAt = null }) {
+  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, kind: groupName ? "group" : "private", focus, subs, notes, lesson_date: date, unread, rating_requested: ratingRequested, sent_by: sentBy, created_at: createdAt || `${date}T10:00:00Z` };
   db.lessons.push(row); return row;
 }
 /* who was at a group lesson — lessons carry a name, not a player */
@@ -114,7 +114,7 @@ function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, group
   db.bookings.push(row); return row;
 }
 function addDrill(db, { id = uuid("d0000000"), coachId, playerId, title, done = false }) { const row = { id, coach_id: coachId, player_id: playerId, title, done, created_at: nowIso(db) }; db.drills.push(row); return row; }
-function addMessage(db, { id = uuid("30000000"), coachId, playerId, senderId, body, readAt = null, createdAt }) { const row = { id, coach_id: coachId, player_id: playerId, sender_id: senderId, body, read_at: readAt, created_at: createdAt || nowIso(db) }; db.messages.push(row); return row; }
+function addMessage(db, { id = uuid("30000000"), coachId, playerId, senderId, body, readAt = null, createdAt, lessonId = null }) { const row = { id, coach_id: coachId, player_id: playerId, sender_id: senderId, body, read_at: readAt, lesson_id: lessonId, created_at: createdAt || nowIso(db) }; db.messages.push(row); return row; }
 function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], layout: {}, starred: [], default_view: null, reminder_time: null, updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
 
 /* a week of hours in the shape the app saves: Monday-first day keys */
@@ -199,6 +199,13 @@ function onBookingUpdate(db, b, old, actor) {
 function onMessageInsert(db, m) {
   const snip = String(m.body || "").slice(0, 80);
   if (m.sender_id === m.coach_id) {
+    /* the coach's reply on a sent clip lands on the clip: the player is
+       told "replied" with the words; a junior's adults on the thread */
+    if (m.lesson_id) {
+      adultsFor(db, m.player_id).forEach((a) => notify(db, a, "message", `${nameOf(db, m.coach_id)} replied to ${firstOf(db, m.player_id)}`, snip, { screen: "thread", id: m.player_id }));
+      notify(db, m.player_id, "message", `${nameOf(db, m.coach_id)} replied`, snip, { screen: "lesson", id: m.lesson_id });
+      return;
+    }
     /* a junior's messages are told to the adults who look after them,
        named as theirs; the junior only hears directly if there are none */
     const adults = adultsFor(db, m.player_id);
@@ -206,7 +213,11 @@ function onMessageInsert(db, m) {
     if (!adults.length) notify(db, m.player_id, "message", nameOf(db, m.coach_id), snip, { screen: "thread", id: m.player_id });
     /* the child is told THAT it happened and never what it said */
     else notify(db, m.player_id, "message", `${nameOf(db, m.coach_id)} messaged your family`, null, { screen: "home" });
-  } else notify(db, m.coach_id, "message", nameOf(db, m.sender_id), snip, { screen: "thread", id: m.player_id });
+  } else {
+    /* the "Sent a clip" line says nothing more: the clip itself told the coach */
+    if (m.lesson_id) return;
+    notify(db, m.coach_id, "message", nameOf(db, m.sender_id), snip, { screen: "thread", id: m.player_id });
+  }
 }
 function onDrillsInsert(db, rows) {
   const groups = {}; rows.forEach((r) => { (groups[`${r.player_id}|${r.coach_id}`] = groups[`${r.player_id}|${r.coach_id}`] || []).push(r); });

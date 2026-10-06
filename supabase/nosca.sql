@@ -1555,6 +1555,20 @@ declare
   snip   text := left(new.body, 80);
 begin
   if new.sender_id = new.coach_id then
+    -- THE COACH'S REPLY ON A SENT CLIP lands on the clip, not the thread:
+    -- the player — a junior too, the clip is their own and the words sit
+    -- on its page — is told "<Coach> replied" with the words, and a
+    -- junior's adults "<Coach> replied to <First>", on the thread where
+    -- the line sits beside Open the clip.
+    if new.lesson_id is not null then
+      for a in select public.adults_for(new.player_id) loop
+        perform public.notify(a, 'message', public.name_of(new.coach_id) || ' replied to ' || public.first_name_of(new.player_id), snip,
+          jsonb_build_object('screen', 'thread', 'id', new.player_id));
+      end loop;
+      perform public.notify(new.player_id, 'message', public.name_of(new.coach_id) || ' replied', snip,
+        jsonb_build_object('screen', 'lesson', 'id', new.lesson_id));
+      return new;
+    end if;
     -- A CHILD'S MESSAGES GO TO THE ADULT WHO LOOKS AFTER THEM. A junior
     -- was buzzed on their own phone for every message their coach sent,
     -- and the adult got the same line with an arrow in it that read as
@@ -1579,6 +1593,8 @@ begin
         null, jsonb_build_object('screen', 'home'));
     end if;
   else
+    -- the "Sent a clip" line says nothing more: the clip itself told the coach
+    if new.lesson_id is not null then return new; end if;
     perform public.notify(new.coach_id, 'message', public.name_of(new.sender_id), snip,
       jsonb_build_object('screen', 'thread', 'id', new.player_id));
   end if;
