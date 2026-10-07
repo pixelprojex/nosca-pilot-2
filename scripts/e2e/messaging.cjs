@@ -276,6 +276,30 @@ const between = (db, coachId, playerId) => msgs(db).filter((m) => m.coach_id ===
       check("(i) opening it marks the other side's messages read", unread.length === 0, `${unread.length} still unread`);
       await ctx.close();
     }
+
+    /* ---------- (k) Seen under the last line the other side has opened ---------- */
+    {
+      /* the coach has just opened Cian's thread, so Cian's last line is read */
+      const { ctx, page, text, shot } = await boot("adult");
+      await openChat(page); await M.click(page, "Niamh Byrne", 1400);
+      const seen = page.locator('[data-tour="msg-seen"]');
+      check("(k) under the last line the player sent, Seen once the coach has opened the thread — the time and the word, once", (await seen.count()) === 1 && /Seen/.test(await seen.innerText()) && (await text()).split("Seen").length === 2, (await text()).slice(-220));
+      await shot("19-seen-player");
+      await ctx.close();
+      /* and the player opening it has read the coach's lines in turn */
+      const c1 = await boot("coach");
+      await openChat(c1.page); await M.click(c1.page, "Cian Murphy", 1400);
+      const seenC = c1.page.locator('[data-tour="msg-seen"]');
+      check("(k2) the coach sees Seen under their own last line now that the player has opened it", (await seenC.count()) === 1 && /Seen/.test(await seenC.innerText()), (await c1.text()).slice(-220));
+      await c1.shot("20-seen-coach");
+      await c1.ctx.close();
+      /* a newer line nobody has opened yet says nothing */
+      M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.coach, body: "Noted." });
+      const c2 = await boot("coach");
+      await openChat(c2.page); await M.click(c2.page, "Cian Murphy", 1400);
+      check("(k3) a newer line the player has not opened carries no Seen, and neither does the read one before it", (await c2.page.locator('[data-tour="msg-seen"]').count()) === 0 && /Noted\./.test(await c2.text()), (await c2.text()).slice(-220));
+      await c2.ctx.close();
+    }
   } catch (e) {
     console.log("RUN ERROR", e && e.stack || e);
     results.push({ name: "run completed", ok: false, detail: String(e && e.message || e) });

@@ -989,6 +989,30 @@ seeded data and no account.
   route falls back to the lesson's own `who` when it is opened with no
   name (the thread's card, the bell), so the page still reads Sent by
   Cian. `scripts/e2e/clip-reply.cjs`; behaviour.sql 8d.
+- **Lessons go into the phone's calendar from Settings › Calendar.**
+  The row (`settings-calendar`, found by "ical", "export", "sync")
+  carries the count of confirmed bookings ahead and is not there when
+  there are none — never a nought. A tap hands out one iCalendar file
+  (`icsOf`, `shareTextFile`: the share sheet where there is one, else a
+  download that says Saved): a VEVENT per booking in floating local
+  time, the booking's id as the UID so a second import updates rather
+  than doubles, named for the other person — the coach's "Lesson · Cian
+  Murphy" or the group, a player's "Lesson · Niamh Byrne" with the
+  coach's club as the location, a parent's "Lesson · Saoirse · Niamh
+  Byrne" (`calendarEvents` in Nosca, off `liveBookingRows`). Nothing
+  requested and nothing past goes in. TeamSnap and CoachIQ sync a
+  calendar from a server; this is the same thing with no server and no
+  account on anyone's calendar. Both sides have the one row, so no
+  per-booking control was added to the coach's peek alone.
+  `scripts/e2e/calendar.cjs`.
+- **Seen sits under the last line a person sent, once the other side
+  has opened the thread.** `messages.readAt` from the hook; the Thread
+  finds the newest line of mine (`seenKey`) and its time line reads
+  `3:56 pm · Seen` (`msg-seen`) only when that line is read — a newer
+  line nobody has opened says nothing, like a messenger's. The phone's
+  own convention, and what CoachNow's read receipts give a coach. No
+  other read signal joins it: the list keeps its dot, the tab bar its
+  number. `messaging.cjs` (k).
 - **Progress is a player's journey read off the lessons, the same
   screen on both sides, and it stores nothing.** `ProgressScreen`
   (route `progress` for your own, `progress:<id>` for a player's) is

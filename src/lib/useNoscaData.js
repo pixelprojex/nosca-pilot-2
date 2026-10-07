@@ -487,6 +487,7 @@ export function useNoscaData(profile) {
         const key = `${bm}-${String(bd).padStart(2, "0")}`;
         (byDay[key] = byDay[key] || []).push({
           id: b.id,
+          coachId: b.coach_id,
           time: b.start_time,
           who: b.group_name || nameOf[b.player_id] || "—",
           kind: b.kind === "group" ? `Group · ${b.group_name ? "" : ""}`.trim() || "Group" : "Private",
@@ -563,6 +564,8 @@ export function useNoscaData(profile) {
           /* a line that carries a lesson — "Sent a clip" — opens it */
           lessonId: msg.lesson_id || null,
           unread: !msg.read_at && msg.sender_id !== profile.id,
+          /* when the other side opened it — "Seen" under my last line */
+          readAt: msg.read_at || null,
         });
       });
       setThreads(Object.entries(byPlayer).map(([pid, msgs]) => ({
