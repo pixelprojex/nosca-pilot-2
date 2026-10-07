@@ -135,14 +135,26 @@ landing on the clip, and "Waiting on Niamh" on the player's side until
 the words or the take land. The thread's clip lines carry the clip's
 poster. `clip-reply.cjs`; behaviour.sql 8d.
 
+### 9. Lessons in the phone's calendar. **Built 7 October.**
+TeamSnap's "Sync Calendar / Export" (an iCal feed to subscribe to, or
+an export) and CoachIQ's calendar sync are the field's shape; Nosca
+has no server to serve a feed from and wants none, so it is the file:
+Settings › Calendar, the count of confirmed lessons ahead, one tap,
+one `.ics` through the share sheet (a VEVENT per booking, named for
+the other person, the booking's id as the UID). Both sides.
+`calendar.cjs`. Built with the visual item of the day: **Seen** under
+the last line a person sent once the other side has opened the thread
+(CoachNow's read receipts; the phone's own convention).
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
 - An acknowledgement from the player on a reply — CoachNow's "fist
   bump" — if the coaches ask for one; a tap, never a form.
-- Lessons in the phone's calendar: a confirmed booking as an `.ics`
-  through the share sheet (TeamSnap and CoachIQ sync calendars). No
-  SQL; a row on the booking sheet.
+- A calendar feed to subscribe to, if the file is not enough: a Netlify
+  function serving a person's bookings as iCalendar under a secret per
+  person, which is what TeamSnap's Subscribe button is. Needs a column
+  for the secret and a function; the file first.
 
 ### 6. Pose overlay
 Every reference product draws a skeleton over the swing now. Possible
@@ -173,6 +185,8 @@ the items above; a research spike first.
 - https://play.google.com/store/apps/details?id=com.sportsanalyticsinc.coachapp (TennisLocker)
 - https://goodcoach.app/blog/post/48/top-online-coaching-apps-comparison (the 80% figure)
 - https://coachnow.com/
+- https://www.teamsnap.com/blog/general-sports/learn-how-to-sync-your-personal-calendar-to-your-teamsnap-calendar (Sync Calendar / Export; Subscribe in the app)
+- https://coachnow.io/blog/what-athletes-see (read receipts: who viewed and when)
 - https://help.v1sports.com/en/articles/2981457-send-swings-to-instructor (Sent · Accepted · Completed on the athlete's Lessons tab)
 - https://skillest.com/blog/app-why-skillest (the coach's analysis sent back inside the lesson)
 - https://help.coachnow.io/en/articles/362744-how-do-i-post-media and https://coachnow.io/athletes (reply with video, text or audio; the fist bump)

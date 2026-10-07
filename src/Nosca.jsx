@@ -9686,8 +9686,38 @@ const fileSlug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"
    puts it into Files, Notes or Mail), otherwise as a plain download,
    otherwise in a new tab — the lesson log and the season report both
    go this way */
-async function shareHtmlFile({ html, name, title, say }) {
-  const file = new File([html], name, { type: "text/html" });
+async function shareHtmlFile({ html, name, title, say }) { return shareTextFile({ text: html, name, type: "text/html", title, say }); }
+/* LESSONS IN THE PHONE'S CALENDAR. One iCalendar file — a VEVENT per
+   confirmed booking ahead, in floating local time (Ireland's clock is
+   the phone's), the booking's id as the UID so a second import updates
+   an event rather than doubling it — handed out the way the lesson log
+   is: the share sheet where there is one, otherwise a download. TeamSnap
+   and CoachIQ sync a calendar from a server; this is the same thing
+   with no server. */
+const icsText = (v) => String(v || "").replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/[,;]/g, (c) => "\\" + c);
+const icsStamp = (iso, mins) => {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  const dt = new Date(y, m - 1, d, 0, mins);   // rolls past midnight on its own
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `${dt.getFullYear()}${p2(dt.getMonth() + 1)}${p2(dt.getDate())}T${p2(dt.getHours())}${p2(dt.getMinutes())}00`;
+};
+function icsOf(events) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Nosca//Lessons//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+  (events || []).forEach((ev) => {
+    const start = parseTime(ev.time);
+    if (start == null || !ev.date) return;
+    const end = start + (Number(ev.duration) || 45);
+    lines.push("BEGIN:VEVENT", `UID:nosca-${ev.id}@nosca.ie`, `DTSTAMP:${stamp}`, `DTSTART:${icsStamp(ev.date, start)}`, `DTEND:${icsStamp(ev.date, end)}`, `SUMMARY:${icsText(ev.title)}`);
+    if (ev.location) lines.push(`LOCATION:${icsText(ev.location)}`);
+    if (ev.description) lines.push(`DESCRIPTION:${icsText(ev.description)}`);
+    lines.push("END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n") + "\r\n";
+}
+async function shareTextFile({ text, name, type, title, say }) {
+  const file = new File([text], name, { type });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title });
@@ -15466,8 +15496,14 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
      mine and not the coach's was taken to mean somebody wrote it on
      the player's behalf, when the player had written it. */
   const isTheirs = (m) => !!(live && live.playerId && m.senderId === live.playerId);
+  /* SEEN. Under the last line I sent, once the other side has opened the
+     thread — the phone's own convention, and what CoachNow's read
+     receipts give a coach. Only the newest of mine carries it: a newer
+     line nobody has read yet says nothing, like a messenger's. */
+  const lastMine = live ? [...live.messages].reverse().find((m) => m.mine) : null;
+  const seenKey = lastMine && lastMine.readAt ? lastMine.id : null;
   const msgs = live ? live.messages.map((m) => ({
-    from: m.mine ? role : other, text: m.body, at: m.at, iso: m.iso, key: m.id, lessonId: m.lessonId || null,
+    from: m.mine ? role : other, text: m.body, at: m.at, iso: m.iso, key: m.id, lessonId: m.lessonId || null, seen: seenKey != null && m.id === seenKey,
     via: !m.mine && !isCoachMsg(m) && !isTheirs(m) ? (((live.nameOf && live.nameOf(m.senderId)) ? `${live.nameOf(m.senderId).split(" ")[0]} · ${tr("parent")}` : tr("Parent"))) : null,
     onBehalf: m.mine && role !== "coach" && !!live.child,
   })) : local;
@@ -15504,7 +15540,7 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
           {/* a line that carries a clip opens it, and looks like one */}
           {m.lessonId && live && live.openLesson && <ClipCard lessonId={m.lessonId} live={live} mine={mine} />}
         </div>
-        {m.at && <span className="block mt-1 px-1" style={{ ...TYPE.caption, color: t.faint }}>{m.at}</span>}
+        {m.at && <span className="block mt-1 px-1" data-tour={m.seen ? "msg-seen" : undefined} style={{ ...TYPE.caption, color: t.faint }}>{m.seen ? `${m.at} · ${tr("Seen")}` : m.at}</span>}
       </div>
     );
   };
@@ -15818,7 +15854,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, calendarSub, onCalendar, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
   const [q, setQ] = useKept("q", "");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
@@ -15885,6 +15921,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "pdf", "file", "save"] },
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
+      live && onCalendar && calendarSub && { label: tr("Calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
       !live && { label: tr("Branding"), tour: "settings-branding", onTap: () => push("branding") },
       { label: tr("Invite code"), value: inviteCode || "——————", tour: "settings-invite", onTap: () => sheet("invite"), keys: ["code", "share", "link"] },
       prefs && { label: tr("Register"), keys: ["register", "attendance", "roll"], custom: choice("attendance", tr("Register"), prefs.attendance || "all",
@@ -15903,6 +15940,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
            : { label: tr("Coaches & profiles"), tour: "settings-family", onTap: () => sheet("family") },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "file", "save"] },
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
+      live && onCalendar && calendarSub && { label: tr("Calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
       !live && { label: tr("Subscription"), sub: tr("Free — your coach's plan covers you"), icon: ShieldCheck },
     ] },
     { title: tr("App"), tour: "settings-appearance", rows: [
@@ -17872,6 +17910,36 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   /* Every booking row a real account can see, flat. */
   const liveBookingRows = data ? Object.values(data.bookings || {}).flat() : null;
+  /* LESSONS IN THE PHONE'S CALENDAR: every confirmed booking ahead, each
+     named for the other person — the coach's for the player or the
+     group, a player's for their coach, a child's for the child and the
+     child's coach — with the club where it is known */
+  const calendarEvents = () => {
+    if (!data || !account) return [];
+    const today = isoOf(todayMD.m, todayMD.d);
+    const kids = new Set((data.dependants || []).map((k) => k.id));
+    /* only what is surely this person's: a coach's own diary and any
+       lesson they take; a player's own and a child's. A player can also
+       read their coach's group slots (the diary's busy times), and those
+       are not theirs to put in a calendar. */
+    const theirs = (b) => role === "coach" ? (b.coachId === account.id || b.playerId === account.id) : (b.playerId === account.id || kids.has(b.playerId));
+    return (liveBookingRows || [])
+      .filter((b) => b && b.status === "confirmed" && b.date && b.date >= today && theirs(b))
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)) || ((parseTime(a.time) || 0) - (parseTime(b.time) || 0)))
+      .map((b) => {
+        const mine = b.playerId === account.id;
+        const kid = !mine && role !== "coach" ? (data.dependants || []).find((k) => k.id === b.playerId) : null;
+        const name = mine ? (data.coachName || "") : kid ? [kid.name.split(" ")[0], kid.coachName].filter(Boolean).join(" · ") : b.who;
+        const club = mine ? (data.coach && data.coach.club) || null : kid ? null : (account.club || null);
+        return { id: b.id, date: b.date, time: b.time, duration: b.duration || duration, title: [tr("Lesson"), name].filter(Boolean).join(" · "), location: club, description: "Nosca" };
+      });
+  };
+  const addToCalendar = async () => {
+    const evs = calendarEvents();
+    if (!evs.length) { say(tr("Nothing booked")); return; }
+    hapticCommit();
+    await shareTextFile({ text: icsOf(evs), name: `nosca-lessons-${isoOf(todayMD.m, todayMD.d)}.ics`, type: "text/calendar", title: tr("Lessons"), say });
+  };
   /* The player's own — asked for or confirmed; nothing cancelled. */
   const myBookings = data
     ? (liveBookingRows || []).filter((b) => b.playerId === account.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
@@ -19419,7 +19487,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             counts={data ? Object.fromEntries(profiles.map((pf) => [pf.id, (data.lessons || []).filter((l) => l.playerId === pf.id).length])) : null}
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
-  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} onSync={syncBuild} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+  } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} onSync={syncBuild} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null}
+                          calendarSub={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()} onCalendar={addToCalendar} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
