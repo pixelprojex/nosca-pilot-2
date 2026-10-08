@@ -95,6 +95,7 @@ const { check, results, summary } = M.checker("progress");
       check("(e) Lessons a month draws a bar for each of the last six months with a lesson", rects === monthsWithLessons(), `${rects} vs ${monthsWithLessons()}`);
       check("(f) Drills reads done of set", /2 of 3 done/.test(t1), "");
       const marks = page.locator('[data-progress="attendance"] [data-mark]');
+      await page.locator('[data-progress="attendance"]').scrollIntoViewIfNeeded().catch(() => {}); await page.waitForTimeout(400); await shot("01b-coach-attendance");
       check("(f0) Attendance reads the registers: 3 of 4 lessons, a mark per register with the missed one apart, and the missed day named", /3 of 4 lessons/.test(t1) && /75%/.test(t1) && (await marks.count()) === 4 && (await page.locator('[data-progress="attendance"] [data-mark="out"]').count()) === 1 && /Missed · Sat 12 Sep/.test(t1), t1.slice(0, 300));
       await shot("01-coach-progress");
       /* the whole journey as one page */
