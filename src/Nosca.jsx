@@ -9752,7 +9752,7 @@ async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }
    the foot of Progress — the coach's for a player, a player's own, a
    parent's for a child. Nothing in it is invented; a section with
    nothing to say is left out. */
-function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], today }) {
+function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], today, attendance = [] }) {
   const e = escapeHtml;
   const p = progressOf(cfg, lessons, today || new Date());
   const section = (label, inner) => (inner ? `<section><h2>${e(label)}</h2>${inner}</section>` : "");
@@ -9793,13 +9793,14 @@ function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], t
   ${section("Lessons", n ? `<p>${n} ${n === 1 ? "lesson" : "lessons"}${months ? ` · ${e(months)}` : ""}</p>` : "")}
   ${section("Worked on", areas)}
   ${section("Drills", drillList)}
+  ${section("Attendance", attendance.length ? `<p>${attendance.filter((a) => a.state === "in").length} of ${attendance.length} ${attendance.length === 1 ? "lesson" : "lessons"}${attendance.some((a) => a.state === "out") ? ` · missed ${attendance.filter((a) => a.state === "out").map((a) => e(a.iso ? fmtWeekDay(localDate(a.iso)) : a.key)).join(", ")}` : ""}</p>` : "")}
   ${section("Tips", tipList)}
   ${section("Every lesson", list ? `<ul>${list}</ul>` : "")}
   <footer>Saved from ${e(BRAND)}</footer>
 </main></body></html>`;
 }
-async function shareSeasonReport({ name, coach, cfg, lessons, drills, tips, today, say }) {
-  const html = seasonReportHtml({ name, coach, cfg, lessons, drills, tips, today });
+async function shareSeasonReport({ name, coach, cfg, lessons, drills, tips, today, say, attendance }) {
+  const html = seasonReportHtml({ name, coach, cfg, lessons, drills, tips, today, attendance });
   const d = today || new Date();
   const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   await shareHtmlFile({ html, name: `nosca-report-${fileSlug(name) || "player"}-${stamp}.html`, title: `${name} · ${tr("Report")}`, say });
@@ -13076,7 +13077,7 @@ const progressToday = (cal) => {
   if (v && typeof v.m === "number") return new Date((cal && cal.year) || new Date().getFullYear(), v.m - 1, v.d || 1);
   return new Date();
 };
-function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, say }) {
+function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, say, attendance = [] }) {
   const t = useT();
   const calendar = useCalendar();
   const todayKey = calendar && calendar.today ? `${calendar.year || ""}-${calendar.today.m}-${calendar.today.d}` : "";
@@ -13156,6 +13157,37 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                 <MonthBars months={p.months} color={t.accent} ink={t.ink} faint={t.trace || t.faint} />
               </div>
             </div>
+            {/* ATTENDANCE, off the coach's registers: there or missed per
+                lesson marked, newest last, the missed days named — what
+                TennisLocker gives a parent, read here by all three sides */}
+            {attendance.length > 0 && (() => {
+              const here = attendance.filter((a) => a.state === "in").length;
+              const missed = attendance.filter((a) => a.state === "out");
+              const dayOfMark = (a) => (a.iso ? fmtWeekDay(localDate(a.iso)) : a.key.split(" ").slice(0, 2).join(" "));
+              return (
+                <div style={{ marginBottom: SPACE.block }} data-progress="attendance">
+                  <div style={section}>{tr("Attendance")}</div>
+                  <div style={box}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                      <span style={{ ...TYPE.body, color: t.ink }}>{here} {tr("of")} {attendance.length} {attendance.length === 1 ? tr("lesson") : tr("lessons")}</span>
+                      <span style={{ ...TYPE.small, color: t.sub }}>{Math.round((here / attendance.length) * 100)}%</span>
+                    </div>
+                    <div className="flex flex-wrap" style={{ gap: 6 }}>
+                      {attendance.slice(-16).map((a, i) => (
+                        <span key={a.key || i} role="img" data-mark={a.state} aria-label={`${dayOfMark(a)} · ${a.state === "in" ? tr("There") : tr("Missed")}`}
+                              className="rounded-full flex items-center justify-center"
+                              style={{ width: 22, height: 22, background: a.state === "in" ? t.accent : "transparent", border: a.state === "in" ? "none" : `1.5px solid ${DANGER}` }}>
+                          {a.state === "in" ? <Check size={12} color="#fff" strokeWidth={2.6} /> : <X size={11} color={DANGER} strokeWidth={2.4} />}
+                        </span>
+                      ))}
+                    </div>
+                    {missed.length > 0 && (
+                      <p className="mt-3" style={{ ...TYPE.small, color: t.sub }}>{tr("Missed")} · {missed.slice(-3).reverse().map(dayOfMark).join(", ")}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
             {/* drills done */}
             {mineDrills.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="drills">
@@ -13173,7 +13205,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             )}
             {/* the whole journey as one page for the share sheet — what a
                 parent is handed at the end of a term */}
-            <button data-tour="progress-report" onClick={() => { hapticCommit(); soft(); shareSeasonReport({ name: name || title, coach, cfg, lessons, drills: mineDrills, tips: tips || [], today, say }); }}
+            <button data-tour="progress-report" onClick={() => { hapticCommit(); soft(); shareSeasonReport({ name: name || title, coach, cfg, lessons, drills: mineDrills, tips: tips || [], today, say, attendance }); }}
                     className="w-full flex items-center justify-center gap-2 active:opacity-70"
                     style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
               {tr("Share a report")}
@@ -18739,7 +18771,19 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        is where a new one starts. */
     const order = (a, b) => (b.unread > 0) - (a.unread > 0) || String(b.lastAt || "").localeCompare(String(a.lastAt || "")) || a.who.localeCompare(b.who);
     if (role === "coach") {
-      const rows = (data.roster || []).filter((r) => byId[r.id]).map((r) => row(r.id, r.name, r.junior ? tr("Parent replies") : "", { coachId: account.id, junior: !!r.junior }));
+      /* A PARENT'S LINE IS THE PARENT'S, in the list as in the thread: a
+         child's conversation whose last word was an adult's leads it
+         with the adult's first name, the way any messenger names who
+         spoke last in a thread of several. The thread already labelled
+         the bubble; the list read "Saoirse Kelly — can she come Friday"
+         as though the child had written it. */
+      const firstOf = (id) => { const p = (data.people || []).find((x) => x.id === id) || ((data.family && data.family.members) || []).find((x) => x.id === id); return p && p.name ? p.name.split(" ")[0] : null; };
+      const rows = (data.roster || []).filter((r) => byId[r.id]).map((r) => {
+        const rw = row(r.id, r.name, r.junior ? tr("Parent replies") : "", { coachId: account.id, junior: !!r.junior });
+        const th = byId[r.id]; const lastMsg = th && th.messages.length ? th.messages[th.messages.length - 1] : null;
+        if (lastMsg && !lastMsg.mine && lastMsg.senderId && lastMsg.senderId !== r.id) { const f = firstOf(lastMsg.senderId); rw.last = `${f || tr("Parent")}: ${rw.last}`; }
+        return rw;
+      });
       /* a coach who takes lessons themselves has a coach of their own to talk to */
       if (data.hasCoach && account && myCoachName) rows.unshift(row(account.id, myCoachName, tr("Your coach"), { kind: "own", coachId: null }));
       return rows.sort(order);
@@ -19165,6 +19209,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        coach from the file and for a parent from the child's screen */
     const pkey = screen.startsWith("progress:") ? screen.slice("progress:".length) : null;
     let pwho = null, plist = [], pdrills = [], ptips = [], pcoach = null, ptitle = tr("Progress"), pname = myName;
+    /* what the coach's registers say about one person, oldest first */
+    const attendanceOf = (pid) => {
+      if (!data || !pid) return [];
+      const days = data.registerDays || {};
+      return Object.keys(registers || {}).map((k) => (registers[k][pid] ? { key: k, iso: days[k] || null, state: registers[k][pid] } : null)).filter(Boolean)
+        .sort((a, b) => String(a.iso || "").localeCompare(String(b.iso || "")));
+    };
     if (!pkey) { plist = playerLessons || []; pdrills = myPractice || []; ptips = myTips || []; pcoach = data ? data.coachName : null; }
     else if (data) {
       /* a parent's child comes from the family, which knows the child's
@@ -19183,7 +19234,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       plist = pwho ? (fileFor(pwho.name, false).lessons || []) : (playerLessons || []).slice(0, 3);
       pcoach = role === "coach" ? myName : null;
     }
-    body = <ProgressScreen title={ptitle} name={pname} cfg={cfg} lessons={plist} drills={pdrills} tips={ptips} coach={pcoach} say={say} pop={pop} />;
+    body = <ProgressScreen title={ptitle} name={pname} cfg={cfg} lessons={plist} drills={pdrills} tips={ptips} coach={pcoach} say={say} pop={pop}
+                           attendance={data ? attendanceOf(pkey ? (pwho ? pwho.id : pkey) : (account && account.id)) : []} />;
   } else if (screen.startsWith("history:")) {
     const hkey = screen.slice("history:".length);
     const hp = data ? byKey(hkey) : null;

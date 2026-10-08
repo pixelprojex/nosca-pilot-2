@@ -158,6 +158,7 @@ export function useNoscaData(profile) {
   const clipProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
+  const [registerDays, setRegisterDays] = useState({});   // register key -> the session's day, for Attendance on Progress
   const [bookings, setBookings] = useState([]);
   const [competitions, setCompetitions] = useState([]);
   const [recurring, setRecurring] = useState([]);
@@ -448,18 +449,18 @@ export function useNoscaData(profile) {
           .from("attendance_marks")
           .select("session_id, player_id, state");
         const byId = Object.fromEntries(sessions.map((s) => [s.id, s]));
-        const out = {};
+        const out = {}, days = {};
         (marks || []).forEach((mk) => {
           const s = byId[mk.session_id];
           if (!s) return;
           const key = registerKey(s.label, s.session_date);
-          out[key] = out[key] || {};
+          out[key] = out[key] || {}; days[key] = s.session_date;
           /* KEYED BY PLAYER ID. Keyed by display name, two players called
              the same thing wrote into one entry and the second one had
              no record at all. */
           out[key][mk.player_id] = mk.state;
         });
-        setRegisters(out);
+        setRegisters(out); setRegisterDays(days);
       } else {
         setRegisters({});
       }
@@ -1664,7 +1665,7 @@ export function useNoscaData(profile) {
     markNotificationsRead, clearNotification, clearNotifications,
     me, avatarUrl: avatarUrl(me?.avatar_path || null), uploadAvatar, removeAvatar,
     uploads, retryUploads, dismissUploads,
-    roster, lessons, drills, tips, registers,
+    roster, lessons, drills, tips, registers, registerDays,
     bookings, competitions, recurring, prefs, threads,
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,

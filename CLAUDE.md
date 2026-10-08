@@ -247,7 +247,10 @@ seeded data and no account.
   adult's first name and "parent" (or just "Parent" where the coach
   cannot read the name). A parent's Chat lists their own conversation
   and the children's apart, the children's under the coach's name and
-  marked "For <child>". Never let a parent's line read as the child's.
+  marked "For <child>". Never let a parent's line read as the child's
+  — in Chat's list too: a child's row whose last word was an adult's
+  leads the preview with the adult's first name ("Orla: can she come
+  Friday"), the way a messenger names who spoke last.
 - **Who a booking is for is chosen before the slot.** The diary carries
   a "For" strip for any adult with a bookable child — themselves (if
   they have a coach) and each child — and the hours shown are that
@@ -1027,8 +1030,17 @@ seeded data and no account.
   lesson where the stage is a name (the tennis balls, J15, the ball
   dot, the Pony Club tests — golf shows both when both are there);
   what was worked on as counts with a bar, split on the " · " the log
-  joined; the last six months as columns (`MonthBars`); drills done of
-  set. With no lessons it says "No lessons yet" and draws nothing.
+  joined; the last six months as columns (`MonthBars`); **attendance
+  off the coach's registers** (`data-progress="attendance"`: "7 of 8
+  lessons" and the percentage, a disc per register — the accent with a
+  tick for there, a red ring with a cross for missed — newest last, and
+  "Missed · Sat 12 Sep" naming the last three; the hook's
+  `registerDays` carries each register's day beside `registers`, and
+  `attendanceOf(pid)` in the progress route reads both; the season
+  report carries the same line; no section where no register was
+  taken — what TennisLocker gives a parent, read here by all three
+  sides); drills done of set. With no lessons it says "No lessons yet"
+  and draws nothing.
   Nothing is asked and no SQL: it is what TennisLocker draws for the
   parents and the golf apps chart as the handicap, and perceived
   progress is most of why a paying client stays. The calendar's `today`

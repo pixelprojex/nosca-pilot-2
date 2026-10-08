@@ -146,6 +146,18 @@ the other person, the booking's id as the UID). Both sides.
 the last line a person sent once the other side has opened the thread
 (CoachNow's read receipts; the phone's own convention).
 
+### 10. Attendance on Progress. **Built 8 October.**
+TennisLocker records attendance "with a quick tap" and lets parents
+"see when their player attended practice"; USTA's Serve captures
+attendance and tells parents. Nosca took the register and showed a
+player only "Absent" on one lesson's page. Progress now carries
+Attendance off the registers — the count, a mark per register, the
+missed days — on the coach's, the player's and the parent's view and
+in the season report. No SQL: `attendance_marks` were already
+readable by the player and the family. `progress.cjs`. With it, the
+visual item of the day: a child's row in the coach's Chat leads with
+the parent's first name when the parent spoke last.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -185,6 +197,8 @@ the items above; a research spike first.
 - https://play.google.com/store/apps/details?id=com.sportsanalyticsinc.coachapp (TennisLocker)
 - https://goodcoach.app/blog/post/48/top-online-coaching-apps-comparison (the 80% figure)
 - https://coachnow.com/
+- https://austintennisacademy.com/?p=6280 (TennisLocker: attendance with a tap; parents see when their player attended)
+- https://usta.clubspark.com/providers/coaches (USTA Serve: registration, attendance capture, communication with players and parents)
 - https://www.teamsnap.com/blog/general-sports/learn-how-to-sync-your-personal-calendar-to-your-teamsnap-calendar (Sync Calendar / Export; Subscribe in the app)
 - https://coachnow.io/blog/what-athletes-see (read receipts: who viewed and when)
 - https://help.v1sports.com/en/articles/2981457-send-swings-to-instructor (Sent · Accepted · Completed on the athlete's Lessons tab)
