@@ -39,6 +39,12 @@ function freshDb() {
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.adult, title: "Ladder drill", done: true });
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.adult, title: "Towel drill", done: false });
   db.tips.push({ id: "00000000-0000-4000-8000-00000000t1p1", coach_id: IDS.coach, player_id: IDS.adult, title: "Trust the shallow", body: null, created_at: "2026-09-12T11:00:00Z" });
+  /* the coach's registers for Cian: there, there, missed, there */
+  [["2026-08-15", "in"], ["2026-08-29", "in"], ["2026-09-12", "out"], ["2026-09-26", "in"]].forEach(([date, state], i) => {
+    const sid = `5e000000-0000-4000-8000-0000000000a${i}`;
+    db.sessions.push({ id: sid, coach_id: IDS.coach, label: "Cian Murphy", session_date: date, created_at: `${date}T10:00:00Z` });
+    db.marks.push({ id: `6e000000-0000-4000-8000-0000000000a${i}`, session_id: sid, player_id: IDS.adult, state });
+  });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.junior, date: "2026-09-05", focus: "Chipping", subs: ["Passport · Learn"], unread: false });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.junior, date: "2026-09-19", focus: "Putting", subs: ["Passport · Learn"], unread: false });
   M.addLesson(db, { coachId: IDS.tcoach, playerId: IDS.aoife, date: "2026-07-05", focus: "Serve", subs: ["Red ball · U8"], unread: false });
@@ -88,13 +94,16 @@ const { check, results, summary } = M.checker("progress");
       const rects = await page.locator('[data-progress="months"] svg rect').count();
       check("(e) Lessons a month draws a bar for each of the last six months with a lesson", rects === monthsWithLessons(), `${rects} vs ${monthsWithLessons()}`);
       check("(f) Drills reads done of set", /2 of 3 done/.test(t1), "");
+      const marks = page.locator('[data-progress="attendance"] [data-mark]');
+      await page.locator('[data-progress="attendance"]').scrollIntoViewIfNeeded().catch(() => {}); await page.waitForTimeout(400); await shot("01b-coach-attendance");
+      check("(f0) Attendance reads the registers: 3 of 4 lessons, a mark per register with the missed one apart, and the missed day named", /3 of 4 lessons/.test(t1) && /75%/.test(t1) && (await marks.count()) === 4 && (await page.locator('[data-progress="attendance"] [data-mark="out"]').count()) === 1 && /Missed · Sat 12 Sep/.test(t1), t1.slice(0, 300));
       await shot("01-coach-progress");
       /* the whole journey as one page */
       check("(f2) Progress ends on Share a report", (await page.locator('[data-tour="progress-report"]').count()) === 1);
       const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('[data-tour="progress-report"]').click()]);
       const html = dl ? fs.readFileSync(await dl.path(), "utf8") : "";
       check("(f3) the report is one .html page naming the player and the coach", !!dl && /^nosca-report-cian-murphy-\d{4}-\d\d-\d\d\.html$/.test(dl.suggestedFilename()) && html.includes("Cian Murphy") && html.includes("Niamh Byrne"), dl ? dl.suggestedFilename() : "no download");
-      check("(f4) …and carries the level then and now, the lessons, the areas, the drills, the tip and every lesson", /HI 16\.4/.test(html) && /from HI 20\.1/.test(html) && /8 lessons/.test(html) && /Short game — 4/.test(html) && /2 of 3 done/.test(html) && html.includes("Gate drill") && html.includes("Trust the shallow") && html.includes("Every lesson") && html.includes("Driving notes."), html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
+      check("(f4) …and carries the level then and now, the lessons, the areas, the drills, the tip and every lesson", /HI 16\.4/.test(html) && /from HI 20\.1/.test(html) && /8 lessons/.test(html) && /Short game — 4/.test(html) && /2 of 3 done/.test(html) && /3 of 4 lessons · missed Sat 12 Sep/.test(html) && html.includes("Gate drill") && html.includes("Trust the shallow") && html.includes("Every lesson") && html.includes("Driving notes."), html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
       await tap(page, '[aria-label="Back"]', 900);
       check("(g) Back lands on the player file", /Cian Murphy/.test(await text()) && (await page.locator('[data-tour="player-progress"]').count()) === 1);
       await ctx.close();
@@ -107,6 +116,7 @@ const { check, results, summary } = M.checker("progress");
       await tap(page, '[data-tour="sheet-progress"]', 1000);
       const t2 = await text();
       check("(i) the player reads the same journey the coach does", /Progress/.test(t2) && /8 lessons/.test(t2) && /HI 16\.4/.test(t2) && /2 of 3 done/.test(t2) && (await page.locator('[data-progress="level"] svg circle').count()) === 8, t2.slice(0, 200));
+      check("(i0) …their attendance included, the same four marks", /3 of 4 lessons/.test(t2) && (await page.locator('[data-progress="attendance"] [data-mark]').count()) === 4 && /Missed · Sat 12 Sep/.test(t2), t2.slice(0, 300));
       await shot("02-player-progress");
       const [dl2] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('[data-tour="progress-report"]').click()]);
       const html2 = dl2 ? fs.readFileSync(await dl2.path(), "utf8") : "";
@@ -130,6 +140,7 @@ const { check, results, summary } = M.checker("progress");
       await tap(page, '[data-tour="kid-progress"]', 1000);
       const t4 = await text();
       check("(l) the parent reads the child's journey under the child's name", /Saoirse Kelly/.test(t4) && /2 lessons/.test(t4) && /Chipping/.test(t4) && /Putting/.test(t4) && /Passport · Learn/.test(t4), t4.slice(0, 200));
+      check("(l0) with no register taken for the child there is no Attendance section", (await page.locator('[data-progress="attendance"]').count()) === 0 && !/Attendance/.test(t4), "");
       await shot("03-parent-child-progress");
       const [dl3] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }).catch(() => null), page.locator('[data-tour="progress-report"]').click()]);
       const html3 = dl3 ? fs.readFileSync(await dl3.path(), "utf8") : "";

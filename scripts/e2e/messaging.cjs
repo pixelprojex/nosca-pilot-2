@@ -177,6 +177,7 @@ const between = (db, coachId, playerId) => msgs(db).filter((m) => m.coach_id ===
       await openChat(page);
       const t0 = await text();
       check("(e) the coach now has three conversations", /Cian Murphy/.test(t0) && /Saoirse Kelly/.test(t0) && /Fionn Kelly/.test(t0), t0.slice(0, 260));
+      check("(e0) in the list, the child's row leads its preview with the parent's name, never reading as the child's", /(Orla|Parent): Fionn will be five minutes late/.test(t0), t0.slice(0, 300));
       await M.click(page, "Fionn Kelly", 1200); await shot("11-coach-child-thread");
       const t1 = await text();
       /* A coach can read the roster and their own family, and a parent in
