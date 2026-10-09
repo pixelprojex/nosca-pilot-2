@@ -172,10 +172,10 @@ own branch. `practice.cjs`; behaviour.sql 8e. With it, the visual item
 of the day: the family's Coming up row names the person reading it
 rather than "You".
 
+Reply stands on the coach's page for a practice as on a sent clip, so
+Tennispreneur's coach comment on a journal entry is already there.
+
 ### Next candidates (unranked until read against the field)
-- The coach's comment on a practice — Tennispreneur's coach comments
-  on every journal entry. Reply on the coach's page already writes a
-  line tied to a lesson; offering it on a practice is a small step.
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
 - An acknowledgement from the player on a reply — CoachNow's "fist

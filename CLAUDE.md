@@ -980,7 +980,9 @@ seeded data and no account.
   the coach once, "Cian practised" · the areas, kind `practice`,
   landing on the coach's page for it (Sent by Cian Murphy, the note);
   it never joins To review (`!l.practice`) — there is no clip to mark
-  up. Progress keeps the lesson count to the lessons and carries
+  up — but **Reply** stands on the coach's page for it as on a sent
+  clip, which is Tennispreneur's coach comment on a journal entry.
+  Progress keeps the lesson count to the lessons and carries
   **Practice** apart (`data-progress="practice"`: the sessions, the
   last day, the areas most worked on), on both sides and in the
   season report. The `lessons_kind_check` constraint is replaced to
