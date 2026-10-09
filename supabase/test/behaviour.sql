@@ -384,6 +384,18 @@ select (select count(*) from public.notifications where user_id = :'c1' and kind
 select (:cm = 0 and :cc = 1 and :rp = 1 and :rj = 1) as ok \gset
 \if :ok \echo PASS a sent clip line tells the coach nothing twice; the reply tells the adult on the thread and the junior on the clip \else \echo FAIL clip reply family cm=:cm cc=:cc p=:rp j=:rj \endif
 
+\echo === 8e. a practice the player logged
+-- Aoife logs a practice for herself: her own row, kind practice; Sinéad is told once, by first name, and not that a clip was sent
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true);
+insert into public.lessons (coach_id, player_id, focus, kind, sent_by, notes) values (:'c1', :'a1', 'Putting', 'practice', :'a1', 'Twenty minutes on the gate') returning id as prac_a \gset
+commit;
+select (select count(*) from public.lessons where id = :'prac_a' and kind = 'practice' and sent_by = :'a1') as pl,
+       (select count(*) from public.notifications where user_id = :'c1' and kind = 'practice' and title = 'Aoife practised' and body = 'Putting' and data->>'screen' = 'lesson' and data->>'id' = :'prac_a') as pn,
+       (select count(*) from public.notifications where user_id = :'c1' and kind = 'clip' and data->>'id' = :'prac_a') as pc,
+       (select count(*) from public.notifications where user_id = :'a1' and data->>'id' = :'prac_a') as pa \gset
+select (:pl = 1 and :pn = 1 and :pc = 0 and :pa = 0) as ok \gset
+\if :ok \echo PASS a player logs a practice of their own; the coach is told once that they practised, nobody is told a clip was sent \else \echo FAIL practice row=:pl told=:pn clip=:pc player=:pa \endif
+
 \echo === 8c. the evening before a lesson
 -- tomorrow by Ireland's clock: Aoife at ten, Ellie at eleven (her mother Marcus is told too), and a group slot
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);

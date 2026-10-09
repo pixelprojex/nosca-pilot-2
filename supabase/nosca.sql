@@ -123,6 +123,20 @@ alter table public.lessons add column if not exists rating_requested boolean not
 -- coach; it lands on the coach's home as To review, the coach marks it
 -- up, and the take goes back as a new clip on the same lesson.
 alter table public.lessons add column if not exists sent_by uuid references public.profiles (id) on delete set null;
+-- A PRACTICE THE PLAYER LOGGED for themselves — kind 'practice', sent_by
+-- them, no coach's lesson behind it. The first constraint allowed only
+-- private and group; replaced only where this project still has it.
+do $pk$
+declare def text;
+begin
+  select pg_get_constraintdef(oid) into def from pg_constraint
+  where conrelid = 'public.lessons'::regclass and conname = 'lessons_kind_check';
+  if def is null or def not like '%practice%' then
+    alter table public.lessons drop constraint if exists lessons_kind_check;
+    alter table public.lessons add constraint lessons_kind_check check (kind in ('private', 'group', 'practice'));
+  end if;
+end
+$pk$;
 
 -- ---------- lesson_media ----------
 -- One row per uploaded file. storage_path is the path inside the
@@ -1381,8 +1395,14 @@ begin
      player knows what they sent */
   if new.sent_by is not null then
     if new.coach_id is not null and new.player_id is not null then
-      perform public.notify(new.coach_id, 'clip', public.first_name_of(new.player_id) || ' sent a clip',
-        new.focus, jsonb_build_object('screen', 'lesson', 'id', new.id));
+      if new.kind = 'practice' then
+        -- a practice the player logged: the coach is told once, by first name
+        perform public.notify(new.coach_id, 'practice', public.first_name_of(new.player_id) || ' practised',
+          new.focus, jsonb_build_object('screen', 'lesson', 'id', new.id));
+      else
+        perform public.notify(new.coach_id, 'clip', public.first_name_of(new.player_id) || ' sent a clip',
+          new.focus, jsonb_build_object('screen', 'lesson', 'id', new.id));
+      end if;
     end if;
     return new;
   end if;
