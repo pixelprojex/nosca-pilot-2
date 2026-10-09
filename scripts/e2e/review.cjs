@@ -270,7 +270,11 @@ const { check, results, summary } = M.checker("review");
     check("(l) it opens Mark it up on that clip, for Cian, with Save and Talk over it", /Mark it up · Cian/.test(tl) && /\bSave\b/.test(tl) && /Talk over it/.test(tl) && (await page.locator('[data-tour="markup-stage"] canvas').count()) === 1, tl.slice(0, 160));
     await page.locator("button", { hasText: "Talk over it" }).first().click(); await page.waitForTimeout(1500);
     await page.locator("button", { hasText: "Stop" }).first().click();
-    await page.waitForSelector('video[src^="blob:"]', { timeout: 10000 }).catch(() => {});
+    /* the clip on the stage is itself a blob video, so waiting for one
+       matched it at once and the check raced the recorder's stop — which
+       lands when its last slice does, past ten seconds on a slow machine.
+       Wait for the playback itself: Again appears beside Save. */
+    await page.getByRole("button", { name: "Again", exact: true }).waitFor({ timeout: 25000 }).catch(() => {});
     check("(l) the take plays back with Save", (await page.locator('video[src^="blob:"]').count()) === 1 && /\bSave\b/.test(await text()));
     await page.locator("button", { hasText: /^Save$/ }).first().click();
     await page.waitForFunction(() => !document.body.innerText.includes("Saving"), null, { timeout: 15000 }).catch(() => {});
