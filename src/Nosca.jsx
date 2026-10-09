@@ -6475,7 +6475,9 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
   const live = bookings.filter((b) => b.date >= todayIso && b.status !== "cancelled" && b.status !== "weather")
     .sort(byWhen);
-  const nameOf = (id) => { const m = family.members.find((x) => x.id === id); return m ? (m.me ? tr("You") : m.name) : ""; };
+  /* the person's own first name on a row, never "You" — the grid below
+     already marks which face is theirs */
+  const nameOf = (id) => { const m = family.members.find((x) => x.id === id); return m ? (m.me ? String(m.name || "").split(" ")[0] || m.name : m.name) : ""; };
   const first = (n) => (n || "").split(" ")[0];
   /* a junior's own next lesson is already on their Home; here they see
      the household's list and nothing to do */
@@ -9752,7 +9754,7 @@ async function downloadLessonLog({ lesson, coach, who, media, drills, tip, say }
    the foot of Progress — the coach's for a player, a player's own, a
    parent's for a child. Nothing in it is invented; a section with
    nothing to say is left out. */
-function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], today, attendance = [] }) {
+function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], today, attendance = [], practice = [] }) {
   const e = escapeHtml;
   const p = progressOf(cfg, lessons, today || new Date());
   const section = (label, inner) => (inner ? `<section><h2>${e(label)}</h2>${inner}</section>` : "");
@@ -9794,13 +9796,14 @@ function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], t
   ${section("Worked on", areas)}
   ${section("Drills", drillList)}
   ${section("Attendance", attendance.length ? `<p>${attendance.filter((a) => a.state === "in").length} of ${attendance.length} ${attendance.length === 1 ? "lesson" : "lessons"}${attendance.some((a) => a.state === "out") ? ` · missed ${attendance.filter((a) => a.state === "out").map((a) => e(a.iso ? fmtWeekDay(localDate(a.iso)) : a.key)).join(", ")}` : ""}</p>` : "")}
+  ${section("Practice", practice.length ? `<p>${practice.length} ${practice.length === 1 ? "session" : "sessions"} logged</p>` : "")}
   ${section("Tips", tipList)}
   ${section("Every lesson", list ? `<ul>${list}</ul>` : "")}
   <footer>Saved from ${e(BRAND)}</footer>
 </main></body></html>`;
 }
-async function shareSeasonReport({ name, coach, cfg, lessons, drills, tips, today, say, attendance }) {
-  const html = seasonReportHtml({ name, coach, cfg, lessons, drills, tips, today, attendance });
+async function shareSeasonReport({ name, coach, cfg, lessons, drills, tips, today, say, attendance, practice }) {
+  const html = seasonReportHtml({ name, coach, cfg, lessons, drills, tips, today, attendance, practice });
   const d = today || new Date();
   const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   await shareHtmlFile({ html, name: `nosca-report-${fileSlug(name) || "player"}-${stamp}.html`, title: `${name} · ${tr("Report")}`, say });
@@ -13077,7 +13080,7 @@ const progressToday = (cal) => {
   if (v && typeof v.m === "number") return new Date((cal && cal.year) || new Date().getFullYear(), v.m - 1, v.d || 1);
   return new Date();
 };
-function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, say, attendance = [] }) {
+function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, say, attendance = [], practice = [] }) {
   const t = useT();
   const calendar = useCalendar();
   const todayKey = calendar && calendar.today ? `${calendar.year || ""}-${calendar.today.m}-${calendar.today.d}` : "";
@@ -13188,6 +13191,27 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                 </div>
               );
             })()}
+            {/* PRACTICE THE PLAYER LOGGED FOR THEMSELVES, apart from the
+                lessons: how many, the last one, and what they worked on */}
+            {practice.length > 0 && (() => {
+              const sorted = [...practice].sort((a, b) => String(a.iso || "").localeCompare(String(b.iso || "")));
+              const last = sorted[sorted.length - 1];
+              const areaCount = new Map();
+              sorted.forEach((l) => String(l.focus || "").split(" · ").map((a) => a.trim()).filter(Boolean).forEach((a) => areaCount.set(a, (areaCount.get(a) || 0) + 1)));
+              const top = [...areaCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([a]) => a);
+              return (
+                <div style={{ marginBottom: SPACE.block }} data-progress="practice">
+                  <div style={section}>{tr("Practice")}</div>
+                  <div style={box}>
+                    <div className="flex items-center justify-between">
+                      <span style={{ ...TYPE.body, color: t.ink }}>{sorted.length} {sorted.length === 1 ? tr("session") : tr("sessions")}</span>
+                      {last && last.iso && <span style={{ ...TYPE.small, color: t.sub }}>{tr("last")} {fmtWeekDay(localDate(last.iso))}</span>}
+                    </div>
+                    {top.length > 0 && <p className="mt-1.5" style={{ ...TYPE.small, color: t.sub }}>{top.join(" · ")}</p>}
+                  </div>
+                </div>
+              );
+            })()}
             {/* drills done */}
             {mineDrills.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="drills">
@@ -13205,7 +13229,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             )}
             {/* the whole journey as one page for the share sheet — what a
                 parent is handed at the end of a term */}
-            <button data-tour="progress-report" onClick={() => { hapticCommit(); soft(); shareSeasonReport({ name: name || title, coach, cfg, lessons, drills: mineDrills, tips: tips || [], today, say, attendance }); }}
+            <button data-tour="progress-report" onClick={() => { hapticCommit(); soft(); shareSeasonReport({ name: name || title, coach, cfg, lessons, drills: mineDrills, tips: tips || [], today, say, attendance, practice }); }}
                     className="w-full flex items-center justify-center gap-2 active:opacity-70"
                     style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
               {tr("Share a report")}
@@ -13407,7 +13431,7 @@ function JuvenileJoin({ sport, onDone, onBack }) {
 /* What kind of thing happened, as one icon. The bell is the fallback so
    a kind nobody has taught this map still draws something. */
 const NOTIF_ICON = { booking: CalendarDays, request: UserPlus, message: MessageCircle, lesson: FileText,
-                     weather: CloudRain, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Star, clip: VideoIcon };
+                     weather: CloudRain, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Star, clip: VideoIcon, practice: ListChecks };
 
 /* Everything a coach has ever logged, searchable. Fifty players over a
    season is a lot of lessons to scroll, so search and filters carry it. */
@@ -14512,7 +14536,7 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
   );
 }
 
-function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder }) {
+function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLogPractice }) {
   const t = useT();
   const calendar = useCalendar();
   const todayIso = isoDay(progressToday(calendar));
@@ -14567,6 +14591,19 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder }) {
             </div>
           )}
         </>
+      )}
+      {/* A PRACTICE OF THEIR OWN, logged in words: what was worked on and a
+          note, kept with their lessons and read by their coach. The door
+          sits under the drills, drills or none — a player practises either
+          way. Tennispreneur's journal and Ace It's practice log are this. */}
+      {onLogPractice && (
+        <div className="px-6" style={{ marginTop: SPACE.block }}>
+          <button data-tour="drills-log-practice" onClick={() => { hapticCommit(); soft(); onLogPractice(); }}
+                  className="w-full flex items-center justify-center gap-2 active:opacity-70"
+                  style={{ minHeight: 50, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+            <Plus size={16} color={t.ink} strokeWidth={2.2} /> {tr("Log a practice")}
+          </button>
+        </div>
       )}
       {/* WHEN THE DAY'S REMINDER ARRIVES — asked here, where the first
           drills land, and in Settings; the second Settings shape */}
@@ -15476,6 +15513,36 @@ function ClipReplyBody({ who, focus, say, close, onSend }) {
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[`${tr("To")} ${who}`, focus].filter(Boolean).join(" · ")}</p>
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Reply")} /></div>
       <Button disabled={busy || !text.trim()} onClick={send} tour="clip-reply-send">{busy ? tr("Sending…") : tr("Send")}</Button>
+    </>
+  );
+}
+/* A PRACTICE THE PLAYER LOGS FOR THEMSELVES: the sport's areas as tiles,
+   a tap per area, a note with dictation, Save — the log's own shape with
+   no camera and no coach, kept with their lessons as Practice. */
+function PracticeLogBody({ areas, say, close, onSave }) {
+  const t = useT();
+  const [picked, setPicked] = useState([]); const [note, setNote] = useState(""); const [busy, setBusy] = useState(false);
+  const labels = picked.map((id) => (areas || []).find((a) => a.id === id)?.label).filter(Boolean);
+  const save = async () => {
+    if (busy || (!labels.length && !note.trim())) return;
+    setBusy(true); hapticCommit();
+    const res = await onSave({ focus: labels.join(" · ") || null, note: note.trim() || null });
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("That didn't save")); return; }
+    close();
+  };
+  return (
+    <>
+      <h2 className="mb-1" data-tour="practice-log" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Practice")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{tr("Today")}</p>
+      {areas && areas.length > 0 && (
+        <div className="mb-5">
+          <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Worked on")}</div>
+          <FocusGrid areas={areas} picked={picked} onToggle={(id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))} h={46} cols={evenCols(areas.length)} tour="practice-focus" />
+        </div>
+      )}
+      <div className="mb-6"><VoiceArea value={note} onChange={setNote} rows={3} ph={tr("Notes")} /></div>
+      <Button disabled={busy || (!labels.length && !note.trim())} onClick={save} tour="practice-save">{busy ? tr("Saving…") : tr("Save")}</Button>
     </>
   );
 }
@@ -16500,7 +16567,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   /* THE LIST NARROWS ONLY WHEN IT NEEDS TO. Four kinds of thing land
      here and a season's worth of them is a lot to thumb through; under
      a screenful there is nothing to narrow and the control is clutter. */
-  const BUCKET = { lesson: "Lessons", tip: "Lessons", drill: "Lessons", rating: "Lessons", clip: "Lessons",
+  const BUCKET = { lesson: "Lessons", tip: "Lessons", drill: "Lessons", rating: "Lessons", clip: "Lessons", practice: "Lessons",
                    message: "Messages",
                    booking: "Diary", request: "Diary", weather: "Diary", comp: "Diary", family: "Diary" };
   const [only, setOnly] = useKept("only", tr("Everything"));
@@ -19216,6 +19283,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       return Object.keys(registers || {}).map((k) => (registers[k][pid] ? { key: k, iso: days[k] || null, state: registers[k][pid] } : null)).filter(Boolean)
         .sort((a, b) => String(a.iso || "").localeCompare(String(b.iso || "")));
     };
+    /* a practice the player logged is theirs, apart from the lessons */
+    const splitPractice = (list) => ({ lessons: (list || []).filter((l) => !l.practice), practice: (list || []).filter((l) => l.practice) });
     if (!pkey) { plist = playerLessons || []; pdrills = myPractice || []; ptips = myTips || []; pcoach = data ? data.coachName : null; }
     else if (data) {
       /* a parent's child comes from the family, which knows the child's
@@ -19234,8 +19303,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       plist = pwho ? (fileFor(pwho.name, false).lessons || []) : (playerLessons || []).slice(0, 3);
       pcoach = role === "coach" ? myName : null;
     }
-    body = <ProgressScreen title={ptitle} name={pname} cfg={cfg} lessons={plist} drills={pdrills} tips={ptips} coach={pcoach} say={say} pop={pop}
-                           attendance={data ? attendanceOf(pkey ? (pwho ? pwho.id : pkey) : (account && account.id)) : []} />;
+    const psplit = splitPractice(plist);
+    body = <ProgressScreen title={ptitle} name={pname} cfg={cfg} lessons={psplit.lessons} drills={pdrills} tips={ptips} coach={pcoach} say={say} pop={pop}
+                           attendance={data ? attendanceOf(pkey ? (pwho ? pwho.id : pkey) : (account && account.id)) : []} practice={psplit.practice} />;
   } else if (screen.startsWith("history:")) {
     const hkey = screen.slice("history:".length);
     const hp = data ? byKey(hkey) : null;
@@ -19481,7 +19551,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "layout") {
     body = <LayoutEditor layout={layout} onSave={saveLayout} pop={pop} say={say} />;
   } else if (screen === "clips") {
-    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread) : []} pop={pop} sport={coachSport}
+    body = <ClipsToReview lessons={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread && !l.practice) : []} pop={pop} sport={coachSport}
                           liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                           onOpen={(l) => push(`clesson:${l.id}:${l.who || ""}`)} />;
   } else if (screen === "unlogged") {
@@ -19564,7 +19634,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             selfCanBook={data ? !!data.hasCoach : true}
                                                             onBookFor={(k) => { setBookFor(k); }} />;
   } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} />;
-  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} onAll={() => push("drillsAll")} reminder={reminderCtl} />;
+  } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} onAll={() => push("drillsAll")} reminder={reminderCtl}
+                           onLogPractice={data && data.canSendClip && data.hasCoach && !parentAccount ? () => setSheet("practiceLog") : null} />;
   } else if (screen === "drillsAll") { body = <PlayerDrillLibrary items={myPractice} toggle={togglePractice} pop={pop} />;
   } else if (role === "coach") {
     bare = screen === "log";
@@ -19584,7 +19655,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   upcoming={upcomingForCoach} unread={unread}
                   toWriteUp={openUnlogged}
                   onWriteUp={() => push("unlogged")}
-                  toReview={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread) : []}
+                  toReview={data ? taught(data.lessons).filter((l) => l.sentBy && l.unread && !l.practice) : []}
                   onReview={() => push("clips")}
                   onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }}
                   onNoShow={(b) => { setPeek(b); setSheet("cancelLesson"); }}
@@ -20218,6 +20289,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                                               done(tr("Sent"), clipFor.who);
                                                                               return res;
                                                                             }} />
+              : sheet === "practiceLog" && data ? <PracticeLogBody areas={cfg.focus || []} say={say} close={() => setSheet(null)}
+                                                                 onSave={async ({ focus, note }) => {
+                                                                   const res = await data.logPractice({ focus, note });
+                                                                   if (res && res.error) return res;
+                                                                   done(tr("Logged"), focus || tr("Practice"));
+                                                                   return res;
+                                                                 }} />
               : sheet === "clipReply" && replyFor && data ? <ClipReplyBody who={replyFor.who} focus={replyFor.focus} say={say}
                                                                  close={() => { setSheet(null); setReplyFor(null); }}
                                                                  onSend={async (text) => {

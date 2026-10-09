@@ -109,6 +109,8 @@ const toLesson = (r, attendeeIds = []) => {
     iso: r.lesson_date,
     ratingRequested: !!r.rating_requested,
     sentBy: r.sent_by || null,
+    /* a practice the player logged for themselves: kind practice, no coach's lesson behind it */
+    practice: r.kind === "practice",
     createdAt: r.created_at,
   };
 };
@@ -1319,6 +1321,27 @@ export function useNoscaData(profile) {
     await load();
     return { lesson: made };
   };
+  /* A PRACTICE THE PLAYER LOGGED: their own row, kind practice, sent_by
+     them, addressed to their coach so the coach can read it — no file,
+     no line in the thread. The coach is told once by the trigger. A
+     project whose SQL still refuses the kind says so plainly. */
+  const logPractice = async ({ playerId, focus, note }) => {
+    const who = playerId || profile.id;
+    const thread = threadFor(who);
+    if (!thread.coach_id || !thread.player_id) return { error: { message: "You don't have a coach yet." } };
+    if (!focus && !note) return { error: { message: "Nothing to log." } };
+    const now = new Date();
+    const row = { coach_id: thread.coach_id, player_id: who, kind: "practice", focus: focus || "Practice", subs: [], notes: note || null,
+                  lesson_date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+                  unread: false, sent_by: profile.id };
+    const { data: made, error } = await supabase.from("lessons").insert(row).select().single();
+    if (error) {
+      const m = String(error.message || "");
+      return { error: { message: /kind_check|23514|sent_by|42703/.test(m) ? "Your coach's app needs updating before a practice can be logged." : /row-level|policy|42501/i.test(m) ? "That didn't save. Check you're still with this coach." : (m || "That didn't save.") } };
+    }
+    await load();
+    return { lesson: made };
+  };
   /* the coach has looked at a sent clip: it leaves To review */
   const markLessonSeen = async (lessonId) => {
     const { data: rows } = await supabase.from("lessons").update({ unread: false }).eq("id", lessonId).select("id");
@@ -1670,7 +1693,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, sendClip, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

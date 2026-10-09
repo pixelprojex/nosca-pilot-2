@@ -95,8 +95,8 @@ function addProfile(db, { id, role, name, sport = "golf", type = null, coachId =
   return row;
 }
 function addFamily(db, { id = uuid("fa000000"), code = code6(), name = null, createdBy = null }) { const f = { id, code, name, created_by: createdBy, created_at: nowIso(db) }; db.families[id] = f; return f; }
-function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupName = null, date, focus, subs = [], notes = null, unread = true, ratingRequested = false, sentBy = null, createdAt = null }) {
-  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, kind: groupName ? "group" : "private", focus, subs, notes, lesson_date: date, unread, rating_requested: ratingRequested, sent_by: sentBy, created_at: createdAt || `${date}T10:00:00Z` };
+function addLesson(db, { id = uuid("1e000000"), coachId, playerId = null, groupName = null, date, focus, subs = [], notes = null, unread = true, ratingRequested = false, sentBy = null, createdAt = null, kind = null }) {
+  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, kind: kind || (groupName ? "group" : "private"), focus, subs, notes, lesson_date: date, unread, rating_requested: ratingRequested, sent_by: sentBy, created_at: createdAt || `${date}T10:00:00Z` };
   db.lessons.push(row); return row;
 }
 /* who was at a group lesson — lessons carry a name, not a player */
@@ -140,7 +140,12 @@ function notify(db, userId, kind, title, body, data) { if (!userId) return null;
 function onLessonInsert(db, l) {
   if (!l.player_id) return;
   /* a clip the player sent: the coach is told, nobody else */
-  if (l.sent_by) { notify(db, l.coach_id, "clip", `${firstOf(db, l.player_id)} sent a clip`, l.focus, { screen: "lesson", id: l.id }); return; }
+  if (l.sent_by) {
+    /* a practice the player logged: the coach is told once that they practised */
+    if (l.kind === "practice") notify(db, l.coach_id, "practice", `${firstOf(db, l.player_id)} practised`, l.focus, { screen: "lesson", id: l.id });
+    else notify(db, l.coach_id, "clip", `${firstOf(db, l.player_id)} sent a clip`, l.focus, { screen: "lesson", id: l.id });
+    return;
+  }
   notify(db, l.player_id, "lesson", "Lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
   adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, l.player_id)}'s lesson logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
 }
@@ -553,7 +558,8 @@ async function attach(page, db, opts = {}) {
       const ok = (r) => {
         /* the coach's own, or a clip a player sends their coach: sent_by themselves, for themselves or a junior they look after, to that player's coach */
         if (table === "lessons") return (S.isCoach && r.coach_id === meId)
-          || (!!r.sent_by && r.sent_by === meId && !S.iAmJunior && (r.player_id === meId || S.looked.includes(r.player_id)) && !!r.coach_id && r.coach_id === ((db.profiles[r.player_id] || {}).coach_id || null));
+          /* the policy itself does not ask whether the sender is a junior — the app's camera does; a junior's own practice is theirs */
+          || (!!r.sent_by && r.sent_by === meId && (r.player_id === meId || S.looked.includes(r.player_id)) && !!r.coach_id && r.coach_id === ((db.profiles[r.player_id] || {}).coach_id || null));
         if (table === "lesson_media") return (S.isCoach && db.lessons.some((l) => l.id === r.lesson_id && l.coach_id === meId))
           || db.lessons.some((l) => l.id === r.lesson_id && l.sent_by === meId);
         if (table === "lesson_attendees") return S.isCoach && db.lessons.some((l) => l.id === r.lesson_id && l.coach_id === meId);

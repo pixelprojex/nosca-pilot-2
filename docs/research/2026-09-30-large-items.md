@@ -158,7 +158,24 @@ readable by the player and the family. `progress.cjs`. With it, the
 visual item of the day: a child's row in the coach's Chat leads with
 the parent's first name when the parent spoke last.
 
+### 11. A practice of the player's own. **Built 9 October.**
+Tennispreneur is a player's private journal — thoughts and reflections
+after every lesson and match — that the coach reads and comments on;
+Ace It keeps a practice log with a coach dashboard; Golf Grind logs
+practice by skill. Nosca had a clip to the coach and nothing for the
+practice a player does on their own. Log a practice under the Drills
+tab: the areas as tiles, a note, Save; the row is the player's own
+(kind practice), reads Practice in their list, the coach is told once
+that they practised, and Progress counts it apart from the lessons on
+both sides. SQL: the kind constraint admits 'practice'; the trigger's
+own branch. `practice.cjs`; behaviour.sql 8e. With it, the visual item
+of the day: the family's Coming up row names the person reading it
+rather than "You".
+
 ### Next candidates (unranked until read against the field)
+- The coach's comment on a practice — Tennispreneur's coach comments
+  on every journal entry. Reply on the coach's page already writes a
+  line tied to a lesson; offering it on a practice is a small step.
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
 - An acknowledgement from the player on a reply — CoachNow's "fist
@@ -197,6 +214,9 @@ the items above; a research spike first.
 - https://play.google.com/store/apps/details?id=com.sportsanalyticsinc.coachapp (TennisLocker)
 - https://goodcoach.app/blog/post/48/top-online-coaching-apps-comparison (the 80% figure)
 - https://coachnow.com/
+- https://apps.apple.com/app/id6475751909 (Tennispreneur: a player's journal the coach reads and comments on)
+- https://mwm.ai/apps/tennispreneur/6475751909 (Tennispreneur: reflections after every lesson and match)
+- https://apps.apple.com/mx/app/ace-it-app/id6746839427 (Ace It: a practice log with a coach dashboard)
 - https://austintennisacademy.com/?p=6280 (TennisLocker: attendance with a tap; parents see when their player attended)
 - https://usta.clubspark.com/providers/coaches (USTA Serve: registration, attendance capture, communication with players and parents)
 - https://www.teamsnap.com/blog/general-sports/learn-how-to-sync-your-personal-calendar-to-your-teamsnap-calendar (Sync Calendar / Export; Subscribe in the app)

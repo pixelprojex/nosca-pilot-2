@@ -247,8 +247,10 @@ seeded data and no account.
   adult's first name and "parent" (or just "Parent" where the coach
   cannot read the name). A parent's Chat lists their own conversation
   and the children's apart, the children's under the coach's name and
-  marked "For <child>". Never let a parent's line read as the child's
-  — in Chat's list too: a child's row whose last word was an adult's
+  marked "For <child>". A row that names the person reading it says
+  their first name, never "You" (the family's Coming up row did; the
+  grid under it already marks which face is theirs). Never let a
+  parent's line read as the child's — in Chat's list too: a child's row whose last word was an adult's
   leads the preview with the adult's first name ("Orla: can she come
   Friday"), the way a messenger names who spoke last.
 - **Who a booking is for is chosen before the slot.** The diary carries
@@ -963,6 +965,30 @@ seeded data and no account.
   walks the player, a parent for a child, the coach's To review and
   bell, and a project without the column; behaviour.sql 8b the
   policies and the triggers.
+- **A player logs a practice of their own, in words.** **Log a
+  practice** sits under the Drills tab's list (`drills-log-practice`,
+  drills or none — a player practises either way), for a player with a
+  coach and a junior alike, never a parent; it opens the app's sheet
+  (`PracticeLogBody`, `practice-log`: Practice · Today, the sport's
+  areas as tiles with a tap per area — `practice-focus` — a note with
+  dictation, Save asleep until there is something to save,
+  `practice-save`) and writes one `lessons` row of the player's own
+  through `logPractice`: `kind = 'practice'`, `sent_by` them,
+  addressed to their coach, the areas joined with " · " the log's way,
+  no file and no line in the thread. It reads **Practice** in their
+  list and feed and on the coach's archive; `trg_lessons_notify` tells
+  the coach once, "Cian practised" · the areas, kind `practice`,
+  landing on the coach's page for it (Sent by Cian Murphy, the note);
+  it never joins To review (`!l.practice`) — there is no clip to mark
+  up. Progress keeps the lesson count to the lessons and carries
+  **Practice** apart (`data-progress="practice"`: the sessions, the
+  last day, the areas most worked on), on both sides and in the
+  season report. The `lessons_kind_check` constraint is replaced to
+  admit 'practice' where a project still has the first one; until the
+  founder re-runs the SQL, Save says the coach's app needs updating.
+  Tennispreneur's whole product is a player's journal the coach reads
+  and comments on; Ace It carries a practice log with a coach
+  dashboard. `scripts/e2e/practice.cjs`; behaviour.sql 8e.
 - **A sent clip is answered, and the player sees where it stands.**
   The coach's reply in words lives on the clip: **Reply** is the one
   action (the accent) on the coach's page for a sent clip, with Set
