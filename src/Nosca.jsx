@@ -5228,7 +5228,7 @@ const hushOthers = (el) => {
 };
 const clock = (s) => `${Math.floor((s || 0) / 60)}:${String(Math.floor((s || 0) % 60)).padStart(2, "0")}`;
 
-function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAutoMuted, bind }) {
+function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAutoMuted, bind, clear = 0 }) {
   const vid = useRef(null), aud = useRef(null);
   const [tk, setTk] = useState(0);
   const [ready, setReady] = useState(false);
@@ -5371,10 +5371,11 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
           /* paused by a tap, or autoplay refused (Low Power Mode, mostly):
              one tap, in a gesture, is allowed where autoplay was not */
           <button onClick={() => { haptic(8); setHeld(false); tryPlay(); }} aria-label={tr("Play")}
-                  /* centred in the picture above the glass panel, the way the
-                     failure notice is — centred on the whole card it sat over
-                     the title */
-                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: blocked ? "rgba(0,0,0,0.18)" : "transparent", paddingBottom: "38%" }}>
+                  /* centred in the picture left above the glass panel — the
+                     card measures the panel and hands the space it takes
+                     down as `clear`; centred on the whole card the disc sat
+                     over the title, and a guessed percentage still did */
+                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: blocked ? "rgba(0,0,0,0.18)" : "transparent", paddingBottom: clear }}>
             <span className="rounded-full flex items-center justify-center"
                   style={{ width: 64, height: 64, background: blocked ? "rgba(255,255,255,0.92)" : "rgba(20,24,26,0.5)",
                            border: blocked ? "none" : "0.5px solid rgba(255,255,255,0.35)",
@@ -5385,10 +5386,9 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
         )}
         {failed && (
           /* say so, rather than showing a blank frame forever */
-          /* centred in the top half: the lesson's date, title and note
-             are drawn over the lower third of this frame, and a message
-             centred on the whole frame landed on top of them */
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ zIndex: 2, background: "#0B0F10", paddingBottom: "38%" }}>
+          /* centred in the picture above the glass panel, like the disc:
+             a message centred on the whole frame landed on the title */
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8" style={{ zIndex: 2, background: "#0B0F10", paddingBottom: clear }}>
             <X size={22} color={DANGER} strokeWidth={2} />
             <span className="mt-3 text-center" style={{ ...TYPE.small, color: "rgba(255,255,255,0.8)" }}>
               {tr("This clip wouldn't play")}
@@ -5478,6 +5478,27 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
   const [more, setMore] = useState(false);  // the note, opened out
   const [scrub, setScrub] = useState(null); // { f, t, d } while a thumb is on the strip
   const rail = useRef(null), api = useRef(null), strip = useRef(null), drag = useRef(false);
+  /* how much of the card the glass panel and the bar take from the
+     bottom, measured, so the paused disc and the failure notice centre
+     in the picture that is actually visible above them */
+  const panel = useRef(null);
+  const [clear, setClear] = useState(0);
+  useEffect(() => {
+    const el = panel.current;
+    if (!el) return;
+    const read = () => {
+      const card = el.parentElement;
+      if (!card) return;
+      const r = el.getBoundingClientRect(), c = card.getBoundingClientRect();
+      const px = Math.round(c.bottom - r.top);
+      if (px > 0 && px < c.height) setClear(px);
+    };
+    read();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const items = media && media.length ? media : [];
   const current = items[frame];
 
@@ -5579,7 +5600,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
                  style={{ width: "100%", height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}>
               {near || i === 0
                 ? <Evidence item={it} live={active && i === frame} mark={t.mark} muted={!sound} rate={rate} onAutoMuted={() => onSound && onSound(false)}
-                            onProgress={i === frame ? setProg : undefined} bind={i === frame ? api : undefined} />
+                            onProgress={i === frame ? setProg : undefined} bind={i === frame ? api : undefined} clear={clear} />
                 : <div className="absolute inset-0" style={{ background: "#0B0F10" }} aria-hidden="true" />}
             </div>
           ))}
@@ -5594,7 +5615,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
       {/* what this is: the focus, the day, the note, and the way in — on glass */}
       {/* low on the picture — it sat 170px up for a round and the founder
           asked twice for it lower; 40px clear of the bar's bulge */}
-      <div className="absolute" style={{ left: 16, right: 16, bottom: `calc(${40 + BAR_H}px + env(safe-area-inset-bottom, 0px))`, zIndex: 25 }}>
+      <div ref={panel} className="absolute" style={{ left: 16, right: 16, bottom: `calc(${40 + BAR_H}px + env(safe-area-inset-bottom, 0px))`, zIndex: 25 }}>
         <div className="w-full text-left"
              style={{ padding: "14px 16px 14px", borderRadius: 18, background: "rgba(10,13,14,0.62)",
                       animation: active ? "fadeUp 460ms cubic-bezier(.22,1,.36,1) 80ms both" : "none" }}>
