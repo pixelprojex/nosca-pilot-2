@@ -309,6 +309,11 @@ alter table public.preferences add column if not exists setup_done     boolean n
 -- player their own — as a list of lesson ids. Theirs alone: a star is
 -- a private mark, never shown to the other side.
 alter table public.preferences add column if not exists starred        jsonb not null default '[]'::jsonb;
+-- A COACH'S OWN NOTE ON A PLAYER, keyed by the player's id — the thing a
+-- coach keeps in their head between lessons ("left-handed, hates bunker
+-- drills"). On the coach's own preferences row, so the player never
+-- reads it; a project without the column keeps it on the device.
+alter table public.preferences add column if not exists player_notes   jsonb not null default '{}'::jsonb;
 -- What lessons open on: 'list' or 'feed'. Null is the role's own default
 -- (a coach List, a player Feed); Settings › Default view sets it.
 alter table public.preferences add column if not exists default_view   text check (default_view in ('list', 'feed'));

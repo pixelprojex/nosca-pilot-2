@@ -115,7 +115,7 @@ function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, group
 }
 function addDrill(db, { id = uuid("d0000000"), coachId, playerId, title, done = false }) { const row = { id, coach_id: coachId, player_id: playerId, title, done, created_at: nowIso(db) }; db.drills.push(row); return row; }
 function addMessage(db, { id = uuid("30000000"), coachId, playerId, senderId, body, readAt = null, createdAt, lessonId = null }) { const row = { id, coach_id: coachId, player_id: playerId, sender_id: senderId, body, read_at: readAt, lesson_id: lessonId, created_at: createdAt || nowIso(db) }; db.messages.push(row); return row; }
-function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], layout: {}, starred: [], default_view: null, reminder_time: null, updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
+function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_view: "list", notify: "instant", attendance: "all", show_record: true, show_comps: true, reduce_data: false, ask_for_review: true, custom_drills: {}, custom_tips: {}, extra_sports: [], setup_done: false, availability: {}, groups: [], layout: {}, starred: [], player_notes: {}, default_view: null, reminder_time: null, updated_at: nowIso(db), ...(db.prefs[id] || {}), ...patch }; return db.prefs[id]; }
 
 /* a week of hours in the shape the app saves: Monday-first day keys */
 const weekOf = (times = ["9:00 am", "10:00 am", "11:00 am", "2:00 pm", "3:00 pm"], days = [0, 1, 2, 3, 4]) =>
@@ -551,7 +551,8 @@ async function attach(page, db, opts = {}) {
     }
     const prefer = hdr["prefer"] || "";
 
-    if (method === "GET") return respond(visible());
+    /* and a select * on such a project simply has no such key in its rows */
+    if (method === "GET") { const gone0 = (db.missingColumns && db.missingColumns[table]) || []; const rows0 = visible(); return respond(gone0.length ? rows0.map((r) => { const c = { ...r }; gone0.forEach((k) => delete c[k]); return c; }) : rows0); }
 
     if (method === "POST") {
       const rows = (Array.isArray(body) ? body : [body || {}]).map((r) => ({ ...r }));

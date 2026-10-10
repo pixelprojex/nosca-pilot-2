@@ -5371,7 +5371,10 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
           /* paused by a tap, or autoplay refused (Low Power Mode, mostly):
              one tap, in a gesture, is allowed where autoplay was not */
           <button onClick={() => { haptic(8); setHeld(false); tryPlay(); }} aria-label={tr("Play")}
-                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: blocked ? "rgba(0,0,0,0.18)" : "transparent" }}>
+                  /* centred in the picture above the glass panel, the way the
+                     failure notice is — centred on the whole card it sat over
+                     the title */
+                  className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2, background: blocked ? "rgba(0,0,0,0.18)" : "transparent", paddingBottom: "38%" }}>
             <span className="rounded-full flex items-center justify-center"
                   style={{ width: 64, height: 64, background: blocked ? "rgba(255,255,255,0.92)" : "rgba(20,24,26,0.5)",
                            border: blocked ? "none" : "0.5px solid rgba(255,255,255,0.35)",
@@ -13241,7 +13244,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   );
 }
 
-function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload }) {
+function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop, push, say, assignDrills, assignTip, onLog, live, lessons, player, onOpenLesson, onAllLessons, cfg, liveMedia, onNeedMedia, sport, onDownload, note, onNote }) {
   const t = useT();
   const seeded = !useLive();
   /* `live` is the real roster. With it, everything on this screen is
@@ -13373,12 +13376,16 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               a second name. */}
           <div style={{ borderTop: RULE.section(t.ink) }}>
             {[[tr("Progress"), () => push("progress:" + (r.id || name)), null],
+              /* the coach's own note on this player — the first line as the
+                 row's value, the whole of it one tap away; theirs alone */
+              ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
-              <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
+              <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
                       style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
-                <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                {val && <span style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
+                <span className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+                {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
+                {!val && <span className="flex-1" />}
                 <ChevronRight size={14} color={t.trace || t.faint} />
               </button>
             ))}
@@ -15516,6 +15523,29 @@ function ClipReplyBody({ who, focus, say, close, onSend }) {
     </>
   );
 }
+/* A COACH'S OWN NOTE ON A PLAYER: one field with dictation and Save; the
+   whole note, read and written in one place. Private — the sub says so
+   in one word, and nothing of it ever reaches the player's side. */
+function PlayerNoteBody({ who, value, say, close, onSave }) {
+  const t = useT();
+  const [text, setText] = useState(value || ""); const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (busy) return;
+    setBusy(true); hapticCommit();
+    const res = await onSave(text);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("That didn't save")); return; }
+    close();
+  };
+  return (
+    <>
+      <h2 className="mb-1" data-tour="player-note" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Notes")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${who} · ${tr("Private")}`}</p>
+      <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={5} ph={tr("Notes")} /></div>
+      <Button disabled={busy || (text || "").trim() === (value || "").trim()} onClick={save} tour="player-note-save">{busy ? tr("Saving…") : tr("Save")}</Button>
+    </>
+  );
+}
 /* A PRACTICE THE PLAYER LOGS FOR THEMSELVES: the sport's areas as tiles,
    a tap per area, a note with dictation, Save — the log's own shape with
    no camera and no coach, kept with their lessons as Practice. */
@@ -17362,6 +17392,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [clipFor, setClipFor] = useState(null);
   const [clipFile, setClipFile] = useState(null);
   const [replyFor, setReplyFor] = useState(null);   // the sent clip the coach is replying to
+  const [noteFor, setNoteFor] = useState(null);     // the player whose note the coach is writing
   useEffect(() => {
     if (!data || sc) return;
     /* the service worker opens the app at ?open=<screen>, or tells an open app */
@@ -18123,6 +18154,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [demoLayout, setDemoLayout] = useState(() => {
     try { return JSON.parse(localStorage.getItem("nosca.layout") || "{}"); } catch (e) { return {}; }
   });
+  /* A COACH'S OWN NOTE ON A PLAYER, keyed by the player's id, on the
+     coach's preferences row — theirs alone, never the player's to read.
+     A project without the column keeps it on this phone, the way the
+     board's layout is kept. */
+  const notesKey = account ? `nosca.notes.${account.id}` : "nosca.notes";
+  const [deviceNotes, setDeviceNotes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(notesKey) || "{}"); } catch (e) { return {}; }
+  });
+  const playerNotes = data && data.prefs && data.prefs.player_notes && typeof data.prefs.player_notes === "object" ? data.prefs.player_notes : deviceNotes;
+  const saveNote = async (pid, text) => {
+    const next = { ...playerNotes };
+    if (text && text.trim()) next[pid] = text.trim(); else delete next[pid];
+    setDeviceNotes(next);
+    try { localStorage.setItem(notesKey, JSON.stringify(next)); } catch (e) { /* private window */ }
+    if (data) { const r = await data.savePrefs({ player_notes: next }); if (r && r.error) { /* no column yet: the phone keeps it */ } }
+    return {};
+  };
   const layout = data ? ((data.prefs && data.prefs.layout) || demoLayout) : demoLayout;
   const saveLayout = async (patch) => {
     const next = { ...layout, ...patch };
@@ -19162,6 +19210,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const pl = data ? byKey(pkey) : null;
     const pname = pl ? pl.name : pkey;
     body = <RosterPlayer onDownload={downloadLesson} name={pname} live={data ? data.roster : null} sportTool={TOOLS[sport]} lessons={data ? taught(data.lessons) : null}
+                        note={pl ? playerNotes[pl.id] || null : null} onNote={data && pl ? () => { setNoteFor(pl); setSheet("playerNote"); } : null}
                         player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
                         onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
@@ -20289,6 +20338,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                                               done(tr("Sent"), clipFor.who);
                                                                               return res;
                                                                             }} />
+              : sheet === "playerNote" && noteFor && data ? <PlayerNoteBody who={noteFor.name} value={playerNotes[noteFor.id] || ""} say={say}
+                                                               close={() => { setSheet(null); setNoteFor(null); }}
+                                                               onSave={async (text) => { await saveNote(noteFor.id, text); done(tr("Saved"), noteFor.name); return {}; }} />
               : sheet === "practiceLog" && data ? <PracticeLogBody areas={cfg.focus || []} say={say} close={() => setSheet(null)}
                                                                  onSave={async ({ focus, note }) => {
                                                                    const res = await data.logPractice({ focus, note });
