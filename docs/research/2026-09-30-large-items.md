@@ -175,6 +175,19 @@ rather than "You".
 Reply stands on the coach's page for a practice as on a sent clip, so
 Tennispreneur's coach comment on a journal entry is already there.
 
+### 12. A coach's own note on a player. **Built 10 October.**
+SportMember's private notes (only the writing coach sees them, in the
+player's profile), BridgeAthletic's athlete notes (tied to the coach
+who wrote them), Volt's profile notes, TrainingPeaks' private notes:
+the thing a coach keeps in their head between lessons. Nosca's player
+file had the tiles, the lessons, the tip and Progress, and nowhere for
+"left-handed, hates bunker drills". Notes is a row at the foot of the
+file, the sheet one field, the note on the coach's own preferences row
+keyed by the player; a project without the column keeps it on the
+phone. `notes.cjs`. With it, the visual item of the day: the feed's
+paused play disc sits in the picture above the glass panel rather than
+over the title.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -214,6 +227,9 @@ the items above; a research spike first.
 - https://play.google.com/store/apps/details?id=com.sportsanalyticsinc.coachapp (TennisLocker)
 - https://goodcoach.app/blog/post/48/top-online-coaching-apps-comparison (the 80% figure)
 - https://coachnow.com/
+- https://sportmember.co.uk/en/faq/coach/members--3 (SportMember: private notes only the writing coach sees)
+- https://intercom.help/bridgeathletic/en/articles/5507324-managing-athlete-notes-in-bridgeathletic (BridgeAthletic: athlete notes tied to the coach who wrote them)
+- https://help.trainingpeaks.com/hc/en-us/articles/38758068849805-Private-Notes-FAQ (TrainingPeaks: private notes)
 - https://apps.apple.com/app/id6475751909 (Tennispreneur: a player's journal the coach reads and comments on)
 - https://mwm.ai/apps/tennispreneur/6475751909 (Tennispreneur: reflections after every lesson and match)
 - https://apps.apple.com/mx/app/ace-it-app/id6746839427 (Ace It: a practice log with a coach dashboard)

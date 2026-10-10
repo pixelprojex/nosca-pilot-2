@@ -691,7 +691,9 @@ seeded data and no account.
   scroll with the sound on was three clips talking over each other,
   which the founder called the most important thing to get right. A
   voice note stops with its card. A tap on the picture pauses (a
-  translucent play disc, and a tap resumes); **½×** beside the sound
+  translucent play disc centred in the picture above the glass panel,
+  the way the failure notice sits — centred on the whole card it lay
+  over the title — and a tap resumes); **½×** beside the sound
   button halves the speed and stays on from card to card, because a
   swing is watched slow; the **strip** under the panel is one line per
   file — before full, the one on screen filling, after empty — a thumb
@@ -965,6 +967,19 @@ seeded data and no account.
   walks the player, a parent for a child, the coach's To review and
   bell, and a project without the column; behaviour.sql 8b the
   policies and the triggers.
+- **A coach's own note on a player.** **Notes** is a row at the foot
+  of the player file (`player-notes`, between Progress and Recurring
+  lessons), its value the note's first line; the sheet
+  (`PlayerNoteBody`, `player-note`: Notes · Cian Murphy · Private, one
+  `VoiceArea`, Save asleep until something changed, `player-note-save`)
+  reads and writes the whole of it. It rides on the coach's own
+  `preferences.player_notes` (jsonb keyed by the player's id, through
+  `savePrefs`), so the player never reads it and it follows the coach
+  to another phone; a project without the column keeps it on the
+  device (`nosca.notes.<uid>`, the way the board's layout is kept) and
+  still says Saved (`saveNote` in Nosca). Clearing the field and saving
+  takes it off. SportMember, BridgeAthletic and TrainingPeaks all carry
+  a private note only the writing coach sees. `scripts/e2e/notes.cjs`.
 - **A player logs a practice of their own, in words.** **Log a
   practice** sits under the Drills tab's list (`drills-log-practice`,
   drills or none — a player practises either way), for a player with a
