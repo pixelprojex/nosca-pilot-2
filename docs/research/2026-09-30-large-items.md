@@ -188,6 +188,23 @@ phone. `notes.cjs`. With it, the visual item of the day: the feed's
 paused play disc sits in the picture above the glass panel rather than
 over the title.
 
+### 13. A framing guide on the live camera. **Built 11 October.**
+V1 Golf's capture screen carries an alignment guide — a marker over
+the picture to set the golfer's distance from the camera, with
+down-the-line and face-on guides for the setup, and none of it in the
+recorded video; every guide to filming a swing says the same things
+(the camera at hand height, down the line along the target line, far
+enough back that the clubhead stays in frame); the phone's own camera
+has a grid. Nosca's camera had the picture and nothing to line it up
+against. A Guide button up top, beside the filing pill, cycles Off ·
+Grid (thirds) · Lines (a plumb line and a level through the middle),
+drawn over the live picture only — the recorder takes the stream, so
+no line is ever in a clip or a still — and kept on the phone the way
+the phone keeps its grid. The visual item of the day; `capture.cjs`
+(b2). With it, the small functional fix: a coach who also takes
+lessons and stars one of their own now finds it under Saved › Starred
+(the half read only what they taught).
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -211,6 +228,11 @@ the items above; a research spike first.
 - A second camera angle: two phones, one coach.
 
 ## Sources
+- https://help.v1sports.com/en/articles/6244813-quick-start-guide-v1-golf (V1 Golf: the alignment guide on the capture screen, DTL and Face On guides, not in the video)
+- https://swing-analysis.v1sports.com/swing-analysis/swing-recording.md (V1: face-on and down-the-line, camera at hip/hand height, a stable mount)
+- https://www.golf.com/instruction/2019/08/31/record-golf-swing-video-6-things/ (filming a swing: hand height, along the target line, far enough back)
+- https://practical-golf.com/how-to-record-your-golf-swing-properly (the same setup rules, with distances)
+- https://apps.apple.com/app/swingdraw/id6746954769 (SwingDraw: a grid over the swing)
 - https://apps.apple.com/app/id1433835828 (TennisLocker Coach: charts over time for parents)
 - https://help.coachnow.io/en/articles/10809209-coachnow-academy-101 (a Space as the training history)
 - https://rationalgo.ai/resources/app-builder/golf-lesson-student-handicap-improvement-tracker

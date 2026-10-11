@@ -13,7 +13,7 @@ import {
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp } from "lucide-react";
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3 } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
@@ -4751,6 +4751,27 @@ const deviceName = (who, file) => {
    could not see what they were filming. */
 const CAP_MODES = ["photo", "video", "audio"];
 const CAP_LABEL = { photo: "Photo", video: "Video", audio: "Voice" };
+const GUIDES = ["off", "grid", "lines"];
+const GUIDE_KEY = "nosca.capture.guide";
+const GUIDE_LABEL = { off: "Off", grid: "Grid", lines: "Lines" };
+/* the lines of a framing guide, in fractions of the picture */
+function FramingGuide({ kind }) {
+  if (!kind || kind === "off") return null;
+  const lines = kind === "grid"
+    ? [[1 / 3, 0, 1 / 3, 1], [2 / 3, 0, 2 / 3, 1], [0, 1 / 3, 1, 1 / 3], [0, 2 / 3, 1, 2 / 3]]
+    : [[0.5, 0, 0.5, 1], [0, 0.5, 1, 0.5]];
+  return (
+    <svg data-guide={kind} className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style={{ pointerEvents: "none", zIndex: 1 }}>
+      {lines.map(([x1, y1, x2, y2], i) => (
+        <g key={i}>
+          <line x1={x1 * 100} y1={y1 * 100} x2={x2 * 100} y2={y2 * 100} stroke="rgba(0,0,0,0.35)" strokeWidth={kind === "grid" ? 1.4 : 2} vectorEffect="non-scaling-stroke" />
+          <line x1={x1 * 100} y1={y1 * 100} x2={x2 * 100} y2={y2 * 100} stroke="rgba(254,254,254,0.8)" strokeWidth={kind === "grid" ? 0.8 : 1.2} vectorEffect="non-scaling-stroke" />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, say }) {
   const t = useT();
   const [mode, setMode] = useState("video");        // photo | video | audio
@@ -4759,6 +4780,20 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
   const [roll, setRoll] = useState(false);
   const [thumb, setThumb] = useState(null);         // { url, type } — the last capture
   const [noCamera, setNoCamera] = useState(false);  // the microphone answered, no camera did
+  /* the framing guide over the picture — off, a grid of thirds, or a
+     plumb line and a level through the middle — kept on the phone the
+     way the phone's own camera keeps its grid. It is drawn over the
+     live picture only: the recorder takes the camera's stream, so no
+     line is ever in a clip or a still (V1 Golf's alignment guide is the
+     same: on the capture screen, never in the video). */
+  const [guide, setGuide] = useState(() => { try { const g = localStorage.getItem(GUIDE_KEY); return GUIDES.includes(g) ? g : "off"; } catch (e) { return "off"; } });
+  const nextGuide = () => {
+    if (live) return;
+    haptic(6);
+    const g = GUIDES[(GUIDES.indexOf(guide) + 1) % GUIDES.length];
+    setGuide(g);
+    try { localStorage.setItem(GUIDE_KEY, g); } catch (e) { /* a private window keeps it for the sitting */ }
+  };
   const live = cap.state === "recording";
   const list = items || [];
 
@@ -4840,6 +4875,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
       <div className="relative flex-1 min-h-0" onPointerDown={onDown} onPointerUp={onUp} style={{ touchAction: "none" }}>
         <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full"
                style={{ objectFit: "contain", opacity: cap.state === "idle" || cap.error ? 0 : mode === "audio" ? 0.22 : 1, transition: "opacity 300ms" }} />
+        {mode !== "audio" && !cap.error && cap.state !== "idle" && <FramingGuide kind={guide} />}
         {mode === "audio" && !cap.error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <span className="flex items-center justify-center rounded-full"
@@ -4864,12 +4900,24 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
               <span className="rounded-full" style={{ width: 7, height: 7, background: "#fff", animation: "breathe 1200ms ease-in-out infinite" }} />{mmss(cap.seconds)}
             </span>
           ) : <span />}
-          {lessons && lessons.length > 0 ? (
-            <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} className="flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
-                    style={{ minHeight: 36, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, maxWidth: 180 }}>
-              <span className="truncate">{filing}</span><ChevronRight size={14} color={t.ink} strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
-            </button>
-          ) : <span style={{ width: 40 }} />}
+          <span className="flex items-center gap-2">
+            {/* the framing guide: off · grid · lines, the glyph the phone's
+                camera uses for its own grid, filled while a guide is on */}
+            {!noCamera && (
+              <button onClick={nextGuide} disabled={live} data-tour="capture-guide" data-guide={guide}
+                      aria-label={`${tr("Guide")} · ${tr(GUIDE_LABEL[guide])}`} aria-pressed={guide !== "off"}
+                      className="flex items-center justify-center active:opacity-70 disabled:opacity-60"
+                      style={{ width: 40, height: 40, borderRadius: 20, ...glass, ...(guide !== "off" ? { background: t.ink, color: t.page } : {}) }}>
+                <Grid3X3 size={19} color={guide !== "off" ? t.page : t.ink} strokeWidth={1.9} />
+              </button>
+            )}
+            {lessons && lessons.length > 0 ? (
+              <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} className="flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
+                      style={{ minHeight: 36, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, maxWidth: 150 }}>
+                <span className="truncate">{filing}</span><ChevronRight size={14} color={t.ink} strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
+              </button>
+            ) : null}
+          </span>
         </div>
       </div>
 
@@ -19565,7 +19613,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        The Downloads half plays from the phone, carries the size on the
        row, a swipe to remove, Remove all. */
     const kind = screen === "saved:downloads" || screen === "downloads" ? "downloads" : screen === "saved:starred" || screen === "starred" ? "starred" : savedKind;
-    const mine = role === "coach" ? archive : playerLessons;
+    /* a coach's stars are on what they taught — and on what they took,
+       when they are somebody's player too: those lessons were starred
+       from their own feed and never showed here */
+    const mine = role === "coach" && data
+      ? (() => { const seen = new Set(archive.map((l) => l.id)); return [...archive, ...mineOnly(data.lessons).filter((l) => !seen.has(l.id))]; })()
+      : role === "coach" ? archive : playerLessons;
     const starredList = mine.filter((l) => starCtx.has(l.id));
     const dlLessons = downloads.list.map((x) => x.lesson || (x.record && x.record.lesson)).filter(Boolean);
     const nSaved = downloads.totals.count;
