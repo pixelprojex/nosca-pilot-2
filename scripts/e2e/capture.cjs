@@ -99,9 +99,28 @@ const { check, results, summary } = M.checker("capture");
     await pill.click(); await page.waitForTimeout(300);
     check("(b) a tap cycles it to today's booking", /Cian · 4:00 pm/.test(await pill.innerText()), await pill.innerText());
 
+    /* ---------- (b2) the framing guide: off · grid · lines, over the picture and never in the file ---------- */
+    const guideBtn = page.locator('[data-tour="capture-guide"]');
+    const guideSvg = () => page.locator('[data-tour="capture"] svg[data-guide]');
+    check("(b2) a Guide button sits up top beside the pill, Off, with no line over the picture", (await guideBtn.count()) === 1 && (await guideBtn.getAttribute("aria-label")) === "Guide · Off" && (await guideBtn.getAttribute("aria-pressed")) === "false" && (await guideSvg().count()) === 0, String(await guideBtn.getAttribute("aria-label")));
+    await guideBtn.click(); await page.waitForTimeout(250); await shot("01b-guide-grid");
+    const gridBox = await guideSvg().boundingBox(), stageBox = await stage().boundingBox();
+    check("(b2) one tap draws a grid of thirds over the whole picture, and the button fills", (await guideBtn.getAttribute("aria-label")) === "Guide · Grid" && (await guideBtn.getAttribute("aria-pressed")) === "true"
+      && (await guideSvg().getAttribute("data-guide")) === "grid" && (await guideSvg().locator("g").count()) === 4
+      && !!gridBox && !!stageBox && Math.abs(gridBox.width - stageBox.width) < 2 && Math.abs(gridBox.height - stageBox.height) < 2, JSON.stringify({ gridBox, stageBox }));
+    const taps0 = await page.evaluate(() => getComputedStyle(document.querySelector('[data-tour="capture"] svg[data-guide]')).pointerEvents);
+    check("(b2) the guide takes no taps — a swipe across the picture still changes the mode under it", taps0 === "none", taps0);
+    await guideBtn.click(); await page.waitForTimeout(250); await shot("01c-guide-lines");
+    const kept = await page.evaluate(() => { try { return localStorage.getItem("nosca.capture.guide"); } catch (e) { return null; } });
+    check("(b2) the next tap is a plumb line and a level through the middle, kept on the phone for the next open", (await guideBtn.getAttribute("aria-label")) === "Guide · Lines" && (await guideSvg().getAttribute("data-guide")) === "lines" && (await guideSvg().locator("g").count()) === 2 && kept === "lines", String(kept));
+    await guideBtn.click(); await page.waitForTimeout(200);
+    check("(b2) and the third tap is Off again, nothing over the picture", (await guideBtn.getAttribute("aria-label")) === "Guide · Off" && (await guideSvg().count()) === 0);
+    await guideBtn.click(); await page.waitForTimeout(200);
+
     /* ---------- (c) a clip: the shutter records, the stop keeps it ---------- */
     await tap(page, '[data-tour="capture-shutter"]', 1500);
     const t1 = await text();
+    check("(c) the guide is held while it records, the grid still on the picture", (await guideBtn.isDisabled()) && (await guideSvg().getAttribute("data-guide")) === "grid");
     check("(c) the shutter starts a clip: a red timer, Stop, the modes and the pill held", (await page.locator('[data-tour="capture-shutter"][aria-label="Stop"]').count()) === 1 && /0:0[1-3]/.test(t1)
       && (await page.locator('[data-tour="capture-modes"]').evaluate((el) => getComputedStyle(el.parentElement).pointerEvents)) === "none", t1.slice(0, 120));
     await shot("02-recording");

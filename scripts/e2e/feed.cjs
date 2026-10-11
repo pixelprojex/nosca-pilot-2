@@ -12,8 +12,8 @@ const [distDir, portArg, outDir] = process.argv.slice(2);
 const PORT = Number(portArg || 4308), BASE = `http://localhost:${PORT}`;
 fs.mkdirSync(outDir, { recursive: true });
 
-const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", fresh: "00000000-0000-4000-8000-00000000f9e5" };
-const L = { one: "10000000-0000-4000-8000-0000000fe001", two: "10000000-0000-4000-8000-0000000fe002", five: "10000000-0000-4000-8000-0000000fe005" };
+const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", fresh: "00000000-0000-4000-8000-00000000f9e5", other: "00000000-0000-4000-8000-00000000c0bb" };
+const L = { one: "10000000-0000-4000-8000-0000000fe001", two: "10000000-0000-4000-8000-0000000fe002", five: "10000000-0000-4000-8000-0000000fe005", taken: "10000000-0000-4000-8000-0000000fe00a" };
 const FIVE = "Full swing · Chipping · Bunker play · Course management · Mental game";
 const LONG = "Cleaner contact from the fringe all session, and the low runner is starting to look like a shot he trusts under pressure.";
 
@@ -23,6 +23,9 @@ function freshDb() {
   person("coach", "coach@t.ie", { role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
   person("adult", "adult@t.ie", { role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1991-04-04" });
   person("fresh", "fresh@t.ie", { role: "player", name: "Dara Ryan", type: "adult", coachId: IDS.coach, dob: "1990-02-02" });
+  /* the coach takes lessons too, from another coach: one lesson of their own as a player */
+  person("other", "other@t.ie", { role: "coach", name: "Padraig Walsh", inviteCode: "PW3K9D" });
+  M.addLesson(db, { id: L.taken, coachId: IDS.other, playerId: IDS.coach, date: "2026-09-25", focus: "Bunker play", notes: "Open the face." });
   /* newest first: the short game lesson with a clip and a photo, then putting with one clip */
   M.addLesson(db, { id: L.one, coachId: IDS.coach, playerId: IDS.adult, date: "2026-09-18", focus: "Short game", subs: ["HI 18.4"], notes: LONG });
   M.addMedia(db, { lessonId: L.one, kind: "video", path: `${IDS.coach}/${L.one}/clip-1.mp4` });
@@ -268,6 +271,17 @@ const { check, results, summary } = M.checker("feed");
       await tap(page, '[data-tour="saved"]', 1200);
       const t2 = await text();
       check("(l) Saved › Starred reads 1 starred and shows the putting lesson with the player's name, and not the other", /1 starred/.test(t2) && t2.includes("Putting") && t2.includes("Cian Murphy") && !t2.includes("Short game"), t2.slice(0, 200));
+      await ctx.close();
+    }
+
+    /* ---------- (l2) a coach who also takes lessons stars one of their own ---------- */
+    {
+      /* the star is on their preferences row already (put on from their own feed); the half used to read only what they taught */
+      M.setPrefs(db, IDS.coach, { starred: [L.two, L.taken] });
+      const { ctx, page, text } = await boot("coach");
+      await tap(page, '[data-tour="saved"]', 1200);
+      const t3 = await text();
+      check("(l2) Saved › Starred reads 2 starred: the putting lesson they gave and the bunker lesson they took", /2 starred/.test(t3) && t3.includes("Putting") && t3.includes("Bunker play") && !t3.includes("Short game"), t3.slice(0, 240));
       await ctx.close();
     }
 

@@ -118,6 +118,16 @@ seeded data and no account.
   a 3:4 viewfinder in a sheet behind "Tap to use the camera" with a
   segmented control, and the founder could not see what they were
   filming. `scripts/e2e/capture.cjs` drives it with a fake camera.
+  **A Guide button up top** (`capture-guide`, beside the filing pill,
+  the grid glyph the phone's camera uses, filled while on) cycles Off ·
+  Grid (thirds) · Lines (a plumb line and a level through the middle),
+  drawn as `FramingGuide` over the live picture only — the recorder
+  takes the camera's stream, so no line is ever in a clip or a still,
+  the way V1 Golf's alignment guide is on the capture screen and never
+  in the video — kept on the phone (`nosca.capture.guide`) the way the
+  phone keeps its grid, held while a clip records, and absent for a
+  voice note. The guide takes no taps, so the swipe across the picture
+  still changes the mode under it.
 - **Every clip live capture records is also handed to the phone.**
   `saveToDevice()` in `LiveCapture` fires a download the moment the
   recorder stops (`nosca-<player>-<date>-<hhmm>.<ext>`), because until
