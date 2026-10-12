@@ -205,6 +205,23 @@ the phone keeps its grid. The visual item of the day; `capture.cjs`
 lessons and stars one of their own now finds it under Saved › Starred
 (the half read only what they taught).
 
+### 14. Away — the days a coach is not coaching. **Built 12 October.**
+PGA Coach's Blocked Times ("vacations, personal appointments,
+tournaments, facility closures, travel": the availability is removed
+for the window), FreshLearn's days off on a calendar, SimplyBook's
+block-out for a golf tutor: every booking product lets a coach take a
+week off in one go. Nosca's week was seven weekdays and nothing else:
+a holiday meant emptying each day by hand in the diary, and a player
+could ask for a lesson in the middle of it. Away is a Settings row for
+a coach (found by "holiday"), spans of days on their hours
+(`availability.away`, read by a player through `coach_availability()`
+like the rest), and both diaries offer nothing on those days and say
+so — the coach's day reads Away with what was booked before and Call
+off beside it, a player's reads "Niamh is away", the month grid strikes
+the days through. The functional item of the day; `away.cjs`. The
+visual half is the diary's reading of it: the struck days, the Away
+row in the list, the player's line.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -228,6 +245,10 @@ the items above; a research spike first.
 - A second camera angle: two phones, one coach.
 
 ## Sources
+- https://support.pga.com/en/articles/4810156-managing-when-you-re-available-to-coach (PGA Coach: recurring availability, open time, Blocked Times for vacations, tournaments, closures)
+- https://freshlearn.com/support/availability (FreshLearn: days off on a calendar; a day switched off with sessions cancels them and tells the members)
+- https://news.simplybook.asia/?p=1868 (SimplyBook.me: a golf tutor blocks times they will not be available)
+- https://help.playbypoint.com/en/articles/12864625-how-players-book-lessons-through-book-a-pro (Book a Pro: a day with no times says "Go to next available date")
 - https://help.v1sports.com/en/articles/6244813-quick-start-guide-v1-golf (V1 Golf: the alignment guide on the capture screen, DTL and Face On guides, not in the video)
 - https://swing-analysis.v1sports.com/swing-analysis/swing-recording.md (V1: face-on and down-the-line, camera at hip/hand height, a stable mount)
 - https://www.golf.com/instruction/2019/08/31/record-golf-swing-video-6-things/ (filming a swing: hand height, along the target line, far enough back)
