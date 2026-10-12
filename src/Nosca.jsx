@@ -1636,6 +1636,24 @@ function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR)
   const own = mine.filter((b) => b.m === m && b.d === d).map((b) => b.time);
   return base.filter((t) => !taken.includes(t) && !off.includes(t) && !own.includes(t));
 }
+/* THE DAYS A COACH IS AWAY. `hours.away` on their preferences is a list
+   of { from, to } ISO days (a holiday, a tournament, a closed course);
+   this turns it into the set of days, so a diary — the coach's or a
+   player's, read through coach_availability() like the rest of the
+   hours — offers nothing on them. */
+function awayRangeDays(r) {
+  const out = [];
+  if (!r || !r.from) return out;
+  const a = localDate(r.from), b = localDate(r.to || r.from);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return out;
+  for (let d = new Date(a), n = 0; d <= b && n < 400; d.setDate(d.getDate() + 1), n++) out.push({ iso: isoDay(d), m: d.getMonth() + 1, d: d.getDate() });
+  return out;
+}
+function awayDays(hours) {
+  const out = new Set();
+  for (const r of (hours && Array.isArray(hours.away) ? hours.away : [])) awayRangeDays(r).forEach((x) => out.add(x.iso));
+  return out;
+}
 /* Walks forward from today collecting occurrences, honouring the gap
    between them: weekly, fortnightly or monthly. */
 function seriesOccurrences(dowTarget, count, freq, fromM, fromD, c = HARNESS_CALENDAR) {
@@ -2238,7 +2256,7 @@ function DrillTimer({ seconds, onDone }) {
    grid — so every day gets its own block with the lessons and the gaps
    between them, running as far forward as they want to look. */
 function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slotKinds,
-                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now }) {
+                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now, away = null }) {
   const t = useT();
   /* the tree's own calendar — the real months for a real account, the
      harness's fixed summer otherwise */
@@ -2262,8 +2280,11 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
     for (let d = 1; d <= mo.days; d++) {
       if (isPast(mo.idx, d, cx)) continue;
       const hours = avail[dowOf(mo.idx, d, cx)] || [];
-      if (!hours.length) continue;
-      days.push({ m: mo.idx, d, mo, hours,
+      /* a day the coach is away is in the list, saying so, whatever the
+         week's hours — and a day with no hours is not */
+      const isAway = !!(away && away.size && away.has(`${yearOf(mo.idx, cx)}-${String(mo.idx).padStart(2, "0")}-${String(d).padStart(2, "0")}`));
+      if (!hours.length && !isAway) continue;
+      days.push({ m: mo.idx, d, mo, hours, away: isAway,
                   booked: isCoach ? (seedBooked[key(mo.idx, d)] || [])
                                   : (seedBooked[key(mo.idx, d)] || []).map((b) => ({ time: b.time })),
                   blockedHere: blocked.filter((b) => b.m === mo.idx && b.d === d).map((b) => b.time) });
@@ -2327,8 +2348,10 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
         const free = day.hours.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h) && !gone(h));
         /* A player is here to find a time, so only open slots are
            shown. A coach is here to see their day, so everything is. */
-        const rows = isCoach ? day.hours : free;
-        if (!rows.length) return null;
+        /* an away day offers nothing: a coach still sees what was
+           booked before they marked it, so they can call it off */
+        const rows = day.away ? (isCoach ? day.hours.filter((h) => day.booked.find((b) => b.time === h)) : []) : isCoach ? day.hours : free;
+        if (!rows.length && !day.away) return null;
 
         return (
           <div key={`${day.m}-${day.d}`} className="mb-6">
@@ -2348,7 +2371,12 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
             </div>
 
             {/* one box a day, its times as rows inside */}
-            <div className="nsc-day">
+            <div className="nsc-day" data-away={day.away ? "1" : undefined}>
+              {day.away && (
+                <div className="flex items-center gap-3 px-4" style={{ minHeight: 48, borderBottom: rows.length ? `1px solid ${t.hair}` : "none" }}>
+                  <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{isCoach ? tr("Away") : `${tr("Away")} · ${tr("no lessons")}`}</span>
+                </div>
+              )}
               {rows.map((h, ri) => {
                 const bk = day.booked.find((b) => b.time === h);
                 const isBlocked = day.blockedHere.includes(h);
@@ -15079,8 +15107,112 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
 /* Calendly's lesson: pick a date, then read a clean column of times.
    The grid stays quiet — only availability is signalled — and the times
    carry the weight, one per line, with the finish time always shown. */
+/* the diary's word on a day the coach is away — the coach's names the
+   way to the list; a player's names the coach */
+function AwayLine({ role, name, booked = 0, onEdit }) {
+  const t = useT();
+  if (role === "coach") return (
+    <div data-tour="cal-away" className="flex items-center gap-3 px-5 mb-4" style={{ minHeight: 54, borderRadius: R.control, background: t.wash }}>
+      <span className="flex-1 min-w-0">
+        <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
+        <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
+      </span>
+      {onEdit && <TextBtn color={t.ink} onClick={() => { haptic(6); onEdit(); }}>{tr("Edit")}</TextBtn>}
+    </div>
+  );
+  return (
+    <div data-tour="cal-away" className="py-10 text-center">
+      <p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{name ? `${String(name).split(" ")[0]} ${tr("is away")}` : tr("Your coach is away")}</p>
+    </div>
+  );
+}
+
+/* AWAY: the days a coach is not coaching — a holiday, a tournament, a
+   closed course — as spans on their hours (`availability.away`), so no
+   diary offers a time on them. PGA Coach's Blocked Times and
+   FreshLearn's days off are the same thing; before this a coach had to
+   empty each day by hand, and a player could ask for a lesson in the
+   middle of their week off. A span already carrying lessons is said,
+   with Call off beside it. */
+function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
+  const t = useT();
+  const calendar = useCalendar();
+  const todayIso = isoOf(calendar.today.m, calendar.today.d);
+  const [adding, setAdding] = useState(false);
+  const [from, setFrom] = useState(todayIso);
+  const [to, setTo] = useState(todayIso);
+  const list = (ranges || []).filter((r) => r && r.from && (r.to || r.from) >= todayIso).sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
+  const daysAhead = (r) => awayRangeDays(r).filter((x) => x.iso >= todayIso);
+  const lessonsIn = (r) => daysAhead(r).reduce((n, x) => n + ((booked || {})[key(x.m, x.d)] || []).length, 0);
+  const firstBooked = (r) => daysAhead(r).find((x) => ((booked || {})[key(x.m, x.d)] || []).length);
+  const label = (r) => r.to && r.to !== r.from ? `${fmtWeekDay(localDate(r.from))} – ${fmtWeekDay(localDate(r.to))}` : fmtWeekDay(localDate(r.from));
+  const nDays = list.reduce((n, r) => n + daysAhead(r).length, 0);
+  const add = () => {
+    const a = from <= to ? from : to, b = from <= to ? to : from;
+    hapticCommit(); soft();
+    onChange([...(ranges || []), { from: a, to: b }]);
+    setAdding(false); setFrom(todayIso); setTo(todayIso);
+    say && say(tr("Away saved"));
+  };
+  const remove = (r) => { hapticWarn(); onChange((ranges || []).filter((x) => x !== r)); };
+  const DateRow = ({ label: lbl, value, onPick, min, tour }) => (
+    <div className="relative flex items-center gap-3" style={{ minHeight: 54, borderBottom: `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
+      <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+      <span style={{ ...TYPE.body, color: t.sub }}>{fmtWeekDay(localDate(value))}</span>
+      <ChevronRight size={14} color={t.trace || t.faint} />
+      {/* the day reads as the app writes it; the phone's picker sits over the row */}
+      <input type="date" aria-label={lbl} data-tour={tour} value={value} min={min}
+             onClick={(e) => { try { if (e.currentTarget.showPicker) e.currentTarget.showPicker(); } catch (err) { /* the tap opens it */ } }}
+             onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
+             className="absolute inset-0 w-full h-full" style={{ opacity: 0 }} />
+    </div>
+  );
+  return (
+    <Screen title={tr("Away")} onBack={pop} meta={nDays ? `${nDays} ${nDays === 1 ? tr("day") : tr("days")}` : ""}>
+      <div className="px-6">
+        {list.length > 0 ? (
+          <div className="nsc-list" data-tour="away-list">
+            {list.map((r) => {
+              const n = lessonsIn(r), days = daysAhead(r).length;
+              return (
+                <SwipeRow key={`${r.from}|${r.to || r.from}`} label={label(r)} deleteLabel={tr("Remove")} onDelete={() => remove(r)}>
+                  <div className="flex items-center gap-3" data-away-row={r.from} style={{ minHeight: 60, paddingTop: 10, paddingBottom: 10 }}>
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label(r)}</span>
+                      <span className="block truncate" style={{ ...TYPE.caption, color: n ? CAUTION : t.faint }}>
+                        {[`${days} ${days === 1 ? tr("day") : tr("days")}`, n ? `${n} ${n === 1 ? tr("lesson booked") : tr("lessons booked")}` : null].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    {n > 0 && onCallOff && <TextBtn color={DANGER} tour="away-calloff" onClick={() => { haptic(9); onCallOff(firstBooked(r)); }}>{tr("Call off")}</TextBtn>}
+                  </div>
+                </SwipeRow>
+              );
+            })}
+          </div>
+        ) : !adding && (
+          <p className="py-8 text-center" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.6, color: t.sub }}>{tr("Nothing planned")}</p>
+        )}
+        {adding ? (
+          <Card className="px-5 mt-4" data-tour="away-form">
+            <DateRow label={tr("From")} value={from} min={todayIso} tour="away-from" onPick={(v) => { haptic(6); setFrom(v); if (to < v) setTo(v); }} />
+            <DateRow label={tr("To")} value={to} min={from} tour="away-to" onPick={(v) => { haptic(6); setTo(v < from ? from : v); }} />
+            <div className="py-4">
+              <Button tour="away-save" onClick={add}>{tr("Add")}</Button>
+              <button onClick={() => { haptic(6); setAdding(false); }} className="w-full mt-3 py-2 active:opacity-50" style={{ ...TYPE.small, color: t.sub }}>{tr("Cancel")}</button>
+            </div>
+          </Card>
+        ) : (
+          <div className="mt-4">
+            <Button tour="away-add" onClick={() => { haptic(7); soft(); setAdding(true); }}>{tr("Add days away")}</Button>
+          </div>
+        )}
+      </div>
+    </Screen>
+  );
+}
+
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -15104,7 +15236,9 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const [view, setView] = useKept("view", tr("List"));
   const mo = months[Math.min(mi, months.length - 1)];
   const mineOn = (m, d) => bookings.find((b) => b.m === m && b.d === d);
-  const open = isGone(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx);
+  /* a day the coach is away offers nothing, whatever the week says */
+  const awayOn = (m, d) => !!(away && away.size && away.has(`${yearOf(m, cx)}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`));
+  const open = isGone(mo.idx, sel) || awayOn(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx);
   const booked = seedBooked[key(mo.idx, sel)] || [];
   const myDay = mineOn(mo.idx, sel);
   const past = isGone(mo.idx, sel);
@@ -15255,7 +15389,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       </div>
 
       {view === tr("List") ? (
-        <AgendaList role={role} avail={avail} blocked={blocked} seedBooked={seedBooked} duration={duration}
+        <AgendaList role={role} avail={avail} blocked={blocked} seedBooked={seedBooked} duration={duration} away={away}
                     monthIdx={mo.idx} slotKinds={slotKinds || {}} juvenile={juvenile}
                     onOpen={(day, bk) => onPeek && onPeek(day && day.m ? { ...bk, m: day.m, d: day.d } : bk)}
                     onEditDay={(day) => onEditDay && onEditDay(day)}
@@ -15282,7 +15416,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             const gone = isGone(mo.idx, d);
             const on = sel === d;
             const today = mo.idx === T.m && d === T.d;
-            const nOpen = gone ? 0 : openTimes(mo.idx, d, avail, blocked, bookings, seedBooked, cx).length;
+            const nOpen = gone || awayOn(mo.idx, d) ? 0 : openTimes(mo.idx, d, avail, blocked, bookings, seedBooked, cx).length;
             const dayBooked = (seedBooked[key(mo.idx, d)] || []).length;
             const mine = !!mineOn(mo.idx, d);
             const available = !gone && (role === "coach" ? (dayBooked > 0 || nOpen > 0) : nOpen > 0);
@@ -15294,6 +15428,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                                background: on ? t.ink : mine ? t.wash : "transparent",
                                border: !on && today ? `1px solid ${t.accent}` : "1px solid transparent",
                                fontFamily: ui, fontSize: 14.5, fontWeight: on ? 600 : available ? 500 : 400,
+                               /* a day away is struck through, the way a diary crosses a day out */
+                               textDecoration: !gone && awayOn(mo.idx, d) ? "line-through" : "none",
                                color: on ? "#fff" : gone ? t.hair : available ? t.ink : t.faint }}>{d}</span>
                 <span style={{ height: 5, marginTop: 1 }}>
                   {mine ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.accent }} />
@@ -15333,9 +15469,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         {past ? (
           <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("That day has passed")}</p>
         ) : role === "coach" ? (
-          booked.length === 0 && dayHours.length === 0 ? (
+          booked.length === 0 && dayHours.length === 0 && !awayOn(mo.idx, sel) ? (
             <FreeDay onSetHours={() => push("availability")} />
           ) : (<>
+            {awayOn(mo.idx, sel) && <AwayLine role="coach" booked={booked.length} onEdit={() => push("away")} />}
             {booked.length > 0 ? (
               <>
                 <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
@@ -15348,7 +15485,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                                  onCancel={(l) => onCancelWithReason && onCancelWithReason(l)} push={push} />
                 ))}
               </>
-            ) : <FreeDay onSetHours={() => push("availability")} />}
+            ) : awayOn(mo.idx, sel) ? null : <FreeDay onSetHours={() => push("availability")} />}
 
             {booked.length > 0 && (
               <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
@@ -15368,6 +15505,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                         onPick={(label) => { const time = open.find((x) => span(x, duration) === label); setPick(pick === time ? null : time); }} />
             </>)}
           </>)
+        ) : awayOn(mo.idx, sel) ? (
+          <AwayLine role="player" name={conn && conn.coach} />
         ) : dayHours.length === 0 ? (
           <div className="py-10 text-center">
             <p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No lessons this day")}</p>
@@ -16052,7 +16191,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
   );
 }
 
-function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, calendarSub, onCalendar, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
+function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, inviteCode, coachOfMine, calendarSub, onCalendar, awaySub = null, downloadsSub, defaultView, onDefaultView, onSync, reminderOn = false, reminderTime, reminderOpts = [], onReminderTime, drillCount = 0, onTour, onSetup, onPhoto, onMainSport, multiSport, mainLabel, weekDone = 0, seasonDone = 0, lifetime = 0, reduceMotion, setReduceMotion, soundState, setSoundState, dark, setDark, hapticsOn, setHapticsOn, startOn, setStartOn, startOptions, prefs, setPrefs, pop, push, go, sheet, say, restart, avatar, familyName, hasCoach, hasDependants = false }) {
   const t = useT(); const L = useL();
   const [q, setQ] = useKept("q", "");
   /* A SETTING WITH A FEW NAMED VALUES IS A ROW, AND ITS ANSWER IS ON IT.
@@ -16110,6 +16249,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       !live && { label: tr("Requests"), tour: "settings-requests", onTap: () => push("requests") },
       demo && { label: tr("Subscription"), sub: `${BRAND} ${plan?.name || "Coach"}`, onTap: () => push("subscription") },
       { label: tr("Hours"), tour: "settings-availability", onTap: () => push("availability"), keys: ["availability", "times", "slots", "week", "when"] },
+      role === "coach" && { label: tr("Away"), sub: awaySub || "", tour: "settings-away", onTap: () => push("away"), keys: ["holiday", "holidays", "vacation", "off", "closed", "break", "leave", "days away", "tournament"] },
       !live && { label: tr("Roster & groups"), tour: "settings-roster", onTap: () => push("roster") },
       live && { label: tr("Setup"), onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
@@ -17818,6 +17958,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* A real coach starts with an empty week and sets their own hours;
      the seeded patterns are for the harness only. */
   const [avail, setAvail] = useState(account ? Object.fromEntries(Object.keys(SPORTS).map((id) => [id, {}])) : DEFAULT_AVAIL);
+  const [harnessAway, setHarnessAway] = useState([]);   // the harness's days away; a real coach's ride on their hours
   const [blocked, setBlocked] = useState(Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])));
   const [seedBooked, setSeedBooked] = useState(account ? Object.fromEntries(Object.keys(SPORTS).map((id) => [id, {}])) : SEED_BOOKINGS);
   const [bookings, setBookings] = useState(persona ? persona.bookings : account ? [] : [{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
@@ -18174,6 +18315,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (data) { data.saveAvailability({ ...(liveHours || {}), days: week, duration, slots }); return; }
     setAvail((p) => ({ ...p, [coachSport]: week }));
   };
+  /* the days the coach is away — on the coach's hours, read by a
+     player through the same function; the harness keeps its own */
+  const awayRanges = data ? (Array.isArray(liveHours.away) ? liveHours.away : []) : harnessAway;
+  const myAway = awayDays({ away: awayRanges });
+  const writeAway = (next) => {
+    if (data) { data.saveAvailability({ ...(liveHours || {}), away: next }); return; }
+    setHarnessAway(next);
+  };
+  const awaySub = (() => {
+    const todayIso = isoOf(todayMD.m, todayMD.d);
+    const next = awayRanges.filter((r) => r && r.from && (r.to || r.from) >= todayIso).sort((a, b) => (a.from < b.from ? -1 : 1))[0];
+    if (!next) return "";
+    return next.to && next.to !== next.from ? `${fmtWeekDay(localDate(next.from))} – ${fmtWeekDay(localDate(next.to))}` : fmtWeekDay(localDate(next.from));
+  })();
   /* The diary shows what is confirmed; requests wait in Today's fold. */
   const mySeedBooked = data
     ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed")]).filter(([, rows]) => rows.length))
@@ -19387,6 +19542,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "library") { body = <DrillLibrary cfg={cfg} sport={coachSport} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => { setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }));
                                               /* a real account's own drills live on its preferences; the removal goes there too */
                                               if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
+  } else if (screen === "away") { body = <AwayScreen ranges={awayRanges} onChange={writeAway} booked={mySeedBooked} isoOf={isoOf} pop={pop} say={say}
+                                                   onCallOff={(day) => { if (!day) return; setCallOffFor({ m: day.m, d: day.d }); setSheet("weather"); }} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
   } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} nouns={cfg.nouns} lessonCount={archive.length} stageFor={lastFor} />;
   } else if (screen === "progress" || screen.startsWith("progress:")) {
@@ -19733,7 +19890,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
   } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} onSync={syncBuild} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null}
-                          calendarSub={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()} onCalendar={addToCalendar} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+                          calendarSub={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()} onCalendar={addToCalendar} awaySub={role === "coach" ? awaySub : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
@@ -19742,6 +19899,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           startOptions={[{ id: "auto", label: tr("Automatic") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
                           pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
   } else if (screen === "calendar") { body = <CalendarScreen role={role} lessonsFor={data ? (n) => (((roster || []).find((r) => r.name === n) || {}).lessons ?? 0) : null} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} blocked={myBlocked} now={todayMD} parent={parentAccount && !bookFor}
+                                                            away={bookFor ? awayDays(((data && data.hoursByPlayer) || {})[bookFor.id]) : myAway}
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}

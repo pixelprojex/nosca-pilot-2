@@ -977,6 +977,31 @@ seeded data and no account.
   walks the player, a parent for a child, the coach's To review and
   bell, and a project without the column; behaviour.sql 8b the
   policies and the triggers.
+- **Away is a span of days on the coach's hours, and no diary offers a
+  time on them.** Settings › Away (`settings-away`, a coach only, found
+  by "holiday", "vacation", "off", "closed"; its `sub` the next span
+  ahead, nothing when none) opens `AwayScreen` (route `away`): the
+  spans ahead as a boxed list of `SwipeRow`s — "Mon 20 Oct – Sun 26
+  Oct", under it the days and "3 lessons booked" in the caution colour
+  with **Call off** beside it, which opens the call-off sheet on the
+  first of those days — and **Add days away** (`away-add`), which
+  unfolds From and To as two rows reading the day the app's way with
+  the phone's picker over them (`away-from`, `away-to`), and **Add**
+  (`away-save`). It rides on `availability.away` as `[{ from, to }]`
+  ISO days beside `days`, `slots` and `blocked`, so a player reads it
+  through `coach_availability()` with no new column, no SQL and no
+  mock change; `awayDays()` turns the spans into the set of days,
+  `awayRangeDays()` a span into its days. Both diaries honour it: the
+  month grid strikes an away day through and counts it as nothing
+  open, the List view's box for the day leads with an Away row (a
+  coach still sees what was booked before they marked it, a player
+  sees the row alone), the coach's selected day reads Away · "2
+  lessons still booked" with Edit (`cal-away`) and no free times, a
+  player's reads "Niamh is away". A parent booking for a child reads
+  the child's coach's. PGA Coach's Blocked Times, FreshLearn's days
+  off; before this a holiday meant emptying each day by hand and a
+  player could ask for a lesson in the middle of it.
+  `scripts/e2e/away.cjs`.
 - **A coach's own note on a player.** **Notes** is a row at the foot
   of the player file (`player-notes`, between Progress and Recurring
   lessons), its value the note's first line; the sheet
