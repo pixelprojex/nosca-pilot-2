@@ -222,6 +222,21 @@ the days through. The functional item of the day; `away.cjs`. The
 visual half is the diary's reading of it: the struck days, the Away
 row in the list, the player's line.
 
+### 15. The roster reads where each player stands. **Built 13 October.**
+A coach scans a roster to see who is next and who has gone quiet;
+CoachNow's Smart Lists segment athletes by activity, TennisLocker
+tracks attendance by session, and the research behind Drifting called
+quiet players the single thing a solo coach most needs to see. Nosca's
+roster row carried a total — "2 lessons" — which told a coach nothing
+they would act on. The grey line is now the next confirmed lesson
+("Thu 15 Oct · 10:00 am"), else the last one taught ("Last lesson ·
+Sun 11 Oct"), with Drifting in the caution colour where the home's own
+rule says so, else "No lessons yet"; the level sits on the right as a
+value; the count stays on the player's file ("All 3 lessons"). The
+visual item of the day; `roster.cjs`. With it, the small fix: the
+diary's day meta no longer reads "0 booked · 0 free" or "0 available"
+— a nought is not a fact worth a line.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -245,6 +260,8 @@ the items above; a research spike first.
 - A second camera angle: two phones, one coach.
 
 ## Sources
+- https://apps.apple.com/app/id596598472 (CoachNow: Smart Lists segment athletes by their activity)
+- https://apps.apple.com/app/id1433835828 (TennisLocker Coach: session-based attendance, player evals)
 - https://support.pga.com/en/articles/4810156-managing-when-you-re-available-to-coach (PGA Coach: recurring availability, open time, Blocked Times for vacations, tournaments, closures)
 - https://freshlearn.com/support/availability (FreshLearn: days off on a calendar; a day switched off with sessions cancels them and tells the members)
 - https://news.simplybook.asia/?p=1868 (SimplyBook.me: a golf tutor blocks times they will not be available)

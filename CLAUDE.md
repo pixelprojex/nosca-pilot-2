@@ -1305,6 +1305,17 @@ seeded data and no account.
   "30m" and a 24-hour "15:24" once. A notification's own date comes
   from `nice_date()` in nosca.sql, `Tue 8 Sep` with no leading zero,
   and the mock's `niceDate` says the same.
+- **A roster row reads where the player stands, never a total.** The
+  grey line under the name is the next confirmed lesson ("Thu 15 Oct ·
+  10:00 am", in `t.sub`), else the last one taught ("Last lesson · Sun
+  11 Oct"), with **Drifting** in the caution colour where `atRisk()` —
+  the home's own rule — names them, else "No lessons yet"; the level
+  (`lastFor`) sits on the right as a value, and the lesson count stays
+  on the player's file ("All 3 lessons"). It read "HI 18.4 · 2 lessons"
+  for a long time, which told a coach nothing they would act on. The
+  harness, with no bookings to read, keeps its count. `standingFor` is
+  built in the roster route; `data-standing` on the line carries its
+  tone for the suite. `scripts/e2e/roster.cjs`.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: hairline rows with an
   avatar, a name and one grey line. A search field appears only when

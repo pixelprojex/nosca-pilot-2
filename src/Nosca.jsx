@@ -12992,7 +12992,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
 }
 
 
-function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 0, stageFor }) {
+function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 0, stageFor, standingFor = null }) {
   const t = useT(); const L = useL();
   const nounTitle = nouns ? nouns.charAt(0).toUpperCase() + nouns.slice(1) : "Players";
   const [tab, setTab] = useKept("tab", nounTitle); const [q, setQ] = useKept("q", "");
@@ -13000,14 +13000,15 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
   const list = all.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
   /* a search only once the list is long enough to need one */
   const searchable = all.length > 8;
-  const row = (key, tour, onTap, avatar, label, sub) => (
+  const row = (key, tour, onTap, avatar, label, sub, subTone = "faint", value = null) => (
     <button key={key} data-tour={tour} onClick={onTap} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
             style={{ minHeight: 64, borderBottom: RULE.hair(t.ink) }}>
       {avatar}
       <span className="flex-1 min-w-0">
         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-        {sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
+        {sub && <span className="block mt-0.5 truncate" data-standing={subTone} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint }}>{sub}</span>}
       </span>
+      {value && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{value}</span>}
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
   );
@@ -13046,8 +13047,22 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           <div className="nsc-list">
             {list.length === 0 ? (
               <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("No players yet")}</p>
-            ) : list.map((r, i) => row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
-                <Avatar name={r.name} size={40} />, r.name, [stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · ")))}
+            ) : list.map((r, i) => {
+              /* WHERE EACH PLAYER STANDS. The grey line is the next lesson
+                 booked, or the last one taught, or Drifting in the caution
+                 colour where nothing is booked and it has been a while, or
+                 No lessons yet — read at a glance down the list, the way
+                 a coach actually scans a roster. It carried a total of
+                 lessons, which told a coach nothing they would act on;
+                 the count stays on the player's file. The level sits on
+                 the right as a value. The harness keeps its count. */
+              const stage = stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null;
+              const st = standingFor && r.id ? standingFor[r.id] : null;
+              return row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
+                <Avatar name={r.name} size={40} />, r.name,
+                st ? st.text : [stage, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · "),
+                st ? st.tone : "faint", st ? stage : null);
+            })}
           </div>
           {/* ALL LESSONS IS A ROUTE, NOT A PERSON. It sat in the column
               of faces with a glyph in a disc the size of an avatar, so
@@ -15446,7 +15461,11 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         <div className="flex items-baseline justify-between mb-4">
           <span style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.025em", color: t.ink }}>{dayLabel}</span>
           <span style={{ ...TYPE.caption, color: t.faint }}>
-            {role === "coach" ? `${booked.length} booked · ${open.length} free` : readOnly ? "View only" : `${open.length} available`}
+            {/* a count that is nought is not a fact worth a line: the day
+                reads what it has, and nothing when it has nothing */}
+            {role === "coach"
+              ? [booked.length ? `${booked.length} ${tr("booked")}` : null, open.length ? `${open.length} ${tr("free")}` : null].filter(Boolean).join(" · ")
+              : readOnly ? tr("View only") : open.length ? `${open.length} ${tr("available")}` : ""}
           </span>
         </div>
 
@@ -19545,7 +19564,26 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "away") { body = <AwayScreen ranges={awayRanges} onChange={writeAway} booked={mySeedBooked} isoOf={isoOf} pop={pop} say={say}
                                                    onCallOff={(day) => { if (!day) return; setCallOffFor({ m: day.m, d: day.d }); setSheet("weather"); }} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
-  } else if (screen === "roster") { body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} nouns={cfg.nouns} lessonCount={archive.length} stageFor={lastFor} />;
+  } else if (screen === "roster") {
+    /* where each player stands, for the roster's grey line: the next
+       confirmed lesson, else the last one taught (Drifting where the
+       home's own rule says so), else No lessons yet */
+    const standing = data ? (() => {
+      const today = isoOf(todayMD.m, todayMD.d);
+      const risk = new Set(atRisk(roster, mySeriesLive, live, bookedAhead).map((x) => x.id).filter(Boolean));
+      const out = {};
+      for (const r of roster || []) {
+        if (!r.id) continue;
+        const next = (liveBookingRows || [])
+          .filter((b) => b.playerId === r.id && b.status === "confirmed" && b.date >= today)
+          .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
+        if (next) out[r.id] = { text: `${fmtWeekDay(localDate(next.date))} · ${next.time}`, tone: "ink" };
+        else if (r.lastLesson) out[r.id] = { text: `${risk.has(r.id) ? tr("Drifting") : tr("Last lesson")} · ${fmtWeekDay(localDate(r.lastLesson))}`, tone: risk.has(r.id) ? "caution" : "faint" };
+        else out[r.id] = { text: tr("No lessons yet"), tone: risk.has(r.id) ? "caution" : "faint" };
+      }
+      return out;
+    })() : null;
+    body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} nouns={cfg.nouns} lessonCount={archive.length} stageFor={lastFor} standingFor={standing} />;
   } else if (screen === "progress" || screen.startsWith("progress:")) {
     /* progress — my own journey; progress:<id> — a player's, for the
        coach from the file and for a parent from the child's screen */
