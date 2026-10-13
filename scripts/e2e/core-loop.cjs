@@ -243,7 +243,8 @@ const leaks = [];
       const tr0 = await leak("coach roster"); await shot("coach-roster");
       /* the row reads where the player stands — the last lesson's day here, nothing booked ahead — never a total */
       const rowG = M.norm(await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).innerText());
-      check("(g) the roster row reads the last lesson's day, not a total", /Last lesson · \w{3} \d{1,2} \w{3}/.test(rowG) && !/\d+ lessons?\b/.test(rowG), rowG);
+      /* Cian has a lesson booked today in this fixture, so the line is that lesson's day and time */
+      check("(g) the roster row reads where the player stands — the next lesson's day and time here — not a total", /\w{3} \d{1,2} \w{3} · \d{1,2}:\d\d [ap]m/.test(rowG) && !/\d+ lessons?\b/.test(rowG), rowG);
       await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const tg = await leak("coach player file"); await shot("coach-player-file");
       check("(g) the player's file carries the real lesson count", /All 3 lessons/.test(tg), tg.slice(0, 240));
