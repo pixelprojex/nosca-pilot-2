@@ -241,9 +241,12 @@ const leaks = [];
       /* (g) Roster → the player's real file */
       await tap(page, '[aria-label="Roster"]');
       const tr0 = await leak("coach roster"); await shot("coach-roster");
-      check("(g) the roster row carries the real lesson count", (await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).innerText()).includes("3 lessons") && /\b1 lesson\b(?!s)/.test(tr0), tr0.slice(0, 240));
+      /* the row reads where the player stands — the last lesson's day here, nothing booked ahead — never a total */
+      const rowG = M.norm(await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).innerText());
+      check("(g) the roster row reads the last lesson's day, not a total", /Last lesson · \w{3} \d{1,2} \w{3}/.test(rowG) && !/\d+ lessons?\b/.test(rowG), rowG);
       await page.locator('[data-tour="roster-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const tg = await leak("coach player file"); await shot("coach-player-file");
+      check("(g) the player's file carries the real lesson count", /All 3 lessons/.test(tg), tg.slice(0, 240));
       /* every row carries its own Download disc now — count the rows, not the discs */
       const fileRows = page.locator('[data-tour="player-lessons"] button:not([data-tour="player-all-lessons"]):not([aria-label^="Download"])');
       const rowTexts = await fileRows.allInnerTexts();
@@ -359,11 +362,11 @@ const leaks = [];
         await tap(page, '[aria-label="Roster"]', 900);
         const row = page.locator('[data-tour="roster-row"]').filter({ hasText: "Cian Murphy" }).first();
         const rowText = (await row.count()) ? M.norm(await row.innerText()) : "";
-        /* two private in the fixture, plus the squad they were marked at */
-        check("(i) the coach's roster counts a group session for the players who were at it", /3 lessons/.test(rowText), rowText);
+        check("(i) the roster row carries where the player stands and no total", /Last lesson|No lessons yet|Drifting|\d{1,2}:\d\d [ap]m/.test(rowText) && !/\d+ lessons?\b/.test(rowText), rowText);
         await row.click(); await page.waitForTimeout(1200);
         const t = await leak("coach player file with a group");
-        check("(i) …and it is on that player's file, named, with no 'private' hedge", t.includes("Serve") && /All 3 lessons/.test(t) && !t.includes("private"), t.slice(0, 240));
+        /* two private in the fixture, plus the squad they were marked at: the file counts the group session for the players who were at it */
+        check("(i) …and the file counts the group session, named, with no 'private' hedge", t.includes("Serve") && /All 3 lessons/.test(t) && !t.includes("private"), t.slice(0, 240));
         await ctx.close();
       }
       {
