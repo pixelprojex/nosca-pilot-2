@@ -937,6 +937,47 @@ seeded data and no account.
   `scripts/e2e/compare.cjs` walks the coach, the player, a parent on a
   child's lesson, and a player with nothing to compare; the mock serves
   a `compare-<n>.webm` take as a real clip like a markup take.
+- **Study is one clip on the dark stage with the whole transport, for
+  both sides.** `ClipStudy` (route `study:<lessonId>:<mediaId>`, `bare`
+  like Compare's, reached from **Study** beside Mark it up and Compare
+  under a video on the lesson page — `lesson-study`; the player's row
+  carries Compare · Study, the coach's all three, and with three words
+  in the row the glyphs go so no label is cut) plays the clip at its
+  own shape on `#0B0F10` with play (`study-play`), a frame either way
+  (`study-back`, `study-fwd`, `STUDY_FRAME` of a thirtieth), the scrub
+  (`study-scrub`), a speed pill that cycles 1× · ½× · ¼× (`study-rate`,
+  `data-rate`) and **Loop** (`study-loop`, `data-loop` off · from · on):
+  From here marks the start at the head, To here the end, the span is
+  drawn on the picture's foot in the accent, and a frame callback
+  (`requestVideoFrameCallback`, else `requestAnimationFrame`) sends
+  the head back to the start whenever it reaches the end — every frame
+  and only while the clip plays, because `timeupdate` arrives four
+  times a second and let a short span overrun, and a paused scrub past
+  the end must stay where the finger put it; `ended` starts a closed
+  loop again, since the element has paused itself by then. A third tap
+  clears it, and an end on top of the start is no loop. The clip opens
+  with its sound off, like Compare's, and one button (`study-sound`)
+  brings the clip's own sound in — a talked-over take; leaving the app
+  pauses and mutes it, as the feed does, so the lock screen has nothing
+  to offer play on. One clip is enough — no `compareable()` gate — and
+  a photo or a voice note offers nothing. The Study, Compare and Mark
+  it up routes resolve a downloaded lesson through `savedLessonOf`, as
+  the lesson page does, so a lesson opened from Saved after the list
+  let it go does not dead-end on its tools; `LessonDetail` keeps the
+  clip on its stage (`useKept("clip")`) across a Back from any of them. The lesson page's own player keeps its approved shape (one
+  play disc, the clip at its own shape, the browser's controls once it
+  plays); the feed keeps its ½×; Compare keeps its pair. V1 Golf steps
+  frames at full, half and quarter speed; Kinovea loops a working zone;
+  OnForm goes to frame by frame. The title names the other person, as
+  Compare's does. `scripts/e2e/study.cjs`.
+- **The unread dot sits only where opening clears it.** `LessonRow`
+  draws its 6px mark from a `dot` prop, and only `ClipsToReview` passes
+  one (`l.unread` on a sent clip, cleared by `markLessonSeen` when the
+  coach opens it). `lessons.unread` defaults true and nothing on the
+  player's side or the coach's own lists flips it, so for a long time
+  every row a person had already read carried a mark they could not
+  remove. The family's child row carries what is undone ("1 drill"),
+  never a lesson total — the lessons live on the child's own screen.
 - **A clip from the player to the coach.** The asynchronous loop every
   video-coaching product is built on (Skillest's whole product; V1
   Coach, OnForm, CoachNow): a player films a practice swing and the

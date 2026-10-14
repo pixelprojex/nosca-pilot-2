@@ -13,7 +13,7 @@ import {
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3 } from "lucide-react";
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
@@ -5209,7 +5209,7 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
   );
 }
 
-function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first, index = 0, sport, facts }) {
+function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first, index = 0, sport, facts, dot = false }) {
   const t = useT();
   const star = useContext(StarCtx); const isStar = star.has(l.id);
   const asked = useRef(false);
@@ -5234,7 +5234,10 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
         <Poster item={poster} sport={sport} />
         <span className="flex-1 min-w-0">
           <span className="flex items-center gap-2">
-            {l.unread && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.ink }} />}
+            {/* the mark means "not yet opened" only where opening clears it —
+                the coach's To review; nothing else passes `dot`, so no row
+                a person has already read carries a mark they cannot remove */}
+            {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.ink }} />}
             <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
           </span>
           <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
@@ -6586,9 +6589,6 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
 
   /* one line per young player: who they are and the one thing that matters */
   const KidRow = ({ k, i, last }) => {
-    /* a group session carries no player_id; who was at it is the
-       attendee list, exactly as the coach's roster reads it */
-    const mine = lessons.filter((l) => l.playerId === k.id || (l.attendeeIds || []).includes(k.id));
     const todo = drills.filter((d) => d.playerId === k.id && !d.done).length;
     const nx = live.find((b) => b.playerId === k.id);
     return (
@@ -6604,10 +6604,10 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
         </span>
         {/* said in words, on one line: two bare numbers in two boxes read
             as nothing, and a box on a person's row is a box too far */}
-        {(todo > 0 || mine.length > 0) && (
+        {/* what is undone, never a total: the lessons live on the child's own screen */}
+        {todo > 0 && (
           <span className="shrink-0" style={{ ...TYPE.caption, color: t.sub }}>
-            {[todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null,
-              mine.length > 0 ? `${mine.length} ${mine.length === 1 ? tr("lesson") : tr("lessons")}` : null].filter(Boolean).join(" · ")}
+            {`${todo} ${todo === 1 ? tr("drill") : tr("drills")}`}
           </span>
         )}
         <ChevronRight size={15} color={t.trace || t.faint} />
@@ -9942,7 +9942,7 @@ function MediaThumb({ item, on, onPick, index }) {
    460 tall, a landscape one runs the width — so there are never black
    bars either side on a paper page. */
 const STAGE_MAX = 460;
-function LessonStage({ item, onAnnotate, onCompare }) {
+function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
   const t = useT();
   const ref = useRef(null);
   const [playing, setPlaying] = useState(false);
@@ -9985,26 +9985,37 @@ function LessonStage({ item, onAnnotate, onCompare }) {
           </button>
         )}
       </div>
-      {/* the ways in: talk over this clip and draw on it (the coach's), and
-          set it beside another of this player's clips (either side's) */}
-      {item.id && (onAnnotate || onCompare) && (
-        <div className="flex gap-2 mt-3">
+      {/* the ways in: talk over this clip and draw on it (the coach's),
+          set it beside another of this player's clips (either side's),
+          and study it — slow, a frame at a time, a loop (either side's).
+          Three words in one row on a phone: the glyphs go when all three
+          are there, so no label is cut. */}
+      {item.id && (onAnnotate || onCompare || onStudy) && (() => {
+        const three = !!(onAnnotate && onCompare && onStudy);
+        const btn = { minHeight: 46, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink, padding: "0 6px" };
+        return (
+        <div className="flex gap-2 mt-3" data-tour="lesson-ways">
           {onAnnotate && (
             <button data-tour="lesson-markup" onClick={() => { haptic(8); soft(); onAnnotate(item); }}
-                    className="flex-1 flex items-center justify-center gap-2 active:opacity-60"
-                    style={{ minHeight: 46, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
-              <Palette size={16} color={t.ink} strokeWidth={1.8} />{tr("Mark it up")}
+                    className="flex-1 min-w-0 flex items-center justify-center gap-2 active:opacity-60" style={btn}>
+              {!three && <Palette size={16} color={t.ink} strokeWidth={1.8} />}<span className="truncate">{tr("Mark it up")}</span>
             </button>
           )}
           {onCompare && (
             <button data-tour="lesson-compare" onClick={() => { haptic(8); soft(); onCompare(item); }}
-                    className="flex-1 flex items-center justify-center gap-2 active:opacity-60"
-                    style={{ minHeight: 46, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
-              <Columns2 size={16} color={t.ink} strokeWidth={1.8} />{tr("Compare")}
+                    className="flex-1 min-w-0 flex items-center justify-center gap-2 active:opacity-60" style={btn}>
+              {!three && <Columns2 size={16} color={t.ink} strokeWidth={1.8} />}<span className="truncate">{tr("Compare")}</span>
+            </button>
+          )}
+          {onStudy && (
+            <button data-tour="lesson-study" onClick={() => { haptic(8); soft(); onStudy(item); }}
+                    className="flex-1 min-w-0 flex items-center justify-center gap-2 active:opacity-60" style={btn}>
+              {!three && <Film size={16} color={t.ink} strokeWidth={1.8} />}<span className="truncate">{tr("Study")}</span>
             </button>
           )}
         </div>
-      )}
+        );
+      })()}
       </>
     );
   }
@@ -10040,12 +10051,12 @@ function LessonStage({ item, onAnnotate, onCompare }) {
 
 
 function LessonDetail({ lesson, role, live, coachName, playerName, items, loading, drills = [], tips = [], attendance, juvenile, groupLesson, banner, cfg,
-                        onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onCompare, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight, replies = [], onReply, standing }) {
+                        onDownload, onMessage, onBook, onSetDrills, onLogAnother, onRate, onGoDrills, onAnnotate, onCompare, onStudy, onEdit, onDelete, onRemoveMedia, pop, extraTitleRight, replies = [], onReply, standing }) {
   const t = useT();
   const star = useContext(StarCtx); const isStar = star.has(lesson.id);
   const dl = useContext(DownloadCtx); const dlState = dl.state(lesson.id);
   const starPop = usePop(isStar);
-  const [a, setA] = useState(0);
+  const [a, setA] = useKept("clip", 0);   // the clip on the stage survives a Back from Study, Mark it up or Compare
   const [menu, setMenu] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const list = items || [];
@@ -10119,7 +10130,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
             <div className="mb-6"><Bone h={200} r={16} /></div>
           ) : list.length > 0 ? (
             <div className="mb-6" data-tour="lesson-clip" style={{ animation: "fadeUp 420ms cubic-bezier(.22,1,.36,1) 60ms both" }}>
-              <LessonStage item={current} onAnnotate={onAnnotate} onCompare={onCompare} />
+              <LessonStage item={current} onAnnotate={onAnnotate} onCompare={onCompare} onStudy={onStudy} />
               {list.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto mt-3 pb-1" style={{ scrollbarWidth: "none" }}>
                   {list.map((it, i) => <MediaThumb key={it.id || i} item={it} index={i} on={i === a} onPick={setA} />)}
@@ -10298,6 +10309,8 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
                   onDownload={live ? (its) => onDownload && onDownload(l, its) : () => toggleSave && toggleSave(l.id)}
                   onMessage={onMessage ? () => onMessage(l) : null} onBook={onBook ? () => onBook(l) : null} onGoDrills={() => go("practice")}
                   onCompare={canCompare ? (it) => push(`compare:${l.id}:${it.id}`) : null}
+                  /* one clip is enough to study — slow, a frame at a time, a loop */
+                  onStudy={live && !fresh ? (it) => push(`study:${l.id}:${it.id}`) : null}
                   onRate={onRate} replies={replies} standing={standing} pop={pop} />
   );
 }
@@ -11148,6 +11161,199 @@ function startCompareJob({ a, b, startA = 0, startB = 0, sideBySide = true, onDo
   return { cancel: () => fail("Cancelled") };
 }
 
+/* STUDY: one clip on the dark stage with the transport every video
+   product gives the athlete — play, a frame either way, 1× · ½× · ¼×,
+   the scrub with the time, and a loop between two points so the top of
+   a swing or a rowing catch runs over and over. Both sides have it from
+   one clip: the lesson page's own player is a bare <video> with the
+   browser's controls (that is its approved shape and it stays), the
+   feed slows to ½× only, and Compare needs a second clip. V1 Golf
+   steps frames at full, half and quarter speed; Kinovea loops a working
+   zone; OnForm goes down to frame by frame. The route is bare, like
+   Compare's, so no tab bar sits under the stage. */
+const STUDY_FRAME = 1 / 30;
+const STUDY_RATES = [1, 0.5, 0.25];
+const rateLabel = (r) => (r === 0.5 ? "½×" : r === 0.25 ? "¼×" : "1×");
+function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
+  const t = useT();
+  const first = (who || "").split(" ")[0];
+  const vid = useRef(null);
+  const [item, setItem] = useState(null);
+  const [missing, setMissing] = useState(false);
+  const [broken, setBroken] = useState(false);
+  const [dur, setDur] = useState(0);
+  const [time, setTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [rate, setRate] = useState(1);
+  const [loop, setLoop] = useState(null);           // null · { a } (From here set) · { a, b } (running)
+  const loopRef = useRef(null); loopRef.current = loop;
+  /* sound off to begin with — a study is looked at, like a comparison —
+     and one button brings the clip's own sound (a talked-over take) in */
+  const [sound, setSound] = useState(false);
+  /* LEAVING THE APP STOPS THE CLIP DEAD, as the feed does: paused and
+     muted on the way out, so the lock screen has nothing to offer play
+     on; the sound comes back by the button */
+  useEffect(() => {
+    const park = () => { const v = vid.current; if (!v) return; v.pause(); v.muted = true; setSound(false); };
+    const onVis = () => { if (document.visibilityState === "hidden") park(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", park);
+    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pagehide", park); };
+  }, []);
+  /* THE LOOP IS HELD EVERY FRAME, NOT EVERY QUARTER SECOND. timeupdate
+     arrives four times a second, which at 1× lets the head run past the
+     end of a short span; a frame callback catches it within a frame and
+     only while the clip plays, so a scrub or a step past the end while
+     paused stays where the finger put it. */
+  useEffect(() => {
+    if (!playing) return undefined;
+    const v0 = vid.current; if (!v0) return undefined;
+    let handle = null, cancelled = false;
+    const useVfc = typeof v0.requestVideoFrameCallback === "function";
+    const tick = () => {
+      if (cancelled) return;
+      const v = vid.current, L = loopRef.current;
+      if (v && L && L.b != null && !v.paused && !v.seeking && v.currentTime >= L.b - STUDY_FRAME / 2) { v.currentTime = L.a; setTime(L.a); }
+      handle = useVfc ? v0.requestVideoFrameCallback(tick) : requestAnimationFrame(tick);
+    };
+    handle = useVfc ? v0.requestVideoFrameCallback(tick) : requestAnimationFrame(tick);
+    return () => { cancelled = true; if (handle != null) { if (useVfc && typeof v0.cancelVideoFrameCallback === "function") v0.cancelVideoFrameCallback(handle); else cancelAnimationFrame(handle); } };
+  }, [playing]);
+
+  /* the clip: this lesson's files through mediaFor, so a downloaded
+     lesson plays from the phone; the one tapped, or the lesson's first */
+  useEffect(() => {
+    let on = true;
+    Promise.resolve(mediaFor ? mediaFor(lesson.id, lesson.media ?? lesson.videos) : [])
+      .then((items) => {
+        if (!on) return;
+        const vids = (items || []).filter((x) => x.type === "video" && x.url);
+        const it = vids.find((x) => String(x.id) === String(mediaId)) || vids[0] || null;
+        if (!it) setMissing(true); else setItem(it);
+      })
+      .catch(() => { if (on) setMissing(true); });
+    return () => { on = false; };
+  }, [lesson.id, mediaId]);
+
+  /* a clip a browser recorded can carry no length in its header; asking
+     for a time past its end makes the browser find the real one */
+  const onMeta = (e) => {
+    const v = e.currentTarget;
+    if (Number.isFinite(v.duration) && v.duration > 0) { setDur(v.duration); return; }
+    const onDur = () => { if (Number.isFinite(v.duration) && v.duration > 0) { setDur(v.duration); v.removeEventListener("durationchange", onDur); v.currentTime = 0; } };
+    v.addEventListener("durationchange", onDur);
+    try { v.currentTime = 1e101; } catch (err) { /* fine */ }
+  };
+  const ready = dur > 0 && !broken;
+  const seek = (x) => { const v = vid.current; if (!v) return; const y = Math.min(Math.max(0, x), dur || 0); v.currentTime = y; setTime(y); };
+  const toggle = () => {
+    const v = vid.current; if (!v) return; haptic(7);
+    if (v.paused) {
+      const L = loopRef.current;
+      if (L && L.b != null && (v.currentTime < L.a || v.currentTime >= L.b - STUDY_FRAME / 2)) seek(L.a);
+      else if (v.ended || (dur && v.currentTime >= dur - STUDY_FRAME / 2)) seek(0);
+      v.play().catch(() => {});
+    } else v.pause();
+  };
+  /* a frame at a time, paused — where the club is at the top, where the
+     blade enters the water */
+  const stepFrame = (d) => { const v = vid.current; if (!v) return; haptic(5); v.pause(); seek(v.currentTime + d * STUDY_FRAME); };
+  const cycleRate = () => {
+    const v = vid.current; haptic(6);
+    const next = STUDY_RATES[(STUDY_RATES.indexOf(rate) + 1) % STUDY_RATES.length];
+    setRate(next); if (v) v.playbackRate = next;
+  };
+  /* the loop: From here marks the start at the head, To here the end,
+     and the head goes back to the start whenever it reaches the end; a
+     third tap clears it. An end on top of the start is no loop. */
+  const loopTap = () => {
+    const v = vid.current; if (!v) return; haptic(6);
+    if (!loop) { setLoop({ a: v.currentTime }); return; }
+    if (loop.b == null) {
+      if (v.currentTime <= loop.a + STUDY_FRAME) { setLoop(null); return; }
+      setLoop({ a: loop.a, b: v.currentTime }); seek(loop.a); return;
+    }
+    setLoop(null);
+  };
+  const onTime = (e) => { if (!e.currentTarget.seeking) setTime(e.currentTarget.currentTime); };
+  /* a loop whose end is the clip's end: the element has paused itself by
+     the time `ended` arrives, so the loop starts itself again here */
+  const onEnded = (e) => {
+    const v = e.currentTarget, L = loopRef.current;
+    if (L && L.b != null) { v.currentTime = L.a; setTime(L.a); v.play().catch(() => {}); return; }
+    setPlaying(false);
+  };
+  const toggleSound = () => { const v = vid.current; haptic(6); const next = !sound; setSound(next); if (v) v.muted = !next; };
+  const loopLabel = !loop ? tr("Loop") : loop.b == null ? tr("To here") : `${tr("Loop")} · ${(loop.b - loop.a).toFixed(1)}s`;
+  const span = dur || 0;
+  const pct = (x) => (span ? Math.min(100, Math.max(0, (x / span) * 100)) : 0);
+
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={[tr("Study"), first].filter(Boolean).join(" · ")} onBack={pop} large={false} fill>
+        {missing ? (
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That clip isn't available")}</p>
+        ) : (
+          <div className="flex-1 min-h-0 flex flex-col" data-tour="study">
+            {/* the stage: the clip at its own shape on the dark */}
+            <div className="relative flex-1 min-h-0" data-tour="study-stage" style={{ background: "#0B0F10" }}>
+              {item && (
+                <video ref={vid} key={item.url} src={item.url} playsInline muted preload="auto" data-study-video=""
+                       onLoadedMetadata={onMeta} onError={() => setBroken(true)}
+                       onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={onEnded}
+                       onTimeUpdate={onTime}
+                       onClick={toggle}
+                       className="absolute inset-0 w-full h-full" style={{ objectFit: "contain", background: "#0B0F10" }} />
+              )}
+              {broken && <span className="absolute inset-0 flex items-center justify-center" style={{ ...TYPE.small, color: "rgba(255,255,255,0.7)" }}>{tr("Couldn't load this clip")}</span>}
+              {/* the loop drawn on the picture's foot: the span kept */}
+              {loop && (
+                <span aria-hidden="true" className="absolute left-0 right-0" style={{ bottom: 0, height: 3, background: "rgba(255,255,255,0.18)" }}>
+                  <span className="absolute top-0 bottom-0" style={{ left: `${pct(loop.a)}%`, width: `${Math.max(0.5, pct(loop.b != null ? loop.b : time) - pct(loop.a))}%`, background: t.accent }} />
+                </span>
+              )}
+            </div>
+
+            {/* the transport, on the paper */}
+            <div className="shrink-0 px-4" style={{ paddingTop: 10, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", background: t.page }}>
+              <div className="flex items-center gap-2.5" data-tour="study-transport">
+                <button onClick={toggle} disabled={!ready} data-tour="study-play" aria-label={playing ? tr("Pause") : tr("Play")}
+                        className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30"
+                        style={{ width: 40, height: 40, borderRadius: 20, background: t.ink }}>
+                  {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
+                </button>
+                <button onClick={() => stepFrame(-1)} disabled={!ready} data-tour="study-back" aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                <button onClick={() => stepFrame(1)} disabled={!ready} data-tour="study-fwd" aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-30"
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                <input type="range" min={0} max={Math.max(span, 0.1)} step={0.02} value={Math.min(time, span || 0)} disabled={!ready} data-tour="study-scrub"
+                       onChange={(e) => { const v = vid.current; if (v) v.pause(); seek(Number(e.target.value)); }} aria-label={tr("Scrub")}
+                       className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
+                <button onClick={cycleRate} disabled={!ready} data-tour="study-rate" data-rate={rate} aria-pressed={rate !== 1} aria-label={tr("Speed")} className="shrink-0 active:opacity-60 disabled:opacity-30"
+                        style={{ minWidth: 40, height: 32, borderRadius: 16, padding: "0 8px", background: rate !== 1 ? t.ink : "transparent", border: `${EDGE_W}px solid ${rate !== 1 ? t.ink : EDGE(t)}`,
+                                 ...TYPE.caption, fontWeight: 700, color: rate !== 1 ? "#fff" : t.ink }}>{rateLabel(rate)}</button>
+                <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
+              </div>
+              <div className="flex gap-2 mt-3" data-tour="study-actions">
+                <button onClick={toggleSound} disabled={!ready} data-tour="study-sound" aria-pressed={sound} aria-label={sound ? tr("Mute") : tr("Sound")}
+                        className="flex items-center justify-center shrink-0 active:opacity-60 disabled:opacity-40"
+                        style={{ width: 46, height: 46, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+                  {sound ? <Volume2 size={17} color={t.ink} strokeWidth={1.9} /> : <VolumeX size={17} color={t.ink} strokeWidth={1.9} />}
+                </button>
+                <button onClick={loopTap} disabled={!ready} data-tour="study-loop" data-loop={!loop ? "off" : loop.b == null ? "from" : "on"} aria-pressed={!!(loop && loop.b != null)}
+                        className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40"
+                        style={{ minHeight: 46, borderRadius: R.control, background: loop && loop.b != null ? t.ink : t.surface, border: `${EDGE_W}px solid ${loop && loop.b != null ? t.ink : EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: loop && loop.b != null ? "#fff" : t.ink }}>
+                  <Repeat size={15} color={loop && loop.b != null ? "#fff" : t.ink} strokeWidth={2} />{loopLabel}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave }) {
   const t = useT();
   const first = (who || "").split(" ")[0];
@@ -11465,6 +11671,7 @@ function CoachLessonView({ name, lesson, cfg, pop, push, say, assignDrills, live
                   onRemoveMedia={live && onRemoveMedia ? (item) => onRemoveMedia(lesson, item) : null}
                   onAnnotate={live ? (it) => push(`review:${lesson.id}:${it.id}`) : (it) => push("annotate:" + it.angle)}
                   onCompare={canCompare ? (it) => push(`compare:${lesson.id}:${it.id}`) : null}
+                  onStudy={live ? (it) => push(`study:${lesson.id}:${it.id}`) : null}
                   /* a clip the player sent: the coach's words back, from this page */
                   replies={replies || []} onReply={live && onReply && lesson.sentBy && lesson.playerId ? () => onReply(lesson) : null} pop={pop} />
   );
@@ -11915,7 +12122,7 @@ function ClipsToReview({ lessons, pop, onOpen, liveMedia, onNeedMedia, sport }) 
             : <div className="nsc-list" data-tour="clips-list">
                 {lessons.map((l, i) => (
                   <div key={l.id} data-clip-row="">
-                    <LessonRow lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
+                    <LessonRow lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport} dot={!!l.unread}
                                showWho onOpen={() => onOpen(l)} onDownload={null} facts={[l.who, lessonDay(l)]} />
                   </div>
                 ))}
@@ -19641,7 +19848,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const cut0 = rest0.indexOf(":");
     const lid = cut0 < 0 ? rest0 : rest0.slice(0, cut0);
     const mid = cut0 < 0 ? null : rest0.slice(cut0 + 1);
-    const les = (data.lessons || []).find((x) => String(x.id) === lid) || null;
+    /* a downloaded lesson opens from Saved after the list has let it go, so its tools resolve it the same way */
+    const les = (data.lessons || []).find((x) => String(x.id) === lid) || savedLessonOf(lid) || null;
     body = les
       ? <ClipReview lesson={les} mediaId={mid} mediaFor={mediaFor} who={les.who} pop={pop} say={say}
                     /* the marked-up clip stands in for the one it was drawn
@@ -19660,6 +19868,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       : <SwipeBack onBack={pop}><Screen title={tr("Mark it up")} onBack={pop}>
           <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
         </Screen></SwipeBack>;
+  } else if (screen.startsWith("study:") && data) {
+    /* study:<lessonId>:<mediaId> — one clip, slow, a frame at a time, a
+       loop; for the coach and the player alike */
+    bare = true;
+    const rest0 = screen.slice("study:".length);
+    const cut0 = rest0.indexOf(":");
+    const lid = cut0 < 0 ? rest0 : rest0.slice(0, cut0);
+    const mid = cut0 < 0 ? null : rest0.slice(cut0 + 1);
+    /* a downloaded lesson opens from Saved after the list has let it go, so its tools resolve it the same way */
+    const les = (data.lessons || []).find((x) => String(x.id) === lid) || savedLessonOf(lid) || null;
+    const named = les && les.playerId && account && les.playerId !== account.id ? les.who : "";
+    body = les
+      ? <ClipStudy lesson={les} mediaId={mid} mediaFor={mediaFor} who={named} pop={pop} />
+      : <SwipeBack onBack={pop}><Screen title={tr("Study")} onBack={pop}>
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
+        </Screen></SwipeBack>;
   } else if (screen.startsWith("compare:") && data) {
     /* compare:<lessonId>:<mediaId> — this clip beside another of the same
        person's, for the coach and the player alike */
@@ -19668,7 +19892,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const cut0 = rest0.indexOf(":");
     const lid = cut0 < 0 ? rest0 : rest0.slice(0, cut0);
     const mid = cut0 < 0 ? null : rest0.slice(cut0 + 1);
-    const les = (data.lessons || []).find((x) => String(x.id) === lid) || null;
+    /* a downloaded lesson opens from Saved after the list has let it go, so its tools resolve it the same way */
+    const les = (data.lessons || []).find((x) => String(x.id) === lid) || savedLessonOf(lid) || null;
     const pool = les ? (role === "coach" ? taught(data.lessons) : playerLessons).filter((l) => sameSubject(l, les)) : [];
     /* the title names the other person: the coach's player, a parent's child; never the person themselves */
     const named = les && les.playerId && account && les.playerId !== account.id ? les.who : "";
