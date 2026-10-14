@@ -948,11 +948,23 @@ seeded data and no account.
   (`study-scrub`), a speed pill that cycles 1× · ½× · ¼× (`study-rate`,
   `data-rate`) and **Loop** (`study-loop`, `data-loop` off · from · on):
   From here marks the start at the head, To here the end, the span is
-  drawn on the picture's foot in the accent and `onTimeUpdate` sends
-  the head back to the start whenever it reaches the end; a third tap
-  clears it, and an end on top of the start is no loop. One clip is
-  enough — no `compareable()` gate — and a photo or a voice note offers
-  nothing. The lesson page's own player keeps its approved shape (one
+  drawn on the picture's foot in the accent, and a frame callback
+  (`requestVideoFrameCallback`, else `requestAnimationFrame`) sends
+  the head back to the start whenever it reaches the end — every frame
+  and only while the clip plays, because `timeupdate` arrives four
+  times a second and let a short span overrun, and a paused scrub past
+  the end must stay where the finger put it; `ended` starts a closed
+  loop again, since the element has paused itself by then. A third tap
+  clears it, and an end on top of the start is no loop. The clip opens
+  with its sound off, like Compare's, and one button (`study-sound`)
+  brings the clip's own sound in — a talked-over take; leaving the app
+  pauses and mutes it, as the feed does, so the lock screen has nothing
+  to offer play on. One clip is enough — no `compareable()` gate — and
+  a photo or a voice note offers nothing. The Study, Compare and Mark
+  it up routes resolve a downloaded lesson through `savedLessonOf`, as
+  the lesson page does, so a lesson opened from Saved after the list
+  let it go does not dead-end on its tools; `LessonDetail` keeps the
+  clip on its stage (`useKept("clip")`) across a Back from any of them. The lesson page's own player keeps its approved shape (one
   play disc, the clip at its own shape, the browser's controls once it
   plays); the feed keeps its ½×; Compare keeps its pair. V1 Golf steps
   frames at full, half and quarter speed; Kinovea loops a working zone;
