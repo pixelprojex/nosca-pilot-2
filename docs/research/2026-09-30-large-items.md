@@ -237,6 +237,26 @@ visual item of the day; `roster.cjs`. With it, the small fix: the
 diary's day meta no longer reads "0 booked · 0 free" or "0 available"
 — a nought is not a fact worth a line.
 
+### 16. Study a clip — slow, a frame at a time, a loop. **Built 14 October.**
+Every video product gives the athlete the transport on one clip: V1
+Golf steps frames at full, half and quarter speed, Kinovea loops a
+working zone the play head runs inside, OnForm goes down to frame by
+frame, Dartfish holds a key position. Nosca's lesson page played a clip
+with the browser's own controls (its approved shape, kept), the feed
+slowed to ½× only, and Compare needed a second clip — so a player alone
+with one clip could not slow it, step it or watch the top of the swing
+over and over. **Study** sits beside Mark it up and Compare under a
+video on the lesson page, for both sides from one clip, and opens the
+clip on the dark stage with play, a frame either way, 1× · ½× · ¼×,
+the scrub with the time, and **Loop** — From here, To here, the span
+drawn on the picture's foot and the head going back to the start every
+time it reaches the end. No SQL, no server. The functional item of the
+day; `study.cjs`. With it, two small visual fixes from the screenshot
+sweep: the unread dot no longer sits on lessons a person has already
+read (it marks only the coach's To review, where opening clears it),
+and the family's child row carries what is undone, never a lesson
+total.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -260,6 +280,10 @@ the items above; a research spike first.
 - A second camera angle: two phones, one coach.
 
 ## Sources
+- https://help.v1sports.com/en/articles/2337963-video-analysis-in-the-v1-golf-app-with-ios (V1 Golf: frame forward and back; full, half and quarter speed)
+- https://kinovea.readthedocs.io/en/stable/observation/playback_ui.html (Kinovea: the working zone the play head loops inside; a frame back and forward)
+- https://glasgowarchers1948.co.uk/2022/06/20/onform-video-analysis/ (OnForm: playback down to frame by frame)
+- https://blog.dartfish.com/2014/04/03/nine-things-you-can-do-with-a-key-position-or-still-shot/ (Dartfish: a key position held and studied)
 - https://apps.apple.com/app/id596598472 (CoachNow: Smart Lists segment athletes by their activity)
 - https://apps.apple.com/app/id1433835828 (TennisLocker Coach: session-based attendance, player evals)
 - https://support.pga.com/en/articles/4810156-managing-when-you-re-available-to-coach (PGA Coach: recurring availability, open time, Blocked Times for vacations, tournaments, closures)
