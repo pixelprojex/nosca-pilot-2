@@ -104,7 +104,7 @@ const near = (x, y, tol) => Math.abs(x - y) <= tol;
       check("(a) the lesson page offers Compare beside Mark it up", (await compare.count()) === 1 && (await markup.count()) === 1, (await text()).slice(0, 200));
       if (await compare.count()) {
         const [bm, bc] = await Promise.all([markup.boundingBox(), compare.boundingBox()]);
-        check("(a2) the two sit in one row at equal widths (Study makes a third beside them)", !!bm && !!bc && near(bm.y, bc.y, 1) && near(bm.width, bc.width, 2) && bc.x > bm.x, JSON.stringify({ bm, bc }));
+        check("(a2) the two sit in one row at equal widths", !!bm && !!bc && near(bm.y, bc.y, 1) && near(bm.width, bc.width, 2) && bc.x > bm.x, JSON.stringify({ bm, bc }));
       }
       await shot("01-lesson");
 

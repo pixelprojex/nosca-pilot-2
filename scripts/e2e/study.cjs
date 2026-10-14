@@ -128,9 +128,32 @@ const near = (x, y, tol) => Math.abs(x - y) <= tol;
       for (let i = 0; i < 8; i++) { await page.waitForTimeout(220); const st = await vstate(page); samples.push(st ? +st.t.toFixed(3) : null); }
       const e2 = await vstate(page);
       check("(e3) playing, the head stays between the two points and never runs past the end", !!e2 && !e2.paused && samples.every((x) => x != null && x >= A - 0.08 && x <= B + 0.15), JSON.stringify({ samples, A, B }));
+      await tap(page, '[data-tour="study-play"]', 200);
+      /* paused, a scrub past the end of the loop stays where the finger put it — the loop is held only while the clip plays */
+      await setT(page, Math.min(B + 0.2, dur - 0.02)); await page.waitForTimeout(400);
+      const e3 = await vstate(page);
+      check("(e3b) paused, a seek past the loop's end is left alone", !!e3 && e3.paused && e3.t > B + 0.1, JSON.stringify(e3));
       await loop.click(); await page.waitForTimeout(200);
       check("(e4) a third tap clears the loop", (await loop.getAttribute("data-loop")) === "off" && /^Loop$/.test((await loop.innerText()).trim()), await loop.innerText());
+      /* a loop whose end is the clip's end keeps running: the element pauses itself at the end and the loop starts itself again */
+      const A2 = Math.max(0, dur - 0.5);
+      await setT(page, A2); await page.waitForTimeout(250); await loop.click(); await page.waitForTimeout(150);
+      await setT(page, dur); await page.waitForTimeout(250); await loop.click(); await page.waitForTimeout(250);
+      check("(e5) a loop can end on the clip's last frame", (await loop.getAttribute("data-loop")) === "on", await loop.innerText());
       await tap(page, '[data-tour="study-play"]', 200);
+      const s5 = [];
+      for (let i = 0; i < 8; i++) { await page.waitForTimeout(220); const st = await vstate(page); s5.push(st ? { t: +st.t.toFixed(2), p: st.paused } : null); }
+      check("(e6) playing, it goes round through the end of the clip rather than stopping there", s5.every((x) => x && !x.p && x.t >= A2 - 0.1) && s5.some((x) => x && x.t < dur - 0.3), JSON.stringify({ s5, A2, dur }));
+      await loop.click(); await page.waitForTimeout(150);
+      await tap(page, '[data-tour="study-play"]', 200);
+
+      /* ---------- (e7) the sound ---------- */
+      const snd = page.locator('[data-tour="study-sound"]');
+      const m0 = await page.evaluate(() => document.querySelector("video[data-study-video]").muted);
+      await snd.click(); await page.waitForTimeout(150);
+      const m1 = await page.evaluate(() => document.querySelector("video[data-study-video]").muted);
+      check("(e7) the clip opens with its sound off, and one button brings it in", m0 === true && m1 === false && (await snd.getAttribute("aria-pressed")) === "true" && (await snd.getAttribute("aria-label")) === "Mute", JSON.stringify({ m0, m1 }));
+      await snd.click(); await page.waitForTimeout(150);
 
       /* ---------- (f) Back ---------- */
       await M.back(page); await page.waitForTimeout(900);
