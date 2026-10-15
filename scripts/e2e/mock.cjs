@@ -192,11 +192,14 @@ function onBookingUpdate(db, b, old, actor) {
   if (b.status === "confirmed") { notify(db, b.player_id, "booking", "Lesson confirmed", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, whn); }
   else if (b.status === "weather") { notify(db, b.player_id, "weather", "Called off — weather", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson called off`, `${whn} · weather`); }
   else if (b.status === "cancelled") {
-    if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson cancelled`, whn); }
+    /* the reason leads the line when there is one, as trg_bookings_notify writes it */
+    const why = b.cancel_reason && String(b.cancel_reason).trim() ? `${String(b.cancel_reason).trim()} · ` : "";
+    const toPlayer = why ? `${why}${whn}` : `${whn} · ${nameOf(db, b.coach_id)}`;
+    if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", toPlayer, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson cancelled`, `${why}${whn}`); }
     else {
-      notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, whn, { screen: "calendar", id: b.id });
+      notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, `${why}${whn}`, { screen: "calendar", id: b.id });
       if (actor && actor !== b.player_id) {
-        notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
+        notify(db, b.player_id, "booking", "Lesson cancelled", toPlayer, { screen: "calendar", id: b.id });
       }
     }
   }
@@ -627,7 +630,8 @@ async function attach(page, db, opts = {}) {
       if (table === "profiles") upd = upd.filter((r) => r.id === meId && (body.coach_id === undefined || body.coach_id === r.coach_id) && (body.family_id === undefined || body.family_id === r.family_id));
       if (table === "notifications" || table === "preferences") upd = upd.filter((r) => (r.user_id || r.id) === meId);
       if (table === "drills") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && Object.keys(body).every((k) => k === "done")));
-      if (table === "bookings") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && body.status === "cancelled"));
+      /* a player's own cancel: the status and the reason, nothing else (booking_unchanged() in the policy) */
+      if (table === "bookings") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && body.status === "cancelled" && Object.keys(body).every((k) => k === "status" || k === "cancel_reason")));
       if (table === "lessons") upd = upd.filter((r) => r.coach_id === meId);
       if (table === "messages") upd = upd.filter((r) => r.sender_id !== meId);
       /* a project whose SQL has not been re-run: a column the app knows and the table does not */

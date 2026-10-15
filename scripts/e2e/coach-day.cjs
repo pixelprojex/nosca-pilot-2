@@ -174,25 +174,32 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       await page.context().close();
     }
 
-    /* ---------- (d) Cancel on the peek: Keep it, a wrong password, the right one ---------- */
+    /* ---------- (d) Cancel on the peek: why first, Back, a wrong password, the right one ---------- */
     {
       const { db, page, text, shot } = await boot();
       await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const t6 = await text(); await shot("08-peek");
       check("(d) the peek offers Cancel, not No show", (await sheetOpen(page)) && /Cancel/.test(t6) && !/No show/i.test(t6), t6.slice(0, 240));
       await page.locator('[data-sheet] button', { hasText: /^Cancel$/ }).first().click(); await page.waitForTimeout(800);
-      const t7 = await text(); await shot("09-cancel-password");
-      check("(d) Cancel asks for the password, naming the lesson, with Keep it as the way back", t7.includes("Cancel this lesson") && t7.includes("Cian Murphy") && t7.includes("Keep it") && (await pw(page).count()) === 1, t7.slice(0, 240));
-      await M.click(page, "Keep it", 900); await shot("09b-kept");
-      check("(d) Keep it closes it with nothing written", !(await sheetOpen(page)) && !db.patches.some((x) => x.table === "bookings"), `open ${await sheetOpen(page)} · patches ${JSON.stringify(db.patches.filter((x) => x.table === "bookings"))}`);
-      await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
-      await page.locator('[data-sheet] button', { hasText: /^Cancel$/ }).first().click(); await page.waitForTimeout(800);
+      const t7 = await text(); await shot("09-cancel-why");
+      check("(d) Cancel asks why first, naming the lesson, and Next sleeps until a reason is picked", t7.includes("Cancel lesson") && t7.includes("Cian Murphy") && t7.includes("Unwell") && (await page.locator('[data-tour="cancel-why"]').count()) === 5 && (await lastBtn(page, /^Next$/).isDisabled()), t7.slice(0, 240));
+      await page.locator('[data-tour="cancel-why"]', { hasText: "Unwell" }).click(); await page.waitForTimeout(300);
+      await lastBtn(page, /^Next$/).click(); await page.waitForTimeout(700);
+      const t7b = await text();
+      check("(d) …then offers another time, with Cancel the lesson under it", t7b.includes("Offer another time") && (await lastBtn(page, /^Cancel the lesson$/).count()) === 1, t7b.slice(0, 240));
+      await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(800);
+      const t7c = await text(); await shot("09-cancel-password");
+      check("(d) …and ends on the password, promising the reason travels, with Back as the way back", t7c.includes("with the reason") && t7c.includes("Back") && (await pw(page).count()) === 1, t7c.slice(0, 240));
+      await lastBtn(page, /^Back$/).click(); await page.waitForTimeout(600);
+      check("(d) Back steps back with nothing written", (await text()).includes("Offer another time") && !db.patches.some((x) => x.table === "bookings"), `patches ${JSON.stringify(db.patches.filter((x) => x.table === "bookings"))}`);
+      await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(800);
       await pw(page).fill("wrongone"); await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(900);
       check("(d) a wrong password is refused, and nothing is written", (await text()).includes("That password isn't right.") && !db.patches.some((x) => x.table === "bookings"), (await text()).slice(0, 200));
       await pw(page).fill("secret12"); await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(1800);
       const c2 = last(db.patches, "bookings"); await shot("10-cancelled");
-      check("(d) the right one cancels that one booking", !!c2 && c2.body.status === "cancelled" && c2.query.includes(`id=eq.${db.b1.id}`) && c2.n === 1, JSON.stringify(c2));
-      check("(d) …the player is told, and the row is gone", db.notifications.some((n) => n.user_id === IDS.adult && n.title === "Lesson cancelled") && !(await text()).includes("9:00 am"), (await text()).slice(0, 200));
+      check("(d) the right one cancels that one booking, with the reason on the row", !!c2 && c2.body.status === "cancelled" && c2.body.cancel_reason === "Unwell" && c2.query.includes(`id=eq.${db.b1.id}`) && c2.n === 1, JSON.stringify(c2));
+      const told = db.notifications.find((n) => n.user_id === IDS.adult && n.title === "Lesson cancelled");
+      check("(d) …the player is told, the reason leading the line, and the row is gone", !!told && /^Unwell · /.test(told.body || "") && !(await text()).includes("9:00 am"), JSON.stringify(told) + (await text()).slice(0, 120));
       await page.context().close();
     }
     /* ---------- (g) the log takes more than one area worked on ---------- */

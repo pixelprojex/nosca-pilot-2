@@ -314,6 +314,10 @@ alter table public.preferences add column if not exists starred        jsonb not
 -- drills"). On the coach's own preferences row, so the player never
 -- reads it; a project without the column keeps it on the device.
 alter table public.preferences add column if not exists player_notes   jsonb not null default '{}'::jsonb;
+-- why a lesson was cancelled, in the canceller's words ("Unwell", "Course
+-- closed", or what they typed): the Cancel sheet promises the other side
+-- is told with the reason, and the notice leads with it
+alter table public.bookings    add column if not exists cancel_reason  text check (char_length(cancel_reason) <= 120);
 -- What lessons open on: 'list' or 'feed'. Null is the role's own default
 -- (a coach List, a player Feed); Settings › Default view sets it.
 alter table public.preferences add column if not exists default_view   text check (default_view in ('list', 'feed'));
@@ -836,6 +840,20 @@ create or replace function public.my_coach_id()
 returns uuid language sql stable security definer set search_path = ''
 as $fn$ select p.coach_id from public.profiles p where p.id = auth.uid(); $fn$;
 
+-- is this booking, as the new row would have it, the same booking? A
+-- player cancelling their own lesson may change its status and give a
+-- reason, and nothing else: not the coach it names (whose notice the
+-- reason would lead), not the day, the time, the length or the kind.
+-- Security definer, so the cancel policy can ask without the recursion
+-- a policy on bookings reading bookings would be (42P17).
+create or replace function public.booking_unchanged(p_id uuid, p_coach uuid, p_player uuid, p_date date, p_time text, p_dur smallint, p_kind text)
+returns boolean language sql stable security definer set search_path = ''
+as $fn$
+  select exists (select 1 from public.bookings b
+                  where b.id = p_id and b.coach_id = p_coach and b.player_id is not distinct from p_player
+                    and b.booking_date = p_date and b.start_time = p_time and b.duration = p_dur and b.kind = p_kind);
+$fn$;
+
 -- is this person a junior? Either answer marks them as one — what they
 -- chose at sign-up, or their date of birth — the same rule the app uses.
 create or replace function public.is_junior_of(p_id uuid)
@@ -1007,7 +1025,7 @@ begin
     'my_coach_id()', 'is_junior_of(uuid)', 'is_junior()', 'my_family_id()', 'my_family_member_ids()',
     'my_family_ids()', 'my_family_coach_ids()', 'my_players_guardian_ids()', 'coach_of(uuid)',
     'my_pending_coach_ids()', 'my_requesting_player_ids()', 'coach_availability(uuid)',
-    'my_attendance_session_ids()', 'my_lesson_ids()'
+    'my_attendance_session_ids()', 'my_lesson_ids()', 'booking_unchanged(uuid,uuid,uuid,date,text,smallint,text)'
   ] loop
     execute format('revoke all on function public.%s from public, anon', fn);
     execute format('grant execute on function public.%s to authenticated', fn);
@@ -1507,6 +1525,8 @@ returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare
   a     uuid;
   whn   text := public.nice_date(new.booking_date) || ' ' || new.start_time;
+  -- the reason leads the line when there is one ("Unwell · Sat 10 Oct 10:00")
+  why   text := coalesce(nullif(trim(new.cancel_reason), '') || ' · ', '');
   actor uuid := auth.uid();
 begin
   if new.player_id is null then return new; end if;   -- a group slot tells nobody
@@ -1546,20 +1566,24 @@ begin
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     elsif new.status = 'cancelled' then
+      -- two facts on the line: the reason and the day where there is a
+      -- reason, else the day and the coach
       if actor is not null and actor = new.coach_id then
-        perform public.notify(new.player_id, 'booking', 'Lesson cancelled', whn || ' · ' || public.name_of(new.coach_id),
+        perform public.notify(new.player_id, 'booking', 'Lesson cancelled',
+          case when why <> '' then why || whn else whn || ' · ' || public.name_of(new.coach_id) end,
           jsonb_build_object('screen', 'calendar', 'id', new.id));
         for a in select public.adults_for(new.player_id) loop
-          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson cancelled', whn,
+          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson cancelled', why || whn,
             jsonb_build_object('screen', 'family', 'id', new.id));
         end loop;
       else
-        perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' cancelled', whn,
+        perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' cancelled', why || whn,
           jsonb_build_object('screen', 'calendar', 'id', new.id));
         -- cancelled for them, by the adult who booked it
         if actor is not null and actor <> new.player_id then
           perform public.notify(new.player_id, 'booking', 'Lesson cancelled',
-            whn || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'calendar', 'id', new.id));
+            case when why <> '' then why || whn else whn || ' · ' || public.name_of(new.coach_id) end,
+            jsonb_build_object('screen', 'calendar', 'id', new.id));
         end if;
       end if;
     end if;
@@ -2315,13 +2339,17 @@ create policy "bookings: a guardian requests one for their family" on public.boo
   );
 
 -- A player, or their guardian, may cancel one of their own bookings and
--- nothing else about it: the only value the new row may carry is
--- status = 'cancelled'. Without this the app's Cancel said "Cancelled"
--- while the update touched zero rows.
+-- nothing else about it: the new row may carry status = 'cancelled' and
+-- the reason they give, and booking_unchanged() holds the coach, the
+-- player, the day, the time, the length and the kind to what they were
+-- (the check used to pin the status alone, so a cancel could re-address
+-- the booking — and its notice — to any coach). Without the policy the
+-- app's Cancel said "Cancelled" while the update touched zero rows.
 create policy "bookings: a player or guardian cancels their own" on public.bookings
   for update to authenticated
   using (player_id = auth.uid() or player_id in (select public.my_family_ids()))
-  with check (status = 'cancelled');
+  with check (status = 'cancelled'
+              and public.booking_unchanged(id, coach_id, player_id, booking_date, start_time, duration, kind));
 
 -- ---------- competitions ----------
 create policy "competitions: yours or your family's" on public.competitions
@@ -2635,7 +2663,7 @@ with
                         'create_family', 'join_family', 'rename_family', 'leave_family',
                         'notify', 'adults_for', 'trg_lessons_notify', 'trg_lessons_rating_notify', 'trg_requests_notify', 'trg_bookings_notify',
                         'trg_messages_notify', 'trg_drills_notify', 'trg_tips_notify', 'trg_family_notify',
-                        'delete_my_account']) as f
+                        'delete_my_account', 'booking_unchanged']) as f
   ),
   have_functions as (
     select p.proname as f
