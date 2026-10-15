@@ -152,7 +152,8 @@ const leaks = [];
       const t4 = await leak("coach peek"); await shot("09-coach-peek");
       check("(b) the peek sheet shows no invented past lessons", !t4.includes("Short game") && !t4.includes("14 Jun"), t4.slice(0, 200));
       await click(page, "Move");
-      await page.locator("button", { hasText: /Ill|sick|Weather|Something/i }).first().click(); await page.waitForTimeout(300);
+      /* a named reason — Something else needs words before Next wakes */
+      await page.locator('[data-tour="cancel-why"]', { hasText: "Unwell" }).click(); await page.waitForTimeout(300);
       await click(page, "Next");
       await click(page, "Cancel the lesson", 900);
       /* a coach's cancel ends on their password: a wrong one writes nothing */
@@ -164,7 +165,7 @@ const leaks = [];
       await page.fill('input[type="password"]', "secret12");
       await page.locator("button", { hasText: /^Cancel the lesson$/ }).last().click(); await page.waitForTimeout(1500);
       const c1 = last(db.patches, "bookings");
-      check("(b) Cancel PATCHes the booking to cancelled", !!c1 && c1.body.status === "cancelled" && c1.query.includes(`id=eq.${b1.rows[0].id}`) && c1.n === 1, JSON.stringify(c1));
+      check("(b) Cancel PATCHes the booking to cancelled, the reason on the row", !!c1 && c1.body.status === "cancelled" && c1.body.cancel_reason === "Unwell" && c1.query.includes(`id=eq.${b1.rows[0].id}`) && c1.n === 1, JSON.stringify(c1));
       await page.waitForTimeout(2200);
       check("(b) a cancelled booking leaves the diary", (await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).count()) === 0);
       await shot("10-coach-diary-cancelled");
