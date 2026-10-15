@@ -1441,6 +1441,9 @@ const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"
 /* A stored date, read as a local day. "YYYY-MM-DD" through `new Date`
    is UTC midnight, and DAY_NAMES runs Monday first while getDay() runs
    Sunday first — both wrong by a day, in opposite places. */
+/* a booking row's day the app's one way — `Fri 16 Oct` — from its ISO
+   date, or from the harness's month and day where a seed has no date */
+const askDay = (r, cal) => (r && r.date ? fmtIsoDay(r.date) : `${DAY_NAMES[dowOf(r.m, r.d, cal)].slice(0, 3)} ${r.d} ${monthName(r.m).slice(0, 3)}`);
 const fmtIsoDay = (iso) => {
   const [y, m, d] = String(iso || "").split("-").map(Number);
   if (!y || !m || !d) return String(iso || "");
@@ -2473,7 +2476,12 @@ const CANCEL_REASONS = {
   player: ["Unwell", "Work or school", "Away", "Injured", "Something else"],
 };
 
-function CancelLesson({ role, lesson, slots, duration, onDone, close, verify }) {
+/* `reasonTravels` is whether the project's bookings carry cancel_reason:
+   until the founder re-runs the SQL the sheet still asks why — the
+   coach's reasons are their own record — but promises only what it can
+   do. A coach goes on to offer a time and their password; a player's
+   own lesson ends here, on one button. */
+function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, reasonTravels = true }) {
   const t = useT();
   const [reason, setReason] = useState(null);
   const [note, setNote] = useState("");
@@ -2487,7 +2495,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify }) 
      password like the weather call-off does; a player's own does not */
   if (stage === "password") return (
     <ConfirmPassword title={tr("Cancel lesson")}
-                     detail={`${lesson}. ${tr("They are told straight away with the reason. Confirm with your password.")}`}
+                     detail={`${lesson}. ${reasonTravels ? tr("They are told straight away with the reason. Confirm with your password.") : tr("They are told straight away. Confirm with your password.")}`}
                      actionLabel={label} closeLabel={tr("Back")}
                      onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(); return { next: true }; }}
                      close={() => setStage("when")} />
@@ -2518,7 +2526,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify }) 
         {CANCEL_REASONS[role === "coach" ? "coach" : "player"].map((r, i) => {
           const on = reason === r;
           return (
-            <button key={r} onClick={() => { haptic(7); soft(); setReason(r); }}
+            <button key={r} data-tour="cancel-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 px-4 text-left"
                     style={{ minHeight: 52, borderRadius: R.control, background: on ? `${t.accent}0F` : t.surface,
                              border: `1px solid ${on ? `${t.accent}22` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
@@ -2531,18 +2539,20 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify }) 
       </div>
 
       {reason === "Something else" && (
-        <div className="mb-5" style={{ animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
+        <div className="mb-5" data-tour="cancel-note" style={{ animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
           <VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Reason")} />
         </div>
       )}
 
       <div className="p-4 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
         <p style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.sub }}>
-          {tr("We'll tell")} {other} {tr("straight away with the reason. A cancelled lesson is not counted.")}
+          {tr("We'll tell")} {other} {reasonTravels ? tr("straight away with the reason.") : tr("straight away.")} {tr("A cancelled lesson is not counted.")}
         </p>
       </div>
 
-      <Button tone="ink" disabled={!reason} onClick={() => { haptic(9); setStage("when"); }}>{tr("Next")}</Button>
+      {role === "coach"
+        ? <Button tone="ink" disabled={!reason} onClick={() => { haptic(9); setStage("when"); }}>{tr("Next")}</Button>
+        : <Button tone="danger" disabled={!reason} onClick={finish}>{tr("Cancel the lesson")}</Button>}
     </>
   );
 }
@@ -9528,7 +9538,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
               <CloudRain size={18} color={DANGER} strokeWidth={1.8} />
               <span className="flex-1 min-w-0">
                 <span className="block" style={{ ...TYPE.eyebrow, color: DANGER }}>
-                  {off.status === "weather" ? tr("Called off") : tr("Cancelled")}
+                  {off.status === "weather" ? tr("Called off") : off.reason ? `${tr("Cancelled")} · ${off.reason}` : tr("Cancelled")}
                 </span>
                 <span className="block truncate" style={{ ...TYPE.body, color: t.ink, marginTop: 2 }}>
                   {off.when || [off.d && off.m ? `${off.d} ${off.m}` : null, off.time].filter(Boolean).join(" · ")}
@@ -12140,6 +12150,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                       onAccept, onDecline, onInvite, push, go,
                       layout, onAction, lessonCount = 0 }) {
   const t = useT();
+  const cal = useCalendar();
   const list = today || [];
   const done = list.filter((l) => l.done);
   const justDone = done[done.length - 1];
@@ -12322,7 +12333,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                   <Avatar name={r.who} size={30} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
-                    <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{r.d} {monthName(r.m).slice(0, 3)} · {r.time}</span>
+                    <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{askDay(r, cal)} · {r.time}</span>
                   </span>
                   <TextBtn color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
                   <TextBtn color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
@@ -15684,8 +15695,11 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               {readOnly
                 ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Booked by your parent")}</span>
                 : <span className="flex items-center gap-4">
-                    <button onClick={() => { haptic(8); onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
-                    <button onClick={() => { hapticCommit(); onCancel(myDay); say("Pick a new time"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
+                    {/* a real account's Cancel asks why, so the coach is told with the
+                        reason; Reschedule says that much on its own. The harness keeps
+                        the one-tap cancel. */}
+                    <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${dayLabel} ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
+                    <button data-tour="day-reschedule" onClick={() => { hapticCommit(); onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
                   </span>}
             </div>
             <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{duration} min with {conn?.coach || "your coach"}</div>
@@ -17974,7 +17988,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const status = reason === "Weather" ? "weather" : "cancelled";
     if (data) {
       hapticWarn();   /* felt as it is decided, not after the write */
-      const res = await data.callOffBookings((affected || []).map((b) => b.id).filter(Boolean), status);
+      /* the reason rides on each row where it is a cancellation ("Unwell",
+         "Course closed"), so every player's notice leads with it */
+      const res = await data.callOffBookings((affected || []).map((b) => b.id).filter(Boolean), status, status === "cancelled" ? reason : null);
       setCallOffFor(null);
       if (res && res.error) { hapticWarn(); say(res.error.message); return; }
       const n = res && typeof res.count === "number" ? res.count : (affected || []).length;
@@ -19109,11 +19125,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }
     setBookings((x) => [...x.filter((y) => !(y.m === b.m && y.d === b.d && y.connId === conn?.id)), { ...b, connId: conn?.id }]); haptic(18); say("Booked");
   };
-  const cancel = async (b) => {
+  const cancel = async (b, why = null) => {
     if (data) {
       if (!b || !b.id) return;
       hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
-      const res = await data.cancelBooking(b.id, "cancelled");
+      const res = await data.cancelBooking(b.id, "cancelled", why);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't cancel that.")); return; }
       haptic(10); return;
     }
@@ -19705,7 +19721,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             onAccept: () => acceptRequest(r), onDecline: () => declineRequest(r) })),
       ...(liveAsks || []).map((r) => ({ id: `ask-${r.id}`, who: r.who,
             avatar: avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath),
-            what: `${r.d} ${monthName(r.m).slice(0, 3)} · ${r.time}`,
+            what: `${askDay(r, calendar)} · ${r.time}`,
             onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setSheet("decline"); } })),
     ];
     /* A notification names the person it is about first — "Cian Murphy
@@ -20168,7 +20184,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
                                                             bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
-                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
+                                                            prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
@@ -20603,7 +20619,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onEditComp={() => { setSheet(null); push("events"); }}
                                             onProfile={() => { setSheet(null); push("player:" + peek.who); }}
                                             onLog={() => { setSheet(null); setPrefill({ m: todayMD.m, d: todayMD.d, ...peek }); go("log"); }}
-                                            onNoShow={() => setSheet("cancelLesson")}
+                                            onNoShow={() => { if (peek) { setCancelling(`${peek.who} · ${peek.time}`); setCancelBk(peek); } setSheet("cancel"); }}
                                             onCapture={() => { setSheet(null);
                                               /* a real account films into the real capture sheet, filed under this
                                                  booking; the older capture screen with its invented readings is the harness's */
@@ -20619,7 +20635,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "bookWho" && bookSlot ? (
                   <>
                     <h2 className="mb-5" style={{ ...TYPE.title, color: theme.ink }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} · {span(bookSlot.time, duration)}
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)} · {span(bookSlot.time, duration)}
                     </h2>
                     {/* A NAMED BEING IN A LIST IS A ROW. This was a stack
                         of cards, one card a player, which is the tile
@@ -20680,18 +20696,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} />
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
                                             verify={data && role === "coach" ? data.verifyPassword : null}
-                                            onDone={async ({ reason, offer }) => {
+                                            reasonTravels={!data || !!data.cancelReasons}
+                                            onDone={async ({ reason, note, offer }) => {
                                               if (data) {
-                                                /* the booking is marked cancelled; an offered time is booked in its place */
+                                                /* the booking is marked cancelled, the reason on the row so the
+                                                   trigger leads the other side's notice with it ("Something
+                                                   else" is what they typed); an offered time is booked in its place */
                                                 const bk = cancelBk;
                                                 if (!bk || !bk.id) { say(tr("Couldn't find that booking.")); return; }
-                                                const r1 = await data.cancelBooking(bk.id, "cancelled");
+                                                const why = reason === "Something else" ? (String(note || "").trim() || null) : reason;
+                                                const r1 = await data.cancelBooking(bk.id, "cancelled", why);
                                                 if (r1 && r1.error) { hapticWarn(); say(r1.error.message); return; }
                                                 if (offer && role === "coach") {
                                                   const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration }]);
                                                   if (r2 && r2.error) { say(r2.error.message); return; }
                                                 }
-                                                done(tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : tr("Their diary is updated."), DANGER);
+                                                done(tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : role === "coach" ? tr("Their diary is updated.") : tr("Your coach is told."), DANGER);
                                                 return;
                                               }
                                               setCancelNotice({ from: role === "coach" ? coachName : (activeProfile || {}).name, lesson: cancelling, reason, offer });

@@ -454,6 +454,28 @@ commit;
 \if :n1 \echo PASS a player can cancel their own booking \else \echo FAIL player could not cancel their own booking \endif
 select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '%cancelled') = 1) as ok \gset
 \if :ok \echo PASS …and the coach is told who cancelled \else \echo FAIL no cancel notification for the coach \endif
+-- 8f. the reason travels: a cancellation carrying cancel_reason leads the coach's notice with it
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-11', '11:00', 45, 'private', 'requested') returning id as bk2 \gset
+with u as (update public.bookings set status = 'cancelled', cancel_reason = 'Unwell' where id = :'bk2' returning id) select count(*) as n2 from u \gset
+commit;
+\if :n2 \echo PASS a player may give a reason with the cancel (8f) \else \echo FAIL the policy refused a cancel that carried a reason (8f) \endif
+select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '%cancelled' and body like 'Unwell · %') = 1) as ok \gset
+\if :ok \echo PASS the cancel reason leads the notice to the coach (8f) \else \echo FAIL the notice to the coach does not carry the reason (8f) \endif
+-- …and with no reason the notice is the day alone, as before the column
+select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '%cancelled' and body not like '% · %' and body not like 'Unwell%') = 1) as ok \gset
+\if :ok \echo PASS a cancel with no reason reads the day alone (8f) \else \echo FAIL the reasonless cancel changed shape (8f) \endif
+-- a reason past 120 characters is refused and nothing is written
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-12', '11:00', 45, 'private', 'requested') returning id as bk3 \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+\set ON_ERROR_STOP off
+update public.bookings set status = 'cancelled', cancel_reason = repeat('x', 121) where id = :'bk3';
+\set ON_ERROR_STOP on
+rollback;
+select (status = 'requested' and cancel_reason is null) as ok from public.bookings where id = :'bk3' \gset
+\if :ok \echo PASS a reason past 120 characters is refused, and nothing is written (8f; the error above is the refusal) \else \echo FAIL an over-long reason landed (8f) \endif
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
 \set ON_ERROR_STOP off
 update public.bookings set status = 'confirmed' where id = :'bk';

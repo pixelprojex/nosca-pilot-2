@@ -498,17 +498,44 @@ seeded data and no account.
   Which lessons, all ticked, untick any that still go ahead, then the
   password. Weather writes the `weather` status; any other reason is a
   `cancelled` booking, because those are the two statuses a booking
-  has, and the notification trigger tells the player which. Never a
-  "whole day or one lesson" fork: the ticks are that.
+  has, and the notification trigger tells the player which — with the
+  reason leading the line (`cancel_reason` rides on every row). Never
+  a "whole day or one lesson" fork: the ticks are that.
 - **Taking away somebody else's lesson ends on the coach's password.**
-  The call-off, the peek's Cancel (the `cancelLesson` sheet —
-  it was "No show", and the word is Cancel everywhere now, the toast
-  "Cancelled") and Move's "Cancel the lesson" all finish on
-  `ConfirmPassword` with `data.verifyPassword`, which signs the coach
-  in again with their own email: a wrong password is refused and
-  nothing is written, and the way back reads `closeLabel` ("Keep it",
-  "Back"). A player cancelling their own lesson is not asked — it is
-  theirs. `scripts/e2e/coach-day.cjs` walks both, wrong password first.
+  The call-off, the peek's Cancel (it was "No show", and the word is
+  Cancel everywhere now, the toast "Cancelled") and Move's "Cancel the
+  lesson" all finish on `ConfirmPassword` with `data.verifyPassword`,
+  which signs the coach in again with their own email: a wrong password
+  is refused and nothing is written, and the way back reads
+  `closeLabel` ("Keep it", "Back"). A player cancelling their own
+  lesson is not asked — it is theirs. The home's "Don't log" swipe on
+  a finished lesson is the one bare password (the `cancelLesson`
+  sheet): there is nothing to tell anyone why. `scripts/e2e/coach-day.cjs`
+  walks the peek's, wrong password first.
+- **A cancellation carries its reason, and the other side reads it
+  first.** The Cancel sheet (`CancelLesson`, the `cancel` sheet) has
+  always asked Why and promised "They are told straight away with the
+  reason" — and `cancelBooking` wrote the status alone, so the promise
+  was false for a year. The reason now rides on the row as
+  `bookings.cancel_reason` ("Unwell", "Course closed", or what was
+  typed under Something else; nothing when Something else has no
+  words), written by `cancelBooking(id, status, why)` and
+  `callOffBookings(ids, status, why)`, and `trg_bookings_notify` leads
+  every cancelled notice with it: the player's "Lesson cancelled" ·
+  "Unwell · Sat 10 Oct 10:00 am" (two facts — the coach's name goes
+  when the reason is there; a player has one coach), the adults'
+  "Saoirse's lesson cancelled" · the same, the coach's "Cian Murphy
+  cancelled" · "Away · …". The peek's Cancel opens the Why sheet
+  first (reason → Offer another time → password), as the diary's row
+  always did; a player's own Cancel in the Diary (`day-cancel`) opens
+  the same sheet with the player's reasons and ends on **Cancel the
+  lesson** with no password and no offer — one tap more than the bare
+  cancel it replaced, and the coach knows why; Reschedule says
+  "Rescheduling" for them. The mock's `onBookingUpdate` says the
+  same. Until the founder re-runs the SQL the hook's probe
+  (`cancelReasons`) says no, the patch is the status alone and the
+  sheet promises only "straight away" — never "with the reason" it
+  cannot send. `scripts/e2e/cancel-reason.cjs`; behaviour.sql 8f.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.

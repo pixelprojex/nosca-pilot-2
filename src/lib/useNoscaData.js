@@ -158,6 +158,8 @@ export function useNoscaData(profile) {
   const reminderProbed = useRef(false);
   const [canSendClip, setCanSendClip] = useState(false); // does lessons.sent_by exist on this project?
   const clipProbed = useRef(false);
+  const [cancelReasons, setCancelReasons] = useState(false); // does bookings.cancel_reason exist on this project?
+  const reasonProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [registerDays, setRegisterDays] = useState({});   // register key -> the session's day, for Attendance on Progress
@@ -430,6 +432,13 @@ export function useNoscaData(profile) {
         reminderProbed.current = true;
         supabase.from("preferences").select("reminder_time").limit(1).then((pr) => setReminderOn(!pr.error)).catch(() => setReminderOn(false));
       }
+      /* the cancel reason travels only once the column exists; before
+         that a cancel is the status alone and the sheet does not promise
+         the reason */
+      if (!reasonProbed.current) {
+        reasonProbed.current = true;
+        supabase.from("bookings").select("cancel_reason").limit(1).then((pr) => setCancelReasons(!pr.error)).catch(() => setCancelReasons(false));
+      }
       /* `tips` carries no focus column, so focus stays null and every
          screen that shows it must check first. The date and the age DO
          exist — they were simply never derived, so a tip set in March
@@ -498,6 +507,7 @@ export function useNoscaData(profile) {
           groupName: b.group_name || null,
           playerId: b.player_id || null,
           status: b.status,
+          reason: b.cancel_reason || null,   // why it was cancelled, in the canceller's words
           duration: b.duration,
           date: b.booking_date,
           m: dt.getMonth() + 1,
@@ -1047,8 +1057,14 @@ export function useNoscaData(profile) {
     return { error, count: (made || []).length };
   };
 
-  const cancelBooking = async (id, reason = "cancelled") => {
-    const { data: rows, error } = await supabase.from("bookings").update({ status: reason }).eq("id", id).select("id");
+  /* `status` is 'cancelled' or 'weather'; `why` is the canceller's reason
+     ("Unwell", or what they typed), written only where the project has
+     the column — the trigger leads the other side's notice with it */
+  const cancelBooking = async (id, status = "cancelled", why = null) => {
+    const patch = { status };
+    const text = typeof why === "string" ? why.trim() : "";
+    if (cancelReasons && text) patch.cancel_reason = text.slice(0, 120);
+    const { data: rows, error } = await supabase.from("bookings").update(patch).eq("id", id).select("id");
     if (error) return { error };
     if (!rows || !rows.length) return { error: { message: "Couldn't change that booking." } };
     await load();
@@ -1080,11 +1096,14 @@ export function useNoscaData(profile) {
 
   /* Several named bookings at once — the pick-and-choose version of
      the above, for a coach calling off one group but not the rest. */
-  const callOffBookings = async (ids, reason = "weather") => {
+  const callOffBookings = async (ids, status = "weather", why = null) => {
     const list = (ids || []).filter(Boolean);
     if (!list.length) return { count: 0 };
+    const patch = { status };
+    const text = typeof why === "string" ? why.trim() : "";
+    if (cancelReasons && text) patch.cancel_reason = text.slice(0, 120);
     const { data: rows, error } = await supabase.from("bookings")
-      .update({ status: reason }).in("id", list).select("id");
+      .update(patch).in("id", list).select("id");
     if (error) return { error: { message: rpcMessage(error, "Couldn't call those off.") } };
     await load();
     return { count: (rows || []).length };
@@ -1693,7 +1712,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

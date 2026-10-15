@@ -314,6 +314,10 @@ alter table public.preferences add column if not exists starred        jsonb not
 -- drills"). On the coach's own preferences row, so the player never
 -- reads it; a project without the column keeps it on the device.
 alter table public.preferences add column if not exists player_notes   jsonb not null default '{}'::jsonb;
+-- why a lesson was cancelled, in the canceller's words ("Unwell", "Course
+-- closed", or what they typed): the Cancel sheet promises the other side
+-- is told with the reason, and the notice leads with it
+alter table public.bookings    add column if not exists cancel_reason  text check (char_length(cancel_reason) <= 120);
 -- What lessons open on: 'list' or 'feed'. Null is the role's own default
 -- (a coach List, a player Feed); Settings › Default view sets it.
 alter table public.preferences add column if not exists default_view   text check (default_view in ('list', 'feed'));
@@ -1507,6 +1511,8 @@ returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare
   a     uuid;
   whn   text := public.nice_date(new.booking_date) || ' ' || new.start_time;
+  -- the reason leads the line when there is one ("Unwell · Sat 10 Oct 10:00")
+  why   text := coalesce(nullif(trim(new.cancel_reason), '') || ' · ', '');
   actor uuid := auth.uid();
 begin
   if new.player_id is null then return new; end if;   -- a group slot tells nobody
@@ -1546,20 +1552,24 @@ begin
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     elsif new.status = 'cancelled' then
+      -- two facts on the line: the reason and the day where there is a
+      -- reason, else the day and the coach
       if actor is not null and actor = new.coach_id then
-        perform public.notify(new.player_id, 'booking', 'Lesson cancelled', whn || ' · ' || public.name_of(new.coach_id),
+        perform public.notify(new.player_id, 'booking', 'Lesson cancelled',
+          case when why <> '' then why || whn else whn || ' · ' || public.name_of(new.coach_id) end,
           jsonb_build_object('screen', 'calendar', 'id', new.id));
         for a in select public.adults_for(new.player_id) loop
-          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson cancelled', whn,
+          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson cancelled', why || whn,
             jsonb_build_object('screen', 'family', 'id', new.id));
         end loop;
       else
-        perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' cancelled', whn,
+        perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' cancelled', why || whn,
           jsonb_build_object('screen', 'calendar', 'id', new.id));
         -- cancelled for them, by the adult who booked it
         if actor is not null and actor <> new.player_id then
           perform public.notify(new.player_id, 'booking', 'Lesson cancelled',
-            whn || ' · ' || public.name_of(new.coach_id), jsonb_build_object('screen', 'calendar', 'id', new.id));
+            case when why <> '' then why || whn else whn || ' · ' || public.name_of(new.coach_id) end,
+            jsonb_build_object('screen', 'calendar', 'id', new.id));
         end if;
       end if;
     end if;
@@ -2315,9 +2325,9 @@ create policy "bookings: a guardian requests one for their family" on public.boo
   );
 
 -- A player, or their guardian, may cancel one of their own bookings and
--- nothing else about it: the only value the new row may carry is
--- status = 'cancelled'. Without this the app's Cancel said "Cancelled"
--- while the update touched zero rows.
+-- nothing else about it: the new row may carry status = 'cancelled' and
+-- the reason they give, no other change. Without this the app's Cancel
+-- said "Cancelled" while the update touched zero rows.
 create policy "bookings: a player or guardian cancels their own" on public.bookings
   for update to authenticated
   using (player_id = auth.uid() or player_id in (select public.my_family_ids()))

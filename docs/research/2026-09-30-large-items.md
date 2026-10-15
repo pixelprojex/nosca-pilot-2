@@ -257,6 +257,31 @@ read (it marks only the coach's To review, where opening clears it),
 and the family's child row carries what is undone, never a lesson
 total.
 
+### 17. The cancel reason reaches the other side. **Built 15 October.**
+Every booking product that lets one side cancel carries the why to
+the other: TeamSnap's cancelled game takes a reason in its Notes and
+Notify Team sends it; GoRendezvous shares the cancellation reason in
+the client's notice; Calendly's host writes an optional message that
+reaches the invitee's cancellation mail (and its users ask for the
+same the other way); Teamer's cancelled event carries a message;
+Healthie reports cancellation reasons back to the practice. Nosca's
+Cancel sheet asked Why and promised "They are told straight away with
+the reason" — and `cancelBooking` wrote the status alone, so the
+player read the day and the coach's name and the coach read only
+"Cian Murphy cancelled". Now `bookings.cancel_reason` (one column,
+120 characters, degrading to today until the SQL is re-run) rides on
+every cancellation — the peek's Cancel, the diary's, the call-off's
+non-weather reasons, and a player's or parent's own Cancel, which
+asks the same Why with no password and ends on one button — and
+`trg_bookings_notify` leads the notice with it: "Unwell · Sat 10 Oct
+10:00 am". Two facts a line: the coach's name gives way to the reason
+on the player's notice. The functional item of the day;
+`cancel-reason.cjs`, behaviour.sql 8f. With it, two small visual fixes
+from the screenshot sweep under one rule (one date, one time): the
+booking-request rows on the coach's home and on Alerts read the
+weekday like every other row, and the coach's book sheet names the
+month.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -324,3 +349,8 @@ the items above; a research spike first.
 - https://help.v1sports.com/en/articles/2981457-send-swings-to-instructor (Sent · Accepted · Completed on the athlete's Lessons tab)
 - https://skillest.com/blog/app-why-skillest (the coach's analysis sent back inside the lesson)
 - https://help.coachnow.io/en/articles/362744-how-do-i-post-media and https://coachnow.io/athletes (reply with video, text or audio; the fist bump)
+- https://helpme.teamsnap.com/article/979-cancel-or-delete-games-and-events (TeamSnap: a cancelled game's reason in Notes, Notify Team)
+- https://help.gorendezvous.com/en/articles/8561483-keep-a-canceled-appointment-on-the-schedule-and-or-share-the-cancellation-reason-with-the-client (GoRendezvous: the reason in the client's cancellation notice)
+- https://community.calendly.com/how-do-i-40/can-i-give-reason-why-a-appointment-was-cancelled-in-the-automated-mail-1665 (Calendly: the host's optional message reaches the invitee's cancellation mail)
+- https://help.teamer.net/knowledge/app/manage-events (Teamer: a cancelled event carries a message to the team)
+- https://help.gethealthie.com/article/1264-deep-dive-cancellations-report (Healthie: cancellation reasons reported back to the practice)

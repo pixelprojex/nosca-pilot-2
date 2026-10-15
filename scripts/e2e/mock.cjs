@@ -192,11 +192,14 @@ function onBookingUpdate(db, b, old, actor) {
   if (b.status === "confirmed") { notify(db, b.player_id, "booking", "Lesson confirmed", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, whn); }
   else if (b.status === "weather") { notify(db, b.player_id, "weather", "Called off — weather", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson called off`, `${whn} · weather`); }
   else if (b.status === "cancelled") {
-    if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson cancelled`, whn); }
+    /* the reason leads the line when there is one, as trg_bookings_notify writes it */
+    const why = b.cancel_reason && String(b.cancel_reason).trim() ? `${String(b.cancel_reason).trim()} · ` : "";
+    const toPlayer = why ? `${why}${whn}` : `${whn} · ${nameOf(db, b.coach_id)}`;
+    if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", toPlayer, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson cancelled`, `${why}${whn}`); }
     else {
-      notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, whn, { screen: "calendar", id: b.id });
+      notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, `${why}${whn}`, { screen: "calendar", id: b.id });
       if (actor && actor !== b.player_id) {
-        notify(db, b.player_id, "booking", "Lesson cancelled", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
+        notify(db, b.player_id, "booking", "Lesson cancelled", toPlayer, { screen: "calendar", id: b.id });
       }
     }
   }
