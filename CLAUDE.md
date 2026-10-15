@@ -535,7 +535,7 @@ seeded data and no account.
   same. Until the founder re-runs the SQL the hook's probe
   (`cancelReasons`) says no, the patch is the status alone and the
   sheet promises only "straight away" — never "with the reason" it
-  cannot send. `scripts/e2e/cancel-reason.cjs`; behaviour.sql 8f.
+  cannot send. `scripts/e2e/cancel-reason.cjs`; behaviour.sql 10b.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.

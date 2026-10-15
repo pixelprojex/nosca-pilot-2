@@ -630,7 +630,8 @@ async function attach(page, db, opts = {}) {
       if (table === "profiles") upd = upd.filter((r) => r.id === meId && (body.coach_id === undefined || body.coach_id === r.coach_id) && (body.family_id === undefined || body.family_id === r.family_id));
       if (table === "notifications" || table === "preferences") upd = upd.filter((r) => (r.user_id || r.id) === meId);
       if (table === "drills") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && Object.keys(body).every((k) => k === "done")));
-      if (table === "bookings") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && body.status === "cancelled"));
+      /* a player's own cancel: the status and the reason, nothing else (booking_unchanged() in the policy) */
+      if (table === "bookings") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && body.status === "cancelled" && Object.keys(body).every((k) => k === "status" || k === "cancel_reason")));
       if (table === "lessons") upd = upd.filter((r) => r.coach_id === meId);
       if (table === "messages") upd = upd.filter((r) => r.sender_id !== meId);
       /* a project whose SQL has not been re-run: a column the app knows and the table does not */

@@ -2489,6 +2489,9 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
   const [stage, setStage] = useState("why");   // why | when | password
   const other = role === "coach" ? tr("your player") : tr("your coach");
   const finish = () => { hapticWarn(); decline(); onDone({ reason, note, offer }); close(); };
+  /* Something else is a reason only once there are words — the sheet
+     promises the reason travels, so nothing goes before there is one */
+  const ready = !!reason && (reason !== "Something else" || note.trim().length > 0);
   const label = offer ? tr("Cancel and offer this time") : tr("Cancel the lesson");
 
   /* a coach's cancel is somebody else's lesson, so it ends on their
@@ -2551,8 +2554,8 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
       </div>
 
       {role === "coach"
-        ? <Button tone="ink" disabled={!reason} onClick={() => { haptic(9); setStage("when"); }}>{tr("Next")}</Button>
-        : <Button tone="danger" disabled={!reason} onClick={finish}>{tr("Cancel the lesson")}</Button>}
+        ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); setStage("when"); }}>{tr("Next")}</Button>
+        : <Button tone="danger" disabled={!ready} onClick={finish}>{tr("Cancel the lesson")}</Button>}
     </>
   );
 }
@@ -7220,7 +7223,9 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             )}
 
             <div className="flex gap-2.5 mt-1.5">
-              <button onClick={() => { hapticWarn(); onNoShow && onNoShow(item); }} className="px-4 active:opacity-60"
+              {/* the diary passes onCancel (the Why sheet); an older caller onNoShow —
+                  the button took only the second, so the diary's Cancel did nothing */}
+              <button data-tour="block-cancel" onClick={() => { hapticWarn(); const act = onCancel || onNoShow; act && act(item); }} className="px-4 active:opacity-60"
                       style={{ minHeight: 46, borderRadius: R.control, border: `1px solid ${t.hair}`,
                                fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 active:opacity-60"
@@ -9538,7 +9543,7 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
               <CloudRain size={18} color={DANGER} strokeWidth={1.8} />
               <span className="flex-1 min-w-0">
                 <span className="block" style={{ ...TYPE.eyebrow, color: DANGER }}>
-                  {off.status === "weather" ? tr("Called off") : off.reason ? `${tr("Cancelled")} · ${off.reason}` : tr("Cancelled")}
+                  {off.status === "weather" ? tr("Called off") : tr("Cancelled")}
                 </span>
                 <span className="block truncate" style={{ ...TYPE.body, color: t.ink, marginTop: 2 }}>
                   {off.when || [off.d && off.m ? `${off.d} ${off.m}` : null, off.time].filter(Boolean).join(" · ")}
@@ -15698,7 +15703,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     {/* a real account's Cancel asks why, so the coach is told with the
                         reason; Reschedule says that much on its own. The harness keeps
                         the one-tap cancel. */}
-                    <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${dayLabel} ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
+                    <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
                     <button data-tour="day-reschedule" onClick={() => { hapticCommit(); onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
                   </span>}
             </div>
@@ -17990,7 +17995,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       hapticWarn();   /* felt as it is decided, not after the write */
       /* the reason rides on each row where it is a cancellation ("Unwell",
          "Course closed"), so every player's notice leads with it */
-      const res = await data.callOffBookings((affected || []).map((b) => b.id).filter(Boolean), status, status === "cancelled" ? reason : null);
+      const res = await data.callOffBookings((affected || []).map((b) => b.id).filter(Boolean), status, status === "cancelled" && reason !== "Something else" ? reason : null);
       setCallOffFor(null);
       if (res && res.error) { hapticWarn(); say(res.error.message); return; }
       const n = res && typeof res.count === "number" ? res.count : (affected || []).length;
@@ -20711,7 +20716,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                   const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration }]);
                                                   if (r2 && r2.error) { say(r2.error.message); return; }
                                                 }
-                                                done(tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : role === "coach" ? tr("Their diary is updated.") : tr("Your coach is told."), DANGER);
+                                                /* a parent cancelling a child's lesson: the child's coach is told, not the parent's own */
+                                                const told = role === "coach" ? tr("Their diary is updated.")
+                                                  : bk.playerId && account && bk.playerId !== account.id && bookFor ? `${bookFor.coachName || tr("Their coach")} ${tr("is told.")}`
+                                                  : tr("Your coach is told.");
+                                                done(tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : told, DANGER);
                                                 return;
                                               }
                                               setCancelNotice({ from: role === "coach" ? coachName : (activeProfile || {}).name, lesson: cancelling, reason, offer });

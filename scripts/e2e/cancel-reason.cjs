@@ -108,8 +108,13 @@ const { check, results, summary } = M.checker("cancel-reason");
       check("(c) the day shows Your lesson with Cancel and Reschedule", /Your lesson/.test(t3) && (await page.locator('[data-tour="day-cancel"]').count()) === 1 && (await page.locator('[data-tour="day-reschedule"]').count()) === 1, t3.slice(0, 240));
       await tap(page, '[data-tour="day-cancel"]', 800);
       const t4 = await text(); await shot("05-player-why");
-      check("(c) Cancel opens the Why sheet naming the day, with the player's reasons and one button asleep", /Cancel lesson/.test(t4) && /10:00 am/.test(t4) && /Work or school/.test(t4) && /your coach straight away with the reason/.test(t4) && (await lastBtn(page, /^Cancel the lesson$/).isDisabled()) && (await lastBtn(page, /^Next$/).count()) === 0, t4.slice(0, 260));
+      check("(c) Cancel opens the Why sheet naming the day, with the player's reasons and one button asleep", /Cancel lesson/.test(t4) && /(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2} · 10:00 am/.test(t4) && /Work or school/.test(t4) && /your coach straight away with the reason/.test(t4) && (await lastBtn(page, /^Cancel the lesson$/).isDisabled()) && (await lastBtn(page, /^Next$/).count()) === 0, t4.slice(0, 260));
       check("(c) …and no password is asked of a player for their own lesson", (await pw(page).count()) === 0);
+      /* Something else is a reason only once there are words */
+      await page.locator('[data-tour="cancel-why"]', { hasText: "Something else" }).click(); await page.waitForTimeout(400);
+      check("(c) Something else alone leaves the button asleep — the sheet promises the reason", (await lastBtn(page, /^Cancel the lesson$/).isDisabled()) && (await page.locator('[data-tour="cancel-note"] textarea').count()) === 1);
+      await page.locator('[data-tour="cancel-note"] textarea').fill("Flat tyre"); await page.waitForTimeout(200);
+      check("(c) …and wakes with words", !(await lastBtn(page, /^Cancel the lesson$/).isDisabled()));
       await page.locator('[data-tour="cancel-why"]', { hasText: "Away" }).click(); await page.waitForTimeout(300);
       await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(1800);
       const p3 = patches(db, BK.cian).pop(); await shot("06-player-cancelled");
@@ -130,9 +135,11 @@ const { check, results, summary } = M.checker("cancel-reason");
       check("(d) the parent opens on the child, the child's lesson on the day with Cancel", /Saoirse/.test(t5) && /11:00/.test(t5) && (await page.locator('[data-tour="day-cancel"]').count()) === 1, t5.slice(0, 240));
       await tap(page, '[data-tour="day-cancel"]', 800);
       const t6 = await text(); await shot("08-parent-why");
-      check("(d) the sheet names the child and the day", /Cancel lesson/.test(t6) && /Saoirse · /.test(t6) && /11:00 am/.test(t6), t6.slice(0, 240));
+      check("(d) the sheet names the child and the day", /Cancel lesson/.test(t6) && /Saoirse · (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2} · 11:00 am/.test(t6), t6.slice(0, 240));
       await page.locator('[data-tour="cancel-why"]', { hasText: "Unwell" }).click(); await page.waitForTimeout(300);
-      await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(1800);
+      await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(700);
+      check("(d) the toast names the child's coach, not the parent's own", /Niamh Byrne is told\./.test(await text()), (await text()).slice(0, 200));
+      await page.waitForTimeout(1100);
       const p4 = patches(db, BK.kid).pop();
       check("(d) the child's booking is cancelled with the reason", !!p4 && p4.by === IDS.parent && p4.body.status === "cancelled" && p4.body.cancel_reason === "Unwell" && p4.n === 1, JSON.stringify(p4));
       const c4 = db.notifications.find((n) => n.user_id === IDS.coach && n.title === "Saoirse Kelly cancelled");
@@ -154,6 +161,33 @@ const { check, results, summary } = M.checker("cancel-reason");
       const g5 = db2.notifications.find((n) => n.user_id === IDS.parent && /Saoirse's lesson cancelled/.test(n.title));
       check("(e) the player and the junior's adult both read the reason first", !!a5 && /^Course closed · /.test(a5.body) && !!g5 && /^Course closed · /.test(g5.body), JSON.stringify([a5, g5]));
       void text;
+      await ctx.close();
+    }
+    /* ---------- (e2) Something else on the call-off has no words to send, so none go ---------- */
+    {
+      const db4 = freshDb();
+      const { ctx, page, text } = await boot(db4, "coach");
+      await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-weather"]', 900);
+      await M.click(page, "Something else", 400); await M.click(page, "Next", 700); await M.click(page, "Next", 700);
+      await M.click(page, "Call off 2 lessons", 800);
+      await pw(page).fill("secret12"); await lastBtn(page, /^Call off 2 lessons$/).click(); await page.waitForTimeout(2000);
+      const p6 = db4.patches.filter((x) => x.table === "bookings").pop();
+      check("(e2) Something else from the call-off cancels with no reason on the row", !!p6 && p6.body.status === "cancelled" && !("cancel_reason" in p6.body) && p6.n === 2, JSON.stringify(p6));
+      check("(e2) …and no notice reads Something else", db4.notifications.length > 0 && !db4.notifications.some((n) => /Something else/.test(n.body || "")), JSON.stringify(db4.notifications.map((n) => n.body)));
+      void text;
+      await ctx.close();
+    }
+    /* ---------- (g) the coach's diary: Cancel on a day's block opens the same Why ---------- */
+    {
+      const db5 = freshDb();
+      const { ctx, page, text, shot } = await boot(db5, "coach");
+      await openDay(page, db5, dayPlus(db5, 0));
+      await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(600);
+      const blk = page.locator('[data-tour="block-cancel"]');
+      check("(g) the day's block unfolds with Cancel on it", (await blk.count()) >= 1, (await text()).slice(0, 200));
+      if (await blk.count()) { await blk.first().click(); await page.waitForTimeout(800); }
+      const t8 = await text(); await shot("11-diary-block-cancel");
+      check("(g) …which opens the Why sheet, not nothing", /Cancel lesson/.test(t8) && (await page.locator('[data-tour="cancel-why"]').count()) === 5, t8.slice(0, 240));
       await ctx.close();
     }
     /* ---------- (f) a project without the column ---------- */

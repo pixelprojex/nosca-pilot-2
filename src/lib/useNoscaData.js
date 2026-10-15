@@ -507,7 +507,6 @@ export function useNoscaData(profile) {
           groupName: b.group_name || null,
           playerId: b.player_id || null,
           status: b.status,
-          reason: b.cancel_reason || null,   // why it was cancelled, in the canceller's words
           duration: b.duration,
           date: b.booking_date,
           m: dt.getMonth() + 1,
