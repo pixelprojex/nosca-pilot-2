@@ -1153,14 +1153,22 @@ export const TYPE = {
      cut and only 400 crosses over. `screen` is 400 now, so the ladder
      has a weight step as well as a size step.
 
-     The ladder is 32 · 24 · 19 · 15.5 · 14.5 · 13.5 · 12.5 · 11 · 10,
-     with no adjacent pair closer than 1.06x. The display end goes
-     larger and lighter, the text end larger and steadier — body is
-     read on a range at arm's length and is the one size that should
-     never have come down. The 12px floor RISES: small 12 → 12.5,
-     caption 10.5 → 11, eyebrow 9.5 → 10. The only tokens under 12 are
-     caption and eyebrow, and eyebrow is uppercase, tracked, and never
-     prose. */
+     The ladder is 32 · 24 · 19 · 15.5 · 14.5 · 13.5 · 12.5 · 12, with
+     no adjacent pair closer than 1.04x. The display end goes larger
+     and lighter, the text end larger and steadier — body is read on a
+     range at arm's length and is the one size that should never have
+     come down. 12 IS THE FLOOR, and the ladder ends on it: caption is
+     12, and no literal anywhere on a live screen sits under it — the
+     bell's times, Chat's times, the roster's standing line, a tile's
+     count, a face's initials (Avatar floors them) all read at twelve.
+     It was 11 for a long time, with fifty literals from 8.5 up beside
+     it, against the rule this file states. Two written exceptions,
+     each the phone's own convention and not a shortage of space: the
+     tab bar's labels (the one surface the founder asked kept as it
+     was; iOS's own are 10pt) and the sign-up wordmark, a logotype
+     drawn, not read. scripts/e2e/type-floor.cjs reads the computed
+     size of every word on every screen as every role and fails on
+     anything under 12 outside those two. */
   hero:     { fontFamily: display, fontSize: 32, lineHeight: 1.03, letterSpacing: "-0.035em", fontWeight: 300 },
   /* every screen's H1, and the app's only one — see PageHead. */
   screen:   { fontFamily: display, fontSize: 24, lineHeight: 1.08, letterSpacing: "-0.03em",  fontWeight: 400 },
@@ -1175,7 +1183,7 @@ export const TYPE = {
      a lede: Switzer, and t.sub. */
   lede:     { fontFamily: ui,      fontSize: 13.5, lineHeight: 1.45, letterSpacing: "-0.004em", fontWeight: 400 },
   small:    { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.42, letterSpacing: "0",        fontWeight: 400 },
-  caption:  { fontFamily: ui,      fontSize: 11, lineHeight: 1.34, letterSpacing: "0.005em",    fontWeight: 400 },
+  caption:  { fontFamily: ui,      fontSize: 12, lineHeight: 1.3, letterSpacing: 0,              fontWeight: 400 },
   /* a section label: a word, set like a word. It was 10px tracked
      uppercase — the single most repeated tell of a generated interface,
      on every section of every screen. Sentence case, the UI face, 500. */
@@ -2116,13 +2124,13 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
                     transformOrigin: "center", transform: "scaleX(0)",
                     animation: `trackFill 950ms cubic-bezier(.35,0,.15,1) ${T.rule}ms forwards` }} />
 
-      <div style={{ position: "relative", marginTop: 24, fontFamily: ui, fontSize: 10.5, letterSpacing: "0.3em",
+      <div style={{ position: "relative", marginTop: 24, fontFamily: ui, fontSize: 12, letterSpacing: "0.3em",
                     textTransform: "uppercase", color: branded ? accent : "rgba(244,246,243,0.82)", opacity: 0,
                     animation: `fadeUp 900ms cubic-bezier(.32,.72,0,1) ${T.sub}ms forwards` }}>
         {branded ? "Coaching that carries" : `${cfg.label} · ${roleLabel}`}
       </div>
 
-      <div className="absolute" style={{ bottom: 46, fontFamily: ui, fontSize: 10, letterSpacing: "0.26em",
+      <div className="absolute" style={{ bottom: 46, fontFamily: ui, fontSize: 12, letterSpacing: "0.26em",
                     textTransform: "uppercase", color: "rgba(244,246,243,0.3)", opacity: 0,
                     animation: `fadeUp 900ms ease ${T.foot}ms forwards` }}>{tr("Made in Ireland")}</div>
     </button>
@@ -2165,7 +2173,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
   const Pane = ({ lesson, side, onPick }) => (
     <div className="flex-1 min-w-0">
       <button onClick={onPick} className="w-full flex items-center gap-1.5 mb-2 active:opacity-60">
-        <span className="flex-1 text-left truncate" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.sub }}>
+        <span className="flex-1 text-left truncate" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.sub }}>
           {lesson.d} {lesson.m}
         </span>
         <ChevronDown size={12} color={t.trace || t.faint} />
@@ -2173,7 +2181,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
       <div className="relative overflow-hidden" style={{ borderRadius: R.control, aspectRatio: "3/4", background: "#191D1B" }}>
         <span className="absolute" style={{ left: 0, right: 0, top: `${pos}%`, height: 1, background: t.accent, opacity: 0.5 }} />
         <span className="absolute inset-0 flex items-center justify-center">
-          <span style={{ fontFamily: ui, fontSize: 10.5, color: "rgba(255,255,255,0.3)" }}>{side}</span>
+          <span style={{ fontFamily: ui, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>{side}</span>
         </span>
       </div>
     </div>
@@ -2259,7 +2267,8 @@ function DrillTimer({ seconds, onDone }) {
    grid — so every day gets its own block with the lessons and the gaps
    between them, running as far forward as they want to look. */
 function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slotKinds,
-                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now, away = null }) {
+                     onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now, away = null,
+                     mine = [], coachName = null, onMine = null }) {
   const t = useT();
   /* the tree's own calendar — the real months for a real account, the
      harness's fixed summer otherwise */
@@ -2286,8 +2295,14 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
       /* a day the coach is away is in the list, saying so, whatever the
          week's hours — and a day with no hours is not */
       const isAway = !!(away && away.size && away.has(`${yearOf(mo.idx, cx)}-${String(mo.idx).padStart(2, "0")}-${String(d).padStart(2, "0")}`));
-      if (!hours.length && !isAway) continue;
-      days.push({ m: mo.idx, d, mo, hours, away: isAway,
+      /* A PLAYER'S OWN LESSONS ARE ROWS IN THE DAY. The box used to draw
+         only the free hours for a non-coach, so the lesson they came to
+         check was a hole in the day, and a requested hour still carried
+         a Plus. Matched on the day and the time, never on the name (a
+         live row's `who` is the player's own). */
+      const mineHere = isCoach ? [] : (mine || []).filter((b) => b.m === mo.idx && b.d === d);
+      if (!hours.length && !isAway && !mineHere.length) continue;
+      days.push({ m: mo.idx, d, mo, hours, away: isAway, mine: mineHere,
                   booked: isCoach ? (seedBooked[key(mo.idx, d)] || [])
                                   : (seedBooked[key(mo.idx, d)] || []).map((b) => ({ time: b.time })),
                   blockedHere: blocked.filter((b) => b.m === mo.idx && b.d === d).map((b) => b.time) });
@@ -2305,6 +2320,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
       const isT = day.m === T.m && day.d === T.d;
       for (const h of day.hours) {
         if (day.booked.find((b) => b.time === h)) continue;
+        if (day.mine.some((b) => b.time === h)) continue;
         if (day.blockedHere.includes(h)) continue;
         if (isT && (parseTime(h) ?? 0) <= (cx.nowMins ?? 0)) continue;
         return `${day.m}-${day.d}-${h}`;
@@ -2327,7 +2343,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
         {days.slice(0, 10).map((day) => {
           const on = focus && focus.m === day.m && focus.d === day.d;
           const isToday = day.m === T.m && day.d === T.d;
-          const any = isCoach && day.booked.length > 0;
+          const any = isCoach ? day.booked.length > 0 : day.mine.length > 0;
           return (
             <button key={key(day.m, day.d)} aria-pressed={!!on}
                     onClick={() => { haptic(7); soft(); setFocus(on ? null : { m: day.m, d: day.d }); }}
@@ -2348,12 +2364,16 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
         const isToday = day.m === T.m && day.d === T.d;
         /* nothing already gone today: a time that has passed is not open */
         const gone = (h) => isToday && (parseTime(h) ?? 0) <= (cx.nowMins ?? 0);
-        const free = day.hours.filter((h) => !day.booked.find((b) => b.time === h) && !day.blockedHere.includes(h) && !gone(h));
-        /* A player is here to find a time, so only open slots are
-           shown. A coach is here to see their day, so everything is. */
+        const free = day.hours.filter((h) => !day.booked.find((b) => b.time === h) && !day.mine.some((b) => b.time === h) && !day.blockedHere.includes(h) && !gone(h));
+        /* A player is here to find a time, so the open slots are shown
+           with their own lessons in their places (a lesson booked
+           outside the week's hours still gets its row). A coach is here
+           to see their day, so everything is. */
+        const mineTimes = day.mine.map((b) => b.time);
+        const ownDay = [...new Set([...free, ...mineTimes])].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
         /* an away day offers nothing: a coach still sees what was
            booked before they marked it, so they can call it off */
-        const rows = day.away ? (isCoach ? day.hours.filter((h) => day.booked.find((b) => b.time === h)) : []) : isCoach ? day.hours : free;
+        const rows = day.away ? (isCoach ? day.hours.filter((h) => day.booked.find((b) => b.time === h)) : mineTimes) : isCoach ? day.hours : ownDay;
         if (!rows.length && !day.away) return null;
 
         return (
@@ -2387,6 +2407,29 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
                 const kind = slotKinds[`${day.m}-${day.d}-${h}`] || "either";
                 const last = ri === rows.length - 1;
                 const line = { borderBottom: last ? "none" : `1px solid ${t.hair}` };
+
+                /* the player's own lesson: the time, the coach's name, Requested
+                   while it waits; a tap lands on the Calendar view's Your lesson
+                   block, where Cancel and Reschedule are. A junior's row is a
+                   plain line — their lesson is booked by a parent. */
+                const mn = !isCoach && day.mine.find((b) => b.time === h);
+                if (mn) {
+                  const inner = (<>
+                    <Rail tone={t.ink}>{h}</Rail>
+                    <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{coachName || tr("Your coach")}</span>
+                    {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
+                  </>);
+                  if (juvenile || !onMine) return (
+                    <div key={h} data-tour="agenda-mine" className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>{inner}</div>
+                  );
+                  return (
+                    <button key={h} data-tour="agenda-mine" onClick={() => { haptic(7); soft(); onMine(day); }}
+                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line }}>
+                      {inner}
+                      <ChevronRight size={14} color={t.trace || t.faint} />
+                    </button>
+                  );
+                }
 
                 if (bk && isCoach) return (
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
@@ -2591,7 +2634,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
           <div key={r.id} className="flex items-center gap-3 px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
             <Check size={14} color={STEADY} strokeWidth={2.1} style={{ animation: "checkPop 420ms cubic-bezier(.28,1.4,.5,1) both" }} />
             <span className="flex-1" style={{ fontFamily: ui, fontSize: 13.5, color: t.ink }}>{tr(r.label)}</span>
-            {r.sensitive && <span className="rounded-full px-2 py-0.5" style={{ background: `${DANGER}18`, fontFamily: ui, fontSize: 11, fontWeight: 600, color: DANGER }}>{tr("Sensitive")}</span>}
+            {r.sensitive && <span className="rounded-full px-2 py-0.5" style={{ background: `${DANGER}18`, fontFamily: ui, fontSize: 12, fontWeight: 600, color: DANGER }}>{tr("Sensitive")}</span>}
           </div>
         ))}
       </div>
@@ -2631,7 +2674,7 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
               </span>
               <span className="flex-1 min-w-0">
                 <span className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr(r.label)}</span>
-                <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 11.5, color: r.sensitive ? DANGER : t.faint }}>{tr(r.note)}</span>
+                <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: r.sensitive ? DANGER : t.faint }}>{tr(r.note)}</span>
               </span>
             </button>
           );
@@ -2842,14 +2885,14 @@ function Credentials({ pop, say }) {
                   <span className="flex items-center gap-2">
                     <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{tr(d.name)}</span>
                     {d.required && <span className="rounded-full px-2 py-0.5 shrink-0"
-                                         style={{ background: t.wash, fontFamily: ui, fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: t.sub }}>
+                                         style={{ background: t.wash, fontFamily: ui, fontSize: 12, fontWeight: 600, letterSpacing: "0.06em", color: t.sub }}>
                                      {tr("Required")}</span>}
                   </span>
                   <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{d.body}</span>
                 </span>
                 <span className="text-right shrink-0">
                   {d.expires ? (<>
-                    <span className="block" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: tone(d.months) }}>
+                    <span className="block" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: tone(d.months) }}>
                       {d.months <= 12 ? `${d.months} ${tr("months")}` : tr("Current")}
                     </span>
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{d.expires}</span>
@@ -2861,7 +2904,7 @@ function Credentials({ pop, say }) {
             </Tile>
           ))}
 
-          <p className="px-1 mt-5 pb-4" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.65, color: t.faint }}>
+          <p className="px-1 mt-5 pb-4" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.65, color: t.faint }}>
             {tr("Nosca stores the certificate and its date, never the contents of a vetting disclosure. Your players see only that you are up to date.")}
           </p>
         </div>
@@ -2929,14 +2972,14 @@ function Testimonials({ role, pop, say, live, reviews: given, summary, code }) {
                     <span key={k} className="rounded-full" style={{ width: 5, height: 5, background: t.accent }} />
                   ))}
                 </span>
-                <span style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>{r.when}</span>
+                <span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{r.when}</span>
               </div>
               {r.text && <p style={{ fontFamily: display, fontSize: 14.5, lineHeight: 1.6, color: t.ink }}>{r.text}</p>}
               {r.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {r.tags.map((tg) => (
                     <span key={tg} className="px-2.5 py-1" style={{ borderRadius: R.control, background: t.wash,
-                                   fontFamily: ui, fontSize: 11, color: t.sub }}>{tr(tg)}</span>
+                                   fontFamily: ui, fontSize: 12, color: t.sub }}>{tr(tg)}</span>
                   ))}
                 </div>
               )}
@@ -3494,7 +3537,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
             </>
           )}
 
-          <p className="mt-6 px-1 pb-4" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.6, color: t.faint }}>
+          <p className="mt-6 px-1 pb-4" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.6, color: t.faint }}>
             
           </p>
         </div>
@@ -3541,10 +3584,10 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   </span>
                 </span>
                 <span className="text-right shrink-0">
-                  <span className="block" style={{ fontFamily: ui, fontSize: 11, color: t.faint }}>
+                  <span className="block" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>
                     {x.until ? tr("Until") : ""}
                   </span>
-                  {x.until && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{x.until}</span>}
+                  {x.until && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{x.until}</span>}
                 </span>
               </div>
 
@@ -3567,7 +3610,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                       return (<button key={k} onClick={() => { haptic(5); soft(); onEdit(x, { day: k }); }}
                                       className="flex-1 active:opacity-60"
                                       style={{ minHeight: 36, borderRadius: R.field, background: on ? STEADY : t.wash,
-                                               fontFamily: ui, fontSize: 10.5, fontWeight: 600,
+                                               fontFamily: ui, fontSize: 12, fontWeight: 600,
                                                color: on ? t.onAccent : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
                                 {d.slice(0, 2)}</button>);
                     })}
@@ -3581,13 +3624,13 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                     {/* an end date is not kept for a real account yet, so the two are not offered */}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
-                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>}
+                                     fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
-                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
+                                     fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
                     <button onClick={() => { haptic(9); setConfirming(x); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
-                                     fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
+                                     fontFamily: ui, fontSize: 12, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
                   </div>
                 </>
               )}
@@ -3926,7 +3969,7 @@ function Sources({ sport, pop, say }) {
               </div>
             </Tile>
           ))}
-          <p className="mt-5 px-1 pb-4" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.65, color: t.faint }}>
+          <p className="mt-5 px-1 pb-4" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.65, color: t.faint }}>
             {""}
           </p>
         </div>
@@ -4979,7 +5022,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
             {thumb && !thumb.url && <Mic size={18} color={t.ink} strokeWidth={1.8} style={{ position: "relative" }} />}
             {list.length > 0 && (
               <span className="absolute" style={{ right: -6, top: -6, minWidth: 18, height: 18, borderRadius: 9, padding: "0 5px", background: t.ink, color: t.page,
-                                                   fontFamily: ui, fontSize: 11, fontWeight: 700, lineHeight: "18px", textAlign: "center" }}>{list.length}</span>
+                                                   fontFamily: ui, fontSize: 12, fontWeight: 700, lineHeight: "18px", textAlign: "center" }}>{list.length}</span>
             )}
           </button>
           <button onClick={shoot} data-tour="capture-shutter" disabled={cap.state === "idle" || !!cap.error}
@@ -5524,7 +5567,7 @@ function Evidence({ item, live, mark, muted = true, rate = 1, onProgress, onAuto
     return (
       <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0B0F10" }}>
         <div className="w-full px-8">
-          <div className="mb-5" style={{ ...TYPE.eyebrow, fontSize: 9, color: "rgba(255,255,255,0.5)" }}>{item.device}</div>
+          <div className="mb-5" style={{ ...TYPE.eyebrow, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>{item.device}</div>
           {item.rows.map((r, i) => (
             <div key={r[0]} className="flex items-baseline justify-between py-3"
                  style={{ borderBottom: "0.5px solid rgba(255,255,255,0.12)",
@@ -5733,7 +5776,7 @@ const FeedCard = React.memo(function FeedCard({ lesson, active, index, media, on
               name: a player has one, a coach knows their own — with the
               discs at the right of that line */}
           <div className="flex items-center gap-3" style={{ marginTop: 6 }}>
-            <button onClick={open} className="flex-1 min-w-0 text-left truncate active:opacity-80" style={{ ...TYPE.caption, fontSize: 11.5, color: "rgba(255,255,255,0.72)" }}>
+            <button onClick={open} className="flex-1 min-w-0 text-left truncate active:opacity-80" style={{ ...TYPE.caption, color: "rgba(255,255,255,0.72)" }}>
               {showWho && lesson.who ? `${lesson.who.split(" ")[0]} · ` : ""}{lesson.iso ? fmtWeekDay(localDate(lesson.iso)) : `${lesson.d} ${lesson.m}`}{lesson.type === "Group" ? ` · ${tr("Group")}` : ""}{stageOf(cfg, lesson) ? ` · ${stageOf(cfg, lesson)}` : ""}
             </button>
             {onDownload && <DownloadDisc lesson={lesson} onTap={onDownload} size={40} dark />}
@@ -5886,7 +5929,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
                         background: "rgba(0,0,0,0.45)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
                         border: `0.5px dashed rgba(255,255,255,0.4)` }}>
           <Plus size={12} color="rgba(255,255,255,0.85)" strokeWidth={2.4} />
-          <span style={{ ...TYPE.caption, fontSize: 9.5, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>
+          <span style={{ ...TYPE.caption, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>
             {tr("Test media")}{loaded ? ` · ${loaded}` : ""}
           </span>
           <input type="file" accept="video/*,image/*,audio/*" multiple className="hidden"
@@ -7181,7 +7224,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             </span>
           </span>
           <span className="text-right shrink-0">
-            <span className="block" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: item.done ? t.accent : t.sub }}>
+            <span className="block" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: item.done ? t.accent : t.sub }}>
               {item.done ? tr("Log lesson") : hoursUntil == null ? "" : untilText(hoursUntil)}
             </span>
             <ChevronDown size={15} color={t.trace || t.faint} className="inline-block mt-1.5"
@@ -8074,11 +8117,11 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
       {Icon && <Icon size={h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={1.6} />}
       {/* four to a row, a word like Competition needs two lines rather than an ellipsis */}
       <span className={Icon && !wrap ? "truncate px-2" : wrap ? "px-1 text-center" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: Icon ? (wrap ? 11.5 : 12) : 13, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
+            style={{ fontFamily: ui, fontSize: Icon ? 12 : 13, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
       {count > 0 && (
         <span className="absolute flex items-center justify-center rounded-full"
-              style={{ top: 9, right: 9, minWidth: 19, height: 19, padding: "0 5px", background: on ? "#fff" : t.ink,
-                       fontFamily: ui, fontSize: 11, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
+              style={{ top: 9, right: 9, minWidth: 20, height: 20, padding: "0 5px", background: on ? "#fff" : t.ink,
+                       fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
       )}
       {dot && !count && <span className="absolute rounded-full" style={{ top: 12, right: 12, width: 7, height: 7, background: on ? "#fff" : t.accent }} />}
     </button>
@@ -8266,7 +8309,7 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
                 ? <Plus size={18} color={th.mark} strokeWidth={2.2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: on ? "#fff" : th.mark }} />}
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : th.ink }}>{sp.label}</span>
-              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, fontSize: 9.5, color: on ? "rgba(255,255,255,0.7)" : th.sub }}>· {tr("main")}</span>}
+              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, color: on ? "rgba(255,255,255,0.7)" : th.sub }}>· {tr("main")}</span>}
             </button>
           );
         })}
@@ -8329,12 +8372,12 @@ function Clip({ angle, dur = "0:12", size = "lg", onRemove, onMinimise, saved })
       )}
       {saved && (
         <span className="absolute top-2.5 left-2.5 rounded-full px-2.5 py-1 flex items-center gap-1.5" style={{ background: "rgba(0,0,0,0.45)" }}>
-          <Check size={10} color="#fff" strokeWidth={2.1} /><span style={{ fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>{tr("Offline")}</span>
+          <Check size={10} color="#fff" strokeWidth={2.1} /><span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>{tr("Offline")}</span>
         </span>
       )}
       <div className="absolute left-0 right-0 bottom-0 flex items-center justify-between px-3 py-2">
-        <span style={{ fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>{angle}</span>
-        {dur && <span style={{ fontFamily: ui, fontSize: 11, color: "rgba(255,255,255,0.7)" }}>{dur}</span>}
+        <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>{angle}</span>
+        {dur && <span style={{ fontFamily: ui, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>{dur}</span>}
       </div>
       {onRemove && (
         <button onClick={() => { haptic(); onRemove(); }} aria-label={`Remove ${angle}`} className="absolute top-2.5 right-2.5 rounded-full p-1.5" style={{ background: "rgba(0,0,0,0.5)" }}>
@@ -8359,7 +8402,7 @@ function MiniPlayer({ clip, onClose, onExpand }) {
         <button onClick={() => { haptic(8); onClose(); }} aria-label={tr("Close video")} className="absolute top-1.5 right-1.5 rounded-full p-1.5 active:opacity-60" style={{ background: "rgba(0,0,0,0.5)" }}>
           <X size={11} color="#fff" />
         </button>
-        <div className="absolute left-0 right-0 bottom-0 px-2 py-1.5 pointer-events-none"><span style={{ fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>{clip}</span></div>
+        <div className="absolute left-0 right-0 bottom-0 px-2 py-1.5 pointer-events-none"><span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>{clip}</span></div>
         <div className="absolute left-0 right-0 pointer-events-none" style={{ bottom: 0, height: 2, background: "rgba(255,255,255,0.2)" }}><div style={{ height: 2, width: "38%", background: t.accent }} /></div>
       </div>
     </div>
@@ -8382,7 +8425,7 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
           style={{ width: size, height: size, background: disc,
-                   fontFamily: display, fontSize: size * 0.36, fontWeight: 500,
+                   fontFamily: display, fontSize: Math.max(12, size * 0.36), fontWeight: 500,
                    letterSpacing: "-0.02em", color: mark }}>
       {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} onError={() => setBroken(pic)} />
         : group ? <Users size={size * 0.42} color={mark} /> : initials}
@@ -8394,7 +8437,7 @@ const IconBtn = ({ C, onOpen, label, count, tour }) => {
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="relative active:opacity-50 p-0.5">
       <C size={21} color={t.ink} strokeWidth={1.6} />
-      {count > 0 && (<span className="absolute rounded-full flex items-center justify-center" style={{ top: -3, right: -4, minWidth: 15, height: 15, padding: "0 4px", background: DANGER, border: `1.5px solid ${t.page}`, fontFamily: ui, fontSize: 9, fontWeight: 600, color: "#fff" }}>{count}</span>)}
+      {count > 0 && (<span className="absolute rounded-full flex items-center justify-center" style={{ top: -5, right: -6, minWidth: 18, height: 18, padding: "0 5px", background: DANGER, border: `1.5px solid ${t.page}`, fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>{count}</span>)}
     </button>
   );
 };
@@ -8510,7 +8553,7 @@ export function Frame({ step, steps, onBack, children, footer }) {
       <div className="shrink-0 pt-3">
         <div className="flex items-center justify-center gap-2 pb-1" style={{ animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) both" }}>
           <Mark size={15} color={t.faint} />
-          <span style={{ fontFamily: display, fontSize: 9, letterSpacing: "0.34em", color: t.faint }}>{BRAND}</span>
+          <span data-tour="wordmark" style={{ fontFamily: display, fontSize: 9, letterSpacing: "0.34em", color: t.faint }}>{BRAND}</span>
         </div>
         <div className="flex items-center px-1.5" style={{ height: 46 }}>
           {onBack
@@ -8539,7 +8582,7 @@ export function Field({ label, value, onChange, ph, type = "text", Icon, autoFoc
       <div className="flex items-center gap-3.5">
         {Icon && <Icon size={17} color={bad ? DANGER : t.faint} strokeWidth={1.6} />}
         <span className="flex-1">
-          {label && <span className="block" style={{ fontFamily: ui, fontSize: 11, color: bad ? DANGER : t.faint }}>{label}</span>}
+          {label && <span className="block" style={{ fontFamily: ui, fontSize: 12, color: bad ? DANGER : t.faint }}>{label}</span>}
           <input type={inputType} value={value} placeholder={ph} autoFocus={autoFocus} onBlur={onBlur}
                  aria-label={typeof label === "string" ? label : undefined}
                  autoComplete={autoComplete} inputMode={inputMode}
@@ -8561,7 +8604,7 @@ export function Field({ label, value, onChange, ph, type = "text", Icon, autoFoc
           </button>
         )}
       </div>
-      {bad && <p className="mt-1.5" style={{ fontFamily: ui, fontSize: 11.5, color: DANGER }}>{error}</p>}
+      {bad && <p className="mt-1.5" style={{ fontFamily: ui, fontSize: 12, color: DANGER }}>{error}</p>}
     </div>
   );
 }
@@ -8959,7 +9002,7 @@ export function CreateAccount({ role, step = 3, onDone, onBack, busy }) {
             )}
           </div>
           {dobBad
-            ? <p className="mt-2" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: DANGER }}>{dobMsg}</p>
+            ? <p className="mt-2" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.5, color: DANGER }}>{dobMsg}</p>
             : <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{`${CONSENT_AGE}+ only. Under 18s are added by a parent.`}</p>}
         </div>
 
@@ -8969,7 +9012,7 @@ export function CreateAccount({ role, step = 3, onDone, onBack, busy }) {
           <Field label={L.mobile} value={phone} onChange={setPhone} Icon={Phone} />
           <Field label={L.password} value={pass} onChange={setPass} onBlur={() => mark("pass")} ph="At least 6 characters" Icon={Lock} type="password" error={errPass} reveal />
         </div>
-        <p className="mt-5 text-center pb-6" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: t.faint }}>
+        <p className="mt-5 text-center pb-6" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.5, color: t.faint }}>
           By continuing you accept the {BRAND} Terms and Privacy Policy.
         </p>
       </div>
@@ -9014,7 +9057,7 @@ function CoachPlan({ onDone, onBack }) {
     <Frame step={stepOf("coach", "plan")} steps={stepsIn("coach")} onBack={onBack}
            footer={plan ? (<>
              <Button tone="ink" onClick={() => onDone(PLANS.find((p) => p.id === plan))}>Start 30 days free</Button>
-             <p className="mt-3 text-center" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: t.faint }}>
+             <p className="mt-3 text-center" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.5, color: t.faint }}>
                Nothing is charged today. Cancel any time in the App Store.
              </p>
            </>) : null}>
@@ -9047,7 +9090,7 @@ function CoachPlan({ onDone, onBack }) {
                     <div className="flex items-baseline justify-between">
                       <span className="flex items-center gap-2">
                         <span style={{ fontFamily: display, fontSize: 23, color: on ? "#fff" : t.ink }}>{p.name}</span>
-                        {rec && <span className="rounded-full px-2.5 py-1" style={{ background: on ? STEADY : t.wash, fontFamily: ui, fontSize: 11, fontWeight: 600, color: on ? t.onAccent : t.ink }}>{tr("BEST FIT")}</span>}
+                        {rec && <span className="rounded-full px-2.5 py-1" style={{ background: on ? STEADY : t.wash, fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.onAccent : t.ink }}>{tr("BEST FIT")}</span>}
                       </span>
                       <span style={{ fontFamily: display, fontSize: 22, color: on ? "#fff" : t.ink }}>€{p.price}<span style={{ fontFamily: ui, fontSize: 12, color: on ? "rgba(255,255,255,0.55)" : t.faint }}>/mo</span></span>
                     </div>
@@ -9142,7 +9185,7 @@ function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
-      <Avatar name={name} size={22} tint={tint} src={src} group={group} />
+      <Avatar name={name} size={26} tint={tint} src={src} group={group} />
       <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
       <ChevronDown size={13} color={t.sub} />
     </button>
@@ -9419,7 +9462,7 @@ function TipsHistory({ cfg, tips, pop }) {
                 <Card key={tip.id} className="p-5 mb-3">
                   <div className="flex items-center justify-between mb-2">
                     {tip.focus
-                      ? <span className="rounded-full px-2.5 py-1" style={{ background: t.wash, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.ink }}>{tip.focus}</span>
+                      ? <span className="rounded-full px-2.5 py-1" style={{ background: t.wash, fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tip.focus}</span>
                       : <span />}
                     <span style={{ ...TYPE.caption, color: t.faint }}>{tip.date}</span>
                   </div>
@@ -9773,11 +9816,11 @@ function lessonLogHtml({ lesson, coach, who, media = [], drills = [], tip }) {
 <style>
   body{margin:0;background:#FAF7F0;color:#1A1815;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   main{max-width:640px;margin:0 auto;padding:40px 24px 64px}
-  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8A857C}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8A857C}
   h1{font-size:34px;line-height:1.05;letter-spacing:-.03em;font-weight:400;margin:10px 0 6px}
   .meta{color:#6B6560;font-size:14px;margin:0 0 28px}
   section{border-top:1px solid rgba(26,24,21,.13);padding:20px 0}
-  h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8A857C;font-weight:600;margin:0 0 10px}
+  h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#8A857C;font-weight:600;margin:0 0 10px}
   p,li{font-size:16px;margin:0 0 8px}
   ul{padding-left:18px;margin:0}
   a{color:#1A1815}
@@ -9893,11 +9936,11 @@ function seasonReportHtml({ name, coach, cfg, lessons, drills = [], tips = [], t
 <style>
   body{margin:0;background:#FAF7F0;color:#1A1815;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   main{max-width:640px;margin:0 auto;padding:40px 24px 64px}
-  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8A857C}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8A857C}
   h1{font-size:34px;line-height:1.05;letter-spacing:-.03em;font-weight:400;margin:10px 0 6px}
   .meta{color:#6B6560;font-size:14px;margin:0 0 28px}
   section{border-top:1px solid rgba(26,24,21,.13);padding:20px 0}
-  h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8A857C;font-weight:600;margin:0 0 10px}
+  h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#8A857C;font-weight:600;margin:0 0 10px}
   p,li{font-size:16px;margin:0 0 8px}
   ul{padding-left:18px;margin:0}
   .q{color:#6B6560}
@@ -11535,7 +11578,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
                   className="flex items-center justify-center active:opacity-60 disabled:opacity-30" style={{ width: 32, height: 30 }}>
             <ChevronLeft size={14} color="#fff" strokeWidth={2.4} />
           </button>
-          <span className="truncate" data-compare-label={side} style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: "#fff", maxWidth: 150 }}>{clipLabel(x)}</span>
+          <span className="truncate" data-compare-label={side} style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff", maxWidth: 150 }}>{clipLabel(x)}</span>
           <button onClick={() => nudge(side, 1)} disabled={!on || playing} aria-label={`${tr("On a frame")} · ${lessonDay(x.lesson)}`}
                   className="flex items-center justify-center active:opacity-60 disabled:opacity-30" style={{ width: 32, height: 30 }}>
             <ChevronRight size={14} color="#fff" strokeWidth={2.4} />
@@ -12414,7 +12457,7 @@ function areaSubsOf(cfg, lesson) {
 function StagePill({ label, small }) {
   const t = useT();
   if (!label) return null;
-  return <span style={{ ...TYPE.small, fontSize: small ? 11.5 : 12.5, fontWeight: 500, color: t.sub, whiteSpace: "nowrap" }}>{label}</span>;
+  return <span style={{ ...TYPE.small, fontSize: small ? 12 : 12.5, fontWeight: 500, color: t.sub, whiteSpace: "nowrap" }}>{label}</span>;
 }
 function LessonTags({ lesson, cfg, className = "" }) {
   const t = useT();
@@ -12553,7 +12596,9 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
               bg={on ? "rgba(255,255,255,0.18)" : t.wash} fg={on ? "#fff" : t.sub} />
       <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
-      {caption && <span className="truncate px-2" style={{ ...TYPE.caption, fontSize: 10.5, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption}</span>}
+      {/* the caption's line is always there, so two tiles in one row share a
+          baseline whether or not one of them carries a time */}
+      <span className="truncate px-2" style={{ ...TYPE.caption, minHeight: 16, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption || ""}</span>
       {on && <span className="absolute rounded-full flex items-center justify-center" style={{ top: 8, right: 8, width: 18, height: 18, background: "#fff" }}><Check size={11} color={t.ink} strokeWidth={3} /></span>}
     </button>
   );
@@ -13386,8 +13431,8 @@ function LevelLine({ points, tag, color, ink, faint }) {
       <line x1={PX} x2={W - PX} y1={H - PY} y2={H - PY} stroke={faint} strokeWidth="0.5" />
       <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {points.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.v)} r={i === points.length - 1 ? 4 : 2.5} fill={i === points.length - 1 ? color : "#FFFFFF"} stroke={color} strokeWidth="1.5" />)}
-      <text x={x(0)} y={y(points[0].v) - 8} textAnchor={points.length > 1 ? "start" : "middle"} style={{ font: `500 11.5px ${ui}`, fill: ink }}>{points[0].v}</text>
-      {points.length > 1 && <text x={x(points.length - 1)} y={y(last.v) - 9} textAnchor="end" style={{ font: `500 11.5px ${ui}`, fill: ink }}>{last.v}</text>}
+      <text x={x(0)} y={y(points[0].v) - 8} textAnchor={points.length > 1 ? "start" : "middle"} style={{ font: `500 12px ${ui}`, fill: ink }}>{points[0].v}</text>
+      {points.length > 1 && <text x={x(points.length - 1)} y={y(last.v) - 9} textAnchor="end" style={{ font: `500 12px ${ui}`, fill: ink }}>{last.v}</text>}
     </svg>
   );
 }
@@ -13402,8 +13447,8 @@ function MonthBars({ months, color, ink, faint }) {
         return (
           <g key={`${m.y}-${m.m}`}>
             {m.n > 0 && <rect x={cx - bw / 2} y={BASE - h} width={bw} height={h} rx="3" fill={color} />}
-            {m.n > 0 && <text x={cx} y={BASE - h - 5} textAnchor="middle" style={{ font: `500 11.5px ${ui}`, fill: ink }}>{m.n}</text>}
-            <text x={cx} y={H - 4} textAnchor="middle" style={{ font: `400 11.5px ${ui}`, fill: faint }}>{PROGRESS_MONTHS[m.m][0]}</text>
+            {m.n > 0 && <text x={cx} y={BASE - h - 5} textAnchor="middle" style={{ font: `500 12px ${ui}`, fill: ink }}>{m.n}</text>}
+            <text x={cx} y={H - 4} textAnchor="middle" style={{ font: `400 12px ${ui}`, fill: faint }}>{PROGRESS_MONTHS[m.m][0]}</text>
           </g>
         );
       })}
@@ -14128,7 +14173,7 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
         <div className="px-6 pb-2">
           <div className="flex px-1 pb-2.5" style={{ borderBottom: `1px solid ${t.hair}` }}>
             {tool.columns.map((c, i) => (
-              <span key={c} className="uppercase" style={{ flex: i === 0 ? 1.6 : 1, fontFamily: ui, fontSize: 9,
+              <span key={c} className="uppercase" style={{ flex: i === 0 ? 1.6 : 1, fontFamily: ui, fontSize: 12,
                              letterSpacing: "0.2em", fontWeight: 600, color: t.faint, textAlign: i === 0 ? "left" : "right" }}>{c}</span>
             ))}
             <span style={{ width: 22 }} />
@@ -14380,7 +14425,7 @@ function VideoAnnotate({ angle, transcript, onSave, pop, say }) {
             {vo === "recording" && (
               <div className="absolute flex items-center gap-2 px-3 py-1.5" style={{ top: 10, left: 10, borderRadius: R.pill, background: "rgba(0,0,0,0.5)" }}>
                 <span className="rounded-full" style={{ width: 7, height: 7, background: DANGER, animation: "pulseDot 1.2s ease-in-out infinite" }} />
-                <span style={{ fontFamily: ui, fontSize: 11, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{voSecs.toFixed(1)}s</span>
+                <span style={{ fontFamily: ui, fontSize: 12, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{voSecs.toFixed(1)}s</span>
               </div>
             )}
             {playhead !== null && (
@@ -14612,7 +14657,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
 
       <div className="px-5 py-4 mb-5 flex items-center gap-3" style={{ borderRadius: R.surface, background: t.wash }}>
         <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{shown || "—"}</span>
-        <span className="rounded-full px-2.5 py-1" style={{ background: t.surface, fontFamily: ui, fontSize: 11, fontWeight: 600, color: t.sub }}>
+        <span className="rounded-full px-2.5 py-1" style={{ background: t.surface, fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.sub }}>
           {joinCode || "——————"}
         </span>
       </div>
@@ -14828,7 +14873,7 @@ function Subscription({ pop, say, plan }) {
             </button>
           </div>
 
-          <p className="mt-6 pb-4" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.6, color: t.faint }}>
+          <p className="mt-6 pb-4" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.6, color: t.faint }}>
             Lesson fees are between you and the people you coach.
           </p>
         </div>
@@ -15632,7 +15677,9 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     onOpen={(day, bk) => onPeek && onPeek(day && day.m ? { ...bk, m: day.m, d: day.d } : bk)}
                     onEditDay={(day) => onEditDay && onEditDay(day)}
                     onBookInto={(day, h, k) => onBookInto && onBookInto(day, h, k)}
-                    onRecurring={() => onRecurring && onRecurring()} push={push} now={T} />
+                    onRecurring={() => onRecurring && onRecurring()} push={push} now={T}
+                    mine={role === "coach" ? [] : bookings} coachName={conn?.coach || null}
+                    onMine={(day) => { const i = months.findIndex((x) => x.idx === day.m); if (i >= 0) setMi(i); setSel(day.d); setPick(null); setView(tr("Calendar")); }} />
       ) : (<>
 
       {/* ---- month grid: quiet, availability-led ---- */}
@@ -20297,7 +20344,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         <div className="flex flex-col items-center mb-4">
           <Mark size={30} color="#E7EBE4" />
           <div className="mt-1.5" style={{ fontFamily: display, fontSize: 13, letterSpacing: "0.32em", color: "#E7EBE4" }}>{BRAND}</div>
-          <div className="mt-1" style={{ fontFamily: ui, fontSize: 9.5, letterSpacing: "0.12em", color: "#77857A" }}>{tr("PROVISIONAL NAME")}</div>
+          <div className="mt-1" style={{ fontFamily: ui, fontSize: 12, letterSpacing: "0.12em", color: "#77857A" }}>{tr("PROVISIONAL NAME")}</div>
         </div>
         )}
 
@@ -20353,7 +20400,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 : role === "player" && !juvenile && !hasFamily);
               return (
                 <button key={v.id} onClick={() => viewAs(v.id)} className="rounded-full px-3 py-1.5 shrink-0"
-                        style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600,
+                        style={{ fontFamily: ui, fontSize: 12, fontWeight: 600,
                                  background: active ? "#FFFFFF" : "transparent", color: active ? "#0B0F0C" : "#889684" }}>
                   {v.label}
                 </button>
@@ -20361,7 +20408,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             })}
           </div>
           <div className="flex gap-1 rounded-full p-0.5 overflow-x-auto" style={{ background: "#19211A", maxWidth: 384, scrollbarWidth: "none" }}>{Object.keys(SPORTS).map((sp) => (
-            <button key={sp} onClick={() => swapSport(sp)} className="rounded-full px-3 py-1.5 shrink-0" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, background: sport === sp ? SPORTS[sp].theme.accent : "transparent", color: sport === sp ? SPORTS[sp].theme.onAccent : "#889684" }}>{SPORTS[sp].label}</button>
+            <button key={sp} onClick={() => swapSport(sp)} className="rounded-full px-3 py-1.5 shrink-0" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, background: sport === sp ? SPORTS[sp].theme.accent : "transparent", color: sport === sp ? SPORTS[sp].theme.onAccent : "#889684" }}>{SPORTS[sp].label}</button>
           ))}</div>
         </div>
 
@@ -20369,7 +20416,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           <div className="absolute" style={{ top: 96, left: "50%", marginLeft: 210, width: 250, zIndex: 90,
                  background: "#0F1513", borderRadius: R.surface, border: "1px solid #1E2724", padding: 14,
                  boxShadow: "0 20px 60px rgba(0,0,0,0.55)", animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
-            <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 8.5, letterSpacing: "0.2em", color: "#6E7C77" }}>
+            <div className="uppercase mb-3" style={{ fontFamily: ui, fontSize: 12, letterSpacing: "0.2em", color: "#6E7C77" }}>
               Jump to a state
             </div>
             {[
@@ -20468,11 +20515,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             <div className="shrink-0 relative z-30 flex items-center gap-2.5 px-6 py-2" role="status" data-tour="offline-strip"
                  style={{ background: CAUTION, animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
               <WifiOff size={13} color="#fff" strokeWidth={2.1} />
-              <span className="flex-1" style={{ fontFamily: ui, fontSize: 11.5, fontWeight: 600, color: "#fff" }}>
+              <span className="flex-1" style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>
                 {tr("Offline")}{downloads.totals.count ? ` · ${downloads.totals.count} ${downloads.totals.count === 1 ? tr("download") : tr("downloads")}` : ""}
               </span>
               {queued > 0 && (
-                <span className="rounded-full px-2 py-0.5" style={{ background: "rgba(255,255,255,0.25)", fontFamily: ui, fontSize: 11, fontWeight: 600, color: "#fff" }}>
+                <span className="rounded-full px-2 py-0.5" style={{ background: "rgba(255,255,255,0.25)", fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>
                   {queued} {tr("queued")}
                 </span>
               )}

@@ -85,7 +85,7 @@ export default function Arrival({ role, profile, data, onDone }) {
         <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
         <div className="shrink-0 flex items-center justify-center gap-2 pt-4" style={{ animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) both" }}>
           <Mark size={15} color={NEUTRAL.faint} />
-          <span style={{ fontFamily: display, fontSize: 9, letterSpacing: "0.34em", color: NEUTRAL.faint }}>{BRAND}</span>
+          <span data-tour="wordmark" style={{ fontFamily: display, fontSize: 9, letterSpacing: "0.34em", color: NEUTRAL.faint }}>{BRAND}</span>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center px-7 text-center min-h-0" style={{ overflowY: "auto" }}>

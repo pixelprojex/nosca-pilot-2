@@ -263,6 +263,23 @@ seeded data and no account.
   parent's line read as the child's — in Chat's list too: a child's row whose last word was an adult's
   leads the preview with the adult's first name ("Orla: can she come
   Friday"), the way a messenger names who spoke last.
+- **A player's own lessons are rows in the Diary's List view, and a
+  requested hour is not offered again.** The day's box for a non-coach
+  is the free hours with the person's own lessons in their places
+  (`agenda-mine`: the time, the coach's name, "Requested" while it
+  waits; a lesson booked outside the week's hours still gets its row,
+  and a day that is only their lesson is still a day); a tap lands on
+  the Calendar view's Your lesson block, where Cancel and Reschedule
+  are — never the coach's peek. A junior's row is a plain line (their
+  lesson is booked by a parent). The ticker marks a day with one. It
+  drew only the free hours for a long time, so the lesson a player came
+  to check was a hole in the day and a requested hour still carried a
+  Plus, so the same slot could be asked for twice; the Calendar view
+  (`myDay`) had it all along, but List is the default. `AgendaList`
+  takes `mine` (the person's requested and confirmed rows — a parent's
+  child's under For) matched on the day and the time, never the name,
+  and `firstFree` skips them so the walkthrough's ring is still a free
+  hour. `diary.cjs` (a2), (a3).
 - **Who a booking is for is chosen before the slot.** The diary carries
   a "For" strip for any adult with a bookable child — themselves (if
   they have a coach) and each child — and the hours shown are that
@@ -299,6 +316,27 @@ seeded data and no account.
   reason; nothing goes below 12px, which is the floor for a coach
   reading a phone at arm's length on a range. Every screen's H1 is
   `TYPE.screen`, one size, never `hero`.
+- **12px is the floor, and the ladder ends on it.** `TYPE.caption` is
+  12 (it was 11 on a hundred and fifteen lines, with fifty literals from
+  8.5 to 11.5 beside it, against the rule above — the bell's time
+  column, Chat's times, the roster's standing line, the diary's
+  weekdays, sign-up's field labels, a tile's count, the Who tiles'
+  captions, and a face's initials drawn at a third of the disc, 7.9px
+  in the header pill). No literal on a live screen sits under 12;
+  `Avatar` floors its initials and the header pill's disc is 26 to
+  carry two letters at twelve; the bell's count disc is 18, iOS's badge
+  height. Two written exceptions, each the phone's own convention and
+  not a shortage of space: the tab bar's labels (`tight ? 8.5 : 9.5` —
+  the bar is the one surface the founder asked kept as it was, and
+  iOS's own tab labels are 10pt) and the sign-up wordmark
+  (`data-tour="wordmark"`, a logotype drawn, not read).
+  `scripts/e2e/type-floor.cjs` walks every screen as every role and
+  the sign-up with no session, reads the computed size of every element
+  carrying words, and fails on anything under 12 outside those two —
+  the floor is kept the way the dead-ends crawl keeps the taps. Apple's
+  HIG sets 11pt as its minimum and Caption 1 at 12pt; Material's
+  body-small is 12sp; the founder's floor is the stricter, and the app
+  now meets its own.
 - **One tile. A set you choose FROM is a grid of tiles; a named being
   in a list is a row; a value already chosen is plain grey text.**
   Nothing in between — the wrapping rails of round pills this replaced
