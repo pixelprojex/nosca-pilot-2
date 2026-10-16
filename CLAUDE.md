@@ -326,9 +326,10 @@ seeded data and no account.
   `Avatar` floors its initials and the header pill's disc is 26 to
   carry two letters at twelve; the bell's count disc is 18, iOS's badge
   height. Two written exceptions, each the phone's own convention and
-  not a shortage of space: the tab bar's labels (`tight ? 8.5 : 9.5` —
-  the bar is the one surface the founder asked kept as it was, and
-  iOS's own tab labels are 10pt) and the sign-up wordmark
+  not a shortage of space: the tab bar — its labels (`tight ? 8.5 :
+  9.5`) and its unread count badge — because the bar is the one surface
+  the founder asked kept as it was, and iOS's own tab labels are 10pt;
+  and the sign-up wordmark
   (`data-tour="wordmark"`, a logotype drawn, not read).
   `scripts/e2e/type-floor.cjs` walks every screen as every role and
   the sign-up with no session, reads the computed size of every element
@@ -1101,7 +1102,8 @@ seeded data and no account.
   month grid strikes an away day through and counts it as nothing
   open, the List view's box for the day leads with an Away row (a
   coach still sees what was booked before they marked it, a player
-  sees the row alone), the coach's selected day reads Away · "2
+  sees the row and their own booked lesson under it, "no lessons" only
+  when there is none), the coach's selected day reads Away · "2
   lessons still booked" with Edit (`cal-away`) and no free times, a
   player's reads "Niamh is away". A parent booking for a child reads
   the child's coach's. PGA Coach's Blocked Times, FreshLearn's days

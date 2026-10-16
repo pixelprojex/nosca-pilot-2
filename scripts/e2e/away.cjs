@@ -122,6 +122,8 @@ const { check, results, summary } = M.checker("away");
       await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const pb = page.locator('.nsc-day[data-away="1"]');
       check("(d) the List view's boxes for those days read Away · no lessons and nothing else", (await pb.count()) === 4 && /Away · no lessons/.test(await pb.first().innerText()) && !/am|pm/.test(await pb.first().innerText()), String(await pb.count()));
+      const booked = pb.nth(1);   /* the second away day carries Cian's own lesson */
+      check("(d) …and the away day with their own lesson reads Away over that one row, not 'no lessons'", /^Away/.test((await booked.innerText()).trim()) && !/no lessons/.test(await booked.innerText()) && (await booked.locator('[data-tour="agenda-mine"]').count()) === 1 && /Niamh Byrne/.test(await booked.innerText()), (await booked.innerText()).slice(0, 120));
       await ctx.close();
     }
 

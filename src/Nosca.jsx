@@ -2397,7 +2397,7 @@ function AgendaList({ role, avail, blocked, seedBooked, duration, monthIdx, slot
             <div className="nsc-day" data-away={day.away ? "1" : undefined}>
               {day.away && (
                 <div className="flex items-center gap-3 px-4" style={{ minHeight: 48, borderBottom: rows.length ? `1px solid ${t.hair}` : "none" }}>
-                  <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{isCoach ? tr("Away") : `${tr("Away")} · ${tr("no lessons")}`}</span>
+                  <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{isCoach || rows.length ? tr("Away") : `${tr("Away")} · ${tr("no lessons")}`}</span>
                 </div>
               )}
               {rows.map((h, ri) => {
@@ -8309,7 +8309,7 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
                 ? <Plus size={18} color={th.mark} strokeWidth={2.2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: on ? "#fff" : th.mark }} />}
               <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : th.ink }}>{sp.label}</span>
-              {isMain && <span className="absolute" style={{ bottom: 7, ...TYPE.caption, color: on ? "rgba(255,255,255,0.7)" : th.sub }}>· {tr("main")}</span>}
+              {isMain && <span style={{ ...TYPE.caption, lineHeight: 1, marginTop: -4, color: on ? "rgba(255,255,255,0.7)" : th.sub }}>· {tr("main")}</span>}
             </button>
           );
         })}
@@ -8437,7 +8437,7 @@ const IconBtn = ({ C, onOpen, label, count, tour }) => {
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="relative active:opacity-50 p-0.5">
       <C size={21} color={t.ink} strokeWidth={1.6} />
-      {count > 0 && (<span className="absolute rounded-full flex items-center justify-center" style={{ top: -5, right: -6, minWidth: 18, height: 18, padding: "0 5px", background: DANGER, border: `1.5px solid ${t.page}`, fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>{count}</span>)}
+      {count > 0 && (<span className="absolute rounded-full flex items-center justify-center" style={{ top: -6, right: -7, minWidth: 20, height: 20, padding: "0 5px", background: DANGER, border: `1.5px solid ${t.page}`, fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>{count}</span>)}
     </button>
   );
 };
@@ -9184,7 +9184,7 @@ function ConnectPlayer({ sport, onDone, onBack }) {
 function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
   const t = useT();
   return (
-    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center gap-2 rounded-full pl-1.5 pr-2.5 active:opacity-50" style={{ minHeight: 30, background: t.wash }}>
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center gap-2 rounded-full pl-1 pr-2.5 active:opacity-50" style={{ minHeight: 34, background: t.wash }}>
       <Avatar name={name} size={26} tint={tint} src={src} group={group} />
       <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
       <ChevronDown size={13} color={t.sub} />
