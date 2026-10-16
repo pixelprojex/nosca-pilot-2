@@ -193,7 +193,9 @@ const leaks = [];
         const mineRow = page.locator('[data-tour="agenda-mine"]');
         const mt = (await mineRow.count()) ? await mineRow.first().innerText() : "";
         check("(a2) the requested hour is a row in the List view, naming the coach and Requested", (await mineRow.count()) === 1 && /Niamh Byrne/.test(mt) && /Requested/.test(mt) && (hour ? mt.includes(hour) : true), `rows ${await mineRow.count()} · ${mt.slice(0, 80)}`);
-        const stillOffered = hour ? await page.locator('.nsc-day button:not([data-tour="agenda-mine"])', { hasText: hour }).count() : 0;
+        /* within that day's box: every other day in the list has a nine o'clock */
+        const box = mineRow.first().locator('xpath=ancestor::div[contains(@class,"nsc-day")][1]');
+        const stillOffered = hour && (await mineRow.count()) ? await box.locator('button:not([data-tour="agenda-mine"])', { hasText: hour }).count() : -1;
         check("(a2) …and that hour carries no Plus any more", stillOffered === 0, `offered ${stillOffered} for ${hour}`);
       }
       await tap(page, '[aria-label="Home"]');
