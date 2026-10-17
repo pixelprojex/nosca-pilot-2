@@ -304,6 +304,25 @@ row in the Diary's List view and a requested hour is not offered again
 (the default view drew only free hours, so the lesson they came to
 check was a hole in the day).
 
+### 19. Message a group, into each member's own thread. **Built 17 October.**
+A coach's Chat plus offered Everyone and then the people, so a squad of
+six was six threads and six identical lines. Every product in the
+field lets a coach reach a group; the question is how. CoachNow's Lists
+are a BCC post into each athlete's own Space, and every reply comes
+back privately; TeamSnap keeps a team chat apart from direct messages;
+a club WhatsApp group puts every family's words and every child's name
+in front of every other family, which the GDPR advice to Irish clubs
+warns against, and the LTA lets a coach message an under-18 only
+through a channel that includes a parent. Nosca's junior thread is
+already that channel — the family's adults read it — so the group
+message fans into each member's own thread: a row per saved group
+under Everyone, the sheet naming the group and who it goes to, the
+group's page carrying Message as a player's file does. No SQL: a
+shared thread would need a group the database can see. The functional
+item of the day; `group-message.cjs`. With it, one small visual fix
+from the screenshot sweep: the parent's own Chat preview names who
+spoke last, so a parent's words no longer read as the coach's.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -380,3 +399,8 @@ the items above; a research spike first.
 - https://developer.apple.com/design/human-interface-guidelines/tab-bars (Apple HIG: tab bar labels, the one exception's warrant)
 - https://developer.android.com/reference/kotlin/androidx/compose/material3/Typography (Material 3: body-small 12sp, label-small 11sp)
 - https://www.w3.org/WAI/WCAG21/Understanding/resize-text.html (WCAG: no minimum size, 200% resize)
+- https://coachnow.io/blog/eliminate-repetition (CoachNow Lists: one post into each athlete's own Space)
+- https://help.coachnow.io/en/articles/402775-what-is-a-list (CoachNow: athletes do not see who else received a List post; replies come back privately)
+- https://www.lta.org.uk/about-us/safeguarding/parents-and-carers/parents-tips-and-resources/ (LTA: a coach messages an under-18 only through a channel that includes a parent)
+- https://www.williamfry.com/knowledge/do-sports-clubs-whatsapp-groups-breach-the-gdpr/ (William Fry: club WhatsApp groups and the GDPR)
+- https://help.teamsnap.com/article/2005-overview-of-message-types-on-teamsnap-one (TeamSnap: team chat and direct messages as separate kinds)
