@@ -28,7 +28,7 @@ function freshDb() {
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.adult, title: "Gate drill" });
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.junior, title: "Ladder drill" });
   db.tips.push({ id: M.uuid(), coach_id: IDS.coach, player_id: IDS.adult, title: "Trust the shallow", body: null, created_at: `${ago(2)}T10:00:00Z` });
-  M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "10:00 am", "11:00 am", "4:00 pm", "5:00 pm"], [0, 1, 2, 3, 4, 5]) });
+  M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "10:00 am", "11:00 am", "4:00 pm", "5:00 pm"], [0, 1, 2, 3, 4, 5]), groups: [{ id: "g1", name: "Saturday clinic", members: ["Cian Murphy", "Saoirse Kelly"], memberIds: [IDS.adult, IDS.junior], day: 5, time: "10:00 am", weeks: 6, sport: "golf" }] });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: ymd(today), time: "4:00 pm", status: "confirmed" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: ago(-2), time: "10:00 am", status: "confirmed" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: ago(-3), time: "9:00 am", status: "requested" });
@@ -99,6 +99,11 @@ function freshDb() {
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("c20-chat-list");
       await page.locator('[data-tour="chat-row"]').first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("c21-thread-junior");
+      /* Chat's picker with its group row, and the group's own page */
+      await tap('[aria-label="Chat"]'); await tap('[data-tour="chat-new"]', 900); await shot("c25-chat-picker");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap('[aria-label="Roster"]'); await page.locator('[data-tour="roster-tab"] button', { hasText: "Groups" }).first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(600);
+      await tap('[data-tour="roster-group"]', 900); await shot("c26-group-page");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");

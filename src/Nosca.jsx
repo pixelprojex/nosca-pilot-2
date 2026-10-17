@@ -6982,10 +6982,26 @@ function RateLesson({ focus, coach, onDone, close }) {
   );
 }
 
+/* The members of a saved group who are on the roster now — by id where
+   the group carries ids, else by name (a group saved before ids were
+   kept). Somebody who has left the roster is not in it. */
+const membersOnRoster = (g, roster) => {
+  const ids = g && g.memberIds && g.memberIds.length ? g.memberIds : null;
+  if (ids) return (roster || []).filter((r) => ids.includes(r.id));
+  /* by name, the first of a name only, as byKey resolves one: two
+     players called the same thing are two people, and a name-only group
+     meant one of them */
+  const seen = new Set();
+  return ((g && g.members) || []).map((n) => (roster || []).find((r) => r.name === n && !seen.has(r.id || r.name)))
+    .filter((r) => r && !seen.has(r.id || r.name) && seen.add(r.id || r.name));
+};
+/* "3 players" / "1 player" / nothing for none — never a nought */
+const countOf = (n, nouns = "players") => (n ? `${n} ${n === 1 ? String(nouns).replace(/s$/, "") : nouns}` : "");
+
 /* Starting a conversation. A player can only reach a coach they are
    actually connected to, and a coach only their own roster — the list
    is the safeguard, not a search box over every user. */
-function NewThread({ role, roster, conns, people: given, onPick, close }) {
+function NewThread({ role, roster, conns, people: given, groups = [], nouns = "players", onPick, close }) {
   const t = useT();
   const [q, setQ] = useState("");
   /* `people` is the real list when there is one — the coach, and any
@@ -6994,8 +7010,15 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
   const base = given ? given : role === "coach"
     ? roster.map((r) => ({ id: r.id, name: r.name }))
     : conns.map((c) => ({ name: c.coach, sub: `${SPORTS[c.sport].label} · ${c.club}` }));
-  /* one message to every player is the first row, not a second button */
-  const people = role === "coach" && base.length > 1 ? [{ id: "__all", name: tr("Everyone"), sub: `${base.length} ${tr("players")}`, all: true }, ...base] : base;
+  /* one message to every player is the first row, not a second button;
+     then each group with somebody on the roster in it, the same line
+     into each member's own thread; then the people */
+  const everyone = role === "coach" && base.length > 1 ? [{ id: "__all", name: tr("Everyone"), sub: `${base.length} ${tr(nouns)}`, all: true }] : [];
+  const groupRows = role === "coach" ? (groups || []).map((g) => {
+    const ids = membersOnRoster(g, roster).map((r) => r.id);
+    return ids.length ? { id: `__group:${g.name}`, name: g.name, sub: countOf(ids.length, nouns), group: g, ids } : null;
+  }).filter(Boolean) : [];
+  const people = [...everyone, ...groupRows, ...base];
   const term = q.trim().toLowerCase();
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
   return (
@@ -7013,9 +7036,10 @@ function NewThread({ role, roster, conns, people: given, onPick, close }) {
       ) : (
         <div style={{ borderTop: RULE.section(t.ink) }}>
           {shown.map((p) => (
-            <button key={p.id || p.name} onClick={() => { haptic(6); if (!p.all) close(); onPick(p); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+            <button key={p.id || p.name} data-tour={p.group ? "thread-group" : p.all ? "thread-everyone" : "thread-person"}
+                    onClick={() => { haptic(6); if (!p.all && !p.group) close(); onPick(p); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                     style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
-              <Avatar name={p.name} size={38} group={!!p.all} />
+              <Avatar name={p.name} size={38} group={!!p.all || !!p.group} />
               <span className="flex-1 min-w-0">
                 <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
                 {p.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{p.sub}</span>}
@@ -13348,8 +13372,10 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           )}
         </>) : (
           <div style={{ borderTop: RULE.section(t.ink) }}>
-            {groups.map((g) => row(g.id, undefined, () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={40} group />, g.name,
-                `${g.members.length} ${nouns || "players"} · ${DAY_NAMES[g.day].slice(0, 3)} ${g.time}`))}
+            {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={40} group />, g.name,
+                /* the members still on the roster — the picker's count and the
+                   page's list, one number on all three; never a nought */
+                [countOf(membersOnRoster(g, all).length, nouns || "players"), `${(DAY_NAMES[g.day] || String(g.day || "")).slice(0, 3)} ${g.time}`].filter((x) => x.trim()).join(" · ")))}
             {row("new", "roster-newgroup", () => { hapticCommit(); sheet("group"); },
                 <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><Plus size={17} color={t.sub} strokeWidth={2} /></span>,
                 tr("Create a group"), null)}
@@ -14210,7 +14236,7 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    be answered is answered and what cannot is not shown. The head count
    comes from a register — never from who is in the group, which would
    report a full house at every session nobody was marked at. */
-function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers }) {
+function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null }) {
   const t = useT();
   const real = !!sessions;
   const weeks = real ? sessions.map((l) => {
@@ -14229,6 +14255,16 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers }) {
   return (
     <SwipeBack onBack={pop}>
       <Screen title={group.name} onBack={pop} meta={`${DAY_NAMES[group.day]}s ${group.time}`}>
+        {/* the group's one action, at the top before anything that grows with
+            the data — the player file's tile, a line into each member's own
+            thread */}
+        {onMessage && (
+          <div className="px-6 mb-5">
+            <TileGrid cols={4}>
+              <ActTile h={82} Icon={MessageCircle} label={tr("Message")} tour="group-page-message" onTap={() => { haptic(8); onMessage(group); }} />
+            </TileGrid>
+          </div>
+        )}
         {/* one grey line, not a dashboard of three stat cells */}
         {weeks.length > 0 && (
           <p className="px-6 mb-4" style={{ ...TYPE.small, color: t.sub }}>
@@ -14255,11 +14291,20 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers }) {
           ))}
         </div>
 
-        <Eyebrow>{tr("Members")}</Eyebrow>
-        <div className="px-6 pb-2"><div className="nsc-list">{group.members.map((mname, i) => (
-            <Row key={mname} label={mname} icon={<Avatar name={mname} size={36} />} chevron last={i === group.members.length - 1} onToggle={() => onOpen && onOpen(mname)} />
-          ))}</div>
-        </div>
+        {/* the members still on the roster, by id — somebody who has left is
+            not listed above a Message that would not reach them, and two of a
+            name are two rows */}
+        {(() => {
+          const people = members || group.members.map((n) => ({ id: n, name: n }));
+          return people.length > 0 && (<>
+            <Eyebrow>{tr("Members")}</Eyebrow>
+            <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members">{people.map((r, i) => (
+                <Row key={r.id || r.name} label={r.name} icon={<Avatar name={r.name} size={36} />} chevron last={i === people.length - 1} onToggle={() => onOpen && onOpen(r)} />
+              ))}</div>
+            </div>
+          </>);
+        })()}
+
       </Screen>
     </SwipeBack>
   );
@@ -14699,7 +14744,8 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
   const [day, setDay] = useState(5);
   const [time, setTime] = useState("2:00 pm");
   const [weeks, setWeeks] = useState(6);
-  const toggle = (n) => { haptic(6); soft(); setMembers(members.includes(n) ? members.filter((x) => x !== n) : [...members, n]); };
+  /* picked by id: two players with one name are two members */
+  const toggle = (id) => { haptic(6); soft(); setMembers(members.includes(id) ? members.filter((x) => x !== id) : [...members, id]); };
 
   return (
     <>
@@ -14711,8 +14757,8 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       </div>
       <div className="mb-5">
         <PersonPicker people={roster.map((r) => ({ id: r.id || r.name, name: r.name }))}
-                      picked={roster.filter((r) => members.includes(r.name)).map((r) => r.id || r.name)}
-                      onToggle={(pl) => toggle(pl.name)} />
+                      picked={members}
+                      onToggle={(pl) => toggle(pl.id)} />
       </div>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
@@ -14739,7 +14785,8 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       </div>
 
       <Button disabled={!name.trim() || members.length < 2}
-              onClick={() => { onCreate({ name: name.trim(), members, day, time, weeks }); close(); }}>
+              onClick={() => { const chosen = roster.filter((r) => members.includes(r.id || r.name));
+                               onCreate({ name: name.trim(), members: chosen.map((r) => r.name), memberIds: chosen.map((r) => r.id).filter(Boolean), day, time, weeks }); close(); }}>
         {tr("Create group")}
       </Button>
     </>
@@ -15942,10 +15989,9 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
   );
 }
 
-function BroadcastBody({ nouns, say, close, onSend }) {
+function BroadcastBody({ nouns, say, done, close, onSend, group = null, members = [] }) {
   const t = useT();
-  const allLabel = `All ${nouns || "players"}`;
-  const [aud, setAud] = useState(allLabel); const [text, setText] = useState(""); const [busy, setBusy] = useState(false);
+  const [text, setText] = useState(""); const [busy, setBusy] = useState(false);
   /* With a real account this writes one message into every player's
      thread through the data layer; the seeded count is the harness's. */
   const send = async () => {
@@ -15955,16 +16001,27 @@ function BroadcastBody({ nouns, say, close, onSend }) {
       const res = await onSend(text.trim());
       setBusy(false);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send")); return; }
-      say(`${tr("Sent to")} ${res && res.count != null ? res.count : ""} ${nouns || "players"}`.replace(/\s+/g, " "));
+      /* a confirmation is a line with a tick: Sent · Saturday clinic · 3 players */
+      const n = res && res.count != null ? res.count : 0;
+      const sub = [group, countOf(n, nouns || "players")].filter(Boolean).join(" · ");
+      if (done) done(tr("Sent"), sub); else say(`${tr("Sent")} · ${sub}`);
       close(); return;
     }
-    say(`Sent to ${aud === allLabel ? ROSTER.length + " " + (nouns || "players") : "your groups"}`); close();
+    const sub = group || countOf(ROSTER.length, nouns || "players");
+    if (done) done(tr("Sent"), sub); else say(`${tr("Sent")} · ${sub}`);
+    close();
   };
+  /* who it goes to, so a coach sees the group before sending — first
+     names, the rest as a count once the line would run long */
+  const names = (members || []).map((m) => String(m.name || m));
+  const firsts = names.map((n) => { const [f, ...rest] = n.split(" "); const twice = names.filter((x) => x.split(" ")[0] === f).length > 1; return twice && rest.length ? `${f} ${rest[rest.length - 1][0]}` : f; });
+  const named = firsts.length > 4 ? `${firsts.slice(0, 3).join(" · ")} · +${firsts.length - 3}` : firsts.join(" · ");
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Message everyone")}</h2>
+      <h2 className="mb-1" data-tour={group ? "group-message" : undefined} style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{group ? `${tr("Message")} ${group}` : tr("Message everyone")}</h2>
+      {group && named && <p className="mb-5" data-tour="group-message-to" style={{ ...TYPE.small, color: t.sub }}>{named}</p>}
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Message")} /></div>
-      <Button disabled={!text.trim() || busy} onClick={send}>{busy ? "…" : tr("Send")}</Button>
+      <Button disabled={!text.trim() || busy} onClick={send}>{busy ? tr("Sending…") : tr("Send")}</Button>
     </>
   );
 }
@@ -17749,6 +17806,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [mainSport, setMainSport] = useState({}); // profileId -> sport id
   const [askedFor, setAskedFor] = useState(account ? [] : SEED_ASKS);
   const [declining, setDeclining] = useState(null);
+  const [messageGroup, setMessageGroup] = useState(null);   // the saved group a message goes to, or null for Everyone
   /* Someone who plays two sports shouldn't be asked which one every
      time they open the app. Set once, per person. */
 
@@ -18258,7 +18316,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [bookings, setBookings] = useState(persona ? persona.bookings : account ? [] : [{ m: 7, d: 31, time: "4:30 pm", connId: 1 }]);
   const [groups, setGroups] = useState({
     ...Object.fromEntries(Object.keys(SPORTS).map((id) => [id, []])),
-    golf: [{ id: 1, name: "Summer clinic", members: ["Marcus Tran","Priya Ellis","Dan Okafor","Sofia Reyes","Tom Beckett"], day: 5, time: "2:00 pm", weeks: 6 }],
+    golf: [{ id: 1, name: "Summer clinic", members: ["Marcus Tran","Priya Ellis","Dan Okafor","Sofia Reyes","Tom Beckett"], memberIds: ["p01","p02","p03","p04","p05"], day: 5, time: "2:00 pm", weeks: 6 }],
     tennis: [{ id: 2, name: "Junior squad", members: ["Ellie Tran"], day: 4, time: "4:30 pm", weeks: 8 }],
   });
 
@@ -19347,7 +19405,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (data) {
       /* the picker hands over ids; resolving the names again would
          merge two players called the same thing into one member */
-      const byName = Object.fromEntries((data.roster || []).map((r) => [r.name, r.id]));
+      const byName = {}; (data.roster || []).forEach((r) => { if (!(r.name in byName)) byName[r.name] = r.id; });   // the first of a name
       const ids = (g.memberIds && g.memberIds.length ? g.memberIds : g.members.map((n) => byName[n])).filter(Boolean);
       const rec = { id: `g-${Date.now()}`, name: g.name, members: g.members, memberIds: ids,
                     day: g.day, time: g.time, weeks: g.weeks, createdAt: new Date().toISOString() };
@@ -19424,8 +19482,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const rows = [];
     if (data.hasCoach && account) rows.push(row(account.id, coachName, tr("Your coach"), { kind: "own", coachId: null }));
     /* a child's conversation is with the child's coach, carried on by
-       the adult: listed under the coach's name, marked as the child's */
-    (data.dependants || []).filter((f) => f.coachId).forEach((f) => rows.push(row(f.id, f.coachName || tr("Their coach"), `${tr("For")} ${f.name.split(" ")[0]}`, { kind: "child", child: f.name.split(" ")[0], childName: f.name, coachId: f.coachId })));
+       the adult: listed under the coach's name, marked as the child's.
+       Its preview names who spoke last when it was not the coach — this
+       adult by their own first name (a row that names the person reading
+       it says their first name, never "You"), another adult in the
+       family by theirs — so the parent's own words never read as the
+       coach's under the coach's name. */
+    const leadFor = (f) => {
+      const th = byId[f.id]; const m = th && th.messages.length ? th.messages[th.messages.length - 1] : null;
+      if (!m || m.fromCoach || !m.senderId) return "";
+      const own = account && m.senderId === account.id ? String(account.name || "").split(" ")[0] : null;
+      const kid = m.senderId === f.id ? f.name.split(" ")[0] : null;
+      const p = (data.people || []).find((x) => x.id === m.senderId) || ((data.family && data.family.members) || []).find((x) => x.id === m.senderId);
+      return own || kid || (p && p.name ? p.name.split(" ")[0] : tr("Parent"));
+    };
+    (data.dependants || []).filter((f) => f.coachId).forEach((f) => {
+      const rw = row(f.id, f.coachName || tr("Their coach"), `${tr("For")} ${f.name.split(" ")[0]}`, { kind: "child", child: f.name.split(" ")[0], childName: f.name, coachId: f.coachId });
+      const lead = leadFor(f); if (lead && rw.last) rw.last = `${lead}: ${rw.last}`;
+      rows.push(rw);
+    });
     return rows.sort((a, b) => (a.kind === "own") - (b.kind === "own") ? (a.kind === "own" ? -1 : 1) : order(a, b));
   })() : null;
   /* THE COACH'S WORDS ON A SENT CLIP: every line in any thread the person
@@ -20150,7 +20225,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        somebody else's group without a word */
     const gname = screen.slice("group:".length);
     const g = myGroups.find((x) => x.name === gname) || null;
-    body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} onOpen={(n) => push("player:" + n)}
+    body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} members={membersOnRoster(g, roster)}
+                             /* routes carry ids; the harness's player route reads a name */
+                             onOpen={(r) => push("player:" + (data ? r.id : r.name))}
+                             onMessage={membersOnRoster(g, roster).length ? (grp) => { setMessageGroup(grp); setSheet("broadcast"); } : null}
                              sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
                              registers={registers} /> : <div />;
   } else if (screen.startsWith("annotate:")) {
@@ -20826,7 +20904,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             /* a real thread is found by id; the harness's seeded
                                                conversations are keyed by name */
-                                            onPick={(p) => { if (p.all) { setSheet("broadcast"); return; } push("thread:" + (data ? (p.id || p.name) : p.name)); }} close={() => setSheet(null)} />
+                                            groups={role === "coach" ? myGroups : []} nouns={cfg.nouns}
+                                            onPick={(p) => { if (p.all) { setMessageGroup(null); setSheet("broadcast"); return; } if (p.group) { setMessageGroup(p.group); setSheet("broadcast"); return; } push("thread:" + (data ? (p.id || p.name) : p.name)); }} close={() => setSheet(null)} />
               : sheet === "rate" ? <RateLesson focus={(playerLessons[0] || {}).focus || ""} coach={conn?.coach || ""}
                                             onDone={() => { done(tr("Thanks"), tr("Your coach will see it.")); setTimeout(() => setSheet("rebookAfter"), 1900); }}
                                             close={() => setSheet(null)} />
@@ -20900,7 +20979,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                           mediaCount={editLesson.media ?? editLesson.videos ?? 0}
                                           onConfirm={async () => { const r = await data.deleteLesson(editLesson.id); if (!(r && r.error)) { setEditLesson(null); pop(); } return r; }}
                                           close={() => { setEditLesson(null); setSheet(null); }} />
-              : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} close={() => setSheet(null)} onSend={data ? (text) => data.broadcast(text) : null} />
+              : sheet === "broadcast" ? <BroadcastBody nouns={cfg.nouns} say={say} done={done} close={() => { setSheet(null); setMessageGroup(null); }}
+                                                     group={messageGroup ? messageGroup.name : null}
+                                                     members={messageGroup ? membersOnRoster(messageGroup, roster) : []}
+                                                     onSend={data ? (text) => data.broadcast(text, messageGroup ? membersOnRoster(messageGroup, roster).map((r) => r.id) : null) : null} />
               : sheet === "clipSend" && clipFile && clipFor ? <ClipSendBody who={clipFor.who} child={clipFor.child} areas={cfg.focus || []} file={clipFile} say={say}
                                                                             close={() => { setSheet(null); setClipFile(null); }}
                                                                             onSend={async ({ focus, note }) => {

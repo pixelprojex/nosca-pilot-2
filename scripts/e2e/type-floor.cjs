@@ -30,7 +30,7 @@ function freshDb() {
   person("adult", "adult@t.ie", { role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1991-04-04" });
   person("parent", "parent@t.ie", { role: "player", name: "Orla Kelly", type: "parent", familyId: FAM });
   person("junior", "junior@t.ie", { role: "player", name: "Saoirse Kelly", type: "junior", coachId: IDS.coach, familyId: FAM, dob: "2013-09-09" });
-  M.setPrefs(db, IDS.coach, { availability: M.weekOf(WEEK, [0, 1, 2, 3, 4, 5, 6]) });
+  M.setPrefs(db, IDS.coach, { availability: M.weekOf(WEEK, [0, 1, 2, 3, 4, 5, 6]), groups: [{ id: "g1", name: "Saturday clinic", members: ["Cian Murphy", "Saoirse Kelly"], memberIds: [IDS.adult, IDS.junior], day: 5, time: "10:00 am", weeks: 6, sport: "golf" }] });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: dayPlus(db, 0), time: "4:00 pm", duration: 45 });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: dayPlus(db, 2), time: "11:00 am", duration: 60 });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: dayPlus(db, 3), time: "10:00 am", duration: 45, status: "requested" });
@@ -139,8 +139,17 @@ const offenders = (page) => page.evaluate((FLOOR) => {
           }
           await back(page);
         }
+        /* Chat's picker with its group row, and the group's own page */
+        await tabIf(page, "Chat");
+        if (await must("Chat picker", '[data-tour="chat-new"]', /Saturday clinic/, 900)) await closeSheet(page);
+        await tabIf(page, "Roster");
+        if (await clickIf(page, '[data-tour="roster-tab"] button:has-text("Groups")', 700)) {
+          if (await must("group page", '[data-tour="roster-group"]', /Members/, 900)) await back(page);
+          await clickIf(page, '[data-tour="roster-tab"] button:nth-child(2)', 300);
+        }
         /* the roster's file and Progress */
         await tabIf(page, "Roster");
+        await clickIf(page, '[data-tour="roster-tab"] button:has-text("Players")', 500);
         if (await must("player file", '[data-tour="roster-row"]', /lessons|Progress/i, 1000)) {
           if (await must("Progress", '[data-tour="player-progress"]', /Progress|Worked on|No lessons/, 1000)) await back(page);
           await back(page);
