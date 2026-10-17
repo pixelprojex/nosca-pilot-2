@@ -282,6 +282,28 @@ booking-request rows on the coach's home and on Alerts read the
 weekday like every other row, and the coach's book sheet names the
 month.
 
+### 18. The type floor. **Built 16 October.**
+CLAUDE.md has said since the type scale came down a step that nothing
+goes below 12px — the floor for a coach reading a phone at arm's length
+on a range — and the app did not meet it: `TYPE.caption` was 11px on a
+hundred and fifteen lines, fifty literals from 8.5 to 11.5 sat beside
+it, and a face's initials were drawn at a third of the disc (7.9px in
+the header pill). Apple's HIG sets 11pt as its minimum with Caption 1
+at 12pt and iOS's tab labels at 10pt; Material's body-small is 12sp;
+WCAG sets no size, only 200% resize. The founder's floor is the
+stricter, so the ladder now ends on it: caption is 12, every literal
+is on the floor, `Avatar` floors its initials and the header pill's
+disc grows to carry them, the bell's count disc is iOS's 18. Two
+written exceptions, each the phone's own convention: the tab bar's
+labels (the one surface the founder asked kept as it was) and the
+sign-up wordmark. `type-floor.cjs` reads the computed size of every
+word on every screen as every role, so the floor is kept the way the
+dead-ends crawl keeps the taps. The visual item of the day; with it,
+one small functional fix from the audit — a player's own lesson is a
+row in the Diary's List view and a requested hour is not offered again
+(the default view drew only free hours, so the lesson they came to
+check was a hole in the day).
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -354,3 +376,7 @@ the items above; a research spike first.
 - https://community.calendly.com/how-do-i-40/can-i-give-reason-why-a-appointment-was-cancelled-in-the-automated-mail-1665 (Calendly: the host's optional message reaches the invitee's cancellation mail)
 - https://help.teamer.net/knowledge/app/manage-events (Teamer: a cancelled event carries a message to the team)
 - https://help.gethealthie.com/article/1264-deep-dive-cancellations-report (Healthie: cancellation reasons reported back to the practice)
+- https://developer.apple.com/design/human-interface-guidelines/typography (Apple HIG: Caption 1 at 12pt, Caption 2 at 11pt, the minimum)
+- https://developer.apple.com/design/human-interface-guidelines/tab-bars (Apple HIG: tab bar labels, the one exception's warrant)
+- https://developer.android.com/reference/kotlin/androidx/compose/material3/Typography (Material 3: body-small 12sp, label-small 11sp)
+- https://www.w3.org/WAI/WCAG21/Understanding/resize-text.html (WCAG: no minimum size, 200% resize)

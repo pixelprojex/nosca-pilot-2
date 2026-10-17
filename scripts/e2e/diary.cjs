@@ -186,6 +186,18 @@ const leaks = [];
       const r1 = last(db.posts, "bookings");
       check("(a) Request POSTs a requested booking with the player's coach_id", !!r1 && r1.rows[0].status === "requested" && r1.rows[0].coach_id === IDS.coach && r1.rows[0].player_id === IDS.adult && r1.by === IDS.adult, JSON.stringify(r1 && r1.rows[0]));
       await page.waitForTimeout(2200); await shot("13-adult-after-request");
+      /* (a2) the request is a row in the day's box, naming the coach and
+         Requested, and its hour is not offered again */
+      {
+        const hour = r1 && r1.rows[0] && r1.rows[0].start_time;
+        const mineRow = page.locator('[data-tour="agenda-mine"]');
+        const mt = (await mineRow.count()) ? await mineRow.first().innerText() : "";
+        check("(a2) the requested hour is a row in the List view, naming the coach and Requested", (await mineRow.count()) === 1 && /Niamh Byrne/.test(mt) && /Requested/.test(mt) && (hour ? mt.includes(hour) : true), `rows ${await mineRow.count()} · ${mt.slice(0, 80)}`);
+        /* within that day's box: every other day in the list has a nine o'clock */
+        const box = mineRow.first().locator('xpath=ancestor::div[contains(@class,"nsc-day")][1]');
+        const stillOffered = hour && (await mineRow.count()) ? await box.locator('button:not([data-tour="agenda-mine"])', { hasText: hour }).count() : -1;
+        check("(a2) …and that hour carries no Plus any more", stillOffered === 0, `offered ${stillOffered} for ${hour}`);
+      }
       await tap(page, '[aria-label="Home"]');
       const t3 = await leak("adult home after request"); await shot("14-adult-home-next");
       /* Home is the feed now; the request lives in the database (checked above) and nothing on Home invents a 4:30 */
@@ -207,6 +219,19 @@ const leaks = [];
       await tap(page, '[aria-label="Diary"]');
       const t2 = await leak("coach diary after accept"); await shot("16-coach-diary-accepted");
       check("(a) the accepted lesson is in the coach's diary", (await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).count()) > 0, t2.slice(0, 200));
+      /* (a3) and in the player's List view as their lesson, no longer Requested;
+         a tap lands on the Calendar view's Your lesson block */
+      {
+        const p = await boot("adult");
+        await tap(p.page, '[aria-label="Diary"]');
+        const mineRow = p.page.locator('[data-tour="agenda-mine"]');
+        const mt = (await mineRow.count()) ? await mineRow.first().innerText() : "";
+        check("(a3) once accepted the row names the coach with no Requested", (await mineRow.count()) === 1 && /Niamh Byrne/.test(mt) && !/Requested/.test(mt), `rows ${await mineRow.count()} · ${mt.slice(0, 80)}`);
+        if (await mineRow.count()) { await mineRow.first().click(); await p.page.waitForTimeout(900); }
+        const t2b = await p.text(); await p.shot("16b-adult-list-row-tapped");
+        check("(a3) a tap on it lands on the Calendar view's Your lesson, with Cancel and Reschedule", /Your lesson/.test(t2b) && (await p.page.locator('[data-tour="day-cancel"]').count()) === 1 && (await p.page.locator('[data-tour="cal-view"] button[aria-pressed="true"]').getAttribute("aria-label")) === "Calendar", t2b.slice(0, 200));
+        await p.ctx.close();
+      }
 
       /* (c) drills from the roster */
       await tap(page, '[aria-label="Roster"]');

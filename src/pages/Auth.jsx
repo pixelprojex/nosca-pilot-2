@@ -217,7 +217,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
               )}
             </div>
             {dobBad
-              ? <p className="mt-2" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: DANGER }}>{dobMsg}</p>
+              ? <p className="mt-2" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.5, color: DANGER }}>{dobMsg}</p>
               : typeof age === "number" && age < ADULT
                 ? <p className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("A parent's family code is needed next")}</p>
                 : null}
@@ -230,7 +230,7 @@ function DetailsStep({ role, initial, busy, err, onBack, onDone, onSignInInstead
           <Field label={`${tr("Mobile")} · ${tr("optional")}`} value={phone} onChange={setPhone} type="tel" autoComplete="tel" inputMode="tel" />
           <div ref={passWrap}><Field label={tr("Password")} value={pass} onChange={setPass} onBlur={() => mark("pass")} type="password" error={errPass} reveal autoComplete="new-password" /></div>
         </div>
-        <p className="mt-5 text-center pb-6" style={{ fontFamily: ui, fontSize: 11.5, lineHeight: 1.5, color: t.faint }}>
+        <p className="mt-5 text-center pb-6" style={{ fontFamily: ui, fontSize: 12, lineHeight: 1.5, color: t.faint }}>
           By continuing you accept the {BRAND} Terms and Privacy Policy.
         </p>
       </div>
