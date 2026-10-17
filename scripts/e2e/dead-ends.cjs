@@ -29,7 +29,7 @@ function freshDb() {
   M.addRequest(db, { playerId: IDS.eoin, coachId: IDS.coach, notify: true });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.junior, date: "2026-08-28", focus: "Putting", notes: "Left hand a touch stronger." });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: "2026-09-01", focus: "Short game", notes: "Cleaner contact from the fringe." });
-  M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "10:00 am", "4:00 pm"], [0, 1, 2, 3, 4]) });
+  M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "10:00 am", "4:00 pm"], [0, 1, 2, 3, 4]), groups: [{ id: "g1", name: "Saturday clinic", members: ["Cian Murphy", "Saoirse Kelly"], memberIds: [IDS.adult, IDS.junior], day: 5, time: "10:00 am", weeks: 6, sport: "golf" }] });
   /* one lesson of the adult's own on the next weekday, so the Diary's
      List view carries their row and the crawl taps it */
   for (let n = 1; n <= 7; n++) { const d = new Date(db.now() + n * 86400000); if ((d.getDay() + 6) % 7 <= 4) { M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(d), time: "10:00 am", duration: 60 }); break; } }

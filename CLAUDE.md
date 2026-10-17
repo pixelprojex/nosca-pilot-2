@@ -535,19 +535,27 @@ seeded data and no account.
   thread the families share.** Under Everyone the picker carries a row
   per saved group with somebody on the roster in it (`thread-group`:
   the group's name, "3 players" — the members still on the roster,
-  `membersOnRoster()`, by id where the group keeps ids, else by name;
-  a group whose members have all left offers nothing, and a coach with
-  no groups sees no row), then the people. Its sheet is the broadcast's
-  (`BroadcastBody` with `group`): "Message Saturday clinic", the first
-  names it goes to (`group-message-to`), Send asleep until there are
-  words, the toast "Sent to Saturday clinic · 3 players". Send is
+  `membersOnRoster()`, by id where the group keeps ids, else the first
+  roster row of each name; a group whose members have all left offers
+  nothing, and a coach with no groups sees no row), then the people.
+  The roster's Groups half and the group's page give the same count
+  and list the same people (`countOf`: "1 player", never "1 players",
+  nothing for none), and the page's members are roster rows opening
+  the file by id. Its sheet is the broadcast's (`BroadcastBody` with
+  `group`): "Message Saturday clinic", the first names it goes to
+  (`group-message-to`; two of a first name carry the surname's
+  initial), Send asleep until there are words, and the answer is
+  `done`'s tick — "Sent" · "Saturday clinic · 3 players", the same
+  tick Everyone now answers with. New group picks by id, so two
+  players with one name are two members. Send is
   `broadcast(text, playerIds)` — the same line into each member's own
   thread, so a junior's adults read it in the child's thread as they
   read every coach line there, and no family reads another's: a group
   thread would put every parent's words and every child's name in
   front of every family, which no safeguarding guidance for juniors
   allows. The group's own page carries one **Message**
-  (`group-page-message`), the way a player's file does. Before this a
+  (`group-page-message`) at the top as the player file's tile, before
+  anything that grows with the data. Before this a
   squad of six was six threads and six identical lines.
   `scripts/e2e/group-message.cjs`.
 - **Call off is a reason, the days, the lessons, the password.**

@@ -168,6 +168,11 @@ const between = (db, coachId, playerId) => msgs(db).filter((m) => m.coach_id ===
         ok && !!row && row.player_id === IDS.junior && row.coach_id === IDS.coach && row.sender_id === IDS.parent,
         JSON.stringify(row || {}));
       await shot("10-parent-sent");
+      /* (d2) back in the list, the child's row under the coach's name leads
+         with the parent's own first name — never reads as the coach's */
+      await M.back(page, 900);
+      const tl = await text();
+      check("(d2) the parent's own Chat leads the child's row with the parent's first name", /Orla: Fionn will be five minutes late/.test(tl), tl.slice(0, 300));
       await ctx.close();
     }
 
@@ -221,6 +226,7 @@ const between = (db, coachId, playerId) => msgs(db).filter((m) => m.coach_id ===
       await M.click(page, "Send", 1600);
       const made = msgs(db).slice(before).filter((m) => m.body === "Range is closed Saturday.");
       const to = new Set(made.map((m) => m.player_id));
+      check("(g) the send answers with the tick toast, Sent · 3 players", /Sent\s*3 players/.test(await text()), (await text()).slice(0, 160));
       check("(g) a broadcast writes one row per player, each in their own thread",
         made.length === 3 && to.size === 3 && made.every((m) => m.sender_id === IDS.coach && m.coach_id === IDS.coach),
         `${made.length} rows → ${[...to].length} threads`);
