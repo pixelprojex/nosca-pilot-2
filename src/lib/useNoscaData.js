@@ -1367,11 +1367,16 @@ export function useNoscaData(profile) {
   };
 
   /* One message to every player on the roster, as separate threads —
-     each person sees it as a message from their coach, nothing else. */
-  const broadcast = async (body) => {
+     each person sees it as a message from their coach, nothing else.
+     `playerIds` narrows it to a group: the same line into each member's
+     own thread, never a thread the families share (a junior's adults
+     read the child's thread, and nobody reads anybody else's). Only
+     members still on the roster are written to. */
+  const broadcast = async (body, playerIds = null) => {
     if (!isCoach) return { error: { message: "Only a coach can message everyone." }, count: 0 };
-    const rows = roster.map((r) => ({ coach_id: profile.id, player_id: r.id, sender_id: profile.id, body }));
-    if (!rows.length) return { error: { message: "Nobody on your roster yet." }, count: 0 };
+    const to = Array.isArray(playerIds) ? roster.filter((r) => playerIds.includes(r.id)) : roster;
+    const rows = to.map((r) => ({ coach_id: profile.id, player_id: r.id, sender_id: profile.id, body }));
+    if (!rows.length) return { error: { message: Array.isArray(playerIds) ? "Nobody in that group is on your roster now." : "Nobody on your roster yet." }, count: 0 };
     const { data: sent, error } = await supabase.from("messages").insert(rows).select("id");
     if (error) return { error: cannotSend, count: 0 };
     await load();

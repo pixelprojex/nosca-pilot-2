@@ -262,7 +262,12 @@ seeded data and no account.
   grid under it already marks which face is theirs). Never let a
   parent's line read as the child's — in Chat's list too: a child's row whose last word was an adult's
   leads the preview with the adult's first name ("Orla: can she come
-  Friday"), the way a messenger names who spoke last.
+  Friday"), the way a messenger names who spoke last. On the parent's
+  own Chat the same: the child's row sits under the coach's name, so
+  a last line that was the parent's own reads "Orla: …" (their first
+  name, never "You"), another adult's their first name, and the coach's
+  line carries no lead — it read as the coach saying the parent's words
+  for a long time (`leadFor` in the thread rows).
 - **A player's own lessons are rows in the Diary's List view, and a
   requested hour is not offered again.** The day's box for a non-coach
   is the free hours with the person's own lessons in their places
@@ -526,6 +531,25 @@ seeded data and no account.
   picker leads with "Everyone", which is the broadcast. Nothing else sits
   above the list — the weather call-off is on the plus and in the
   diary on the day.
+- **A coach messages a group into each member's own thread, never a
+  thread the families share.** Under Everyone the picker carries a row
+  per saved group with somebody on the roster in it (`thread-group`:
+  the group's name, "3 players" — the members still on the roster,
+  `membersOnRoster()`, by id where the group keeps ids, else by name;
+  a group whose members have all left offers nothing, and a coach with
+  no groups sees no row), then the people. Its sheet is the broadcast's
+  (`BroadcastBody` with `group`): "Message Saturday clinic", the first
+  names it goes to (`group-message-to`), Send asleep until there are
+  words, the toast "Sent to Saturday clinic · 3 players". Send is
+  `broadcast(text, playerIds)` — the same line into each member's own
+  thread, so a junior's adults read it in the child's thread as they
+  read every coach line there, and no family reads another's: a group
+  thread would put every parent's words and every child's name in
+  front of every family, which no safeguarding guidance for juniors
+  allows. The group's own page carries one **Message**
+  (`group-page-message`), the way a player's file does. Before this a
+  squad of six was six threads and six identical lines.
+  `scripts/e2e/group-message.cjs`.
 - **Call off is a reason, the days, the lessons, the password.**
   `CallOff` (the `weather` sheet, opened from the plus, the peek and the
   diary) has nothing to do with weather in its name or its glyph — a
