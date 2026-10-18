@@ -104,6 +104,10 @@ function freshDb() {
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Roster"]'); await page.locator('[data-tour="roster-tab"] button', { hasText: "Groups" }).first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(600);
       await tap('[data-tour="roster-group"]', 900); await shot("c26-group-page");
+      /* the lesson's peek and its register, in the app's boxes */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await page.locator("button", { hasText: "Cian Murphy" }).first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("c27-peek");
+      await tap('[data-tour="peek-register"]', 900); await shot("c28-register");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("adult");
       await shot("a1-home");
@@ -121,6 +125,8 @@ function freshDb() {
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("p5-chat-list");
       await page.locator('[data-tour="chat-row"]').first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("p6-thread-for-child");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap('[aria-label="Family"]'); await page.locator("button", { hasText: "Saoirse" }).first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("p7-family-kid");
       await ctx.close(); }
     { const { ctx, page, shot, tap } = await boot("junior");
       await shot("j1-home"); await tap('[aria-label="Family"]'); await shot("j2-family");

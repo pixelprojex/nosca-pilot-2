@@ -323,6 +323,27 @@ item of the day; `group-message.cjs`. With it, one small visual fix
 from the screenshot sweep: the parent's own Chat preview names who
 spoke last, so a parent's words no longer read as the coach's.
 
+### 20. The last hairline lists, boxed; one add control. **Built 18 October.**
+The boxed list had reached the home, the bell, Chat and the diary, and
+stopped at the sheets: the lesson's peek, the register, the Message
+picker, the pick-a-player sheet, Drifting, the roster's groups, the
+player file's foot and the child's screen still drew hairline rows
+under a section rule — two list languages in one app, and on the
+roster and every lesson list a row of the old one drawn inside a box
+of the new. Apple's guidance is one list style per kind of content,
+used the same way throughout; Material's list is a container of
+items with consistent spacing and dividers or none. The register's
+people and the tip prompts read as one set, so they take the diary
+day's shape: one box, rows inside. The header's + was drawn four ways;
+three carried an ink plus on the accent at 2.06 to 3.39:1, under
+WCAG 1.4.11's 3:1 for the parts of a control a person needs to see,
+and an empty tick box on the hairline read 1.2:1. One `HeaderAdd`
+with a white plus (5.03 to 8.23:1) and the tick box on the edge (3.0
+to 4.1:1). The visual item of the day; `boxes.cjs`. With it, one small
+functional fix: a booking's notification opens the Diary on that
+lesson's day, the way Android's guidance has a notification open the
+thing it describes rather than the app's front screen.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -404,3 +425,8 @@ the items above; a research spike first.
 - https://www.lta.org.uk/about-us/safeguarding/parents-and-carers/parents-tips-and-resources/ (LTA: a coach messages an under-18 only through a channel that includes a parent)
 - https://www.williamfry.com/knowledge/do-sports-clubs-whatsapp-groups-breach-the-gdpr/ (William Fry: club WhatsApp groups and the GDPR)
 - https://help.teamsnap.com/article/2005-overview-of-message-types-on-teamsnap-one (TeamSnap: team chat and direct messages as separate kinds)
+- https://developer.apple.com/design/human-interface-guidelines/lists-and-tables (Apple: lists and tables, one style for a kind of content)
+- https://m3.material.io/components/lists/guidelines (Material 3: a list as one container of consistent items)
+- https://www.w3.org/WAI/WCAG21/Understanding/non-text-contrast.html (WCAG 1.4.11: 3:1 for the visual parts of a control needed to identify it)
+- https://developer.apple.com/design/human-interface-guidelines/buttons (Apple: a button's glyph and fill, consistent across an app)
+- https://developer.android.com/develop/ui/views/notifications/navigation (Android: a notification's tap opens the content it describes)
