@@ -2746,7 +2746,8 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
   const [mm, setMm] = useState(T.m);
   const [time, setTime] = useState("9:00 am");
   const [extra, setExtra] = useState([]);
-  const all = [...extra, ...list].sort((a, b) => a.days - b.days);
+  const gone = (e) => !!(e.past || e.days < 0);
+  const all = [...extra, ...list].sort((a, b) => (gone(a) - gone(b)) || (gone(a) ? b.days - a.days : a.days - b.days));
   /* the ones that have been and gone sit under the rest, and are not "coming up" */
   const ahead = all.filter((e) => !(e.past || e.days < 0)).length;
 
@@ -3320,7 +3321,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
             <div key={i} className="flex items-baseline gap-4 py-3">
               {/* the day, never a countdown — "12d" was the one in the app */}
               <span className="shrink-0" style={{ width: 76, ...TYPE.caption,
-                             color: c.days <= 7 ? CAUTION : t.faint }}>{c.iso ? fmtWeekDay(localDate(c.iso)) : c.when || `${c.days}d`}</span>
+                             color: c.days <= 7 ? CAUTION : t.faint }}>{c.iso ? fmtWeekDay(localDate(c.iso)) : c.when || fmtWeekDay((() => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + (c.days || 0)); return x; })())}</span>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{c.name}</span>
               {c.mine && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Yours")}</span>}
             </div>
@@ -4652,7 +4653,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                 {/* the whole name, on two lines if it must: two Saoirse K…
                     are two players the coach cannot tell apart */}
                 <span className="flex-1 min-w-0 py-2"
-                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink, overflowWrap: "anywhere", lineHeight: 1.25 }}>{r.name}</span>
+                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink, overflowWrap: "break-word", hyphens: "auto", lineHeight: 1.25 }}>{r.name}</span>
 
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
@@ -17951,6 +17952,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const pendingLanding = useRef(null);
   const screenNow = stack[stack.length - 1];
   const landOnDay = (at, b) => {
+    pendingLanding.current = null;
     /* the Diary's kept scroll would put it back where it was */
     SCREEN_MEMORY.delete("1:calendar|scroll");
     if (role !== "coach") setBookFor(((data && data.dependants) || []).find((k) => b && k.id === b.playerId) || null);
@@ -17969,6 +17971,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (screenNow === "calendar") landOnDay(at, b);
   }, [data && data.bookings]);
   useEffect(() => { if (screenNow !== "calendar" && bookFor) setBookFor(null); }, [screenNow]);
+  /* a booking still on its way lands only on the Diary it was asked from */
+  useEffect(() => { if (screenNow !== "calendar") pendingLanding.current = null; }, [screenNow]);
   /* A parent with no coach of their own has nothing of their own to
      book, so the diary opens on the first child who can be booked for
      rather than on an empty week. */
@@ -19594,6 +19598,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const scr = d.screen;
     const home = role === "coach" ? "today" : (account && account.accountType === "parent") ? "family" : "home";
     setCatchUp(null);
+    /* the newest notice wins over one still waiting for its booking */
+    pendingLanding.current = null;
     /* a screen a notification lands on starts at its top; the root under
        it keeps its place */
     const land = (st) => { dropDeeperMemory(1); setStack(st); };

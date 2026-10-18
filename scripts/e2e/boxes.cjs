@@ -265,6 +265,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const am = await metaOf(page, "Ahead");
       const t2 = await text(); await shot("08-ahead");
       check("(j) Ahead's add control is the same one, and its subtitle counts only what is ahead", /Club Fourball/.test(t2) && sameAdd(aheadAdd) && !!chatAdd && aheadAdd.bg === chatAdd.bg && aheadAdd.radius === chatAdd.radius && am === "1 coming up", `${addSaid(aheadAdd)} · meta "${am}"`);
+      check("(j2) …what is coming sits above what has been", t2.indexOf("Autumn Medal") > -1 && t2.indexOf("Autumn Medal") < t2.indexOf("Club Fourball"), t2.slice(0, 200));
 
       /* the pick-a-player sheet, its empty line, then the tip sheet's prompts */
       await tap(page, '[aria-label="Today"]', 900);
