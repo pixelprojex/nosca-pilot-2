@@ -56,6 +56,10 @@ function freshDb() {
   /* nothing booked and the last lesson two months gone: Drifting */
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.aoife, date: M.ymd(dayFrom(-60)), focus: "Bunker play", unread: false });
   M.addLesson(db, { coachId: IDS.rider, playerId: IDS.tadhg, date: M.ymd(dayFrom(-5)), focus: "Flatwork", unread: false });
+  /* the riding coach's only competition has been: a list with nothing ahead */
+  db.competitions.push({ id: M.uuid(), coach_id: IDS.rider, player_id: null, name: "Spring Show", kind: null, venue: null, event_date: M.ymd(dayFrom(-3)), created_at: `${TODAY}T07:00:00Z` });
+  /* tomorrow's lesson, for the peek read after midnight */
+  M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(1)), time: "9:00 am" });
   db.tips.push({ id: M.uuid(), coach_id: IDS.coach, player_id: IDS.adult, title: "Trust the shallow", body: null, created_at: `${M.ymd(dayFrom(-12))}T10:00:00Z` });
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.adult, title: "Gate drill" });
   M.addDrill(db, { coachId: IDS.coach, playerId: IDS.junior, title: "Ladder drill" });
@@ -165,8 +169,9 @@ const metaOf = (page, title) => page.evaluate((title) => {
       await shot("01-peek");
       check("(a) the peek's last lessons and competitions are the app's list — a box each on golf's edge, no rule inside", peeked && fine(peek) && peek.boxes === 3 && /Short game/.test(st) && /Autumn Medal/.test(st), said(peek));
       check("(a2) the competition reads its own day, never a countdown, and one that has been is not on it", st.includes(nice(dayFrom(12))) && !/\b\d+d\b/.test(st) && !/Club Fourball/.test(st), st.slice(-220));
-      const days = await page.evaluate(() => [...document.querySelectorAll("[data-sheet] .nsc-list > * > span:first-child")].map((s) => s.textContent.trim()));
-      check("(a3) every day on the peek is the app's one form, in one column", days.length === 3 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-12)), JSON.stringify(days));
+      const cols = await page.evaluate(() => [...document.querySelectorAll("[data-sheet] .nsc-list > * > span:first-child")].map((s) => ({ d: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
+      const days = cols.map((c) => c.d);
+      check("(a3) every day on the peek is the app's one form, in one column", days.length === 3 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-12)) && cols.every((c) => Math.abs(c.at - cols[0].at) <= 1), JSON.stringify(cols));
       await closeSheet(page);
 
       /* the register on the group lesson: one box, everyone as rows inside it, every whole name read at 375 */
@@ -284,6 +289,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
       await shot("09-tip-prompts");
       check("(k3) the tip sheet's prompts are one box on golf's edge with the prompts as rows inside it", !!pr && pr.n >= 2 && pr.edge === EDGE.golf && pr.inner && pr.last === "none", JSON.stringify(pr));
       await closeSheet(page);
+      /* past midnight on data loaded the day before: the competition still reads its own day, never a count from now */
+      await page.clock.setFixedTime(new Date(`${M.ymd(dayFrom(1))}T08:00:00`));
+      await tap(page, '[aria-label="Diary"]', 900);
+      await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(1000);
+      const st2 = await sheetText(page);
+      check("(a4) after midnight, on the day before's load, the peek reads the competition's own day, not a day late", st2.includes("Autumn Medal") && st2.includes(nice(dayFrom(12))) && !st2.includes(nice(dayFrom(13))), st2.slice(-200));
+      await closeSheet(page);
       await ctx.close();
     }
 
@@ -300,8 +312,9 @@ const metaOf = (page, title) => page.evaluate((title) => {
       await tap(page, '[data-tour="quick"]', 900);
       await page.locator('[data-sheet] button[aria-label="Competition"], [data-sheet] button', { hasText: /^Competition$/ }).first().click(); await page.waitForTimeout(900);
       const am = await metaOf(page, "Ahead");
+      const ta = await M.rootText(page);
       await shot("10-rider-ahead");
-      check("(l3) Ahead with nothing ahead carries no subtitle — never \"0 coming up\"", am === "", `meta "${am}"`);
+      check("(l3) Ahead with only what has been carries no subtitle — never \"0 coming up\"", /Spring Show/.test(ta) && am === "", `meta "${am}" · ${ta.slice(0, 120)}`);
       await ctx.close();
     }
 

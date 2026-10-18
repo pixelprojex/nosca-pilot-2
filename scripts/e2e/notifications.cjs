@@ -191,14 +191,15 @@ const { check, results, summary } = M.checker("notifications");
         const seen = await page.evaluate(() => { const el = [...document.querySelectorAll("[data-cal-day] span")].find((x) => x.textContent === "Your lesson"); if (!el) return null; const r = el.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: innerHeight }; });
         check("(e) a booking's notice opens the Diary on that lesson's day, on the Calendar view where its block is", l1.day === String(far.getDate()) && l1.view === "Calendar" && t1.includes(monthOf(far)) && /Your lesson/.test(t1) && /10:00/.test(t1), `${JSON.stringify(l1)} · ${t1.slice(0, 200)}`);
         check("(e1) …with the lesson's block brought up on the screen, above the tab bar", !!seen && seen.top > 0 && seen.bottom < seen.h - 90, JSON.stringify(seen));
-        /* the Diary moved off the day — another month, on List — and the bell lands it again */
-        await page.locator('button[aria-label="Previous month"]').click(); await page.waitForTimeout(400);
-        const off = await landed(page);
+        /* the Diary moved off the day — the month after, on List — and the bell lands it again; the
+           booking is at most a month out and the diary spans six, so Next month is always there */
+        await page.locator('button[aria-label="Next month"]').click(); await page.waitForTimeout(400);
+        const off = { moved: !(await text()).includes(monthOf(far)) };
         await page.locator('[data-tour="cal-view"] button[aria-label="List"]').click(); await page.waitForTimeout(500);
         await tap(page, '[aria-label="Alerts"]', 900);
         await alertRows(page).filter({ hasText: "Lesson confirmed" }).first().click(); await page.waitForTimeout(1200);
         const l2 = await landed(page), t2 = await text();
-        check("(e2) …and again from the bell over a Diary left on another month, on List", off.day !== String(far.getDate()) && l2.day === String(far.getDate()) && l2.view === "Calendar" && t2.includes(monthOf(far)), `${JSON.stringify(off)} → ${JSON.stringify(l2)}`);
+        check("(e2) …and again from the bell over a Diary left on another month, on List", off.moved && l2.day === String(far.getDate()) && l2.view === "Calendar" && t2.includes(monthOf(far)), `${JSON.stringify(off)} → ${JSON.stringify(l2)}`);
         await ctx.close();
       }
       {
@@ -255,9 +256,14 @@ const { check, results, summary } = M.checker("notifications");
       {
         /* a junior's adult: their child's booking notice still opens Family */
         const { ctx, page, text } = await boot("parent");
-        await openNotice(page, "Saoirse's lesson booked");
+        /* away from Family first, so the landing is the tap's and not the home's */
+        if (await catchup(page).count()) await click(page, "Dismiss", 900);
+        await tap(page, '[aria-label="Diary"]', 900);
+        const onDiary = (await page.locator('[data-tour="cal-view"]').count()) === 1 && (await page.locator('[data-tour="family-people"]').count()) === 0;
+        await tap(page, '[aria-label="Alerts"]', 900);
+        await alertRows(page).filter({ hasText: "Saoirse's lesson booked" }).first().click(); await page.waitForTimeout(1200);
         const t9 = await text();
-        check("(e9) a junior's adult's booking notice still lands on Family", (await page.locator('[data-tour="family-people"]').count()) === 1 && !(await page.locator('[data-tour="cal-view"]').count()), t9.slice(0, 160));
+        check("(e9) a junior's adult's booking notice still lands on Family, from the Diary", onDiary && (await page.locator('[data-tour="family-people"]').count()) === 1 && !(await page.locator('[data-tour="cal-view"]').count()), t9.slice(0, 160));
         await ctx.close();
       }
     }
