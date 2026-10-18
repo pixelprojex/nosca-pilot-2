@@ -14,7 +14,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d", eoin: "00000000-0000-4000-8000-000000e01e01" };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const LESSON = { new: "10000000-0000-4000-8000-00000000ae01", old: "10000000-0000-4000-8000-00000000ae02" };
-const N = { lesson: "aa000000-0000-4000-8000-0000000000a1", message: "aa000000-0000-4000-8000-0000000000a2", booking: "aa000000-0000-4000-8000-0000000000a3", booking2: "aa000000-0000-4000-8000-0000000000a4" };
+const N = { lesson: "aa000000-0000-4000-8000-0000000000a1", message: "aa000000-0000-4000-8000-0000000000a2", booking: "aa000000-0000-4000-8000-0000000000a3", booking2: "aa000000-0000-4000-8000-0000000000a4", land: "aa000000-0000-4000-8000-0000000000a5", gone: "aa000000-0000-4000-8000-0000000000a6", remind: "aa000000-0000-4000-8000-0000000000a7" };
 const ago = (mins) => new Date(Date.now() - mins * 60000).toISOString();
 
 function freshDb() {
@@ -153,6 +153,64 @@ const { check, results, summary } = M.checker("notifications");
       const t0 = await text(); await shot("12-junior-open-family");
       check("(d) …for a junior in a family it is the family dashboard", t0.includes("Orla's family") && (await page.locator('[data-tour="family-people"]').count()) === 1, t0.slice(0, 160));
       await ctx.close();
+    }
+
+    /* ---------- (e) a booking's notice opens the Diary on its day ---------- */
+    {
+      const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const dayIn = (n) => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + n); return x; };
+      const far = dayIn(25), next = dayIn(1);
+      const BK = "b1000000-0000-4000-8000-0000000000b1", GONE = "b1000000-0000-4000-8000-0000000000b2";
+      M.addBooking(db, { id: BK, coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(far), time: "10:00 am" });
+      M.addBooking(db, { id: GONE, coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(next), time: "9:00 am", status: "cancelled" });
+      M.addNotification(db, { id: N.land, userId: IDS.adult, kind: "booking", title: "Lesson confirmed", body: "10:00 am · Niamh Byrne", data: { screen: "calendar", id: BK }, createdAt: ago(2) });
+      M.addNotification(db, { id: N.gone, userId: IDS.coach, kind: "booking", title: "Cian Murphy cancelled", body: "Away · 9:00 am", data: { screen: "calendar", id: GONE }, createdAt: ago(3) });
+      M.addNotification(db, { id: N.remind, userId: IDS.coach, kind: "booking", title: "1 lesson tomorrow", body: null, data: { screen: "calendar", remind_day: M.ymd(next) }, createdAt: ago(4) });
+      const landed = (page) => page.evaluate(() => {
+        const on = document.querySelector('[data-day][aria-pressed="true"]');
+        const view = document.querySelector('[data-tour="cal-view"] button[aria-pressed="true"]');
+        return { day: on ? on.getAttribute("data-day") : null, view: view ? view.getAttribute("aria-label") : null };
+      });
+      const monthOf = (x) => `${MONTHS[x.getMonth()]} ${x.getFullYear()}`;
+      /* a tap wherever the notice is: the catch-up if it is up, else the bell */
+      const openNotice = async (page, title) => {
+        if (await catchup(page).count()) { await catchup(page).locator("button", { hasText: title }).first().click(); }
+        else { await tap(page, '[aria-label="Alerts"]', 900); await alertRows(page).filter({ hasText: title }).first().click(); }
+        await page.waitForTimeout(1200);
+      };
+      {
+        const { ctx, page, text, shot } = await boot("adult");
+        await openNotice(page, "Lesson confirmed");
+        const l1 = await landed(page), t1 = await text(); await page.waitForTimeout(600); await shot("13-adult-booking-lands");
+        const seen = await page.evaluate(() => { const el = [...document.querySelectorAll("[data-cal-day] span")].find((x) => x.textContent === "Your lesson"); if (!el) return null; const r = el.getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: innerHeight }; });
+        check("(e) a booking's notice opens the Diary on that lesson's day, on the Calendar view where its block is", l1.day === String(far.getDate()) && l1.view === "Calendar" && t1.includes(monthOf(far)) && /Your lesson/.test(t1) && /10:00/.test(t1), `${JSON.stringify(l1)} · ${t1.slice(0, 200)}`);
+        check("(e1) …with the lesson's block brought up on the screen, above the tab bar", !!seen && seen.top > 0 && seen.bottom < seen.h - 90, JSON.stringify(seen));
+        /* the Diary already open, on List and on today: the bell lands it again */
+        await page.locator('[data-tour="cal-view"] button[aria-label="List"]').click(); await page.waitForTimeout(500);
+        await tap(page, '[aria-label="Alerts"]', 900);
+        await alertRows(page).filter({ hasText: "Lesson confirmed" }).first().click(); await page.waitForTimeout(1200);
+        const l2 = await landed(page), t2 = await text();
+        check("(e2) …and again from the bell over a Diary left on List", l2.day === String(far.getDate()) && l2.view === "Calendar" && t2.includes(monthOf(far)), JSON.stringify(l2));
+        await ctx.close();
+      }
+      {
+        const { ctx, page, text, shot } = await boot("adult", { url: `${BASE}/?open=calendar&oid=${BK}` });
+        await page.waitForTimeout(1200);
+        const l3 = await landed(page), t3 = await text(); await shot("14-adult-cold-open-lands");
+        check("(e3) a push opened cold (?open=calendar&oid=…) lands on the same day and leaves the address clean", l3.day === String(far.getDate()) && l3.view === "Calendar" && t3.includes(monthOf(far)) && !/open=/.test(page.url()), `${JSON.stringify(l3)} · ${page.url()}`);
+        await ctx.close();
+      }
+      {
+        const { ctx, page, text, shot } = await boot("coach");
+        await openNotice(page, "Cian Murphy cancelled");
+        const l4 = await landed(page), t4 = await text(); await shot("15-coach-cancelled-lands");
+        check("(e4) the coach's \"Cian Murphy cancelled\" opens the Diary on that day", l4.day === String(next.getDate()) && l4.view === "Calendar" && t4.includes(monthOf(next)), `${JSON.stringify(l4)} · ${t4.slice(0, 160)}`);
+        await tap(page, '[aria-label="Today"]', 900);
+        await openNotice(page, "1 lesson tomorrow");
+        const l5 = await landed(page), t5 = await text();
+        check("(e5) the coach's evening \"1 lesson tomorrow\" opens on tomorrow", l5.day === String(next.getDate()) && l5.view === "Calendar" && t5.includes(monthOf(next)), JSON.stringify(l5));
+        await ctx.close();
+      }
     }
   } catch (e) {
     console.log("RUN ERROR", e && e.stack || e);
