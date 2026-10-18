@@ -6772,7 +6772,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
           </div>
 
           {mine.length > 0 && (<>
-            <Eyebrow>{tr("Lessons")}</Eyebrow>
+            <RowHead>{tr("Lessons")}</RowHead>
             <div className="nsc-list mb-7">
               {shown.map((l) => (
                 <button key={l.id} onClick={() => { haptic(7); soft(); onOpenLesson && onOpenLesson(l); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
