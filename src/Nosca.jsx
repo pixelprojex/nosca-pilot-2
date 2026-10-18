@@ -2746,16 +2746,15 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
   const [mm, setMm] = useState(T.m);
   const [time, setTime] = useState("9:00 am");
   const [extra, setExtra] = useState([]);
-  const all = [...extra, ...list].sort((a, b) => a.days - b.days);
+  const gone = (e) => !!(e.past || e.days < 0);
+  const all = [...extra, ...list].sort((a, b) => (gone(a) - gone(b)) || (gone(a) ? b.days - a.days : a.days - b.days));
+  /* the ones that have been and gone sit under the rest, and are not "coming up" */
+  const ahead = all.filter((e) => !(e.past || e.days < 0)).length;
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Ahead")} onBack={pop} meta={`${all.length} ${tr("coming up")}`}
-              action={<button onClick={() => { haptic(9); soft(); setAdding(!adding); }}
-                              className="flex items-center justify-center active:opacity-50"
-                              style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("Add")}>
-                        <Plus size={22} color={t.ink} strokeWidth={2} />
-                      </button>}>
+      <Screen title={tr("Ahead")} onBack={pop} meta={ahead ? `${ahead} ${tr("coming up")}` : ""}
+              action={<HeaderAdd label={tr("Add")} onTap={() => { haptic(9); soft(); setAdding(!adding); }} />}>
         <div className="px-6 pb-2">
           {adding && (
             <div className="mb-6 p-5" style={{ background: t.surface, borderRadius: R.surface, boxShadow: (t.elev || ELEV).rest,
@@ -3288,16 +3287,15 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         </div>
       )}
 
-      {/* the last couple */}
-      <div style={{ borderTop: RULE.section(t.ink) }}>
+      {/* the last couple — a box each, the app's list */}
+      <div className="nsc-list">
         {lessons.map((l, i) => (
           <button key={i} onClick={() => { haptic(7); onHistory && onHistory(); }}
                   className="w-full flex items-baseline gap-4 py-3 text-left active:opacity-50"
-                  style={{ borderBottom: RULE.hair(t.ink),
-                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                  style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
-            <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.m ? `${l.d} ${l.m}` : l.d}</span>
+            <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
           </button>
         ))}
@@ -3318,12 +3316,12 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
 
       {/* what they're building towards — the player's own, plus yours */}
       {comps.length > 0 && (
-        <div className="mb-5" style={{ borderTop: RULE.section(t.ink) }}>
+        <div className="mb-5 nsc-list">
           {comps.map((c, i) => (
-            <div key={i} className="flex items-baseline gap-4 py-3"
-                 style={{ borderBottom: RULE.hair(t.ink) }}>
-              <span className="shrink-0" style={{ width: 50, ...TYPE.caption,
-                             color: c.days <= 7 ? CAUTION : t.faint }}>{c.days}d</span>
+            <div key={i} className="flex items-baseline gap-4 py-3">
+              {/* the day, never a countdown — "12d" was the one in the app */}
+              <span className="shrink-0" style={{ width: 76, ...TYPE.caption,
+                             color: c.days <= 7 ? CAUTION : t.faint }}>{c.iso ? fmtWeekDay(localDate(c.iso)) : c.when || fmtWeekDay((() => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + (c.days || 0)); return x; })())}</span>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{c.name}</span>
               {c.mine && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Yours")}</span>}
             </div>
@@ -3560,14 +3558,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
     <SwipeBack onBack={pop}>
       <Screen title={tr("Recurring lessons")} onBack={pop}
               meta={live.length ? `${live.length} ${tr("running")}` : ""}
-              /* the app's filled control — its corner, its cast shadow and
-                 its white glyph; it was a sharp square with an ink plus,
-                 the one control in the app drawn that way */
-              action={<button data-tour="recur-add" onClick={() => { hapticCommit(); soft(); onNew(); }}
-                              className="flex items-center justify-center active:opacity-50"
-                              style={{ width: 40, height: 40, borderRadius: R.control, background: t.accent, boxShadow: ELEV.cast }} aria-label={tr("Add")}>
-                        <Plus size={22} color={t.onAccent} strokeWidth={2} />
-                      </button>}>
+              action={<HeaderAdd tour="recur-add" label={tr("Add")} onTap={() => { hapticCommit(); soft(); onNew(); }} />}>
         <div className="px-6 pb-2">
           {live.length === 0 && (
             <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No recurring lessons yet")}</p>
@@ -4015,12 +4006,12 @@ function atRisk(roster, series, live, bookedIds) {
   }).filter(Boolean).sort((a, b) => b.weight - a.weight);
 }
 
-function AtRisk({ list, onMessage, pop }) {
+function AtRisk({ list, onMessage, pop, nouns = "players" }) {
   const t = useT();
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Drifting")} onBack={pop}
-              meta={list.length ? `${list.length} ${tr("people")}` : tr("Nobody drifting")}>
+              meta={list.length ? countOf(list.length, nouns) : tr("Nobody drifting")}>
         <div className="px-6 pb-2">
           {list.length === 0 ? (
             <div className="py-14 text-center">
@@ -4032,9 +4023,9 @@ function AtRisk({ list, onMessage, pop }) {
             </div>
           ) : (
             /* rows, one action: the number says it, the sentence is spare */
-            <div style={{ borderTop: RULE.section(t.ink) }}>
+            <div className="nsc-list">
               {list.map((x) => (
-                <div key={x.id || x.name} className="flex items-center gap-3.5" style={{ minHeight: 66, borderBottom: RULE.hair(t.ink) }}>
+                <div key={x.id || x.name} className="flex items-center gap-3.5" style={{ minHeight: 66 }}>
                   <Avatar name={x.name} size={40} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{x.name}</span>
@@ -4131,11 +4122,7 @@ function CheckIns({ role, list, onAnswer, onSend, pop, say }) {
                 ? (waiting.length ? `${waiting.length} ${tr("waiting on you")}` : tr("Nothing waiting"))
                 : tr("Send something to look at")}
               action={role !== "coach" ? (
-                <button onClick={() => { hapticCommit(); soft(); onSend(); }}
-                        className="flex items-center justify-center active:opacity-50"
-                        style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("Send")}>
-                  <Plus size={22} color={t.ink} strokeWidth={2} />
-                </button>
+                <HeaderAdd label={tr("Send")} onTap={() => { hapticCommit(); soft(); onSend(); }} />
               ) : null}>
         <div className="px-6 pb-2">
           {list.length === 0 && (
@@ -4479,20 +4466,22 @@ function PickPerson({ roster, title, sub, onPick, close }) {
            : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
       </div>
 
-      <div style={{ borderTop: RULE.section(t.ink), maxHeight: 320, overflowY: "auto" }}>
-        {list.length === 0 ? (
-          <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name")}</p>
-        ) : list.map((r, i) => (
-          <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
-                  className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                  style={{ minHeight: 62, borderBottom: RULE.hair(t.ink),
-                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-            <Avatar name={r.name} size={34} />
-            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-            <ChevronRight size={14} color={t.trace || t.faint} />
-          </button>
-        ))}
-      </div>
+      {list.length === 0 ? (
+        <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name")}</p>
+      ) : (
+        <div className="nsc-list" style={{ maxHeight: 320, overflowY: "auto" }}>
+          {list.map((r, i) => (
+            <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
+                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                    style={{ minHeight: 62,
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+              <Avatar name={r.name} size={34} />
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
+              <ChevronRight size={14} color={t.trace || t.faint} />
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 }
@@ -4651,24 +4640,27 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           </div>
         )}
 
-        {/* the register itself */}
-        <div style={{ borderTop: RULE.section(t.ink) }}>
+        {/* the register itself — one box, the people as rows inside it,
+            the way a diary day holds its times */}
+        <div className="nsc-day">
           {who.map((r, i) => {
             const m = marks[r.id];
             return (
-              <div key={r.id} className="flex items-center gap-3"
-                   style={{ minHeight: 62, borderBottom: RULE.hair(t.ink),
+              <div key={r.id} className="flex items-center gap-2.5 px-3"
+                   style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}`,
                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={32} />
-                <span className="flex-1 min-w-0 truncate"
-                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink }}>{r.name}</span>
+                {/* the whole name, on two lines if it must: two Saoirse K…
+                    are two players the coach cannot tell apart */}
+                <span className="flex-1 min-w-0 py-2"
+                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink, overflowWrap: "break-word", hyphens: "auto", lineHeight: 1.25 }}>{r.name}</span>
 
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
                   return (
                     <button key={v} onClick={() => mark(r.id, v)}
                             className="flex items-center justify-center active:opacity-70"
-                            style={{ minWidth: 74, minHeight: 38, borderRadius: R.control,
+                            style={{ minWidth: 66, minHeight: 38, borderRadius: R.control,
                                      background: on ? tone : "transparent",
                                      border: `0.5px solid ${on ? tone : HAIR(t.ink, 0.2)}`,
                                      ...TYPE.caption, fontWeight: 600,
@@ -4720,7 +4712,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
         </p>
       )}
 
-      <div style={{ borderTop: RULE.section(t.ink) }}>
+      <div className="nsc-list">
         {(lessons || []).map((l, i) => {
           const key = keyOf(l);
           const reg = taken[key];
@@ -4730,7 +4722,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           return (
             <button key={key} data-tour={i === 0 ? "attend-row" : undefined} onClick={() => open(l)}
                     className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 66, borderBottom: RULE.hair(t.ink),
+                    style={{ minHeight: 66,
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <Rail>{l.time}</Rail>
               <span className="flex-1 min-w-0">
@@ -4769,12 +4761,12 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           {(lessons || []).length > 0 && (
             <p className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Not in the diary")}</p>
           )}
-          <div style={{ borderTop: RULE.section(t.ink) }}>
+          <div className="nsc-list">
             {(roster || []).map((r, i) => (
               <button key={r.id || r.name}
                       onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                      style={{ minHeight: 58, borderBottom: RULE.hair(t.ink),
+                      style={{ minHeight: 58,
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={30} />
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
@@ -5281,8 +5273,9 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
   return (
     /* the row opens the lesson; the disc at its right corner saves it as
        a file — two controls, so the row is a div and not one button */
+    /* every list it sits in is boxed, so it draws no foot rule of its own */
     <div className="flex items-center gap-2"
-         style={{ minHeight: 64, borderBottom: RULE.hair(t.ink),
+         style={{ minHeight: 64,
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(index, 5) * 22}ms backwards` }}>
       <button data-tour={first ? "log-row" : undefined} onClick={() => { haptic(8); soft(); onOpen(l); }}
               className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50"
@@ -6765,14 +6758,14 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               {canBook ? tr("Book a lesson") : kid.coachId ? tr("No hours set") : tr("Book a lesson")}
             </button>
             <button onClick={() => { haptic(8); onMessage && onMessage(kid); }} disabled={!kid.coachId} className="flex-1 active:opacity-60 disabled:opacity-35"
-                    style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
+                    style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
           </div>
 
-          <div className="mb-7" style={{ borderTop: RULE.section(t.ink) }}>
+          <div className="mb-7 nsc-list">
             {[[tr("Next"), next ? `${fmtDay(next.date)} · ${next.time}${next.status === "requested" ? ` · ${tr("Requested")}` : ""}` : tr("Nothing booked"), !next],
               /* "All done" is praise; nothing set is not the same thing */
               [tr("Drills"), mineDrills.length === 0 ? tr("None set") : todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), mineDrills.length === 0]].map(([lbl, val, quiet]) => (
-              <div key={lbl} className="flex items-baseline gap-3 py-3" style={{ borderBottom: RULE.hair(t.ink) }}>
+              <div key={lbl} className="flex items-baseline gap-3 py-3">
                 <span className="shrink-0" style={{ width: 88, ...TYPE.caption, color: t.faint }}>{lbl}</span>
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: quiet ? t.faint : t.ink }}>{val}</span>
               </div>
@@ -6780,27 +6773,27 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
           </div>
 
           {mine.length > 0 && (<>
-            <Eyebrow>{tr("Lessons")}</Eyebrow>
-            <Card className="px-5 mb-7">
-              {shown.map((l, i) => (
+            <RowHead>{tr("Lessons")}</RowHead>
+            <div className="nsc-list mb-7">
+              {shown.map((l) => (
                 <button key={l.id} onClick={() => { haptic(7); soft(); onOpenLesson && onOpenLesson(l); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
-                        style={{ minHeight: 46, borderBottom: i === shown.length - 1 ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-                  <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.d} {l.m}</span>
+                        style={{ minHeight: 46 }}>
+                  <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`}</span>
                   <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{l.focus}</span>
                   {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
                   <ChevronRight size={13} color={t.trace || t.faint} />
                 </button>
               ))}
-            </Card>
+            </div>
             {mine.length > shown.length && (
               <button onClick={() => { haptic(6); onAllLessons && onAllLessons(); }} className="w-full mb-3 active:opacity-60"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("All")} {mine.length} {tr("lessons")}
               </button>
             )}
             {onProgress && (
               <button data-tour="kid-progress" onClick={() => { haptic(6); onProgress(); }} className="w-full mb-7 active:opacity-60"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("Progress")}
               </button>
             )}
@@ -7034,11 +7027,11 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
       {shown.length === 0 ? (
         <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</p>
       ) : (
-        <div style={{ borderTop: RULE.section(t.ink) }}>
+        <div className="nsc-list">
           {shown.map((p) => (
             <button key={p.id || p.name} data-tour={p.group ? "thread-group" : p.all ? "thread-everyone" : "thread-person"}
                     onClick={() => { haptic(6); if (!p.all && !p.group) close(); onPick(p); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
+                    style={{ minHeight: 60 }}>
               <Avatar name={p.name} size={38} group={!!p.all || !!p.group} />
               <span className="flex-1 min-w-0">
                 <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
@@ -8342,6 +8335,22 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
   );
 };
 
+/* ONE ADD CONTROL IN A HEADER. The app's filled control: its corner,
+   its cast shadow, the accent (the screen's one action) and a white
+   plus. Four headers drew it four ways — a circle on Chat, sharp
+   squares elsewhere, and an ink plus on the accent that read at 2 to
+   3.4:1, under the 3:1 a control's glyph needs. White on every sport's
+   accent is 5 to 8:1. */
+const HeaderAdd = ({ onTap, label, tour }) => {
+  const t = useT();
+  return (
+    <button data-tour={tour} onClick={onTap} className="flex items-center justify-center active:opacity-50"
+            style={{ width: 40, height: 40, borderRadius: R.control, background: t.accent, boxShadow: ELEV.cast }} aria-label={label}>
+      <Plus size={22} color={t.onAccent} strokeWidth={2} />
+    </button>
+  );
+};
+
 const TextBtn = ({ children, onClick, color, tour }) => {
   const t = useT();
   return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: color || t.ink }}>{children}</button>);
@@ -8360,7 +8369,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       {icon}
       {onToggle && !chevron && !icon && !right && (
         <span className="flex items-center justify-center shrink-0"
-              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : t.hair}`, background: checked ? t.accent : "transparent" }}>
+              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : EDGE(t)}`, background: checked ? t.accent : "transparent" }}>
           {checked && <Check size={13} color="#fff" strokeWidth={2.1} />}
         </span>
       )}
@@ -9510,11 +9519,11 @@ function TipBody({ prompts, onSet, close }) {
           the notification and on the lesson */}
       <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("Tip")}</h2>
       {prompts && prompts.length > 0 && !title && (
-        <div className="mb-4" style={{ borderTop: RULE.section(t.ink) }}>
+        <div className="mb-4 nsc-day">
           {prompts.map((pr) => (
             <button key={pr} onClick={() => { haptic(6); setTitle(pr); }}
-                    className="w-full flex items-center text-left active:opacity-60"
-                    style={{ minHeight: 46, borderBottom: RULE.hair(t.ink) }}>
+                    className="w-full flex items-center text-left px-4 active:opacity-60"
+                    style={{ minHeight: 46, borderBottom: `1px solid ${t.hair}` }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{pr}</span>
             </button>
           ))}
@@ -12581,6 +12590,8 @@ const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];   // getDay(
 /* "Wed 23 Sep" — the locale gives "Sept" for September in en-IE while
    every table in the file says "Sep"; one spelling, from one table */
 const fmtWeekDay = (d) => `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${WIZ_MONTHS[d.getMonth()]}`;
+/* the day a booking's notice lands the Diary on, year and all */
+const landingDay = (iso) => { if (!iso) return null; const x = localDate(iso); return isNaN(x) ? null : { y: x.getFullYear(), m: x.getMonth() + 1, d: x.getDate() }; };
 const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 /* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
 const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
@@ -13294,7 +13305,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
   const searchable = all.length > 8;
   const row = (key, tour, onTap, avatar, label, sub, subTone = "faint", value = null) => (
     <button key={key} data-tour={tour} onClick={onTap} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-            style={{ minHeight: 64, borderBottom: RULE.hair(t.ink) }}>
+            style={{ minHeight: 64 }}>
       {avatar}
       <span className="flex-1 min-w-0">
         <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
@@ -13358,20 +13369,21 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           </div>
           {/* ALL LESSONS IS A ROUTE, NOT A PERSON. It sat in the column
               of faces with a glyph in a disc the size of an avatar, so
-              it read as a third player called All lessons. */}
+              it read as a third player called All lessons. It is a box
+              of its own under the players, as on the coach's home. */}
           {lessonCount > 0 && (
-            <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
-                    className="w-full flex items-center gap-3 text-left active:opacity-50"
-                    /* the foot of the same column, not a second list after a
-                       blank band between two rules */
-                    style={{ minHeight: 56, borderBottom: RULE.section(t.ink) }}>
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
-              <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
-              <ChevronRight size={15} color={t.trace || t.faint} />
-            </button>
+            <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+              <button data-tour="roster-archive" onClick={() => { haptic(7); soft(); push("archive"); }}
+                      className="w-full flex items-center gap-3 text-left active:opacity-50"
+                      style={{ minHeight: 56 }}>
+                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("All lessons")}</span>
+                <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{lessonCount}</span>
+                <ChevronRight size={15} color={t.trace || t.faint} />
+              </button>
+            </div>
           )}
         </>) : (
-          <div style={{ borderTop: RULE.section(t.ink) }}>
+          <div className="nsc-list">
             {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={40} group />, g.name,
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
@@ -13746,10 +13758,10 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                          onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
             </div>
           )}
+          {live && past.length === 0 && (
+            <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
+          )}
           <div className="mb-4 nsc-list" data-tour="player-lessons">
-            {live && past.length === 0 && (
-              <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
-            )}
             {shown.map((l, i) => (
               <LessonRow key={l.id || i} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
                          saved={false} showWho={false} onOpen={openLesson} onDownload={live ? onDownload : null} />
@@ -13769,7 +13781,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
             <div className="mb-7 nsc-list">
-              <div className="flex items-baseline gap-3" style={{ minHeight: 56 }}>
+              <div className="flex items-center gap-3 py-3" style={{ minHeight: 56 }}>
                 <span style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Tip")}</span>
                 <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
               </div>
@@ -13780,7 +13792,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               "More" hid three: one of them, Progress, went to the same
               archive the block at the top of this screen goes to, under
               a second name. */}
-          <div style={{ borderTop: RULE.section(t.ink) }}>
+          <div className="nsc-list">
             {[[tr("Progress"), () => push("progress:" + (r.id || name)), null],
               /* the coach's own note on this player — the first line as the
                  row's value, the whole of it one tap away; theirs alone */
@@ -13788,7 +13800,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
               <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
-                      style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
+                      style={{ minHeight: 52 }}>
                 <span className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
                 {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
                 {!val && <span className="flex-1" />}
@@ -14955,7 +14967,7 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
             className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
             style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards` }}>
       <span className="flex items-center justify-center shrink-0"
-            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : t.hair}`,
+            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : EDGE(t)}`,
                      background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
         {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
       </span>
@@ -15542,7 +15554,7 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
 }
 
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, slotKinds, selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -15564,6 +15576,20 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const [pick, setPick] = useState(null);
   const [famFilter, setFamFilter] = useKept("for", "Everyone");
   const [view, setView] = useKept("view", tr("List"));
+  /* a booking's notification opened the Diary: its day, on the Calendar
+     view where the lesson's block is, before the first paint */
+  useLayoutEffect(() => {
+    if (!landing) return;
+    const i = months.findIndex((x) => x.idx === landing.m && (landing.y == null || x.year == null || x.year === landing.y));
+    if (i >= 0) { setMi(i); setSel(landing.d); setPick(null); setView(tr("Calendar")); }
+    onLanded && onLanded();
+    /* and the day's column brought up under the month, so the lesson
+       the notice named is on the screen, not under the fold */
+    if (i >= 0) requestAnimationFrame(() => requestAnimationFrame(() => {
+      const el = document.querySelector("[data-cal-day]");
+      if (el) el.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    }));
+  }, [landing]);
   const mo = months[Math.min(mi, months.length - 1)];
   const mineOn = (m, d) => bookings.find((b) => b.m === m && b.d === d);
   /* a day the coach is away offers nothing, whatever the week says */
@@ -15774,7 +15800,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       </div>
 
       {/* ---- the selected day, as a readable column ---- */}
-      <div className="px-6">
+      <div className="px-6" data-cal-day>
         <div className="flex items-baseline justify-between mb-4">
           <span style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.025em", color: t.ink }}>{dayLabel}</span>
           <span style={{ ...TYPE.caption, color: t.faint }}>
@@ -15964,11 +15990,7 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
   return (
     <Screen title={tr("Chat")} right={right}
             action={canStart ? (
-              <button data-tour="chat-new" onClick={() => { hapticCommit(); soft(); onNew && onNew(); }}
-                      className="rounded-full flex items-center justify-center active:opacity-50"
-                      style={{ width: 40, height: 40, background: t.accent, boxShadow: `0 4px 14px ${t.accent}22` }} aria-label={tr("New message")}>
-                <Plus size={22} color={t.ink} strokeWidth={2} />
-              </button>) : null}>
+              <HeaderAdd tour="chat-new" label={tr("New message")} onTap={() => { hapticCommit(); soft(); onNew && onNew(); }} />) : null}>
       <div className="px-6 pb-2">
         {list.length === 0 ? (
           <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No conversations yet")}</p>
@@ -17924,8 +17946,33 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Booking on a junior's behalf: set from the family dashboard, read
      by the diary, cleared the moment the diary is left. */
   const [bookFor, setBookFor] = useState(null);
+  /* the day a booking's notification opens the Diary on, read once; and
+     a booking named by a notice before the diary has loaded it */
+  const [diaryLanding, setDiaryLanding] = useState(null);
+  const pendingLanding = useRef(null);
   const screenNow = stack[stack.length - 1];
+  const landOnDay = (at, b) => {
+    pendingLanding.current = null;
+    /* the Diary's kept scroll would put it back where it was */
+    SCREEN_MEMORY.delete("1:calendar|scroll");
+    if (role !== "coach") setBookFor(((data && data.dependants) || []).find((k) => b && k.id === b.playerId) || null);
+    setDiaryLanding(at);
+  };
+  /* the booking a notice named arrives with a load: land on it then, if
+     the Diary is still what is open */
+  useEffect(() => {
+    const p = pendingLanding.current;
+    if (!p || !data) return;
+    if (Date.now() > p.until) { pendingLanding.current = null; return; }
+    const b = Object.values(data.bookings || {}).flat().find((x) => x && x.id === p.id);
+    const at = b ? landingDay(b.date) : null;
+    if (!at) return;
+    pendingLanding.current = null;
+    if (screenNow === "calendar") landOnDay(at, b);
+  }, [data && data.bookings]);
   useEffect(() => { if (screenNow !== "calendar" && bookFor) setBookFor(null); }, [screenNow]);
+  /* a booking still on its way lands only on the Diary it was asked from */
+  useEffect(() => { if (screenNow !== "calendar") pendingLanding.current = null; }, [screenNow]);
   /* A parent with no coach of their own has nothing of their own to
      book, so the diary opens on the first child who can be booked for
      rather than on an empty week. */
@@ -17961,10 +18008,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* the worker carries the id alongside the screen, so "a lesson was
          logged" lands on that lesson rather than the lessons tab */
       const oid = params.get("oid");
+      const oday = params.get("oday");
       if (open) {
-        params.delete("open"); params.delete("oid");
+        params.delete("open"); params.delete("oid"); params.delete("oday");
         window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}${window.location.hash}`);
-        setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open, ...(oid ? { id: oid } : {}) } }), 300);
+        setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open, ...(oid ? { id: oid } : {}), ...(oday ? { remind_day: oday } : {}) } }), 300);
       }
     } catch (e) { /* no history API */ }
     if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
@@ -19550,6 +19598,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const scr = d.screen;
     const home = role === "coach" ? "today" : (account && account.accountType === "parent") ? "family" : "home";
     setCatchUp(null);
+    /* the newest notice wins over one still waiting for its booking */
+    pendingLanding.current = null;
     /* a screen a notification lands on starts at its top; the root under
        it keeps its place */
     const land = (st) => { dropDeeperMemory(1); setStack(st); };
@@ -19559,6 +19609,22 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        the player themselves, or an adult reading a junior's thread */
     if (scr === "thread" && d.id && !juvenile) { land(["messages", `thread:${d.id}`]); return; }
     if (scr === "tips") { land([home, "tips"]); return; }
+    /* A BOOKING'S NOTICE OPENS ON ITS DAY. "Lesson confirmed · Thu 24
+       Sep" opened the Diary wherever it had last been — today, or the
+       month last looked at — and the lesson it named was a hunt away.
+       It lands on that day's Calendar view, where the lesson's own
+       block is; the coach's "3 lessons tomorrow" on tomorrow. A booking
+       the diary no longer holds (past its window) falls through to the
+       Diary as it was. */
+    if (scr === "calendar" && tabs.some((tb) => tb.id === "calendar")) {
+      const b = d.id ? (liveBookingRows || []).find((x) => x && x.id === d.id) : null;
+      const at = b ? landingDay(b.date) : d.remind_day ? landingDay(d.remind_day) : null;
+      if (at) { landOnDay(at, b); go("calendar"); return; }
+      /* a booking made a moment ago may not be in the diary yet (the
+         phone was asleep when it was written): open the Diary, ask for
+         a fresh load, and land the moment the row arrives */
+      if (d.id) { pendingLanding.current = { id: d.id, until: Date.now() + 15000 }; if (data.reload) data.reload(); }
+    }
     if (scr === "family" || scr === "home" || scr === "today" || scr === "calendar" || scr === "practice" || scr === "messages") {
       const target = scr === "home" ? home : scr;
       if (tabs.some((tb) => tb.id === target) || target === "family") { go(target); return; }
@@ -20099,7 +20165,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} pop={pop} onMessage={(k) => push("thread:" + k)} />;
+    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} nouns={cfg.nouns} pop={pop} onMessage={(k) => push("thread:" + k)} />;
   } else if (screen === "digest") {
     body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop}
              stats={data ? Object.fromEntries(profiles.map((pf) => [pf.id, {
@@ -20322,7 +20388,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             onRecurring={() => push("recurring")}
                                                             kids={data ? (data.dependants || []).map((k) => ({ ...k, canBook: !!k.coachId && Object.values((((data.hoursByPlayer || {})[k.id] || {}).days) || {}).some((x) => x && x.length) })) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
-                                                            onBookFor={(k) => { setBookFor(k); }} />;
+                                                            onBookFor={(k) => { setBookFor(k); }}
+                                                            landing={diaryLanding} onLanded={() => setDiaryLanding(null)} />;
   } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} />;
   } else if (screen === "practice") { body = role === "coach" ? <CoachPractice items={myPractice} sheet={openAssignDrills} push={push} right={slimRight} live={!!data} roster={data ? data.roster : null} drills={data ? data.drills : null} onRemoveDrill={data ? (id) => data.removeDrill(id) : null} onRenameDrill={data ? (id, tl) => data.updateDrill(id, tl) : null} say={say} /> : <PlayerPractice conn={conn} items={myPractice} toggle={togglePractice} right={juvenile ? juvRight : navRight} say={say} onAll={() => push("drillsAll")} reminder={reminderCtl}
                            onLogPractice={data && data.canSendClip && data.hasCoach && !parentAccount ? () => setSheet("practiceLog") : null} />;
@@ -20744,7 +20811,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onHistory={() => { setSheet(null); push(data ? "archive:" + peek.who : "history:" + peek.who); }}
                                             cfg={cfg} onWeather={() => setSheet("weather")}
                                             comps={liveComps
-                                              ? liveComps.filter((c) => c.mine || ((data.roster || []).find((r) => r.name === peek.who) || {}).id === c.playerId)
+                                              ? liveComps.filter((c) => !c.past && (c.mine || ((data.roster || []).find((r) => r.name === peek.who) || {}).id === c.playerId))
                                               : [...(playerComps[peek.who] || []), ...(freshAccount ? [] : (EVENTS[coachSport] || []).slice(0, 1).map((e) => ({ ...e, mine: true })))]}
                                             onEditComp={() => { setSheet(null); push("events"); }}
                                             onProfile={() => { setSheet(null); push("player:" + peek.who); }}
@@ -20771,12 +20838,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         of cards, one card a player, which is the tile
                         contract's other half being used for the wrong
                         thing — and a fifty-player roster of them is
-                        fifty cards deep. */}
-                    <div style={{ borderTop: `0.5px solid ${HAIR(theme.ink, 0.12)}` }}>
+                        fifty cards deep. A row in the app's list is still a
+                        row, boxed on the sport's edge like every other. */}
+                    <div className="nsc-list">
                       {roster.map((r) => (
                         <button key={r.id || r.name}
                               className="w-full flex items-center gap-3.5 text-left active:opacity-60"
-                              style={{ minHeight: 58, borderBottom: `0.5px solid ${HAIR(theme.ink, 0.12)}` }}
+                              style={{ minHeight: 58 }}
                               onClick={async () => {
                                 haptic(7); soft();
                                 if (data) {

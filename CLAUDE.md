@@ -737,6 +737,25 @@ seeded data and no account.
   bar or a browser's chrome. The founder saw the old cream band there
   as a blur three times; the air is the intentional version of that
   space, and it stays the same on every screen.
+- **A booking's notice opens the Diary on its day.** "Lesson confirmed
+  · Thu 12 Nov" opened the Diary wherever it had last been — today, or
+  the month last looked at — and the lesson it named was a hunt away.
+  `openNotification` finds the booking a `calendar` notice carries in
+  the diary's rows and hands its day to `CalendarScreen` (`diaryLanding`
+  → `landing`): the month and the day chosen, the Calendar view where
+  the lesson's own block is (Your lesson, Cancel · Reschedule), the
+  day's column brought up under the month (`data-cal-day`), and the
+  Diary's kept scroll dropped so Back's memory does not pull it away.
+  The coach's "Cian Murphy cancelled" lands on that day, their evening
+  "3 lessons tomorrow" (`remind_day`) on tomorrow, and a push opened
+  cold the same — the worker carries the id as `oid` and the
+  reminder's day as `oday`. The landing carries the year, so an old
+  notice never lands on the same day of another year. A booking written
+  after the app loaded (the phone asleep when the coach booked) is not
+  in the diary yet: the Diary opens, a fresh load is asked for, and it
+  lands when the row arrives (`pendingLanding`, fifteen seconds). A
+  booking the diary never holds opens the Diary as it was; a junior's
+  adults' notices still land on Family. `notifications.cjs` (e)–(e9).
 - **The bell reads itself.** Opening the list shows Today, Yesterday and
   Earlier with the unread ones in ink; tapping one marks it, and closing
   the list marks the rest read. The right-hand button is "Mark all read"
@@ -858,6 +877,31 @@ seeded data and no account.
   times as rows inside. A child that pads itself (a swipe row, a
   Settings row that unfolds) is `.nsc-swipe` / `.nsc-flush`, or its
   label sits 20px further in than the row above it.
+  The sheets and the screens that kept the old hairline rows are the
+  same list now: the lesson's peek (its last lessons and what the
+  player is building towards, which reads its own day off the
+  competition's `iso` — `Fri 30 Oct`, the lessons above it the same
+  form in the same column — never "12d", and never one that has
+  been), the Message picker, the pick-a-player sheet, the
+  register's day of lessons and its Not in the diary, Drifting, the
+  roster's Groups half, the player file's foot (Progress · Notes ·
+  Recurring lessons) and the child's Next · Drills. The register's
+  people and the tip sheet's prompts are one `.nsc-day` box with rows
+  inside it on a `1px` `t.hair`, the way a diary day holds its times;
+  a register name is never cut — it takes a second line before it
+  takes an ellipsis, because two "Saoirse K…" are two players a coach
+  cannot tell apart (the box's edge and padding cost the name 35px at
+  375, and `boxes.cjs` (b2) reads every name whole there).
+  The roster's All lessons is a box of its own under the players, as
+  on the coach's home. `LessonRow` and the roster's `row()` draw no
+  foot rule — every list they sit in is boxed, and a `SwipeRow`'s box
+  showed theirs as a line inside it. An empty tick box (a drill, a
+  Settings toggle row) is on `EDGE(t)`: on the hairline it read at
+  1.2:1, under the 3:1 a control's edge needs; the edge reads 3.0 to
+  4.1:1 across the sports. An empty state ("Nobody
+  by that name") is a line under the field, never a box.
+  `scripts/e2e/boxes.cjs` walks every one as the coach, the player and
+  a parent, and fails on a box off the edge or a rule inside one.
 - **The paper is `#FEFEFE`, one step off pure white, the same for
   every sport.** Every theme's `page` is that value; `surface` is
   white; the sport's colour lives in `wash`, the accent, the mark, the
@@ -1422,6 +1466,15 @@ seeded data and no account.
   these was flattened to a hairline in one round on the strength of
   the reference sets, and the founder called the result terrible the
   same day, and asked where the plus had gone. Do not flatten it again.
+- **One add control in a header.** `HeaderAdd` — 40 square, the
+  control's corner (`R.control`), the accent (it is the screen's one
+  action), `ELEV.cast` and a plus in `t.onAccent` — is the + on Chat
+  (`chat-new`, "New message"), Ahead ("Add"), Recurring lessons
+  (`recur-add`) and the harness's check-ins ("Send"). Chat's was a
+  circle and the others sharp squares, three of them with an ink plus
+  on the accent: 2.06 to 3.39:1 across the six sports, under WCAG's
+  3:1 for a control's glyph. The white plus reads 5.03 to 8.23:1. A
+  new header add uses it. `boxes.cjs` (d), (h), (j), (l).
 - **One name per thing.** The tab label is the screen's H1 — Diary opens
   "Diary" for everyone, Drills opens "Drills" — and a control carries the
   same word on every surface: the plus sheet's foot says "Edit" and the
@@ -1457,8 +1510,9 @@ seeded data and no account.
   built in the roster route; `data-standing` on the line carries its
   tone for the suite. `scripts/e2e/roster.cjs`.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
-  Chat, Coming up, the family's people, the bell: hairline rows with an
-  avatar, a name and one grey line. A search field appears only when
+  Chat, Coming up, the family's people, the bell: rows with an avatar,
+  a name and one grey line, each in its own box on the sport's edge
+  (above) — a row in a box is still a row, never a card. A search field appears only when
   the list is long (Roster: more than eight). Settings rows carry a
   `sub` only when it holds a value (the coach's name, the address),
   never a sentence explaining the label. A border is earned by the
