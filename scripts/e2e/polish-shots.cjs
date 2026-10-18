@@ -49,7 +49,10 @@ function freshDb() {
   const boot = async (role) => {
     const u = Object.values(db.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-    const page = await ctx.newPage(); await M.attach(page, db);
+    const page = await ctx.newPage();
+    /* eight in the morning, so the 4:00 pm lesson is still ahead and its
+       peek and register are what the shots show, whenever this runs */
+    await page.clock.setFixedTime(new Date(`${ymd(today)}T08:00:00`)); await M.attach(page, db);
     await M.injectSession(page, M.session(u, db));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
     const shot = (n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });

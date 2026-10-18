@@ -748,11 +748,14 @@ seeded data and no account.
   Diary's kept scroll dropped so Back's memory does not pull it away.
   The coach's "Cian Murphy cancelled" lands on that day, their evening
   "3 lessons tomorrow" (`remind_day`) on tomorrow, and a push opened
-  cold (`?open=calendar&oid=`) the same — the worker carries only the
-  screen and the id, so the cold reminder still opens the Diary as it
-  was. A booking the diary no longer holds falls through to the Diary
-  as it was; a junior's adults' notices still land on Family.
-  `notifications.cjs` (e)–(e5).
+  cold the same — the worker carries the id as `oid` and the
+  reminder's day as `oday`. The landing carries the year, so an old
+  notice never lands on the same day of another year. A booking written
+  after the app loaded (the phone asleep when the coach booked) is not
+  in the diary yet: the Diary opens, a fresh load is asked for, and it
+  lands when the row arrives (`pendingLanding`, fifteen seconds). A
+  booking the diary never holds opens the Diary as it was; a junior's
+  adults' notices still land on Family. `notifications.cjs` (e)–(e9).
 - **The bell reads itself.** Opening the list shows Today, Yesterday and
   Earlier with the unread ones in ink; tapping one marks it, and closing
   the list marks the rest read. The right-hand button is "Mark all read"
@@ -876,13 +879,19 @@ seeded data and no account.
   label sits 20px further in than the row above it.
   The sheets and the screens that kept the old hairline rows are the
   same list now: the lesson's peek (its last lessons and what the
-  player is building towards, which reads its day — `Fri 30 Oct` —
-  never "12d"), the Message picker, the pick-a-player sheet, the
+  player is building towards, which reads its own day off the
+  competition's `iso` — `Fri 30 Oct`, the lessons above it the same
+  form in the same column — never "12d", and never one that has
+  been), the Message picker, the pick-a-player sheet, the
   register's day of lessons and its Not in the diary, Drifting, the
   roster's Groups half, the player file's foot (Progress · Notes ·
   Recurring lessons) and the child's Next · Drills. The register's
   people and the tip sheet's prompts are one `.nsc-day` box with rows
-  inside it on a `1px` `t.hair`, the way a diary day holds its times.
+  inside it on a `1px` `t.hair`, the way a diary day holds its times;
+  a register name is never cut — it takes a second line before it
+  takes an ellipsis, because two "Saoirse K…" are two players a coach
+  cannot tell apart (the box's edge and padding cost the name 35px at
+  375, and `boxes.cjs` (b2) reads every name whole there).
   The roster's All lessons is a box of its own under the players, as
   on the coach's home. `LessonRow` and the roster's `row()` draw no
   foot rule — every list they sit in is boxed, and a `SwipeRow`'s box

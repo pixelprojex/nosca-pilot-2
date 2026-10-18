@@ -196,8 +196,11 @@ self.addEventListener("notificationclick", (event) => {
   /* carry the id too: "a lesson was logged" has to land on THAT lesson,
      not on the lessons tab */
   const id = data && data.id != null ? String(data.id) : null;
+  /* and the day, for the coach's evening "3 lessons tomorrow", which
+     names a day and no booking */
+  const day = data && typeof data.remind_day === "string" ? data.remind_day : null;
   const target = screen
-    ? "/?open=" + encodeURIComponent(screen) + (id ? "&oid=" + encodeURIComponent(id) : "")
+    ? "/?open=" + encodeURIComponent(screen) + (id ? "&oid=" + encodeURIComponent(id) : "") + (day ? "&oday=" + encodeURIComponent(day) : "")
     : "/";
 
   event.waitUntil((async () => {

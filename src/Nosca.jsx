@@ -2747,10 +2747,12 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
   const [time, setTime] = useState("9:00 am");
   const [extra, setExtra] = useState([]);
   const all = [...extra, ...list].sort((a, b) => a.days - b.days);
+  /* the ones that have been and gone sit under the rest, and are not "coming up" */
+  const ahead = all.filter((e) => !(e.past || e.days < 0)).length;
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Ahead")} onBack={pop} meta={all.length ? `${all.length} ${tr("coming up")}` : ""}
+      <Screen title={tr("Ahead")} onBack={pop} meta={ahead ? `${ahead} ${tr("coming up")}` : ""}
               action={<HeaderAdd label={tr("Add")} onTap={() => { haptic(9); soft(); setAdding(!adding); }} />}>
         <div className="px-6 pb-2">
           {adding && (
@@ -3292,7 +3294,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
                   style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
-            <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.m ? `${l.d} ${l.m}` : l.d}</span>
+            <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
           </button>
         ))}
@@ -3318,7 +3320,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
             <div key={i} className="flex items-baseline gap-4 py-3">
               {/* the day, never a countdown — "12d" was the one in the app */}
               <span className="shrink-0" style={{ width: 76, ...TYPE.caption,
-                             color: c.days <= 7 ? CAUTION : t.faint }}>{fmtWeekDay((() => { const x = new Date(); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() + (c.days || 0)); return x; })())}</span>
+                             color: c.days <= 7 ? CAUTION : t.faint }}>{c.iso ? fmtWeekDay(localDate(c.iso)) : c.when || `${c.days}d`}</span>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{c.name}</span>
               {c.mine && <span style={{ ...TYPE.caption, color: t.faint }}>{tr("Yours")}</span>}
             </div>
@@ -4003,12 +4005,12 @@ function atRisk(roster, series, live, bookedIds) {
   }).filter(Boolean).sort((a, b) => b.weight - a.weight);
 }
 
-function AtRisk({ list, onMessage, pop }) {
+function AtRisk({ list, onMessage, pop, nouns = "players" }) {
   const t = useT();
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Drifting")} onBack={pop}
-              meta={list.length ? `${list.length} ${tr("people")}` : tr("Nobody drifting")}>
+              meta={list.length ? countOf(list.length, nouns) : tr("Nobody drifting")}>
         <div className="px-6 pb-2">
           {list.length === 0 ? (
             <div className="py-14 text-center">
@@ -4643,19 +4645,21 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           {who.map((r, i) => {
             const m = marks[r.id];
             return (
-              <div key={r.id} className="flex items-center gap-3 px-4"
+              <div key={r.id} className="flex items-center gap-2.5 px-3"
                    style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}`,
                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={32} />
-                <span className="flex-1 min-w-0 truncate"
-                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink }}>{r.name}</span>
+                {/* the whole name, on two lines if it must: two Saoirse K…
+                    are two players the coach cannot tell apart */}
+                <span className="flex-1 min-w-0 py-2"
+                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink, overflowWrap: "anywhere", lineHeight: 1.25 }}>{r.name}</span>
 
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
                   return (
                     <button key={v} onClick={() => mark(r.id, v)}
                             className="flex items-center justify-center active:opacity-70"
-                            style={{ minWidth: 74, minHeight: 38, borderRadius: R.control,
+                            style={{ minWidth: 66, minHeight: 38, borderRadius: R.control,
                                      background: on ? tone : "transparent",
                                      border: `0.5px solid ${on ? tone : HAIR(t.ink, 0.2)}`,
                                      ...TYPE.caption, fontWeight: 600,
@@ -6769,17 +6773,17 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
 
           {mine.length > 0 && (<>
             <Eyebrow>{tr("Lessons")}</Eyebrow>
-            <Card className="px-5 mb-7">
-              {shown.map((l, i) => (
+            <div className="nsc-list mb-7">
+              {shown.map((l) => (
                 <button key={l.id} onClick={() => { haptic(7); soft(); onOpenLesson && onOpenLesson(l); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
-                        style={{ minHeight: 46, borderBottom: i === shown.length - 1 ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-                  <span className="shrink-0" style={{ width: 56, ...TYPE.caption, color: t.faint }}>{l.d} {l.m}</span>
+                        style={{ minHeight: 46 }}>
+                  <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`}</span>
                   <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{l.focus}</span>
                   {(l.media || l.videos) > 0 && <Play size={12} color={t.faint} />}
                   <ChevronRight size={13} color={t.trace || t.faint} />
                 </button>
               ))}
-            </Card>
+            </div>
             {mine.length > shown.length && (
               <button onClick={() => { haptic(6); onAllLessons && onAllLessons(); }} className="w-full mb-3 active:opacity-60"
                       style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
@@ -6788,7 +6792,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
             )}
             {onProgress && (
               <button data-tour="kid-progress" onClick={() => { haptic(6); onProgress(); }} className="w-full mb-7 active:opacity-60"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.16)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("Progress")}
               </button>
             )}
@@ -12585,6 +12589,8 @@ const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];   // getDay(
 /* "Wed 23 Sep" — the locale gives "Sept" for September in en-IE while
    every table in the file says "Sep"; one spelling, from one table */
 const fmtWeekDay = (d) => `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${WIZ_MONTHS[d.getMonth()]}`;
+/* the day a booking's notice lands the Diary on, year and all */
+const landingDay = (iso) => { if (!iso) return null; const x = localDate(iso); return isNaN(x) ? null : { y: x.getFullYear(), m: x.getMonth() + 1, d: x.getDate() }; };
 const wizNorm = (s) => String(s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 /* prefix on any word, diacritic-insensitive: "siob" finds Siobhán, "o b" finds Ó Briain */
 const wizMatch = (name, q) => { const n = wizNorm(name), k = wizNorm(q).trim(); if (!k) return true; return n.startsWith(k) || n.split(/\s+/).some((w) => w.startsWith(k)); };
@@ -13751,10 +13757,10 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                          onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
             </div>
           )}
+          {live && past.length === 0 && (
+            <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
+          )}
           <div className="mb-4 nsc-list" data-tour="player-lessons">
-            {live && past.length === 0 && (
-              <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
-            )}
             {shown.map((l, i) => (
               <LessonRow key={l.id || i} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
                          saved={false} showWho={false} onOpen={openLesson} onDownload={live ? onDownload : null} />
@@ -15573,7 +15579,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
      view where the lesson's block is, before the first paint */
   useLayoutEffect(() => {
     if (!landing) return;
-    const i = months.findIndex((x) => x.idx === landing.m);
+    const i = months.findIndex((x) => x.idx === landing.m && (landing.y == null || x.year == null || x.year === landing.y));
     if (i >= 0) { setMi(i); setSel(landing.d); setPick(null); setView(tr("Calendar")); }
     onLanded && onLanded();
     /* and the day's column brought up under the month, so the lesson
@@ -17939,9 +17945,29 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* Booking on a junior's behalf: set from the family dashboard, read
      by the diary, cleared the moment the diary is left. */
   const [bookFor, setBookFor] = useState(null);
-  /* the day a booking's notification opens the Diary on, read once */
+  /* the day a booking's notification opens the Diary on, read once; and
+     a booking named by a notice before the diary has loaded it */
   const [diaryLanding, setDiaryLanding] = useState(null);
+  const pendingLanding = useRef(null);
   const screenNow = stack[stack.length - 1];
+  const landOnDay = (at, b) => {
+    /* the Diary's kept scroll would put it back where it was */
+    SCREEN_MEMORY.delete("1:calendar|scroll");
+    if (role !== "coach") setBookFor(((data && data.dependants) || []).find((k) => b && k.id === b.playerId) || null);
+    setDiaryLanding(at);
+  };
+  /* the booking a notice named arrives with a load: land on it then, if
+     the Diary is still what is open */
+  useEffect(() => {
+    const p = pendingLanding.current;
+    if (!p || !data) return;
+    if (Date.now() > p.until) { pendingLanding.current = null; return; }
+    const b = Object.values(data.bookings || {}).flat().find((x) => x && x.id === p.id);
+    const at = b ? landingDay(b.date) : null;
+    if (!at) return;
+    pendingLanding.current = null;
+    if (screenNow === "calendar") landOnDay(at, b);
+  }, [data && data.bookings]);
   useEffect(() => { if (screenNow !== "calendar" && bookFor) setBookFor(null); }, [screenNow]);
   /* A parent with no coach of their own has nothing of their own to
      book, so the diary opens on the first child who can be booked for
@@ -17978,10 +18004,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       /* the worker carries the id alongside the screen, so "a lesson was
          logged" lands on that lesson rather than the lessons tab */
       const oid = params.get("oid");
+      const oday = params.get("oday");
       if (open) {
-        params.delete("open"); params.delete("oid");
+        params.delete("open"); params.delete("oid"); params.delete("oday");
         window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}${window.location.hash}`);
-        setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open, ...(oid ? { id: oid } : {}) } }), 300);
+        setTimeout(() => openNotificationRef.current && openNotificationRef.current({ data: { screen: open, ...(oid ? { id: oid } : {}), ...(oday ? { remind_day: oday } : {}) } }), 300);
       }
     } catch (e) { /* no history API */ }
     if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
@@ -19585,17 +19612,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        Diary as it was. */
     if (scr === "calendar" && tabs.some((tb) => tb.id === "calendar")) {
       const b = d.id ? (liveBookingRows || []).find((x) => x && x.id === d.id) : null;
-      const at = b && b.m && b.d ? { m: b.m, d: b.d }
-        : d.remind_day ? (() => { const x = localDate(d.remind_day); return isNaN(x) ? null : { m: x.getMonth() + 1, d: x.getDate() }; })()
-        : null;
-      if (at) {
-        /* the Diary's kept scroll would put it back where it was */
-        SCREEN_MEMORY.delete("1:calendar|scroll");
-        if (role !== "coach") setBookFor((data.dependants || []).find((k) => b && k.id === b.playerId) || null);
-        setDiaryLanding(at);
-        go("calendar");
-        return;
-      }
+      const at = b ? landingDay(b.date) : d.remind_day ? landingDay(d.remind_day) : null;
+      if (at) { landOnDay(at, b); go("calendar"); return; }
+      /* a booking made a moment ago may not be in the diary yet (the
+         phone was asleep when it was written): open the Diary, ask for
+         a fresh load, and land the moment the row arrives */
+      if (d.id) { pendingLanding.current = { id: d.id, until: Date.now() + 15000 }; if (data.reload) data.reload(); }
     }
     if (scr === "family" || scr === "home" || scr === "today" || scr === "calendar" || scr === "practice" || scr === "messages") {
       const target = scr === "home" ? home : scr;
@@ -20137,7 +20159,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} pop={pop} onMessage={(k) => push("thread:" + k)} />;
+    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} nouns={cfg.nouns} pop={pop} onMessage={(k) => push("thread:" + k)} />;
   } else if (screen === "digest") {
     body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop}
              stats={data ? Object.fromEntries(profiles.map((pf) => [pf.id, {

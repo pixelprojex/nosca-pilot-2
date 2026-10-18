@@ -532,6 +532,7 @@ export function useNoscaData(profile) {
           days,
           past: days < 0,
           date: `${String(dt.getDate()).padStart(2, "0")} ${MONTHS[dt.getMonth()]}`,
+          iso: c.event_date || null,                // the day itself, for a screen that names it
           mine: !c.player_id,                       // the coach's own
           playerId: c.player_id,
         };
