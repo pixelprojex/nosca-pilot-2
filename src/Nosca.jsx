@@ -3550,7 +3550,6 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
    is offered rather than required. */
 function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, onNew, pop, say, real }) {
   const t = useT();
-  const [confirming, setConfirming] = useState(null);
   const live = series.filter((x) => !x.ended);
   const past = series.filter((x) => x.ended);
 
@@ -3582,16 +3581,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                 </span>
               </div>
 
-              {confirming === x ? (
-                <div className="flex gap-2.5 mt-4" style={{ animation: "liftIn 300ms cubic-bezier(.22,1,.36,1) both" }}>
-                  <button onClick={() => { haptic(6); setConfirming(null); }} className="px-4 active:opacity-60"
-                          style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}`,
-                                   fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{tr("Keep it")}</button>
-                  <button onClick={() => { hapticWarn(); decline(); onEnd(x); setConfirming(null); }} className="flex-1 active:opacity-75"
-                          style={{ minHeight: 44, borderRadius: R.control, background: DANGER,
-                                   fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{tr("End it")}</button>
-                </div>
-              ) : (
+              {(
                 <>
                   {/* day, time and how often — a standing lesson moves
                       more often than people expect */}
@@ -3619,7 +3609,8 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
-                    <button onClick={() => { haptic(9); setConfirming(x); }} className="px-3 active:opacity-60"
+                    {/* End asks why, lists the lessons it booked and takes the password — the End sheet */}
+                    <button data-tour="recur-end" onClick={() => { haptic(9); onEnd(x); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 34, borderRadius: R.pill, border: `1px solid ${t.hair}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
                   </div>
@@ -7074,7 +7065,115 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
    any that still go ahead), and the coach's password last, because an
    accidental call-off costs a coach their day and their players their
    evening. Everyone affected is told and offered a new time. */
+/* ENDING A RECURRING LESSON CANCELS WHAT IT BOOKED. End deleted the
+   arrangement and left every lesson it had booked in both diaries, and
+   nobody was told. Why first (the coach's cancel reasons), then the
+   lessons still ahead, all ticked — untick any that still go ahead —
+   then the password, the way every taking-away of somebody's lesson
+   ends. With nothing ahead, or every one unticked, nothing is taken
+   from anyone and End is one tap. */
+function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, onConfirm, close }) {
+  const t = useT();
+  const [stage, setStage] = useState("why");   // why | which | password
+  const [reason, setReason] = useState(null);
+  const [note, setNote] = useState("");
+  const [kept, setKept] = useState([]);
+  const ready = !!reason && (reason !== "Something else" || note.trim().length > 0);
+  const why = reason === "Something else" ? (note.trim() || null) : reason;
+  const picked = rows.filter((b) => !kept.includes(b.id));
+  const n = picked.length;
+  const noun = n === 1 ? tr("lesson") : tr("lessons");
+  const what = `${rec.who} · ${DAY_NAMES[rec.day]}s ${rec.time}`;
+  const finish = (list) => { hapticWarn(); decline(); onConfirm(list, list.length ? why : null); close(); };
+  const back = (to) => (
+    <button onClick={() => { haptic(6); setStage(to); }} className="w-full mt-3 py-3 active:opacity-50"
+            style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
+  );
+  const head = (title, line) => (<>
+    <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
+    <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{line}</p>
+  </>);
+
+  if (!rows.length) return (
+    <div data-tour="end-series">
+      {head(tr("End"), what)}
+      <p className="mb-6" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked ahead")}</p>
+      <Button tone="danger" tour="end-confirm" onClick={() => finish([])}>{tr("End it")}</Button>
+      <button onClick={() => { haptic(6); close(); }} className="w-full mt-3 py-3 active:opacity-50"
+              style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Keep it")}</button>
+    </div>
+  );
+
+  if (stage === "password") return (
+    <div data-tour="end-series">
+      <ConfirmPassword title={tr("End")}
+                       detail={`${rec.who}. ${n} ${noun} ${tr("will be cancelled.")} ${group ? "" : reasonTravels ? tr("They are told straight away with the reason.") + " " : tr("They are told straight away.") + " "}${tr("Confirm with your password.")}`}
+                       actionLabel={`${tr("Cancel")} ${n} ${noun}`} closeLabel={tr("Back")}
+                       onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(picked); return { next: true }; }}
+                       close={() => setStage("which")} />
+    </div>
+  );
+
+  if (stage === "which") return (
+    <div data-tour="end-series">
+      {head(tr("Which lessons"), tr("Untick any that still go ahead"))}
+      <div className="flex flex-col gap-2 mb-6">
+        {rows.map((b) => {
+          const on = !kept.includes(b.id);
+          return (
+            <button key={b.id} data-tour="end-row" aria-pressed={on}
+                    onClick={() => { haptic(7); soft(); setKept(on ? [...kept, b.id] : kept.filter((x) => x !== b.id)); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                    style={{ minHeight: 52, borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
+                             border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 180ms" }}>
+              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{fmtWeekDay(localDate(b.date))}</span>
+              <span style={{ ...TYPE.caption, color: t.faint }}>{span(b.time, b.duration || duration)}</span>
+              {on ? <Check size={17} color={DANGER} strokeWidth={2.1} /> : <span style={{ width: 17 }} />}
+            </button>
+          );
+        })}
+      </div>
+      <Button tone="danger" tour="end-confirm"
+              onClick={() => { if (!n) { finish([]); return; } if (verify) { hapticWarn(); setStage("password"); } else finish(picked); }}>
+        {n ? `${tr("Cancel")} ${n} ${noun}` : tr("End")}
+      </Button>
+      {back("why")}
+    </div>
+  );
+
+  return (
+    <div data-tour="end-series">
+      {head(tr("End"), what)}
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
+      <div className="flex flex-col gap-2 mb-5">
+        {CANCEL_REASONS.coach.map((r, i) => {
+          const on = reason === r;
+          return (
+            <button key={r} data-tour="end-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
+                    className="w-full flex items-center gap-3 px-4 text-left"
+                    style={{ minHeight: 52, borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
+                             border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr(r)}</span>
+              {on && <Check size={16} color={DANGER} strokeWidth={2.1} />}
+            </button>
+          );
+        })}
+      </div>
+      {reason === "Something else" && (
+        <div className="mb-5" data-tour="end-note" style={{ animation: "liftIn 320ms cubic-bezier(.22,1,.36,1) both" }}>
+          <VoiceArea value={note} onChange={setNote} rows={2} ph={tr("Reason")} />
+        </div>
+      )}
+      <Button tone="ink" tour="end-next" disabled={!ready} onClick={() => { haptic(9); setStage("which"); }}>{tr("Next")}</Button>
+    </div>
+  );
+}
+
 const CALL_OFF_REASONS = ["Weather", ...CANCEL_REASONS.coach];
+/* what an edit did to the lessons a run had already booked: nothing,
+   and it says so */
+const stayLine = (n) => (n ? (n === 1 ? tr("1 booked lesson stays as it is") : `${n} ${tr("booked lessons stay as they are")}`) : null);
 function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
   const t = useT();
   const [reason, setReason] = useState(null);
@@ -14083,7 +14182,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
   return (
     <>
       <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.02em", color: t.ink }}>
-        {existing ? "Recurring lessons" : `Set up ${(name || "").split(" ")[0]}`}
+        {existing ? existing.who : `Set up ${(name || "").split(" ")[0]}`}
       </h2>
 
       
@@ -14112,6 +14211,10 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         })}
       </div>
 
+      {/* how many, and the first three, are for a new run only: an
+          arrangement already running has its lessons booked, and Update
+          changes the arrangement, not them */}
+      {!existing && (<>
       <div className="flex items-center justify-between mb-5">
         <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Lessons")}</span>
         <span className="flex items-center gap-3">
@@ -14127,13 +14230,15 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
           {preview.map((o) => `${o.d} ${monthName(o.m).slice(0, 3)}`).join(", ")}.
         </p>
       </div>
+      </>)}
 
       <Button onClick={() => { onSave({ who: name, day, time, freq, total }); close(); }}>
         {existing ? "Update" : `Book ${total} lessons`}
       </Button>
+      {/* End opens the End sheet in this one sheet, so nothing closes it here */}
       {existing && (
-        <button onClick={() => { hapticWarn(); onEnd(existing); close(); }} className="w-full mt-3 py-3 active:opacity-50"
-                style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("End series")}</button>
+        <button data-tour="series-end" onClick={() => { haptic(9); onEnd(existing); }} className="w-full mt-3 py-3 active:opacity-50"
+                style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
       )}
     </>
   );
@@ -15912,11 +16017,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         {role === "coach" && seriesList && seriesList.length > 0 && (
           <div className="mt-8">
             <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Recurring")}</div>
-            <div style={{ borderTop: `1px solid ${t.hair}` }}>
+            {/* the app's list, a box per arrangement; a tap opens that
+                arrangement by its id — it handed the sheet a name, and the
+                sheet opened a blank Set up whose Save went nowhere */}
+            <div className="nsc-list">
               {seriesList.map((r) => (
-                <button key={r.id} onClick={() => { haptic(6); onEditSeries && onEditSeries(r.who); }}
+                <button key={r.id} data-tour="cal-series" onClick={() => { haptic(6); onEditSeries && onEditSeries(r); }}
                         className="w-full flex items-center gap-3 text-left active:opacity-50"
-                        style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}` }}>
+                        style={{ minHeight: 62 }}>
                   <span className="flex-1 min-w-0">
                     <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
                     <span className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
@@ -18188,6 +18296,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     { id: 1, who: "Marcus Tran", sport: "golf", day: 4, time: "11:00 am", freq: "weekly", total: 10, used: 2 },
   ]);
   const [recurFor, setRecurFor] = useState(null);
+  /* the arrangement a sheet was opened on, by id; and the End sheet's run */
+  const [recurId, setRecurId] = useState(null);
+  const [ending, setEnding] = useState(null);
   const holdTimer = useRef(null);
   const suppressTap = useRef(false);
   const [calPrefs, setCalPrefs] = useState({ showFree: true, weekends: true, colourType: true, buffer: 0 });
@@ -18402,7 +18513,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [library, setLibrary] = useState(() => Object.fromEntries(Object.entries(SPORTS).map(([id, cf]) => [id, account ? [] : cf.drills])));
 
   const roster = data ? data.roster : freshAccount ? [] : ROSTER;
-  const mySeries = data ? data.recurring : freshAccount ? [] : series.filter((x) => x.sport === coachSport);
+  /* a coach's own arrangements: one who also takes lessons can read the
+     arrangement their own coach made for them, and it is not theirs to end */
+  const mySeries = data ? (data.recurring || []).filter((x) => !x.coachId || !account || x.coachId === account.id) : freshAccount ? [] : series.filter((x) => x.sport === coachSport);
 
   /* Saving an arrangement books every slot out on the calendar. */
   const saveSeries = async (v) => {
@@ -18412,21 +18525,34 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          nobody chosen and defaults to the first on the roster. */
       const who = (recurFor && recurFor.id ? (data.roster || []).find((r) => r.id === recurFor.id) : null)
         || (data.roster || []).find((r) => r.name === v.who);
+      /* an arrangement already running changes in place, by its id: the
+         lessons it booked stay its own and stay as they are, and the
+         toast says so. It was deleted and inserted afresh, which lost
+         the arrangement when the insert failed and said "Updated" over
+         lessons left on the old day. */
+      const old = (recurId && (data.recurring || []).find((x) => x.id === recurId))
+        || (who ? (data.recurring || []).find((x) => x.playerId === who.id && (!x.coachId || x.coachId === account.id)) : null);
+      if (old) { await editSeries(old, { weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq }); return; }
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
-      const old = (data.recurring || []).find((x) => x.playerId === who.id);
-      if (old) { const r0 = await data.removeRecurring(old.id); if (r0 && r0.error) { say(r0.error.message); return; } }
       const r1 = await data.addRecurring({ playerId: who.id, weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq });
       if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save that.")); return; }
-      if (!old) {
-        /* the arrangement books its run out in the diary, as the button says */
-        const occ = occurrencesFrom(v.day, v.total, v.freq);
-        const r2 = await data.addBookings(occ.map((iso) => ({ playerId: who.id, date: iso, time: v.time, duration })));
-        if (r2 && r2.error) { say(r2.error.message); return; }
-        hapticSuccess(); chime(); say(`${occ.length} ${tr("lessons booked for")} ${v.who.split(" ")[0]}`); return;
-      }
-      hapticSuccess(); chime(); say(tr("Updated")); return;
+      /* the arrangement books its run out in the diary, as the button says, each lesson carrying it */
+      const occ = occurrencesFrom(v.day, v.total, v.freq);
+      const r2 = await data.addBookings(occ.map((iso) => ({ playerId: who.id, date: iso, time: v.time, duration, recurringId: r1.id })));
+      if (r2 && r2.error) { say(r2.error.message); return; }
+      hapticSuccess(); chime(); say(`${occ.length} ${tr("lessons booked for")} ${v.who.split(" ")[0]}`); return;
     }
     const existing = series.find((x) => x.who === v.who && x.sport === coachSport);
+    /* the harness too: a running arrangement changes in place and books nothing new */
+    if (existing) {
+      let n = 0;
+      Object.entries((seedBooked && seedBooked[coachSport]) || {}).forEach(([k, day]) => {
+        const [m, d] = k.split("-").map(Number);
+        if (!isPast(m, d, calendar)) n += day.filter((b) => b.seriesId === existing.id).length;
+      });
+      setSeries((list) => list.map((x) => (x.id === existing.id ? { ...x, day: v.day, time: v.time, freq: v.freq } : x)));
+      chime(); done(tr("Updated"), stayLine(n)); return;
+    }
     const id = existing ? existing.id : Date.now();
     const rec = { id, sport: coachSport, used: existing?.used || 0, ...v };
     setSeries((list) => (existing ? list.map((x) => (x.id === id ? rec : x)) : [...list, rec]));
@@ -18444,23 +18570,74 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     say(`${v.total} lessons booked for ${v.who.split(" ")[0]}`);
   };
 
-  const endSeries = async (rec) => {
-    if (data) {
-      hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
-      const r = await data.removeRecurring(rec.id);
-      if (r && r.error) { hapticWarn(); say(r.error.message || tr("Couldn't end that.")); return; }
-      say(`${rec.who.split(" ")[0]}'s arrangement ended`); return;
+  /* AN EDIT changes the arrangement in place and moves no lesson. A run
+     booked before its lessons carried it is linked first, so End still
+     finds them on the day they are on; where the column is not there
+     yet, such a run's day and time do not move — End could not find its
+     lessons afterwards. */
+  const editSeries = async (rec, next) => {
+    const before = await data.seriesBookings(rec);
+    if (before && before.error) { hapticWarn(); say(before.error.message || tr("Couldn't change that arrangement.")); return false; }
+    const rows = (before && before.rows) || [];
+    const moves = next.weekday !== rec.weekday || next.time !== rec.time;
+    if (rows.length && moves && !before.linked) {
+      if (!data.seriesLinks) { hapticWarn(); say(tr("The database needs updating before an arrangement can move to another day or time.")); return false; }
+      const l = await data.linkSeries(rec.id, rows.map((b) => b.id));
+      if (!l || l.error || l.count !== rows.length) { hapticWarn(); say(tr("Couldn't change that arrangement.")); return false; }
     }
+    const r0 = await data.updateRecurring(rec.id, next);
+    if (r0 && r0.error) { hapticWarn(); say(r0.error.message || tr("Couldn't save that.")); return false; }
+    chime(); done(tr("Updated"), stayLine(rows.length)); return true;
+  };
+  const endReq = useRef(0);
+  /* END: the lessons the arrangement booked that are still ahead,
+     asked of the server, into the End sheet — why, which, the password */
+  const openEndSeries = async (rec) => {
+    if (!rec) return;
+    if (data) {
+      /* only the latest tap's answer opens the sheet */
+      const my = ++endReq.current;
+      const r = await data.seriesBookings(rec);
+      if (my !== endReq.current) return;
+      if (r && r.error) { hapticWarn(); say(r.error.message || tr("Couldn't read those lessons.")); return; }
+      setEnding({ rec, rows: r.rows || [] }); setSheet("endSeries"); return;
+    }
+    const rows = [];
+    Object.entries((seedBooked && seedBooked[coachSport]) || {}).forEach(([k, day]) => {
+      const [m, d] = k.split("-").map(Number);
+      if (isPast(m, d, calendar)) return;
+      day.forEach((b) => { if (b.seriesId === rec.id) rows.push({ id: `${k}|${b.time}`, date: isoOf(m, d), time: b.time, m, d }); });
+    });
+    rows.sort((a, b) => a.date.localeCompare(b.date));
+    setEnding({ rec, rows }); setSheet("endSeries");
+  };
+  /* the ticked lessons are cancelled first, with the reason, so the
+     player and a junior's adults are told; only then does the
+     arrangement go. A refused cancel leaves the arrangement as it was. */
+  const endSeries = async (rec, picked = [], why = null) => {
+    const n = picked.length;
+    const line = n ? `${rec.who} · ${n} ${n === 1 ? tr("lesson") : tr("lessons")} ${tr("cancelled")}` : rec.who;
+    if (data) {
+      if (n) {
+        const c = await data.callOffBookings(picked.map((b) => b.id), "cancelled", why);
+        if (c && c.error) { hapticWarn(); say(c.error.message || tr("Couldn't cancel those.")); return; }
+        if (!c || !c.count) { hapticWarn(); say(tr("Couldn't cancel those.")); return; }
+      }
+      const r = await data.removeRecurring(rec.id);
+      if (r && r.error) { hapticWarn(); say(n ? tr("Lessons cancelled · couldn't end the arrangement") : (r.error.message || tr("Couldn't end that."))); return; }
+      done(tr("Ended"), line, DANGER); return;
+    }
+    const gone = new Set(picked.map((b) => b.id));
     setSeries((list) => list.filter((x) => x.id !== rec.id));
     setSeedBooked((prev) => {
       const next = { ...prev, [coachSport]: {} };
-      Object.entries(prev[coachSport]).forEach(([k, day]) => {
-        const kept = day.filter((b) => b.seriesId !== rec.id);
+      Object.entries(prev[coachSport] || {}).forEach(([k, day]) => {
+        const kept = day.filter((b) => !(b.seriesId === rec.id && gone.has(`${k}|${b.time}`)));
         if (kept.length) next[coachSport][k] = kept;
       });
       return next;
     });
-    say(`${rec.who.split(" ")[0]}'s arrangement ended`);
+    done(tr("Ended"), line, DANGER);
   };
 
   /* Weather off: the lesson isn't lost, it's pushed to the end of the
@@ -19461,9 +19638,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (cur.some((x) => (x.name || "").toLowerCase() === rec.name.toLowerCase())) { hapticWarn(); say(tr("You already have a group with that name.")); return; }
       const r1 = await data.saveGroups([...cur, rec]);
       if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save the group.")); return; }
-      await data.addRecurring({ groupName: g.name, weekday: (g.day + 1) % 7, time: g.time, cadence: "weekly" });
+      const gr = await data.addRecurring({ groupName: g.name, weekday: (g.day + 1) % 7, time: g.time, cadence: "weekly" });
       const occ = occurrencesFrom(g.day, g.weeks, "weekly");
-      if (occ.length) await data.addBookings(occ.map((iso) => ({ groupName: g.name, date: iso, time: g.time, duration })));
+      if (occ.length) await data.addBookings(occ.map((iso) => ({ groupName: g.name, date: iso, time: g.time, duration, recurringId: gr && gr.id })));
       say(`${g.name} ${tr("created")} · ${occ.length} ${tr("lessons scheduled")}`); haptic(20); return;
     }
     const id = Date.now();
@@ -19872,7 +20049,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         note={pl ? playerNotes[pl.id] || null : null} onNote={data && pl ? () => { setNoteFor(pl); setSheet("playerNote"); } : null}
                         player={pl} tip={pl ? (((data.tips || []).find((tp) => tp.playerId === pl.id) || {}).title || null) : null}
                         stage={pl && lastFor && lastFor[pl.id] ? lastFor[pl.id].stage : null}
-                        onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? mySeries.find((x) => x.who === pname) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurFor(personOf(n)); setSheet("recurring"); }}
+                        onOpenLesson={(l) => push(`clesson:${l.id}:${pname}`)} onAllLessons={() => push("archive:" + (pl ? pl.id : pname))} seriesFor={data ? (mySeries.find((x) => pl && x.playerId === pl.id) || mySeries.find((x) => x.who === pname)) : series.find((x) => x.who === pname && x.sport === coachSport)} onRecurring={(n) => { setRecurId(null); setRecurFor(personOf(n)); setSheet("recurring"); }}
                         pop={pop} push={push} say={say} assignDrills={openAssignDrills} assignTip={openAssignTip}
                         cfg={cfg} sport={coachSport} liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
                         onLog={(who) => { setPrefill({ who: who.name || pname, playerId: who.id || (pl ? pl.id : null), kind: "Private" }); go("log"); }} />;
@@ -20153,15 +20330,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <CaptureNow booking={{ who }} sport={sport} cfg={cfg} captured={captured} setCaptured={setCaptured} pop={pop} say={say} />;
   } else if (screen === "recurring") {
     body = <RecurringManager series={data ? mySeries : series} roster={roster} duration={duration} real={!!data}
-             onEnd={async (x) => { if (data) { const r = await data.removeRecurring(x.id); if (r && r.error) { say(r.error.message); return; } done(tr("Ended"), x.who, DANGER); return; }
-               setSeries((v) => v.map((y) => (y === x ? { ...y, ended: true } : y)));
-               done(tr("Ended"), x.who, DANGER); }}
+             onEnd={(x) => openEndSeries(x)}
              onExtend={(x, how) => { setSeries((v) => v.map((y) => (y === x ? { ...y, until: how === "open" ? null : "30 Sep" } : y)));
                say(how === "open" ? tr("Runs until you end it") : tr("Extended by a month")); }}
              onEdit={async (x, patch) => { if (data) {
-                 /* a standing slot is replaced, not edited in place — the row is small and the diary reads it fresh */
-                 const nx = { ...x, ...patch }; const r0 = await data.removeRecurring(x.id); if (r0 && r0.error) { say(r0.error.message); return; }
-                 await data.addRecurring({ playerId: x.playerId, groupName: x.groupName, weekday: (nx.day + 1) % 7, time: nx.time, cadence: String(nx.freq || "weekly").toLowerCase() }); return; }
+                 /* the arrangement changes in place, by its id; the lessons it
+                    booked stay as they are, and the toast says how many */
+                 const nx = { ...x, ...patch };
+                 await editSeries(x, { weekday: (nx.day + 1) % 7, time: nx.time, cadence: String(nx.freq || "weekly").toLowerCase() }); return; }
                setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
@@ -20379,7 +20555,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
                                                             bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
-                                                            seriesList={mySeries} onEditSeries={(n) => { setRecurFor(n); setSheet("recurring"); }} onWeather={weatherCancel}
+                                                            seriesList={mySeries} onEditSeries={(r) => { setRecurId(r.id || null); setRecurFor(r.playerId ? personOf(r.playerId) : { name: r.who }); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             slotKinds={slotKinds}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
@@ -21012,7 +21188,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         const has = mySeriesLive.some((x) => (r.id ? x.playerId === r.id : x.who === r.name) && !x.ended);
                         return (
                           <Tile key={r.id || r.name} className="px-4 py-3.5" delay={i * 45}
-                                onPress={has ? null : () => { setRecurFor(r); setSheet("recurring"); }}>
+                                onPress={has ? null : () => { setRecurId(null); setRecurFor(r); setSheet("recurring"); }}>
                             <div className="flex items-center gap-3.5" style={{ opacity: has ? 0.45 : 1 }}>
                               <Avatar name={r.name} size={38} />
                               <span className="flex-1 min-w-0">
@@ -21028,9 +21204,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   </>
                 )
               : sheet === "recurring" ? <RecurringSetup name={(recurFor || roster[0] || (data ? {} : ROSTER[0]) || {}).name || ""}
-                                          existing={data ? (recurFor && mySeries.find((x) => (recurFor.id ? x.playerId === recurFor.id : x.who === recurFor.name))) : series.find((x) => recurFor && x.who === recurFor.name && x.sport === coachSport)}
-                                          slots={slots} duration={duration} onSave={saveSeries} onEnd={endSeries}
+                                          existing={(recurId && mySeriesLive.find((x) => x.id === recurId))
+                                            || (data ? (recurFor && mySeries.find((x) => (recurFor.id ? x.playerId === recurFor.id : x.who === recurFor.name))) : series.find((x) => recurFor && x.who === recurFor.name && x.sport === coachSport))}
+                                          slots={slots} duration={duration} onSave={saveSeries} onEnd={openEndSeries}
                                           close={() => setSheet(null)} say={say} />
+              : sheet === "endSeries" && ending ? <EndSeries key={ending.rec.id} rec={ending.rec} rows={ending.rows} duration={duration} group={!!ending.rec.groupName}
+                                          reasonTravels={!data || !!data.cancelReasons} verify={data ? data.verifyPassword : null}
+                                          onConfirm={(picked, why) => endSeries(ending.rec, picked, why)}
+                                          close={() => setSheet(null)} />
               : sheet === "lessonEdit" && editLesson && data ? <LessonEditBody lesson={editLesson} cfg={cfg} say={say}
                                           onSave={(v) => data.updateLesson(editLesson.id, v)}
                                           onAddFiles={(files) => {

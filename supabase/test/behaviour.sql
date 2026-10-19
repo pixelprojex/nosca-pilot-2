@@ -505,4 +505,55 @@ select (count(*) = 0) as ok2 from public.bookings where id = :'busybk' \gset
 rollback;
 \if :ok1 \echo PASS another player of the same coach sees the taken time through coach_busy_slots \else \echo FAIL coach_busy_slots did not hand back the taken time \endif
 \if :ok2 \echo PASS …and still cannot read whose booking it is \else \echo FAIL a booking row leaked to a different player \endif
+
+\echo === 10c. a run s lessons carry the run, and outlive it
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+insert into public.recurring (coach_id, player_id, weekday, start_time, cadence) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', 1, '5:00 pm', 'weekly') returning id as run \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, recurring_id) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-11-03', '5:00 pm', 45, 'private', 'confirmed', :'run') returning id as rb1 \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, recurring_id) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-11-10', '5:00 pm', 45, 'private', 'confirmed', :'run') returning id as rb2 \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, recurring_id) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-11-17', '5:00 pm', 45, 'private', 'confirmed', :'run') returning id as rb3 \gset
+with u as (update public.recurring set weekday = 2 where id = :'run' returning id) select count(*) as rn1 from u \gset
+commit;
+select ((select count(*) from public.bookings where recurring_id = :'run') = 3) as ok \gset
+\if :ok \echo PASS the coach books three lessons that carry their run (10c) \else \echo FAIL the run s bookings do not carry it (10c) \endif
+select (:rn1 = 1 and (select weekday from public.recurring where id = :'run') = 2) as ok \gset
+\if :ok \echo PASS the coach moves the run to another day in place, one row (10c) \else \echo FAIL the coach could not change the run in place rows=:rn1 (10c) \endif
+-- the player reads the run and may change none of it
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+with u as (update public.recurring set weekday = 4 where id = :'run' returning id) select count(*) as rp1 from u \gset
+with u as (delete from public.recurring where id = :'run' returning id) select count(*) as rp2 from u \gset
+commit;
+select (:rp1 = 0 and :rp2 = 0 and (select weekday from public.recurring where id = :'run') = 2) as ok \gset
+\if :ok \echo PASS the player can neither move nor delete the run, zero rows each (10c) \else \echo FAIL the player changed the run update=:rp1 delete=:rp2 (10c) \endif
+-- two of the run s lessons cancelled in one go: one notice each, the reason first
+select count(*) as nc0 from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and kind = 'booking' and title = 'Lesson cancelled' \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set status = 'cancelled', cancel_reason = 'Unwell' where id in (:'rb1', :'rb2') returning id) select count(*) as rc from u \gset
+commit;
+select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and kind = 'booking' and title = 'Lesson cancelled') - :nc0 as ncn,
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and kind = 'booking' and title = 'Lesson cancelled' and body like 'Unwell · %' and data->>'id' in (:'rb1', :'rb2')) as ncu \gset
+select (:rc = 2 and :ncn = 2 and :ncu = 2) as ok \gset
+\if :ok \echo PASS two of the run s lessons cancelled in one update tell the player twice, each led by the reason (10c) \else \echo FAIL run cancel rows=:rc new=:ncn with-reason=:ncu (10c) \endif
+-- the run goes; its lessons stay, cancelled or not, and only lose the link
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+with u as (delete from public.recurring where id = :'run' returning id) select count(*) as rd from u \gset
+commit;
+select (:rd = 1
+   and (select count(*) from public.recurring where id = :'run') = 0
+   and (select count(*) from public.bookings where id in (:'rb1', :'rb2', :'rb3')) = 3
+   and (select count(*) from public.bookings where id in (:'rb1', :'rb2', :'rb3') and recurring_id is null) = 3
+   and (select count(*) from public.bookings where id in (:'rb1', :'rb2') and status = 'cancelled' and cancel_reason = 'Unwell') = 2
+   and (select status from public.bookings where id = :'rb3') = 'confirmed') as ok \gset
+\if :ok \echo PASS deleting the run keeps all three lessons, with the link set to null (10c) \else \echo FAIL deleting the run took its lessons or left the link rows=:rd (10c) \endif
+-- …and a coach who goes with a run still on the books goes cleanly: the
+-- run and its lessons both point at the coach, by two roads
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+insert into public.recurring (coach_id, player_id, weekday, start_time, cadence) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', 3, '6:00 pm', 'weekly') returning id as run2 \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, recurring_id) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-11-05', '6:00 pm', 45, 'private', 'confirmed', :'run2');
+select public.delete_my_account();
+commit;
+select ((select count(*) from auth.users where id = '77777777-7777-4777-8777-777777777777') = 0
+   and (select count(*) from public.recurring where coach_id = '77777777-7777-4777-8777-777777777777') = 0
+   and (select count(*) from public.bookings where coach_id = '77777777-7777-4777-8777-777777777777') = 0) as ok \gset
+\if :ok \echo PASS a coach deleting their account with a run and its lessons on the books removes both (10c) \else \echo FAIL coach deletion with a run left rows behind (10c) \endif
 \echo === done

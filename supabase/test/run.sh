@@ -14,6 +14,7 @@
 #   4. runs the old schema.sql from git history first, then nosca.sql —
 #      the upgrade path an existing project takes
 # Every check prints PASS or FAIL. Anything but all-PASS is a bug in nosca.sql.
+# An upgrade path whose commit this clone does not have prints NOT RUN.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
 PGBIN="${PGBIN:-$(dirname "$(command -v pg_ctl || echo /usr/lib/postgresql/16/bin/pg_ctl)")}"
@@ -30,19 +31,29 @@ PS="psql -h $D -p $PORT -U super -q -v ON_ERROR_STOP=1"; PU="psql -h $D -p $PORT
 # fails the run — the upgrade-path checks used to print FAIL and exit 0.
 extra=0; VDB=fresh
 verdict() { local r; r=$($PU -d "$VDB" -tA); if [ "$r" = "t" ]; then echo "PASS $1"; else echo "FAIL $2"; extra=$((extra+1)); fi; }
+# A behaviour.sql run must reach its last line. One that stops part-way
+# (an error under ON_ERROR_STOP) prints fewer checks, not a FAIL, so the
+# end marker is a check of its own, and its absence names the error.
+ended() { if grep -qx "=== done" <<<"$1"; then echo "PASS behaviour.sql ran to the end ($2)"
+  else echo "FAIL behaviour.sql stopped part-way ($2): $({ grep "ERROR" <<<"$1" || echo "$1"; } | tail -1)"; extra=$((extra+1)); fi; }
 $PS -d postgres -f "$HERE/fixture.sql"
 grep -v "^create role\|^grant anon, authenticated, service_role to supa" "$HERE/fixture.sql" > "$D/fixture-db.sql"
 for db in fresh upgrade; do createdb -h "$D" -p $PORT -U super -O supa $db; $PS -d $db -f "$D/fixture-db.sql"; done
 echo "== fresh project: nosca.sql"; $PU -d fresh --single-transaction -f "$ROOT/supabase/nosca.sql" | tail -3
 echo "== again (must be a no-op)"; $PU -d fresh --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null && echo ok
-echo "== behaviour"; $PU -d fresh -f "$HERE/behaviour.sql" 2>&1 | grep -E "^(PASS|FAIL)"
-echo "== upgrade path: old schema.sql, then nosca.sql"; git -C "$ROOT" show b164831:supabase/schema.sql | $PU -d upgrade -f - >/dev/null 2>&1 || true
+echo "== behaviour"; fresh=$($PU -d fresh -f "$HERE/behaviour.sql" 2>&1 || true); echo "$fresh" | grep -E "^(PASS|FAIL)" || true
+ended "$fresh" "fresh project"
+echo "== upgrade path: old schema.sql, then nosca.sql"
+if git -C "$ROOT" cat-file -e b164831:supabase/schema.sql 2>/dev/null; then
+  git -C "$ROOT" show b164831:supabase/schema.sql | $PU -d upgrade -f - >/dev/null 2>&1 || true
+else echo "NOT RUN the old schema.sql: b164831 is not in this clone (git fetch --unshallow) — nosca.sql and behaviour.sql below run on an empty project"; fi
 # the same behaviour checks on the upgraded project — and a FAIL here
 # fails the run too: for a day one printed under a "uniq -c" count and
 # was never added up
 $PU -d upgrade --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null
-up=$($PU -d upgrade -f "$HERE/behaviour.sql" 2>&1); echo "$up" | grep -E "^(PASS|FAIL)" | sort | uniq -c | sort -rn | sed -n 1,3p
+up=$($PU -d upgrade -f "$HERE/behaviour.sql" 2>&1 || true); echo "$up" | grep -E "^(PASS|FAIL)" | sort | uniq -c | sort -rn | sed -n 1,3p
 echo "$up" | grep "^FAIL" || true; extra=$((extra + $(echo "$up" | grep -c "^FAIL" || true)))
+ended "$up" "upgrade path"
 echo "== upgrade path: the previous nosca.sql with a guardian-linked family, then this one"
 createdb -h "$D" -p $PORT -U super -O supa prev; $PS -d prev -f "$D/fixture-db.sql"
 if git -C "$ROOT" show 51ca5a2:supabase/nosca.sql > "$D/prev.sql" 2>/dev/null; then
@@ -62,7 +73,7 @@ select (select count(*) from public.families) = 1
    and (select created_by from public.families limit 1) = '33333333-3333-4333-8333-333333333333'
    and not exists (select 1 from information_schema.columns where table_name='profiles' and column_name in ('guardian_id','family_code'));
 SQL
-fi
+else echo "NOT RUN the guardian → family migration: 51ca5a2 is not in this clone (git fetch --unshallow)"; fi
 echo "== upgrade path: a push trigger written by hand, then nosca.sql"
 createdb -h "$D" -p $PORT -U super -O supa handmade; $PS -d handmade -f "$D/fixture-db.sql"
 $PU -d handmade --single-transaction -f "$ROOT/supabase/nosca.sql" >/dev/null 2>&1
@@ -121,5 +132,9 @@ select (select count(*) from net.sent) = 1
    and (select body->>'user_id' from net.sent limit 1) = '55555555-5555-4555-8555-555555555555';
 SQL
 
-fails=$($PU -d fresh -f "$HERE/behaviour.sql" 2>&1 | grep -c "^FAIL" || true)
+# the fresh run's own FAILs, read from what it printed: running
+# behaviour.sql a second time on the same database stopped at its first
+# sign-up (the account was already there), counted nothing, and so no
+# FAIL from the fresh run ever reached this total
+fails=$(echo "$fresh" | grep -c "^FAIL" || true)
 echo "== FAIL count: $((fails + extra))"; [ "$((fails + extra))" = "0" ]

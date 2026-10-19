@@ -318,6 +318,12 @@ alter table public.preferences add column if not exists player_notes   jsonb not
 -- closed", or what they typed): the Cancel sheet promises the other side
 -- is told with the reason, and the notice leads with it
 alter table public.bookings    add column if not exists cancel_reason  text check (char_length(cancel_reason) <= 120);
+-- the run a lesson was booked by: the recurring row whose slot put it in
+-- the diary, so a change to the run can find the lessons it made. Set
+-- null, never cascade — a run's past lessons, their registers and their
+-- write-ups outlive it
+alter table public.bookings    add column if not exists recurring_id   uuid references public.recurring (id) on delete set null;
+create index if not exists bookings_recurring_idx on public.bookings (recurring_id) where recurring_id is not null;
 -- What lessons open on: 'list' or 'feed'. Null is the role's own default
 -- (a coach List, a player Feed); Settings › Default view sets it.
 alter table public.preferences add column if not exists default_view   text check (default_view in ('list', 'feed'));
@@ -434,6 +440,7 @@ begin
       ('bookings',            'coach_id',    'public.profiles',            'c'),
       ('bookings',            'player_id',   'public.profiles',            'c'),
       ('bookings',            'logged_id',   'public.lessons',             'n'),
+      ('bookings',            'recurring_id','public.recurring',           'n'),
       ('competitions',        'coach_id',    'public.profiles',            'n'),
       ('competitions',        'player_id',   'public.profiles',            'c'),
       ('recurring',           'coach_id',    'public.profiles',            'c'),

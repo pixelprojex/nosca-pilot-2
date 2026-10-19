@@ -578,11 +578,59 @@ seeded data and no account.
   lesson" all finish on `ConfirmPassword` with `data.verifyPassword`,
   which signs the coach in again with their own email: a wrong password
   is refused and nothing is written, and the way back reads
-  `closeLabel` ("Keep it", "Back"). A player cancelling their own
-  lesson is not asked — it is theirs. The home's "Don't log" swipe on
+  `closeLabel` ("Keep it", "Back"). Ending a recurring arrangement
+  with lessons still ahead ends on it too (below). A player cancelling
+  their own lesson is not asked — it is theirs. The home's "Don't log" swipe on
   a finished lesson is the one bare password (the `cancelLesson`
   sheet): there is nothing to tell anyone why. `scripts/e2e/coach-day.cjs`
   walks the peek's, wrong password first.
+- **Ending a recurring lesson cancels what it booked, behind the
+  password.** End deleted the arrangement and left every lesson it had
+  booked in both diaries, and nobody was told; an edit deleted the row
+  and inserted a fresh one (a failed insert lost the arrangement) and
+  said "Updated" over lessons left on the old day; the Diary's Recurring
+  row handed the sheet a name, so it opened a blank "Set up" whose Save
+  went nowhere. A run's lessons now carry it: `bookings.recurring_id`
+  (`on delete set null`, never cascade — a run's past lessons, registers
+  and write-ups outlive it), written by `addBookings(…, recurringId)`
+  from the id `addRecurring` hands back. **End** (`recur-end` on the
+  manager, `series-end` on the arrangement's sheet) opens `EndSeries`
+  in the app's one sheet: Why, the coach's cancel reasons (`end-why`,
+  Something else with words, `end-next` asleep until there is a
+  reason); Which lessons, every lesson of the run still ahead, asked of
+  the server (`seriesBookings` — a run that has ever carried its link,
+  a lesson gone or cancelled still does, is exactly its linked lessons,
+  even when none is ahead, so a one-off or a request on its weekday and
+  hour is never taken with it; a run booked before the column existed
+  carries none and is found by the person, the weekday and the time, as every run is until the founder
+  re-runs the SQL, the hook's `seriesLinks` probe; never off the diary,
+  whose window stops at two hundred days where a monthly run of two
+  dozen does not), all ticked,
+  untick any that still go ahead (`end-row`); then `ConfirmPassword`
+  ("Cancel 9 lessons", "Back"). The ticked lessons are cancelled first
+  with the reason (`callOffBookings(ids, 'cancelled', why)`), so
+  `trg_bookings_notify` tells the player and a junior's adults once per
+  lesson, reason first, as creation said "Lesson booked" once per
+  lesson; only then does the arrangement go, and a refused cancel
+  leaves it as it was. The toast is "Ended" · "Saoirse Kelly · 9 lessons
+  cancelled". With nothing ahead, or every lesson unticked, nothing is
+  taken from anyone and End is one tap ("Nothing booked ahead", End it ·
+  Keep it). A group's run tells nobody yet (the trigger returns for a
+  group booking), so its password line does not say it will. **An edit
+  changes the arrangement in place** (`updateRecurring`, the id kept),
+  moves no lesson — a move tells nobody yet — and says so: "Updated" ·
+  "10 booked lessons stay as they are" (`editSeries`, both surfaces). A
+  run booked before its lessons carried it is linked first
+  (`linkSeries`), so End still finds them on the day they are on; where
+  the column is not there yet such a run's day and time do not move,
+  and a line says the database needs updating — End could not find its
+  lessons afterwards, which is the bug this replaced; the sheet for a running
+  arrangement is headed with the name and drops the count and the
+  "First three" it would not book. **The Diary's Calendar-view
+  Recurring rows** are the boxed list (`cal-series`) and open that
+  arrangement by id. Google Calendar's "this and following events",
+  TeamSnap's Update All Future, Fresha and TimeTap cancelling a series
+  with notice. `scripts/e2e/recurring.cjs`; behaviour.sql 10c.
 - **A cancellation carries its reason, and the other side reads it
   first.** The Cancel sheet (`CancelLesson`, the `cancel` sheet) has
   always asked Why and promised "They are told straight away with the
