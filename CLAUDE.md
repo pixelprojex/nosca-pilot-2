@@ -598,10 +598,13 @@ seeded data and no account.
   in the app's one sheet: Why, the coach's cancel reasons (`end-why`,
   Something else with words, `end-next` asleep until there is a
   reason); Which lessons, every lesson of the run still ahead, asked of
-  the server (`seriesBookings` — by `recurring_id`, or by the person,
-  the weekday and the time until the founder re-runs the SQL, the hook's
-  `seriesLinks` probe; never off the diary, whose window stops at two
-  hundred days where a monthly run of two dozen does not), all ticked,
+  the server (`seriesBookings` — a run whose lessons carry it is exactly
+  those, so a one-off on its weekday and hour is not taken with it; a
+  run booked before the column existed carries none and is found by the
+  person, the weekday and the time, as every run is until the founder
+  re-runs the SQL, the hook's `seriesLinks` probe; never off the diary,
+  whose window stops at two hundred days where a monthly run of two
+  dozen does not), all ticked,
   untick any that still go ahead (`end-row`); then `ConfirmPassword`
   ("Cancel 9 lessons", "Back"). The ticked lessons are cancelled first
   with the reason (`callOffBookings(ids, 'cancelled', why)`), so
