@@ -344,6 +344,23 @@ functional fix: a booking's notification opens the Diary on that
 lesson's day, the way Android's guidance has a notification open the
 thing it describes rather than the app's front screen.
 
+### 21. Ending a recurring lesson cancels what it booked. **Built 19 October.**
+End on a recurring arrangement deleted the row and left every lesson it
+had booked in the player's diary and the coach's, and nobody was told;
+an edit deleted and re-inserted the row and said "Updated" over lessons
+left on the old day; the Diary's Recurring row opened a blank Set up.
+The field is settled on this: Google Calendar asks "this event, this
+and following, or all events"; TeamSnap offers Update All Future;
+Fresha, Unified Practice and Therapy Appointment cancel all remaining
+occurrences of a series in one step and tell the client; TimeTap sends
+a notice for the whole series. Nosca's End is the "this and following"
+of that set, with the app's own way of taking a lesson from somebody —
+the reason, the lessons ticked, the password — and a run's lessons now
+carry the run (`bookings.recurring_id`). An edit keeps the run and says
+the booked lessons stay; moving them, with a notice, is the next step.
+The functional item of the day; `recurring.cjs`; behaviour.sql 10c.
+With it, one small visual fix: the Diary's Recurring rows boxed.
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -430,3 +447,9 @@ the items above; a research spike first.
 - https://www.w3.org/WAI/WCAG21/Understanding/non-text-contrast.html (WCAG 1.4.11: 3:1 for the visual parts of a control needed to identify it)
 - https://developer.apple.com/design/human-interface-guidelines/buttons (Apple: a button's glyph and fill, consistent across an app)
 - https://developer.android.com/develop/ui/views/notifications/navigation (Android: a notification's tap opens the content it describes)
+- https://support.google.com/calendar/answer/37113 (Google Calendar: delete this event, this and following events, or all events in a series)
+- https://helpme.teamsnap.com/article/307-manage-repeating-events (TeamSnap: Update All Repeated, Update All Future, Update This Only)
+- https://www.fresha.com/help-center/knowledge-base/calendar/261-create-repeat-appointments-1 (Fresha: cancelling a repeating appointment asks whether it applies to the whole series)
+- https://support.unifiedpractice.com/en/knowledge/repeat-appointments (Unified Practice: cancel one appointment or all remaining in a series)
+- https://support.therapyappointment.com/article/362-how-do-i-delete-repeating-appointments (Therapy Appointment: Cancel All Future Occurrences)
+- https://timetap.atlassian.net/wiki/x/ToCAAw (TimeTap: one notice when staff cancel a whole repeating series)

@@ -109,9 +109,19 @@ function addRequest(db, { id = uuid("ce000000"), playerId, coachId, status = "pe
 function addNotification(db, { id = uuid("aa000000"), userId, kind, title, body = null, data = {}, readAt = null, createdAt }) {
   const row = { id, user_id: userId, kind, title, body, data, read_at: readAt, created_at: createdAt || nowIso(db) }; db.notifications.push(row); return row;
 }
-function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, groupName = null, date, time, duration = 45, status = "confirmed" }) {
-  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, booking_date: date, start_time: time, duration, kind: groupName ? "group" : "private", status, logged_id: null, created_at: nowIso(db) };
+/* `recurringId`: the arrangement that booked it (bookings.recurring_id,
+   on delete set null). Leave it out for a one-off — or for a project
+   whose SQL has not been re-run, where db.missingColumns.bookings names
+   "recurring_id" and every read drops the key. */
+function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, groupName = null, date, time, duration = 45, status = "confirmed", recurringId = null }) {
+  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, booking_date: date, start_time: time, duration, kind: groupName ? "group" : "private", status, logged_id: null, recurring_id: recurringId, created_at: nowIso(db) };
   db.bookings.push(row); return row;
+}
+/* a standing arrangement, the row of public.recurring: `weekday` is the
+   database's, Sunday 0 (the interface's Monday-first day is (weekday + 6) % 7) */
+function addRecurring(db, { id = uuid("7e000000"), coachId, playerId = null, groupName = null, weekday, time, cadence = "weekly", until = null, createdAt = null }) {
+  const row = { id, coach_id: coachId, player_id: groupName ? null : playerId, group_name: groupName, weekday, start_time: time, cadence, until_date: until, created_at: createdAt || nowIso(db) };
+  db.recurring.push(row); return row;
 }
 function addDrill(db, { id = uuid("d0000000"), coachId, playerId, title, done = false }) { const row = { id, coach_id: coachId, player_id: playerId, title, done, created_at: nowIso(db) }; db.drills.push(row); return row; }
 function addMessage(db, { id = uuid("30000000"), coachId, playerId, senderId, body, readAt = null, createdAt, lessonId = null }) { const row = { id, coach_id: coachId, player_id: playerId, sender_id: senderId, body, read_at: readAt, lesson_id: lessonId, created_at: createdAt || nowIso(db) }; db.messages.push(row); return row; }
@@ -551,6 +561,14 @@ async function attach(page, db, opts = {}) {
       const sel = (url.searchParams.get("select") || "").split(",").map((x) => x.trim());
       const badSel = gone0.find((k) => sel.includes(k));
       if (badSel) return json(400, { code: "42703", message: `column ${table}.${badSel} does not exist`, details: null, hint: null });
+      /* …and so does a filter or an order on one: asking for
+         recurring_id=eq.<id> of a project without the column is an
+         error, never an empty list that reads as "nothing booked" */
+      const filt = [...url.searchParams.keys()].filter((k) => !["select", "order", "limit", "offset", "on_conflict", "columns"].includes(k));
+      const ord = (url.searchParams.get("order") || "").split(",").map((x) => x.split(".")[0].trim());
+      const badFilt = gone0.find((k) => filt.includes(k) || ord.includes(k));
+      if (badFilt) { if (method === "PATCH") db.patches.push({ table, query: url.search, body, n: 0, by: meId, refused: true }); if (method === "DELETE") db.deletes.push({ table, query: url.search, rows: [], by: meId, refused: true });
+        return json(400, { code: "42703", message: `column ${table}.${badFilt} does not exist`, details: null, hint: null }); }
     }
     const prefer = hdr["prefer"] || "";
 
@@ -603,7 +621,8 @@ async function attach(page, db, opts = {}) {
       const made = rows.map((r) => {
         const base = { id: uuid(), created_at: nowIso(db) };
         if (table === "lessons") Object.assign(base, { player_id: null, group_name: null, kind: "private", subs: [], notes: null, lesson_date: ymd(new Date(db.now())), unread: true, rating_requested: false, sent_by: null });
-        if (table === "bookings") Object.assign(base, { player_id: null, group_name: null, duration: 45, kind: "private", status: "confirmed", logged_id: null });
+        if (table === "bookings") Object.assign(base, { player_id: null, group_name: null, duration: 45, kind: "private", status: "confirmed", logged_id: null, recurring_id: null });
+        if (table === "recurring") Object.assign(base, { player_id: null, group_name: null, cadence: "weekly", until_date: null });
         if (table === "drills") Object.assign(base, { done: false, due: null });
         if (table === "messages") Object.assign(base, { read_at: null });
         if (table === "attendance_sessions") Object.assign(base, { session_date: ymd(new Date(db.now())) });
@@ -634,6 +653,9 @@ async function attach(page, db, opts = {}) {
       if (table === "bookings") upd = upd.filter((r) => r.coach_id === meId || (S.playerScope(r.player_id) && body.status === "cancelled" && Object.keys(body).every((k) => k === "status" || k === "cancel_reason")));
       if (table === "lessons") upd = upd.filter((r) => r.coach_id === meId);
       if (table === "messages") upd = upd.filter((r) => r.sender_id !== meId);
+      /* an arrangement is changed in place by the coach who owns it; a
+         player reads theirs and changes nothing (zero rows, no error) */
+      if (table === "recurring") upd = upd.filter((r) => r.coach_id === meId);
       /* a project whose SQL has not been re-run: a column the app knows and the table does not */
       { const goneP = (db.missingColumns && db.missingColumns[table]) || []; const badP = goneP.find((k) => k in body);
         if (badP) { db.patches.push({ table, query: url.search, body, n: 0, by: meId, refused: true }); return json(400, { code: "42703", message: `column "${badP}" of relation "${table}" does not exist`, details: null, hint: null }); } }
@@ -653,6 +675,9 @@ async function attach(page, db, opts = {}) {
       if (table === "push_subscriptions") gone = gone.filter((r) => r.user_id === meId);
       const target = { notifications: db.notifications, drills: db.drills, tips: db.tips, recurring: db.recurring, competitions: db.competitions, bookings: db.bookings, push_subscriptions: db.pushSubs, messages: db.messages, lesson_media: db.media, reviews: db.reviews }[table];
       if (target) gone.forEach((r) => { const i = target.indexOf(r); if (i >= 0) target.splice(i, 1); });
+      /* bookings.recurring_id references recurring on delete set null:
+         ending an arrangement leaves its lessons, unlinked */
+      if (table === "recurring") { const ids = new Set(gone.map((r) => r.id)); db.bookings.forEach((b) => { if (b.recurring_id && ids.has(b.recurring_id)) b.recurring_id = null; }); }
       db.deletes.push({ table, query: url.search, rows: gone, by: meId });
       return json(200, gone);
     }
@@ -711,7 +736,7 @@ const SEEDED = ["Ray Doyle", "ray@hollowbrook", "+353 87 123 4567", "Marcus Tran
 
 module.exports = {
   SB, ROOT, b64u, uuid, code6, pad, ymd, MON, MP4, WEBM, PNG, yearsOld, juniorRow,
-  emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addDrill, addMessage, setPrefs, weekOf,
+  emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addRecurring, addDrill, addMessage, setPrefs, weekOf,
   session, signupTrigger, notify, scopeFor, lessonsView, attach, startServer, stopServer,
   norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, checker, SEEDED,
 };
