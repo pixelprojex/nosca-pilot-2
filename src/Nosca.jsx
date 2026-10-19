@@ -7107,7 +7107,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
   if (stage === "password") return (
     <div data-tour="end-series">
       <ConfirmPassword title={tr("End")}
-                       detail={`${what}. ${n} ${noun} ${n === 1 ? tr("will be cancelled.") : tr("will be cancelled.")} ${group ? "" : reasonTravels ? tr("They are told straight away with the reason.") + " " : tr("They are told straight away.") + " "}${tr("Confirm with your password.")}`}
+                       detail={`${rec.who}. ${n} ${noun} ${tr("will be cancelled.")} ${group ? "" : reasonTravels ? tr("They are told straight away with the reason.") + " " : tr("They are told straight away.") + " "}${tr("Confirm with your password.")}`}
                        actionLabel={`${tr("Cancel")} ${n} ${noun}`} closeLabel={tr("Back")}
                        onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(picked); return { next: true }; }}
                        close={() => setStage("which")} />
