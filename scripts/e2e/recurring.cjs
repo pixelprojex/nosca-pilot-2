@@ -52,7 +52,9 @@ const M_OFF = Array.from({ length: 10 }, (_, k) => 5 + 28 * k);
 const M_IDS = M_OFF.map((_, k) => bid("cc11", k));
 const R_DAY = dow(3), S_DAY = dow(6), M_DAY = dow(5);
 
-function freshDb({ links = true, reasons = true } = {}) {
+/* links: the project has bookings.recurring_id; legacy: it has, but R was
+   booked before it did, so R's lessons carry nothing */
+function freshDb({ links = true, reasons = true, legacy = false } = {}) {
   const db = M.emptyDb();
   const person = (key, email, prof) => { M.addUser(db, { id: IDS[key], email }); return M.addProfile(db, { id: IDS[key], ...prof }); };
   M.addFamily(db, { id: FAM, code: "KEL7Y2", createdBy: IDS.parent });
@@ -66,7 +68,7 @@ function freshDb({ links = true, reasons = true } = {}) {
   M.addRecurring(db, { id: REC.S, coachId: IDS.coach, playerId: IDS.adult, weekday: S_DAY, time: "11:00 am", cadence: "fortnightly", createdAt: created });
   M.addRecurring(db, { id: REC.M, coachId: IDS.coach, playerId: IDS.junior, weekday: M_DAY, time: "4:00 pm", cadence: "monthly", createdAt: created });
   /* a project without the column has no link on any row */
-  const link = (id) => (links ? id : null);
+  const link = (id) => (links && !(legacy && id === REC.R) ? id : null);
   R_OFF.forEach((n, k) => M.addBooking(db, { id: R_IDS[k], coachId: IDS.coach, playerId: IDS.junior, date: iso(n), time: "9:00 am", duration: 45, recurringId: link(REC.R) }));
   M.addBooking(db, { id: BK.past, coachId: IDS.coach, playerId: IDS.junior, date: iso(-4), time: "9:00 am", duration: 45, recurringId: link(REC.R) });
   M_OFF.forEach((n, k) => M.addBooking(db, { id: M_IDS[k], coachId: IDS.coach, playerId: IDS.junior, date: iso(n), time: "4:00 pm", duration: 45, recurringId: link(REC.M) }));
@@ -75,7 +77,7 @@ function freshDb({ links = true, reasons = true } = {}) {
   M.addBooking(db, { id: BK.cian, coachId: IDS.coach, playerId: IDS.adult, date: iso(3), time: "10:00 am", duration: 45 });
   /* a one-off on R's own weekday and hour, after its run: where R's lessons
      carry it, this one is not R's and End must not take it */
-  if (links) M.addBooking(db, { id: BK.slot, coachId: IDS.coach, playerId: IDS.junior, date: iso(3 + 7 * 12), time: "9:00 am", duration: 45 });
+  if (links && !legacy) M.addBooking(db, { id: BK.slot, coachId: IDS.coach, playerId: IDS.junior, date: iso(3 + 7 * 12), time: "9:00 am", duration: 45 });
   const gone = [...(links ? [] : ["recurring_id"]), ...(reasons ? [] : ["cancel_reason"])];
   if (gone.length) db.missingColumns = { bookings: gone };
   return db;
@@ -461,6 +463,80 @@ const { check, results, summary } = M.checker("recurring");
       check("(n) …and cancels the ten on the status alone, never refused, then DELETEs R",
         bp.length === 1 && !bp[0].refused && sameSet(idsOf(bp[0].query), R_IDS) && bp[0].n === 10 && JSON.stringify(bp[0].body) === JSON.stringify({ status: "cancelled" }) && rd.length === 1 && idsOf(rd[0].query).join() === REC.R,
         JSON.stringify({ patches: bp.map((x) => ({ body: x.body, n: x.n, refused: !!x.refused })), deletes: rd.map((x) => x.query) }));
+      await ctx.close();
+    }
+    /* ================= (q) a run booked before its lessons carried it, moved, then ended ================= */
+    {
+      const db = freshDb({ legacy: true });
+      const { ctx, page, shot } = await boot(db, "coach");
+      await openCalendar(page);
+      await clickIf(calRow(page, "Saoirse Kelly", "9:00"), 900);
+      await clickIf(sheet(page).locator("button", { hasText: /^11:00/ }), 300);
+      const m0 = mark(db);
+      await clickIf(sheet(page).locator("button", { hasText: /^Update$/ }), 0);
+      const tq = await waitToast(page, /^Updated/);
+      await page.waitForTimeout(1200); await shot("19-legacy-moved");
+      const ps = db.patches.slice(m0.patches);
+      const link = ps.findIndex((x) => x.table === "bookings"), move = ps.findIndex((x) => x.table === "recurring");
+      check("(q) moving a run whose lessons carry nothing links its ten first, then moves it — the lessons stay on their day",
+        link >= 0 && move > link && sameSet(idsOf(ps[link].query), R_IDS) && ps[link].n === 10 && JSON.stringify(ps[link].body) === JSON.stringify({ recurring_id: REC.R })
+          && idsOf(ps[move].query).join() === REC.R && db.bookings.filter((b) => R_IDS.includes(b.id)).every((b) => b.start_time === "9:00 am" && b.status === "confirmed")
+          && !!tq.hit && /10 booked lessons stay as they are/.test(tq.hit),
+        JSON.stringify({ patches: ps.map((x) => ({ t: x.table, ids: idsOf(x.query).length, body: x.body, n: x.n })), toast: tq.seen }));
+      await openManager(page);
+      await clickIf(tile(page, "Saoirse Kelly", "11:00").locator('[data-tour="recur-end"]'), 900);
+      await pickReason(page, "Unwell");
+      const qf = await rowFacts(page); const qd = datesIn(qf);
+      check("(q) …and End, after the move, still lists those ten at nine",
+        qf.length === 10 && sameSet(qd.filter(Boolean), R_OFF.map((n) => nice(dayFrom(n)))) && qf.every((f) => /9:00/.test(f.text)),
+        `${qf.length} rows: ${qf.map((f) => f.text).join(" | ").slice(0, 300)}`);
+      await ctx.close();
+    }
+
+    /* ================= (r) without the column, such a run does not move ================= */
+    {
+      const db = freshDb({ links: false });
+      const { ctx, page } = await boot(db, "coach");
+      await openCalendar(page);
+      await clickIf(calRow(page, "Saoirse Kelly", "9:00"), 900);
+      await clickIf(sheet(page).locator("button", { hasText: /^11:00/ }), 300);
+      const m0 = mark(db);
+      await clickIf(sheet(page).locator("button", { hasText: /^Update$/ }), 0);
+      const tr2 = await waitToast(page, /database needs updating/i);
+      await page.waitForTimeout(800);
+      check("(r) where the column is not there yet, moving a run with lessons ahead is refused with a line, and nothing is written",
+        !!tr2.hit && since(db.patches, m0.patches, "recurring").length === 0 && since(db.patches, m0.patches, "bookings").length === 0 && db.recurring.some((r) => r.id === REC.R && r.start_time === "9:00 am"),
+        JSON.stringify({ toast: tr2.seen, patches: db.patches.slice(m0.patches).map((x) => x.table) }));
+      await ctx.close();
+    }
+
+    /* ================= (s) a linked run with none of its own ahead takes nothing on its slot ================= */
+    {
+      const db = freshDb();
+      db.bookings.forEach((b) => { if (R_IDS.includes(b.id)) b.status = "cancelled"; });
+      const { ctx, page } = await boot(db, "coach");
+      await openManager(page);
+      await clickIf(tile(page, "Saoirse Kelly", "9:00").locator('[data-tour="recur-end"]'), 1200);
+      const s3 = await sheetText(page);
+      check("(s) a run whose own lessons are all cancelled reads Nothing booked ahead — the one-off on its weekday and hour is not its",
+        /Nothing booked ahead/.test(s3) && (await endRows(page).count()) === 0 && (await txt(confirmBtn(page))) === "End it",
+        s3.slice(0, 200));
+      await ctx.close();
+    }
+
+    /* ================= (t) the Diary row opens that arrangement, not the player's first ================= */
+    {
+      const db = freshDb();
+      const { ctx, page } = await boot(db, "coach");
+      await openCalendar(page);
+      await clickIf(calRow(page, "Saoirse Kelly", "4:00"), 900);
+      const m0 = mark(db);
+      await clickIf(sheet(page).locator("button", { hasText: /^Update$/ }), 0);
+      await waitToast(page, /^Updated/);
+      const rp = since(db.patches, m0.patches, "recurring");
+      check("(t) Saoirse's four o'clock row opens the monthly arrangement: its Update changes M, never R",
+        rp.length === 1 && idsOf(rp[0].query).join() === REC.M && rp[0].body.start_time === "4:00 pm" && rp[0].body.cadence === "monthly",
+        JSON.stringify(rp.map((x) => ({ ids: idsOf(x.query), body: x.body }))));
       await ctx.close();
     }
     check("(p) no page errors", errors.filter((e) => !/vibrate/.test(e)).length === 0, errors.slice(0, 3).join(" | "));

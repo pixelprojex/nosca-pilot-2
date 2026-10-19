@@ -1206,13 +1206,33 @@ export function useNoscaData(profile) {
     q = rec.groupName ? q.eq("kind", "group").eq("group_name", rec.groupName) : q.eq("player_id", rec.playerId);
     const { data: rows, error } = await q.order("booking_date");
     if (error) return { error, rows: [] };
-    /* a run whose lessons carry it is exactly those; a run booked before
-       the column existed carries none, and is its slot — a one-off that
-       happens to share the slot of a linked run is not taken with it */
-    const linked = (rows || []).filter((b) => b.recurring_id === rec.id);
-    const mine = linked.length ? linked
-      : (rows || []).filter((b) => !b.recurring_id && localDate(b.booking_date).getDay() === rec.weekday && b.start_time === rec.time);
-    return { rows: mine.map((b) => { const d = localDate(b.booking_date); return { id: b.id, date: b.booking_date, time: b.start_time, duration: b.duration, m: d.getMonth() + 1, d: d.getDate() }; }) };
+    /* a run that has ever carried its link — a lesson gone, or cancelled,
+       still does — is exactly its linked lessons, even when none is
+       ahead, so a one-off or a request that shares its slot is never
+       taken with it; a run booked before the column existed carries
+       none and is its slot */
+    let linked = false;
+    if (seriesLinks) {
+      const { data: any } = await supabase.from("bookings").select("id").eq("recurring_id", rec.id).limit(1);
+      linked = !!(any && any.length);
+    }
+    /* a lesson earlier today has been and gone; it is not taken away, nor counted */
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const minsOf = (s) => { const m = String(s || "").match(/(\d+):(\d+)\s*(am|pm)?/i); if (!m) return 0; let h = Number(m[1]) % 12; if (/pm/i.test(m[3] || "")) h += 12; return h * 60 + Number(m[2]); };
+    const ahead = (rows || []).filter((b) => !(b.booking_date === today && minsOf(b.start_time) <= nowMins));
+    const mine = linked ? ahead.filter((b) => b.recurring_id === rec.id)
+      : ahead.filter((b) => !b.recurring_id && localDate(b.booking_date).getDay() === rec.weekday && b.start_time === rec.time);
+    return { linked, rows: mine.map((b) => { const d = localDate(b.booking_date); return { id: b.id, date: b.booking_date, time: b.start_time, duration: b.duration, m: d.getMonth() + 1, d: d.getDate() }; }) };
+  };
+
+  /* A run booked before its lessons carried it, linked before an edit
+     moves its slot, so End finds them on the day they are still on. */
+  const linkSeries = async (id, ids) => {
+    const list = (ids || []).filter(Boolean);
+    if (!seriesLinks || !list.length) return { count: 0 };
+    const { data: rows, error } = await supabase.from("bookings").update({ recurring_id: id }).in("id", list).select("id");
+    if (error) return { error };
+    return { count: (rows || []).length };
   };
 
   const removeRecurring = async (id) => {
@@ -1765,7 +1785,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, seriesLinks, updateRecurring, seriesBookings, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

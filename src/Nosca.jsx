@@ -18532,12 +18532,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          lessons left on the old day. */
       const old = (recurId && (data.recurring || []).find((x) => x.id === recurId))
         || (who ? (data.recurring || []).find((x) => x.playerId === who.id && (!x.coachId || x.coachId === account.id)) : null);
-      if (old) {
-        const before = await data.seriesBookings(old);
-        const r0 = await data.updateRecurring(old.id, { weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq });
-        if (r0 && r0.error) { hapticWarn(); say(r0.error.message || tr("Couldn't save that.")); return; }
-        chime(); done(tr("Updated"), stayLine(((before && before.rows) || []).length)); return;
-      }
+      if (old) { await editSeries(old, { weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq }); return; }
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
       const r1 = await data.addRecurring({ playerId: who.id, weekday: (v.day + 1) % 7, time: v.time, cadence: v.freq });
       if (r1 && r1.error) { hapticWarn(); say(r1.error.message || tr("Couldn't save that.")); return; }
@@ -18548,6 +18543,16 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       hapticSuccess(); chime(); say(`${occ.length} ${tr("lessons booked for")} ${v.who.split(" ")[0]}`); return;
     }
     const existing = series.find((x) => x.who === v.who && x.sport === coachSport);
+    /* the harness too: a running arrangement changes in place and books nothing new */
+    if (existing) {
+      let n = 0;
+      Object.entries((seedBooked && seedBooked[coachSport]) || {}).forEach(([k, day]) => {
+        const [m, d] = k.split("-").map(Number);
+        if (!isPast(m, d, calendar)) n += day.filter((b) => b.seriesId === existing.id).length;
+      });
+      setSeries((list) => list.map((x) => (x.id === existing.id ? { ...x, day: v.day, time: v.time, freq: v.freq } : x)));
+      chime(); done(tr("Updated"), stayLine(n)); return;
+    }
     const id = existing ? existing.id : Date.now();
     const rec = { id, sport: coachSport, used: existing?.used || 0, ...v };
     setSeries((list) => (existing ? list.map((x) => (x.id === id ? rec : x)) : [...list, rec]));
@@ -18565,18 +18570,37 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     say(`${v.total} lessons booked for ${v.who.split(" ")[0]}`);
   };
 
+  /* AN EDIT changes the arrangement in place and moves no lesson. A run
+     booked before its lessons carried it is linked first, so End still
+     finds them on the day they are on; where the column is not there
+     yet, such a run's day and time do not move — End could not find its
+     lessons afterwards. */
+  const editSeries = async (rec, next) => {
+    const before = await data.seriesBookings(rec);
+    if (before && before.error) { hapticWarn(); say(before.error.message || tr("Couldn't change that arrangement.")); return false; }
+    const rows = (before && before.rows) || [];
+    const moves = next.weekday !== rec.weekday || next.time !== rec.time;
+    if (rows.length && moves && !before.linked) {
+      if (!data.seriesLinks) { hapticWarn(); say(tr("The database needs updating before an arrangement can move to another day or time.")); return false; }
+      const l = await data.linkSeries(rec.id, rows.map((b) => b.id));
+      if (!l || l.error || l.count !== rows.length) { hapticWarn(); say(tr("Couldn't change that arrangement.")); return false; }
+    }
+    const r0 = await data.updateRecurring(rec.id, next);
+    if (r0 && r0.error) { hapticWarn(); say(r0.error.message || tr("Couldn't save that.")); return false; }
+    chime(); done(tr("Updated"), stayLine(rows.length)); return true;
+  };
+  const endReq = useRef(0);
   /* END: the lessons the arrangement booked that are still ahead,
      asked of the server, into the End sheet — why, which, the password */
   const openEndSeries = async (rec) => {
     if (!rec) return;
     if (data) {
+      /* only the latest tap's answer opens the sheet */
+      const my = ++endReq.current;
       const r = await data.seriesBookings(rec);
+      if (my !== endReq.current) return;
       if (r && r.error) { hapticWarn(); say(r.error.message || tr("Couldn't read those lessons.")); return; }
-      const now = new Date(), nowMins = now.getHours() * 60 + now.getMinutes();
-      const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      /* a lesson earlier today has been and gone; it is not taken away */
-      const rows = (r.rows || []).filter((b) => !(b.date === todayIso && (parseTime(b.time) ?? 0) <= nowMins));
-      setEnding({ rec, rows }); setSheet("endSeries"); return;
+      setEnding({ rec, rows: r.rows || [] }); setSheet("endSeries"); return;
     }
     const rows = [];
     Object.entries((seedBooked && seedBooked[coachSport]) || {}).forEach(([k, day]) => {
@@ -20313,10 +20337,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                  /* the arrangement changes in place, by its id; the lessons it
                     booked stay as they are, and the toast says how many */
                  const nx = { ...x, ...patch };
-                 const before = await data.seriesBookings(x);
-                 const r0 = await data.updateRecurring(x.id, { weekday: (nx.day + 1) % 7, time: nx.time, cadence: String(nx.freq || "weekly").toLowerCase() });
-                 if (r0 && r0.error) { hapticWarn(); say(r0.error.message); return; }
-                 done(tr("Updated"), stayLine(((before && before.rows) || []).length)); return; }
+                 await editSeries(x, { weekday: (nx.day + 1) % 7, time: nx.time, cadence: String(nx.freq || "weekly").toLowerCase() }); return; }
                setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
@@ -21187,7 +21208,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             || (data ? (recurFor && mySeries.find((x) => (recurFor.id ? x.playerId === recurFor.id : x.who === recurFor.name))) : series.find((x) => recurFor && x.who === recurFor.name && x.sport === coachSport))}
                                           slots={slots} duration={duration} onSave={saveSeries} onEnd={openEndSeries}
                                           close={() => setSheet(null)} say={say} />
-              : sheet === "endSeries" && ending ? <EndSeries rec={ending.rec} rows={ending.rows} duration={duration} group={!!ending.rec.groupName}
+              : sheet === "endSeries" && ending ? <EndSeries key={ending.rec.id} rec={ending.rec} rows={ending.rows} duration={duration} group={!!ending.rec.groupName}
                                           reasonTravels={!data || !!data.cancelReasons} verify={data ? data.verifyPassword : null}
                                           onConfirm={(picked, why) => endSeries(ending.rec, picked, why)}
                                           close={() => setSheet(null)} />
