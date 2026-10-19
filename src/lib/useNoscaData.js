@@ -160,6 +160,8 @@ export function useNoscaData(profile) {
   const clipProbed = useRef(false);
   const [cancelReasons, setCancelReasons] = useState(false); // does bookings.cancel_reason exist on this project?
   const reasonProbed = useRef(false);
+  const [seriesLinks, setSeriesLinks] = useState(false); // does bookings.recurring_id exist on this project?
+  const seriesProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [registerDays, setRegisterDays] = useState({});   // register key -> the session's day, for Attendance on Progress
@@ -439,6 +441,12 @@ export function useNoscaData(profile) {
         reasonProbed.current = true;
         supabase.from("bookings").select("cancel_reason").limit(1).then((pr) => setCancelReasons(!pr.error)).catch(() => setCancelReasons(false));
       }
+      /* a run's lessons carry the run once the column exists; before
+         that End finds them by the run's own weekday and time */
+      if (!seriesProbed.current) {
+        seriesProbed.current = true;
+        supabase.from("bookings").select("recurring_id").limit(1).then((pr) => setSeriesLinks(!pr.error)).catch(() => setSeriesLinks(false));
+      }
       /* `tips` carries no focus column, so focus stays null and every
          screen that shows it must check first. The date and the age DO
          exist — they were simply never derived, so a tip set in March
@@ -540,6 +548,7 @@ export function useNoscaData(profile) {
 
       setRecurring((rRes.data || []).map((r) => ({
         id: r.id,
+        coachId: r.coach_id,
         who: r.group_name || nameOf[r.player_id] || "—",
         playerId: r.player_id || null,
         groupName: r.group_name || null,
@@ -1041,7 +1050,7 @@ export function useNoscaData(profile) {
      whole run in one insert. Coach only: the database refuses a player
      anything but a single request. */
   const addBookings = async (list) => {
-    const rows = (list || []).map(({ playerId, groupName, date, time, duration = 45 }) => ({
+    const rows = (list || []).map(({ playerId, groupName, date, time, duration = 45, recurringId = null }) => ({
       coach_id: profile.id,
       player_id: groupName ? null : (playerId || null),
       group_name: groupName || null,
@@ -1050,6 +1059,8 @@ export function useNoscaData(profile) {
       duration,
       kind: groupName ? "group" : "private",
       status: "confirmed",
+      /* the run that booked it, so ending the run can find it */
+      ...(seriesLinks && recurringId ? { recurring_id: recurringId } : {}),
     }));
     if (!rows.length) return { count: 0 };
     const { data: made, error } = await supabase.from("bookings").insert(rows).select("id");
@@ -1157,14 +1168,47 @@ export function useNoscaData(profile) {
   };
 
   const addRecurring = async ({ playerId, groupName, weekday, time, cadence = "weekly" }) => {
-    const { error } = await supabase.from("recurring").insert({
+    const { data: made, error } = await supabase.from("recurring").insert({
       coach_id: profile.id,
       player_id: groupName ? null : playerId,
       group_name: groupName || null,
       weekday, start_time: time, cadence,
-    });
+    }).select("id");
     if (!error) await load();
-    return { error };
+    return { error, id: made && made[0] ? made[0].id : null };
+  };
+
+  /* An arrangement changed in place: the same row and the same id, so
+     the lessons it booked still belong to it. A delete and a fresh
+     insert lost the arrangement when the insert failed, and the link. */
+  const updateRecurring = async (id, { weekday, time, cadence }) => {
+    const patch = {};
+    if (weekday != null) patch.weekday = weekday;
+    if (time) patch.start_time = time;
+    if (cadence) patch.cadence = cadence;
+    const { data: rows, error } = await supabase.from("recurring").update(patch).eq("id", id).select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) return { error: { message: "Couldn't change that arrangement." } };
+    await load();
+    return {};
+  };
+
+  /* The lessons an arrangement booked that are still ahead, asked of
+     the server rather than read off the diary, whose window stops at
+     two hundred days and a monthly run of two dozen does not. By the
+     run's own link once the column exists; before that, by the same
+     person, the run's weekday and its time. */
+  const seriesBookings = async (rec) => {
+    if (!profile || !rec) return { rows: [] };
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    let q = supabase.from("bookings").select("*").eq("coach_id", profile.id).gte("booking_date", today).in("status", ["confirmed", "requested"]);
+    q = rec.groupName ? q.eq("kind", "group").eq("group_name", rec.groupName) : q.eq("player_id", rec.playerId);
+    const { data: rows, error } = await q.order("booking_date");
+    if (error) return { error, rows: [] };
+    const mine = (rows || []).filter((b) => (b.recurring_id ? b.recurring_id === rec.id
+      : localDate(b.booking_date).getDay() === rec.weekday && b.start_time === rec.time));
+    return { rows: mine.map((b) => { const d = localDate(b.booking_date); return { id: b.id, date: b.booking_date, time: b.start_time, duration: b.duration, m: d.getMonth() + 1, d: d.getDate() }; }) };
   };
 
   const removeRecurring = async (id) => {
@@ -1717,7 +1761,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, seriesLinks, updateRecurring, seriesBookings, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
