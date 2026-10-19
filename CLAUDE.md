@@ -598,10 +598,11 @@ seeded data and no account.
   in the app's one sheet: Why, the coach's cancel reasons (`end-why`,
   Something else with words, `end-next` asleep until there is a
   reason); Which lessons, every lesson of the run still ahead, asked of
-  the server (`seriesBookings` — a run whose lessons carry it is exactly
-  those, so a one-off on its weekday and hour is not taken with it; a
-  run booked before the column existed carries none and is found by the
-  person, the weekday and the time, as every run is until the founder
+  the server (`seriesBookings` — a run that has ever carried its link,
+  a lesson gone or cancelled still does, is exactly its linked lessons,
+  even when none is ahead, so a one-off or a request on its weekday and
+  hour is never taken with it; a run booked before the column existed
+  carries none and is found by the person, the weekday and the time, as every run is until the founder
   re-runs the SQL, the hook's `seriesLinks` probe; never off the diary,
   whose window stops at two hundred days where a monthly run of two
   dozen does not), all ticked,
@@ -618,7 +619,12 @@ seeded data and no account.
   group booking), so its password line does not say it will. **An edit
   changes the arrangement in place** (`updateRecurring`, the id kept),
   moves no lesson — a move tells nobody yet — and says so: "Updated" ·
-  "10 booked lessons stay as they are"; the sheet for a running
+  "10 booked lessons stay as they are" (`editSeries`, both surfaces). A
+  run booked before its lessons carried it is linked first
+  (`linkSeries`), so End still finds them on the day they are on; where
+  the column is not there yet such a run's day and time do not move,
+  and a line says the database needs updating — End could not find its
+  lessons afterwards, which is the bug this replaced; the sheet for a running
   arrangement is headed with the name and drops the count and the
   "First three" it would not book. **The Diary's Calendar-view
   Recurring rows** are the boxed list (`cal-series`) and open that
