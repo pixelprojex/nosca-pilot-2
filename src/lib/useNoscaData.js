@@ -1206,8 +1206,12 @@ export function useNoscaData(profile) {
     q = rec.groupName ? q.eq("kind", "group").eq("group_name", rec.groupName) : q.eq("player_id", rec.playerId);
     const { data: rows, error } = await q.order("booking_date");
     if (error) return { error, rows: [] };
-    const mine = (rows || []).filter((b) => (b.recurring_id ? b.recurring_id === rec.id
-      : localDate(b.booking_date).getDay() === rec.weekday && b.start_time === rec.time));
+    /* a run whose lessons carry it is exactly those; a run booked before
+       the column existed carries none, and is its slot — a one-off that
+       happens to share the slot of a linked run is not taken with it */
+    const linked = (rows || []).filter((b) => b.recurring_id === rec.id);
+    const mine = linked.length ? linked
+      : (rows || []).filter((b) => !b.recurring_id && localDate(b.booking_date).getDay() === rec.weekday && b.start_time === rec.time);
     return { rows: mine.map((b) => { const d = localDate(b.booking_date); return { id: b.id, date: b.booking_date, time: b.start_time, duration: b.duration, m: d.getMonth() + 1, d: d.getDate() }; }) };
   };
 

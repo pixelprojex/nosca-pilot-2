@@ -308,6 +308,14 @@ const leaks = [];
       await click(page, "Cian Murphy");
       const t9 = await text(); await shot("26-coach-recurring-setup");
       check("(e) the arrangement sheet is for the real player", t9.includes("Set up Cian"), t9.slice(0, 200));
+      /* on a weekday that is neither today nor tomorrow, so the run never
+         meets the lesson Cian asked for and was accepted into above —
+         ending it below is then exactly the run's own ten */
+      {
+        const runDay = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][(new Date(nowMs()).getDay() + 3) % 7];
+        const chip = page.locator(`[data-sheet] button:text-is("${runDay}")`);
+        if (await chip.count()) { await chip.first().click(); await page.waitForTimeout(300); }
+      }
       await page.locator("button", { hasText: /^Book \d+ lessons$/ }).first().click(); await page.waitForTimeout(2000);
       const rc = last(db.posts, "recurring"); const rb = last(db.posts, "bookings");
       check("(e) save POSTs a recurring row (weekday 0-6, cadence) for the player", !!rc && rc.rows[0].player_id === IDS.adult && rc.rows[0].cadence === "weekly" && rc.rows[0].weekday >= 0 && rc.rows[0].weekday <= 6 && rc.rows[0].start_time, JSON.stringify(rc && rc.rows[0]));
@@ -315,9 +323,31 @@ const leaks = [];
       await page.waitForTimeout(1500);
       const t10 = await leak("coach recurring listed"); await shot("27-coach-recurring-listed");
       check("(e) the manager lists the arrangement from the database", t10.includes("Cian Murphy") && t10.includes("1 running"), t10.slice(0, 200));
-      await click(page, "End"); await click(page, "End it", 1500);
-      const rd = last(db.deletes, "recurring");
-      check("(e) End DELETEs the recurring row", !!rd && rd.rows.length === 1 && rd.rows[0].id === rc.rows[0].id, JSON.stringify(rd && rd.query));
+      /* End is the lessons as well as the row: why, which (the run's ten
+         ahead, all ticked), the coach's password, then one PATCH of the
+         ten and only then the row's DELETE. A step that is not there
+         fails the checks below rather than the rest of the suite. */
+      {
+        const press = async (loc, wait) => { await loc.first().click({ timeout: 5000 }).catch(() => {}); await page.waitForTimeout(wait); };
+        const mEnd = { patches: db.patches.length, log: db.log.length };
+        await press(page.locator('[data-tour="recur-end"]'), 900);
+        await press(page.locator('[data-tour="end-why"]', { hasText: "Unwell" }), 300);
+        await press(page.locator('[data-tour="end-next"]'), 900);
+        await press(page.locator('[data-tour="end-confirm"]', { hasText: /^Cancel 10 lessons$/ }), 900);
+        await page.fill('input[type="password"]', "secret12", { timeout: 5000 }).catch(() => {});
+        await press(page.locator("button", { hasText: /^Cancel 10 lessons$/ }).last(), 2200);
+        const rd = last(db.deletes, "recurring");
+        check("(e) End DELETEs the recurring row", !!rd && rd.rows.length === 1 && rd.rows[0].id === rc.rows[0].id, JSON.stringify(rd && rd.query));
+        const runIds = rb ? rb.rows.map((r) => r.id) : [];
+        const ep = db.patches.slice(mEnd.patches).filter((x) => x.table === "bookings");
+        const inIds = (q) => { const m = /^in\.\((.*)\)$/.exec(new URLSearchParams(q || "").get("id") || ""); return m ? m[1].split(",").map((s) => s.replace(/^"|"$/g, "")) : []; };
+        const epIds = ep.length ? inIds(ep[0].query) : [];
+        const elog = db.log.slice(mEnd.log);
+        const pAt = elog.findIndex((l) => /^PATCH \/rest\/v1\/bookings/.test(l)), dAt = elog.findIndex((l) => /^DELETE \/rest\/v1\/recurring/.test(l));
+        check("(e) …preceded by one bookings PATCH cancelling exactly the run's 10 lessons, with the reason",
+              ep.length === 1 && runIds.length === 10 && epIds.length === 10 && runIds.every((id) => epIds.includes(id)) && ep[0].body.status === "cancelled" && ep[0].body.cancel_reason === "Unwell" && ep[0].n === 10 && pAt >= 0 && dAt > pAt,
+              JSON.stringify({ patches: ep.length, ids: epIds.length, body: ep[0] && ep[0].body, n: ep[0] && ep[0].n, pAt, dAt }));
+      }
       await shot("28-coach-recurring-ended");
       await back(page);
 
