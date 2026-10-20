@@ -241,8 +241,8 @@ const leaks = [];
       await click(page, "Drills");
       const t4 = await text(); await shot("18-coach-assign");
       check("(c) the drill sheet is for that player", t4.includes("Drills for Cian"), t4.slice(0, 200));
-      /* a real coach's library starts empty — the sports' starter drills are
-         the harness's — so a drill is written, which also saves it */
+      /* a drill is written here, which also saves it to the coach's
+         library (the starter set until their first change) */
       await page.locator('input[placeholder="Drill name"]').first().fill("Ladder drill"); await page.waitForTimeout(300);
       await page.locator("button", { hasText: /^Set \d drill/ }).first().click(); await page.waitForTimeout(1500);
       const d1 = last(db.posts, "drills");
@@ -257,8 +257,7 @@ const leaks = [];
       /* (c) the Practice screen: real roster, real completion, rename + remove */
       await back(page);
       await tap(page, '[aria-label="Search"]');
-      /* the drill this coach actually wrote a moment ago — their library
-         starts empty, so there is nothing else to find */
+      /* the drill this coach actually wrote a moment ago */
       await page.fill('input[placeholder="Lessons, drills, tips, people"]', "ladder"); await page.waitForTimeout(600);
       await page.locator("button", { hasText: "Ladder drill" }).first().click(); await page.waitForTimeout(1000);
       let t5 = await leak("coach practice"); await shot("20-coach-practice");
