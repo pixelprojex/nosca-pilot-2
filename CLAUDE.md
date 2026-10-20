@@ -236,15 +236,24 @@ seeded data and no account.
   nothing stores the answer, and a screen that asks and forgets is
   worse than one that never asked. It does not use `SignupShell`, whose
   body deliberately does not scroll.
-- **One drill library.** A live coach's drills are `custom_drills` in
-  their preferences — what they picked in setup plus what they wrote —
-  held in `library[sport]`. The wizard, the Set-drills sheet and the
-  Drills screen all read that one list; none of them reads the sport's
-  starter set directly (the wizard used to, and offered drills the
-  sheet had never heard of). `myLibrary` falls back to the sport's
-  starter set while the list is empty, so a coach who skipped setup
-  still has drills to set — a read only, nothing is written to their
-  preferences. The harness, with no account, seeds the starter set in.
+- **One drill library, and every change to it is real.** A live
+  coach's drills are `custom_drills` in their preferences — what they
+  picked in setup plus what they wrote — held in `library[sport]`. The
+  wizard, the Set-drills sheet and the Drills screen all read that one
+  list; none of them reads the sport's starter set directly (the wizard
+  used to, and offered drills the sheet had never heard of). `myLibrary`
+  falls back to the sport's starter set while the list is empty, so a
+  coach who skipped setup still has drills to set — a read only, nothing
+  is written to their preferences until they change it. The first change
+  writes the whole list it was made on (`writeLibrary`: the starter set
+  with the drill added, or with the drill binned), so a drill written
+  joins the twelve and a drill binned leaves eleven; Settings › Drills
+  says Saved or Removed only once the preferences hold it, says a
+  refused write and puts the list back, and the last drill carries no
+  bin. For a long time the bin on a starter drill said Removed and
+  nothing changed, and the first drill a coach wrote shrank the library
+  to that one. The harness, with no account, seeds the starter set in.
+  `drill-library.cjs` (c1)–(c11).
 - **A coach's sport never changes.** `profiles.sport` is what their
   invite code was handed out under. Another sport goes in
   `preferences.extra_sports`, and `activeSport` is which of them they
@@ -1325,7 +1334,30 @@ seeded data and no account.
   line nobody has opened says nothing, like a messenger's. The phone's
   own convention, and what CoachNow's read receipts give a coach. No
   other read signal joins it: the list keeps its dot, the tab bar its
-  number. `messaging.cjs` (k).
+  number. The line Seen sits under always ends a run (below).
+  `messaging.cjs` (k).
+- **A thread is drawn in runs.** Consecutive lines from one person
+  within five minutes of the run's first line (`RUN_MS`, `runsOf`) sit
+  `SPACE.knit` apart, with the time and the tail (the 8px corner on the
+  sender's side) on the last bubble only; between runs the air is
+  `SPACE.tight`. A run is keyed on the sender's id (`who`, from
+  `senderId`), never on the side: in a junior's thread the coach and
+  two adults are all "not me", and a run by side would fold a parent's
+  line under the coach's tail. A parent's label is on every bubble of a
+  parent's run, so no line of hers can read as the child's, and it
+  names her wherever her row can be read — the coach reads a junior's
+  guardians (`data.people`, `my_players_guardian_ids`), so it says
+  "Orla · parent" where it said "Parent". A day divider ends a run; a
+  line carrying a clip sits inside one; a coach's broadcast lines are
+  the coach's lines; the harness thread runs too. Every line was its
+  own bubble with its own time and tail, so three quick lines from a
+  coach read as three messages and half the thread was timestamps.
+  `ThreadBubble` is a top-level component: defined inside `Thread` it
+  was a new component on every render, and every keystroke in the
+  composer remounted every line. Signal keys a group on the author and
+  the day within three minutes and hides the time on all but the last;
+  Telegram joins a run within five minutes, one sender in a group.
+  `scripts/e2e/thread-runs.cjs`.
 - **Progress is a player's journey read off the lessons, the same
   screen on both sides, and it stores nothing.** `ProgressScreen`
   (route `progress` for your own, `progress:<id>` for a player's) is
