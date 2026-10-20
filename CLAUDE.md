@@ -249,11 +249,18 @@ seeded data and no account.
   with the drill added, or with the drill binned), so a drill written
   joins the twelve and a drill binned leaves eleven; Settings › Drills
   says Saved or Removed only once the preferences hold it, says a
-  refused write and puts the list back, and the last drill carries no
-  bin. For a long time the bin on a starter drill said Removed and
-  nothing changed, and the first drill a coach wrote shrank the library
-  to that one. The harness, with no account, seeds the starter set in.
-  `drill-library.cjs` (c1)–(c11).
+  refused write and puts the list back, says a name already there
+  ("Gate drill is already in your drills") rather than Saved, and the
+  last drill carries no bin; the Set-drills sheet waits for the write
+  and its toast says "· not added to your drills" when the drill was
+  set but the library refused it; the log takes a typed name it already
+  has, in any case, as that drill. The stored list is the authority:
+  every load replaces the phone's list with it (keeping only the
+  sitting's use counts), because a merge kept a drill binned on another
+  phone and the next write put it back. For a long time the bin on a
+  starter drill said Removed and nothing changed, and the first drill a
+  coach wrote shrank the library to that one. The harness, with no
+  account, seeds the starter set in. `drill-library.cjs` (c1)–(c15).
 - **A coach's sport never changes.** `profiles.sport` is what their
   invite code was handed out under. Another sport goes in
   `preferences.extra_sports`, and `activeSport` is which of them they
@@ -1347,7 +1354,10 @@ seeded data and no account.
   parent's run, so no line of hers can read as the child's, and it
   names her wherever her row can be read — the coach reads a junior's
   guardians (`data.people`, `my_players_guardian_ids`), so it says
-  "Orla · parent" where it said "Parent". A day divider ends a run; a
+  "Orla · parent" where it said "Parent". A line whose sender was its
+  own row's coach (`fromCoach`) is a coach's line whoever coaches the
+  player now — a child's former coach, readable through a sibling, read
+  "Niamh · parent" for a round of review. A day divider ends a run; a
   line carrying a clip sits inside one; a coach's broadcast lines are
   the coach's lines; the harness thread runs too. Every line was its
   own bubble with its own time and tail, so three quick lines from a
