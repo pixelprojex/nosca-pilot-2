@@ -185,12 +185,11 @@ const between = (db, coachId, playerId) => msgs(db).filter((m) => m.coach_id ===
       check("(e0) in the list, the child's row leads its preview with the parent's name, never reading as the child's", /(Orla|Parent): Fionn will be five minutes late/.test(t0), t0.slice(0, 300));
       await M.click(page, "Fionn Kelly", 1200); await shot("11-coach-child-thread");
       const t1 = await text();
-      /* A coach can read the roster and their own family, and a parent in
-         somebody else's family is in neither — so the line is labelled
-         "Parent" rather than by name. What must never happen is the line
-         reading as the child's or as the coach's own. */
+      /* A coach reads a junior's guardians (my_players_guardian_ids), so
+         the line names her: "Orla · parent". What must never happen is the
+         line reading as the child's or as the coach's own. */
       check("(e) a parent's line on a child's behalf is labelled a parent's, never the child's",
-        /Fionn will be five minutes late/.test(t1) && /parent/i.test(t1), t1.slice(0, 300));
+        /Fionn will be five minutes late/.test(t1) && /Orla · parent/.test(t1), t1.slice(0, 300));
       await ctx.close();
     }
 
