@@ -10,6 +10,7 @@
    under the last line of mine. A day divider ends a run. A line that
    carries a clip sits inside a run like any other. The coach's
    broadcast lines are the coach's lines. The harness thread runs too.
+   A child's former coach's line is a coach's, never a parent's.
 
    Everything is measured off what is drawn — the bubbles found by their
    words, the times by their shape, the gaps and the corners by the
@@ -232,6 +233,38 @@ const fmt = (o) => JSON.stringify(o);
       const T3 = { m4: "Hi Ray — something's come up Wednesday afternoon.", m5: "Could we move Wednesday to six?" };
       const L = await layout(page, T3); const o3 = ["m4", "m5"];
       check("(d1) the harness's two lines from Priya three minutes apart are one run: one time, close, the tail last", !!L.bubbles.m4 && !timeUnder(L, o3, "m4") && !!timeUnder(L, o3, "m5") && gap(L, "m4", "m5") <= 8 && L.bubbles.m4.bl > 8 && L.bubbles.m5.bl === 8, fmt({ m4: L.bubbles.m4, gap: gap(L, "m4", "m5"), u4: timeUnder(L, o3, "m4"), u5: timeUnder(L, o3, "m5") }));
+      await ctx.close();
+    }
+
+    /* ---------- (e) a child's former coach is a coach, never a parent ----------
+       Saoirse moved from Niamh to Brian; her thread keeps Niamh's old
+       line, and Orla can read Niamh's row because Niamh coaches Fionn.
+       The row says who its coach was: that line is a coach's. */
+    {
+      const BRIAN = "00000000-0000-4000-8000-00000000b41a", FIONN = "00000000-0000-4000-8000-00000000f10e";
+      const odb = M.emptyDb();
+      const person = (id, email, prof) => { M.addUser(odb, { id, email }); return M.addProfile(odb, { id, ...prof }); };
+      M.addFamily(odb, { id: FAM, code: "KEL7Y2", createdBy: IDS.parent });
+      person(IDS.coach, "coach@t.ie", { role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
+      person(BRIAN, "brian@t.ie", { role: "coach", name: "Brian Walsh", inviteCode: "BW7X2M" });
+      person(IDS.parent, "parent@t.ie", { role: "player", name: "Orla Kelly", type: "parent", familyId: FAM });
+      person(IDS.junior, "junior@t.ie", { role: "player", name: "Saoirse Kelly", type: "junior", coachId: BRIAN, familyId: FAM, dob: "2013-09-09" });
+      person(FIONN, "fionn@t.ie", { role: "player", name: "Fionn Kelly", type: "junior", coachId: IDS.coach, familyId: FAM, dob: "2015-09-09" });
+      M.addMessage(odb, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.coach, body: "Great lesson with Saoirse today.", createdAt: "2026-09-01T09:00:00Z", readAt: READ });
+      M.addMessage(odb, { coachId: BRIAN, playerId: IDS.junior, senderId: BRIAN, body: "Welcome to the group, Saoirse.", createdAt: "2026-10-01T09:00:00Z", readAt: READ });
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, timezoneId: "Europe/Dublin" });
+      const page = await ctx.newPage(); await M.attach(page, odb);
+      page.on("pageerror", (e) => errors.push(`oldcoach: ${String(e.message || e)}`));
+      await M.injectSession(page, M.session(Object.values(odb.users).find((x) => x.id === IDS.parent), odb));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await M.tap(page, '[aria-label="Chat"]', 1000);
+      await M.click(page, "Brian Walsh", 1500);
+      await page.screenshot({ path: path.join(outDir, "05-parent-old-coach.png") });
+      const T4 = { o1: "Great lesson with Saoirse today.", o2: "Welcome to the group, Saoirse." };
+      const L = await layout(page, T4);
+      check("(e1) a child's former coach's line reads as a coach's — no parent label, on the coach's side — never \"Niamh · parent\"",
+            !!L.bubbles.o1 && !/parent/i.test(L.bubbles.o1.label) && !!L.bubbles.o2 && Math.abs(L.bubbles.o1.left - L.bubbles.o2.left) < 2,
+            fmt({ o1: L.bubbles.o1, o2: L.bubbles.o2 && { left: L.bubbles.o2.left, label: L.bubbles.o2.label } }));
       await ctx.close();
     }
   } catch (e) {

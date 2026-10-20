@@ -9,7 +9,10 @@
    nothing is saved, and the first change writes that list with the
    change in it — a drill written joins the twelve, the bin leaves
    eleven, Saved and Removed only once the preferences hold it, a
-   refused write said and undone, the last drill without a bin.
+   refused write said and undone, the last drill without a bin, a name
+   already there said rather than Saved, the Set-drills sheet saying a
+   refused write, a drill binned on another phone staying gone, and the
+   log taking a typed name it already has as that drill.
    Usage: node drill-library.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -294,6 +297,83 @@ const { check, results, summary } = M.checker("drill-library");
         const t = M.norm(await text());
         check("(c11) a library of one reads 1 drill, offers Set drills on it, and no bin — an empty list would put the twelve back",
               r.length === 1 && /1 drill\b/.test(t) && !/1 drills/.test(t) && /Set drills/.test(t) && (await page.locator('[aria-label="Delete"]').count()) === 0, JSON.stringify({ rows: r, meta: t.slice(0, 80) }));
+        await ctx.close();
+      }
+
+      /* a name already in the library is said, never Saved over nothing */
+      {
+        const dbG = freshDb();
+        const { ctx, page, text } = await boot(dbG, "coach");
+        await openLibrary(page);
+        await writeOne(page, "gate drill");
+        const t = await text();
+        const kept = await page.locator('input[placeholder="Drill name"]').first().inputValue().catch(() => "");
+        check("(c12) a drill written under a name already there says so — no Saved, nothing written, the name still in the field",
+              /Gate drill is already in your drills/.test(t) && !/Saved/.test(t) && stored(dbG) === null && kept === "gate drill", JSON.stringify({ toast: t.match(/already in your drills|Saved/), stored: stored(dbG), kept }));
+        await ctx.close();
+      }
+
+      /* the Set-drills sheet: a refused library write is said with the drills */
+      {
+        const dbH = freshDb(); dbH.missingColumns = { preferences: ["custom_drills"] };
+        const { ctx, page, text } = await boot(dbH, "coach");
+        await tap(page, '[aria-label="Roster"]', 900);
+        await page.locator('[data-tour="roster-row"]').first().click(); await page.waitForTimeout(900);
+        await tap(page, '[data-tour="player-actions"] button[aria-label="Drills"]', 900);
+        await page.locator('input[placeholder="Drill name"]').first().fill("Wall drill"); await page.waitForTimeout(250);
+        await page.locator("button", { hasText: /^Set 1 drill/ }).first().click();
+        let seen = "";
+        for (let i = 0; i < 25 && !seen; i++) { await page.waitForTimeout(80); const t = M.norm(await text()); if (/drill set for Cian/.test(t)) seen = t; }
+        check("(c13) a drill written in the Set-drills sheet whose library write is refused is still set, and the toast says it was not added",
+              /1 drill set for Cian · not added to your drills/.test(seen) && (dbH.drills || []).some((d) => d.title === "Wall drill"), JSON.stringify({ toast: (seen.match(/1 drill set[^\n]{0,60}/) || [""])[0], drills: (dbH.drills || []).map((d) => d.title) }));
+        await ctx.close();
+      }
+
+      /* two phones: a drill binned on one never comes back from the other */
+      {
+        const dbI = freshDb();
+        const { ctx: cA, page: A } = await boot(dbI, "coach");
+        await openLibrary(A);
+        await writeOne(A, "Wedge ladder"); await A.waitForTimeout(900);
+        const { ctx: cB, page: B } = await boot(dbI, "coach");   // B opens on the thirteen
+        await bin(A, "Gate drill"); await A.waitForTimeout(1200);
+        /* B sets a drill, which loads its data again with A's twelve */
+        await tap(B, '[aria-label="Roster"]', 900);
+        await B.locator('[data-tour="roster-row"]').first().click(); await B.waitForTimeout(900);
+        await tap(B, '[data-tour="player-actions"] button[aria-label="Drills"]', 900);
+        const more = B.locator("button", { hasText: /^Show \d+ more/ }); if (await more.count()) { await more.first().click(); await B.waitForTimeout(300); }
+        await B.locator("button", { hasText: "Step drill" }).first().click(); await B.waitForTimeout(200);
+        await B.locator("button", { hasText: /^Set 1 drill/ }).first().click(); await B.waitForTimeout(2000);
+        await tap(B, '[aria-label="Roster"]', 900); await tap(B, '[aria-label="Roster"]', 900);
+        await openLibrary(B);
+        const rb = await libRows(B);
+        await writeOne(B, "Wall drill"); await B.waitForTimeout(1200);
+        const sI = stored(dbI) || [];
+        check("(c14) a drill binned on one phone stays gone: the other phone reads the twelve left, and its next drill writes thirteen without it",
+              !rb.includes("Gate drill") && rb.includes("Wedge ladder") && sI.length === GOLF + 1 && sI[0].t === "Wall drill" && !sI.some((d) => d.t === "Gate drill") && sI.some((d) => d.t === "Wedge ladder"),
+              JSON.stringify({ B: rb.length, gateOnB: rb.includes("Gate drill"), stored: sI.length, gate: sI.some((d) => d.t === "Gate drill") }));
+        await cB.close(); await cA.close();
+      }
+
+      /* the log: a drill typed under a name on the list is that drill */
+      {
+        const dbJ = freshDb();
+        const { ctx, page } = await boot(dbJ, "coach");
+        await tap(page, '[data-tour="quick"]', 900);
+        await tap(page, '[data-tour="quick-log"]', 900);
+        const who = page.locator('input[aria-label="Search"]').first();
+        await who.fill("Cian"); await page.waitForTimeout(300); await who.press("Enter"); await page.waitForTimeout(700);
+        await tap(page, '[data-tour="wiz-drills"]', 600);
+        const listed = () => page.evaluate(() => { const tile = document.querySelector('[data-tour="wiz-drills"]'); const box = tile && tile.closest(".px-6"); return box ? [...box.querySelectorAll("button[aria-pressed]")].map((b) => ({ t: (b.innerText || "").trim(), on: b.getAttribute("aria-pressed") === "true" })).filter((x) => x.t) : []; });
+        const gate = (await listed()).find((x) => /^Gate drill$/.test(x.t));
+        if (gate) { await page.locator("button[aria-pressed]", { hasText: /^Gate drill$/ }).first().click(); await page.waitForTimeout(300); }
+        const add = page.locator('input[placeholder="Add a drill"]').first();
+        await add.fill("gate drill"); await add.press("Enter"); await page.waitForTimeout(1200);
+        const rows = (await listed()).filter((x) => /^gate drill$/i.test(x.t));
+        /* the tile counts what Log it will send: one drill, not the same one twice */
+        const count = ((await page.locator('[data-tour="wiz-drills"]').first().innerText()) || "").replace(/\D+/g, " ").trim();
+        check("(c15) on the log, a drill typed under a name already ticked is that drill — one row, ticked, the tile counting 1, nothing written",
+              !!gate && rows.length === 1 && rows[0].on && count === "1" && stored(dbJ) === null, JSON.stringify({ gate, rows, count, stored: stored(dbJ) && stored(dbJ).length }));
         await ctx.close();
       }
     }

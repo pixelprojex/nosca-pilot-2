@@ -13231,7 +13231,17 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const dateIso = `${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`;
   const maxIso = `${today.y}-${String(today.m).padStart(2, "0")}-${String(today.d).padStart(2, "0")}`;
   const prompts = (tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4);
-  const addOwnDrill = (v) => { hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill(""); onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); };
+  const addOwnDrill = (typed) => {
+    hapticSuccess(); soft(); setOwnDrill("");
+    /* a name already on the list, in any case, is that drill — ticked,
+       never a second row the coach cannot see to untick */
+    const same = (x) => String(x).toLowerCase() === String(typed).toLowerCase();
+    const known = [...nextDrills, ...extraDrills, ...(library || cfg.drills || []).map((d) => d.t)].find(same);
+    const v = known || typed;
+    if (!extraDrills.some(same) && !(library || cfg.drills || []).some((d) => same(d.t))) setExtraDrills([...extraDrills, v]);
+    if (!nextDrills.some(same)) setNextDrills([...nextDrills, v]);
+    if (!known) onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id });
+  };
 
   return (
     <SwipeBack key="main" onBack={onCancel}>
@@ -15306,6 +15316,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
     setBusy(true);
     const r = await addDrill({ t: f.t.trim(), d: f.d.trim() || "No notes", focus: f.focus, uses: 0 });
     setBusy(false);
+    if (r && r.duplicate) { hapticWarn(); say(`${r.duplicate} is already in your drills`); return; }
     if (r && r.error) return;
     setF({ t: "", d: "", focus: cfg.focus[0].id }); setAdding(false); chime(); say("Saved");
   };
@@ -15477,14 +15488,19 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
         </Card>
       )}
 
-      <Button disabled={total === 0} onClick={() => {
+      <Button disabled={total === 0} onClick={async () => {
         const chosen = library.filter((dr) => picked.includes(dr.t));
+        let kept = true;
         if (custom.trim()) {
           const fresh = { t: custom.trim(), d: customDesc.trim() || "No notes", focus: hints[0] || cfg.focus[0].id, uses: 0 };
-          onSaveDrill && onSaveDrill(fresh);   // auto-save, no extra step
+          close();
+          /* auto-save, no extra step — and a refused save is said with
+             the drills, not covered by them */
+          const r = onSaveDrill ? await onSaveDrill(fresh) : {};
+          kept = !(r && r.error);
           chosen.push(fresh);
-        }
-        onAssign(who, chosen, dueOn && due ? due : null); close();
+        } else close();
+        onAssign(who, chosen, dueOn && due ? due : null, kept);
       }}>{total ? `Set ${total} drill${total > 1 ? "s" : ""}` : "Pick or write a drill"}</Button>
     </>
   );
@@ -16400,7 +16416,7 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
      coach, the adult reading it, and another adult in the family. A
      line that is not mine and not the coach's is a parent's, and says
      so — it must never read as the child's or as the coach's. */
-  const isCoachMsg = (m) => live && live.coachId ? m.senderId === live.coachId : !!m.fromCoach;
+  const isCoachMsg = (m) => !!m.fromCoach || !!(live && live.coachId && m.senderId === live.coachId);
   /* and whose thread this is. Without this the coach saw every line an
      adult player wrote about themselves labelled "Cian · parent": not
      mine and not the coach's was taken to mean somebody wrote it on
@@ -17901,17 +17917,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       askForReview: p.ask_for_review ?? PREF_DEFAULTS.askForReview,
     });
     if (Array.isArray(p.starred)) setStarred(p.starred);
-    /* A coach's own saved drills, layered onto the sport's starter set
-       so they show up as suggestions again after signing back in —
-       not just for the rest of the session they were typed in. */
+    /* A coach's own saved drills ARE the library for that sport: every
+       change writes the whole list (writeLibrary), so the stored list
+       replaces what the phone holds rather than being merged into it —
+       a merge kept a drill binned on another phone, and the next write
+       put it back. Only the session's use counts stay. */
     if (p.custom_drills && Object.keys(p.custom_drills).length) {
       setLibrary((l) => {
         const next = { ...l };
         for (const sp of Object.keys(p.custom_drills)) {
-          const saved = p.custom_drills[sp] || [];
-          const cur = next[sp] || [];
-          const names = new Set(cur.map((x) => x.t.toLowerCase()));
-          next[sp] = [...saved.filter((d) => !names.has(d.t.toLowerCase())), ...cur];
+          const saved = Array.isArray(p.custom_drills[sp]) ? p.custom_drills[sp] : [];
+          const uses = new Map((next[sp] || []).map((x) => [String(x.t).toLowerCase(), x.uses]));
+          next[sp] = saved.map((d) => (uses.get(String(d.t).toLowerCase()) ? { ...d, uses: uses.get(String(d.t).toLowerCase()) } : d));
         }
         return next;
       });
@@ -19631,7 +19648,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return {};
   };
   const saveDrill = (d) => {
-    if (myLibrary.some((x) => x.t.toLowerCase() === d.t.toLowerCase())) return Promise.resolve({});
+    const had = myLibrary.find((x) => x.t.toLowerCase() === d.t.toLowerCase());
+    if (had) return Promise.resolve({ duplicate: had.t });
     return writeLibrary([d, ...myLibrary]);
   };
   const removeDrill = (name) => writeLibrary(myLibrary.filter((x) => x.t !== name));
@@ -19645,7 +19663,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const list = Object.values(data.bookings || {}).flat().filter((b) => b && b.playerId === pid && (!b.status || b.status === "confirmed" || b.status === "requested") && b.date && b.date >= todayIso).map((b) => b.date).sort();
     return list[0] || null;
   };
-  const doAssignDrills = async (target, drills, due = null) => {
+  const doAssignDrills = async (target, drills, due = null, kept = true) => {
     bumpUses(drills.map((d) => d.t));
     const person = personOf(target);
     const name = person ? person.name : "";
@@ -19654,7 +19672,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
       const res = await data.setDrills(who.id, drills.map((d) => d.t), due);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set those drills.")); return; }
-      say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${name.split(" ")[0]}`); haptic(18); return;
+      say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${name.split(" ")[0]}${kept ? "" : " · not added to your drills"}`); haptic(18); return;
     }
     if (name === "Marcus Tran" && coachSport === "golf") setPractice((p) => ({ ...p, "1:golf": drills.map((d, i) => ({ id: `golf-${Date.now()}-${i}`, t: d.t, d: d.d, done: false })) }));
     say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${(name || "").split(" ")[0]}`); haptic(18);
