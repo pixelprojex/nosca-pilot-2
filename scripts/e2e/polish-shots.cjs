@@ -32,9 +32,13 @@ function freshDb() {
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: ymd(today), time: "4:00 pm", status: "confirmed" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: ago(-2), time: "10:00 am", status: "confirmed" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: ago(-3), time: "9:00 am", status: "requested" });
-  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.adult, body: "Grand, see you at four." });
-  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.coach, body: "Saoirse hit the ball beautifully today." });
-  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.parent, body: "Thanks Niamh — can she come Friday instead?" });
+  /* explicit times: the junior's thread is the newest, and carries a run
+     of the coach's (two lines, one time) before the parent's line */
+  const at = (hm) => new Date(`${ymd(today)}T${hm}:00`).toISOString();
+  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.adult, body: "Grand, see you at four.", createdAt: at("07:40") });
+  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.coach, body: "Saoirse hit the ball beautifully today.", createdAt: at("07:50") });
+  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.coach, body: "Her grip is much better.", createdAt: at("07:51") });
+  M.addMessage(db, { coachId: IDS.coach, playerId: IDS.junior, senderId: IDS.parent, body: "Thanks Niamh — can she come Friday instead?", createdAt: at("07:55") });
   /* the bell: two from today, one older and read */
   M.addNotification(db, { userId: IDS.coach, kind: "booking", title: "Cian Murphy asked for Friday 9:00 am", body: null, data: { screen: "calendar" } });
   M.addNotification(db, { userId: IDS.coach, kind: "message", title: "Orla Kelly replied for Saoirse", body: "Thanks Niamh — can she come Friday instead?", data: { screen: "messages" } });
@@ -101,7 +105,7 @@ function freshDb() {
       await page.locator('[data-tour="saved-kind"] button[aria-label="Downloads"]').click().catch(() => {}); await page.waitForTimeout(700); await shot("c24-saved-downloads");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap('[aria-label="Chat"]'); await shot("c20-chat-list");
-      await page.locator('[data-tour="chat-row"]').first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("c21-thread-junior");
+      await page.locator("button", { hasText: "Saoirse Kelly" }).first().dispatchEvent("click").catch(() => {}); await page.waitForTimeout(900); await shot("c21-thread-junior");
       /* Chat's picker with its group row, and the group's own page */
       await tap('[aria-label="Chat"]'); await tap('[data-tour="chat-new"]', 900); await shot("c25-chat-picker");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);

@@ -361,6 +361,28 @@ the booked lessons stay; moving them, with a notice, is the next step.
 The functional item of the day; `recurring.cjs`; behaviour.sql 10c.
 With it, one small visual fix: the Diary's Recurring rows boxed.
 
+### 22. A Chat thread drawn in runs. **Built 20 October.**
+Every line in a thread was its own bubble with its own time and tail,
+so a coach's three quick lines read as three messages and half the
+thread was timestamps. The messengers agree on the shape and on what a
+run is keyed by. Signal Desktop groups lines by the same author on the
+same day within three minutes and hides the time and status on all but
+the last (`timelineUtil.std.ts`), draws them 2px apart with a joined
+corner on the sender's side (`_modules.scss`), and names the author on
+the first line only in a group (`Message.dom.tsx`); Telegram pins
+bubbles going the same way within five minutes, and in a group only
+from the same sender, with the tail on the bottom bubble only
+(`ChatActivity.java`, `MessageDrawable.java`). Nosca keys a run on the
+sender, never the side — a junior's thread has three writers on the
+left — keeps the scale's 6px rather than Signal's 2px, keeps every
+bubble of a run fully round but the last (iMessage's way, not Signal's
+joined corners), and keeps a parent's label on every bubble of her run
+where Signal names the author once, because a parent's line read as
+the child's is the one thing the thread must never do. The visual item
+of the day; `thread-runs.cjs`. With it, one small functional fix: the
+coach's drill library did what its toasts said (`drill-library.cjs`
+(c1)–(c11)).
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -453,3 +475,8 @@ the items above; a research spike first.
 - https://support.unifiedpractice.com/en/knowledge/repeat-appointments (Unified Practice: cancel one appointment or all remaining in a series)
 - https://support.therapyappointment.com/article/362-how-do-i-delete-repeating-appointments (Therapy Appointment: Cancel All Future Occurrences)
 - https://timetap.atlassian.net/wiki/x/ToCAAw (TimeTap: one notice when staff cancel a whole repeating series)
+- https://github.com/signalapp/Signal-Desktop/blob/main/ts/util/timelineUtil.std.ts (Signal: a group is one author, one day, under three minutes; the time and status on the last line only)
+- https://github.com/signalapp/Signal-Desktop/blob/main/stylesheets/_modules.scss (Signal: 2px inside a group, 12px between, the joined corner on the sender's side)
+- https://github.com/signalapp/Signal-Desktop/blob/main/ts/components/conversation/Message.dom.tsx (Signal: in a group chat the author's name on the first line of a run)
+- https://github.com/DrKLO/Telegram/blob/master/TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java (Telegram: bubbles pinned within five minutes, the same sender in a group)
+- https://github.com/DrKLO/Telegram/blob/master/TMessagesProj/src/main/java/org/telegram/ui/Components/MessageDrawable.java (Telegram: the tail on the bottom bubble of a run only)

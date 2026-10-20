@@ -12895,9 +12895,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   };
   useEffect(() => { if (rec !== "recording") return; const i = setInterval(() => setSecs((x) => x + 1), 1000); return () => clearInterval(i); }, [rec]);
 
+  /* the drills written on this log sit under the eight, where they were
+     typed; the eight do not shift to make room for one */
   const recommended = useMemo(() => {
     const pool = library || cfg.drills || [];
-    const seen = new Set(), out = [];
+    const seen = new Set(extraDrills.map((x) => String(x).trim().toLowerCase())), out = [];
     for (const d of [...pool.filter((d) => d.focus && focus.includes(d.focus)), ...pool]) {
       const k = String(d.t || "").trim().toLowerCase();
       if (!k || seen.has(k)) continue;
@@ -12905,7 +12907,18 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
       if (out.length === 8) break;
     }
     return out;
-  }, [library, cfg, focus]);
+  }, [library, cfg, focus, extraDrills]);
+  /* every ticked drill stays on the list, so one picked under another
+     area is still there to untick */
+  const drillRows = (() => {
+    const seen = new Set(), out = [];
+    for (const d of [...recommended, ...nextDrills.map((x) => ({ t: x })), ...extraDrills.map((x) => ({ t: x }))]) {
+      const k = String(d.t || "").trim().toLowerCase();
+      if (!k || seen.has(k)) continue;
+      seen.add(k); out.push(d);
+    }
+    return out;
+  })();
 
   /* ---------- derived ---------- */
   const firstName = wizFirst((who[0] || {}).name);
@@ -13218,7 +13231,17 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const dateIso = `${logY}-${String(logM).padStart(2, "0")}-${String(logD).padStart(2, "0")}`;
   const maxIso = `${today.y}-${String(today.m).padStart(2, "0")}-${String(today.d).padStart(2, "0")}`;
   const prompts = (tipPrompts && tipPrompts.length ? tipPrompts : cfg.tipLibrary ? cfg.tipLibrary.map((x) => x.t) : TIP_PROMPTS[sport] || []).slice(0, 4);
-  const addOwnDrill = (v) => { hapticSuccess(); soft(); setExtraDrills([...extraDrills, v]); setNextDrills([...nextDrills, v]); setOwnDrill(""); onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id }); };
+  const addOwnDrill = (typed) => {
+    hapticSuccess(); soft(); setOwnDrill("");
+    /* a name already on the list, in any case, is that drill — ticked,
+       never a second row the coach cannot see to untick */
+    const same = (x) => String(x).toLowerCase() === String(typed).toLowerCase();
+    const known = [...nextDrills, ...extraDrills, ...(library || cfg.drills || []).map((d) => d.t)].find(same);
+    const v = known || typed;
+    if (!extraDrills.some(same) && !(library || cfg.drills || []).some((d) => same(d.t))) setExtraDrills([...extraDrills, v]);
+    if (!nextDrills.some(same)) setNextDrills([...nextDrills, v]);
+    if (!known) onSaveDrill && onSaveDrill({ t: v, d: "", focus: focus[0] || cfg.focus[0].id });
+  };
 
   return (
     <SwipeBack key="main" onBack={onCancel}>
@@ -13352,7 +13375,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             </TileGrid>
             {drillsOpen && (
               <div className="mt-2.5" style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
-                <DrillPicker drills={[...recommended, ...extraDrills.map((x) => ({ t: x }))]} picked={nextDrills}
+                <DrillPicker drills={drillRows} picked={nextDrills}
                              onToggle={(name) => setNextDrills(nextDrills.includes(name) ? nextDrills.filter((x) => x !== name) : [...nextDrills, name])} />
                 <div className="mt-2.5"><InlineField ph={tr("Add a drill")} onCommit={addOwnDrill} onCancel={() => {}} autoFocus={false} /></div>
               </div>
@@ -15283,6 +15306,28 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
   const [f, setF] = useState({ t: "", d: "", focus: cfg.focus[0].id });
   const [filter, setFilter] = useKept("filter", "All");
   const [open, setOpen] = useKept("open", null);
+  const [busy, setBusy] = useState(false);
+  /* THE TOAST FOLLOWS THE WRITE. Saved and Removed are said once the
+     coach's preferences hold the change; a refused write is said by
+     the save itself, the list goes back, and a typed drill stays in
+     the field to try again. */
+  const save = async () => {
+    hapticCommit();   /* felt now: iOS gives no haptic once the promise lands */
+    setBusy(true);
+    const r = await addDrill({ t: f.t.trim(), d: f.d.trim() || "No notes", focus: f.focus, uses: 0 });
+    setBusy(false);
+    if (r && r.duplicate) { hapticWarn(); say(`${r.duplicate} is already in your drills`); return; }
+    if (r && r.error) return;
+    setF({ t: "", d: "", focus: cfg.focus[0].id }); setAdding(false); chime(); say("Saved");
+  };
+  const remove = async (name) => {
+    haptic(8);
+    setBusy(true);
+    const r = await removeDrill(name);
+    setBusy(false);
+    if (r && r.error) return;
+    say("Removed"); setOpen(null);
+  };
 
   const chips = ["All", ...cfg.focus.map((x) => x.label)];
   const shown = (filter === "All" ? library : library.filter((d) => cfg.focus.find((f2) => f2.id === d.focus)?.label === filter))
@@ -15294,7 +15339,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
 
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Drills")} onBack={pop} meta={library.length ? `${library.length} ${tr("drills")}` : ""}
+      <Screen title={tr("Drills")} onBack={pop} meta={library.length ? `${library.length} ${library.length === 1 ? tr("drill") : tr("drills")}` : ""}
               right={<TextBtn tour="library-new" onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
         {adding && (
           <div className="px-6 mb-5"><Card className="p-5">
@@ -15303,7 +15348,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
             <div className="mt-4">
               <FocusGrid areas={cfg.focus} picked={[f.focus]} onToggle={(id) => setF({ ...f, focus: id })} />
             </div>
-            <div className="mt-5"><Button disabled={!f.t.trim()} onClick={() => { addDrill({ t: f.t.trim(), d: f.d.trim() || "No notes", focus: f.focus, uses: 0 }); setF({ t: "", d: "", focus: cfg.focus[0].id }); setAdding(false); hapticSuccess(); chime(); say("Saved"); }}>{tr("Save")}</Button></div>
+            <div className="mt-5"><Button disabled={!f.t.trim() || busy} onClick={save}>{tr("Save")}</Button></div>
           </Card></div>
         )}
 
@@ -15333,10 +15378,15 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                         <div className="flex gap-2">
                           <button onClick={() => { hapticCommit(); assign(null, d.focus); }} className="flex-1 active:opacity-70"
                                   style={{ minHeight: 44, borderRadius: R.control, background: t.accent, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.onAccent }}>{tr("Set drills")}</button>
-                          <button onClick={() => { haptic(8); removeDrill(d.t); say("Removed"); setOpen(null); }} className="px-4 active:opacity-60"
+                          {/* the last drill keeps no bin: an empty list is the
+                              starter set again, which would put back twelve
+                              drills the coach never chose */}
+                          {library.length > 1 && (
+                          <button onClick={() => { if (!busy) remove(d.t); }} className="px-4 active:opacity-60"
                                   style={{ minHeight: 44, borderRadius: R.control, border: `1px solid ${t.hair}` }} aria-label={tr("Delete")}>
                             <Trash2 size={15} color={DANGER} />
                           </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -15438,14 +15488,19 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
         </Card>
       )}
 
-      <Button disabled={total === 0} onClick={() => {
+      <Button disabled={total === 0} onClick={async () => {
         const chosen = library.filter((dr) => picked.includes(dr.t));
+        let kept = true;
         if (custom.trim()) {
           const fresh = { t: custom.trim(), d: customDesc.trim() || "No notes", focus: hints[0] || cfg.focus[0].id, uses: 0 };
-          onSaveDrill && onSaveDrill(fresh);   // auto-save, no extra step
+          close();
+          /* auto-save, no extra step — and a refused save is said with
+             the drills, not covered by them */
+          const r = onSaveDrill ? await onSaveDrill(fresh) : {};
+          kept = !(r && r.error);
           chosen.push(fresh);
-        }
-        onAssign(who, chosen, dueOn && due ? due : null); close();
+        } else close();
+        onAssign(who, chosen, dueOn && due ? due : null, kept);
       }}>{total ? `Set ${total} drill${total > 1 ? "s" : ""}` : "Pick or write a drill"}</Button>
     </>
   );
@@ -16295,6 +16350,61 @@ const dayLabelOf = (iso, L) => {
   if (days === 1) return tr("Yesterday");
   return fmtWeekDay(d);
 };
+/* A RUN: consecutive lines from one person, on one day, within five
+   minutes of the first of them. They sit close, the time is under the
+   last, and the tail is on the last bubble only — the way a messenger
+   draws one person's turn. The key is the person (senderId), never the
+   side: in a child's thread the coach and two adults can all be "not
+   me", and a run keyed on the side would put a parent's line under the
+   coach's tail. Five minutes from the FIRST line, so the time under a
+   run is never more than five minutes off any line in it. The harness
+   has no ids and no ISO times: its key is the side (one person a side
+   in every seeded thread) and its time the "11:42" it carries. */
+const RUN_MS = 5 * 60 * 1000;
+const msOfLine = (m) => {
+  if (m.iso) { const v = Date.parse(m.iso); return Number.isNaN(v) ? null : v; }
+  const x = /^(\d{1,2}):(\d{2})(?:\s*([ap]m))?$/i.exec(String(m.at || "").trim());
+  if (!x) return null;
+  let h = Number(x[1]) % (x[3] ? 12 : 24); if (x[3] && x[3].toLowerCase() === "pm") h += 12;
+  return (h * 60 + Number(x[2])) * 60000;
+};
+const runsOf = (msgs) => {
+  const out = msgs.map(() => ({ cont: false, end: true }));
+  let start = 0;
+  msgs.forEach((m, i) => {
+    if (i === 0) return;
+    const prev = msgs[i - 1], a = msOfLine(msgs[start]), b = msOfLine(m);
+    const same = m.who != null && m.who === prev.who && dayOf(m.iso) === dayOf(prev.iso)
+      && (a != null && b != null ? b >= a && b - a <= RUN_MS : a == null && b == null && m.at === msgs[start].at);
+    if (same) { out[i].cont = true; out[i - 1].end = false; } else start = i;
+  });
+  return out;
+};
+/* One line of a thread. A component of its own, never one declared
+   inside Thread: a component made inside another's render is a new type
+   every render, so each key typed into the composer unmounted and
+   remounted every bubble — the clip card asked for its poster again and
+   the poster faded in from nothing under the person's thumb. */
+function ThreadBubble({ m, mine, end, live }) {
+  const t = useT();
+  const body = m.id ? ((readMsg(m.id) || {}).text || m.text) : m.text;
+  return (
+    <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`} style={{ marginBottom: end ? SPACE.tight : SPACE.knit }}>
+      <div className="rounded-3xl px-4 py-2.5" style={{ maxWidth: "78%", background: mine ? t.ink : m.via ? t.wash : t.surface, border: mine || m.via ? "none" : `1px solid ${t.hair}`, borderBottomRightRadius: mine && end ? 8 : 24, borderBottomLeftRadius: !mine && end ? 8 : 24 }}>
+        {/* who wrote it, inside the bubble — on every bubble of a
+            parent's run, so no line of theirs ever reads as the child's
+            or the coach's, however it is cropped */}
+        {m.via && <span className="block mb-0.5" style={{ ...TYPE.caption, color: t.faint }}>{m.via}</span>}
+        <p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.45, color: mine ? "#fff" : t.ink }}>{body}</p>
+        {/* a line that carries a clip opens it, and looks like one */}
+        {m.lessonId && live && live.openLesson && <ClipCard lessonId={m.lessonId} live={live} mine={mine} />}
+      </div>
+      {/* the time under the last line of a run; Seen is always on the
+          last line of mine, which always ends a run */}
+      {m.at && (end || m.seen) && <span className="block mt-1 px-1" data-tour={m.seen ? "msg-seen" : undefined} style={{ ...TYPE.caption, color: t.faint }}>{m.seen ? `${m.at} · ${tr("Seen")}` : m.at}</span>}
+    </div>
+  );
+}
 
 function Thread({ role, name, isGroup, pop, say, live, banner }) {
   const t = useT(); const L = useL(); const other = role === "coach" ? "player" : "coach";
@@ -16306,7 +16416,7 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
      coach, the adult reading it, and another adult in the family. A
      line that is not mine and not the coach's is a parent's, and says
      so — it must never read as the child's or as the coach's. */
-  const isCoachMsg = (m) => live && live.coachId ? m.senderId === live.coachId : !!m.fromCoach;
+  const isCoachMsg = (m) => !!m.fromCoach || !!(live && live.coachId && m.senderId === live.coachId);
   /* and whose thread this is. Without this the coach saw every line an
      adult player wrote about themselves labelled "Cian · parent": not
      mine and not the coach's was taken to mean somebody wrote it on
@@ -16319,10 +16429,10 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
   const lastMine = live ? [...live.messages].reverse().find((m) => m.mine) : null;
   const seenKey = lastMine && lastMine.readAt ? lastMine.id : null;
   const msgs = live ? live.messages.map((m) => ({
-    from: m.mine ? role : other, text: m.body, at: m.at, iso: m.iso, key: m.id, lessonId: m.lessonId || null, seen: seenKey != null && m.id === seenKey,
+    from: m.mine ? role : other, who: m.senderId || null, text: m.body, at: m.at, iso: m.iso, key: m.id, lessonId: m.lessonId || null, seen: seenKey != null && m.id === seenKey,
     via: !m.mine && !isCoachMsg(m) && !isTheirs(m) ? (((live.nameOf && live.nameOf(m.senderId)) ? `${live.nameOf(m.senderId).split(" ")[0]} · ${tr("parent")}` : tr("Parent"))) : null,
-    onBehalf: m.mine && role !== "coach" && !!live.child,
-  })) : local;
+  })) : local.map((m) => ({ ...m, who: m.from }));
+  const runs = runsOf(msgs);
   const [draft, setDraft] = useState(""); const [typing, setTyping] = useState(false); const [sending, setSending] = useState(false);
   const feed = useRef(null); const group = !live && (isGroup || THREADS.coach.find((c) => c.name === name)?.group);
   useEffect(() => { if (feed.current) feed.current.scrollTop = feed.current.scrollHeight; }, [msgs.length, typing]);
@@ -16341,24 +16451,6 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
     if (group) return;
     setTyping(true);
     setTimeout(() => { setTyping(false); const pool = REPLIES[other]; setLocal((m) => [...m, { from: other, text: pool[m.length % pool.length], at: "now" }]); haptic(8); }, 1700);
-  };
-  const Bubble = ({ m }) => {
-    const mine = m.from === role;
-    const body = m.id ? ((readMsg(m.id) || {}).text || m.text) : m.text;
-    return (
-      <div className={`flex flex-col mb-2.5 ${mine ? "items-end" : "items-start"}`}>
-        <div className="rounded-3xl px-4 py-2.5" style={{ maxWidth: "78%", background: mine ? t.ink : m.via ? t.wash : t.surface, border: mine || m.via ? "none" : `1px solid ${t.hair}`, borderBottomRightRadius: mine ? 8 : 24, borderBottomLeftRadius: mine ? 24 : 8 }}>
-          {/* who wrote it, inside the bubble. Floating above it, an
-              adult's name read as a system note rather than as the
-              author of the line under it. */}
-          {m.via && <span className="block mb-0.5" style={{ ...TYPE.caption, color: t.faint }}>{m.via}</span>}
-          <p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.45, color: mine ? "#fff" : t.ink }}>{body}</p>
-          {/* a line that carries a clip opens it, and looks like one */}
-          {m.lessonId && live && live.openLesson && <ClipCard lessonId={m.lessonId} live={live} mine={mine} />}
-        </div>
-        {m.at && <span className="block mt-1 px-1" data-tour={m.seen ? "msg-seen" : undefined} style={{ ...TYPE.caption, color: t.faint }}>{m.seen ? `${m.at} · ${tr("Seen")}` : m.at}</span>}
-      </div>
-    );
   };
   return (
     <SwipeBack onBack={pop}>
@@ -16387,7 +16479,7 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
               {live && dayOf(m.iso) !== dayOf(msgs[i - 1] && msgs[i - 1].iso) && (
                 <p className="text-center mb-5 mt-1" style={{ ...TYPE.caption, color: t.faint }}>{dayLabelOf(m.iso, L)}</p>
               )}
-              <Bubble m={m} />
+              <ThreadBubble m={m} mine={m.from === role} end={runs[i].end} live={live} />
             </React.Fragment>
           ))}
           {typing && (<div className="flex justify-start mb-2.5"><div className="rounded-3xl px-4 py-3.5 flex gap-1.5" style={{ background: t.surface, border: `1px solid ${t.hair}`, borderBottomLeftRadius: 8 }}>
@@ -17825,17 +17917,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       askForReview: p.ask_for_review ?? PREF_DEFAULTS.askForReview,
     });
     if (Array.isArray(p.starred)) setStarred(p.starred);
-    /* A coach's own saved drills, layered onto the sport's starter set
-       so they show up as suggestions again after signing back in —
-       not just for the rest of the session they were typed in. */
+    /* A coach's own saved drills ARE the library for that sport: every
+       change writes the whole list (writeLibrary), so the stored list
+       replaces what the phone holds rather than being merged into it —
+       a merge kept a drill binned on another phone, and the next write
+       put it back. Only the session's use counts stay. */
     if (p.custom_drills && Object.keys(p.custom_drills).length) {
       setLibrary((l) => {
         const next = { ...l };
         for (const sp of Object.keys(p.custom_drills)) {
-          const saved = p.custom_drills[sp] || [];
-          const cur = next[sp] || [];
-          const names = new Set(cur.map((x) => x.t.toLowerCase()));
-          next[sp] = [...saved.filter((d) => !names.has(d.t.toLowerCase())), ...cur];
+          const saved = Array.isArray(p.custom_drills[sp]) ? p.custom_drills[sp] : [];
+          const uses = new Map((next[sp] || []).map((x) => [String(x.t).toLowerCase(), x.uses]));
+          next[sp] = saved.map((d) => (uses.get(String(d.t).toLowerCase()) ? { ...d, uses: uses.get(String(d.t).toLowerCase()) } : d));
         }
         return next;
       });
@@ -19071,8 +19164,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   /* ONE DRILL LIBRARY, AND NEVER AN EMPTY ONE. Everything that offers
      drills — the log, the Set-drills sheet, the Drills screen — reads
      this and only this. A coach who skipped setup has nothing saved,
-     so the sport's starter set stands in until they do; it is a read,
-     nothing is written to their preferences. */
+     so the sport's starter set stands in until they do. Nothing is
+     written until the coach changes the library; the first change
+     writes the list they were looking at with the change in it
+     (writeLibrary, below). */
   const myLibrary = (library[coachSport] || []).length ? library[coachSport] : ((SPORTS[coachSport] || {}).drills || []);
   /* WHAT EACH PERSON WAS LAST LOGGED AT: the stage, the extras and the
      mount from their newest lesson, so the log opens on it and the
@@ -19533,24 +19628,31 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return list.find((r) => r.id === v) || list.find((r) => r.name === v) || { id: v, name: v };
   };
   const openAssignDrills = (who, focusId) => { setAssignTo(personOf(who)); setAssignFocus(focusId); setSheet("assign"); haptic(8); };
-  const saveDrill = (d) => {
-    setLibrary((l) => {
-      const cur = l[coachSport] || [];
-      if (cur.some((x) => x.t.toLowerCase() === d.t.toLowerCase())) return l;
-      return { ...l, [coachSport]: [d, ...cur] };
+  /* THE LIBRARY IS WRITTEN WHOLE, AS THE COACH SEES IT. myLibrary is
+     the stored list, or the sport's starter set while nothing is
+     stored; every change is made to that list and the whole of it is
+     written — so the first drill a coach writes joins the twelve
+     rather than replacing them, and the bin on a starter drill leaves
+     eleven rather than saying Removed over an untouched list. The
+     screen moves at once and goes back if the write is refused, which
+     is said here; the caller confirms only on {}. The session's use
+     counts stay on the phone. */
+  const writeLibrary = async (next) => {
+    const before = library[coachSport] || [];
+    setLibrary((l) => ({ ...l, [coachSport]: next }));
+    if (!data || !account) return {};
+    const res = await data.savePrefs({
+      custom_drills: { ...((data.prefs && data.prefs.custom_drills) || {}), [coachSport]: next.map(({ uses, ...x }) => x) },
     });
-    /* With a real account this belongs to the coach, not just the
-       current session — stored per sport, alongside their other
-       preferences, so it's there again next time they sign in. */
-    if (data && account) {
-      const existing = (data.prefs?.custom_drills?.[coachSport]) || [];
-      if (!existing.some((x) => x.t.toLowerCase() === d.t.toLowerCase())) {
-        data.savePrefs({
-          custom_drills: { ...(data.prefs?.custom_drills || {}), [coachSport]: [d, ...existing] },
-        });
-      }
-    }
+    if (res && res.error) { setLibrary((l) => ({ ...l, [coachSport]: before })); hapticWarn(); say(res.error.message); return res; }
+    return {};
   };
+  const saveDrill = (d) => {
+    const had = myLibrary.find((x) => x.t.toLowerCase() === d.t.toLowerCase());
+    if (had) return Promise.resolve({ duplicate: had.t });
+    return writeLibrary([d, ...myLibrary]);
+  };
+  const removeDrill = (name) => writeLibrary(myLibrary.filter((x) => x.t !== name));
   const bumpUses = (names) => setLibrary((l) => ({
     ...l, [coachSport]: (l[coachSport] || []).map((d) => (names.includes(d.t) ? { ...d, uses: (d.uses || 0) + 1 } : d)),
   }));
@@ -19561,7 +19663,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const list = Object.values(data.bookings || {}).flat().filter((b) => b && b.playerId === pid && (!b.status || b.status === "confirmed" || b.status === "requested") && b.date && b.date >= todayIso).map((b) => b.date).sort();
     return list[0] || null;
   };
-  const doAssignDrills = async (target, drills, due = null) => {
+  const doAssignDrills = async (target, drills, due = null, kept = true) => {
     bumpUses(drills.map((d) => d.t));
     const person = personOf(target);
     const name = person ? person.name : "";
@@ -19570,7 +19672,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (!who) { hapticWarn(); say(tr("Pick someone on your roster.")); return; }
       const res = await data.setDrills(who.id, drills.map((d) => d.t), due);
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't set those drills.")); return; }
-      say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${name.split(" ")[0]}`); haptic(18); return;
+      say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${name.split(" ")[0]}${kept ? "" : " · not added to your drills"}`); haptic(18); return;
     }
     if (name === "Marcus Tran" && coachSport === "golf") setPractice((p) => ({ ...p, "1:golf": drills.map((d, i) => ({ id: `golf-${Date.now()}-${i}`, t: d.t, d: d.d, done: false })) }));
     say(`${drills.length} drill${drills.length > 1 ? "s" : ""} set for ${(name || "").split(" ")[0]}`); haptic(18);
@@ -20008,6 +20110,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     /* names for anyone who might have written in this thread: the
        roster, the family's adults, and the coach */
     const nameOfId = Object.fromEntries([
+      /* every profile the person may read — a coach reads their junior
+         players' guardians (my_players_guardian_ids), so a parent's
+         bubble names her as the Chat list's preview already does */
+      ...((data.people || []).map((p) => [p.id, p.name])),
       ...((data.roster || []).map((r) => [r.id, r.name])),
       ...(((data.family && data.family.members) || []).map((m) => [m.id, m.name])),
       ...((data.dependants || []).map((k) => [k.id, k.name])),
@@ -20151,9 +20257,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <NotifCentre items={seedAlerts} pop={pop} onOpen={(n) => n.go && n.go()} />;
   } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} live={!!data}
                                                    onSave={data ? async (club) => { const res = await data.updateProfile({ club }); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null} />;
-  } else if (screen === "library") { body = <DrillLibrary cfg={cfg} sport={coachSport} library={myLibrary} addDrill={saveDrill} removeDrill={(name) => { setLibrary((l) => ({ ...l, [coachSport]: (l[coachSport] || []).filter((x) => x.t !== name) }));
-                                              /* a real account's own drills live on its preferences; the removal goes there too */
-                                              if (data && account) { const cur = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || []; if (cur.some((x) => x.t === name)) data.savePrefs({ custom_drills: { ...(data.prefs.custom_drills || {}), [coachSport]: cur.filter((x) => x.t !== name) } }); } }} pop={pop} assign={openAssignDrills} say={say} />;
+  } else if (screen === "library") { body = <DrillLibrary cfg={cfg} sport={coachSport} library={myLibrary} addDrill={saveDrill} removeDrill={removeDrill} pop={pop} assign={openAssignDrills} say={say} />;
   } else if (screen === "away") { body = <AwayScreen ranges={awayRanges} onChange={writeAway} booked={mySeedBooked} isoOf={isoOf} pop={pop} say={say}
                                                    onCallOff={(day) => { if (!day) return; setCallOffFor({ m: day.m, d: day.d }); setSheet("weather"); }} />;
   } else if (screen === "availability") { body = <Availability avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;

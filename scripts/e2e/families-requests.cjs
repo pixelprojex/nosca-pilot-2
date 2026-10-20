@@ -286,11 +286,11 @@ const leaks = [];
       /* the child's thread: the parent's line says whose it is */
       await byText(page, "Saoirse Kelly").first().click(); await page.waitForTimeout(1200);
       const t1 = await text(); await shot("24c-coach-thread-junior");
-      /* the coach cannot read a parent's profile through RLS, so the
-         line is labelled "Parent" rather than "Orla · parent". Either
-         is right; reading as the child's never is. */
+      /* the coach reads a junior's guardians through
+         my_players_guardian_ids, so the line names her — "Orla · parent" —
+         and never reads as the child's. */
       check("(f2) a parent's message in a child's thread still says whose it is",
-        t1.includes("Can Saoirse move to Thursday?") && /(Orla · parent|Parent)/.test(t1) && !/Saoirse · /.test(t1), t1.slice(0, 260));
+        t1.includes("Can Saoirse move to Thursday?") && /Orla · parent/.test(t1) && !/Saoirse · /.test(t1), t1.slice(0, 260));
       await ctx.close();
     }
 
