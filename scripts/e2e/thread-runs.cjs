@@ -266,6 +266,28 @@ const fmt = (o) => JSON.stringify(o);
             !!L.bubbles.o1 && !/parent/i.test(L.bubbles.o1.label) && !!L.bubbles.o2 && Math.abs(L.bubbles.o1.left - L.bubbles.o2.left) < 2,
             fmt({ o1: L.bubbles.o1, o2: L.bubbles.o2 && { left: L.bubbles.o2.left, label: L.bubbles.o2.label } }));
       await ctx.close();
+      /* an adult who left one coach for another: his own thread holds both,
+         and neither coach's line is ever a parent's */
+      const adb = M.emptyDb();
+      const p2 = (id, email, prof) => { M.addUser(adb, { id, email }); return M.addProfile(adb, { id, ...prof }); };
+      p2(IDS.coach, "coach@t.ie", { role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
+      p2(BRIAN, "brian@t.ie", { role: "coach", name: "Brian Walsh", inviteCode: "BW7X2M" });
+      p2(IDS.adult, "adult@t.ie", { role: "player", name: "Cian Murphy", type: "adult", coachId: BRIAN, dob: "1991-04-04" });
+      M.addMessage(adb, { coachId: IDS.coach, playerId: IDS.adult, senderId: IDS.coach, body: "Good luck at the new club.", createdAt: "2026-09-01T09:00:00Z", readAt: READ });
+      M.addMessage(adb, { coachId: BRIAN, playerId: IDS.adult, senderId: BRIAN, body: "Welcome aboard, Cian.", createdAt: "2026-10-01T09:00:00Z", readAt: READ });
+      const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, timezoneId: "Europe/Dublin" });
+      const page2 = await ctx2.newPage(); await M.attach(page2, adb);
+      page2.on("pageerror", (e) => errors.push(`oldcoach-adult: ${String(e.message || e)}`));
+      await M.injectSession(page2, M.session(Object.values(adb.users).find((x) => x.id === IDS.adult), adb));
+      await page2.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page2);
+      await M.tap(page2, '[aria-label="Chat"]', 1000);
+      await M.click(page2, "Brian Walsh", 1500);
+      await page2.screenshot({ path: path.join(outDir, "06-adult-two-coaches.png") });
+      const L2 = await layout(page2, { n1: "Good luck at the new club.", n2: "Welcome aboard, Cian." });
+      check("(e2) an adult's own thread with two coaches in it labels neither coach's line a parent's",
+            !!L2.bubbles.n1 && !!L2.bubbles.n2 && !/parent/i.test(L2.bubbles.n1.label) && !/parent/i.test(L2.bubbles.n2.label),
+            fmt({ n1: L2.bubbles.n1 && L2.bubbles.n1.label, n2: L2.bubbles.n2 && L2.bubbles.n2.label }));
+      await ctx2.close();
     }
   } catch (e) {
     console.log("RUN ERROR", e && e.stack || e);
