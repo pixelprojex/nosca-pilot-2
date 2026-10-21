@@ -217,8 +217,43 @@ seeded data and no account.
   `DEFAULT_SLOTS` — nine to nine, an hour each, the last lesson
   starting at eight — and a day switched on takes the whole pool. The
   week itself still starts empty: nothing is offered to a player until
-  the coach has said when. The diary's per-day sheet (`EditDay`) offers
-  the same pool.
+  the coach has said when. The diary's per-day sheet (`EditDay`) takes
+  the same Edit · Done and changes that date only (below).
+- **The Diary's per-day sheet is that date, and the week is a row
+  beneath it.** The pencil on a day in the Diary's List view
+  (`agenda-edit`) opens `EditDay` headed `Thu 22 Oct`, the day's times
+  as tiles, and every change is that date's alone: a weekly time taken
+  off is `iso|time` in `availability.blocked` (the shape the Calendar
+  view's Block already writes); a time added is `iso|time` in
+  `availability.extra`, unless it is a weekly time blocked on that date,
+  which adding unblocks — the one way a blocked time comes back.
+  `hoursOn()` is the weekday's times plus the date's extras, and every
+  reader of the hours goes through it (`openTimes`, `AgendaList`, the
+  Calendar view, the sheet), so a player's diary, a parent booking for
+  a child and the coach's own all agree; a parent booking for a child
+  reads the child's coach's `blocked` and `extra` (`hoursByPlayer`),
+  never their own coach's. `coach_availability()` hands over the whole
+  jsonb, so there is no SQL and no mock change. Nothing goes by a tap:
+  **Edit** (`editday-edit`) puts a red minus on each free tile and
+  **Done** takes them off (taking the last free time off ends Edit by
+  itself, so Add a time is back); a booked time carries who and no
+  minus — Call off is the way out; outside Edit a tile is not a
+  button. **Add a time** (`editday-add`) is the half hours not on the
+  day as the app's `TimeGrid`, and is not drawn when there are none.
+  The subtitle is "5 times" or nothing; an empty day reads "Nothing
+  offered" as a line. **Every Thursday** (`editday-every`, the week's
+  count beside it) opens Hours on that weekday (`availability:<dow>`,
+  Availability's `startDay`). `writeDay` drops entries for days gone
+  by on every write and says "Couldn't save the hours" when the save is
+  refused. For a long time the sheet edited every such weekday while
+  titled with the date: one tap took 9:00 off every Thursday, and
+  emptying it erased Thursdays from every player's diary and hid a
+  confirmed lesson from the coach's List. Its Group only / Private only
+  lived in component state and were never saved, so they were cut
+  rather than stored ("a screen that asks and forgets is worse than one
+  that never asked"). Calendly's date-specific hours, Acuity's override
+  hours for specific days, PGA Coach's Open Time and Blocked Times
+  beside its recurring hours. `scripts/e2e/edit-day.cjs`.
 - **The mark sits top-left on every root screen, as tall as the icons
   across from it.** `Screen` puts `Mark` (`HEADER_MARK`: 36 wide at a
   weight of 3, so the rings stand the 18px the search and the bell's
@@ -300,7 +335,9 @@ seeded data and no account.
   takes `mine` (the person's requested and confirmed rows — a parent's
   child's under For) matched on the day and the time, never the name,
   and `firstFree` skips them so the walkthrough's ring is still a free
-  hour. `diary.cjs` (a2), (a3).
+  hour. A coach's List never drops a confirmed lesson: a day with a
+  booking is a day whatever its hours, and a booked time outside the
+  week's hours is a row (`edit-day.cjs` (e1)). `diary.cjs` (a2), (a3).
 - **Who a booking is for is chosen before the slot.** The diary carries
   a "For" strip for any adult with a bookable child — themselves (if
   they have a coach) and each child — and the hours shown are that
@@ -962,7 +999,10 @@ seeded data and no account.
   showed theirs as a line inside it. An empty tick box (a drill, a
   Settings toggle row) is on `EDGE(t)`: on the hairline it read at
   1.2:1, under the 3:1 a control's edge needs; the edge reads 3.0 to
-  4.1:1 across the sports. An empty state ("Nobody
+  4.1:1 across the sports. The register's unchosen Present and Absent
+  and its dashed "Someone not in the diary" are on `EDGE(t)` at
+  `EDGE_W` too: on a 0.5px ink hairline they read 1.5:1 and 1.8:1
+  (`boxes.cjs` (r1)–(r4), golf and a riding coach). An empty state ("Nobody
   by that name") is a line under the field, never a box.
   `scripts/e2e/boxes.cjs` walks every one as the coach, the player and
   a parent, and fails on a box off the edge or a rule inside one.
