@@ -367,12 +367,14 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const ground = (el) => { for (let n = el.parentElement; n; n = n.parentElement) { const b = getComputedStyle(n).backgroundColor; const m = b.match(/rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(",").map((x) => +x); if (p.length < 4 || p[3] === 1) return p.slice(0, 3); } } return [255, 255, 255]; };
         return [...document.querySelectorAll(sel)].filter((b) => b.getBoundingClientRect().width > 0 && text.test(b.textContent.trim()))
           .map((b) => { const cs = getComputedStyle(b);
-            return { label: b.textContent.trim(), bg: cs.backgroundColor, ground: ground(b), fg: cs.color,
+            return { label: b.textContent.trim(), bg: cs.backgroundColor, ground: ground(b), fg: cs.color, inline: b.style.borderTopWidth,
                      sides: ["Top", "Right", "Bottom", "Left"].map((x) => `${cs[`border${x}Width`]} ${cs[`border${x}Style`]} ${cs[`border${x}Color`]}`) }; });
       }, [sel, text.source, text.flags]).catch(() => []);
-      const edgeOk = (o, edge, style) => o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) >= 1 && st === style && c.join(" ") === edge; });
+      /* Chrome reports a 0.5px border back as 1px, so the width is read
+         off the element's own style as well: EDGE_W, 1.5px */
+      const edgeOk = (o, edge, style) => o.inline === "1.5px" && o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) >= 1 && st === style && c.join(" ") === edge; });
       const edgeRatio = (o) => { const c = o.sides[0].split(" ").slice(2).join(" "); return reContrast(flat(c, o.ground), o.ground); };
-      const told = (os) => os.map((o) => `${o.label}: ${o.sides[0]} ${edgeRatio(o).toFixed(2)}:1 label ${reContrast(flat(o.fg, o.ground), o.ground).toFixed(2)}:1`).join(" | ");
+      const told = (os) => os.map((o) => `${o.label}: ${o.inline} ${o.sides[0]} ${edgeRatio(o).toFixed(2)}:1 label ${reContrast(flat(o.fg, o.ground), o.ground).toFixed(2)}:1`).join(" | ");
       const MARK = /^(Present|Absent)$/;
       for (const [role, sport, who, minRows] of [["coach", "golf", "Saturday clinic", 3], ["rider", "equestrian", "Tadhg Ryan", 1]]) {
         const { ctx, page, shot } = await boot(role, dbR);
@@ -386,7 +388,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
           marks.length >= 2 && marks.every((o) => edgeRatio(o) >= 3 && reContrast(flat(o.fg, o.ground), o.ground) >= 4.5), told(marks).slice(0, 400));
         await page.locator("[data-sheet] .nsc-day button", { hasText: /^Present$/ }).first().click(); await page.waitForTimeout(400);
         const on = (await outlinesOf(page, "[data-sheet] .nsc-day button", MARK))[0];
-        check(`(r3 ${sport}) a chosen Present is filled, its edge the fill's own colour`,
+        check(`(r3 ${sport}) guard: a chosen Present is still filled, its edge the fill's own colour`,
           !!on && on.bg !== "rgba(0, 0, 0, 0)" && on.sides.every((x) => x.endsWith(on.bg)), on ? told([on]) + ` bg ${on.bg}` : "none");
         await page.locator("[data-sheet]").getByText("All lessons", { exact: true }).first().click(); await page.waitForTimeout(900);
         const walk = await outlinesOf(page, "[data-sheet] button", /not in the diary/i);

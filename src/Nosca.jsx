@@ -1648,12 +1648,16 @@ function hoursOn(m, d, avail, extra = [], c = HARNESS_CALENDAR) {
   if (!added.length) return week;
   return [...new Set([...week, ...added])].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
 }
-/* "iso|time" strings → { m, d, time }, the shape every diary reads */
-const datedOf = (xs) => (Array.isArray(xs) ? xs : []).map((s) => {
+/* "iso|time" strings → { m, d, time, iso }, the shape every diary
+   reads. The diaries match on the month and the day, so an entry is
+   kept only in the year the calendar puts that day in: last year's 25
+   October is not this year's, and an entry for a day gone by is
+   dropped here rather than read — or written back — as next year's. */
+const datedOf = (xs, c = HARNESS_CALENDAR) => (Array.isArray(xs) ? xs : []).map((s) => {
   const [iso, time] = String(s).split("|");
-  const [, mm, dd] = (iso || "").split("-").map(Number);
-  return { m: mm, d: dd, time, iso };
-}).filter((x) => x.m && x.d && x.time);
+  const [yy, mm, dd] = (iso || "").split("-").map(Number);
+  return { m: mm, d: dd, time, iso, y: yy };
+}).filter((x) => x.m && x.d && x.time && x.y === yearOf(x.m, c));
 
 function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR, extra = []) {
   if (isPast(m, d, c)) return [];
@@ -2325,7 +2329,11 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
          a day, whatever its hours say. A day whose hours were all taken
          off took its confirmed lessons out of the coach's List with it. */
       const bookedHere = isCoach ? (seedBooked[key(mo.idx, d)] || []) : [];
-      if (!hours.length && !isAway && !mineHere.length && !bookedHere.length) continue;
+      /* for anyone but the coach, a day whose every time was taken off
+         on that date is no day at all — not an empty one in the ticker */
+      const offHere = blocked.filter((b) => b.m === mo.idx && b.d === d).map((b) => b.time);
+      const openHere = isCoach ? hours : hours.filter((h) => !offHere.includes(h));
+      if (!openHere.length && !isAway && !mineHere.length && !bookedHere.length) continue;
       days.push({ m: mo.idx, d, mo, hours, away: isAway, mine: mineHere,
                   booked: isCoach ? (seedBooked[key(mo.idx, d)] || [])
                                   : (seedBooked[key(mo.idx, d)] || []).map((b) => ({ time: b.time })),
@@ -3411,7 +3419,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
    minus on each free time and only then does a tap take one off, as on
    Hours. Group only / Private only lived in this sheet's state and were
    never saved, so they are gone rather than stored. */
-function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onEveryDay, onWeather, close }) {
+function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onEveryDay, onWeather, away = false }) {
   const t = useT();
   const calendar = useCalendar();
   const dow = dowOf(day.m, day.d, calendar);
@@ -3421,12 +3429,16 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
   const here = (xs) => xs.filter((x) => x.m === day.m && x.d === day.d).map((x) => x.time);
   const weekly = avail[dow] || [];
   const off = here(blocked), added = here(extra);
-  const offered = [...new Set([...weekly, ...added])].filter((h) => !off.includes(h)).sort(byTime);
+  /* nothing in the past: today's times already gone are neither counted
+     nor offered back; an away day offers nothing, so only what was
+     booked before it was marked is on it */
+  const gone = (h) => timeGone(day.m, day.d, h, calendar);
+  const offered = away ? [] : [...new Set([...weekly, ...added])].filter((h) => !off.includes(h) && !gone(h)).sort(byTime);
   const bookedAt = (h) => (day.booked || []).find((b) => b.time === h);
   /* a booked time is a tile whatever the hours say, carrying who */
   const tiles = [...new Set([...offered, ...(day.booked || []).map((b) => b.time)])].sort(byTime);
   const free = tiles.filter((h) => !bookedAt(h));
-  const addable = HALF_HOURS.filter((h) => !tiles.includes(h));
+  const addable = away ? [] : HALF_HOURS.filter((h) => !tiles.includes(h) && !gone(h));
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
   /* the last free time taken off ends Edit, so Add a time is back */
@@ -3446,8 +3458,8 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
   return (
     <>
       <h2 style={{ ...TYPE.title, color: t.ink }}>{fmtIsoDay(iso)}</h2>
-      {offered.length > 0 && (
-        <p className="mt-1.5" style={{ ...TYPE.small, color: t.faint }}>{times(offered.length)}</p>
+      {(away || offered.length > 0) && (
+        <p data-tour={away ? "editday-away" : undefined} className="mt-1.5" style={{ ...TYPE.small, color: t.faint }}>{away ? tr("Away") : times(offered.length)}</p>
       )}
 
       <div className="flex items-center" style={{ marginTop: SPACE.block, marginBottom: SPACE.tight }}>
@@ -3457,7 +3469,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
                   style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{editing ? tr("Done") : tr("Edit")}</button>
         )}
       </div>
-      {tiles.length === 0 && (
+      {tiles.length === 0 && !away && (
         <p data-tour="editday-empty" className="mb-3" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing offered")}</p>
       )}
       <div className="grid gap-2" data-tour="editday-times" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
@@ -3508,7 +3520,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
       </div>
 
       {(day.booked || []).length > 0 && (
-        <button onClick={() => { onWeather(); close(); }} className="w-full py-3 text-left active:opacity-50"
+        <button data-tour="editday-calloff" onClick={() => { haptic(8); onWeather(); }} className="w-full py-3 text-left active:opacity-50"
                 style={{ marginTop: SPACE.row, ...TYPE.small, color: DANGER }}>{tr("Call off")}</button>
       )}
     </>
@@ -15902,7 +15914,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           The only thing worth surfacing here is the case where a coach
           has set no hours at all — then nothing below has anything in
           it, and that is worth one line. Setting them lives in You. */}
-      {role === "coach" && [0, 1, 2, 3, 4, 5, 6].reduce((n, d) => n + ((avail[d] || []).length), 0) === 0 && (
+      {role === "coach" && [0, 1, 2, 3, 4, 5, 6].reduce((n, d) => n + ((avail[d] || []).length), 0) === 0 && !(extra || []).some((x) => !isPast(x.m, x.d, cx)) && (
         <div className="px-6 mb-4">
           <button data-tour="cal-hours" onClick={() => { haptic(9); soft(); push("availability"); }}
                   className="w-full flex items-center gap-3 active:opacity-60"
@@ -19023,9 +19035,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      invented — a coach who has set nothing has an empty week. */
   const liveHours = data ? ((data.isCoach ? (data.prefs && data.prefs.availability) : data.coachAvailability) || {}) : null;
   const myAvail = data ? (liveHours.days || {}) : avail[coachSport];
-  const myBlocked = data
-    ? (liveHours.blocked || []).map((x) => { const [iso, time] = String(x).split("|"); const dt = localDate(iso); return { m: dt.getMonth() + 1, d: dt.getDate(), time }; })
-    : blocked[coachSport];
+  const myBlocked = data ? datedOf(liveHours.blocked, calendar) : blocked[coachSport];
   const writeAvail = (week) => {
     if (data) { data.saveAvailability({ ...(liveHours || {}), days: week, duration, slots }); return; }
     setAvail((p) => ({ ...p, [coachSport]: week }));
@@ -19034,13 +19044,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      blocked), and the per-day sheet's one write: that date's blocked
      and added times, with anything for a day gone by dropped. A refused
      save is said, and the optimistic write snaps back on the reload. */
-  const myExtra = data ? datedOf(liveHours.extra) : harnessExtra;
+  const myExtra = data ? datedOf(liveHours.extra, calendar) : harnessExtra;
   const writeDay = async ({ blocked: nb, extra: nx }) => {
     const keep = (xs) => xs.filter((x) => !isPast(x.m, x.d, calendar));
+    const asIso = (b) => `${b.iso || isoOf(b.m, b.d)}|${b.time}`;   // an entry keeps the date it was written for
     if (data) {
-      const r = await data.saveAvailability({ ...(liveHours || {}), blocked: keep(nb).map((b) => `${isoOf(b.m, b.d)}|${b.time}`),
-                                                                  extra: keep(nx).map((b) => `${isoOf(b.m, b.d)}|${b.time}`) });
-      if (r && r.error) { hapticWarn(); say(tr("Couldn't save the hours")); }
+      const r = await data.saveAvailability({ ...(liveHours || {}), blocked: keep(nb).map(asIso), extra: keep(nx).map(asIso) });
+      if (r && r.error) say(tr("Couldn't save the hours"));   // no haptic: it would land after the gesture
       return r || {};
     }
     setBlocked((p) => ({ ...p, [coachSport]: keep(nb) })); setHarnessExtra(keep(nx));
@@ -20715,8 +20725,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           startOptions={[{ id: "auto", label: tr("Automatic") }, ...tabs.filter((tb) => tb.id !== "quick").map((tb) => ({ id: tb.id, label: tb.label }))]}
                           pop={pop} push={push} go={go} sheet={setSheet} say={say} restart={restart} />;
   } else if (screen === "calendar") { body = <CalendarScreen role={role} lessonsFor={data ? (n) => (((roster || []).find((r) => r.name === n) || {}).lessons ?? 0) : null} conn={bookFor ? { coach: bookFor.coachName || tr("their coach"), sport: bookFor.sport } : conn} juvenile={juvenile} avail={bookFor ? ((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).days || {}) : myAvail} now={todayMD}
-                                                            blocked={bookFor ? datedOf((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).blocked) : myBlocked}
-                                                            extra={bookFor ? datedOf((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).extra) : myExtra} parent={parentAccount && !bookFor}
+                                                            blocked={bookFor ? datedOf((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).blocked, calendar) : myBlocked}
+                                                            extra={bookFor ? datedOf((((data && data.hoursByPlayer) || {})[bookFor.id] || {}).extra, calendar) : myExtra} parent={parentAccount && !bookFor}
                                                             away={bookFor ? awayDays(((data && data.hoursByPlayer) || {})[bookFor.id]) : myAway}
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
@@ -20728,7 +20738,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h) => { setBookSlot({ day, time: h }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")}
-                                                            kids={data ? (data.dependants || []).map((k) => ({ ...k, canBook: !!k.coachId && Object.values((((data.hoursByPlayer || {})[k.id] || {}).days) || {}).some((x) => x && x.length) })) : null}
+                                                            kids={data ? (data.dependants || []).map((k) => { const h = (data.hoursByPlayer || {})[k.id] || {}; return { ...k, canBook: !!k.coachId && (Object.values(h.days || {}).some((x) => x && x.length) || datedOf(h.extra, calendar).some((x) => !isPast(x.m, x.d, calendar))) }; }) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
                                                             onBookFor={(k) => { setBookFor(k); }}
                                                             landing={diaryLanding} onLanded={() => setDiaryLanding(null)} />;
@@ -21170,7 +21180,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "editDay" && editDay ? <EditDay day={editDay} duration={duration}
                                             avail={myAvail || {}} blocked={myBlocked || []} extra={myExtra || []} writeDay={writeDay}
                                             onEveryDay={(dow) => { setSheet(null); push(`availability:${dow}`); }}
-                                            onWeather={() => setSheet("weather")} close={() => setSheet(null)} />
+                                            away={myAway.has(isoOf(editDay.m, editDay.d))}
+                                            onWeather={() => { setCallOffFor({ m: editDay.m, d: editDay.d }); setSheet("weather"); }} close={() => setSheet(null)} />
               : sheet === "bookWho" && bookSlot ? (
                   <>
                     <h2 className="mb-5" style={{ ...TYPE.title, color: theme.ink }}>

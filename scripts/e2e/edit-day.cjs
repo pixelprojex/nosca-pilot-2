@@ -23,7 +23,12 @@
        kind control is left anywhere;
    (e) the coach's List never drops a confirmed lesson — a booking
        outside the hours, or on a day with none, is a row;
-   (f) a refused write is said and the sheet stays as it was.
+   (f) a refused write is said and the sheet stays as it was;
+   (g) a booked day: who on the tile, no minus on it, Edit ending by
+       itself, Call off opening on that day; a time blocked in the
+       Calendar view coming back through the sheet; an entry for last
+       year or a day gone by neither read nor moved a year on;
+   (h) the harness's sheet, with no account.
 
    Usage: node edit-day.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -75,10 +80,14 @@ const { check, summary } = M.checker("edit-day");
   const errors = [];
   const db = freshDb();
   const TOM = dayPlus(db, 1), NEXT = dayPlus(db, 8), AFTER = dayPlus(db, 15), BARE = dayPlus(db, 3), LATER = dayPlus(db, 2);
+  /* every day is counted from the one the page clock is pinned to, so a
+     run that crosses midnight still agrees with its fixture */
+  const TODAY = dayPlus(db, 0);
   const boot = async (role, d = db) => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-    const page = await ctx.newPage(); await M.attach(page, d);
+    const page = await ctx.newPage();
+    await page.clock.setFixedTime(new Date(`${TODAY}T09:00:00`)); await M.attach(page, d);
     page.on("pageerror", (e) => errors.push(`${role}: ${String(e.message || e)}`));
     page.on("console", (m) => { if (m.type() === "warning" || m.type() === "error") { const tx = m.text(); if (!/vibrate|Failed to load resource|favicon/i.test(tx)) errors.push(`${role} console: ${tx.slice(0, 160)}`); } });
     await M.injectSession(page, M.session(u, d));
@@ -151,11 +160,15 @@ const { check, summary } = M.checker("edit-day");
           (h3.extra || []).includes(`${TOM}|7:30 am`) && JSON.stringify(h3.days) === weekBefore && (await tileTimes(page))[0] === "7:30 am" && /\b6 times\b/.test(await sheetText(page)), JSON.stringify({ extra: h3.extra, tiles: await tileTimes(page) }));
     await c.shot("03-added");
 
-    /* ---------- (a2b) the week's door opens Hours on that weekday ---------- */
+    /* ---------- (a2b) the week's door opens Hours on that weekday ----------
+       Hours opens on Friday by itself, so the door is tried from a day
+       that is not a Friday. */
+    const DOOR = DOW(TOM) !== 4 ? TOM : LATER;
+    if (DOOR !== TOM) { await closeSheet(page); await openEdit(page, label(LATER)); }
     await page.locator('[data-tour="editday-every"]').dispatchEvent("click"); await page.waitForTimeout(1200);
     const unfolded = await page.evaluate(() => { const card = document.querySelector('[data-tour="avail-days"]'); const ex = card && card.querySelector("div.px-5.pb-4"); const row = ex && ex.previousElementSibling; const sp = row && row.querySelector("span"); return sp ? sp.textContent.trim() : null; });
     await c.shot("04-hours");
-    check("(a2b) a tap on it opens Hours with that weekday unfolded", unfolded === DAYS[DOW(TOM)], String(unfolded));
+    check("(a2b) a tap on it opens Hours with that weekday unfolded", DOW(DOOR) !== 4 && unfolded === DAYS[DOW(DOOR)], `${unfolded} for ${DAYS[DOW(DOOR)]}`);
     await M.back(page); await page.waitForTimeout(900);
 
     /* ---------- (e) the coach's List never drops a lesson ---------- */
@@ -168,6 +181,17 @@ const { check, summary } = M.checker("edit-day");
     check("(e3) the coach's own List reads tomorrow's 7:30 am", /7:30/.test(tomTxt), tomTxt.slice(0, 160));
     await c.ctx.close();
 
+    /* ---------- (c4) a parent booking for a child reads the child's coach ----------
+       (before the player below asks for 7:30, which then becomes a
+       taken time for everyone else) */
+    const o = await boot("parent");
+    await openList(o.page);
+    const lt = await boxText(o.page, label(LATER)), ot = await boxText(o.page, "Tomorrow");
+    await o.shot("06-parent-list");
+    check("(c4) a parent booking for a child is not offered the time the child's coach blocked", /9:00/.test(lt) && !/10:00/.test(lt), lt.slice(0, 160));
+    check("(c4b) …and is offered the time the child's coach added on a date", /7:30/.test(ot), ot.slice(0, 160));
+    await o.ctx.close();
+
     /* ---------- (c3) the player reads it, on that date only ---------- */
     const p = await boot("adult");
     await openList(p.page);
@@ -175,14 +199,13 @@ const { check, summary } = M.checker("edit-day");
     await p.shot("05-player-list");
     check("(c3) the player's List offers 7:30 am tomorrow, and next week's day keeps its hours without it",
           /7:30/.test(pt) && /9:00/.test(pt) && !/7:30/.test(pn) && /10:00/.test(pn), JSON.stringify({ pt: pt.slice(0, 120), pn: pn.slice(0, 120) }));
-    const tomD = Number(TOM.slice(8)), thisMonth = M.ymd(new Date(db.now())).slice(0, 7) === TOM.slice(0, 7);
-    if (thisMonth) {
-      await tap(p.page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
-      await p.page.locator(`button[data-day="${tomD}"]`).first().dispatchEvent("click"); await p.page.waitForTimeout(700);
-      const calTxt = M.norm(await M.rootText(p.page));
-      check("(c3b) the Calendar view offers 7:30 am on that day too", /7:30/.test(calTxt), calTxt.slice(0, 200));
-      await tap(p.page, '[data-tour="cal-view"] [aria-label="List"]', 700);
-    } else check("(c3b) the Calendar view offers 7:30 am on that day too (month boundary: read on the List)", /7:30/.test(pt), "");
+    const tomD = Number(TOM.slice(8)), thisMonth = TODAY.slice(0, 7) === TOM.slice(0, 7);
+    await tap(p.page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
+    if (!thisMonth) await tap(p.page, '[aria-label="Next month"]', 600);
+    await p.page.locator(`button[data-day="${tomD}"]`).first().dispatchEvent("click"); await p.page.waitForTimeout(700);
+    const calTxt = M.norm(await M.rootText(p.page));
+    check("(c3b) the Calendar view offers 7:30 am on that day too", /7:30/.test(calTxt), calTxt.slice(0, 200));
+    await tap(p.page, '[data-tour="cal-view"] [aria-label="List"]', 700);
     const row730 = dayBox(p.page, "Tomorrow").locator("button", { hasText: /^7:30 am/ });
     if (await row730.count()) { await row730.first().dispatchEvent("click"); await p.page.waitForTimeout(800); }
     const req = p.page.getByRole("button", { name: "Request", exact: true });
@@ -191,18 +214,15 @@ const { check, summary } = M.checker("edit-day");
     check("(c3c) a tap on it asks for that time: the booking posts 7:30 am on that date", !!posted && posted.rows[0].start_time === "7:30 am" && posted.rows[0].booking_date === TOM && posted.rows[0].status === "requested", JSON.stringify(posted && posted.rows[0]));
     await p.ctx.close();
 
-    /* ---------- (c4) a parent booking for a child reads the child's coach ---------- */
-    const o = await boot("parent");
-    await openList(o.page);
-    const lt = await boxText(o.page, label(LATER));
-    await o.shot("06-parent-list");
-    check("(c4) a parent booking for a child is not offered the time the child's coach blocked", /9:00/.test(lt) && !/10:00/.test(lt), lt.slice(0, 160));
-    await o.ctx.close();
-
     /* ---------- (d) an emptied day, and no kind control ---------- */
     const c2 = await boot("coach"); page = c2.page;
     await openList(page);
     await openEdit(page, "Tomorrow");
+    /* every tile tapped outside Edit: no kind, no change */
+    const before = JSON.stringify(hours());
+    for (const el of await page.locator('[data-tour="editday-times"] [data-time]').all()) { await el.dispatchEvent("click"); await page.waitForTimeout(120); }
+    const tappedTxt = await sheetText(page);
+    check("(d0) a tap on each time outside Edit sets no kind and writes nothing", !/Group only|Private only|\bGroup\b|\bPrivate\b/.test(tappedTxt) && JSON.stringify(hours()) === before, tappedTxt.slice(0, 160));
     await tap(page, '[data-tour="editday-edit"]', 500);
     for (let i = 0; i < 12 && (await page.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').count()); i++) {
       await page.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').first().dispatchEvent("click"); await page.waitForTimeout(450);
@@ -212,8 +232,10 @@ const { check, summary } = M.checker("edit-day");
     const emptyIsBox = await page.locator('[data-tour="editday-empty"]').evaluate((e) => { const cs = getComputedStyle(e); return parseFloat(cs.borderTopWidth) > 0 || (cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent"); }).catch(() => true);
     check("(d1) an emptied day reads \"Nothing offered\" as a line — no nought, no box — and Add a time is still there",
           /Nothing offered/.test(s3) && !/\b0 (hours?|times?)\b/.test(s3) && !emptyIsBox && (await page.locator('[data-tour="editday-add"]').count()) === 1 && (await page.locator('[data-tour="editday-edit"]').count()) === 0, s3.slice(0, 160));
-    check("(d1b) the week is still as it was, and the player's next week too", JSON.stringify(hours().days) === weekBefore, "");
+    check("(d1b) the week's hours are as they were", JSON.stringify(hours().days) === weekBefore, "");
     await closeSheet(page);
+    const nextAfter = await boxText(page, label(NEXT));
+    check("(d3) emptying tomorrow leaves next week's same weekday whole: 10:00 and 11:00 still there, no 7:30", /10:00/.test(nextAfter) && /11:00/.test(nextAfter) && !/7:30/.test(nextAfter), nextAfter.slice(0, 200));
     const diaryTxt = M.norm(await M.rootText(page));
     check("(d2) no Group only, Private only or kind label in the sheet or the Diary", !/Group only|Private only/.test(s3) && !/Group only|Private only/.test(diaryTxt), "");
     await c2.ctx.close();
@@ -233,6 +255,79 @@ const { check, summary } = M.checker("edit-day");
     check("(f1) a refused write says \"Couldn't save the hours\" and the sheet's times are as before",
           !!said && (await tileTimes(page)).includes("9:00 am") && !((hours(dbF).blocked || []).includes(`${TOM}|9:00 am`)), JSON.stringify({ said: !!said, tiles: await tileTimes(page) }));
     await f.ctx.close();
+
+    /* ---------- (g) a booked day, a blocked time, and entries from another year ---------- */
+    {
+      const dbG = freshDb();
+      const Y = Number(TOM.slice(0, 4)), PREV = dayPlus(dbG, -40);
+      const hG = dbG.prefs[IDS.coach].availability;
+      hG.extra = [`${Y - 1}${TOM.slice(4)}|6:30 am`, `${PREV}|7:00 am`];
+      hG.blocked = [...hG.blocked, `${PREV}|9:00 am`];
+      const g = await boot("coach", dbG); page = g.page;
+      await openList(page);
+      await openEdit(page, "Tomorrow");
+      check("(g0) last year's entry for this date is not this year's: no 6:30 am on the sheet", !(await tileTimes(page)).includes("6:30 am"), JSON.stringify(await tileTimes(page)));
+      await closeSheet(page);
+      await openEdit(page, label(NEXT));
+      await g.shot("08-booked-day");
+      const booked = page.locator('[data-tour="editday-times"] [data-booked="1"]');
+      const bookedTxt = (await booked.count()) ? M.norm(await booked.first().innerText()) : "";
+      check("(g1) a booked time is a tile carrying who", (await booked.count()) === 1 && /^9:00/.test(bookedTxt) && /Cian Murphy/.test(bookedTxt), bookedTxt);
+      await tap(page, '[data-tour="editday-edit"]', 500);
+      const minusG = await page.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+      check("(g2) Edit puts a minus on the four free times and none on the booked one", minusG.length === 4 && !minusG.includes("Remove 9:00 am"), JSON.stringify(minusG));
+      for (let i = 0; i < 6 && (await page.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').count()); i++) {
+        await page.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').first().dispatchEvent("click"); await page.waitForTimeout(450);
+      }
+      const leftG = await tileTimes(page);
+      check("(g3) taking the last free time off ends Edit by itself: the booked tile stays, Add a time is back",
+            JSON.stringify(leftG) === JSON.stringify(["9:00 am"]) && (await page.locator('[data-tour="editday-edit"]').count()) === 0 && (await page.locator('[data-tour="editday-add"]').count()) === 1, JSON.stringify(leftG));
+      const stored = hours(dbG);
+      check("(g4) a write drops entries for days gone by and never moves one a year on",
+            !(stored.blocked || []).some((x) => x.startsWith(PREV) || x.startsWith(`${Y + 1}${PREV.slice(4)}`)) && !(stored.extra || []).some((x) => x.startsWith(PREV) || x.startsWith(`${Y + 1}${PREV.slice(4)}`) || x.endsWith("6:30 am") && x.startsWith(`${Y}${TOM.slice(4)}`)),
+            JSON.stringify({ blocked: stored.blocked, extra: stored.extra }));
+      await page.locator('[data-tour="editday-calloff"]').dispatchEvent("click"); await page.waitForTimeout(900);
+      const whyTxt = await sheetText(page);
+      await page.locator("[data-sheet] button", { hasText: /^Weather$/ }).first().dispatchEvent("click"); await page.waitForTimeout(300);
+      await page.locator("[data-sheet] button", { hasText: /^Next$/ }).first().dispatchEvent("click"); await page.waitForTimeout(700);
+      const callTxt = await sheetText(page);
+      /* a chosen tile is filled with the ink; read the fill, dark or not */
+      const picked = await page.locator("[data-sheet] button[aria-label]").evaluateAll((els) => els.filter((e) => {
+        const m = getComputedStyle(e).backgroundColor.match(/rgba?\(([^)]+)\)/); if (!m) return false;
+        const [r, g, b, a = 1] = m[1].split(",").map(Number); return a > 0.5 && (0.2126 * r + 0.7152 * g + 0.0722 * b) < 80;
+      }).map((e) => e.getAttribute("aria-label")));
+      check("(g5) Call off on a booked day opens the call-off, and its days start on that day",
+            /Why/.test(whyTxt) && callTxt.includes(label(NEXT)) && picked.length === 1 && picked[0].startsWith(label(NEXT)), JSON.stringify({ picked, txt: callTxt.slice(0, 160) }));
+      await closeSheet(page);
+      /* a time blocked in the Calendar view comes back through the sheet */
+      await openEdit(page, label(LATER));
+      const laterTiles = await tileTimes(page);
+      await tap(page, '[data-tour="editday-add"]', 600);
+      const laterAdd = await page.locator('[data-tour="editday-add-grid"] button').allInnerTexts();
+      await page.locator('[data-tour="editday-add-grid"] button', { hasText: /^10:00 am$/ }).dispatchEvent("click"); await page.waitForTimeout(900);
+      check("(g6) a time blocked on a date is off the sheet and in Add a time, and adding it unblocks it",
+            !laterTiles.includes("10:00 am") && laterAdd.includes("10:00 am") && !(hours(dbG).blocked || []).includes(`${LATER}|10:00 am`) && (await tileTimes(page)).includes("10:00 am"), JSON.stringify({ laterTiles, blocked: hours(dbG).blocked }));
+      await g.ctx.close();
+    }
+
+    /* ---------- (h) the harness: the same sheet, no account ---------- */
+    {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+      const hp = await ctx.newPage();
+      hp.on("pageerror", (e) => errors.push(`harness: ${String(e.message || e)}`));
+      await hp.goto(`${BASE}/?demo`, { waitUntil: "load" });
+      await hp.waitForSelector("text=Scenarios", { timeout: 15000 });
+      await hp.getByRole("button", { name: "Coach", exact: true }).first().click(); await hp.waitForTimeout(M.SPLASH_MS);
+      await openList(hp);
+      await hp.locator('[data-tour="agenda-edit"]').first().dispatchEvent("click"); await hp.waitForTimeout(800);
+      const h0 = await tileTimes(hp);
+      if (await hp.locator('[data-tour="editday-edit"]').count()) await tap(hp, '[data-tour="editday-edit"]', 500);
+      const firstMinus = hp.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').first();
+      if (await firstMinus.count()) { await firstMinus.dispatchEvent("click"); await hp.waitForTimeout(500); }
+      const h1t = await tileTimes(hp);
+      check("(h1) in the harness the sheet opens on the day and a time comes off it", h0.length > 0 && h1t.length === h0.length - 1, JSON.stringify({ h0, h1t }));
+      await ctx.close();
+    }
   } catch (e) {
     check("(x) the suite ran to the end", false, String(e && e.stack || e).slice(0, 500));
   }
