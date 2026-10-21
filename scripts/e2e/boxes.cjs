@@ -138,13 +138,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const db = freshDb();
   const errors = [];
-  const boot = async (role) => {
-    const u = Object.values(db.users).find((x) => x.id === IDS[role]);
+  const boot = async (role, d = db) => {
+    const u = Object.values(d.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
-    await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(page, db);
+    await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(page, d);
     page.on("pageerror", (e) => errors.push(`${role}: ${String(e.message || e)}`));
-    await M.injectSession(page, M.session(u, db));
+    await M.injectSession(page, M.session(u, d));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
     const shot = (name) => page.screenshot({ path: path.join(outDir, `${name}.png`) });
     return { ctx, page, text: () => M.rootText(page), shot };
@@ -346,6 +346,54 @@ const metaOf = (page, title) => page.evaluate((title) => {
       check("(n2) Message coach and Progress are both outlined on the edge, not the old hairline", outlines.length === 2 && outlines.every((o) => / 1(\.5)?px rgba\(47, 107, 58, 0\.72\)$/.test(o)), JSON.stringify(outlines));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       await ctx.close();
+    }
+
+    /* ---------- the register's controls on the edge ----------
+       Present and Absent, before either is chosen, and "Someone not in
+       the diary" are controls whose outline is the only thing that says
+       where they are. They were a 0.5px hairline of the ink at 20% and
+       28% — 1.5:1 and 1.8:1 against the box, under WCAG 1.4.11's 3:1 for
+       a control's boundary — and take EDGE(t) at EDGE_W now, on golf and
+       on a second sport. A fresh fixture, so no earlier mark is chosen. */
+    {
+      const dbR = freshDb();
+      M.addBooking(dbR, { coachId: IDS.rider, playerId: IDS.tadhg, date: TODAY, time: "9:00 am" });
+      const reRgba = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(",").map((x) => +x); return { rgb: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 }; };
+      const reLum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      const reContrast = (a, b) => { const [x, y] = [reLum(a), reLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+      const flat = (c, ground) => { const p = reRgba(c); return p.rgb.map((v, i) => v * p.a + ground[i] * (1 - p.a)); };
+      const outlinesOf = (page, sel, text) => page.evaluate(([sel, src, flags]) => {
+        const text = new RegExp(src, flags);
+        const ground = (el) => { for (let n = el.parentElement; n; n = n.parentElement) { const b = getComputedStyle(n).backgroundColor; const m = b.match(/rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(",").map((x) => +x); if (p.length < 4 || p[3] === 1) return p.slice(0, 3); } } return [255, 255, 255]; };
+        return [...document.querySelectorAll(sel)].filter((b) => b.getBoundingClientRect().width > 0 && text.test(b.textContent.trim()))
+          .map((b) => { const cs = getComputedStyle(b);
+            return { label: b.textContent.trim(), bg: cs.backgroundColor, ground: ground(b), fg: cs.color,
+                     sides: ["Top", "Right", "Bottom", "Left"].map((x) => `${cs[`border${x}Width`]} ${cs[`border${x}Style`]} ${cs[`border${x}Color`]}`) }; });
+      }, [sel, text.source, text.flags]).catch(() => []);
+      const edgeOk = (o, edge, style) => o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) >= 1 && st === style && c.join(" ") === edge; });
+      const edgeRatio = (o) => { const c = o.sides[0].split(" ").slice(2).join(" "); return reContrast(flat(c, o.ground), o.ground); };
+      const told = (os) => os.map((o) => `${o.label}: ${o.sides[0]} ${edgeRatio(o).toFixed(2)}:1 label ${reContrast(flat(o.fg, o.ground), o.ground).toFixed(2)}:1`).join(" | ");
+      const MARK = /^(Present|Absent)$/;
+      for (const [role, sport, who, minRows] of [["coach", "golf", "Saturday clinic", 3], ["rider", "equestrian", "Tadhg Ryan", 1]]) {
+        const { ctx, page, shot } = await boot(role, dbR);
+        await openPeek(page, who);
+        await tap(page, '[data-tour="peek-register"]', 1000);
+        const marks = await outlinesOf(page, "[data-sheet] .nsc-day button", MARK);
+        await shot(`12-register-edges-${sport}`);
+        check(`(r1 ${sport}) every unchosen Present and Absent is outlined on ${sport}'s edge, at least 1px on all four sides`,
+          marks.length >= 2 * minRows && marks.every((o) => edgeOk(o, EDGE[sport], "solid")), `${marks.length} · ${told(marks).slice(0, 400)}`);
+        check(`(r2 ${sport}) their outline reads at least 3:1 against the register's box (WCAG 1.4.11), their words 4.5:1`,
+          marks.length >= 2 && marks.every((o) => edgeRatio(o) >= 3 && reContrast(flat(o.fg, o.ground), o.ground) >= 4.5), told(marks).slice(0, 400));
+        await page.locator("[data-sheet] .nsc-day button", { hasText: /^Present$/ }).first().click(); await page.waitForTimeout(400);
+        const on = (await outlinesOf(page, "[data-sheet] .nsc-day button", MARK))[0];
+        check(`(r3 ${sport}) a chosen Present is filled, its edge the fill's own colour`,
+          !!on && on.bg !== "rgba(0, 0, 0, 0)" && on.sides.every((x) => x.endsWith(on.bg)), on ? told([on]) + ` bg ${on.bg}` : "none");
+        await page.locator("[data-sheet]").getByText("All lessons", { exact: true }).first().click(); await page.waitForTimeout(900);
+        const walk = await outlinesOf(page, "[data-sheet] button", /not in the diary/i);
+        check(`(r4 ${sport}) "Someone not in the diary" is a dashed outline on ${sport}'s edge, at least 1px, at least 3:1`,
+          walk.length === 1 && edgeOk(walk[0], EDGE[sport], "dashed") && edgeRatio(walk[0]) >= 3, told(walk));
+        await ctx.close();
+      }
     }
 
     check("(o) no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));

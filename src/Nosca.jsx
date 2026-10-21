@@ -4698,7 +4698,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                             className="flex items-center justify-center active:opacity-70"
                             style={{ minWidth: 66, minHeight: 38, borderRadius: R.control,
                                      background: on ? tone : "transparent",
-                                     border: `0.5px solid ${on ? tone : HAIR(t.ink, 0.2)}`,
+                                     border: `${EDGE_W}px solid ${on ? tone : EDGE(t)}`,
                                      ...TYPE.caption, fontWeight: 600,
                                      color: on ? "#fff" : t.faint,
                                      transition: "background 180ms, color 180ms, border-color 180ms" }}>
@@ -4786,7 +4786,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
       {(roster || []).length > 0 && !walkIn && (lessons || []).length > 0 && (
         <button onClick={() => { haptic(7); soft(); setWalkIn(true); }}
                 className="w-full flex items-center gap-3 mt-4 px-4 active:opacity-60"
-                style={{ minHeight: 52, borderRadius: R.control, border: `0.5px dashed ${HAIR(t.ink, 0.28)}` }}>
+                style={{ minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px dashed ${EDGE(t)}` }}>
           <Plus size={15} color={t.accent} strokeWidth={2.2} />
           <span style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Someone not in the diary")}</span>
         </button>
