@@ -383,6 +383,25 @@ of the day; `thread-runs.cjs`. With it, one small functional fix: the
 coach's drill library did what its toasts said (`drill-library.cjs`
 (c1)–(c11)).
 
+### 23. The Diary's per-day sheet is that date. **Built 21 October.**
+The pencil on a Diary day opened a sheet titled with the date that
+wrote every change to that weekday for every week: one tap took 9:00
+off every Thursday, emptying it erased Thursdays from every player's
+diary and hid a confirmed lesson from the coach's List, and its Group
+only / Private only were never saved. The scheduling tools agree that
+a date is changed apart from the week: Calendly's date-specific hours,
+Acuity's override hours for specific days, PGA Coach's Open Time
+("without changing your recurring schedule") and Blocked Times beside
+Recurring Hours, Arketa's overrides (deleting one restores the week),
+MoeGo's date override. Nosca's sheet writes the date into the coach's
+own hours (`availability.blocked`, which the Calendar view's Block
+already wrote, and a new `availability.extra`), so every diary reads it
+through `coach_availability()` with no SQL; the week is a row at the
+foot that opens Hours on that weekday. The functional item of the day;
+`edit-day.cjs`. With it, one small visual fix: the register's Present,
+Absent and walk-in moved off a 0.5px hairline onto the sport's edge
+(`boxes.cjs` (r1)–(r4)).
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
@@ -480,3 +499,8 @@ the items above; a research spike first.
 - https://github.com/signalapp/Signal-Desktop/blob/main/ts/components/conversation/Message.dom.tsx (Signal: in a group chat the author's name on the first line of a run)
 - https://github.com/DrKLO/Telegram/blob/master/TMessagesProj/src/main/java/org/telegram/ui/ChatActivity.java (Telegram: bubbles pinned within five minutes, the same sender in a group)
 - https://github.com/DrKLO/Telegram/blob/master/TMessagesProj/src/main/java/org/telegram/ui/Components/MessageDrawable.java (Telegram: the tail on the bottom bubble of a run only)
+- https://help.calendly.com/hc/en-us/articles/360055073694 (Calendly: date-specific hours apart from the weekly hours)
+- https://help.acuityscheduling.com/hc/articles/27016341585421 (Acuity: override hours for specific days)
+- https://support.pga.com/en/articles/4810156-managing-when-you-re-available-to-coach (PGA Coach: Recurring Hours, Open Time without changing the recurring schedule, Blocked Times)
+- https://help.arketa.com/appointments/availability/overrides (Arketa: deleting an override restores the week)
+- https://help.moego.pet/en/articles/11774243-date-override (MoeGo: date override)
