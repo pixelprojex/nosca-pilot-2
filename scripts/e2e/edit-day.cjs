@@ -24,7 +24,8 @@
    (e) the coach's List never drops a confirmed lesson — a booking
        outside the hours, or on a day with none, is a row;
    (f) a refused write is said and the sheet stays as it was;
-   (g) a booked day: who on the tile, no minus on it, Edit ending by
+   (g) today's times already gone and an away day offer nothing; a
+       booked day: who on the tile, no minus on it, Edit ending by
        itself, Call off opening on that day; a time blocked in the
        Calendar view coming back through the sheet; an entry for last
        year or a day gone by neither read nor moved a year on;
@@ -263,10 +264,27 @@ const { check, summary } = M.checker("edit-day");
       const hG = dbG.prefs[IDS.coach].availability;
       hG.extra = [`${Y - 1}${TOM.slice(4)}|6:30 am`, `${PREV}|7:00 am`];
       hG.blocked = [...hG.blocked, `${PREV}|9:00 am`];
+      const AWAY = dayPlus(dbG, 4);
+      hG.away = [{ from: AWAY, to: AWAY }];
       const g = await boot("coach", dbG); page = g.page;
       await openList(page);
       await openEdit(page, "Tomorrow");
       check("(g0) last year's entry for this date is not this year's: no 6:30 am on the sheet", !(await tileTimes(page)).includes("6:30 am"), JSON.stringify(await tileTimes(page)));
+      await closeSheet(page);
+      /* today, with the clock at nine: what has been and gone is neither
+         counted nor offered back */
+      await openEdit(page, "Today");
+      const todayTiles = await tileTimes(page), todayTxt = await sheetText(page);
+      await tap(page, '[data-tour="editday-add"]', 600);
+      const todayAdd = await page.locator('[data-tour="editday-add-grid"] button').allInnerTexts();
+      check("(g0b) today's sheet leaves out the times already gone: 9:00 am neither a tile nor counted, nothing before it to add",
+            !todayTiles.includes("9:00 am") && /\b4 times\b/.test(todayTxt) && !todayAdd.some((x) => /^(6|7|8):\d\d am$|^9:00 am$/.test(x)) && todayAdd.includes("9:30 am"), JSON.stringify({ todayTiles, add: todayAdd.slice(0, 4) }));
+      await closeSheet(page);
+      /* an away day offers nothing */
+      await openEdit(page, label(AWAY));
+      const awayTxt = await sheetText(page);
+      check("(g0c) an away day's sheet says Away, offers no time and nothing to add",
+            /Away/.test(awayTxt) && (await tileTimes(page)).length === 0 && (await page.locator('[data-tour="editday-add"]').count()) === 0 && (await page.locator('[data-tour="editday-edit"]').count()) === 0 && !/Nothing offered/.test(awayTxt), awayTxt.slice(0, 160));
       await closeSheet(page);
       await openEdit(page, label(NEXT));
       await g.shot("08-booked-day");

@@ -241,11 +241,20 @@ seeded data and no account.
   button. **Add a time** (`editday-add`) is the half hours not on the
   day as the app's `TimeGrid`, and is not drawn when there are none.
   The subtitle is "5 times" or nothing; an empty day reads "Nothing
-  offered" as a line. **Every Thursday** (`editday-every`, the week's
+  offered" as a line; an away day reads Away and offers nothing; today's
+  times already gone are neither counted nor offered back ("Nothing is
+  offered in the past"). **Every Thursday** (`editday-every`, the week's
   count beside it) opens Hours on that weekday (`availability:<dow>`,
-  Availability's `startDay`). `writeDay` drops entries for days gone
-  by on every write and says "Couldn't save the hours" when the save is
-  refused. For a long time the sheet edited every such weekday while
+  Availability's `startDay`); **Call off** (`editday-calloff`) opens the
+  call-off on that day (it closed the sheet and opened nothing, the old
+  sheet's bug). The diaries match a dated entry on the month and the
+  day, so `datedOf()` keeps one only in the year the calendar puts that
+  day in, and `writeDay` writes an entry back under the date it was
+  written for and drops days gone by — the first version moved last
+  month's entries a year on and offered last year's again. A refused
+  save says "Couldn't save the hours". A player's day whose every time
+  was taken off is not a day in the ticker; a child whose coach offers
+  only dated times is bookable. For a long time the sheet edited every such weekday while
   titled with the date: one tap took 9:00 off every Thursday, and
   emptying it erased Thursdays from every player's diary and hid a
   confirmed lesson from the coach's List. Its Group only / Private only
