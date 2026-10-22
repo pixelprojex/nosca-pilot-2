@@ -211,7 +211,10 @@ seeded data and no account.
   the grid) turns each tile's corner into a red minus and only then
   does a tap remove one, **Done** puts it back; **Add a time** is one
   tap on the half hours not yet in the list (`HALF_HOURS`, six in the
-  morning to half nine at night). A tap on a time deleted it for a
+  morning to half nine at night) — the app's `TimeGrid` (`avail-add`,
+  four across, the wash and no rim past six), the same grid as
+  EditDay's; it was a rail of round pills for a long time, against the
+  one tile. A tap on a time deleted it for a
   round, and typing "7:30 pm" into a box was the only way to add one;
   the founder asked for the phone's Edit. The pool starts as
   `DEFAULT_SLOTS` — nine to nine, an hour each, the last lesson
@@ -716,7 +719,18 @@ seeded data and no account.
   same. Until the founder re-runs the SQL the hook's probe
   (`cancelReasons`) says no, the patch is the status alone and the
   sheet promises only "straight away" — never "with the reason" it
-  cannot send. `scripts/e2e/cancel-reason.cjs`; behaviour.sql 10b.
+  cannot send. The coach's Offer another time and the decline sheet's
+  are that day's open times (`dayOpenTimes`: the diary's own
+  `openTimes` over the date's hours, blocked and added times, the
+  bookings confirmed and requested, nothing past, nothing on an away
+  day) on the app's `TimeGrid`; they offered the first six of the whole
+  pool, so a lesson could be booked into a time gone, the time being
+  cancelled or another player's lesson. With nothing open, Cancel goes
+  from Why to the password and the decline sheet reads "Nothing open
+  that day" over Just decline. The decline and the offer still book a
+  confirmed lesson with no yes from the player — the founder's call.
+  `scripts/e2e/cancel-reason.cjs`, `scripts/e2e/offer-times.cjs`;
+  behaviour.sql 10b.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.
@@ -995,7 +1009,21 @@ seeded data and no account.
   been), the Message picker, the pick-a-player sheet, the
   register's day of lessons and its Not in the diary, Drifting, the
   roster's Groups half, the player file's foot (Progress · Notes ·
-  Recurring lessons) and the child's Next · Drills. The register's
+  Recurring lessons) and the child's Next · Drills — and, the weekly
+  ones, the lesson page's drills (an undone tick on `EDGE(t)`, as the
+  Drills tab's), the Compare picker ("No other clips yet" a line under
+  it), the Calendar view's free times (`TimeList`, one `.nsc-day`, as
+  the List view's day), the group page's sessions (`group-sessions`,
+  each on its day, `Thu 15 Oct`) and members, New group's people
+  (`PersonPicker`), the setup's Drills (`DrillPicker boxed` — the log's
+  own picker keeps its hairline rows, the log being the founder's) and
+  Tips, the attendance record (its day `Thu 8 Oct`, off
+  `registerDays`, never "08 Oct") and the push prompt over the alerts.
+  Hours' days stay one `Card` with the days as rows on the hairline,
+  and Slots and lesson length sits on the edge above it at the same
+  corner; the profile's Remove <sport> rows are rows of the profile's
+  own card on its 1px hairline — never a box inside a box
+  (`scripts/e2e/lists.cjs`). The register's
   people and the tip sheet's prompts are one `.nsc-day` box with rows
   inside it on a `1px` `t.hair`, the way a diary day holds its times;
   a register name is never cut — it takes a second line before it
