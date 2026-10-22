@@ -49,7 +49,7 @@ function freshDb() {
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: TODAY, time: "10:30 am" });
   /* the group's sessions: two logged group lessons */
   M.addLesson(db, { id: L.grp, coachId: IDS.coach, groupName: "Saturday clinic", date: M.ymd(dayFrom(-7)), focus: "Putting", subs: ["Lag putting"], unread: false });
-  M.addLesson(db, { coachId: IDS.coach, groupName: "Saturday clinic", date: M.ymd(dayFrom(-14)), focus: "Chipping", unread: false });
+  M.addLesson(db, { coachId: IDS.coach, groupName: "Saturday clinic", date: M.ymd(dayFrom(-14)), focus: "Bunker play · Course management · Putting", unread: false });
   /* Compare: one lesson with two clips, one with one */
   M.addLesson(db, { id: L.two, coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-12)), focus: "Short game", unread: false });
   M.addMedia(db, { lessonId: L.two, kind: "video", path: `${IDS.coach}/${L.two}/clip-1.mp4`, createdAt: `${M.ymd(dayFrom(-12))}T10:01:00Z` });
@@ -175,12 +175,18 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await tap(page, '[aria-label="Roster"]', 900);
       await page.locator(`${SCREEN} button`, { hasText: /^Groups$/ }).first().click(); await page.waitForTimeout(700);
       await page.locator('[data-tour="roster-group"]').first().click(); await page.waitForTimeout(1000);
-      const ses = await rowsOf(page, SCREEN, `return [...root.querySelectorAll("span")].filter((s) => s.textContent === "Putting" || s.textContent === "Chipping").map((s) => s.parentElement.parentElement);`);
+      const ses = await rowsOf(page, SCREEN, `return [...root.querySelectorAll("span")].filter((s) => s.textContent === "Putting" || s.textContent === "Bunker play · Course management · Putting").map((s) => s.parentElement.parentElement);`);
       const sesA = await audit(page, SCREEN, EDGE.golf);
       await shot("p-group-sessions");
       check("(p) the group page's sessions are boxed rows on golf's edge, no rule inside", boxedRows(ses, EDGE.golf) && ses.length === 2 && fine(sesA), `${rowSaid(ses)} · ${said(sesA)}`);
       const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelectorAll("span"); return sp[1] ? sp[1].textContent.trim() : ""; }) : []; });
       check("(p2) each session reads the app's one day (Thu 15 Oct), never \"15 Oct\"", sesDays.length === 2 && sesDays.every((d) => DAY_FORM.test(d)), JSON.stringify(sesDays));
+      /* at 360 a three-area session still keeps its day on one line */
+      await page.setViewportSize({ width: 360, height: 780 }); await page.waitForTimeout(400);
+      const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelectorAll("span"); if (!sp[1]) return null; const r0 = sp[0].getBoundingClientRect(), r1 = sp[1].getBoundingClientRect(); return { lines: sp[1].getClientRects().length, h: Math.round(r1.height), gap: Math.round(r1.left - r0.right) }; }) : []; });
+      await shot("p3-group-sessions-360");
+      check("(p3) at 360 every session's day stays whole on one line, clear of a three-area focus", dayLines.length === 2 && dayLines.every((x) => x && x.lines === 1 && x.h <= 18 && x.gap >= 8), JSON.stringify(dayLines));
+      await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
 
       /* (s) the hours' days */
       await openSettings(page);
@@ -198,7 +204,8 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await page.locator('[aria-label="Add a time"]').first().click(); await page.waitForTimeout(500);
       const addR = await page.locator('[data-tour="avail-add"] button').evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).borderRadius)));
       await shot("s3-hours-add");
-      check("(s3) Hours' Add a time is the app's tiles — the control's corner, never a pill", addR.length > 6 && addR.every((r) => r > 0 && r < 20), JSON.stringify(addR.slice(0, 4)));
+      const addCols = await page.locator('[data-tour="avail-add"]').evaluate((g) => getComputedStyle(g).gridTemplateColumns.split(" ").length).catch(() => 0);
+      check("(s3) Hours' Add a time is the app's tiles — the control's corner, never a pill — three across, as its Start times, so no time wraps at 320", addR.length > 6 && addR.every((r) => r > 0 && r < 20) && addCols === 3, JSON.stringify({ r: addR.slice(0, 4), cols: addCols }));
       await M.back(page);
 
       /* (w) the profile's remove-sport rows */
@@ -223,6 +230,8 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const st = await rowsOf(page, "body", `return [...root.querySelectorAll("button[aria-pressed]")].filter((b) => b.textContent.trim().length > 12);`);
       await shot("z2-setup-tips");
       check("(z2) the setup's Tips are boxed rows on golf's edge", boxedRows(st, EDGE.golf) && st.length >= 3, rowSaid(st));
+      const tipPad = await page.evaluate(() => [...document.querySelectorAll("button[aria-pressed]")].filter((b) => b.textContent.trim().length > 12).map((b) => parseFloat(getComputedStyle(b).paddingTop)));
+      check("(z3) a tip's box keeps air above its words, so a tip that wraps never touches the edge", tipPad.length >= 3 && tipPad.every((x) => x >= 8), JSON.stringify(tipPad));
       await page.locator("button", { hasText: /^Skip$/ }).first().click().catch(() => {}); await page.waitForTimeout(900);
 
       /* (t) PersonPicker, on New group */
@@ -285,6 +294,8 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await shot("x-lesson-drills");
       check("(x) the lesson page's drills are boxed rows on golf's edge, the way the Drills tab draws them", boxedRows(ld, EDGE.golf) && ld.length === 2, rowSaid(ld));
       check("(x2) an undone drill's tick on the lesson page is on golf's edge, not the hairline", tick === EDGE.golf, String(tick));
+      const drillPad = await page.evaluate(() => { const s = document.querySelector('[data-tour="lesson-drills"] .nsc-list'); return s ? [...s.children].map((r) => parseFloat(getComputedStyle(r).paddingTop)) : []; });
+      check("(x3) a drill's box keeps air above its name, so a drill that wraps never touches the edge", drillPad.length === 2 && drillPad.every((x) => x >= 8), JSON.stringify(drillPad));
 
       /* (r) the Calendar view's free hours, two days out */
       await tap(page, '[aria-label="Diary"]', 1000);

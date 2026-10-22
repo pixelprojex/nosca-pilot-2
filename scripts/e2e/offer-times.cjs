@@ -18,6 +18,9 @@
    d1-d3  decline: that day's open times, not the time asked for
    d4     nothing open: said, and Just decline still declines
    d5     the decline's times are the app's tiles, not pills
+   o8     the clock as it is when the sheet opens, not when the app did
+   o9     a time is offered only if the lesson fits clear of the others
+   d6     a request left unanswered from last month offers nothing
 
    Usage: node offer-times.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -55,12 +58,12 @@ function freshDb({ hours = true, away = null } = {}) {
   const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const errors = [];
-  const boot = async (db) => {
+  const boot = async (db, hm = "10:30") => {
     const u = Object.values(db.users).find((x) => x.id === IDS.coach);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
     /* half past ten today: 9:00 and 10:00 have been and gone */
-    await page.clock.setFixedTime(new Date(`${dayPlus(db, 0)}T10:30:00`)); await M.attach(page, db);
+    await page.clock.setFixedTime(new Date(`${dayPlus(db, 0)}T${hm}:00`)); await M.attach(page, db);
     page.on("pageerror", (e) => errors.push(String(e.message || e)));
     await M.injectSession(page, M.session(u, db));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
@@ -165,6 +168,47 @@ function freshDb({ hours = true, away = null } = {}) {
       const req = db.bookings.find((b) => b.id === "b0000000-0000-4000-8000-00000000cc06");
       check("(d4) with nothing open the sheet says so, offers no time, and Just decline still declines",
             none === 1 && /Nothing open that day/.test(t) && !(t.match(TIMES) || []).length && !!req && req.status === "cancelled", JSON.stringify({ none, status: req && req.status, t: t.slice(0, 120) }));
+      await ctx.close();
+    }
+
+    /* ---------- (o8) the app opened at half eight, the sheet at half three ---------- */
+    {
+      const db = freshDb();
+      const { ctx, page } = await boot(db, "08:30");
+      await page.clock.setFixedTime(new Date(`${dayPlus(db, 0)}T15:30:00`)); await page.waitForTimeout(400);
+      await cancelFromPeek(page, "Cian Murphy");
+      const times = await offerButtons(page);
+      check("(o8) the clock is read when the sheet opens: at half three, only 5:00 pm — never the morning", JSON.stringify(times) === JSON.stringify(["5:00 pm"]), times.join(", ") || "none");
+      await ctx.close();
+    }
+
+    /* ---------- (o9) half-hour times and hour-long lessons ---------- */
+    {
+      const db = freshDb();
+      const h = db.prefs[IDS.coach].availability;
+      Object.keys(h.days).forEach((k) => { h.days[k] = ["9:00 am", "9:30 am", "10:00 am", "4:00 pm"]; });
+      h.duration = 60; h.slots = ["9:00 am", "9:30 am", "10:00 am", "4:00 pm"];
+      db.bookings.forEach((b) => { b.duration = 60; });
+      const sb = db.bookings.find((b) => b.id === "b0000000-0000-4000-8000-00000000cc05"); sb.start_time = "10:00 am";
+      const { ctx, page } = await boot(db, "08:30");
+      await cancelFromPeek(page, "Cian Murphy");
+      const times = await offerButtons(page);
+      check("(o9) an hour-long lesson is offered only where it fits: 9:00 am, not 9:30 am, which runs into Saoirse's 10:00", JSON.stringify(times) === JSON.stringify(["9:00 am"]), times.join(", ") || "none");
+      await ctx.close();
+    }
+
+    /* ---------- (d6) a request left from last month ---------- */
+    {
+      const db = freshDb();
+      const old = dayPlus(db, -40);
+      const rq = db.bookings.find((b) => b.id === "b0000000-0000-4000-8000-00000000cc06"); rq.booking_date = old;
+      const before = db.bookings.length;
+      const { ctx, page } = await boot(db);
+      await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(800);
+      const t = await sheetText(page);
+      const offeredOld = await offerButtons(page);
+      check("(d6) a request left from last month offers nothing — Nothing open that day, never a time on a day gone by",
+            /Nothing open that day/.test(t) && offeredOld.length === 0 && db.bookings.length === before, JSON.stringify({ offeredOld, t: t.slice(0, 120) }));
       await ctx.close();
     }
   } catch (e) {

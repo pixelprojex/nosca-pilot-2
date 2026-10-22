@@ -8989,7 +8989,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
               const on = tips.includes(tp);
               return (
                 <button key={tp} aria-pressed={on} onClick={() => togg(tips, setTips, tp)}
-                        className="w-full flex items-center gap-3 text-left active:opacity-60"
+                        className="w-full flex items-center gap-3 py-3 text-left active:opacity-60"
                         style={{ minHeight: 52 }}>
                   <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>{tp}</span>
                   {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
@@ -10427,7 +10427,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               {drillsHere.map((d) => {
                 const Tag = onGoDrills ? "button" : "div";
                 return (
-                  <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
+                  <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 py-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
                        style={{ minHeight: 48 }}>
                     <span className="rounded-full flex items-center justify-center shrink-0"
                           style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : EDGE(t)}`, background: d.done ? STEADY : "transparent" }}>
@@ -14476,9 +14476,9 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           )}
           {weeks.length > 0 && <div className="nsc-list" data-tour="group-sessions">{weeks.map((w, i) => (
             <div key={i} className="py-3.5">
-              <div className="flex items-baseline justify-between">
-                <span style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{w.covered}</span>
-                <span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{w.when}</span>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="flex-1 min-w-0" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{w.covered}</span>
+                <span className="shrink-0" style={{ fontFamily: ui, fontSize: 12, whiteSpace: "nowrap", color: t.faint }}>{w.when}</span>
               </div>
               {w.subs.length > 0 && <div className="mt-1.5" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{w.subs.join(" · ")}</div>}
               {/* only a register can say who was there; without one the
@@ -15632,7 +15632,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                 <div style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
                   <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Tap a time to add it")}</div>
                   {/* the app's one time grid, as EditDay's — it was a rail of round pills */}
-                  <TimeGrid tour="avail-add" times={HALF_HOURS.filter((h) => !slots.includes(h))} picked={[]} onToggle={addTime} cols={4} />
+                  <TimeGrid tour="avail-add" times={HALF_HOURS.filter((h) => !slots.includes(h))} picked={[]} onToggle={addTime} cols={3} />
                 </div>
               )}
             </Card>
@@ -19071,13 +19071,26 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const dayOpenTimes = (b) => {
     if (!b) return data ? [] : slots.slice(0, 6);
     const dt = b.date ? localDate(b.date) : null;
-    const m = dt && !Number.isNaN(dt.getTime()) ? dt.getMonth() + 1 : b.m, d = dt && !Number.isNaN(dt.getTime()) ? dt.getDate() : b.d;
+    const ok = dt && !Number.isNaN(dt.getTime());
+    const m = ok ? dt.getMonth() + 1 : b.m, d = ok ? dt.getDate() : b.d;
     if (!m || !d) return data ? [] : slots.slice(0, 6);
+    /* the booking's own day, year and all: a request left unanswered from
+       last month is not next year's same date */
+    if (ok && (dt.getFullYear() !== yearOf(m, calendar) || isoOf(m, d) < isoOf(todayMD.m, todayMD.d))) return [];
     if (myAway.has(isoOf(m, d))) return [];
     const held = data
       ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((x) => !x.status || x.status === "confirmed" || x.status === "requested")]))
       : mySeedBooked;
-    return openTimes(m, d, myAvail, myBlocked, [], held || {}, calendar, myExtra);
+    /* the clock as it is now — the calendar keeps the minute of the day's
+       first render, and a phone left open all day would offer the morning */
+    const live = account ? (() => { const n = new Date(); return { ...calendar, nowMins: n.getHours() * 60 + n.getMinutes() }; })() : calendar;
+    /* a time is open only if the lesson it would book fits clear of every
+       held one, by their lengths, not just their start times */
+    const len = b.duration || duration;
+    const heldHere = (held || {})[key(m, d)] || [];
+    const clear = (tm) => { const a = parseTime(tm); if (a == null) return true;
+      return heldHere.every((x) => { const s0 = parseTime(x.time); if (s0 == null) return true; return a + len <= s0 || s0 + (x.duration || duration) <= a; }); };
+    return openTimes(m, d, myAvail, myBlocked, [], held || {}, live, myExtra).filter(clear);
   };
   const writeAway = (next) => {
     if (data) { data.saveAvailability({ ...(liveHours || {}), away: next }); return; }
@@ -20584,7 +20597,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         const parts = k.split(" ");
         /* the app's one day, "Thu 8 Oct", off the register's own date; the
            key's "08 Oct" only where the day is not known (the harness) */
-        const date = regDays[k] ? fmtIsoDay(regDays[k]) : `${Number(parts[0]) || parts[0]} ${parts[1]}`;
+        const mi = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(String(parts[1] || "").slice(0, 3)) + 1;
+        const date = regDays[k] ? fmtIsoDay(regDays[k])
+          : mi && Number(parts[0]) ? fmtIsoDay(`${yearOf(mi, calendar)}-${String(mi).padStart(2, "0")}-${String(Number(parts[0])).padStart(2, "0")}`)
+          : `${parts[0]} ${parts[1]}`;
         const what = parts.slice(2).join(" ");            // "Summer clinic"
         rows.push({ date, who: role === "coach" ? nameOfId(who) : what,
                     kind: role === "coach" ? what : (what.includes("clinic") || what.includes("squad") || what.includes("group") ? tr("Group") : tr("Private")),
@@ -21281,7 +21297,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                 const r1 = await data.cancelBooking(bk.id, "cancelled", why);
                                                 if (r1 && r1.error) { hapticWarn(); say(r1.error.message); return; }
                                                 if (offer && role === "coach") {
-                                                  const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration }]);
+                                                  const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration: bk.duration || duration }]);
                                                   if (r2 && r2.error) { say(r2.error.message); return; }
                                                 }
                                                 /* a parent cancelling a child's lesson: the child's coach is told, not the parent's own */
