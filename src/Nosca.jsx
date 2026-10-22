@@ -2573,7 +2573,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
                      detail={`${lesson}. ${reasonTravels ? tr("They are told straight away with the reason. Confirm with your password.") : tr("They are told straight away. Confirm with your password.")}`}
                      actionLabel={label} closeLabel={tr("Back")}
                      onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(); return { next: true }; }}
-                     close={() => setStage("when")} />
+                     close={() => setStage(slots.length ? "when" : "why")} />
   );
 
   if (stage === "when") return (
@@ -2626,7 +2626,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
       </div>
 
       {role === "coach"
-        ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); setStage("when"); }}>{tr("Next")}</Button>
+        ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); if (slots.length) setStage("when"); else if (verify) setStage("password"); else finish(); }}>{tr("Next")}</Button>
         : <Button tone="danger" disabled={!ready} onClick={finish}>{tr("Cancel the lesson")}</Button>}
     </>
   );
@@ -19060,6 +19060,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      player through the same function; the harness keeps its own */
   const awayRanges = data ? (Array.isArray(liveHours.away) ? liveHours.away : []) : harnessAway;
   const myAway = awayDays({ away: awayRanges });
+  /* THAT DAY'S OPEN TIMES, for a time offered on it. The cancel
+     sheet's Offer another time and the decline sheet book the offered
+     time on the lesson's own date, and offered the first six of the
+     coach's pool whatever the day: a time already gone, the very time
+     being cancelled, another player's lesson, an away day. They read
+     the diary's rule now (openTimes: the day's hours, the date's
+     blocked and added times, nothing past), with a requested time
+     held as well — an offer must never land on somebody's ask. */
+  const dayOpenTimes = (b) => {
+    if (!b) return data ? [] : slots.slice(0, 6);
+    const dt = b.date ? localDate(b.date) : null;
+    const m = dt && !Number.isNaN(dt.getTime()) ? dt.getMonth() + 1 : b.m, d = dt && !Number.isNaN(dt.getTime()) ? dt.getDate() : b.d;
+    if (!m || !d) return data ? [] : slots.slice(0, 6);
+    if (myAway.has(isoOf(m, d))) return [];
+    const held = data
+      ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((x) => !x.status || x.status === "confirmed" || x.status === "requested")]))
+      : mySeedBooked;
+    return openTimes(m, d, myAvail, myBlocked, [], held || {}, calendar, myExtra);
+  };
   const writeAway = (next) => {
     if (data) { data.saveAvailability({ ...(liveHours || {}), away: next }); return; }
     setHarnessAway(next);
@@ -21248,7 +21267,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             toCoach={transferTo || tr("your new coach")}
                                             onDone={(parts) => done(tr("Record shared"), `${parts.length} ${tr("parts")}`)}
                                             close={() => setSheet(null)} />
-              : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
+              : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={role === "coach" ? dayOpenTimes(cancelBk) : []} duration={duration}
                                             verify={data && role === "coach" ? data.verifyPassword : null}
                                             reasonTravels={!data || !!data.cancelReasons}
                                             onDone={async ({ reason, note, offer }) => {
@@ -21337,9 +21356,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   <>
                     <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Offer another time")}</h2>
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {slots.slice(0, 6).map((sl) => (
-                        <button key={sl} onClick={async () => { hapticSuccess(); soft();
+                    {!dayOpenTimes(declining).length && <p className="mb-6" data-offer-none style={{ ...TYPE.small, color: theme.sub }}>{tr("Nothing open that day")}</p>}
+                    {/* that day's open times on the app's one time grid, as the
+                        cancel sheet's Offer another time — it was a rail of pills
+                        over the first six of the whole pool */}
+                    {dayOpenTimes(declining).length > 0 && (
+                    <div className="mb-6">
+                      <TimeGrid tour="decline-offer" cols={3} times={dayOpenTimes(declining)} picked={[]} onToggle={async (sl) => { hapticSuccess();
                                   if (data) {
                                     /* the request is declined and the offered time booked in its place */
                                     const r1 = await data.cancelBooking(declining.id, "cancelled");
@@ -21348,12 +21371,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                     setSheet(null); done(tr("Booked"), `${declining.who} · ${sl}`); return;
                                   }
                                   setAskedFor((v) => v.filter((x) => x !== declining));
-                                  setSheet(null); done(tr("Offered"), `${declining.who} · ${sl}`); }}
-                                className="px-3.5 active:opacity-60"
-                                style={{ minHeight: 44, borderRadius: R.pill, background: theme.wash,
-                                         ...TYPE.small, fontWeight: 500, color: theme.ink }}>{sl}</button>
-                      ))}
+                                  setSheet(null); done(tr("Offered"), `${declining.who} · ${sl}`); }} />
                     </div>
+                    )}
                     <Button tone="dangerQuiet" onClick={async () => {
                               if (data) { const r = await data.cancelBooking(declining.id, "cancelled"); if (r && r.error) { say(r.error.message); return; } }
                               setAskedFor((v) => v.filter((x) => x !== declining));
