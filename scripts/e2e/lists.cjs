@@ -7,7 +7,8 @@
    hairline, Slots and lesson length on the edge above it, and Add a
    time the app's tiles — it was round pills), the profile's Remove
    <sport> rows (rows of the profile's own card, never a box inside a
-   box), the setup's Drills and Tips, New group's people (PersonPicker),
+   box), the setup's Drills and Tips (and the plus in the middle of Your
+   own's add button), New group's people (PersonPicker),
    the push prompt over the alerts (only on a build with a push key —
    run with VAPID=1 against one), the Compare picker, the lesson page's
    drills (an undone tick on the edge), the Calendar view's free times
@@ -232,6 +233,10 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       check("(z2) the setup's Tips are boxed rows on golf's edge", boxedRows(st, EDGE.golf) && st.length >= 3, rowSaid(st));
       const tipPad = await page.evaluate(() => [...document.querySelectorAll("button[aria-pressed]")].filter((b) => b.textContent.trim().length > 12).map((b) => parseFloat(getComputedStyle(b).paddingTop)));
       check("(z3) a tip's box keeps air above its words, so a tip that wraps never touches the edge", tipPad.length >= 3 && tipPad.every((x) => x >= 8), JSON.stringify(tipPad));
+      const addPlus = await page.evaluate(() => { const b = [...document.querySelectorAll('button[aria-label="Add"]')].find((x) => x.offsetParent && x.querySelector("svg")); if (!b) return null;
+        const r = b.getBoundingClientRect(), g = b.querySelector("svg").getBoundingClientRect();
+        return { dx: Math.round((g.left + g.width / 2) - (r.left + r.width / 2)), dy: Math.round((g.top + g.height / 2) - (r.top + r.height / 2)) }; });
+      check("(z4) the plus on Your own's add button sits in the middle of its box", !!addPlus && Math.abs(addPlus.dx) <= 1 && Math.abs(addPlus.dy) <= 1, JSON.stringify(addPlus));
       await page.locator("button", { hasText: /^Skip$/ }).first().click().catch(() => {}); await page.waitForTimeout(900);
 
       /* (t) PersonPicker, on New group */

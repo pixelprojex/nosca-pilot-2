@@ -8942,7 +8942,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
     <div className="flex gap-2 mt-5">
       <div className="flex-1"><VoiceInput value={value} onChange={onChange} ph={ph} /></div>
       <button onClick={() => { const v = value.trim(); if (!v) return; hapticSuccess(); soft(); onAdd(v); onChange(""); }}
-              disabled={!value.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
+              disabled={!value.trim()} className="shrink-0 flex items-center justify-center active:opacity-60 disabled:opacity-25"
               style={{ width: 54, minHeight: 54, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}>
         <Plus size={18} color="#fff" strokeWidth={2.1} />
       </button>
