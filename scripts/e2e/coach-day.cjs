@@ -35,6 +35,8 @@ function freshDb() {
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: "2026-09-01", focus: "Short game", subs: ["Chipping"], notes: "Cleaner contact from the fringe." });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: "2026-08-20", focus: "Putting", subs: ["Lag putting"], notes: "Pace on the long ones first." });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.junior, date: "2026-08-28", focus: "Grip", notes: "Left hand a touch stronger." });
+  /* hours, so Cancel on the peek has an open time today to offer (it offers that day's open times, not the pool) */
+  M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "10:30 am", "12:00 pm", "4:00 pm"], [0, 1, 2, 3, 4, 5, 6]) });
   db.b1 = M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "9:00 am" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: TODAY, time: "10:30 am" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "4:00 pm", status: "requested" });

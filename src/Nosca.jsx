@@ -2573,7 +2573,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
                      detail={`${lesson}. ${reasonTravels ? tr("They are told straight away with the reason. Confirm with your password.") : tr("They are told straight away. Confirm with your password.")}`}
                      actionLabel={label} closeLabel={tr("Back")}
                      onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(); return { next: true }; }}
-                     close={() => setStage("when")} />
+                     close={() => setStage(slots.length ? "when" : "why")} />
   );
 
   if (stage === "when") return (
@@ -2626,7 +2626,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
       </div>
 
       {role === "coach"
-        ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); setStage("when"); }}>{tr("Next")}</Button>
+        ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); if (slots.length) setStage("when"); else if (verify) setStage("password"); else finish(); }}>{tr("Next")}</Button>
         : <Button tone="danger" disabled={!ready} onClick={finish}>{tr("Cancel the lesson")}</Button>}
     </>
   );
@@ -6069,12 +6069,11 @@ function AttendanceScreen({ role, cfg, records, rule, pop }) {
 
               {/* the record, if anyone wants it */}
               {total > 0 && (
-                <div className="mt-4" style={{ borderTop: RULE.section(t.ink) }}>
+                <div className="mt-4 nsc-list">
                   {rows.map((r, i) => (
                     <div key={i} className="flex items-center gap-3.5 py-3.5"
-                         style={{ borderBottom: RULE.hair(t.ink),
-                                  animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                      <span className="shrink-0" style={{ width: 54, ...TYPE.caption, color: t.faint }}>
+                         style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                      <span className="shrink-0" style={{ width: 76, whiteSpace: "nowrap", ...TYPE.caption, color: t.faint }}>
                         {r.date}
                       </span>
                       <span className="flex-1 min-w-0">
@@ -8366,17 +8365,16 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
 /* people: a face, a name, a tick. Never a tile, never a pill. */
 const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
   const t = useT();
-  const hair = RULE.hair(t.ink);
   const ids = new Set(picked || []);
   return (
-    <div data-tour={tour} style={{ borderTop: hair }}>
+    <div data-tour={tour} className="nsc-list">
       {people.map((p) => {
         const on = ids.has(p.id);
         const sub = caption && caption(p);
         return (
           <button key={p.id} aria-pressed={on} aria-label={p.name} onClick={() => { haptic(7); soft(); onToggle(p); }}
                   className="w-full flex items-center gap-3 text-left active:opacity-60"
-                  style={{ minHeight: 58, borderBottom: hair }}>
+                  style={{ minHeight: 58 }}>
             <Avatar name={p.name} size={34} group={p.group} src={avatarUrl(p.avatarPath)} />
             <span className="flex-1 min-w-0">
               <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
@@ -8391,19 +8389,19 @@ const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
 };
 
 /* drills: the name and a tick, because a drill is a sentence */
-const DrillPicker = ({ drills, picked, onToggle, tour }) => {
+const DrillPicker = ({ drills, picked, onToggle, tour, boxed = false }) => {
   const t = useT();
   const hair = RULE.hair(t.ink);
   if (!drills.length) return null;
   return (
-    <div data-tour={tour} style={{ borderTop: hair }}>
+    <div data-tour={tour} className={boxed ? "nsc-list" : undefined} style={boxed ? undefined : { borderTop: hair }}>
       {drills.map((d) => {
         const name = typeof d === "string" ? d : d.t;
         const on = (picked || []).includes(name);
         return (
           <button key={name} aria-pressed={on} onClick={() => { haptic(7); soft(); onToggle(name); }}
                   className="w-full flex items-center gap-3 text-left active:opacity-60"
-                  style={{ minHeight: 50, borderBottom: hair }}>
+                  style={{ minHeight: 50, borderBottom: boxed ? undefined : hair }}>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>{name}</span>
             {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
           </button>
@@ -8432,16 +8430,15 @@ const FocusGrid = ({ areas, picked, onToggle, h = 58, cols = 2, tour }) => (
    One under the next, in order, is how a day actually reads. */
 const TimeList = ({ times, picked, onPick, tour }) => {
   const t = useT();
-  const hair = RULE.hair(t.ink);
   if (!times.length) return null;
   return (
-    <div data-tour={tour} style={{ borderTop: hair }}>
+    <div data-tour={tour} className="nsc-day">
       {times.map((x) => {
         const on = picked === x;
         return (
           <button key={x} onClick={() => { haptic(8); soft(); onPick(x); }}
-                  className="w-full flex items-center gap-3 text-left active:opacity-50"
-                  style={{ minHeight: 50, borderBottom: hair }}>
+                  className="w-full flex items-center gap-3 px-3.5 text-left active:opacity-50"
+                  style={{ minHeight: 50, borderBottom: `1px solid ${t.hair}` }}>
             <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? t.ink : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
@@ -8945,7 +8942,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
     <div className="flex gap-2 mt-5">
       <div className="flex-1"><VoiceInput value={value} onChange={onChange} ph={ph} /></div>
       <button onClick={() => { const v = value.trim(); if (!v) return; hapticSuccess(); soft(); onAdd(v); onChange(""); }}
-              disabled={!value.trim()} className="shrink-0 active:opacity-60 disabled:opacity-25"
+              disabled={!value.trim()} className="shrink-0 flex items-center justify-center active:opacity-60 disabled:opacity-25"
               style={{ width: 54, minHeight: 54, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}>
         <Plus size={18} color="#fff" strokeWidth={2.1} />
       </button>
@@ -8981,19 +8978,19 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
         </>)}
 
         {now === "drills" && (<>
-          <DrillPicker drills={[...cfg.drills.map((d) => d.t), ...drills.filter((n) => !cfg.drills.some((d) => d.t === n))]}
+          <DrillPicker boxed drills={[...cfg.drills.map((d) => d.t), ...drills.filter((n) => !cfg.drills.some((d) => d.t === n))]}
                        picked={drills} onToggle={(name) => togg(drills, setDrills, name)} />
           <AddOwn value={newDrill} onChange={setNewDrill} ph={tr("Add your own")} onAdd={(v) => setDrills([...drills, v])} />
         </>)}
 
         {now === "tips" && (<>
-          <div style={{ borderTop: RULE.section(t.ink) }}>
+          <div className="nsc-list">
             {[...(tipPrompts || []).slice(0, 8), ...tips.filter((n) => !(tipPrompts || []).includes(n))].map((tp) => {
               const on = tips.includes(tp);
               return (
                 <button key={tp} aria-pressed={on} onClick={() => togg(tips, setTips, tp)}
-                        className="w-full flex items-center gap-3 text-left active:opacity-60"
-                        style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
+                        className="w-full flex items-center gap-3 py-3 text-left active:opacity-60"
+                        style={{ minHeight: 52 }}>
                   <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: t.ink }}>{tp}</span>
                   {on && <Check size={15} color={t.accent} strokeWidth={2.4} />}
                 </button>
@@ -10426,13 +10423,14 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {drillsHere.length > 0 && (
             <div className="py-5" data-tour="lesson-drills" style={{ borderTop: hair }}>
               <Label>{tr("Drills")}</Label>
-              {drillsHere.map((d, i) => {
+              <div className="nsc-list">
+              {drillsHere.map((d) => {
                 const Tag = onGoDrills ? "button" : "div";
                 return (
-                  <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
-                       style={{ minHeight: 44, borderTop: i ? hair : "none" }}>
+                  <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 py-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
+                       style={{ minHeight: 48 }}>
                     <span className="rounded-full flex items-center justify-center shrink-0"
-                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : HAIR(t.ink, 0.3)}`, background: d.done ? STEADY : "transparent" }}>
+                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : EDGE(t)}`, background: d.done ? STEADY : "transparent" }}>
                       {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
                     </span>
                     <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
@@ -10440,6 +10438,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                   </Tag>
                 );
               })}
+              </div>
             </div>
           )}
 
@@ -11789,7 +11788,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
       {pill(side, x)}
     </div>
   );
-  const rowStyle = { minHeight: 64, borderBottom: RULE.hair(t.ink) };
+  const rowStyle = { minHeight: 64 };
   /* the day, and which clip of that lesson when it has more than one */
   const clipLabel = (x) => {
     const same = (all || []).filter((y) => y.lesson.id === x.lesson.id);
@@ -11806,6 +11805,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
         ) : view === "pick" || !b ? (
           /* THE PICKER: this clip, then every other clip of theirs, newest first */
           <div className="px-6" data-tour="compare-pick">
+            <div className="nsc-list">
             {a && (
               <div className="flex items-center gap-3.5" style={rowStyle}>
                 <Poster item={a.item} />
@@ -11817,7 +11817,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
               </div>
             )}
             {others === null ? [0, 1, 2].map((i) => <div key={i} className="flex items-center gap-3.5" style={rowStyle}><Bone w={56} h={56} r={8} /><span className="flex-1"><Bone w="60%" h={14} /><Bone w="40%" h={12} mb={0} /></span></div>)
-              : others.length === 0 ? <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No other clips yet")}</p>
+              : others.length === 0 ? null
               : others.map((x, i) => (
                 <button key={`${x.lesson.id}:${x.item.id}`} data-compare-row="" onClick={() => pick(x)} aria-pressed={b === x}
                         className="w-full flex items-center gap-3.5 text-left active:opacity-50"
@@ -11830,6 +11830,8 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
                   {b === x ? <Check size={16} color={t.ink} strokeWidth={2.4} /> : <ChevronRight size={14} color={t.trace || t.faint} />}
                 </button>
               ))}
+            </div>
+            {others && others.length === 0 && <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No other clips yet")}</p>}
             <div style={{ height: SPACE.section }} />
           </div>
         ) : (
@@ -14439,7 +14441,7 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
   const weeks = real ? sessions.map((l) => {
     const reg = (registers || {})[`${l.d} ${l.m} ${group.name}`] || null;
     const marks = reg ? Object.values(reg) : [];
-    return { when: `${l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
+    return { when: l.iso ? fmtIsoDay(l.iso) : `${Number(l.d) || l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
              present: reg ? marks.filter((x) => x === "in").length : null,
              absent: reg ? marks.filter((x) => x === "out").length : 0 };
   }) : [
@@ -14472,11 +14474,11 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           {weeks.length === 0 && (
             <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No sessions yet")}</p>
           )}
-          {weeks.map((w, i) => (
-            <div key={i} className="py-4" style={{ borderBottom: `1px solid ${t.hair}` }}>
-              <div className="flex items-baseline justify-between">
-                <span style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{w.covered}</span>
-                <span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{w.when}</span>
+          {weeks.length > 0 && <div className="nsc-list" data-tour="group-sessions">{weeks.map((w, i) => (
+            <div key={i} className="py-3.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="flex-1 min-w-0" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{w.covered}</span>
+                <span className="shrink-0" style={{ fontFamily: ui, fontSize: 12, whiteSpace: "nowrap", color: t.faint }}>{w.when}</span>
               </div>
               {w.subs.length > 0 && <div className="mt-1.5" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{w.subs.join(" · ")}</div>}
               {/* only a register can say who was there; without one the
@@ -14485,7 +14487,7 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
                 <div className="mt-2" style={{ ...TYPE.caption, color: t.faint }}>{w.present} {tr("of")} {group.members.length}</div>
               )}
             </div>
-          ))}
+          ))}</div>}
         </div>
 
         {/* the members still on the roster, by id — somebody who has left is
@@ -14496,7 +14498,7 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           return people.length > 0 && (<>
             <Eyebrow>{tr("Members")}</Eyebrow>
             <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members">{people.map((r, i) => (
-                <Row key={r.id || r.name} label={r.name} icon={<Avatar name={r.name} size={36} />} chevron last={i === people.length - 1} onToggle={() => onOpen && onOpen(r)} />
+                <Row key={r.id || r.name} label={r.name} icon={<Avatar name={r.name} size={36} />} chevron last onToggle={() => onOpen && onOpen(r)} />
               ))}</div>
             </div>
           </>);
@@ -15581,7 +15583,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
     <SwipeBack onBack={pop}>
       <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
-          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 active:opacity-60" style={{ minHeight: 58, border: `1px solid ${t.hair}` }}>
+          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 active:opacity-60" style={{ minHeight: 58, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
             <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 34, height: 34, background: t.wash }}><Clock size={15} color={t.sub} /></span>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min default</span></span>
@@ -15629,12 +15631,8 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
               {addingTime && !removing && (
                 <div style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
                   <div className="mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Tap a time to add it")}</div>
-                  <div className="grid gap-2" data-tour="avail-add" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
-                    {HALF_HOURS.filter((h) => !slots.includes(h)).map((h) => (
-                      <button key={h} onClick={() => addTime(h)} className="active:opacity-70"
-                              style={{ minHeight: 40, borderRadius: R.pill, background: t.wash, ...TYPE.caption, fontWeight: 600, color: t.ink }}>{h}</button>
-                    ))}
-                  </div>
+                  {/* the app's one time grid, as EditDay's — it was a rail of round pills */}
+                  <TimeGrid tour="avail-add" times={HALF_HOURS.filter((h) => !slots.includes(h))} picked={[]} onToggle={addTime} cols={3} />
                 </div>
               )}
             </Card>
@@ -16763,11 +16761,13 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
                   </>
                 )}
                 {onRemoveSport && (sports || []).filter((id) => id !== f.sport).length > 0 && (
-                  <div className="mt-3.5" style={{ borderTop: RULE.section(t.ink) }}>
+                  /* rows of the profile's own card, on its 1px hairline — a box
+                     of their own here would be a box inside a box */
+                  <div className="mt-3.5" data-tour="profile-remove-sport">
                     {(sports || []).filter((id) => id !== f.sport).map((id) => (
                       <button key={id} onClick={() => { haptic(8); onRemoveSport(id); }}
                               className="w-full flex items-center gap-3 text-left active:opacity-60"
-                              style={{ minHeight: 48, borderBottom: RULE.hair(t.ink) }}>
+                              style={{ minHeight: 48, borderTop: `1px solid ${t.hair}` }}>
                         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{tr("Remove")} {SPORTS[id].label}</span>
                         <X size={14} color={t.trace || t.faint} strokeWidth={2.2} />
                       </button>
@@ -17379,8 +17379,8 @@ function PushPrompt({ userId, say }) {
     else { say && say((r && r.reason) || tr("Couldn't turn that on")); }
   };
   return (
-    <div className="flex items-center gap-3 px-1 mb-5" data-tour="push-prompt"
-         style={{ minHeight: 56, borderBottom: RULE.hair(t.ink) }}>
+    <div className="nsc-list mb-5"><div className="flex items-center gap-3" data-tour="push-prompt"
+         style={{ minHeight: 56 }}>
       <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
         {state === "ios" ? tr("Add to Home Screen for notifications") : tr("Phone notifications")}
       </span>
@@ -17390,7 +17390,7 @@ function PushPrompt({ userId, say }) {
       )}
       <button onClick={() => { haptic(6); remember(); setState("hidden"); }} className="shrink-0 active:opacity-60"
               style={{ ...TYPE.small, fontWeight: 600, color: t.faint }}>{state === "ask" ? tr("Not now") : tr("OK")}</button>
-    </div>
+    </div></div>
   );
 }
 
@@ -19060,6 +19060,38 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      player through the same function; the harness keeps its own */
   const awayRanges = data ? (Array.isArray(liveHours.away) ? liveHours.away : []) : harnessAway;
   const myAway = awayDays({ away: awayRanges });
+  /* THAT DAY'S OPEN TIMES, for a time offered on it. The cancel
+     sheet's Offer another time and the decline sheet book the offered
+     time on the lesson's own date, and offered the first six of the
+     coach's pool whatever the day: a time already gone, the very time
+     being cancelled, another player's lesson, an away day. They read
+     the diary's rule now (openTimes: the day's hours, the date's
+     blocked and added times, nothing past), with a requested time
+     held as well — an offer must never land on somebody's ask. */
+  const dayOpenTimes = (b) => {
+    if (!b) return data ? [] : slots.slice(0, 6);
+    const dt = b.date ? localDate(b.date) : null;
+    const ok = dt && !Number.isNaN(dt.getTime());
+    const m = ok ? dt.getMonth() + 1 : b.m, d = ok ? dt.getDate() : b.d;
+    if (!m || !d) return data ? [] : slots.slice(0, 6);
+    /* the booking's own day, year and all: a request left unanswered from
+       last month is not next year's same date */
+    if (ok && (dt.getFullYear() !== yearOf(m, calendar) || isoOf(m, d) < isoOf(todayMD.m, todayMD.d))) return [];
+    if (myAway.has(isoOf(m, d))) return [];
+    const held = data
+      ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((x) => !x.status || x.status === "confirmed" || x.status === "requested")]))
+      : mySeedBooked;
+    /* the clock as it is now — the calendar keeps the minute of the day's
+       first render, and a phone left open all day would offer the morning */
+    const live = account ? (() => { const n = new Date(); return { ...calendar, nowMins: n.getHours() * 60 + n.getMinutes() }; })() : calendar;
+    /* a time is open only if the lesson it would book fits clear of every
+       held one, by their lengths, not just their start times */
+    const len = b.duration || duration;
+    const heldHere = (held || {})[key(m, d)] || [];
+    const clear = (tm) => { const a = parseTime(tm); if (a == null) return true;
+      return heldHere.every((x) => { const s0 = parseTime(x.time); if (s0 == null) return true; return a + len <= s0 || s0 + (x.duration || duration) <= a; }); };
+    return openTimes(m, d, myAvail, myBlocked, [], held || {}, live, myExtra).filter(clear);
+  };
   const writeAway = (next) => {
     if (data) { data.saveAvailability({ ...(liveHours || {}), away: next }); return; }
     setHarnessAway(next);
@@ -20558,11 +20590,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                       || "—")
                                    : ((ROSTER.find((r) => r.id === id) || {}).name || id));
     const rows = [];
+    const regDays = (data && data.registerDays) || {};
     Object.keys(registers || {}).forEach((k) => {
       Object.keys(registers[k]).forEach((who) => {
         if (role !== "coach" && who !== me) return;
         const parts = k.split(" ");
-        const date = `${parts[0]} ${parts[1]}`;          // "14 Jun"
+        /* the app's one day, "Thu 8 Oct", off the register's own date; the
+           key's "08 Oct" only where the day is not known (the harness) */
+        const mi = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(String(parts[1] || "").slice(0, 3)) + 1;
+        const date = regDays[k] ? fmtIsoDay(regDays[k])
+          : mi && Number(parts[0]) ? fmtIsoDay(`${yearOf(mi, calendar)}-${String(mi).padStart(2, "0")}-${String(Number(parts[0])).padStart(2, "0")}`)
+          : `${parts[0]} ${parts[1]}`;
         const what = parts.slice(2).join(" ");            // "Summer clinic"
         rows.push({ date, who: role === "coach" ? nameOfId(who) : what,
                     kind: role === "coach" ? what : (what.includes("clinic") || what.includes("squad") || what.includes("group") ? tr("Group") : tr("Private")),
@@ -21245,7 +21283,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             toCoach={transferTo || tr("your new coach")}
                                             onDone={(parts) => done(tr("Record shared"), `${parts.length} ${tr("parts")}`)}
                                             close={() => setSheet(null)} />
-              : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={slots.slice(0, 6)} duration={duration}
+              : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={role === "coach" ? dayOpenTimes(cancelBk) : []} duration={duration}
                                             verify={data && role === "coach" ? data.verifyPassword : null}
                                             reasonTravels={!data || !!data.cancelReasons}
                                             onDone={async ({ reason, note, offer }) => {
@@ -21259,7 +21297,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                 const r1 = await data.cancelBooking(bk.id, "cancelled", why);
                                                 if (r1 && r1.error) { hapticWarn(); say(r1.error.message); return; }
                                                 if (offer && role === "coach") {
-                                                  const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration }]);
+                                                  const r2 = await data.addBookings([{ playerId: bk.playerId, groupName: bk.groupName, date: bk.date || isoOf(bk.m, bk.d), time: offer, duration: bk.duration || duration }]);
                                                   if (r2 && r2.error) { say(r2.error.message); return; }
                                                 }
                                                 /* a parent cancelling a child's lesson: the child's coach is told, not the parent's own */
@@ -21334,9 +21372,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   <>
                     <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Offer another time")}</h2>
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {slots.slice(0, 6).map((sl) => (
-                        <button key={sl} onClick={async () => { hapticSuccess(); soft();
+                    {!dayOpenTimes(declining).length && <p className="mb-6" data-offer-none style={{ ...TYPE.small, color: theme.sub }}>{tr("Nothing open that day")}</p>}
+                    {/* that day's open times on the app's one time grid, as the
+                        cancel sheet's Offer another time — it was a rail of pills
+                        over the first six of the whole pool */}
+                    {dayOpenTimes(declining).length > 0 && (
+                    <div className="mb-6">
+                      <TimeGrid tour="decline-offer" cols={3} times={dayOpenTimes(declining)} picked={[]} onToggle={async (sl) => { hapticSuccess();
                                   if (data) {
                                     /* the request is declined and the offered time booked in its place */
                                     const r1 = await data.cancelBooking(declining.id, "cancelled");
@@ -21345,12 +21387,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                     setSheet(null); done(tr("Booked"), `${declining.who} · ${sl}`); return;
                                   }
                                   setAskedFor((v) => v.filter((x) => x !== declining));
-                                  setSheet(null); done(tr("Offered"), `${declining.who} · ${sl}`); }}
-                                className="px-3.5 active:opacity-60"
-                                style={{ minHeight: 44, borderRadius: R.pill, background: theme.wash,
-                                         ...TYPE.small, fontWeight: 500, color: theme.ink }}>{sl}</button>
-                      ))}
+                                  setSheet(null); done(tr("Offered"), `${declining.who} · ${sl}`); }} />
                     </div>
+                    )}
                     <Button tone="dangerQuiet" onClick={async () => {
                               if (data) { const r = await data.cancelBooking(declining.id, "cancelled"); if (r && r.error) { say(r.error.message); return; } }
                               setAskedFor((v) => v.filter((x) => x !== declining));

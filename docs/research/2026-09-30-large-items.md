@@ -402,6 +402,24 @@ foot that opens Hours on that weekday. The functional item of the day;
 Absent and walk-in moved off a 0.5px hairline onto the sport's edge
 (`boxes.cjs` (r1)–(r4)).
 
+### 24. The weekly lists boxed. **Built 22 October.**
+The boxed list (a box per row on the sport's edge) had reached every
+list a coach and a parent open daily by 18 October; the weekly ones —
+the lesson page's drills, the Compare picker, the Calendar view's free
+times, the group page's sessions, New group's people, the setup's
+lists, the attendance record, the push prompt — still drew text
+between hairlines, two list languages in one app, with an undone
+drill's tick at 1.9:1 against the 3:1 a control's edge needs (WCAG
+1.4.11). Apple's guidance is one list style per kind of content;
+Material's list is one container of consistent items (item 20). Two of
+those lists also read "15 Oct" and "05 Oct" against the app's one day.
+Hours' Add a time was the last rail of round pills on a live screen.
+Hours' days and the profile card were already edged surfaces, so they
+keep their own box rather than taking a second inside it. The visual
+item of the day; `lists.cjs`. With it, one small functional fix: the
+times a coach offers on Cancel and on declining a request are that
+day's open times (`offer-times.cjs`).
+
 ### Next candidates (unranked until read against the field)
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
