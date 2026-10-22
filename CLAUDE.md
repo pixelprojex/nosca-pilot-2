@@ -212,9 +212,9 @@ seeded data and no account.
   does a tap remove one, **Done** puts it back; **Add a time** is one
   tap on the half hours not yet in the list (`HALF_HOURS`, six in the
   morning to half nine at night) — the app's `TimeGrid` (`avail-add`,
-  four across, the wash and no rim past six), the same grid as
-  EditDay's; it was a rail of round pills for a long time, against the
-  one tile. A tap on a time deleted it for a
+  three across as the Start times above it — four wrapped "10:00 am"
+  at 320 — the wash and no rim past six); it was a rail of round pills
+  for a long time, against the one tile. A tap on a time deleted it for a
   round, and typing "7:30 pm" into a box was the only way to add one;
   the founder asked for the phone's Edit. The pool starts as
   `DEFAULT_SLOTS` — nine to nine, an hour each, the last lesson
@@ -722,8 +722,12 @@ seeded data and no account.
   cannot send. The coach's Offer another time and the decline sheet's
   are that day's open times (`dayOpenTimes`: the diary's own
   `openTimes` over the date's hours, blocked and added times, the
-  bookings confirmed and requested, nothing past, nothing on an away
-  day) on the app's `TimeGrid`; they offered the first six of the whole
+  bookings confirmed and requested, nothing past by the clock as it is
+  when the sheet opens — the calendar keeps the minute of the day's
+  first render — nothing on an away day, nothing for a request left
+  from an earlier month, and only where the lesson fits clear of every
+  held one by their lengths; Cancel rebooks at the lesson's own length)
+  on the app's `TimeGrid`; they offered the first six of the whole
   pool, so a lesson could be booked into a time gone, the time being
   cancelled or another player's lesson. With nothing open, Cancel goes
   from Why to the password and the decline sheet reads "Nothing open
@@ -1014,7 +1018,8 @@ seeded data and no account.
   Drills tab's), the Compare picker ("No other clips yet" a line under
   it), the Calendar view's free times (`TimeList`, one `.nsc-day`, as
   the List view's day), the group page's sessions (`group-sessions`,
-  each on its day, `Thu 15 Oct`) and members, New group's people
+  each on its day, `Thu 15 Oct`, kept whole on one line beside a long
+  focus) and members, New group's people
   (`PersonPicker`), the setup's Drills (`DrillPicker boxed` — the log's
   own picker keeps its hairline rows, the log being the founder's) and
   Tips, the attendance record (its day `Thu 8 Oct`, off
