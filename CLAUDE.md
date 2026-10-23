@@ -623,6 +623,43 @@ seeded data and no account.
   anything that grows with the data. Before this a
   squad of six was six threads and six identical lines.
   `scripts/e2e/group-message.cjs`.
+- **A group's lessons reach its members.** A group booking carries a
+  name and no player, and for a long time `trg_bookings_notify`
+  returned at once for it and `remind_bookings` skipped it: a clinic
+  booked, rained off or cancelled told no member and no parent while
+  the call-off said "everyone affected is told", and a member's Diary
+  drew the clinic's hour as a hole. The members live on the coach's own
+  `preferences.groups` (`memberIds`, or for a group saved before ids
+  the one roster row of each name — two of a name hear nothing), which
+  only the internal `group_members(coach, group)` reads — revoked from
+  every client role, because it would hand anybody a coach's players —
+  and only players still on the coach's roster: somebody who has left
+  hears nothing more. `trg_bookings_group_notify` tells a run once per
+  member per insert ("Saturday clinic booked" · "6 lessons · from Sat
+  24 Oct 9:00 am"); the group branch of `trg_bookings_notify` tells
+  confirmed, called off for weather and cancelled (the reason first),
+  each member and a junior member's adults ("Saoirse's Saturday clinic
+  called off"), never the coach; `remind_bookings` says "Saturday clinic
+  tomorrow · 4:00 pm"; `trg_lesson_attendees_notify` says "Lesson
+  logged" to each person marked at a group lesson (the lesson is
+  written before its attendees, so its own trigger sees nobody), and a
+  clip added later reaches them all. The member's side is
+  `my_group_bookings()` — the group bookings the caller, or a junior
+  they look after, is in, and whose (a junior gets their own and nobody
+  else's) — read into `members` on each booking: the Diary's List row
+  under the group's name, the Calendar block at the group's own length
+  with the group's name where Cancel and Reschedule are (a member cannot
+  call off everyone's clinic; marking themselves out of one session, the
+  field's RSVP, is not built and nothing offers it), Settings › Calendar
+  ("Lesson · Saturday clinic · Niamh Byrne", a parent's "Lesson ·
+  Saoirse · …"), and the family's Coming up, which lists only the
+  household's — it listed every group slot of the child's coach the
+  policy lets a parent read. A project without the function leaves
+  every booking with no members and the app as it was; no notice goes
+  out until the founder re-runs `nosca.sql`. Spond's Cancel and notify
+  recipients, TeamSnap's Notify your team, Playtomic emailing every
+  enrolled player; PGA Coach puts the coach's group event in the
+  student's own app. `scripts/e2e/group-notify.cjs`; behaviour.sql 8f.
 - **Call off is a reason, the days, the lessons, the password.**
   `CallOff` (the `weather` sheet, opened from the plus, the peek and the
   diary) has nothing to do with weather in its name or its glyph — a
@@ -680,8 +717,9 @@ seeded data and no account.
   leaves it as it was. The toast is "Ended" · "Saoirse Kelly · 9 lessons
   cancelled". With nothing ahead, or every lesson unticked, nothing is
   taken from anyone and End is one tap ("Nothing booked ahead", End it ·
-  Keep it). A group's run tells nobody yet (the trigger returns for a
-  group booking), so its password line does not say it will. **An edit
+  Keep it). A group's run tells its members once the founder has
+  re-run the SQL (below); until it can be known that it will, its
+  password line does not say so. **An edit
   changes the arrangement in place** (`updateRecurring`, the id kept),
   moves no lesson — a move tells nobody yet — and says so: "Updated" ·
   "10 booked lessons stay as they are" (`editSeries`, both surfaces). A
