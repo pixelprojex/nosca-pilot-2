@@ -636,19 +636,29 @@ seeded data and no account.
   and only players still on the coach's roster: somebody who has left
   hears nothing more. `trg_bookings_group_notify` tells a run once per
   member per insert ("Saturday clinic booked" · "6 lessons · from Sat
-  24 Oct 9:00 am"); the group branch of `trg_bookings_notify` tells
-  confirmed, called off for weather and cancelled (the reason first),
-  each member and a junior member's adults ("Saoirse's Saturday clinic
-  called off"), never the coach; `remind_bookings` says "Saturday clinic
-  tomorrow · 4:00 pm"; `trg_lesson_attendees_notify` says "Lesson
+  24 Oct 9:00 am"), and `trg_bookings_group_status_notify` tells a
+  change of status once per member for each group, status and reason in
+  the statement — confirmed, called off for weather, cancelled with the
+  reason first, "Course closed · 6 lessons · from Sat 24 Oct 9:00 am"
+  when End or a call-off takes a run in one go (row by row it was a
+  notice a week to every family) — each member and a junior member's
+  adults ("Saoirse's Saturday clinic called off"), never the coach;
+  `remind_bookings` says "Saturday clinic tomorrow · 4:00 pm", a
+  member's check matching only their own Diary line, so an adult in a
+  group with her own child still gets her own beside the child's;
+  `trg_lesson_attendees_notify` says "Lesson
   logged" to each person marked at a group lesson (the lesson is
   written before its attendees, so its own trigger sees nobody), and a
   clip added later reaches them all. The member's side is
   `my_group_bookings()` — the group bookings the caller, or a junior
   they look after, is in, and whose (a junior gets their own and nobody
-  else's) — read into `members` on each booking: the Diary's List row
+  else's) — read into `forIds` on each group booking (never `members`:
+  the register reads a booking's members as its roll, and an empty list
+  emptied every register in the diary for a round): the Diary's List row
   under the group's name, the Calendar block at the group's own length
-  with the group's name where Cancel and Reschedule are (a member cannot
+  — every lesson of the day its own block, so a clinic never stands in
+  for the person's own lesson that day — with the group's name where
+  Cancel and Reschedule are (a member cannot
   call off everyone's clinic; marking themselves out of one session, the
   field's RSVP, is not built and nothing offers it), Settings › Calendar
   ("Lesson · Saturday clinic · Niamh Byrne", a parent's "Lesson ·

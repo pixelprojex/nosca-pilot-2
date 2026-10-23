@@ -226,17 +226,31 @@ function onBookingsInsert(db, rows, actor) {
     });
   });
 }
-/* a group's lesson changes status: each member and a junior member's adults, in the private words with the group named */
-function onGroupBookingUpdate(db, b) {
-  const grp = String(b.group_name || "").trim().slice(0, 60); if (!grp) return;
-  const whn = `${niceDate(b.booking_date)} ${b.start_time}`, coach = nameOf(db, b.coach_id);
-  const why = b.cancel_reason && String(b.cancel_reason).trim() ? `${String(b.cancel_reason).trim()} · ` : "";
-  const cal = { screen: "calendar", id: b.id }, fam = { screen: "family", id: b.id };
-  groupMembers(db, b.coach_id, b.group_name).forEach((m) => {
-    const tell = (kind, title, body) => adultsFor(db, m).forEach((a) => notify(db, a, kind, `${firstOf(db, m)}'s ${grp} ${title}`, body, fam));
-    if (b.status === "confirmed") { notify(db, m, "booking", `${grp} confirmed`, `${whn} · ${coach}`, cal); tell("booking", "confirmed", whn); }
-    else if (b.status === "weather") { notify(db, m, "weather", `${grp} called off — weather`, `${whn} · ${coach}`, cal); tell("weather", "called off", `${whn} · weather`); }
-    else if (b.status === "cancelled") { notify(db, m, "booking", `${grp} cancelled`, why ? `${why}${whn}` : `${whn} · ${coach}`, cal); tell("booking", "cancelled", `${why}${whn}`); }
+/* trg_bookings_group_status_notify: a group's lessons change status, told
+   once per member for each group, status and reason in the statement —
+   "Saturday clinic cancelled" · "Course closed · 6 lessons · from Sat 24
+   Oct 9:00 am" for a run, the private words with the group named for one */
+function onGroupBookingsUpdate(db, rows, befores) {
+  const sets = {};
+  rows.forEach((b, i) => {
+    const old = befores[i] || {}, name = String(b.group_name || "").trim();
+    if (b.player_id || !name || b.status === old.status || !["confirmed", "weather", "cancelled"].includes(b.status)) return;
+    const reason = b.cancel_reason && String(b.cancel_reason).trim() ? String(b.cancel_reason).trim() : "";
+    const k = `${b.coach_id}|${name.toLowerCase()}|${b.status}|${reason}`;
+    (sets[k] = sets[k] || { rows: [], reason }).rows.push(b);
+  });
+  Object.values(sets).forEach(({ rows: run, reason }) => {
+    run.sort((x, y) => String(x.booking_date).localeCompare(String(y.booking_date)) || String(x.created_at || "").localeCompare(String(y.created_at || "")));
+    const b = run[0], n = run.length, grp = String(b.group_name).trim().slice(0, 60), coach = nameOf(db, b.coach_id);
+    const whn = `${niceDate(b.booking_date)} ${b.start_time}`, what = n === 1 ? whn : `${n} lessons · from ${whn}`;
+    const why = reason ? `${reason} · ` : "", own = n === 1 ? `${whn} · ${coach}` : what;
+    const cal = { screen: "calendar", id: b.id }, fam = { screen: "family", id: b.id };
+    groupMembers(db, b.coach_id, b.group_name).forEach((m) => {
+      const tell = (kind, title, body) => adultsFor(db, m).forEach((a) => notify(db, a, kind, `${firstOf(db, m)}'s ${grp} ${title}`, body, fam));
+      if (b.status === "confirmed") { notify(db, m, "booking", `${grp} confirmed`, own, cal); tell("booking", "confirmed", what); }
+      else if (b.status === "weather") { notify(db, m, "weather", `${grp} called off — weather`, own, cal); tell("weather", "called off", `${what} · weather`); }
+      else { notify(db, m, "booking", `${grp} cancelled`, why ? `${why}${what}` : own, cal); tell("booking", "cancelled", `${why}${what}`); }
+    });
   });
 }
 function onBookingInsert(db, b, actor) {
@@ -256,7 +270,7 @@ function onBookingInsert(db, b, actor) {
 }
 function onBookingUpdate(db, b, old, actor) {
   if (b.status === old.status) return;
-  if (!b.player_id) { onGroupBookingUpdate(db, b); return; }
+  if (!b.player_id) return;   /* a group's lesson is told per statement, onGroupBookingsUpdate */
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
   const tellAdults = (title, body) => adultsFor(db, b.player_id).forEach((a) => notify(db, a, b.status === "weather" ? "weather" : "booking", title, body, { screen: "family", id: b.id }));
   if (b.status === "confirmed") { notify(db, b.player_id, "booking", "Lesson confirmed", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, whn); }
@@ -733,7 +747,7 @@ async function attach(page, db, opts = {}) {
         if (badP) { db.patches.push({ table, query: url.search, body, n: 0, by: meId, refused: true }); return json(400, { code: "42703", message: `column "${badP}" of relation "${table}" does not exist`, details: null, hint: null }); } }
       const before = upd.map((r) => ({ ...r }));
       upd.forEach((r) => Object.assign(r, body));
-      if (table === "bookings") upd.forEach((r, i) => onBookingUpdate(db, r, before[i], meId));
+      if (table === "bookings") { upd.forEach((r, i) => onBookingUpdate(db, r, before[i], meId)); onGroupBookingsUpdate(db, upd, before); }
       if (table === "lessons") upd.forEach((r, i) => { if (r.rating_requested && !before[i].rating_requested) onRatingAsk(db, r); });
       db.patches.push({ table, query: url.search, body, n: upd.length, by: meId });
       return json(200, upd);

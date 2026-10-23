@@ -1644,52 +1644,14 @@ create or replace function public.trg_bookings_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare
   a     uuid;
-  m     uuid;
   whn   text := public.nice_date(new.booking_date) || ' ' || new.start_time;
   -- the reason leads the line when there is one ("Unwell · Sat 10 Oct 10:00")
   why   text := coalesce(nullif(trim(new.cancel_reason), '') || ' · ', '');
   actor uuid := auth.uid();
-  -- a group's name as a title carries it: a lock screen's line, not a paragraph
-  grp   text := left(nullif(trim(new.group_name), ''), 60);
 begin
-  if new.player_id is null then
-    /* A GROUP'S LESSON. It has no player, only the group's name, and for a
-       long time it told nobody: a clinic rained off reached no family. A
-       change of status reaches every member still on the coach's roster
-       (group_members) and a junior member's adults, in the private
-       lesson's words with the group named where those say Lesson. Only
-       the coach can change a group's booking, so nobody is told on
-       anybody's behalf. The run a new group books is told once, by
-       trg_bookings_group_notify. */
-    if tg_op = 'UPDATE' and new.status <> old.status and grp is not null then
-      for m in select public.group_members(new.coach_id, new.group_name) loop
-        if new.status = 'confirmed' then
-          perform public.notify(m, 'booking', grp || ' confirmed', whn || ' · ' || public.name_of(new.coach_id),
-            jsonb_build_object('screen', 'calendar', 'id', new.id));
-          for a in select public.adults_for(m) loop
-            perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || grp || ' confirmed', whn,
-              jsonb_build_object('screen', 'family', 'id', new.id));
-          end loop;
-        elsif new.status = 'weather' then
-          perform public.notify(m, 'weather', grp || ' called off — weather', whn || ' · ' || public.name_of(new.coach_id),
-            jsonb_build_object('screen', 'calendar', 'id', new.id));
-          for a in select public.adults_for(m) loop
-            perform public.notify(a, 'weather', public.first_name_of(m) || '''s ' || grp || ' called off', whn || ' · weather',
-              jsonb_build_object('screen', 'family', 'id', new.id));
-          end loop;
-        elsif new.status = 'cancelled' then
-          perform public.notify(m, 'booking', grp || ' cancelled',
-            case when why <> '' then why || whn else whn || ' · ' || public.name_of(new.coach_id) end,
-            jsonb_build_object('screen', 'calendar', 'id', new.id));
-          for a in select public.adults_for(m) loop
-            perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || grp || ' cancelled', why || whn,
-              jsonb_build_object('screen', 'family', 'id', new.id));
-          end loop;
-        end if;
-      end loop;
-    end if;
-    return new;
-  end if;
+  -- a group's lesson has no player: its members are told once per
+  -- statement, by trg_bookings_group_notify and trg_bookings_group_status_notify
+  if new.player_id is null then return new; end if;
   if tg_op = 'INSERT' then
     if new.status = 'requested' then
       perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' asked for a lesson',
@@ -1793,6 +1755,71 @@ drop trigger if exists bookings_group_notify on public.bookings;
 create trigger bookings_group_notify after insert on public.bookings
   referencing new table as new_rows
   for each statement execute function public.trg_bookings_group_notify();
+
+-- ---------- a group's lessons change status, told once ----------
+-- A GROUP'S LESSON has no player, only the group's name, and for a long
+-- time a change of status told nobody: a clinic rained off reached no
+-- family. One statement can change a run of them at once — End on a
+-- recurring group, a call-off over several days — and told row by row
+-- that is a notice a week to every family. So once per member for each
+-- group, status and reason in the statement, in the private lesson's
+-- words with the group named: "Saturday clinic cancelled" · "Course
+-- closed · Sat 24 Oct 9:00 am" (the day and the coach where there is no
+-- reason), or for several "Course closed · 6 lessons · from Sat 24 Oct
+-- 9:00 am", landing on the first. Every member still on the coach's
+-- roster (group_members) and a junior member's adults; only the coach
+-- can change a group's booking, so nobody is told on anybody's behalf.
+create or replace function public.trg_bookings_group_status_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare r record; m uuid; a uuid; whn text; what text; grp text; why text; coach text;
+begin
+  for r in select n.coach_id, min(trim(n.group_name)) as name, n.status, count(*) as k,
+                  min(nullif(trim(n.cancel_reason), '')) as reason,
+                  (array_agg(n.id order by n.booking_date, n.created_at, n.id))[1] as first_id,
+                  min(n.booking_date) as first_day,
+                  (array_agg(n.start_time order by n.booking_date, n.created_at, n.id))[1] as first_time
+           from new_rows n join old_rows o on o.id = n.id
+           where n.player_id is null and nullif(trim(n.group_name), '') is not null
+             and n.status <> o.status and n.status in ('confirmed', 'weather', 'cancelled')
+           group by n.coach_id, lower(trim(n.group_name)), n.status, nullif(trim(n.cancel_reason), '') loop
+    grp   := left(r.name, 60);
+    whn   := public.nice_date(r.first_day) || ' ' || r.first_time;
+    what  := case when r.k = 1 then whn else r.k || ' lessons · from ' || whn end;
+    why   := coalesce(r.reason || ' · ', '');
+    coach := public.name_of(r.coach_id);
+    for m in select public.group_members(r.coach_id, r.name) loop
+      if r.status = 'confirmed' then
+        perform public.notify(m, 'booking', grp || ' confirmed', case when r.k = 1 then whn || ' · ' || coach else what end,
+          jsonb_build_object('screen', 'calendar', 'id', r.first_id));
+        for a in select public.adults_for(m) loop
+          perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || grp || ' confirmed', what,
+            jsonb_build_object('screen', 'family', 'id', r.first_id));
+        end loop;
+      elsif r.status = 'weather' then
+        perform public.notify(m, 'weather', grp || ' called off — weather', case when r.k = 1 then whn || ' · ' || coach else what end,
+          jsonb_build_object('screen', 'calendar', 'id', r.first_id));
+        for a in select public.adults_for(m) loop
+          perform public.notify(a, 'weather', public.first_name_of(m) || '''s ' || grp || ' called off', what || ' · weather',
+            jsonb_build_object('screen', 'family', 'id', r.first_id));
+        end loop;
+      else
+        perform public.notify(m, 'booking', grp || ' cancelled',
+          case when why <> '' then why || what when r.k = 1 then whn || ' · ' || coach else what end,
+          jsonb_build_object('screen', 'calendar', 'id', r.first_id));
+        for a in select public.adults_for(m) loop
+          perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || grp || ' cancelled', why || what,
+            jsonb_build_object('screen', 'family', 'id', r.first_id));
+        end loop;
+      end if;
+    end loop;
+  end loop;
+  return null;
+exception when others then return null;
+end $fn$;
+drop trigger if exists bookings_group_status_notify on public.bookings;
+create trigger bookings_group_status_notify after update on public.bookings
+  referencing old table as old_rows new table as new_rows
+  for each statement execute function public.trg_bookings_group_status_notify();
 
 -- ---------- a message ----------
 create or replace function public.trg_messages_notify()
