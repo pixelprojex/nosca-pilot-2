@@ -432,6 +432,26 @@ select (:b0 = 0 and :b1 = 5 and :b2 = 0 and :ra = 1 and :ra_all = 1 and :rj = 1 
 \if :ok \echo PASS the evening before, each player is reminded once of tomorrow s lesson, a junior s adult too, and the coach once with the count; nothing at other hours, nothing twice, nothing for a lesson only asked for \else \echo FAIL lesson reminders b0=:b0 b1=:b1 b2=:b2 a=:ra all=:ra_all j=:rj p=:rp c=:rc \endif
 select (:rga = 1 and :rgj = 1 and :rgp = 1 and :rgt = 0) as ok \gset
 \if :ok \echo PASS the evening before a group lesson, each member on the roster is reminded once, a junior member s adult too, a former member never \else \echo FAIL group reminders a=:rga j=:rgj p=:rgp t=:rgt \endif
+-- an adult in a group with her own child: the child's line ("Ellie's … tomorrow") must not stand in for her own.
+-- Her id sorts after the child's, so the child is reached first — the order in which the bug showed.
+\set e1 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+insert into auth.users (id, email, raw_user_meta_data) values
+ (:'e1', 'eve@example.ie', '{"role":"player","name":"Eve Tran","sport":"tennis","account_type":"parent","date_of_birth":"1981-03-03"}');
+select family_id as efam0 from public.profiles where id = :'e1' \gset
+update public.profiles set family_id = (select family_id from public.profiles where id = :'j1'), coach_id = :'c1' where id = :'e1';
+update public.preferences set groups = groups || jsonb_build_array(jsonb_build_object('id', 'g3', 'name', 'Family clinic', 'members', jsonb_build_array('Ellie Tran', 'Eve Tran'), 'memberIds', jsonb_build_array(:'j1', :'e1'))) where id = :'c1';
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Family clinic', (now() at time zone 'Europe/Dublin')::date + 1, '3:00 pm', 60, 'group', 'confirmed') returning id as bk_f \gset
+select public.remind_bookings(18) as b3 \gset
+select (select count(*) from public.notifications where user_id = :'e1' and title = 'Family clinic tomorrow · 3:00 pm' and data->>'screen' = 'calendar' and data->>'remind' = :'bk_f') as fe,
+       (select count(*) from public.notifications where user_id = :'e1' and title = 'Ellie''s Family clinic tomorrow · 3:00 pm' and data->>'screen' = 'family') as fec,
+       (select count(*) from public.notifications where user_id = :'p1' and title = 'Ellie''s Family clinic tomorrow · 3:00 pm' and data->>'screen' = 'family') as fpc,
+       (select count(*) from public.notifications where user_id = :'j1' and title = 'Family clinic tomorrow · 3:00 pm') as fj \gset
+select (:b3 = 2 and :fe = 1 and :fec = 1 and :fpc = 1 and :fj = 1) as ok \gset
+\if :ok \echo PASS an adult in a group with her own child is reminded of her own place as well as the child s \else \echo FAIL group reminder for an adult beside her child b3=:b3 own=:fe child=:fec other-adult=:fpc junior=:fj \endif
+-- put the household back as it was for what follows
+delete from public.bookings where id = :'bk_f';
+update public.profiles set family_id = :'efam0', coach_id = null where id = :'e1';
+update public.preferences set groups = (select jsonb_agg(g) from jsonb_array_elements(groups) g where g->>'name' <> 'Family clinic') where id = :'c1';
 
 \echo === 8f. a group s lessons reach its members
 -- three more Saturdays in one insert, as a new group books its run: each member once, not three times

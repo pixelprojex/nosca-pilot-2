@@ -16,7 +16,8 @@
    group's own length with no Cancel or Reschedule; a junior's never
    "Booked by your parent"; Settings › Calendar exporting it; the
    family's Coming up holding only the household's groups; a non-member's
-   own Cancel still working; a group lesson logged telling each attendee,
+   own Cancel still working; the clinic and the member's own lesson on
+   one day as two blocks; a group lesson logged telling each attendee,
    and a photo added later telling them again; and a project without the
    function drawing the diary as before.
    Usage: node group-notify.cjs <distDir> <port> <outDir> */
@@ -295,6 +296,21 @@ const { check, results, summary } = M.checker("group-notify");
       await page.waitForTimeout(2500); await shot("11-photo-added");
       const pa = told(db, "adult", "New photo on Bunker play"), pj = told(db, "junior", "New photo on Bunker play"), pp = told(db, "parent", "New photo on Bunker play for Saoirse");
       check("(k) a photo added to a group lesson later tells everybody marked there, and a junior's adult", pa.length === 1 && pa[0].data.id === GL && pj.length === 1 && pp.length === 1 && pp[0].data.screen === "family", JSON.stringify([pa, pj, pp]));
+      await ctx.close();
+    }
+    /* (m): the clinic and the member's own lesson on one day, the clinic
+       booked first — two blocks, and the lesson keeps its Cancel */
+    {
+      const db = memberDb();
+      M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: dayPlus(db, 5), time: "10:00 am", duration: 45 });
+      const { ctx, page, shot } = await boot(db, "adult", { carryOn: false });
+      await diaryList(page);
+      await page.locator('[data-tour="agenda-mine"]', { hasText: "10:00 am" }).first().click(); await page.waitForTimeout(1200);
+      const blocks = await page.locator('[data-tour="day-mine"]').allInnerTexts().then((xs) => xs.map((x) => x.replace(/\s+/g, " ")));
+      const cancels = await page.locator('[data-tour="day-cancel"]').count();
+      await shot("12-same-day");
+      check("(m) a clinic and the member's own lesson on one day are two blocks, in time order, and the lesson keeps its Cancel",
+            blocks.length === 2 && /10:00/.test(blocks[0]) && /Cancel/.test(blocks[0]) && /Saturday clinic/.test(blocks[1]) && !/Cancel/.test(blocks[1]) && cancels === 1, JSON.stringify({ blocks, cancels }));
       await ctx.close();
     }
     /* (l): a project whose SQL has not been re-run has no my_group_bookings() */

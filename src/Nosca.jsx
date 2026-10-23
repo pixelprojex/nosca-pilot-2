@@ -15813,7 +15813,11 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const awayOn = (m, d) => !!(away && away.size && away.has(`${yearOf(m, cx)}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`));
   const open = isGone(mo.idx, sel) || awayOn(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx, extra);
   const booked = seedBooked[key(mo.idx, sel)] || [];
-  const myDay = mineOn(mo.idx, sel);
+  /* every lesson of the person's on the day, each its own block, in time
+     order — a clinic and their own lesson on one day are two blocks, so
+     the clinic (which offers no Cancel) never stands in for the lesson
+     that does */
+  const myDays = bookings.filter((b) => b.m === mo.idx && b.d === sel).sort((a, b) => (parseTime(a.time) || 0) - (parseTime(b.time) || 0));
   const past = isGone(mo.idx, sel);
   /* a player whose coach has set no hours at all is told so, rather than shown an empty week */
   const noHours = role === "player" && live && !Object.values(avail || {}).some((x) => x && x.length) && !(extra || []).length;
@@ -16029,8 +16033,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           </span>
         </div>
 
-        {myDay && (
-          <div className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
+        {myDays.map((myDay) => (
+          <div key={myDay.id || myDay.time} data-tour="day-mine" className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
             <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.group ? (myDay.duration || duration) : duration)}</span>
@@ -16048,7 +16052,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             </div>
             <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.group ? (myDay.duration || duration) : duration} min with {conn?.coach || "your coach"}</div>
           </div>
-        )}
+        ))}
 
         {past ? (
           <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("That day has passed")}</p>

@@ -138,11 +138,11 @@ const metaOf = (page, title) => page.evaluate((title) => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const db = freshDb();
   const errors = [];
-  const boot = async (role, d = db) => {
+  const boot = async (role, d = db, at = "08:00") => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
-    await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(page, d);
+    await page.clock.setFixedTime(new Date(`${TODAY}T${at}:00`)); await M.attach(page, d);
     page.on("pageerror", (e) => errors.push(`${role}: ${String(e.message || e)}`));
     await M.injectSession(page, M.session(u, d));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
@@ -190,6 +190,29 @@ const metaOf = (page, title) => page.evaluate((title) => {
             inset.next != null && inset.rows.length === 3 && inset.rows.every((r) => Math.abs(r.at - inset.next) <= 1), JSON.stringify(inset));
       check("(a6) …and ends each row where the next day's row ends, at the box's own padding",
             inset.nextEnd != null && inset.rows.length === 3 && inset.rows.every((r) => Math.abs(r.end - inset.nextEnd) <= 1), JSON.stringify(inset));
+      /* the same mid-session, when the day holds all three kinds of row:
+         9:00 finished and to log (a swipe row carrying Log), 10:30 on now
+         (its own Register), 4:00 pm still ahead (a chevron) */
+      {
+        const mid = await boot("coach", freshDb(), "10:40");
+        const kinds = await mid.page.evaluate(() => {
+          const box = (el) => el.getBoundingClientRect();
+          const next = document.querySelector('[data-tour="today-nextday"]');
+          const tailOf = (b) => b.querySelector('[data-tour="day-register"]') || [...b.querySelectorAll("span")].find((x) => !x.children.length && x.textContent.trim() === "Log") || [...b.querySelectorAll("svg")].pop();
+          const rows = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > *')].filter((b) => box(b).width > 0)
+            .map((b) => [b, [...b.querySelectorAll("span")].find((x) => !x.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(x.textContent.trim()))]).filter(([, x]) => x)
+            .map(([b, x]) => { const tail = tailOf(b); return { t: x.textContent.trim(), kind: b.querySelector('[data-tour="day-register"]') ? "now" : tail && tail.textContent.trim() === "Log" ? "log" : "ahead", at: Math.round(box(x).left - box(b).left), end: tail ? Math.round(box(b).right - box(tail).right) : null }; });
+          const nextTail = next ? [...next.querySelectorAll("svg")].pop() : null;
+          return { next: next ? Math.round(box(next.querySelector("span")).left - box(next).left) : null, nextEnd: nextTail ? Math.round(box(next).right - box(nextTail).right) : null, rows };
+        });
+        await mid.shot("01b-day-mid-session");
+        const all3 = ["log", "now", "ahead"].every((k) => kinds.rows.some((r) => r.kind === k));
+        check("(a7) mid-session, a row to log, the one on now and one ahead all start their times where the next day's word starts",
+              all3 && kinds.next != null && kinds.rows.every((r) => Math.abs(r.at - kinds.next) <= 1), JSON.stringify(kinds));
+        check("(a8) …and Log, Register and the chevron all end at the box's own padding, where the next day's chevron does",
+              all3 && kinds.nextEnd != null && kinds.rows.every((r) => r.end != null && Math.abs(r.end - kinds.nextEnd) <= 1), JSON.stringify(kinds));
+        await mid.ctx.close();
+      }
 
       /* the register on the group lesson: one box, everyone as rows inside it, every whole name read at 375 */
       await page.setViewportSize({ width: 375, height: 812 }); await page.waitForTimeout(300);

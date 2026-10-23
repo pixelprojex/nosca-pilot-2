@@ -1966,8 +1966,12 @@ begin
                 and nullif(trim(b.group_name), '') is not null
               order by b.start_time loop
       for m in select public.group_members(gb.coach_id, gb.group_name) loop
+        -- the member's own line lands on the Diary; an adult's line for a
+        -- child of hers in the same group lands on Family and must not
+        -- stand in for her own place
         continue when exists (select 1 from public.notifications x
-                              where x.user_id = m and x.kind = 'booking' and x.data->>'remind' = gb.id::text);
+                              where x.user_id = m and x.kind = 'booking' and x.data->>'remind' = gb.id::text
+                                and x.data->>'screen' = 'calendar');
         perform public.notify(m, 'booking', gb.grp || ' tomorrow · ' || gb.start_time, public.name_of(gb.coach_id),
           jsonb_build_object('screen', 'calendar', 'id', gb.id, 'remind', gb.id));
         for a in select public.adults_for(m) loop
