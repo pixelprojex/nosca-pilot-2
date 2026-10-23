@@ -228,8 +228,9 @@ function onBookingsInsert(db, rows, actor) {
 }
 /* trg_bookings_group_status_notify: a group's lessons change status, told
    once per member for each group, status and reason in the statement —
-   "Saturday clinic cancelled" · "Course closed · 6 lessons · from Sat 24
-   Oct 9:00 am" for a run, the private words with the group named for one */
+   "Saturday clinic cancelled" · "Course closed · Sat 24 Oct 9:00 am, Sat
+   7 Nov 9:00 am" for two or three, "6 lessons · Sat 24 Oct – Sat 28 Nov"
+   for more, the private words with the group named for one */
 function onGroupBookingsUpdate(db, rows, befores) {
   const sets = {};
   rows.forEach((b, i) => {
@@ -242,7 +243,9 @@ function onGroupBookingsUpdate(db, rows, befores) {
   Object.values(sets).forEach(({ rows: run, reason }) => {
     run.sort((x, y) => String(x.booking_date).localeCompare(String(y.booking_date)) || String(x.created_at || "").localeCompare(String(y.created_at || "")));
     const b = run[0], n = run.length, grp = String(b.group_name).trim().slice(0, 60), coach = nameOf(db, b.coach_id);
-    const whn = `${niceDate(b.booking_date)} ${b.start_time}`, what = n === 1 ? whn : `${n} lessons · from ${whn}`;
+    /* the days themselves for three or fewer — a call-off can skip a week */
+    const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
+    const what = n <= 3 ? run.map((x) => `${niceDate(x.booking_date)} ${x.start_time}`).join(", ") : `${n} lessons · ${niceDate(b.booking_date)} – ${niceDate(run[n - 1].booking_date)}`;
     const why = reason ? `${reason} · ` : "", own = n === 1 ? `${whn} · ${coach}` : what;
     const cal = { screen: "calendar", id: b.id }, fam = { screen: "family", id: b.id };
     groupMembers(db, b.coach_id, b.group_name).forEach((m) => {

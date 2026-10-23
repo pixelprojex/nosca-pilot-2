@@ -1765,8 +1765,9 @@ create trigger bookings_group_notify after insert on public.bookings
 -- group, status and reason in the statement, in the private lesson's
 -- words with the group named: "Saturday clinic cancelled" · "Course
 -- closed · Sat 24 Oct 9:00 am" (the day and the coach where there is no
--- reason), or for several "Course closed · 6 lessons · from Sat 24 Oct
--- 9:00 am", landing on the first. Every member still on the coach's
+-- reason), for two or three the days themselves ("Course closed · Sat 24
+-- Oct 9:00 am, Sat 7 Nov 9:00 am" — a call-off can skip a week), and for
+-- more "6 lessons · Sat 24 Oct – Sat 28 Nov", landing on the first. Every member still on the coach's
 -- roster (group_members) and a junior member's adults; only the coach
 -- can change a group's booking, so nobody is told on anybody's behalf.
 create or replace function public.trg_bookings_group_status_notify()
@@ -1776,15 +1777,19 @@ begin
   for r in select n.coach_id, min(trim(n.group_name)) as name, n.status, count(*) as k,
                   min(nullif(trim(n.cancel_reason), '')) as reason,
                   (array_agg(n.id order by n.booking_date, n.created_at, n.id))[1] as first_id,
-                  min(n.booking_date) as first_day,
-                  (array_agg(n.start_time order by n.booking_date, n.created_at, n.id))[1] as first_time
+                  min(n.booking_date) as first_day, max(n.booking_date) as last_day,
+                  (array_agg(n.start_time order by n.booking_date, n.created_at, n.id))[1] as first_time,
+                  string_agg(public.nice_date(n.booking_date) || ' ' || n.start_time, ', ' order by n.booking_date, n.created_at, n.id) as days
            from new_rows n join old_rows o on o.id = n.id
            where n.player_id is null and nullif(trim(n.group_name), '') is not null
              and n.status <> o.status and n.status in ('confirmed', 'weather', 'cancelled')
            group by n.coach_id, lower(trim(n.group_name)), n.status, nullif(trim(n.cancel_reason), '') loop
     grp   := left(r.name, 60);
     whn   := public.nice_date(r.first_day) || ' ' || r.first_time;
-    what  := case when r.k = 1 then whn else r.k || ' lessons · from ' || whn end;
+    -- the days themselves when there are three or fewer: a call-off can
+    -- skip a week, and "2 lessons · from" would read as the next two
+    what  := case when r.k <= 3 then r.days
+                  else r.k || ' lessons · ' || public.nice_date(r.first_day) || ' – ' || public.nice_date(r.last_day) end;
     why   := coalesce(r.reason || ' · ', '');
     coach := public.name_of(r.coach_id);
     for m in select public.group_members(r.coach_id, r.name) loop

@@ -495,26 +495,45 @@ select (select count(*) from public.notifications where user_id = :'a1' and kind
        (select count(*) from public.notifications where user_id = :'p1' and kind = 'booking' and title = 'Ellie''s Saturday squad confirmed' and body = :'w8' and data->>'screen' = 'family') as rp \gset
 select (:ra = 1 and :rp = 1) as ok \gset
 \if :ok \echo PASS a group lesson put back on tells each member and a junior member s adult \else \echo FAIL group re-confirmed a=:ra p=:rp \endif
--- a run of the group's lessons ended in one go (End on a recurring group, a call-off over several days): one line, not one a week
+-- a run of the group's lessons ended in one go (End on a recurring group, a call-off over several days): one line, not one a week,
+-- naming the days when there are three or fewer — a call-off can skip a week, and "2 lessons from" would read as the next two
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values
  (:'c1', 'Saturday squad', current_date + 29, '2:00 pm', 60, 'group', 'confirmed'),
- (:'c1', 'Saturday squad', current_date + 36, '2:00 pm', 60, 'group', 'confirmed');
+ (:'c1', 'Saturday squad', current_date + 36, '2:00 pm', 60, 'group', 'confirmed'),
+ (:'c1', 'Saturday squad', current_date + 43, '2:00 pm', 60, 'group', 'confirmed');
 commit;
 select id as g29 from public.bookings where coach_id = :'c1' and group_name = 'Saturday squad' and booking_date = current_date + 29 \gset
 select id as g36 from public.bookings where coach_id = :'c1' and group_name = 'Saturday squad' and booking_date = current_date + 36 \gset
-select public.nice_date(current_date + 29) || ' 2:00 pm' as w29 \gset
+select id as g43 from public.bookings where coach_id = :'c1' and group_name = 'Saturday squad' and booking_date = current_date + 43 \gset
+select public.nice_date(current_date + 29) || ' 2:00 pm' as w29, public.nice_date(current_date + 43) || ' 2:00 pm' as w43 \gset
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
-update public.bookings set status = 'cancelled', cancel_reason = 'Away' where id in (:'g29', :'g36');
+update public.bookings set status = 'cancelled', cancel_reason = 'Away' where id in (:'g29', :'g43');
 commit;
-select (select count(*) from public.notifications where user_id = :'a1' and title = 'Saturday squad cancelled' and data->>'id' in (:'g29', :'g36')) as ea,
-       (select count(*) from public.notifications where user_id = :'a1' and title = 'Saturday squad cancelled' and body = 'Away · 2 lessons · from ' || :'w29' and data->>'screen' = 'calendar' and data->>'id' = :'g29') as eab,
-       (select count(*) from public.notifications where user_id = :'j1' and title = 'Saturday squad cancelled' and data->>'id' in (:'g29', :'g36')) as ej,
-       (select count(*) from public.notifications where user_id = :'p1' and title = 'Ellie''s Saturday squad cancelled' and data->>'id' in (:'g29', :'g36')) as ep,
-       (select count(*) from public.notifications where user_id = :'p1' and title = 'Ellie''s Saturday squad cancelled' and body = 'Away · 2 lessons · from ' || :'w29' and data->>'screen' = 'family') as epb,
-       (select count(*) from public.bookings where id in (:'g29', :'g36') and status = 'cancelled') as eb \gset
-select (:ea = 1 and :eab = 1 and :ej = 1 and :ep = 1 and :epb = 1 and :eb = 2) as ok \gset
-\if :ok \echo PASS a group s lessons ended in one go tell each member and a junior member s adult once, the reason, the count and the first day \else \echo FAIL group run ended a=:ea body=:eab j=:ej p=:ep pbody=:epb rows=:eb \endif
+select (select count(*) from public.notifications where user_id = :'a1' and title = 'Saturday squad cancelled' and data->>'id' in (:'g29', :'g36', :'g43')) as ea,
+       (select count(*) from public.notifications where user_id = :'a1' and title = 'Saturday squad cancelled' and body = 'Away · ' || :'w29' || ', ' || :'w43' and data->>'screen' = 'calendar' and data->>'id' = :'g29') as eab,
+       (select count(*) from public.notifications where user_id = :'j1' and title = 'Saturday squad cancelled' and data->>'id' in (:'g29', :'g36', :'g43')) as ej,
+       (select count(*) from public.notifications where user_id = :'p1' and title = 'Ellie''s Saturday squad cancelled' and data->>'id' in (:'g29', :'g36', :'g43')) as ep,
+       (select count(*) from public.notifications where user_id = :'p1' and title = 'Ellie''s Saturday squad cancelled' and body = 'Away · ' || :'w29' || ', ' || :'w43' and data->>'screen' = 'family') as epb,
+       (select count(*) from public.bookings where id in (:'g29', :'g43') and status = 'cancelled') + (select count(*) from public.bookings where id = :'g36' and status = 'confirmed') as eb \gset
+select (:ea = 1 and :eab = 1 and :ej = 1 and :ep = 1 and :epb = 1 and :eb = 3) as ok \gset
+\if :ok \echo PASS a group s lessons ended in one go tell each member and a junior member s adult once, the reason and the days themselves \else \echo FAIL group run ended a=:ea body=:eab j=:ej p=:ep pbody=:epb rows=:eb \endif
+-- more than three: the count and the first and last day
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values
+ (:'c1', 'Saturday squad', current_date + 50, '2:00 pm', 60, 'group', 'confirmed'),
+ (:'c1', 'Saturday squad', current_date + 57, '2:00 pm', 60, 'group', 'confirmed'),
+ (:'c1', 'Saturday squad', current_date + 64, '2:00 pm', 60, 'group', 'confirmed'),
+ (:'c1', 'Saturday squad', current_date + 71, '2:00 pm', 60, 'group', 'confirmed');
+commit;
+select public.nice_date(current_date + 50) as d50, public.nice_date(current_date + 71) as d71 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+update public.bookings set status = 'weather' where coach_id = :'c1' and group_name = 'Saturday squad' and booking_date between current_date + 50 and current_date + 71;
+commit;
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'weather' and title = 'Saturday squad called off — weather' and body = '4 lessons · ' || :'d50' || ' – ' || :'d71') as fa,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'weather' and title = 'Ellie''s Saturday squad called off' and body = '4 lessons · ' || :'d50' || ' – ' || :'d71' || ' · weather') as fp \gset
+select (:fa = 1 and :fp = 1) as ok \gset
+\if :ok \echo PASS more than three of a group s lessons called off in one go read the count and the first and last day \else \echo FAIL group run called off a=:fa p=:fp \endif
 -- a group saved before ids were kept: its names; a group nobody saved: nobody; another coach naming Sinéad's players: nobody
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Sunday juniors', current_date + 9, '10:00 am', 60, 'group', 'confirmed') returning id as gs \gset

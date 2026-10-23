@@ -639,9 +639,11 @@ seeded data and no account.
   24 Oct 9:00 am"), and `trg_bookings_group_status_notify` tells a
   change of status once per member for each group, status and reason in
   the statement — confirmed, called off for weather, cancelled with the
-  reason first, "Course closed · 6 lessons · from Sat 24 Oct 9:00 am"
-  when End or a call-off takes a run in one go (row by row it was a
-  notice a week to every family) — each member and a junior member's
+  reason first; when End or a call-off takes several in one go it is
+  one line naming the days, "Course closed · Sat 24 Oct 9:00 am, Sat 7
+  Nov 9:00 am" (a call-off can skip a week, and "2 lessons · from" read
+  as the next two), past three "6 lessons · Sat 24 Oct – Sat 28 Nov"
+  (row by row it was a notice a week to every family) — each member and a junior member's
   adults ("Saoirse's Saturday clinic called off"), never the coach;
   `remind_bookings` says "Saturday clinic tomorrow · 4:00 pm", a
   member's check matching only their own Diary line, so an adult in a
