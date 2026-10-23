@@ -529,6 +529,13 @@ select (select count(*) from public.my_group_bookings()) as mt \gset
 commit;
 select (:ma8 = 1 and :mas = 0 and :maother = 0 and :ra8 = 1 and :mp8 = 1 and :mps = 1 and :mpa = 0 and :rp8 = 1 and :mt = 0) as ok \gset
 \if :ok \echo PASS a member reads the group lessons they are in, an adult their junior s, a former member none, nobody another s (8f) \else \echo FAIL my_group_bookings a8=:ma8 as=:mas aother=:maother ra=:ra8 p8=:mp8 ps=:mps pa=:mpa rp=:rp8 t=:mt (8f) \endif
+-- a junior member asks for their own: their clinic, and nobody else's — my_family_ids() hands a junior nobody
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'j1'), true) \gset _
+select (select count(*) from public.my_group_bookings() where booking_id = :'g8' and player_id = :'j1') as mj8,
+       (select count(*) from public.my_group_bookings() where player_id <> :'j1') as mjother \gset
+commit;
+select (:mj8 = 1 and :mjother = 0) as ok \gset
+\if :ok \echo PASS a junior member reads their own group lessons and nobody else s (8f) \else \echo FAIL my_group_bookings as the junior j8=:mj8 other=:mjother (8f) \endif
 select coalesce((select not has_function_privilege('anon', f, 'execute') from to_regprocedure('public.my_group_bookings()') f where f is not null), false) as ok \gset
 \if :ok \echo PASS nobody signed out can ask for group lessons (8f) \else \echo FAIL my_group_bookings is callable signed out \endif
 

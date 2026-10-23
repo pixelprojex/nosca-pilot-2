@@ -271,7 +271,7 @@ export function useNoscaData(profile) {
     try {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
-      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes, aRes] = await Promise.all([
+      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes, aRes, gmRes] = await Promise.all([
         supabase.from("profiles").select("id, name, role, sport, invite_code, family_id, coach_id, account_type, date_of_birth, avatar_path, bio, club, created_at"),
         supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
@@ -290,6 +290,11 @@ export function useNoscaData(profile) {
            of their own lessons and a player only the ones they were at,
            so both sides count the same lesson the same way. */
         supabase.from("lesson_attendees").select("lesson_id, player_id"),
+        /* The group lessons this person, or a junior they look after, is
+           a member of — booking and whose. A project whose SQL has not
+           been re-run has no such function: the error leaves every group
+           booking with no members, and the diary as it was. */
+        supabase.rpc("my_group_bookings").then((r) => r, () => ({ data: null, error: true })),
       ]);
 
       if (netErr(pRes) && netErr(lRes)) {
@@ -501,9 +506,7 @@ export function useNoscaData(profile) {
         const dt = new Date(y, m - 1, d);
         return dt >= from && dt <= to;
       };
-      /* PROTOTYPE: the group lessons this person, or a junior they look
-         after, is a member of — booking id to whose */
-      const gmRes = await supabase.rpc("my_group_bookings").then((r) => r, () => ({ data: null }));
+      /* booking id to the members of this household it is for */
       const groupMine = {};
       ((gmRes && !gmRes.error && gmRes.data) || []).forEach((r) => { (groupMine[r.booking_id] = groupMine[r.booking_id] || []).push(r.player_id); });
       (bRes.data || []).filter((b) => inWindow(b.booking_date)).forEach((b) => {

@@ -178,15 +178,31 @@ function onRatingAsk(db, l) {
   const who = l.player_id ? [l.player_id] : (db.attendees || []).filter((a) => a.lesson_id === l.id).map((a) => a.player_id);
   who.forEach((p) => notify(db, p, "rating", `${firstOf(db, l.coach_id)} asked for a rating`, l.focus, { screen: "lesson", id: l.id }));
 }
-/* a clip added to a lesson more than half an hour after it was logged */
+/* trg_lesson_attendees_notify: a group lesson is logged before its
+   attendees, so they are told as they are written — "Lesson logged" to
+   each person marked there, and a junior's adults the child's line */
+function onAttendeesInsert(db, rows) {
+  const seen = new Set();
+  rows.forEach((r) => {
+    const l = db.lessons.find((x) => x.id === r.lesson_id); const k = `${r.lesson_id}|${r.player_id}`;
+    if (!l || l.player_id || l.sent_by || seen.has(k)) return; seen.add(k);
+    notify(db, r.player_id, "lesson", "Lesson logged", `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "lesson", id: l.id });
+    adultsFor(db, r.player_id).forEach((a) => notify(db, a, "lesson", `${firstOf(db, r.player_id)}'s lesson logged`, `${l.focus} · ${nameOf(db, l.coach_id)}`, { screen: "family", id: l.id }));
+  });
+}
+/* a clip added to a lesson more than half an hour after it was logged —
+   to the player, or for a group lesson to everybody marked there */
 function onMediaInsert(db, m) {
-  const l = db.lessons.find((x) => x.id === m.lesson_id); if (!l || !l.player_id) return;
+  const l = db.lessons.find((x) => x.id === m.lesson_id); if (!l) return;
   /* a sent clip: the sender's own upload says nothing; the coach's reply is told at once */
   if (l.sent_by) { if (String(m.storage_path).split("/")[0] === l.sent_by) return; }
   else if (l.created_at && new Date(m.created_at) - new Date(l.created_at) < 30 * 60 * 1000) return;
   const what = `${m.kind === "video" ? "New clip" : m.kind === "photo" ? "New photo" : "New voice note"} on ${l.focus}`;
-  notify(db, l.player_id, "lesson", what, nameOf(db, l.coach_id), { screen: "lesson", id: l.id });
-  adultsFor(db, l.player_id).forEach((a) => notify(db, a, "lesson", `${what} for ${firstOf(db, l.player_id)}`, nameOf(db, l.coach_id), { screen: "family", id: l.id }));
+  const who = [...new Set([l.player_id, ...(db.attendees || []).filter((a) => a.lesson_id === l.id).map((a) => a.player_id)].filter(Boolean))];
+  who.forEach((p) => {
+    notify(db, p, "lesson", what, nameOf(db, l.coach_id), { screen: "lesson", id: l.id });
+    adultsFor(db, p).forEach((a) => notify(db, a, "lesson", `${what} for ${firstOf(db, p)}`, nameOf(db, l.coach_id), { screen: "family", id: l.id }));
+  });
 }
 function onRequestInsert(db, r) { notify(db, r.coach_id, "request", `${nameOf(db, r.player_id)} asked to join`, null, { screen: "requests", id: r.id }); }
 function onRequestDecided(db, r) {
@@ -554,16 +570,19 @@ async function attach(page, db, opts = {}) {
         if (!who || who === meId) coachId = mine.coach_id; else if (S.looked.includes(who)) coachId = (db.profiles[who] || {}).coach_id;
         return json(200, (coachId && db.prefs[coachId] && db.prefs[coachId].availability) || {});
       }
-      /* the coach's taken times reach another player as times only — the
-         same shape as the function in nosca.sql */
-      /* PROTOTYPE: my_group_bookings() — the group lessons I, or a junior I look after, am in */
+      /* my_group_bookings(): the group lessons I, or a junior I look after,
+         am in — booking and whose. db.noGroupFn plays a project whose SQL
+         has not been re-run: no such function. */
       if (fn === "my_group_bookings") {
+        if (db.noGroupFn) return json(404, { code: "PGRST202", message: "Could not find the function public.my_group_bookings without parameters in the schema cache" });
         const mineIds = [meId, ...S.looked];
         const out = [];
         db.bookings.filter((b) => !b.player_id && b.group_name).forEach((b) => groupMembers(db, b.coach_id, b.group_name)
           .filter((m) => mineIds.includes(m)).forEach((m) => out.push({ booking_id: b.id, player_id: m })));
         return json(200, out);
       }
+      /* the coach's taken times reach another player as times only — the
+         same shape as the function in nosca.sql */
       if (fn === "coach_busy_slots") {
         const who = args.p_player; let coachId = null;
         if (!who || who === meId) coachId = mine.coach_id; else if (S.looked.includes(who)) coachId = (db.profiles[who] || {}).coach_id;
@@ -688,6 +707,7 @@ async function attach(page, db, opts = {}) {
       made.forEach((r) => { if (table === "lesson_media") db.files.media[r.storage_path] = db.files.media[r.storage_path] || { size: 10 }; });
       if (table === "lessons") made.forEach((r) => onLessonInsert(db, r));
       if (table === "lesson_media") made.forEach((r) => onMediaInsert(db, r));
+      if (table === "lesson_attendees") onAttendeesInsert(db, made);
       if (table === "bookings") onBookingsInsert(db, made, meId);
       if (table === "messages") made.forEach((r) => onMessageInsert(db, r));
       if (table === "drills") onDrillsInsert(db, made);
