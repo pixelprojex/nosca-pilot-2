@@ -521,7 +521,11 @@ export function useNoscaData(profile) {
           kind: b.kind === "group" ? `Group · ${b.group_name ? "" : ""}`.trim() || "Group" : "Private",
           group: b.kind === "group",
           groupName: b.group_name || null,
-          members: groupMine[b.id] || [],
+          /* who in this household a group booking is for — only where
+             my_group_bookings() said so. Never "members": the register
+             reads a booking's members as its roll, and an empty list
+             emptied every register in the diary. */
+          ...(groupMine[b.id] ? { forIds: groupMine[b.id] } : {}),
           playerId: b.player_id || null,
           status: b.status,
           duration: b.duration,

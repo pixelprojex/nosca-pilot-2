@@ -18993,14 +18993,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        lesson they take; a player's own and a child's. A player can also
        read their coach's group slots (the diary's busy times), and those
        are not theirs to put in a calendar. */
-    const theirs = (b) => role === "coach" ? (b.coachId === account.id || b.playerId === account.id) : (b.playerId === account.id || kids.has(b.playerId) || (b.members || []).some((id) => id === account.id || kids.has(id)));
+    const theirs = (b) => role === "coach" ? (b.coachId === account.id || b.playerId === account.id) : (b.playerId === account.id || kids.has(b.playerId) || (b.forIds || []).some((id) => id === account.id || kids.has(id)));
     return (liveBookingRows || [])
       .filter((b) => b && b.status === "confirmed" && b.date && b.date >= today && theirs(b))
       .sort((a, b) => String(a.date).localeCompare(String(b.date)) || ((parseTime(a.time) || 0) - (parseTime(b.time) || 0)))
       .map((b) => {
-        const grpMine = role !== "coach" && !b.playerId && (b.members || []).includes(account.id);
+        const grpMine = role !== "coach" && !b.playerId && (b.forIds || []).includes(account.id);
         const mine = b.playerId === account.id || grpMine;
-        const kidId = !mine && role !== "coach" ? (b.playerId || (b.members || []).find((id) => kids.has(id))) : null;
+        const kidId = !mine && role !== "coach" ? (b.playerId || (b.forIds || []).find((id) => kids.has(id))) : null;
         const kid = kidId ? (data.dependants || []).find((k) => k.id === kidId) : null;
         const who = mine ? (data.coachName || "") : kid ? [kid.name.split(" ")[0], kid.coachName].filter(Boolean).join(" · ") : b.who;
         const name = role !== "coach" && !b.playerId && b.groupName ? [kid ? kid.name.split(" ")[0] : null, b.groupName, mine ? data.coachName : kid ? kid.coachName : null].filter(Boolean).join(" · ") : who;
@@ -19016,7 +19016,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   /* The player's own — asked for or confirmed; nothing cancelled. */
   const myBookings = data
-    ? (liveBookingRows || []).filter((b) => (b.playerId === account.id || (b.members || []).includes(account.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
+    ? (liveBookingRows || []).filter((b) => (b.playerId === account.id || (b.forIds || []).includes(account.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
     : bookings.filter((b) => b.connId === conn?.id);
   /* A LESSON CALLED OFF IS NOT A LESSON THAT QUIETLY DISAPPEARS.
 
@@ -20738,7 +20738,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const famLessons = data ? (data.lessons || []) : (kid ? (playerLessons || []).slice(0, 3).map((l) => ({ ...l, playerId: kid.id })) : []);
     const famDrills = data ? (data.drills || []) : (kid ? (practice["2:tennis"] || []).map((d) => ({ ...d, playerId: kid.id })) : []);
     const famIds = new Set(((fam && fam.members) || []).map((m) => m.id));
-    const famBookings = data ? (liveBookingRows || []).flatMap((b) => b.playerId ? (famIds.has(b.playerId) ? [b] : []) : (b.members || []).filter((id) => famIds.has(id)).map((id) => ({ ...b, playerId: id, id: `${b.id}:${id}` }))) : (kid ? [{ id: 1, playerId: kid.id, date: isoOf(7, 31), time: "4:30 pm", status: "confirmed" },
+    const famBookings = data ? (liveBookingRows || []).flatMap((b) => b.playerId ? (famIds.has(b.playerId) ? [b] : []) : (b.forIds || []).filter((id) => famIds.has(id)).map((id) => ({ ...b, playerId: id, id: `${b.id}:${id}` }))) : (kid ? [{ id: 1, playerId: kid.id, date: isoOf(7, 31), time: "4:30 pm", status: "confirmed" },
                                                                  { id: 2, playerId: kid.id, date: isoOf(8, 6), time: "5:00 pm", status: "confirmed" }] : []);
     const famHours = data ? (data.hoursByPlayer || {}) : (kid ? { [kid.id]: { days: DEFAULT_AVAIL.tennis } } : {});
     const iso = isoOf(todayMD.m, todayMD.d);
@@ -20777,7 +20777,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
-                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => (b.playerId === bookFor.id || (b.members || []).includes(bookFor.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
+                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => (b.playerId === bookFor.id || (b.forIds || []).includes(bookFor.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(r) => { setRecurId(r.id || null); setRecurFor(r.playerId ? personOf(r.playerId) : { name: r.who }); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
