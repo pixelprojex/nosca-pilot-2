@@ -420,7 +420,30 @@ item of the day; `lists.cjs`. With it, one small functional fix: the
 times a coach offers on Cancel and on declining a request are that
 day's open times (`offer-times.cjs`).
 
+### 25. A group's lessons reach its members. **Built 23 October.**
+A group booking carried a name and no player, and the notification
+trigger returned for it: a clinic booked, rained off or cancelled told
+no member and no parent, the evening's reminder skipped it, and a
+member's Diary drew the clinic's hour as a hole. Every group-scheduling
+product that documents it tells the members when a session is
+cancelled, usually with the reason — Spond's Cancel and notify
+recipients, TeamSnap's Notify your team, Playtomic emailing every
+enrolled player when a class or a series is cancelled — and most remind
+them before it (TeamSnap two days ahead, Spond 48 hours); PGA Coach puts
+the coach's group event in the student's own app. No product found lets
+a member cancel a session for everyone: they answer for themselves
+(Heja's going / not going, Teamer's accept or decline with a reason,
+CourtReserve's withdraw), which is the next functional candidate. The
+functional item of the day, from the prototype of 21 October;
+`group-notify.cjs`, behaviour.sql 8f. With it, one small visual fix:
+the coach's day rows and the child's values line up with their boxes
+(`boxes.cjs` (a5), (a6), (n4)).
+
 ### Next candidates (unranked until read against the field)
+- A member marks themselves out of one group session (an RSVP: going /
+  not going, a parent for a child), the coach seeing who is coming —
+  Heja, Teamer, Spond, CourtReserve. Needs a table of answers and a
+  policy; the notices of item 25 first.
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
 - An acknowledgement from the player on a reply — CoachNow's "fist
@@ -522,3 +545,9 @@ the items above; a research spike first.
 - https://support.pga.com/en/articles/4810156-managing-when-you-re-available-to-coach (PGA Coach: Recurring Hours, Open Time without changing the recurring schedule, Blocked Times)
 - https://help.arketa.com/appointments/availability/overrides (Arketa: deleting an override restores the week)
 - https://help.moego.pet/en/articles/11774243-date-override (MoeGo: date override)
+- https://help.spond.com/en/articles/25854-how-do-i-cancel-or-delete-a-single-event (Spond: Cancel and notify recipients)
+- https://helpme.teamsnap.com/article/979-cancel-or-delete-games-and-events (TeamSnap: cancel an event, Notify your team)
+- https://helpmanager.playtomic.com/hc/en-gb/articles/48825792808721 (Playtomic: cancelling a class or a series emails the enrolled players)
+- https://helpme.teamsnap.com/article/267 (TeamSnap: reminders before an event)
+- https://help.spond.com/en/articles/26059 (Spond: a reminder 48 hours before)
+- https://support.pga.com/en/articles/15436955 (PGA Coach: a group event the coach books appears in the student's MyPGA app)

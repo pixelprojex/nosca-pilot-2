@@ -138,11 +138,11 @@ const metaOf = (page, title) => page.evaluate((title) => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const db = freshDb();
   const errors = [];
-  const boot = async (role, d = db) => {
+  const boot = async (role, d = db, at = "08:00") => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
-    await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(page, d);
+    await page.clock.setFixedTime(new Date(`${TODAY}T${at}:00`)); await M.attach(page, d);
     page.on("pageerror", (e) => errors.push(`${role}: ${String(e.message || e)}`));
     await M.injectSession(page, M.session(u, d));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
@@ -173,6 +173,46 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const days = cols.map((c) => c.d);
       check("(a3) every day on the peek is the app's one form, in one column", days.length === 3 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-12)) && cols.every((c) => Math.abs(c.at - cols[0].at) <= 1), JSON.stringify(cols));
       await closeSheet(page);
+      /* the day's rows on the home: the box pads every row, so a time
+         starts where the next day's word does and its chevron ends where
+         that row's does — DayRow padded itself 20px in and 16px at the
+         right as well, from the days of the hairline list */
+      const inset = await page.evaluate(() => {
+        const box = (el) => el.getBoundingClientRect();
+        const ends = (b) => Math.round(box(b).right - Math.max(...[...b.querySelectorAll("svg, span, button")].filter((x) => x.tagName === "svg" || !x.children.length).map((x) => box(x).right)));
+        const next = document.querySelector('[data-tour="today-nextday"]');
+        const rows = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > *')].filter((b) => box(b).width > 0)
+          .map((b) => [b, [...b.querySelectorAll("span")].find((s) => !s.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(s.textContent.trim()))]).filter(([, s]) => s)
+          .map(([b, s]) => ({ t: s.textContent.trim(), at: Math.round(box(s).left - box(b).left), end: ends(b) }));
+        return { next: next ? Math.round(box(next.querySelector("span")).left - box(next).left) : null, nextEnd: next ? ends(next) : null, rows };
+      });
+      check("(a5) the coach's day starts its times where the next day's row starts its word — the box pads them, the row adds nothing",
+            inset.next != null && inset.rows.length === 3 && inset.rows.every((r) => Math.abs(r.at - inset.next) <= 1), JSON.stringify(inset));
+      check("(a6) …and ends each row where the next day's row ends, at the box's own padding",
+            inset.nextEnd != null && inset.rows.length === 3 && inset.rows.every((r) => Math.abs(r.end - inset.nextEnd) <= 1), JSON.stringify(inset));
+      /* the same mid-session, when the day holds all three kinds of row:
+         9:00 finished and to log (a swipe row carrying Log), 10:30 on now
+         (its own Register), 4:00 pm still ahead (a chevron) */
+      {
+        const mid = await boot("coach", freshDb(), "10:40");
+        const kinds = await mid.page.evaluate(() => {
+          const box = (el) => el.getBoundingClientRect();
+          const next = document.querySelector('[data-tour="today-nextday"]');
+          const tailOf = (b) => b.querySelector('[data-tour="day-register"]') || [...b.querySelectorAll("span")].find((x) => !x.children.length && x.textContent.trim() === "Log") || [...b.querySelectorAll("svg")].pop();
+          const rows = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > *')].filter((b) => box(b).width > 0)
+            .map((b) => [b, [...b.querySelectorAll("span")].find((x) => !x.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(x.textContent.trim()))]).filter(([, x]) => x)
+            .map(([b, x]) => { const tail = tailOf(b); return { t: x.textContent.trim(), kind: b.querySelector('[data-tour="day-register"]') ? "now" : tail && tail.textContent.trim() === "Log" ? "log" : "ahead", at: Math.round(box(x).left - box(b).left), end: tail ? Math.round(box(b).right - box(tail).right) : null }; });
+          const nextTail = next ? [...next.querySelectorAll("svg")].pop() : null;
+          return { next: next ? Math.round(box(next.querySelector("span")).left - box(next).left) : null, nextEnd: nextTail ? Math.round(box(next).right - box(nextTail).right) : null, rows };
+        });
+        await mid.shot("01b-day-mid-session");
+        const all3 = ["log", "now", "ahead"].every((k) => kinds.rows.some((r) => r.kind === k));
+        check("(a7) mid-session, a row to log, the one on now and one ahead all start their times where the next day's word starts",
+              all3 && kinds.next != null && kinds.rows.every((r) => Math.abs(r.at - kinds.next) <= 1), JSON.stringify(kinds));
+        check("(a8) …and Log, Register and the chevron all end at the box's own padding, where the next day's chevron does",
+              all3 && kinds.nextEnd != null && kinds.rows.every((r) => r.end != null && Math.abs(r.end - kinds.nextEnd) <= 1), JSON.stringify(kinds));
+        await mid.ctx.close();
+      }
 
       /* the register on the group lesson: one box, everyone as rows inside it, every whole name read at 375 */
       await page.setViewportSize({ width: 375, height: 812 }); await page.waitForTimeout(300);
@@ -345,6 +385,11 @@ const metaOf = (page, title) => page.evaluate((title) => {
       check("(n) the child's Next and Drills and lessons are boxed rows on the edge", fine(kid) && kid.lists >= 2 && /Next/.test(t) && /Ladder drill|1 drill/.test(t), said(kid));
       check("(n2) Message coach and Progress are both outlined on the edge, not the old hairline", outlines.length === 2 && outlines.every((o) => / 1(\.5)?px rgba\(47, 107, 58, 0\.72\)$/.test(o)), JSON.stringify(outlines));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
+      /* Next, Drills and the lessons under them: one value column down the page */
+      const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > * > span:first-child')]
+        .map((s) => ({ l: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
+      check("(n4) the child's Next and Drills put their values in the lessons' column, one line down the page",
+            vcol.length === 4 && vcol.every((c) => Math.abs(c.at - vcol[0].at) <= 1), JSON.stringify(vcol));
       await ctx.close();
     }
 
