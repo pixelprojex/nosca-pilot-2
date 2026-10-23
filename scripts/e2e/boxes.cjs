@@ -173,6 +173,23 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const days = cols.map((c) => c.d);
       check("(a3) every day on the peek is the app's one form, in one column", days.length === 3 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-12)) && cols.every((c) => Math.abs(c.at - cols[0].at) <= 1), JSON.stringify(cols));
       await closeSheet(page);
+      /* the day's rows on the home: the box pads every row, so a time
+         starts where the next day's word does and its chevron ends where
+         that row's does — DayRow padded itself 20px in and 16px at the
+         right as well, from the days of the hairline list */
+      const inset = await page.evaluate(() => {
+        const box = (el) => el.getBoundingClientRect();
+        const ends = (b) => Math.round(box(b).right - Math.max(...[...b.querySelectorAll("svg, span, button")].filter((x) => x.tagName === "svg" || !x.children.length).map((x) => box(x).right)));
+        const next = document.querySelector('[data-tour="today-nextday"]');
+        const rows = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > *')].filter((b) => box(b).width > 0)
+          .map((b) => [b, [...b.querySelectorAll("span")].find((s) => !s.children.length && /^\d{1,2}:\d{2} [ap]m$/.test(s.textContent.trim()))]).filter(([, s]) => s)
+          .map(([b, s]) => ({ t: s.textContent.trim(), at: Math.round(box(s).left - box(b).left), end: ends(b) }));
+        return { next: next ? Math.round(box(next.querySelector("span")).left - box(next).left) : null, nextEnd: next ? ends(next) : null, rows };
+      });
+      check("(a5) the coach's day starts its times where the next day's row starts its word — the box pads them, the row adds nothing",
+            inset.next != null && inset.rows.length === 3 && inset.rows.every((r) => Math.abs(r.at - inset.next) <= 1), JSON.stringify(inset));
+      check("(a6) …and ends each row where the next day's row ends, at the box's own padding",
+            inset.nextEnd != null && inset.rows.length === 3 && inset.rows.every((r) => Math.abs(r.end - inset.nextEnd) <= 1), JSON.stringify(inset));
 
       /* the register on the group lesson: one box, everyone as rows inside it, every whole name read at 375 */
       await page.setViewportSize({ width: 375, height: 812 }); await page.waitForTimeout(300);
@@ -345,6 +362,11 @@ const metaOf = (page, title) => page.evaluate((title) => {
       check("(n) the child's Next and Drills and lessons are boxed rows on the edge", fine(kid) && kid.lists >= 2 && /Next/.test(t) && /Ladder drill|1 drill/.test(t), said(kid));
       check("(n2) Message coach and Progress are both outlined on the edge, not the old hairline", outlines.length === 2 && outlines.every((o) => / 1(\.5)?px rgba\(47, 107, 58, 0\.72\)$/.test(o)), JSON.stringify(outlines));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
+      /* Next, Drills and the lessons under them: one value column down the page */
+      const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > * > span:first-child')]
+        .map((s) => ({ l: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
+      check("(n4) the child's Next and Drills put their values in the lessons' column, one line down the page",
+            vcol.length === 4 && vcol.every((c) => Math.abs(c.at - vcol[0].at) <= 1), JSON.stringify(vcol));
       await ctx.close();
     }
 

@@ -1004,7 +1004,9 @@ seeded data and no account.
   8px corners, 10px between — and `.nsc-day` boxes a diary day with its
   times as rows inside. A child that pads itself (a swipe row, a
   Settings row that unfolds) is `.nsc-swipe` / `.nsc-flush`, or its
-  label sits 20px further in than the row above it.
+  label sits 20px further in than the row above it — the coach's day
+  on the home (`DayRow`) did, 20px in and 16px short at the right of
+  every other box there, until `boxes.cjs` (a5), (a6) measured it.
   The sheets and the screens that kept the old hairline rows are the
   same list now: the lesson's peek (its last lessons and what the
   player is building towards, which reads its own day off the

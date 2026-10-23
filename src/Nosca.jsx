@@ -6813,7 +6813,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               /* "All done" is praise; nothing set is not the same thing */
               [tr("Drills"), mineDrills.length === 0 ? tr("None set") : todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), mineDrills.length === 0]].map(([lbl, val, quiet]) => (
               <div key={lbl} className="flex items-baseline gap-3 py-3">
-                <span className="shrink-0" style={{ width: 88, ...TYPE.caption, color: t.faint }}>{lbl}</span>
+                <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{lbl}</span>
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: quiet ? t.faint : t.ink }}>{val}</span>
               </div>
             ))}
@@ -12069,17 +12069,19 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
       </span>
     </>
   );
+  /* the box pads every row (.nsc-list's 14px either side); a row that
+     padded itself as well sat 20px in at the left and 16px at the right
+     of every other box on the home, from the days of the hairline list */
   const frame = {
     minHeight: 60,
     borderBottom: border,
-    paddingLeft: 20,
   };
 
   /* the lesson happening now carries its own button, so the row body and
      the register are two targets rather than a button inside a button */
   if (variant === "now") {
     return (
-      <div className="w-full flex items-center gap-3.5 pr-4" style={frame}>
+      <div className="w-full flex items-center gap-3.5" style={frame}>
         <button onClick={() => { haptic(7); soft(); onPeek(l); }}
                 className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50">{body}</button>
         <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 px-3.5 active:opacity-70"
@@ -12090,7 +12092,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   }
   return (
     <button onClick={() => { haptic(7); soft(); variant === "log" ? onLogFor(l) : onPeek(l); }}
-            className="w-full flex items-center gap-3.5 pr-4 text-left active:opacity-50" style={frame}>
+            className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={frame}>
       {body}
       {variant === "log"
         ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Log")}</span>
