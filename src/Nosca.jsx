@@ -2451,7 +2451,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                 if (mn) {
                   const inner = (<>
                     <Rail tone={t.ink}>{h}</Rail>
-                    <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{coachName || tr("Your coach")}</span>
+                    <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{mn.groupName || coachName || tr("Your coach")}</span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
                   </>);
                   if (juvenile || !onMine) return (
@@ -16033,8 +16033,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <div className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
             <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
             <div className="flex items-baseline justify-between">
-              <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, duration)}</span>
-              {readOnly
+              <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.group ? (myDay.duration || duration) : duration)}</span>
+              {myDay.group
+                ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.groupName || tr("Group")}</span>
+                : readOnly
                 ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Booked by your parent")}</span>
                 : <span className="flex items-center gap-4">
                     {/* a real account's Cancel asks why, so the coach is told with the
@@ -16044,7 +16046,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     <button data-tour="day-reschedule" onClick={() => { hapticCommit(); onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
                   </span>}
             </div>
-            <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{duration} min with {conn?.coach || "your coach"}</div>
+            <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.group ? (myDay.duration || duration) : duration} min with {conn?.coach || "your coach"}</div>
           </div>
         )}
 
@@ -18991,14 +18993,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        lesson they take; a player's own and a child's. A player can also
        read their coach's group slots (the diary's busy times), and those
        are not theirs to put in a calendar. */
-    const theirs = (b) => role === "coach" ? (b.coachId === account.id || b.playerId === account.id) : (b.playerId === account.id || kids.has(b.playerId));
+    const theirs = (b) => role === "coach" ? (b.coachId === account.id || b.playerId === account.id) : (b.playerId === account.id || kids.has(b.playerId) || (b.members || []).some((id) => id === account.id || kids.has(id)));
     return (liveBookingRows || [])
       .filter((b) => b && b.status === "confirmed" && b.date && b.date >= today && theirs(b))
       .sort((a, b) => String(a.date).localeCompare(String(b.date)) || ((parseTime(a.time) || 0) - (parseTime(b.time) || 0)))
       .map((b) => {
-        const mine = b.playerId === account.id;
-        const kid = !mine && role !== "coach" ? (data.dependants || []).find((k) => k.id === b.playerId) : null;
-        const name = mine ? (data.coachName || "") : kid ? [kid.name.split(" ")[0], kid.coachName].filter(Boolean).join(" · ") : b.who;
+        const grpMine = role !== "coach" && !b.playerId && (b.members || []).includes(account.id);
+        const mine = b.playerId === account.id || grpMine;
+        const kidId = !mine && role !== "coach" ? (b.playerId || (b.members || []).find((id) => kids.has(id))) : null;
+        const kid = kidId ? (data.dependants || []).find((k) => k.id === kidId) : null;
+        const who = mine ? (data.coachName || "") : kid ? [kid.name.split(" ")[0], kid.coachName].filter(Boolean).join(" · ") : b.who;
+        const name = role !== "coach" && !b.playerId && b.groupName ? [kid ? kid.name.split(" ")[0] : null, b.groupName, mine ? data.coachName : kid ? kid.coachName : null].filter(Boolean).join(" · ") : who;
         const club = mine ? (data.coach && data.coach.club) || null : kid ? null : (account.club || null);
         return { id: b.id, date: b.date, time: b.time, duration: b.duration || duration, title: [tr("Lesson"), name].filter(Boolean).join(" · "), location: club, description: "Nosca" };
       });
@@ -19011,7 +19016,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   /* The player's own — asked for or confirmed; nothing cancelled. */
   const myBookings = data
-    ? (liveBookingRows || []).filter((b) => b.playerId === account.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
+    ? (liveBookingRows || []).filter((b) => (b.playerId === account.id || (b.members || []).includes(account.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
     : bookings.filter((b) => b.connId === conn?.id);
   /* A LESSON CALLED OFF IS NOT A LESSON THAT QUIETLY DISAPPEARS.
 
@@ -20732,7 +20737,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const kid = kids[0];
     const famLessons = data ? (data.lessons || []) : (kid ? (playerLessons || []).slice(0, 3).map((l) => ({ ...l, playerId: kid.id })) : []);
     const famDrills = data ? (data.drills || []) : (kid ? (practice["2:tennis"] || []).map((d) => ({ ...d, playerId: kid.id })) : []);
-    const famBookings = data ? (liveBookingRows || []) : (kid ? [{ id: 1, playerId: kid.id, date: isoOf(7, 31), time: "4:30 pm", status: "confirmed" },
+    const famIds = new Set(((fam && fam.members) || []).map((m) => m.id));
+    const famBookings = data ? (liveBookingRows || []).flatMap((b) => b.playerId ? (famIds.has(b.playerId) ? [b] : []) : (b.members || []).filter((id) => famIds.has(id)).map((id) => ({ ...b, playerId: id, id: `${b.id}:${id}` }))) : (kid ? [{ id: 1, playerId: kid.id, date: isoOf(7, 31), time: "4:30 pm", status: "confirmed" },
                                                                  { id: 2, playerId: kid.id, date: isoOf(8, 6), time: "5:00 pm", status: "confirmed" }] : []);
     const famHours = data ? (data.hoursByPlayer || {}) : (kid ? { [kid.id]: { days: DEFAULT_AVAIL.tennis } } : {});
     const iso = isoOf(todayMD.m, todayMD.d);
@@ -20771,7 +20777,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
-                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => b.playerId === bookFor.id && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
+                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => (b.playerId === bookFor.id || (b.members || []).includes(bookFor.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(r) => { setRecurId(r.id || null); setRecurFor(r.playerId ? personOf(r.playerId) : { name: r.who }); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}

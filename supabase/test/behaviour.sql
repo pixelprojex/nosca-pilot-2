@@ -397,14 +397,25 @@ select (:pl = 1 and :pn = 1 and :pc = 0 and :pa = 0) as ok \gset
 \if :ok \echo PASS a player logs a practice of their own; the coach is told once that they practised, nobody is told a clip was sent \else \echo FAIL practice row=:pl told=:pn clip=:pc player=:pa \endif
 
 \echo === 8c. the evening before a lesson
--- tomorrow by Ireland's clock: Aoife at ten, Ellie at eleven (her mother Marcus is told too), and a group slot
+-- tomorrow by Ireland's clock: Aoife at ten, Ellie at eleven (her mother Marcus is told too), and the Saturday squad,
+-- whose saved members are Aoife, Ellie and Tom — Tom was turned down in 8, so he is on no roster and hears nothing
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+update public.preferences set groups = jsonb_build_array(
+  jsonb_build_object('id', 'g1', 'name', 'Saturday squad', 'members', jsonb_build_array('Aoife Nolan', 'Ellie Tran', 'tom.beckett'), 'memberIds', jsonb_build_array(:'a1', :'j1', :'t1')),
+  jsonb_build_object('id', 'g2', 'name', 'Sunday juniors', 'members', jsonb_build_array('Ellie Tran'))) where id = :'c1';
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values (:'c1', :'a1', (now() at time zone 'Europe/Dublin')::date + 1, '10:00 am', 45, 'private', 'confirmed') returning id as bk_a \gset
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values (:'c1', :'j1', (now() at time zone 'Europe/Dublin')::date + 1, '11:00 am', 45, 'private', 'confirmed');
-insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Saturday squad', (now() at time zone 'Europe/Dublin')::date + 1, '2:00 pm', 60, 'group', 'confirmed');
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Saturday squad', (now() at time zone 'Europe/Dublin')::date + 1, '2:00 pm', 60, 'group', 'confirmed') returning id as bk_g \gset
 -- a lesson only asked for is not a lesson yet
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values (:'c1', :'a1', (now() at time zone 'Europe/Dublin')::date + 1, '4:00 pm', 45, 'private', 'requested');
 commit;
+select public.nice_date((now() at time zone 'Europe/Dublin')::date + 1) || ' 2:00 pm' as whn_g \gset
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title = 'Saturday squad booked' and body = :'whn_g' || ' · Sinéad Walsh' and data->>'screen' = 'calendar' and data->>'id' = :'bk_g') as ga,
+       (select count(*) from public.notifications where user_id = :'j1' and kind = 'booking' and title = 'Saturday squad booked' and data->>'id' = :'bk_g') as gj,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'booking' and title = 'Ellie''s Saturday squad booked' and body = :'whn_g' and data->>'screen' = 'family' and data->>'id' = :'bk_g') as gp,
+       (select count(*) from public.notifications where user_id in (:'t1', :'c1') and data->>'id' = :'bk_g') as gnone \gset
+select (:ga = 1 and :gj = 1 and :gp = 1 and :gnone = 0) as ok \gset
+\if :ok \echo PASS a group lesson booked tells each member on the roster and a junior member s adult, not a former member, not the coach \else \echo FAIL group booked a=:ga j=:gj p=:gp none=:gnone \endif
 select public.remind_bookings(8) as b0 \gset
 select public.remind_bookings(18) as b1 \gset
 select public.remind_bookings(18) as b2 \gset
@@ -412,9 +423,114 @@ select (select count(*) from public.notifications where user_id = :'a1' and kind
        (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title like 'Lesson tomorrow%') as ra_all,
        (select count(*) from public.notifications where user_id = :'j1' and kind = 'booking' and title = 'Lesson tomorrow · 11:00 am') as rj,
        (select count(*) from public.notifications where user_id = :'p1' and kind = 'booking' and title = 'Ellie''s lesson tomorrow · 11:00 am' and data->>'screen' = 'family') as rp,
-       (select count(*) from public.notifications where user_id = :'c1' and kind = 'booking' and title = '3 lessons tomorrow' and body is null and data->>'screen' = 'calendar') as rc \gset
-select (:b0 = 0 and :b1 = 3 and :b2 = 0 and :ra = 1 and :ra_all = 1 and :rj = 1 and :rp = 1 and :rc = 1) as ok \gset
+       (select count(*) from public.notifications where user_id = :'c1' and kind = 'booking' and title = '3 lessons tomorrow' and body is null and data->>'screen' = 'calendar') as rc,
+       (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title = 'Saturday squad tomorrow · 2:00 pm' and body = 'Sinéad Walsh' and data->>'screen' = 'calendar' and data->>'id' = :'bk_g' and data->>'remind' = :'bk_g') as rga,
+       (select count(*) from public.notifications where user_id = :'j1' and kind = 'booking' and title = 'Saturday squad tomorrow · 2:00 pm' and data->>'remind' = :'bk_g') as rgj,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'booking' and title = 'Ellie''s Saturday squad tomorrow · 2:00 pm' and data->>'screen' = 'family' and data->>'remind' = :'bk_g') as rgp,
+       (select count(*) from public.notifications where user_id = :'t1' and data->>'remind' = :'bk_g') as rgt \gset
+select (:b0 = 0 and :b1 = 5 and :b2 = 0 and :ra = 1 and :ra_all = 1 and :rj = 1 and :rp = 1 and :rc = 1) as ok \gset
 \if :ok \echo PASS the evening before, each player is reminded once of tomorrow s lesson, a junior s adult too, and the coach once with the count; nothing at other hours, nothing twice, nothing for a lesson only asked for \else \echo FAIL lesson reminders b0=:b0 b1=:b1 b2=:b2 a=:ra all=:ra_all j=:rj p=:rp c=:rc \endif
+select (:rga = 1 and :rgj = 1 and :rgp = 1 and :rgt = 0) as ok \gset
+\if :ok \echo PASS the evening before a group lesson, each member on the roster is reminded once, a junior member s adult too, a former member never \else \echo FAIL group reminders a=:rga j=:rgj p=:rgp t=:rgt \endif
+
+\echo === 8f. a group s lessons reach its members
+-- three more Saturdays in one insert, as a new group books its run: each member once, not three times
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values
+ (:'c1', 'Saturday squad', current_date + 8, '2:00 pm', 60, 'group', 'confirmed'),
+ (:'c1', 'Saturday squad', current_date + 15, '2:00 pm', 60, 'group', 'confirmed'),
+ (:'c1', 'Saturday squad', current_date + 22, '2:00 pm', 60, 'group', 'confirmed');
+commit;
+select id as g8 from public.bookings where coach_id = :'c1' and group_name = 'Saturday squad' and booking_date = current_date + 8 \gset
+select id as g15 from public.bookings where coach_id = :'c1' and group_name = 'Saturday squad' and booking_date = current_date + 15 \gset
+select id as g22 from public.bookings where coach_id = :'c1' and group_name = 'Saturday squad' and booking_date = current_date + 22 \gset
+select public.nice_date(current_date + 8) || ' 2:00 pm' as w8, public.nice_date(current_date + 15) || ' 2:00 pm' as w15, public.nice_date(current_date + 22) || ' 2:00 pm' as w22 \gset
+select (select count(*) from public.notifications where user_id = :'a1' and title = 'Saturday squad booked' and body = '3 lessons · from ' || :'w8' and data->>'id' = :'g8') as ra,
+       (select count(*) from public.notifications where user_id = :'a1' and data->>'id' in (:'g15', :'g22')) as rdup,
+       (select count(*) from public.notifications where user_id = :'j1' and title = 'Saturday squad booked' and body = '3 lessons · from ' || :'w8') as rj,
+       (select count(*) from public.notifications where user_id = :'p1' and title = 'Ellie''s Saturday squad booked' and body = '3 lessons · from ' || :'w8' and data->>'screen' = 'family') as rp \gset
+select (:ra = 1 and :rdup = 0 and :rj = 1 and :rp = 1) as ok \gset
+\if :ok \echo PASS a run of group lessons booked in one go is told once per member, with the count and the first day \else \echo FAIL group run a=:ra dup=:rdup j=:rj p=:rp \endif
+-- rained off; cancelled with a reason; cancelled with none; and the first again, which changes nothing
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+update public.bookings set status = 'weather' where id = :'g8';
+update public.bookings set status = 'cancelled', cancel_reason = 'Course closed' where id = :'g15';
+update public.bookings set status = 'cancelled' where id = :'g22';
+update public.bookings set status = 'weather' where id = :'g8';
+commit;
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'weather' and title = 'Saturday squad called off — weather' and body = :'w8' || ' · Sinéad Walsh' and data->>'screen' = 'calendar' and data->>'id' = :'g8') as wa,
+       (select count(*) from public.notifications where user_id = :'j1' and kind = 'weather' and title = 'Saturday squad called off — weather' and data->>'id' = :'g8') as wj,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'weather' and title = 'Ellie''s Saturday squad called off' and body = :'w8' || ' · weather' and data->>'screen' = 'family' and data->>'id' = :'g8') as wp,
+       (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title = 'Saturday squad cancelled' and body = 'Course closed · ' || :'w15' and data->>'id' = :'g15') as ca,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'booking' and title = 'Ellie''s Saturday squad cancelled' and body = 'Course closed · ' || :'w15' and data->>'screen' = 'family') as cp,
+       (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title = 'Saturday squad cancelled' and body = :'w22' || ' · Sinéad Walsh' and data->>'id' = :'g22') as na,
+       (select count(*) from public.notifications where user_id in (:'c1', :'t1') and data->>'id' in (:'g8', :'g15', :'g22')) as none \gset
+select (:wa = 1 and :wj = 1 and :wp = 1 and :ca = 1 and :cp = 1 and :na = 1 and :none = 0) as ok \gset
+\if :ok \echo PASS a group lesson called off or cancelled tells each member and a junior member s adult once, the reason first, nobody else \else \echo FAIL group call-off weather a=:wa j=:wj p=:wp cancel a=:ca p=:cp plain=:na none=:none \endif
+-- the coach puts the rained-off Saturday back on: each member and the adult are told it is on again
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+update public.bookings set status = 'confirmed' where id = :'g8';
+commit;
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'booking' and title = 'Saturday squad confirmed' and body = :'w8' || ' · Sinéad Walsh' and data->>'id' = :'g8') as ra,
+       (select count(*) from public.notifications where user_id = :'p1' and kind = 'booking' and title = 'Ellie''s Saturday squad confirmed' and body = :'w8' and data->>'screen' = 'family') as rp \gset
+select (:ra = 1 and :rp = 1) as ok \gset
+\if :ok \echo PASS a group lesson put back on tells each member and a junior member s adult \else \echo FAIL group re-confirmed a=:ra p=:rp \endif
+-- a group saved before ids were kept: its names; a group nobody saved: nobody; another coach naming Sinéad's players: nobody
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Sunday juniors', current_date + 9, '10:00 am', 60, 'group', 'confirmed') returning id as gs \gset
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Pop-up clinic', current_date + 9, '12:00 pm', 60, 'group', 'confirmed') returning id as gu \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c2'), true);
+insert into public.preferences (id, groups) values (:'c2', jsonb_build_array(jsonb_build_object('name', 'Poached', 'memberIds', jsonb_build_array(:'a1', :'j1'))))
+  on conflict (id) do update set groups = excluded.groups;
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c2', 'Poached', current_date + 9, '3:00 pm', 60, 'group', 'confirmed') returning id as gx \gset
+commit;
+select (select count(*) from public.notifications where user_id = :'j1' and title = 'Sunday juniors booked' and data->>'id' = :'gs') as sj,
+       (select count(*) from public.notifications where user_id = :'a1' and data->>'id' = :'gs') as sa,
+       (select count(*) from public.notifications where data->>'id' = :'gu') as su,
+       (select count(*) from public.bookings where id = :'gu') as bu,
+       (select count(*) from public.notifications where data->>'id' = :'gx') as sx \gset
+select (:sj = 1 and :sa = 0 and :su = 0 and :bu = 1 and :sx = 0) as ok \gset
+\if :ok \echo PASS an older group is read by its names; a group nobody saved still books and tells nobody; another coach cannot reach Sinéad s players \else \echo FAIL group members names=:sj other=:sa unsaved=:su booked=:bu poached=:sx \endif
+select coalesce((select not has_function_privilege('authenticated', f, 'execute') and not has_function_privilege('anon', f, 'execute')
+                   from to_regprocedure('public.group_members(uuid, text)') f where f is not null), false) as ok \gset
+\if :ok \echo PASS nobody signed in can ask who is in a coach s group \else \echo FAIL group_members is callable by a signed-in person \endif
+
+\echo === 8g. a group lesson logged reaches the people who were there
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
+insert into public.lessons (coach_id, group_name, kind, focus) values (:'c1', 'Saturday squad', 'group', 'Volleys') returning id as gl \gset
+insert into public.lesson_attendees (lesson_id, player_id) values (:'gl', :'a1'), (:'gl', :'j1');
+insert into public.lesson_media (lesson_id, kind, storage_path, created_at) values (:'gl', 'video', :'c1' || '/' || :'gl' || '/late.webm', now() + interval '31 minutes');
+commit;
+select (select count(*) from public.notifications where user_id = :'a1' and kind = 'lesson' and title = 'Lesson logged' and body = 'Volleys · Sinéad Walsh' and data->>'screen' = 'lesson' and data->>'id' = :'gl') as la,
+       (select count(*) from public.notifications where user_id = :'j1' and title = 'Lesson logged' and data->>'id' = :'gl') as lj,
+       (select count(*) from public.notifications where user_id = :'p1' and title = 'Ellie''s lesson logged' and data->>'screen' = 'family' and data->>'id' = :'gl') as lp,
+       (select count(*) from public.notifications where user_id = :'a1' and title = 'New clip on Volleys' and data->>'id' = :'gl') as ma,
+       (select count(*) from public.notifications where user_id = :'p1' and title = 'New clip on Volleys for Ellie') as mp,
+       (select count(*) from public.notifications where user_id in (:'c1', :'t1') and data->>'id' = :'gl') as none \gset
+select (:la = 1 and :lj = 1 and :lp = 1 and :ma = 1 and :mp = 1 and :none = 0) as ok \gset
+\if :ok \echo PASS a group lesson logged tells each attendee and a junior attendee s adult, and a late clip on it too \else \echo FAIL group lesson logged a=:la j=:lj p=:lp clip a=:ma p=:mp none=:none \endif
+
+-- a member's diary: the group lessons they, or a junior they look after, are in
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select (select count(*) from public.my_group_bookings() where booking_id = :'g8' and player_id = :'a1') as ma8,
+       (select count(*) from public.my_group_bookings() where booking_id = :'gs') as mas,
+       (select count(*) from public.my_group_bookings() where player_id <> :'a1') as maother,
+       (select count(*) from public.bookings where id = :'g8') as ra8 \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'p1'), true) \gset _
+select (select count(*) from public.my_group_bookings() where booking_id = :'g8' and player_id = :'j1') as mp8,
+       (select count(*) from public.my_group_bookings() where booking_id = :'gs' and player_id = :'j1') as mps,
+       (select count(*) from public.my_group_bookings() where player_id = :'a1') as mpa,
+       (select count(*) from public.bookings where id = :'g8') as rp8 \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'t1'), true) \gset _
+select (select count(*) from public.my_group_bookings()) as mt \gset
+commit;
+select (:ma8 = 1 and :mas = 0 and :maother = 0 and :ra8 = 1 and :mp8 = 1 and :mps = 1 and :mpa = 0 and :rp8 = 1 and :mt = 0) as ok \gset
+\if :ok \echo PASS a member reads the group lessons they are in, an adult their junior s, a former member none, nobody another s (8f) \else \echo FAIL my_group_bookings a8=:ma8 as=:mas aother=:maother ra=:ra8 p8=:mp8 ps=:mps pa=:mpa rp=:rp8 t=:mt (8f) \endif
+select coalesce((select not has_function_privilege('anon', f, 'execute') from to_regprocedure('public.my_group_bookings()') f where f is not null), false) as ok \gset
+\if :ok \echo PASS nobody signed out can ask for group lessons (8f) \else \echo FAIL my_group_bookings is callable signed out \endif
 
 \echo === 9. delete_my_account cascades, and links held by others are released
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);

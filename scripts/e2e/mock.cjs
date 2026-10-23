@@ -131,6 +131,19 @@ function setPrefs(db, id, patch) { db.prefs[id] = { id, log_view: "feed", cal_vi
 const weekOf = (times = ["9:00 am", "10:00 am", "11:00 am", "2:00 pm", "3:00 pm"], days = [0, 1, 2, 3, 4]) =>
   ({ days: Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((d) => [d, days.includes(d) ? times : []])), duration: 45, slots: times, blocked: [] });
 
+/* group_members(): the members of a coach's group as the coach saved it
+   on their preferences — the ids it keeps, or for an older group its
+   names where exactly one of the coach's players carries the name — and
+   only players the coach still coaches */
+const groupMembers = (db, coachId, groupName) => {
+  const want = String(groupName || "").trim().toLowerCase(); if (!want) return [];
+  const g = (((db.prefs[coachId] || {}).groups) || []).find((x) => x && String(x.name || "").trim().toLowerCase() === want);
+  if (!g) return [];
+  const roster = Object.values(db.profiles).filter((p) => p.role === "player" && p.coach_id === coachId);
+  const ids = Array.isArray(g.memberIds) && g.memberIds.length ? g.memberIds.map(String) : null;
+  if (ids) return roster.filter((p) => ids.includes(p.id)).map((p) => p.id);
+  return [...new Set((Array.isArray(g.members) ? g.members : []).map((n) => roster.filter((p) => p.name === n)).filter((xs) => xs.length === 1).map((xs) => xs[0].id))];
+};
 function session(u, db) {
   const at = db ? db.now() : Date.now();
   const exp = Math.floor(at / 1000) + 86400;
@@ -180,6 +193,36 @@ function onRequestDecided(db, r) {
   if (r.status === "accepted") notify(db, r.player_id, "accepted", `${nameOf(db, r.coach_id)} accepted you`, null, { screen: "home", id: r.id });
   else if (r.status === "declined") notify(db, r.player_id, "declined", `${nameOf(db, r.coach_id)} can't take you on`, null, { screen: "home", id: r.id });
 }
+/* trg_bookings_group_notify: a group's run, told once per statement —
+   "Saturday clinic booked" · "6 lessons · from Sat 24 Oct 9:00 am" */
+function onBookingsInsert(db, rows, actor) {
+  rows.filter((b) => b.player_id).forEach((b) => onBookingInsert(db, b, actor));
+  const runs = {};
+  rows.filter((b) => !b.player_id && String(b.group_name || "").trim() && b.status === "confirmed")
+    .forEach((b) => { const k = `${b.coach_id}|${String(b.group_name).trim().toLowerCase()}`; (runs[k] = runs[k] || []).push(b); });
+  Object.values(runs).forEach((run) => {
+    run.sort((x, y) => String(x.booking_date).localeCompare(String(y.booking_date)));
+    const first = run[0], grp = String(first.group_name).trim().slice(0, 60), n = run.length;
+    const whn = `${niceDate(first.booking_date)} ${first.start_time}`, what = n === 1 ? whn : `${n} lessons · from ${whn}`;
+    groupMembers(db, first.coach_id, first.group_name).forEach((m) => {
+      notify(db, m, "booking", `${grp} booked`, n === 1 ? `${whn} · ${nameOf(db, first.coach_id)}` : what, { screen: "calendar", id: first.id });
+      adultsFor(db, m).forEach((a) => notify(db, a, "booking", `${firstOf(db, m)}'s ${grp} booked`, what, { screen: "family", id: first.id }));
+    });
+  });
+}
+/* a group's lesson changes status: each member and a junior member's adults, in the private words with the group named */
+function onGroupBookingUpdate(db, b) {
+  const grp = String(b.group_name || "").trim().slice(0, 60); if (!grp) return;
+  const whn = `${niceDate(b.booking_date)} ${b.start_time}`, coach = nameOf(db, b.coach_id);
+  const why = b.cancel_reason && String(b.cancel_reason).trim() ? `${String(b.cancel_reason).trim()} · ` : "";
+  const cal = { screen: "calendar", id: b.id }, fam = { screen: "family", id: b.id };
+  groupMembers(db, b.coach_id, b.group_name).forEach((m) => {
+    const tell = (kind, title, body) => adultsFor(db, m).forEach((a) => notify(db, a, kind, `${firstOf(db, m)}'s ${grp} ${title}`, body, fam));
+    if (b.status === "confirmed") { notify(db, m, "booking", `${grp} confirmed`, `${whn} · ${coach}`, cal); tell("booking", "confirmed", whn); }
+    else if (b.status === "weather") { notify(db, m, "weather", `${grp} called off — weather`, `${whn} · ${coach}`, cal); tell("weather", "called off", `${whn} · weather`); }
+    else if (b.status === "cancelled") { notify(db, m, "booking", `${grp} cancelled`, why ? `${why}${whn}` : `${whn} · ${coach}`, cal); tell("booking", "cancelled", `${why}${whn}`); }
+  });
+}
 function onBookingInsert(db, b, actor) {
   if (!b.player_id) return;
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
@@ -196,7 +239,8 @@ function onBookingInsert(db, b, actor) {
   }
 }
 function onBookingUpdate(db, b, old, actor) {
-  if (!b.player_id || b.status === old.status) return;
+  if (b.status === old.status) return;
+  if (!b.player_id) { onGroupBookingUpdate(db, b); return; }
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
   const tellAdults = (title, body) => adultsFor(db, b.player_id).forEach((a) => notify(db, a, b.status === "weather" ? "weather" : "booking", title, body, { screen: "family", id: b.id }));
   if (b.status === "confirmed") { notify(db, b.player_id, "booking", "Lesson confirmed", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, whn); }
@@ -512,6 +556,14 @@ async function attach(page, db, opts = {}) {
       }
       /* the coach's taken times reach another player as times only — the
          same shape as the function in nosca.sql */
+      /* PROTOTYPE: my_group_bookings() — the group lessons I, or a junior I look after, am in */
+      if (fn === "my_group_bookings") {
+        const mineIds = [meId, ...S.looked];
+        const out = [];
+        db.bookings.filter((b) => !b.player_id && b.group_name).forEach((b) => groupMembers(db, b.coach_id, b.group_name)
+          .filter((m) => mineIds.includes(m)).forEach((m) => out.push({ booking_id: b.id, player_id: m })));
+        return json(200, out);
+      }
       if (fn === "coach_busy_slots") {
         const who = args.p_player; let coachId = null;
         if (!who || who === meId) coachId = mine.coach_id; else if (S.looked.includes(who)) coachId = (db.profiles[who] || {}).coach_id;
@@ -543,7 +595,7 @@ async function attach(page, db, opts = {}) {
       tips: { rows: () => db.tips, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) },
       attendance_sessions: { rows: () => db.sessions, see: (x) => x.coach_id === meId || db.marks.some((m) => m.session_id === x.id && S.playerScope(m.player_id)) },
       attendance_marks: { rows: () => db.marks, see: (x) => S.playerScope(x.player_id) || db.sessions.some((s) => s.id === x.session_id && s.coach_id === meId) },
-      bookings: { rows: () => db.bookings, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) || (x.kind === "group" && !!mine && x.coach_id === mine.coach_id) },
+      bookings: { rows: () => db.bookings, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) || (x.kind === "group" && ((!!mine && x.coach_id === mine.coach_id) || S.looked.some((k) => (db.profiles[k] || {}).coach_id === x.coach_id))) },
       competitions: { rows: () => db.competitions, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) },
       recurring: { rows: () => db.recurring, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) },
       preferences: { rows: () => Object.values(db.prefs), see: (x) => x.id === meId },
@@ -636,7 +688,7 @@ async function attach(page, db, opts = {}) {
       made.forEach((r) => { if (table === "lesson_media") db.files.media[r.storage_path] = db.files.media[r.storage_path] || { size: 10 }; });
       if (table === "lessons") made.forEach((r) => onLessonInsert(db, r));
       if (table === "lesson_media") made.forEach((r) => onMediaInsert(db, r));
-      if (table === "bookings") made.forEach((r) => onBookingInsert(db, r, meId));
+      if (table === "bookings") onBookingsInsert(db, made, meId);
       if (table === "messages") made.forEach((r) => onMessageInsert(db, r));
       if (table === "drills") onDrillsInsert(db, made);
       if (table === "tips") made.forEach((r) => onTipInsert(db, r));
@@ -737,6 +789,6 @@ const SEEDED = ["Ray Doyle", "ray@hollowbrook", "+353 87 123 4567", "Marcus Tran
 module.exports = {
   SB, ROOT, b64u, uuid, code6, pad, ymd, MON, MP4, WEBM, PNG, yearsOld, juniorRow,
   emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addRecurring, addDrill, addMessage, setPrefs, weekOf,
-  session, signupTrigger, notify, scopeFor, lessonsView, attach, startServer, stopServer,
+  session, signupTrigger, notify, groupMembers, scopeFor, lessonsView, attach, startServer, stopServer,
   norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, checker, SEEDED,
 };

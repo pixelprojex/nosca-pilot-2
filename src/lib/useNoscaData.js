@@ -501,6 +501,11 @@ export function useNoscaData(profile) {
         const dt = new Date(y, m - 1, d);
         return dt >= from && dt <= to;
       };
+      /* PROTOTYPE: the group lessons this person, or a junior they look
+         after, is a member of — booking id to whose */
+      const gmRes = await supabase.rpc("my_group_bookings").then((r) => r, () => ({ data: null }));
+      const groupMine = {};
+      ((gmRes && !gmRes.error && gmRes.data) || []).forEach((r) => { (groupMine[r.booking_id] = groupMine[r.booking_id] || []).push(r.player_id); });
       (bRes.data || []).filter((b) => inWindow(b.booking_date)).forEach((b) => {
         const [by, bm, bd] = String(b.booking_date).split("-").map(Number);
         const dt = new Date(by, bm - 1, bd);
@@ -513,6 +518,7 @@ export function useNoscaData(profile) {
           kind: b.kind === "group" ? `Group · ${b.group_name ? "" : ""}`.trim() || "Group" : "Private",
           group: b.kind === "group",
           groupName: b.group_name || null,
+          members: groupMine[b.id] || [],
           playerId: b.player_id || null,
           status: b.status,
           duration: b.duration,

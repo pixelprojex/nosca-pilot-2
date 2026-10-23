@@ -995,6 +995,89 @@ as $fn$
 $fn$;
 grant execute on function public.coach_busy_slots(uuid) to authenticated;
 
+-- THE MEMBERS OF A COACH'S GROUP. A group lives on the coach's own
+-- preferences row — [{ id, name, members: [names], memberIds: [ids], day,
+-- time, weeks }], which nobody else may read — and a group booking or
+-- lesson carries only its name, so the triggers that tell a group's
+-- families ask here. The group is the coach's first of that name, case
+-- and spaces aside (the app refuses a second); its members are the ids it
+-- keeps, or, for a group saved before ids were kept, its names where
+-- exactly one of the coach's players carries the name (two of a name are
+-- two people, and a trigger cannot know which was meant). Only players
+-- the coach still coaches: somebody who has left the roster hears nothing
+-- more of its lessons, and a coach cannot reach anybody else's player by
+-- writing their id into a group. Internal: the booking triggers and the
+-- evening's reminder call it, nobody else may — it would hand any
+-- signed-in person a coach's players, children among them.
+create or replace function public.group_members(p_coach uuid, p_group text)
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $fn$
+  with g as (
+    select e.grp
+    from public.preferences pr
+    cross join lateral jsonb_array_elements(case when jsonb_typeof(pr.groups) = 'array' then pr.groups else '[]'::jsonb end)
+         with ordinality as e(grp, ord)
+    where pr.id = p_coach and nullif(trim(p_group), '') is not null
+      and lower(trim(e.grp ->> 'name')) = lower(trim(p_group))
+    order by e.ord
+    limit 1
+  ),
+  ids as (
+    select x.v #>> '{}' as v
+    from g
+    cross join lateral jsonb_array_elements(case when jsonb_typeof(g.grp -> 'memberIds') = 'array' then g.grp -> 'memberIds' else '[]'::jsonb end) as x(v)
+  ),
+  roster as (
+    select p.id, p.name from public.profiles p where p.coach_id = p_coach and p.role = 'player'
+  )
+  select r.id from roster r where r.id::text in (select v from ids)
+  union
+  select (array_agg(r.id))[1]
+  from g
+  cross join lateral jsonb_array_elements(case when jsonb_typeof(g.grp -> 'members') = 'array' then g.grp -> 'members' else '[]'::jsonb end) as n(v)
+  join roster r on r.name = n.v #>> '{}'
+  where not exists (select 1 from ids)
+  group by n.v #>> '{}'
+  having count(*) = 1;
+$fn$;
+revoke all on function public.group_members(uuid, text) from public, anon, authenticated;
+
+-- A MEMBER'S OWN DIARY. The group lessons the caller, or a junior
+-- the caller looks after, is a member of — the booking and whose — so the
+-- diary can draw the clinic as their lesson rather than a taken hour. Reads
+-- preferences and bookings as the definer; the rows themselves are already
+-- readable through "bookings: yours, your family's, and your coach's group
+-- slots", so nothing new is handed out but the membership of the caller's
+-- own household.
+create or replace function public.my_group_bookings()
+returns table (booking_id uuid, player_id uuid)
+language sql stable security definer set search_path = ''
+as $fn$
+  with mine as (select auth.uid() as pid union select public.my_family_ids()),
+  slots as (
+    select distinct b.coach_id, b.group_name from public.bookings b
+    where b.kind = 'group' and b.player_id is null and nullif(trim(b.group_name), '') is not null
+      and b.booking_date >= current_date - 120 and b.booking_date < current_date + 200
+      and b.coach_id in (select c from public.profiles me cross join lateral (select me.coach_id as c) x
+                         where me.id in (select pid from mine) and me.coach_id is not null)
+  ),
+  members as (
+    select s.coach_id, s.group_name, m as pid
+    from slots s cross join lateral public.group_members(s.coach_id, s.group_name) m
+  )
+  select b.id, mm.pid
+  from public.bookings b join members mm on mm.coach_id = b.coach_id and mm.group_name = b.group_name
+  where b.kind = 'group' and b.player_id is null
+    and b.booking_date >= current_date - 120 and b.booking_date < current_date + 200
+    and mm.pid in (select pid from mine);
+$fn$;
+revoke all on function public.my_group_bookings() from public, anon;
+grant execute on function public.my_group_bookings() to authenticated;
+
 -- registers you, or someone you look after, were marked in. The
 -- sessions policy needs this because it may not read the marks table
 -- directly: the marks policy reads sessions, and two tables reading
@@ -1480,10 +1563,10 @@ create trigger lessons_rating_notify after update of rating_requested on public.
 -- adults) hear about it and are taken to the lesson.
 create or replace function public.trg_lesson_media_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
-declare l record; a uuid; what text;
+declare l record; a uuid; p uuid; what text;
 begin
   select id, player_id, coach_id, focus, created_at, sent_by into l from public.lessons where id = new.lesson_id;
-  if l.id is null or l.player_id is null then return new; end if;
+  if l.id is null then return new; end if;
   /* a clip the player sent: their own upload (the file sits under the
      sender's folder) says nothing; the coach's reply is told at once,
      however soon it comes */
@@ -1491,10 +1574,14 @@ begin
     if split_part(new.storage_path, '/', 1) = l.sent_by::text then return new; end if;
   elsif new.created_at < l.created_at + interval '30 minutes' then return new; end if;
   what := case new.kind when 'video' then 'New clip' when 'photo' then 'New photo' else 'New voice note' end || ' on ' || l.focus;
-  perform public.notify(l.player_id, 'lesson', what, public.name_of(l.coach_id), jsonb_build_object('screen', 'lesson', 'id', l.id));
-  for a in select public.adults_for(l.player_id) loop
-    perform public.notify(a, 'lesson', what || ' for ' || public.first_name_of(l.player_id), public.name_of(l.coach_id),
-      jsonb_build_object('screen', 'family', 'id', l.id));
+  -- the player, or for a group lesson everybody marked as there
+  for p in select l.player_id where l.player_id is not null
+           union select la.player_id from public.lesson_attendees la where la.lesson_id = l.id loop
+    perform public.notify(p, 'lesson', what, public.name_of(l.coach_id), jsonb_build_object('screen', 'lesson', 'id', l.id));
+    for a in select public.adults_for(p) loop
+      perform public.notify(a, 'lesson', what || ' for ' || public.first_name_of(p), public.name_of(l.coach_id),
+        jsonb_build_object('screen', 'family', 'id', l.id));
+    end loop;
   end loop;
   return new;
 exception when others then return new;
@@ -1502,6 +1589,32 @@ end $fn$;
 drop trigger if exists lesson_media_notify on public.lesson_media;
 create trigger lesson_media_notify after insert on public.lesson_media
   for each row execute function public.trg_lesson_media_notify();
+
+-- ---------- a group lesson is logged: the people who were there ----------
+-- The lesson row is written before its attendees (useNoscaData logLesson),
+-- so the lesson's own trigger sees a group with nobody in it; the
+-- attendees' insert is where they are known, told once per statement.
+create or replace function public.trg_lesson_attendees_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare r record; a uuid;
+begin
+  for r in select distinct na.player_id, l.id, l.coach_id, l.focus
+           from new_rows na join public.lessons l on l.id = na.lesson_id
+           where l.player_id is null and l.sent_by is null loop
+    perform public.notify(r.player_id, 'lesson', 'Lesson logged', r.focus || ' · ' || public.name_of(r.coach_id),
+      jsonb_build_object('screen', 'lesson', 'id', r.id));
+    for a in select public.adults_for(r.player_id) loop
+      perform public.notify(a, 'lesson', public.first_name_of(r.player_id) || '''s lesson logged', r.focus || ' · ' || public.name_of(r.coach_id),
+        jsonb_build_object('screen', 'family', 'id', r.id));
+    end loop;
+  end loop;
+  return null;
+exception when others then return null;
+end $fn$;
+drop trigger if exists lesson_attendees_notify on public.lesson_attendees;
+create trigger lesson_attendees_notify after insert on public.lesson_attendees
+  referencing new table as new_rows
+  for each statement execute function public.trg_lesson_attendees_notify();
 
 -- ---------- a player asks to join; the coach answers ----------
 create or replace function public.trg_requests_notify()
@@ -1531,12 +1644,52 @@ create or replace function public.trg_bookings_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
 declare
   a     uuid;
+  m     uuid;
   whn   text := public.nice_date(new.booking_date) || ' ' || new.start_time;
   -- the reason leads the line when there is one ("Unwell · Sat 10 Oct 10:00")
   why   text := coalesce(nullif(trim(new.cancel_reason), '') || ' · ', '');
   actor uuid := auth.uid();
+  -- a group's name as a title carries it: a lock screen's line, not a paragraph
+  grp   text := left(nullif(trim(new.group_name), ''), 60);
 begin
-  if new.player_id is null then return new; end if;   -- a group slot tells nobody
+  if new.player_id is null then
+    /* A GROUP'S LESSON. It has no player, only the group's name, and for a
+       long time it told nobody: a clinic rained off reached no family. A
+       change of status reaches every member still on the coach's roster
+       (group_members) and a junior member's adults, in the private
+       lesson's words with the group named where those say Lesson. Only
+       the coach can change a group's booking, so nobody is told on
+       anybody's behalf. The run a new group books is told once, by
+       trg_bookings_group_notify. */
+    if tg_op = 'UPDATE' and new.status <> old.status and grp is not null then
+      for m in select public.group_members(new.coach_id, new.group_name) loop
+        if new.status = 'confirmed' then
+          perform public.notify(m, 'booking', grp || ' confirmed', whn || ' · ' || public.name_of(new.coach_id),
+            jsonb_build_object('screen', 'calendar', 'id', new.id));
+          for a in select public.adults_for(m) loop
+            perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || grp || ' confirmed', whn,
+              jsonb_build_object('screen', 'family', 'id', new.id));
+          end loop;
+        elsif new.status = 'weather' then
+          perform public.notify(m, 'weather', grp || ' called off — weather', whn || ' · ' || public.name_of(new.coach_id),
+            jsonb_build_object('screen', 'calendar', 'id', new.id));
+          for a in select public.adults_for(m) loop
+            perform public.notify(a, 'weather', public.first_name_of(m) || '''s ' || grp || ' called off', whn || ' · weather',
+              jsonb_build_object('screen', 'family', 'id', new.id));
+          end loop;
+        elsif new.status = 'cancelled' then
+          perform public.notify(m, 'booking', grp || ' cancelled',
+            case when why <> '' then why || whn else whn || ' · ' || public.name_of(new.coach_id) end,
+            jsonb_build_object('screen', 'calendar', 'id', new.id));
+          for a in select public.adults_for(m) loop
+            perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || grp || ' cancelled', why || whn,
+              jsonb_build_object('screen', 'family', 'id', new.id));
+          end loop;
+        end if;
+      end loop;
+    end if;
+    return new;
+  end if;
   if tg_op = 'INSERT' then
     if new.status = 'requested' then
       perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' asked for a lesson',
@@ -1601,6 +1754,45 @@ end $fn$;
 drop trigger if exists bookings_notify on public.bookings;
 create trigger bookings_notify after insert or update on public.bookings
   for each row execute function public.trg_bookings_notify();
+
+-- ---------- a group's run of lessons, told once ----------
+-- A new group books its weeks in one insert (six Saturdays are six rows);
+-- told row by row that is six notices to every family at once. One per
+-- member per statement instead: "Saturday clinic booked" · "6 lessons ·
+-- from Sat 24 Oct 9:00 am" (the day and the coach for a single lesson),
+-- landing on the first. A junior member's adults read it as theirs.
+-- Private bookings keep their row-level notice above.
+create or replace function public.trg_bookings_group_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare r record; m uuid; a uuid; whn text; what text; grp text;
+begin
+  for r in select b.coach_id, min(trim(b.group_name)) as name, count(*) as n,
+                  (array_agg(b.id order by b.booking_date, b.created_at, b.id))[1] as first_id,
+                  min(b.booking_date) as first_day,
+                  (array_agg(b.start_time order by b.booking_date, b.created_at, b.id))[1] as first_time
+           from new_rows b
+           where b.player_id is null and nullif(trim(b.group_name), '') is not null and b.status = 'confirmed'
+           group by b.coach_id, lower(trim(b.group_name)) loop
+    grp  := left(r.name, 60);
+    whn  := public.nice_date(r.first_day) || ' ' || r.first_time;
+    what := case when r.n = 1 then whn else r.n || ' lessons · from ' || whn end;
+    for m in select public.group_members(r.coach_id, r.name) loop
+      perform public.notify(m, 'booking', grp || ' booked',
+        case when r.n = 1 then whn || ' · ' || public.name_of(r.coach_id) else what end,
+        jsonb_build_object('screen', 'calendar', 'id', r.first_id));
+      for a in select public.adults_for(m) loop
+        perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || grp || ' booked', what,
+          jsonb_build_object('screen', 'family', 'id', r.first_id));
+      end loop;
+    end loop;
+  end loop;
+  return null;
+exception when others then return null;
+end $fn$;
+drop trigger if exists bookings_group_notify on public.bookings;
+create trigger bookings_group_notify after insert on public.bookings
+  referencing new table as new_rows
+  for each statement execute function public.trg_bookings_group_notify();
 
 -- ---------- a message ----------
 create or replace function public.trg_messages_notify()
@@ -1745,7 +1937,7 @@ end $$;
 drop function if exists public.remind_bookings();
 create or replace function public.remind_bookings(p_hour integer default null)
 returns integer language plpgsql security definer set search_path = '' as $fn$
-declare r record; c record; a uuid; n integer := 0;
+declare r record; gb record; c record; a uuid; m uuid; n integer := 0;
   here  timestamp := (now() at time zone 'Europe/Dublin');
   h     integer   := coalesce(p_hour, extract(hour from (now() at time zone 'Europe/Dublin'))::integer);
   tmrw  date      := here::date + 1;
@@ -1764,6 +1956,30 @@ begin
     end loop;
     n := n + 1;
   end loop;
+  /* a group's lesson: each member still on the coach's roster, once, and
+     a junior member's adults — the group named where the private line
+     says Lesson. In a block of its own, so a group that cannot be read
+     never stops the private reminders or the coach's count. */
+  begin
+    for gb in select b.id, b.coach_id, b.group_name, left(trim(b.group_name), 60) as grp, b.start_time from public.bookings b
+              where b.booking_date = tmrw and b.status = 'confirmed' and b.player_id is null
+                and nullif(trim(b.group_name), '') is not null
+              order by b.start_time loop
+      for m in select public.group_members(gb.coach_id, gb.group_name) loop
+        continue when exists (select 1 from public.notifications x
+                              where x.user_id = m and x.kind = 'booking' and x.data->>'remind' = gb.id::text);
+        perform public.notify(m, 'booking', gb.grp || ' tomorrow · ' || gb.start_time, public.name_of(gb.coach_id),
+          jsonb_build_object('screen', 'calendar', 'id', gb.id, 'remind', gb.id));
+        for a in select public.adults_for(m) loop
+          perform public.notify(a, 'booking', public.first_name_of(m) || '''s ' || gb.grp || ' tomorrow · ' || gb.start_time,
+            public.name_of(gb.coach_id), jsonb_build_object('screen', 'family', 'id', gb.id, 'remind', gb.id));
+        end loop;
+        n := n + 1;
+      end loop;
+    end loop;
+  exception when others then
+    raise notice 'group reminders skipped: %', sqlerrm;
+  end;
   /* the coach: one line with the count, once per evening */
   for c in select b.coach_id, count(*) as k from public.bookings b
            where b.booking_date = tmrw and b.status = 'confirmed' group by b.coach_id loop
