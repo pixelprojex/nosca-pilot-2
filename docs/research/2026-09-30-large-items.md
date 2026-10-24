@@ -439,7 +439,26 @@ functional item of the day, from the prototype of 21 October;
 the coach's day rows and the child's values line up with their boxes
 (`boxes.cjs` (a5), (a6), (n4)).
 
+### 26. The Diary's Calendar view, and the sheets it opens, boxed. **Built 24 October.**
+The selected day of the Calendar view and the three sheets that take a
+lesson away from somebody were the last of the Diary drawn the old way:
+a player's own lessons between hairlines with a 20px Cancel that ran
+into the time at 320, the coach's lessons as pale 16px accent cards,
+the call-off row a 0.5px rule with a rain glyph, the day named twice, a
+span that lost its am across noon, a clinic at the diary's 45 minutes
+on the coach's side, and the reasons a 1.2:1 hairline with the chosen
+one a 1.09:1 tint. WCAG 1.4.10 asks that content work at 320 CSS pixels
+without loss; WCAG 2.5.8 sets 24px as the least target and 44px as the
+enhanced one, Apple's own minimum. The visual item of the day;
+`calendar-day.cjs`. With it, one small functional fix: the first yes is
+the player's coach, a second coach's Accept refused in words.
+
 ### Next candidates (unranked until read against the field)
+- One person row (visual, about a day): the face-and-name row is drawn
+  about ten ways — eight face sizes from 30 to 46px, the name starting
+  57 to 73px into the box, rows 56 to 76 tall — and at 320 the item on
+  the right cuts the name or the time on four surfaces. A shared row
+  with one face, one inset and a trailing slot that yields first.
 - A member marks themselves out of one group session (an RSVP: going /
   not going, a parent for a child), the coach seeing who is coming —
   Heja, Teamer, Spond, CourtReserve. Needs a table of answers and a
@@ -551,3 +570,6 @@ the items above; a research spike first.
 - https://helpme.teamsnap.com/article/267 (TeamSnap: reminders before an event)
 - https://help.spond.com/en/articles/26059 (Spond: a reminder 48 hours before)
 - https://support.pga.com/en/articles/15436955 (PGA Coach: a group event the coach books appears in the student's MyPGA app)
+
+- https://www.w3.org/WAI/WCAG22/Understanding/reflow (WCAG 1.4.10: content at 320 CSS pixels without loss of information or two-way scrolling)
+- https://dequeuniversity.com/rules/attest-ios/1.0/touch-target-size (touch targets: 44x44 points on iOS; WCAG 2.5.8 sets 24 CSS pixels as AA, 44 as AAA)

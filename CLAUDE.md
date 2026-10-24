@@ -78,6 +78,14 @@ seeded data and no account.
   `create_family()` / `join_family()` / `leave_family()`. The profiles
   update policy refuses a row that changes either. A coach's code makes
   a `coach_requests` row, never a link; a family code joins at once.
+  A player has one coach and the first yes is it: `respond_to_request()`
+  locks the player's row (`join_coach` too, so two coaches answering at
+  once queue on it), refuses a second coach's Accept in words the app
+  shows as they are ("Gráinne is with another coach now."), and closes
+  the player's other open requests as `cancelled`, which tells nobody —
+  a second coach's Accept used to move the player, a junior too, without
+  a word to anyone. The hook reads the list again after a refusal so the
+  request leaves the screen. behaviour.sql 10d; `families-requests.cjs` (b2).
 - **Nobody is given a family.** A family is a row someone created. An
   adult in it looks after its juniors (`my_family_ids()`); a junior sees
   the family and nothing they cannot do. `data.family` is the family,
@@ -350,6 +358,26 @@ seeded data and no account.
   hour. A coach's List never drops a confirmed lesson: a day with a
   booking is a day whatever its hours, and a booked time outside the
   week's hours is a row (`edit-day.cjs` (e1)). `diary.cjs` (a2), (a3).
+- **The Diary's Calendar view, and the sheets it opens, are boxes on the
+  sport's edge.** The selected day: every lesson of the person's that day
+  is a box of one `.nsc-list` (`day-mine`: the eyebrow, the time alone,
+  its length and the coach, the group or who booked it, then Cancel ·
+  Reschedule as the box's foot, 44 tall), where they sat between
+  hairlines and a 20px Cancel ran into the time at 320; the coach's
+  lessons (`ScheduleBlock`, `cal-block`) are the same box at 8px — they
+  were pale 16px accent cards, a fourth box style on one screen — a group
+  marked with the List view's 3px bar, the open block's stats on the
+  wash and its buttons on the edge, and a booking's own length read, so a
+  clinic is an hour on both sides; the call-off row (`cal-weather`) is on
+  the edge with the calendar and its X; the day's heading is the List
+  view's form — Today, Tomorrow, `Sat 24 Oct` — said once (it was the long
+  date with the same again in an eyebrow under it). The reasons on
+  Cancel, Call off and End (`cancel-why`, `calloff-why`, `end-why`) are
+  boxes of one list with the chosen one in ink, as a chosen tile is —
+  they were a 1.2:1 hairline and a 1.09:1 tint, green on one sheet and
+  red on two, so the reason a player is told first was the hardest thing
+  on the sheet to see. The free times' box, the List view, the month
+  grid, Hours and EditDay are as they were. `scripts/e2e/calendar-day.cjs`.
 - **Who a booking is for is chosen before the slot.** The diary carries
   a "For" strip for any adult with a bookable child — themselves (if
   they have a coach) and each child — and the hours shown are that
@@ -1716,7 +1744,10 @@ seeded data and no account.
   day and time. Two facts on a grey line, never three.
 - **One date, one time.** `Thu 24 Sep`, `9:00 am`, everywhere — rows,
   headers, sheets, the diary's rail. Never an uppercase month, never
-  "Sept", never a time stripped of am/pm to fit a column. The time
+  "Sept", never a time stripped of am/pm to fit a column — a span
+  keeps the start's am where it crosses noon (`span()`: "11:00 am–12:00
+  pm", "4:00–4:45 pm" within one half; it read "11:00–12:00 pm", eleven
+  at night to midday). The time
   column on the bell and in Chat is `relTime` in `useNoscaData`, the
   one place: `3:24 pm` today, Yesterday, else `Thu 24 Sep` — it read
   "30m" and a 24-hour "15:24" once. A notification's own date comes
