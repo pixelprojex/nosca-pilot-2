@@ -1168,8 +1168,11 @@ begin
 
   -- the row is held until the request is in, so a coach accepting
   -- another of this player's requests at the same moment waits, and
-  -- the request below is never written behind that coach's back
-  select p.role, p.coach_id into my_role, my_coach from public.profiles p where p.id = me for update;
+  -- the request below is never written behind that coach's back. No key
+  -- update, not update: a full row lock blocks the foreign-key check two
+  -- coaches entering each other's codes at once both need, and they
+  -- deadlocked; this one still queues the two answers for one player.
+  select p.role, p.coach_id into my_role, my_coach from public.profiles p where p.id = me for no key update;
   if my_role is null then
     raise exception 'Your account isn''t finished. Sign out, sign back in, and try again.';
   end if;
@@ -1226,7 +1229,10 @@ begin
   if not found then
     raise exception 'That request isn''t waiting any more.';
   end if;
-  select p.coach_id into v_coach from public.profiles p where p.id = v_player for update;
+  -- no key update: it queues two coaches answering for one player, and
+  -- leaves the coach_id foreign key's own check free — two coaches who had
+  -- asked each other, accepting at once, deadlocked on a full row lock
+  select p.coach_id into v_coach from public.profiles p where p.id = v_player for no key update;
   if p_accept and v_coach is not null and v_coach <> me then
     raise exception '% is with another coach now.', coalesce(public.first_name_of(v_player), 'That player');
   end if;
