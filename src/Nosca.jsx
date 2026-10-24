@@ -1514,7 +1514,13 @@ function fmtTime(mins) {
   return `${h}:${String(mm).padStart(2, "0")} ${ampm}`;
 }
 const endTime = (start, mins) => { const t0 = parseTime(start); return t0 == null ? "" : fmtTime(t0 + mins); };
-const span = (start, mins) => `${start.replace(/\s?(am|pm)$/i, "")}–${endTime(start, mins)}`;
+/* "4:00–4:45 pm" when both ends share their half of the day, "11:00 am–12:00 pm"
+   when they do not — the start's am was stripped across noon, and a clinic
+   read as eleven at night to midday */
+const span = (start, mins) => {
+  const end = endTime(start, mins), suf = (x) => ((String(x).match(/(am|pm)$/i) || [])[1] || "").toLowerCase();
+  return suf(start) && suf(start) === suf(end) ? `${start.replace(/\s?(am|pm)$/i, "")}–${end}` : `${start}–${end}`;
+};
 
 const ALL_TIMES = ["8:00 am", "9:00 am", "10:00 am", "11:00 am", "2:00 pm", "3:30 pm", "4:30 pm", "5:30 pm"];
 /* a coach's start times before they change them: nine to nine, an hour
@@ -2597,17 +2603,16 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{lesson}</p>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
-      <div className="flex flex-col gap-2 mb-5">
+      <div className="nsc-list mb-5">
         {CANCEL_REASONS[role === "coach" ? "coach" : "player"].map((r, i) => {
           const on = reason === r;
           return (
             <button key={r} data-tour="cancel-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
-                    className="w-full flex items-center gap-3 px-4 text-left"
-                    style={{ minHeight: 52, borderRadius: R.control, background: on ? `${t.accent}0F` : t.surface,
-                             border: `1px solid ${on ? `${t.accent}22` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    className="w-full flex items-center gap-3 text-left"
+                    style={{ minHeight: 52, background: on ? t.ink : t.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={STEADY} strokeWidth={2.1} style={{ animation: "checkPop 420ms cubic-bezier(.28,1.4,.5,1) both" }} />}
+              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
+              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
             </button>
           );
         })}
@@ -6905,13 +6910,13 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
 }
 
 /* A small figure with a caption. Used wherever numbers matter. */
-function Stat({ value, label, tone, wide }) {
+function Stat({ value, label, tone, wide, capTone }) {
   const t = useT();
   return (
     <div className="flex-1 px-3.5 py-3" style={{ minWidth: wide ? 0 : 74 }}>
       <div style={{ ...TYPE.figure, fontSize: 21,
                     color: tone || t.ink, animation: "figureCount 600ms cubic-bezier(.22,1,.36,1) both" }}>{value}</div>
-      <div className="mt-1.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{label}</div>
+      <div className="mt-1.5 truncate" style={{ ...TYPE.caption, color: capTone || t.faint }}>{label}</div>
     </div>
   );
 }
@@ -7201,17 +7206,16 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
     <div data-tour="end-series">
       {head(tr("End"), what)}
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
-      <div className="flex flex-col gap-2 mb-5">
+      <div className="nsc-list mb-5">
         {CANCEL_REASONS.coach.map((r, i) => {
           const on = reason === r;
           return (
             <button key={r} data-tour="end-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
-                    className="w-full flex items-center gap-3 px-4 text-left"
-                    style={{ minHeight: 52, borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                             border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    className="w-full flex items-center gap-3 text-left"
+                    style={{ minHeight: 52, background: on ? t.ink : t.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={DANGER} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
+              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
             </button>
           );
         })}
@@ -7321,17 +7325,16 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
     <>
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Call off")}</h2>
       <p className="mb-4" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Why")}</p>
-      <div className="flex flex-col gap-2 mb-6">
+      <div className="nsc-list mb-6">
         {CALL_OFF_REASONS.map((r, i) => {
           const on = reason === r;
           return (
-            <button key={r} aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
-                    className="w-full flex items-center gap-3 px-4 text-left"
-                    style={{ minHeight: 52, borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                             border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+            <button key={r} data-tour="calloff-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
+                    className="w-full flex items-center gap-3 text-left"
+                    style={{ minHeight: 52, background: on ? t.ink : t.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={DANGER} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
+              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
             </button>
           );
         })}
@@ -7380,19 +7383,25 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
   const live = useLive();
   const f = fileFor(item.who, live);
   const isGroup = item.kind && item.kind.startsWith("Group");
-  const accent = isGroup ? GROUP : t.accent;
+  /* the booking's own length — a clinic of an hour read 45 minutes here,
+     the diary's length, while the member's block said 60 */
+  const len = item.duration || duration;
 
+  /* a box on the sport's edge like every other in the Diary — it was a
+     pale accent card at 16px, a fourth box style on one screen — with a
+     group marked as the List view marks it, the 3px bar */
   return (
-    <Tile accent={accent} delay={delay} className="mb-3" style={{ overflow: "hidden" }}>
+    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 8 }}>
       <button onClick={() => { haptic(7); soft(); setOpen(!open); }} className="w-full text-left px-5 py-4">
         <div className="flex items-center gap-3.5">
+          {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
           {!isGroup ? <Avatar name={item.who} size={42} />
             : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.wash }}>
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
             <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
             <span className="block mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>
-              {span(item.time, duration)} · {item.kind}
+              {span(item.time, len)} · {item.kind}
             </span>
           </span>
           <span className="text-right shrink-0">
@@ -7410,25 +7419,26 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           {/* the numbers */}
           {/* A group has no file, and f.done is 0 for every real
               account — the roster is where a real count lives. */}
-          <div className="flex mx-5 mb-4" style={{ borderTop: `1px solid ${t.hair}`, borderBottom: `1px solid ${t.hair}` }}>
-            {!isGroup && (<>
-              <Stat value={lessonsFor ? (lessonsFor(item.who) ?? 0) : f.done} label={tr("Lessons")} />
-              <span style={{ width: 1, background: t.hair }} />
-            </>)}
-            <Stat value={`${duration}m`} label={tr("Length")} />
+          <div className="flex mx-5 mb-4" style={{ background: t.wash, borderRadius: R.control }}>
+            {/* on the wash the faint caption reads 4.4:1, under the 4.5:1 a
+                word needs; the sub tone reads over 7 */}
+            {!isGroup && (
+              <Stat value={lessonsFor ? (lessonsFor(item.who) ?? 0) : f.done} label={tr("Lessons")} capTone={t.sub} />
+            )}
+            <Stat value={`${len}m`} label={tr("Length")} capTone={t.sub} />
           </div>
 
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
             {f.tip && (
               <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
-                <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Working on")}</div>
+                <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Working on")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
             )}
             {f.lastFocus && (
               <button onClick={() => { haptic(7); onOpenLast && onOpenLast(item.who); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left active:opacity-60"
-                      style={{ borderRadius: R.control, border: `1px solid ${t.hair}` }}>
+                      style={{ borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
                 <span className="flex-1">
                   <span className="block mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
@@ -7441,10 +7451,10 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
               {/* the diary passes onCancel (the Why sheet); an older caller onNoShow —
                   the button took only the second, so the diary's Cancel did nothing */}
               <button data-tour="block-cancel" onClick={() => { hapticWarn(); const act = onCancel || onNoShow; act && act(item); }} className="px-4 active:opacity-60"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `1px solid ${t.hair}`,
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 active:opacity-60"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `1px solid ${t.hair}`,
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
               <button onClick={() => { hapticCommit(); onLog && onLog(item); }} className="flex-1 active:opacity-75"
                       style={{ minHeight: 46, borderRadius: R.control, background: t.accent,
@@ -15825,6 +15835,15 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   const move = (dir) => { const n = Math.max(0, Math.min(months.length - 1, mi + dir)); if (n === mi) return; haptic(8); setMi(n); setSel(1); setPick(null); };
   const cells = []; for (let i = 0; i < mo.start; i++) cells.push(null); for (let d = 1; d <= mo.days; d++) cells.push(d);
   const dayLabel = `${DAY_NAMES[dowOf(mo.idx, sel, cx)]} ${sel} ${mo.name.split(" ")[0]}`;
+  /* the day's heading in the List view's own form — Today, Tomorrow, Sat 24
+     Oct — said once; it read "Saturday 24 October" with the same again in
+     an eyebrow under it, and at 320 it pushed the count onto a second line */
+  const dayHead = (() => {
+    if (mo.idx === T.m && sel === T.d) return tr("Today");
+    const n = new Date(yearOf(T.m, cx), T.m - 1, T.d + 1);
+    if (mo.idx === n.getMonth() + 1 && sel === n.getDate()) return tr("Tomorrow");
+    return `${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel} ${mo.name.split(" ")[0].slice(0, 3)}`;
+  })();
 
   return (
     <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}>
@@ -16023,7 +16042,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       {/* ---- the selected day, as a readable column ---- */}
       <div className="px-6" data-cal-day>
         <div className="flex items-baseline justify-between mb-4">
-          <span style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.025em", color: t.ink }}>{dayLabel}</span>
+          <span style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.025em", color: t.ink }}>{dayHead}</span>
           <span style={{ ...TYPE.caption, color: t.faint }}>
             {/* a count that is nought is not a fact worth a line: the day
                 reads what it has, and nothing when it has nothing */}
@@ -16033,26 +16052,33 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           </span>
         </div>
 
-        {myDays.map((myDay) => (
-          <div key={myDay.id || myDay.time} data-tour="day-mine" className="mb-5 pb-5" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
-            <div className="flex items-baseline justify-between">
-              <span style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.group ? (myDay.duration || duration) : duration)}</span>
-              {myDay.group
-                ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.groupName || tr("Group")}</span>
-                : readOnly
-                ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Booked by your parent")}</span>
-                : <span className="flex items-center gap-4">
-                    {/* a real account's Cancel asks why, so the coach is told with the
-                        reason; Reschedule says that much on its own. The harness keeps
-                        the one-tap cancel. */}
-                    <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
-                    <button data-tour="day-reschedule" onClick={() => { hapticCommit(); onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
-                  </span>}
-            </div>
-            <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.group ? (myDay.duration || duration) : duration} min with {conn?.coach || "your coach"}</div>
+        {/* every lesson of the person's that day, each a box on the sport's
+            edge like the free times under it — they sat between hairlines,
+            and at 320 a 20px Cancel ran into the time. The time stands alone,
+            then its length and the coach, then the group or who booked it,
+            then Cancel · Reschedule as the box's own foot, 44 tall. */}
+        {myDays.length > 0 && (
+          <div className="nsc-list mb-5">
+            {myDays.map((myDay) => (
+              <div key={myDay.id || myDay.time} data-tour="day-mine" className="py-4">
+                <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
+                <span className="block" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.duration || duration)}</span>
+                <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.duration || duration} min with {conn?.coach || "your coach"}</div>
+                {myDay.group
+                  ? <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.groupName || tr("Group")}</div>
+                  : readOnly
+                  ? <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Booked by your parent")}</div>
+                  : <div className="flex items-center gap-5 mt-2">
+                      {/* a real account's Cancel asks why, so the coach is told with the
+                          reason; Reschedule says that much on its own. The harness keeps
+                          the one-tap cancel. */}
+                      <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
+                      <button data-tour="day-reschedule" onClick={() => { hapticCommit(); onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
+                    </div>}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
 
         {past ? (
           <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("That day has passed")}</p>
@@ -16063,9 +16089,6 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             {awayOn(mo.idx, sel) && <AwayLine role="coach" booked={booked.length} onEdit={() => push("away")} />}
             {booked.length > 0 ? (
               <>
-                <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
-                  {mo.idx === T.m && sel === T.d ? tr("Today's schedule") : dayLabel}
-                </div>
                 {booked.map((b, i) => (
                   <ScheduleBlock key={b.time + i} item={b} duration={duration} delay={i * 70} lessonsFor={lessonsFor}
                                  hoursUntil={mo.idx === T.m && sel === T.d ? (parseTime(b.time) - minsNow) / 60 : null}
@@ -16078,8 +16101,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             {booked.length > 0 && (
               <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
                       className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
-                      style={{ minHeight: 54, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}` }}>
-                <CloudRain size={16} color={t.sub} strokeWidth={1.6} />
+                      style={{ minHeight: 54, borderRadius: 8, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+                {/* a calendar with an X, as on the plus: a coach calls off for a
+                    closed course as often as for rain */}
+                <CalendarX size={16} color={t.sub} strokeWidth={1.6} />
                 <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>
                   {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
                 </span>

@@ -738,4 +738,105 @@ select ((select count(*) from auth.users where id = '77777777-7777-4777-8777-777
    and (select count(*) from public.recurring where coach_id = '77777777-7777-4777-8777-777777777777') = 0
    and (select count(*) from public.bookings where coach_id = '77777777-7777-4777-8777-777777777777') = 0) as ok \gset
 \if :ok \echo PASS a coach deleting their account with a run and its lessons on the books removes both (10c) \else \echo FAIL coach deletion with a run left rows behind (10c) \endif
+\echo === 10d. a player who asked two coaches has one: the first yes is it
+-- Gráinne asks Coach X at sign-up and Coach Y from the app; a junior,
+-- signed up into her mother's family, asks the same two the other way round.
+\set gx 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1'
+\set gy 'b2b2b2b2-b2b2-4b2b-8b2b-b2b2b2b2b2b2'
+\set gp 'c3c3c3c3-c3c3-4c3c-8c3c-c3c3c3c3c3c3'
+\set gm 'd4d4d4d4-d4d4-4d4d-8d4d-d4d4d4d4d4d4'
+\set gj 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5'
+insert into auth.users (id, email, raw_user_meta_data) values
+ (:'gx', 'x.coach@example.ie', '{"role":"coach","name":"Xavier Coach","sport":"golf","account_type":"coach"}'),
+ (:'gy', 'y.coach@example.ie', '{"role":"coach","name":"Yvonne Coach","sport":"golf","account_type":"coach"}'),
+ (:'gm', 'mam@example.ie', '{"role":"player","name":"Bríd Daly","sport":"golf","account_type":"parent","date_of_birth":"1980-01-01"}');
+select invite_code as xcode from public.profiles where id = :'gx' \gset
+select invite_code as ycode from public.profiles where id = :'gy' \gset
+select f.code as mfam from public.profiles p join public.families f on f.id = p.family_id where p.id = :'gm' \gset
+insert into auth.users (id, email, raw_user_meta_data) values
+ (:'gp', 'grainne@example.ie', jsonb_build_object('role','player','name','Gráinne Daly','sport','golf','account_type','adult','date_of_birth','1993-03-03','coach_code', :'xcode')),
+ (:'gj', 'fionn@example.ie', jsonb_build_object('role','player','name','Fionn Daly','sport','golf','account_type','junior','date_of_birth','2013-03-03','coach_code', :'ycode','family_code', :'mfam'));
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gp'), true) \gset _
+select public.join_coach(:'ycode') \gset _
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gj'), true) \gset _
+select public.join_coach(:'xcode') \gset _
+commit;
+select id as req_px from public.coach_requests where player_id = :'gp' and coach_id = :'gx' and status = 'pending' \gset
+select id as req_py from public.coach_requests where player_id = :'gp' and coach_id = :'gy' and status = 'pending' \gset
+select id as req_jx from public.coach_requests where player_id = :'gj' and coach_id = :'gx' and status = 'pending' \gset
+select id as req_jy from public.coach_requests where player_id = :'gj' and coach_id = :'gy' and status = 'pending' \gset
+
+-- X says yes to Gráinne; Y says yes to Fionn
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gx'), true) \gset _
+select set_config('test.req', :'req_px', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.respond_to_request(current_setting('test.req')::uuid, true);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as err_x \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gy'), true) \gset _
+select set_config('test.req', :'req_jy', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.respond_to_request(current_setting('test.req')::uuid, true);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as err_y \gset
+select (:'err_x' = '' and :'err_y' = ''
+    and (select coach_id from public.profiles where id = :'gp') = :'gx'
+    and (select coach_id from public.profiles where id = :'gj') = :'gy'
+    and (select status from public.coach_requests where id = :'req_py') = 'cancelled'
+    and (select status from public.coach_requests where id = :'req_jx') = 'cancelled'
+    and (select count(*) from public.coach_requests where player_id in (:'gp', :'gj') and status = 'pending') = 0) as ok \gset
+\if :ok \echo PASS the first yes links the player and closes every other request they had open (10d) \else \echo FAIL the first yes left the player s other requests open: py=:req_py jx=:req_jx err_x=:err_x err_y=:err_y (10d) \endif
+select ((select count(*) from public.notifications where user_id = :'gp' and kind in ('accepted', 'declined')) = 1
+    and (select count(*) from public.notifications where user_id = :'gp' and kind = 'accepted') = 1
+    and (select count(*) from public.notifications where user_id = :'gj' and kind in ('accepted', 'declined')) = 1
+    and (select count(*) from public.notifications where user_id = :'gm' and kind in ('accepted', 'declined', 'request')) = 0
+    and (select count(*) from public.notifications where user_id = :'gy' and kind = 'request') = 2
+    and (select count(*) from public.notifications where user_id = :'gx' and kind = 'request') = 2
+    and (select count(*) from public.notifications where user_id in (:'gx', :'gy')) = 4) as ok \gset
+\if :ok \echo PASS closing the other requests tells nobody: one accepted each, nothing to the parent or the other coach (10d) \else \echo FAIL closing the other requests told somebody (10d) \endif
+
+-- Y, on a screen loaded before X said yes, accepts Gráinne; X does the same for Fionn
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gy'), true) \gset _
+select set_config('test.req', :'req_py', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.respond_to_request(current_setting('test.req')::uuid, true);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as err_py \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gx'), true) \gset _
+select set_config('test.req', :'req_jx', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.respond_to_request(current_setting('test.req')::uuid, true);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as err_jx \gset
+select (:'err_py' = 'Gráinne is with another coach now.' and :'err_jx' = 'Fionn is with another coach now.'
+    and (select coach_id from public.profiles where id = :'gp') = :'gx'
+    and (select coach_id from public.profiles where id = :'gj') = :'gy') as ok \gset
+\if :ok \echo PASS a second coach s Accept is refused in words and moves nobody, a junior included (:err_py) (10d) \else \echo FAIL a second coach s Accept moved the player: err_py=:err_py err_jx=:err_jx (10d) \endif
+
+-- a request left open from before the guard: still refused, still nobody moved
+insert into public.coach_requests (player_id, coach_id) values (:'gp', :'gy') returning id as req_old \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gy'), true) \gset _
+select set_config('test.req', :'req_old', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.respond_to_request(current_setting('test.req')::uuid, true);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as err_old \gset
+select (:'err_old' = 'Gráinne is with another coach now.' and (select coach_id from public.profiles where id = :'gp') = :'gx'
+    and (select count(*) from public.notifications where user_id = :'gp' and kind = 'accepted') = 1) as ok \gset
+\if :ok \echo PASS an open request left from before is refused the same way (10d) \else \echo FAIL an old open request moved the player: err=:err_old (10d) \endif
+update public.coach_requests set status = 'cancelled', decided_at = now() where id = :'req_old';
+
+-- X accepting Gráinne again, from a request left open: harmless, and she is not told twice
+insert into public.coach_requests (player_id, coach_id) values (:'gp', :'gx') returning id as req_again \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gx'), true) \gset _
+select set_config('test.req', :'req_again', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.respond_to_request(current_setting('test.req')::uuid, true);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as err_again \gset
+select (:'err_again' = '' and (select coach_id from public.profiles where id = :'gp') = :'gx'
+    and (select status from public.coach_requests where id = :'req_again') <> 'pending'
+    and (select count(*) from public.notifications where user_id = :'gp' and kind = 'accepted') = 1) as ok \gset
+\if :ok \echo PASS the coach who already has the player accepting again changes nothing and tells nobody (10d) \else \echo FAIL re-accepting: err=:err_again (10d) \endif
 \echo === done
