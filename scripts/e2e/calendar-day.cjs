@@ -14,7 +14,9 @@
    of the time at 320, the clinic 11:00 am–12:00 pm and an hour on both
    sides, the day heading said once in the List view's form, and the
    reasons boxed with the chosen one in ink — for the coach, a player
-   cancelling their own, and a riding coach on equestrian's edge.
+   cancelling their own, and a riding coach on equestrian's edge; one
+   private lesson's own length read on both sides; the open block's
+   captions at 4.5:1 on the wash; a live group read "Group", no dot.
    Usage: node calendar-day.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -184,6 +186,38 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
         await reasonChecks(page, "w4", "cancel-why", "Unwell", EDGE.golf); await shot("07-player-cancel-why");
       }
       await ctx.close();
+    }
+    /* ---------- one private lesson, one length on both sides ----------
+       the coach's diary at an hour, Cian's nine o'clock booked at 45
+       minutes (booked before the length changed, or by a parent's 45) */
+    {
+      const db = freshDb(); db.prefs[IDS.coach].availability.duration = 60;
+      {
+        const { ctx, page } = await boot(db, "coach");
+        await calendar(page);
+        const blk = page.locator('[data-tour="cal-block"]', { hasText: "9:00" });
+        const said = (await blk.count()) ? (await blk.first().innerText()).replace(/\s+/g, " ") : "";
+        await blk.locator("button").first().click().catch(() => {}); await page.waitForTimeout(700);
+        const cap = await page.evaluate(() => {
+          const b = [...document.querySelectorAll('[data-tour="cal-block"]')].find((x) => /9:00/.test(x.innerText)); if (!b) return null;
+          const lum = (c) => { const v = String(c).match(/[\d.]+/g).slice(0, 3).map(Number).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+          const ratio = (a, c) => { const [x, y] = [lum(a), lum(c)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+          const caps = [...b.querySelectorAll("div")].filter((x) => /^(Lessons|Length)$/.test(x.textContent.trim()) && !x.children.length);
+          return { len: (b.innerText.match(/(\d+)m\b/) || [])[1] || null, caps: caps.map((x) => { let el = x, bg = "rgba(0, 0, 0, 0)"; while (el && /rgba\(0, 0, 0, 0\)|transparent/.test(bg)) { bg = getComputedStyle(el).backgroundColor; el = el.parentElement; } return { t: x.textContent.trim(), r: Math.round(ratio(getComputedStyle(x).color, bg) * 100) / 100 }; }) };
+        });
+        check("(c8) the coach's private lesson reads its own length, 9:00–9:45 am and 45m", /9:00–9:45 am/.test(said) && !!cap && cap.len === "45", JSON.stringify({ said: said.slice(0, 60), cap }));
+        check("(c9) the open block's Lessons and Length captions read 4.5:1 or more on the wash", !!cap && cap.caps.length === 2 && cap.caps.every((c) => c.r >= 4.5), JSON.stringify(cap && cap.caps));
+        const clinic = await page.locator('[data-tour="cal-block"]', { hasText: "Saturday clinic" }).first().innerText().then((x) => x.replace(/\s+/g, " ")).catch(() => "");
+        check("(c10) a live group's line reads '· Group', never a trailing 'Group ·'", /· Group\b/.test(clinic) && !/Group ·/.test(clinic), clinic);
+        await ctx.close();
+      }
+      {
+        const { ctx, page } = await boot(db, "adult");
+        await calendar(page);
+        const mine = await page.locator('[data-tour="day-mine"]', { hasText: "9:00" }).first().innerText().then((x) => x.replace(/\s+/g, " ")).catch(() => "");
+        check("(c8) …and the player reads the same lesson the same: 9:00–9:45 am, 45 min", /9:00–9:45 am/.test(mine) && /45 min with/.test(mine), mine);
+        await ctx.close();
+      }
     }
     /* ---------- a riding coach: equestrian's own edge on the reasons ---------- */
     {

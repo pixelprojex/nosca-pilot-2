@@ -6910,13 +6910,13 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
 }
 
 /* A small figure with a caption. Used wherever numbers matter. */
-function Stat({ value, label, tone, wide }) {
+function Stat({ value, label, tone, wide, capTone }) {
   const t = useT();
   return (
     <div className="flex-1 px-3.5 py-3" style={{ minWidth: wide ? 0 : 74 }}>
       <div style={{ ...TYPE.figure, fontSize: 21,
                     color: tone || t.ink, animation: "figureCount 600ms cubic-bezier(.22,1,.36,1) both" }}>{value}</div>
-      <div className="mt-1.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{label}</div>
+      <div className="mt-1.5 truncate" style={{ ...TYPE.caption, color: capTone || t.faint }}>{label}</div>
     </div>
   );
 }
@@ -7420,16 +7420,18 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           {/* A group has no file, and f.done is 0 for every real
               account — the roster is where a real count lives. */}
           <div className="flex mx-5 mb-4" style={{ background: t.wash, borderRadius: R.control }}>
+            {/* on the wash the faint caption reads 4.4:1, under the 4.5:1 a
+                word needs; the sub tone reads over 7 */}
             {!isGroup && (
-              <Stat value={lessonsFor ? (lessonsFor(item.who) ?? 0) : f.done} label={tr("Lessons")} />
+              <Stat value={lessonsFor ? (lessonsFor(item.who) ?? 0) : f.done} label={tr("Lessons")} capTone={t.sub} />
             )}
-            <Stat value={`${len}m`} label={tr("Length")} />
+            <Stat value={`${len}m`} label={tr("Length")} capTone={t.sub} />
           </div>
 
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
             {f.tip && (
               <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
-                <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Working on")}</div>
+                <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Working on")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
             )}
@@ -16060,8 +16062,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             {myDays.map((myDay) => (
               <div key={myDay.id || myDay.time} data-tour="day-mine" className="py-4">
                 <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
-                <span className="block" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.group ? (myDay.duration || duration) : duration)}</span>
-                <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.group ? (myDay.duration || duration) : duration} min with {conn?.coach || "your coach"}</div>
+                <span className="block" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.duration || duration)}</span>
+                <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.duration || duration} min with {conn?.coach || "your coach"}</div>
                 {myDay.group
                   ? <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.groupName || tr("Group")}</div>
                   : readOnly
