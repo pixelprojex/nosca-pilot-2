@@ -557,11 +557,21 @@ async function attach(page, db, opts = {}) {
         if (!db.requests.some((r) => r.player_id === meId && r.coach_id === c.id && r.status === "pending")) addRequest(db, { playerId: meId, coachId: c.id, notify: true });
         return json(200, { id: c.id, name: c.name, sport: c.sport, status: "pending" });
       }
+      /* respond_to_request(): the first yes is the player's coach — a second
+         coach's Accept is refused in words, and the yes closes the player's
+         other open requests as 'cancelled', which tells nobody */
       if (fn === "respond_to_request") {
-        const r = db.requests.find((x) => x.id === args.p_id && x.coach_id === meId && x.status === "pending");
+        const r = db.requests.find((x) => x.id === args.p_id && x.coach_id === meId);
         if (!r) return human("That request isn't waiting any more.");
-        r.status = args.p_accept ? "accepted" : "declined"; r.decided_at = nowIso(db);
-        if (args.p_accept && db.profiles[r.player_id]) db.profiles[r.player_id].coach_id = meId;
+        const player = db.profiles[r.player_id];
+        if (args.p_accept && player && player.coach_id && player.coach_id !== meId) return human(`${firstOf(db, r.player_id)} is with another coach now.`);
+        if (r.status !== "pending") return human("That request isn't waiting any more.");
+        const already = !!(args.p_accept && player && player.coach_id === meId);
+        r.status = already ? "cancelled" : args.p_accept ? "accepted" : "declined"; r.decided_at = nowIso(db);
+        if (args.p_accept) {
+          if (player) player.coach_id = meId;
+          db.requests.filter((x) => x.player_id === r.player_id && x.status === "pending" && x.id !== r.id).forEach((x) => { x.status = "cancelled"; x.decided_at = nowIso(db); });
+        }
         onRequestDecided(db, r); return json(204, undefined);
       }
       if (fn === "cancel_request") { const r = db.requests.find((x) => x.id === args.p_id && x.player_id === meId && x.status === "pending"); if (r) { r.status = "cancelled"; r.decided_at = nowIso(db); } return json(204, undefined); }

@@ -1166,7 +1166,10 @@ begin
     raise exception 'That''s your own code.';
   end if;
 
-  select p.role, p.coach_id into my_role, my_coach from public.profiles p where p.id = me;
+  -- the row is held until the request is in, so a coach accepting
+  -- another of this player's requests at the same moment waits, and
+  -- the request below is never written behind that coach's back
+  select p.role, p.coach_id into my_role, my_coach from public.profiles p where p.id = me for update;
   if my_role is null then
     raise exception 'Your account isn''t finished. Sign out, sign back in, and try again.';
   end if;
@@ -1192,6 +1195,19 @@ $fn$;
 
 -- The coach answers. Accepting links the player; either way the
 -- request is kept as history and the player is told (section 10).
+--
+-- A PLAYER HAS ONE COACH, AND THE FIRST YES IS IT. A player may ask two
+-- coaches at once (sign-up's code, then another from the app); the
+-- first to accept is their coach, and every other request they have
+-- open closes as 'cancelled', which tells nobody (trg_requests_notify
+-- speaks only for accepted and declined). A second coach's Accept is
+-- refused in words the app shows as they are — it used to move the
+-- player, a junior too, to the second coach without a word to anyone.
+-- The player's row is locked first, before the request, and join_coach
+-- locks it too: two coaches answering at once queue on that one row
+-- instead of each reading "no coach yet". A coach accepting someone
+-- already theirs closes the request quietly — nothing changes, so
+-- nobody is told twice.
 create or replace function public.respond_to_request(p_id uuid, p_accept boolean)
 returns void
 language plpgsql
@@ -1199,24 +1215,46 @@ security definer
 set search_path = ''
 as $fn$
 declare
-  me uuid := auth.uid();
-  r  record;
+  me       uuid := auth.uid();
+  v_player uuid;
+  v_coach  uuid;
 begin
   if me is null then
     raise exception 'You need to be signed in to do that.';
   end if;
-  select * into r from public.coach_requests where id = p_id and coach_id = me and status = 'pending';
+  select r.player_id into v_player from public.coach_requests r where r.id = p_id and r.coach_id = me;
   if not found then
     raise exception 'That request isn''t waiting any more.';
   end if;
-  update public.coach_requests
-  set status = case when p_accept then 'accepted' else 'declined' end, decided_at = now()
-  where id = p_id;
+  select p.coach_id into v_coach from public.profiles p where p.id = v_player for update;
+  if p_accept and v_coach is not null and v_coach <> me then
+    raise exception '% is with another coach now.', coalesce(public.first_name_of(v_player), 'That player');
+  end if;
+  perform 1 from public.coach_requests r where r.id = p_id and r.status = 'pending' for update;
+  if not found then
+    raise exception 'That request isn''t waiting any more.';
+  end if;
+  if p_accept and v_coach = me then
+    update public.coach_requests set status = 'cancelled', decided_at = now() where id = p_id;
+  else
+    update public.coach_requests
+    set status = case when p_accept then 'accepted' else 'declined' end, decided_at = now()
+    where id = p_id;
+  end if;
   if p_accept then
-    update public.profiles set coach_id = me where id = r.player_id;
+    update public.profiles set coach_id = me where id = v_player and coach_id is distinct from me;
+    update public.coach_requests set status = 'cancelled', decided_at = now()
+    where player_id = v_player and status = 'pending' and id <> p_id;
   end if;
 end;
 $fn$;
+
+-- Requests left open from before the guard above, by players who have
+-- a coach now: closed quietly, as the first yes would have closed them.
+-- Every run after the first finds none.
+update public.coach_requests r set status = 'cancelled', decided_at = now()
+from public.profiles p
+where p.id = r.player_id and r.status = 'pending' and p.coach_id is not null;
 
 -- The player withdraws a request they made.
 create or replace function public.cancel_request(p_id uuid)

@@ -18,6 +18,7 @@ const IDS = {
   coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", dara: "00000000-0000-4000-8000-00000000da4a",
   parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d",
   eoin: "00000000-0000-4000-8000-000000e01e01", aoife: "00000000-0000-4000-8000-00000000a01f", tadhg: "00000000-0000-4000-8000-0000000ad4a6",
+  grainne: "00000000-0000-4000-8000-0000009a1e1e", yvonne: "00000000-0000-4000-8000-0000000b0c0a",
 };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const TODAY = M.ymd(new Date());
@@ -53,6 +54,7 @@ const allowedFor = {
   adult: ["Cian Murphy", "Niamh Byrne", "Dara Kelly"], dara: ["Dara Kelly", "Cian Murphy"],
   parent: ["Orla Kelly", "Saoirse Kelly", "Niamh Byrne"], junior: ["Saoirse Kelly", "Orla Kelly", "Niamh Byrne"],
   eoin: ["Eoin Walsh", "Niamh Byrne"], aoife: ["Aoife Nolan", "Niamh Byrne"], tadhg: ["Tadhg Ryan", "Niamh Byrne"],
+  yvonne: ["Yvonne Doyle", "Gráinne Daly"],
 };
 const { check, results, summary } = M.checker("families-requests");
 const leaks = [];
@@ -130,6 +132,46 @@ const leaks = [];
       check("(b) Decline calls respond_to_request with p_accept false; no link is made; the player is told", !!dec && dec.args.p_id === aoifeReq.id && dec.args.p_accept === false && aoifeReq.status === "declined" && !db.profiles[IDS.aoife].coach_id && db.notifications.some((n) => n.user_id === IDS.aoife && n.kind === "declined"), JSON.stringify({ call: dec && dec.args, status: aoifeReq.status }));
       await shot("10-coach-declined");
       await ctx.close();
+    }
+
+    /* ---------- (b2) a player who asked two coaches has one: the first yes is it ----------
+       Gráinne asked Niamh and Yvonne. Niamh's Requests is open when Yvonne
+       accepts on her own phone; Niamh's Accept, on the screen she already
+       had, must be refused in words and move nobody — it used to take
+       Gráinne off Yvonne's roster without a word to anyone. */
+    {
+      M.addUser(db, { id: IDS.grainne, email: "grainne@t.ie" }); M.addProfile(db, { id: IDS.grainne, role: "player", name: "Gráinne Daly", type: "adult", dob: "1993-03-03" });
+      M.addUser(db, { id: IDS.yvonne, email: "yvonne@t.ie" }); M.addProfile(db, { id: IDS.yvonne, role: "coach", name: "Yvonne Doyle", inviteCode: "YV4N2E" });
+      M.setPrefs(db, IDS.yvonne, { setup_done: true });
+      const toNiamh = M.addRequest(db, { playerId: IDS.grainne, coachId: IDS.coach, notify: true });
+      const toYvonne = M.addRequest(db, { playerId: IDS.grainne, coachId: IDS.yvonne, notify: true });
+      const niamh = await boot("coach");
+      await niamh.page.locator('[data-tour="today-requests"]').click(); await niamh.page.waitForTimeout(900);
+      const n0 = await niamh.leak("coach requests, Gráinne asking"); await niamh.shot("10b-coach-grainne-asking");
+      check("(b2) Niamh's Requests shows Gráinne asking", n0.includes("Gráinne Daly") && (await byText(niamh.page, "Accept").count()) === 1, n0.slice(0, 200));
+      {
+        const { ctx, page } = await boot("yvonne");
+        await page.locator('[data-tour="today-requests"]').click(); await page.waitForTimeout(900);
+        await click(page, "Accept", 1800);
+        await ctx.close();
+      }
+      check("(b2) Yvonne's yes links Gráinne to her and closes the request to Niamh, telling nobody",
+        db.profiles[IDS.grainne].coach_id === IDS.yvonne && toYvonne.status === "accepted" && toNiamh.status === "cancelled"
+          && db.notifications.filter((n) => n.user_id === IDS.grainne && (n.kind === "accepted" || n.kind === "declined")).length === 1,
+        JSON.stringify({ coach: db.profiles[IDS.grainne].coach_id, toYvonne: toYvonne.status, toNiamh: toNiamh.status }));
+      const calls = rpc("respond_to_request").length;
+      await click(niamh.page, "Accept", 500);
+      const n1 = M.norm(await niamh.text()); await niamh.shot("10c-coach-grainne-refused");
+      check("(b2) Niamh's Accept on the screen she had is refused in words: 'Gráinne is with another coach now.'",
+        rpc("respond_to_request").length === calls + 1 && n1.includes("Gráinne is with another coach now") && !n1.includes("Gráinne added to your roster"), n1.slice(0, 240));
+      check("(b2) …and moves nobody: Gráinne stays Yvonne's, nobody is told again",
+        db.profiles[IDS.grainne].coach_id === IDS.yvonne
+          && db.notifications.filter((n) => n.user_id === IDS.grainne && (n.kind === "accepted" || n.kind === "declined")).length === 1,
+        JSON.stringify({ coach: db.profiles[IDS.grainne].coach_id }));
+      await niamh.page.waitForTimeout(1800);
+      const n2 = await niamh.leak("coach requests after the refusal"); await niamh.shot("10d-coach-grainne-gone");
+      check("(b2) the request that cannot be answered leaves Niamh's list", !n2.includes("Gráinne Daly") && (await byText(niamh.page, "Accept").count()) === 0, n2.slice(0, 200));
+      await niamh.ctx.close();
     }
 
     /* ---------- (c) the accepted and the declined player ---------- */

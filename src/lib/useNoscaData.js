@@ -1551,10 +1551,18 @@ export function useNoscaData(profile) {
     return { coach, pending: true };
   };
 
-  /* The coach's answer to a request. Accepting is what links the player. */
+  /* The coach's answer to a request. Accepting is what links the player.
+     A refusal ("Cian is with another coach now", "That request isn't
+     waiting any more") is said by the caller, and the list is read again
+     so a request that cannot be answered any more leaves the screen
+     rather than waiting there to be refused a second time. */
   const respondToRequest = async (id, accept) => {
     const { error } = await supabase.rpc("respond_to_request", { p_id: id, p_accept: !!accept });
-    if (error) return { error: { message: rpcMessage(error, "Couldn't answer that request.") } };
+    if (error) {
+      const message = rpcMessage(error, "Couldn't answer that request.");
+      if (!/couldn't reach the server/i.test(message)) await load();
+      return { error: { message } };
+    }
     await load();
     return {};
   };
