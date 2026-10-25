@@ -228,6 +228,25 @@ create table if not exists public.bookings (
   created_at   timestamptz not null default now()
 );
 
+-- ---------- a member out of one group lesson ----------
+-- A group's lesson carries a name and no player; its members live on the
+-- coach's own preferences (group_members). A member, or an adult for a
+-- junior they look after, says they will not be at one session: one row
+-- here, written only by set_group_absence(). No row is the default and
+-- means coming, as every group lesson meant before this table. The coach
+-- reads their own lessons' rows; a member and their adults the member's;
+-- no other family reads who is out. coach_id rides on the row so the
+-- policy needs no other table.
+create table if not exists public.group_absences (
+  booking_id uuid not null references public.bookings (id) on delete cascade,
+  player_id  uuid not null references public.profiles (id) on delete cascade,
+  coach_id   uuid not null references public.profiles (id) on delete cascade,
+  set_by     uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  primary key (booking_id, player_id)
+);
+create index if not exists group_absences_coach on public.group_absences (coach_id);
+
 -- ---------- competitions ----------
 -- A player's own upcoming events, or a coach's own (player_id null).
 -- coach_id is optional: a player can add one before they have a coach,
@@ -1078,6 +1097,55 @@ $fn$;
 revoke all on function public.my_group_bookings() from public, anon;
 grant execute on function public.my_group_bookings() to authenticated;
 
+-- A MEMBER OUT OF ONE SESSION, or back in. The caller for themselves, or
+-- an adult for a junior they look after (a junior's own diary is read
+-- only: a parent answers for them); a group lesson still going ahead and
+-- not yet started by Ireland's clock; and the player one of the group's
+-- members as the coach saved it, still on the roster. Refusals are in
+-- words the app shows as they are. Saying it twice changes nothing and
+-- tells nobody twice (the insert does nothing, so no trigger fires).
+create or replace function public.set_group_absence(p_booking uuid, p_player uuid, p_out boolean)
+returns boolean
+language plpgsql security definer set search_path = ''
+as $fn$
+declare
+  me uuid := auth.uid();
+  b record;
+  here timestamp := now() at time zone 'Europe/Dublin';
+  t time;
+begin
+  if me is null then raise exception 'You need to be signed in to do that.'; end if;
+  if p_player is null or (p_player <> me and p_player not in (select public.my_family_ids())) then
+    raise exception 'Only the player or their parent can change that.';
+  end if;
+  if p_player = me and public.is_junior() then
+    raise exception 'A parent answers for a junior.';
+  end if;
+  select bk.id, bk.coach_id, bk.group_name, bk.booking_date, bk.start_time, bk.status, bk.kind, bk.player_id
+    into b from public.bookings bk where bk.id = p_booking;
+  if not found or b.kind <> 'group' or b.player_id is not null or nullif(trim(b.group_name), '') is null then
+    raise exception 'That isn''t a group lesson.';
+  end if;
+  if b.status <> 'confirmed' then raise exception 'That lesson isn''t going ahead.'; end if;
+  begin t := to_timestamp(trim(b.start_time), 'HH12:MI am')::time; exception when others then t := null; end;
+  if b.booking_date < here::date or (b.booking_date = here::date and coalesce(t, time '23:59') <= here::time) then
+    raise exception 'That lesson has started.';
+  end if;
+  if p_player not in (select public.group_members(b.coach_id, b.group_name)) then
+    raise exception '% isn''t in %.', public.first_name_of(p_player), left(trim(b.group_name), 60);
+  end if;
+  if coalesce(p_out, false) then
+    insert into public.group_absences (booking_id, player_id, coach_id, set_by)
+    values (b.id, p_player, b.coach_id, me)
+    on conflict (booking_id, player_id) do nothing;
+  else
+    delete from public.group_absences where booking_id = b.id and player_id = p_player;
+  end if;
+  return coalesce(p_out, false);
+end $fn$;
+revoke all on function public.set_group_absence(uuid, uuid, boolean) from public, anon;
+grant execute on function public.set_group_absence(uuid, uuid, boolean) to authenticated;
+
 -- registers you, or someone you look after, were marked in. The
 -- sessions policy needs this because it may not read the marks table
 -- directly: the marks policy reads sessions, and two tables reading
@@ -1870,6 +1938,36 @@ create trigger bookings_group_status_notify after update on public.bookings
   referencing old table as old_rows new table as new_rows
   for each statement execute function public.trg_bookings_group_status_notify();
 
+-- ---------- a member out of one group lesson, or back in ----------
+-- The coach is told, by the member's first name, the session on the body:
+-- "Cian can't make Saturday clinic" · "Sat 24 Oct 9:00 am", and back in,
+-- "Cian can make Saturday clinic". A row that goes with its booking or its
+-- member (a cascade) tells nobody: the booking or the profile is gone by
+-- the time this runs. Nobody else is told — the member said it, or their
+-- parent did, and their own diary shows it.
+create or replace function public.trg_group_absences_notify()
+returns trigger language plpgsql security definer set search_path = '' as $fn$
+declare r record; b record; grp text; whn text;
+begin
+  if tg_op = 'DELETE' then r := old; else r := new; end if;
+  select bk.coach_id, bk.group_name, bk.booking_date, bk.start_time, bk.status into b
+    from public.bookings bk where bk.id = r.booking_id;
+  if not found or b.status <> 'confirmed'
+     or not exists (select 1 from public.profiles p where p.id = r.player_id) then
+    return null;
+  end if;
+  grp := left(trim(b.group_name), 60);
+  whn := public.nice_date(b.booking_date) || ' ' || b.start_time;
+  perform public.notify(b.coach_id, 'booking',
+    public.first_name_of(r.player_id) || case when tg_op = 'INSERT' then ' can''t make ' else ' can make ' end || grp,
+    whn, jsonb_build_object('screen', 'calendar', 'id', r.booking_id));
+  return null;
+exception when others then return null;
+end $fn$;
+drop trigger if exists group_absences_notify on public.group_absences;
+create trigger group_absences_notify after insert or delete on public.group_absences
+  for each row execute function public.trg_group_absences_notify();
+
 -- ---------- a message ----------
 create or replace function public.trg_messages_notify()
 returns trigger language plpgsql security definer set search_path = '' as $fn$
@@ -2045,6 +2143,8 @@ begin
         -- the member's own line lands on the Diary; an adult's line for a
         -- child of hers in the same group lands on Family and must not
         -- stand in for her own place
+        -- a member who said they will not be there is not reminded
+        continue when exists (select 1 from public.group_absences ga where ga.booking_id = gb.id and ga.player_id = m);
         continue when exists (select 1 from public.notifications x
                               where x.user_id = m and x.kind = 'booking' and x.data->>'remind' = gb.id::text
                                 and x.data->>'screen' = 'calendar');
@@ -2132,7 +2232,7 @@ begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
     foreach t in array array['notifications','lessons','bookings','messages','coach_requests',
                              'drills','tips','attendance_sessions','attendance_marks','profiles','preferences',
-                             'competitions','recurring','reviews','families'] loop
+                             'competitions','recurring','reviews','families','group_absences'] loop
       if not exists (select 1 from pg_publication_tables
                      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
         execute format('alter publication supabase_realtime add table public.%I', t);
@@ -2383,7 +2483,7 @@ begin
       and tablename in ('profiles', 'families', 'coach_requests', 'lessons', 'lesson_media', 'lesson_attendees',
                         'drills', 'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
                         'competitions', 'recurring', 'preferences', 'messages', 'reviews',
-                        'notifications', 'push_subscriptions')
+                        'notifications', 'push_subscriptions', 'group_absences')
   loop
     execute format('drop policy if exists %I on public.%I', p.policyname, p.tablename);
   end loop;
@@ -2408,6 +2508,7 @@ alter table public.recurring           enable row level security;
 alter table public.preferences         enable row level security;
 alter table public.messages            enable row level security;
 alter table public.reviews             enable row level security;
+alter table public.group_absences      enable row level security;
 
 -- ---------- table privileges ----------
 -- Policies decide which rows; these decide which verbs. Nobody
@@ -2421,7 +2522,7 @@ revoke all on public.profiles, public.families, public.coach_requests, public.no
               public.push_subscriptions, public.lessons, public.lesson_media, public.lesson_attendees, public.drills,
               public.tips, public.attendance_sessions, public.attendance_marks,
               public.bookings, public.competitions, public.recurring,
-              public.preferences, public.messages, public.reviews, public.lessons_view
+              public.preferences, public.messages, public.reviews, public.lessons_view, public.group_absences
   from anon;
 
 revoke all on public.profiles from authenticated;
@@ -2432,6 +2533,9 @@ revoke all on public.families, public.coach_requests, public.notifications from 
 grant select on public.families, public.coach_requests to authenticated;
 grant select, update, delete on public.notifications to authenticated;
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
+-- a member out of one group lesson changes only through set_group_absence()
+revoke all on public.group_absences from authenticated;
+grant select on public.group_absences to authenticated;
 
 grant select, insert, update, delete on
   public.lessons, public.lesson_media, public.lesson_attendees, public.drills, public.tips,
@@ -2654,6 +2758,15 @@ create policy "bookings: a player or guardian cancels their own" on public.booki
   with check (status = 'cancelled'
               and public.booking_unchanged(id, coach_id, player_id, booking_date, start_time, duration, kind));
 
+-- ---------- group_absences ----------
+-- read only; written through set_group_absence(). Never reads its own table.
+create policy "group_absences: the member, their adults, the coach" on public.group_absences
+  for select to authenticated using (
+    player_id = auth.uid()
+    or player_id in (select public.my_family_ids())
+    or coach_id = auth.uid()
+  );
+
 -- ---------- competitions ----------
 create policy "competitions: yours or your family's" on public.competitions
   for select to authenticated using (
@@ -2871,7 +2984,7 @@ declare
   every constant text[] := array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
                                  'lessons', 'lessons_view', 'lesson_media', 'lesson_attendees', 'drills',
                                  'tips', 'attendance_sessions', 'attendance_marks', 'bookings',
-                                 'competitions', 'recurring', 'preferences', 'messages', 'reviews'];
+                                 'competitions', 'recurring', 'preferences', 'messages', 'reviews', 'group_absences'];
   tbl        text;
   n          bigint;
   as_user    text := '';
@@ -2954,7 +3067,7 @@ with
     select unnest(array['profiles', 'families', 'coach_requests', 'notifications', 'push_subscriptions',
                         'lessons', 'lesson_media', 'lesson_attendees', 'drills', 'tips',
                         'attendance_sessions', 'attendance_marks', 'bookings', 'competitions',
-                        'recurring', 'preferences', 'messages', 'reviews']) as t
+                        'recurring', 'preferences', 'messages', 'reviews', 'group_absences']) as t
   ),
   want_functions as (
     select unnest(array['new_code', 'handle_new_user', 'find_coach_by_code', 'find_family_by_code',
@@ -2966,7 +3079,7 @@ with
                         'create_family', 'join_family', 'rename_family', 'leave_family',
                         'notify', 'adults_for', 'trg_lessons_notify', 'trg_lessons_rating_notify', 'trg_requests_notify', 'trg_bookings_notify',
                         'trg_messages_notify', 'trg_drills_notify', 'trg_tips_notify', 'trg_family_notify',
-                        'delete_my_account', 'booking_unchanged']) as f
+                        'delete_my_account', 'booking_unchanged', 'set_group_absence', 'trg_group_absences_notify']) as f
   ),
   have_functions as (
     select p.proname as f

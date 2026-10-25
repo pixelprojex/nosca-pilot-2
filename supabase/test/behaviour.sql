@@ -598,6 +598,163 @@ select (:mj8 = 1 and :mjother = 0) as ok \gset
 select coalesce((select not has_function_privilege('anon', f, 'execute') from to_regprocedure('public.my_group_bookings()') f where f is not null), false) as ok \gset
 \if :ok \echo PASS nobody signed out can ask for group lessons (8f) \else \echo FAIL my_group_bookings is callable signed out \endif
 
+\echo === 8h. a member out of one group lesson
+-- Aoife says she will not be at the Saturday in eight days: one row, the coach told once by her first name; said twice, nothing more
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'g8', false), set_config('test.p', :'a1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as h_e1 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'g8', false), set_config('test.p', :'a1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as h_e1b \gset
+select (select count(*) from public.group_absences where booking_id = :'g8' and player_id = :'a1' and coach_id = :'c1' and set_by = :'a1') as hr,
+       (select count(*) from public.notifications where user_id = :'c1' and kind = 'booking' and title = 'Aoife can''t make Saturday squad' and body = :'w8' and data->>'screen' = 'calendar' and data->>'id' = :'g8') as hn,
+       (select count(*) from public.notifications where user_id <> :'c1' and title like '%can''t make%') as hother \gset
+select (:'h_e1' = '' and :'h_e1b' = '' and :hr = 1 and :hn = 1 and :hother = 0) as ok \gset
+\if :ok \echo PASS a member marks themselves out of one group lesson; the coach is told once, by first name, with the day (8h) \else \echo FAIL out e=:h_e1 again=:h_e1b row=:hr told=:hn other=:hother (8h) \endif
+-- Marcus says Ellie will not be there: her row, set by him; the coach told by her name
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'p1'), true) \gset _
+select set_config('test.b', :'g8', false), set_config('test.p', :'j1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as h_e2 \gset
+select (select count(*) from public.group_absences where booking_id = :'g8' and player_id = :'j1' and set_by = :'p1') as hr,
+       (select count(*) from public.notifications where user_id = :'c1' and title = 'Ellie can''t make Saturday squad' and body = :'w8') as hn \gset
+select (:'h_e2' = '' and :hr = 1 and :hn = 1) as ok \gset
+\if :ok \echo PASS an adult marks a junior they look after out of a group lesson (8h) \else \echo FAIL parent out e=:h_e2 row=:hr told=:hn (8h) \endif
+-- who reads it: the member, the junior's adult, the junior, the coach — never another family, a former member, another coach
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select (select count(*) from public.group_absences) as ra, (select count(*) from public.group_absences where player_id = :'a1') as ra_a \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'p1'), true) \gset _
+select (select count(*) from public.group_absences) as rp, (select count(*) from public.group_absences where player_id = :'a1') as rp_a \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'j1'), true) \gset _
+select (select count(*) from public.group_absences) as rj, (select count(*) from public.group_absences where player_id = :'a1') as rj_a \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true) \gset _
+select (select count(*) from public.group_absences) as rc, (select count(*) from public.group_absences where player_id = :'a1') as rc_a \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'t1'), true) \gset _
+select (select count(*) from public.group_absences) as rt, (select count(*) from public.group_absences where player_id = :'a1') as rt_a \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c2'), true) \gset _
+select (select count(*) from public.group_absences) as rx, (select count(*) from public.group_absences where player_id = :'a1') as rx_a \gset
+commit;
+select (:ra = 1 and :ra_a = 1 and :rp = 1 and :rp_a = 0 and :rj = 1 and :rj_a = 0 and :rc = 2 and :rt = 0 and :rx = 0) as ok \gset
+\if :ok \echo PASS a member reads their own answer, an adult their junior s, the coach every one of their lessons, nobody else any (8h) \else \echo FAIL reads a=:ra/:ra_a p=:rp/:rp_a j=:rj/:rj_a c=:rc t=:rt x=:rx (8h) \endif
+-- refusals, in words: a junior for herself, a player for somebody else's child, a former member, a cancelled lesson,
+-- a lesson that has started, a group she is not in, a private lesson; and no write to the table except through the function
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Saturday squad', (now() at time zone 'Europe/Dublin')::date, '12:00 am', 60, 'group', 'confirmed') returning id as gpast \gset
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Saturday squad', (now() at time zone 'Europe/Dublin')::date - 3, '2:00 pm', 60, 'group', 'confirmed') returning id as gold \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'j1'), true) \gset _
+select set_config('test.b', :'gs', false), set_config('test.p', :'j1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x1 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'gs', false), set_config('test.p', :'j1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x2 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'t1'), true) \gset _
+select set_config('test.b', :'g8', false), set_config('test.p', :'t1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x3 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'g15', false), set_config('test.p', :'a1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x4 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'gpast', false), set_config('test.p', :'a1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x5 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'gold', false), set_config('test.p', :'a1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x5b \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'gs', false), set_config('test.p', :'a1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x6 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'bk_a', false), set_config('test.p', :'a1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as x7 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+\set ON_ERROR_STOP off
+insert into public.group_absences (booking_id, player_id, coach_id) values (:'g15', :'a1', :'c1');
+\set ON_ERROR_STOP on
+rollback;
+select (:'x1' = 'A parent answers for a junior.' and :'x2' = 'Only the player or their parent can change that.'
+    and :'x3' = 'tom.beckett isn''t in Saturday squad.' and :'x4' = 'That lesson isn''t going ahead.'
+    and :'x5' = 'That lesson has started.' and :'x5b' = 'That lesson has started.'
+    and :'x6' = 'Aoife isn''t in Sunday juniors.' and :'x7' = 'That isn''t a group lesson.'
+    and (select count(*) from public.group_absences) = 2) as ok \gset
+\if :ok \echo PASS marking out is refused in words for a junior alone, another s child, a former member, a lesson not going ahead or started, a group not theirs, a private lesson; the table takes no direct write (the error above is the refusal) (8h) \else \echo FAIL refusals x1=:x1 x2=:x2 x3=:x3 x4=:x4 x5=:x5 x5b=:x5b x6=:x6 x7=:x7 (8h) \endif
+-- Aoife can make it after all: the row goes, the coach is told once; said twice, nothing more
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'g8', false), set_config('test.p', :'a1', false), set_config('test.o', 'false', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as h_e3 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'a1'), true) \gset _
+select set_config('test.b', :'g8', false), set_config('test.p', :'a1', false), set_config('test.o', 'false', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as h_e3b \gset
+select (select count(*) from public.group_absences where booking_id = :'g8' and player_id = :'a1') as hr,
+       (select count(*) from public.notifications where user_id = :'c1' and title = 'Aoife can make Saturday squad' and body = :'w8' and data->>'id' = :'g8') as hn \gset
+select (:'h_e3' = '' and :'h_e3b' = '' and :hr = 0 and :hn = 1) as ok \gset
+\if :ok \echo PASS a member back in: the answer goes and the coach is told once (8h) \else \echo FAIL back in e=:h_e3 again=:h_e3b row=:hr told=:hn (8h) \endif
+-- the evening before: a member who is out is not reminded, nor is her adult; the others are
+insert into public.bookings (coach_id, group_name, booking_date, start_time, duration, kind, status) values (:'c1', 'Saturday squad', (now() at time zone 'Europe/Dublin')::date + 1, '5:00 pm', 60, 'group', 'confirmed') returning id as gtm \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'p1'), true) \gset _
+select set_config('test.b', :'gtm', false), set_config('test.p', :'j1', false), set_config('test.o', 'true', false) \gset _
+do $t$ begin perform set_config('test.err', '', false); perform public.set_group_absence(current_setting('test.b')::uuid, current_setting('test.p')::uuid, current_setting('test.o')::boolean);
+exception when others then perform set_config('test.err', sqlerrm, false); end $t$;
+commit;
+select current_setting('test.err') as h_e4 \gset
+select public.remind_bookings(18) as hb \gset
+select (select count(*) from public.notifications where user_id = :'a1' and title = 'Saturday squad tomorrow · 5:00 pm' and data->>'remind' = :'gtm') as ta,
+       (select count(*) from public.notifications where user_id in (:'j1', :'p1') and data->>'remind' = :'gtm') as tj \gset
+select (:'h_e4' = '' and :ta = 1 and :tj = 0) as ok \gset
+\if :ok \echo PASS the evening before, a member marked out of a group lesson is not reminded, nor her adult; the rest are (8h) \else \echo FAIL reminder with an absence e=:h_e4 a=:ta j=:tj (8h) \endif
+-- a lesson deleted takes its answers with it and tells nobody they are back
+select count(*) as nb from public.notifications where user_id = :'c1' \gset
+delete from public.bookings where id = :'gtm';
+select ((select count(*) from public.group_absences where booking_id = :'gtm') = 0
+    and (select count(*) from public.notifications where user_id = :'c1') = :nb) as ok \gset
+\if :ok \echo PASS a group lesson deleted takes its answers and tells the coach nothing (8h) \else \echo FAIL cascade told somebody (8h) \endif
+delete from public.bookings where id in (:'gpast', :'gold');
+select coalesce((select not has_function_privilege('anon', f, 'execute') from to_regprocedure('public.set_group_absence(uuid, uuid, boolean)') f where f is not null), false)
+   and not has_table_privilege('anon', 'public.group_absences', 'select')
+   and not has_table_privilege('authenticated', 'public.group_absences', 'insert')
+   and not has_table_privilege('authenticated', 'public.group_absences', 'delete') as ok \gset
+\if :ok \echo PASS nobody signed out can mark anybody out, and nobody signed in writes the table directly (8h) \else \echo FAIL group_absences privileges (8h) \endif
+
 \echo === 9. delete_my_account cascades, and links held by others are released
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'c1'), true);
 select public.delete_my_account();
