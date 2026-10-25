@@ -448,10 +448,40 @@ the call-off row a 0.5px rule with a rain glyph, the day named twice, a
 span that lost its am across noon, a clinic at the diary's 45 minutes
 on the coach's side, and the reasons a 1.2:1 hairline with the chosen
 one a 1.09:1 tint. WCAG 1.4.10 asks that content work at 320 CSS pixels
-without loss; WCAG 2.5.8 sets 24px as the least target and 44px as the
-enhanced one, Apple's own minimum. The visual item of the day;
+without loss; WCAG 2.5.8 sets 24px as the least target and 2.5.5 44px
+as the enhanced one, Apple's own minimum. The visual item of the day;
 `calendar-day.cjs`. With it, one small functional fix: the first yes is
 the player's coach, a second coach's Accept refused in words.
+
+### 27. A member says Not going to one group lesson. **Built 25 October.**
+The notices of item 25 told every member of a clinic when it was
+booked, rained off or cancelled, and a member still had no way to say
+they would miss one session: a parent texted the coach, or the coach
+found out at the register. Every product aimed at training answers for
+one session, and a parent answers for a child: Spond's Attending or
+Decline, its recommended setting for weekly training enrolling
+everyone so members "only need to unsubscribe" (help.spond.com
+articles 129730, 67817); Heja's Going or Not going, tapped by a parent
+for a child (help.heja.io article 14643676); TeamSnap's Yes · Maybe ·
+No (helpme.teamsnap.com article 94); Teamer's Accepted or Declined with
+a reason only admins see; SportMember's attending or not with an alert
+to the coach; 360Player's parent switching to each child to accept or
+decline; CourtReserve's Withdraw Registration for a clinic. Answers
+stay apart from the register, which the coach takes and can override
+(Spond, 360Player). Nosca takes Spond's training default — everyone is
+going and only a no is stored — with no unanswered state, no Maybe and
+no nagging: Not going, then Going to undo it, on the member's block,
+for an adult or a parent answering for a junior; the coach told by
+name with the day, the count on the day and the names on the lesson,
+and those members already Absent on a register not yet taken; a member
+out not reminded the evening before. The field research could open no
+vendor page directly (every fetch refused); its claims are from the
+vendors' own help pages as search excerpts. The functional item of the
+day; `rsvp.cjs`, behaviour.sql 8h. With it, one small visual fix: the
+header's controls answer a finger 44 tall without a glyph moving
+(Saved, Search and Alerts 35 wide, 27 in the feed's pill, as wide as
+their spacing allows without overlapping); Back, the month chevrons and
+the diary's pencil 44 square; `hit-areas.cjs`.
 
 ### Next candidates (unranked until read against the field)
 - One person row (visual, about a day): the face-and-name row is drawn
@@ -459,10 +489,10 @@ the player's coach, a second coach's Accept refused in words.
   57 to 73px into the box, rows 56 to 76 tall — and at 320 the item on
   the right cuts the name or the time on four surfaces. A shared row
   with one face, one inset and a trailing slot that yields first.
-- A member marks themselves out of one group session (an RSVP: going /
-  not going, a parent for a child), the coach seeing who is coming —
-  Heja, Teamer, Spond, CourtReserve. Needs a table of answers and a
-  policy; the notices of item 25 first.
+- A reason on Not going, optional, read by the coach first as a
+  cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
+  `reason` column and the Why sheet. And answers locked once the
+  register is taken (Spond, CourtReserve).
 - A second reminder the morning of, or an hour before, if the founder
   asks; CoachAccountable sends both.
 - An acknowledgement from the player on a reply — CoachNow's "fist
@@ -573,3 +603,15 @@ the items above; a research spike first.
 
 - https://www.w3.org/WAI/WCAG22/Understanding/reflow (WCAG 1.4.10: content at 320 CSS pixels without loss of information or two-way scrolling)
 - https://dequeuniversity.com/rules/attest-ios/1.0/touch-target-size (touch targets: 44x44 points on iOS; WCAG 2.5.8 sets 24 CSS pixels as AA, 44 as AAA)
+
+- https://help.spond.com/app/en/articles/129730-features-in-events (Spond: a weekly training event can enrol everyone, so members only need to unsubscribe)
+- https://help.spond.com/en/articles/67817-faqs-events-in-the-spond-app (Spond: Attending or Decline; the organiser sees Going, Unanswered and Can't go)
+- https://help.spond.com/en/articles/25931-spond-app-using-the-app-as-a-parent-or-guardian (Spond: a guardian answers for the child)
+- https://help.spond.com/app/en/articles/131887-register-attendance-and-download-attendance-history-in-the-spond-app (Spond: the register is the coach's, apart from the answers)
+- https://help.heja.io/en/articles/14643676-how-to-rsvp-to-an-activity-in-heja (Heja: Going or Not going, a parent for a child)
+- https://helpme.teamsnap.com/article/94-set-game-and-event-availability (TeamSnap: Yes, Maybe or No per event)
+- https://help.teamer.net/knowledge/member/events/view-team-events (Teamer: accept or decline, with a reason admins see)
+- https://www.sportmember.co.uk/en/attendance-tracker (SportMember: attending or not, the coach alerted)
+- https://help.360player.com/en/articles/10267995-respond-to-an-event-invite (360Player: a parent accepts or declines for each child)
+- https://help.courtreserve.com/en/articles/11787240-public-booking-setup-guide-and-overview (CourtReserve: withdrawing from a clinic)
+- https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced (WCAG 2.5.5: 44 by 44 CSS pixels, the enhanced target)
