@@ -2459,6 +2459,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     <Rail tone={t.ink}>{h}</Rail>
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{mn.groupName || coachName || tr("Your coach")}</span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
+                    {mn.out && <span data-tour="agenda-out" className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{tr("Not going")}</span>}
                   </>);
                   if (juvenile || !onMine) return (
                     <div key={h} data-tour="agenda-mine" className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>{inner}</div>
@@ -4632,7 +4633,11 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
      showed one as done. The register is always for today, because
      that is the only day this sheet offers. */
   const keyOf = (l) => registerKey(l.who, new Date());
-  const [marks, setMarks] = useState(start ? (taken[keyOf(start)] || {}) : {});
+  /* a register already taken comes back as it was; a fresh one for a
+     group lesson starts with the members who said they will not be
+     there marked absent — the coach can still mark them in */
+  const marksFor = (l) => taken[keyOf(l)] || Object.fromEntries(((l && l.outIds) || []).map((id) => [id, "out"]));
+  const [marks, setMarks] = useState(start ? marksFor(start) : {});
 
   /* ROWS, NOT NAMES. A register keyed by display name put two players
      called the same thing into one mark and lost the other's record
@@ -4655,7 +4660,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
   const open = (l) => {
     haptic(8); soft();
     setPicked(l);
-    setMarks(taken[keyOf(l)] || {});   // reopen a register already taken
+    setMarks(marksFor(l));   // reopen a register already taken
   };
 
   const mark = (id, v) => {
@@ -4699,7 +4704,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           {who.map((r, i) => {
             const m = marks[r.id];
             return (
-              <div key={r.id} className="flex items-center gap-2.5 px-3"
+              <div key={r.id} data-reg-row={r.name} data-mark={m || ""} className="flex items-center gap-2.5 px-3"
                    style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}`,
                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={32} />
@@ -7401,7 +7406,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           <span className="flex-1 min-w-0">
             <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
             <span className="block mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>
-              {span(item.time, len)} · {item.kind}
+              {span(item.time, len)} · {item.kind}{isGroup && item.outIds && item.outIds.length ? <span data-tour="block-out-count" style={{ color: t.sub }}> · {item.outIds.length} {tr("not going")}</span> : null}
             </span>
           </span>
           <span className="text-right shrink-0">
@@ -7429,6 +7434,12 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           </div>
 
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
+            {isGroup && item.outNames && item.outNames.length > 0 && (
+              <div data-tour="block-out" className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
+                <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not going")}</div>
+                <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{item.outNames.join(", ")}</div>
+              </div>
+            )}
             {f.tip && (
               <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
                 <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Working on")}</div>
@@ -15781,7 +15792,7 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
 }
 
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -16061,11 +16072,21 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <div className="nsc-list mb-5">
             {myDays.map((myDay) => (
               <div key={myDay.id || myDay.time} data-tour="day-mine" className="py-4">
-                <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : tr("Your lesson")}</span>
+                <span className="block mb-2" style={{ ...TYPE.eyebrow, color: myDay.out ? t.sub : t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : myDay.out ? tr("Not going") : tr("Your lesson")}</span>
                 <span className="block" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.duration || duration)}</span>
                 <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.duration || duration} min with {conn?.coach || "your coach"}</div>
                 {myDay.group
-                  ? <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.groupName || tr("Group")}</div>
+                  ? <>
+                      <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.groupName || tr("Group")}</div>
+                      {/* one session of a group: out, or back in. A member, or the
+                          adult booking for a child; a junior's diary is read only */}
+                      {onGroupOut && myDay.id && myDay.status === "confirmed" && !readOnly && !past && (
+                        <div className="flex items-center gap-5 mt-2">
+                          <button data-tour="day-out" data-out={myDay.out ? "1" : "0"} onClick={() => { haptic(8); onGroupOut(myDay, !myDay.out); }} className="active:opacity-60"
+                                  style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: myDay.out ? 600 : 400, color: myDay.out ? t.accent : t.sub }}>{myDay.out ? tr("Going") : tr("Not going")}</button>
+                        </div>
+                      )}
+                    </>
                   : readOnly
                   ? <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Booked by your parent")}</div>
                   : <div className="flex items-center gap-5 mt-2">
@@ -19022,14 +19043,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        lesson they take; a player's own and a child's. A player can also
        read their coach's group slots (the diary's busy times), and those
        are not theirs to put in a calendar. */
-    const theirs = (b) => role === "coach" ? (b.coachId === account.id || b.playerId === account.id) : (b.playerId === account.id || kids.has(b.playerId) || (b.forIds || []).some((id) => id === account.id || kids.has(id)));
+    /* a group lesson somebody said they will not be at is not theirs to
+       put in a calendar: only the household's members still going */
+    const going = (b) => (b.forIds || []).filter((id) => !(b.outIds || []).includes(id));
+    const theirs = (b) => role === "coach" ? (b.coachId === account.id || b.playerId === account.id) : (b.playerId === account.id || kids.has(b.playerId) || going(b).some((id) => id === account.id || kids.has(id)));
     return (liveBookingRows || [])
       .filter((b) => b && b.status === "confirmed" && b.date && b.date >= today && theirs(b))
       .sort((a, b) => String(a.date).localeCompare(String(b.date)) || ((parseTime(a.time) || 0) - (parseTime(b.time) || 0)))
       .map((b) => {
-        const grpMine = role !== "coach" && !b.playerId && (b.forIds || []).includes(account.id);
+        const grpMine = role !== "coach" && !b.playerId && going(b).includes(account.id);
         const mine = b.playerId === account.id || grpMine;
-        const kidId = !mine && role !== "coach" ? (b.playerId || (b.forIds || []).find((id) => kids.has(id))) : null;
+        const kidId = !mine && role !== "coach" ? (b.playerId || going(b).find((id) => kids.has(id))) : null;
         const kid = kidId ? (data.dependants || []).find((k) => k.id === kidId) : null;
         const who = mine ? (data.coachName || "") : kid ? [kid.name.split(" ")[0], kid.coachName].filter(Boolean).join(" · ") : b.who;
         const name = role !== "coach" && !b.playerId && b.groupName ? [kid ? kid.name.split(" ")[0] : null, b.groupName, mine ? data.coachName : kid ? kid.coachName : null].filter(Boolean).join(" · ") : who;
@@ -19045,7 +19069,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   };
   /* The player's own — asked for or confirmed; nothing cancelled. */
   const myBookings = data
-    ? (liveBookingRows || []).filter((b) => (b.playerId === account.id || (b.forIds || []).includes(account.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 }))
+    ? (liveBookingRows || []).filter((b) => (b.playerId === account.id || (b.forIds || []).includes(account.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1, out: (b.outIds || []).includes(account.id) }))
     : bookings.filter((b) => b.connId === conn?.id);
   /* A LESSON CALLED OFF IS NOT A LESSON THAT QUIETLY DISAPPEARS.
 
@@ -20767,7 +20791,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const famLessons = data ? (data.lessons || []) : (kid ? (playerLessons || []).slice(0, 3).map((l) => ({ ...l, playerId: kid.id })) : []);
     const famDrills = data ? (data.drills || []) : (kid ? (practice["2:tennis"] || []).map((d) => ({ ...d, playerId: kid.id })) : []);
     const famIds = new Set(((fam && fam.members) || []).map((m) => m.id));
-    const famBookings = data ? (liveBookingRows || []).flatMap((b) => b.playerId ? (famIds.has(b.playerId) ? [b] : []) : (b.forIds || []).filter((id) => famIds.has(id)).map((id) => ({ ...b, playerId: id, id: `${b.id}:${id}` }))) : (kid ? [{ id: 1, playerId: kid.id, date: isoOf(7, 31), time: "4:30 pm", status: "confirmed" },
+    /* a group lesson a member said they will not be at is not coming up */
+    const famBookings = data ? (liveBookingRows || []).flatMap((b) => b.playerId ? (famIds.has(b.playerId) ? [b] : []) : (b.forIds || []).filter((id) => famIds.has(id) && !(b.outIds || []).includes(id)).map((id) => ({ ...b, playerId: id, id: `${b.id}:${id}` }))) : (kid ? [{ id: 1, playerId: kid.id, date: isoOf(7, 31), time: "4:30 pm", status: "confirmed" },
                                                                  { id: 2, playerId: kid.id, date: isoOf(8, 6), time: "5:00 pm", status: "confirmed" }] : []);
     const famHours = data ? (data.hoursByPlayer || {}) : (kid ? { [kid.id]: { days: DEFAULT_AVAIL.tennis } } : {});
     const iso = isoOf(todayMD.m, todayMD.d);
@@ -20806,7 +20831,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             forName={bookFor ? bookFor.name.split(" ")[0] : null} onClearFor={() => setBookFor(null)}
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
-                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => (b.playerId === bookFor.id || (b.forIds || []).includes(bookFor.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1 })) : myBookings) : []} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
+                                                            bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => (b.playerId === bookFor.id || (b.forIds || []).includes(bookFor.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1, out: (b.outIds || []).includes(bookFor.id) })) : myBookings) : []}
+                                                            onGroupOut={data && data.canRsvp ? async (bk, out) => { const pid = bookFor ? bookFor.id : account.id; const r = await data.setGroupAbsence(bk.id, pid, out); if (r && r.error) { say(r.error.message); return; } done(out ? tr("Not going") : tr("Going"), [bookFor ? bookFor.name.split(" ")[0] : null, bk.groupName, bk.date ? fmtIsoDay(bk.date) : null].filter(Boolean).join(" · ")); } : null} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(r) => { setRecurId(r.id || null); setRecurFor(r.playerId ? personOf(r.playerId) : { name: r.who }); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}

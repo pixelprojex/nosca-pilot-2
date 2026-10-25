@@ -63,7 +63,7 @@ function emptyDb() {
     requests: [],         // coach_requests rows
     notifications: [],
     lessons: [], media: [], attendees: [], drills: [], tips: [], sessions: [], marks: [],
-    bookings: [], competitions: [], recurring: [], messages: [], reviews: [], pushSubs: [],
+    bookings: [], competitions: [], recurring: [], messages: [], reviews: [], pushSubs: [], absences: [],
     prefs: {},            // id -> preferences row
     files: { media: {}, avatars: {} },   // bucket -> path -> { size, type }
     /* what happened, for the checks */
@@ -608,6 +608,28 @@ async function attach(page, db, opts = {}) {
           .filter((m) => mineIds.includes(m)).forEach((m) => out.push({ booking_id: b.id, player_id: m })));
         return json(200, out);
       }
+      /* set_group_absence(): a member, or an adult for a junior, out of one
+         group lesson or back in — the checks and the words of nosca.sql, and
+         the coach told as trg_group_absences_notify tells them.
+         db.noAbsences plays a project whose SQL has not been re-run. */
+      if (fn === "set_group_absence") {
+        if (db.noAbsences) return json(404, { code: "PGRST202", message: "Could not find the function public.set_group_absence in the schema cache" });
+        const pid = args.p_player;
+        if (!pid || (pid !== meId && !S.looked.includes(pid))) return human("Only the player or their parent can change that.");
+        if (pid === meId && S.iAmJunior) return human("A parent answers for a junior.");
+        const b = db.bookings.find((x) => x.id === args.p_booking);
+        if (!b || b.kind !== "group" || b.player_id || !String(b.group_name || "").trim()) return human("That isn't a group lesson.");
+        if (b.status !== "confirmed") return human("That lesson isn't going ahead.");
+        if (b.booking_date < ymd(new Date(db.now()))) return human("That lesson has started.");
+        if (!groupMembers(db, b.coach_id, b.group_name).includes(pid)) return human(`${firstOf(db, pid)} isn't in ${String(b.group_name).trim()}.`);
+        const at = db.absences.findIndex((x) => x.booking_id === b.id && x.player_id === pid);
+        const whn = `${niceDate(b.booking_date)} ${b.start_time}`, grp = String(b.group_name).trim().slice(0, 60);
+        if (args.p_out && at < 0) { db.absences.push({ booking_id: b.id, player_id: pid, coach_id: b.coach_id, set_by: meId, created_at: nowIso(db) });
+          notify(db, b.coach_id, "booking", `${firstOf(db, pid)} can't make ${grp}`, whn, { screen: "calendar", id: b.id }); }
+        if (!args.p_out && at >= 0) { db.absences.splice(at, 1);
+          notify(db, b.coach_id, "booking", `${firstOf(db, pid)} can make ${grp}`, whn, { screen: "calendar", id: b.id }); }
+        return json(200, !!args.p_out);
+      }
       /* the coach's taken times reach another player as times only — the
          same shape as the function in nosca.sql */
       if (fn === "coach_busy_slots") {
@@ -647,9 +669,12 @@ async function attach(page, db, opts = {}) {
       preferences: { rows: () => Object.values(db.prefs), see: (x) => x.id === meId },
       messages: { rows: () => db.messages, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) },
       reviews: { rows: () => db.reviews, see: (x) => x.coach_id === meId || x.player_id === meId },
+      ...(db.noAbsences ? {} : { group_absences: { rows: () => db.absences, see: (x) => x.coach_id === meId || S.playerScope(x.player_id) } }),
     };
     const st = stores[table];
     if (!st) return json(404, { code: "42P01", message: `relation "public.${table}" does not exist` });
+    /* group_absences is read only: written through set_group_absence() */
+    if (table === "group_absences" && method !== "GET") return json(403, { code: "42501", message: "permission denied for table group_absences" });
     if (!mine) return json(401, { message: "JWT expired" });
     const visible = () => applyQuery(st.rows().filter(st.see), url);
     /* a project whose SQL has not been re-run answers a select naming a

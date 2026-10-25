@@ -162,6 +162,8 @@ export function useNoscaData(profile) {
   const reasonProbed = useRef(false);
   const [seriesLinks, setSeriesLinks] = useState(false); // does bookings.recurring_id exist on this project?
   const seriesProbed = useRef(false);
+  const [canRsvp, setCanRsvp] = useState(false); // does group_absences exist on this project?
+  const rsvpProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [registerDays, setRegisterDays] = useState({});   // register key -> the session's day, for Attendance on Progress
@@ -271,7 +273,7 @@ export function useNoscaData(profile) {
     try {
       /* Everything in parallel — these are independent queries and the
          database applies the same security to each regardless of order. */
-      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes, aRes, gmRes] = await Promise.all([
+      const [pRes, lRes, dRes, tRes, sRes, bRes, cRes, rRes, prRes, mRes, rvRes, fRes, qRes, nRes, aRes, gmRes, gaRes] = await Promise.all([
         supabase.from("profiles").select("id, name, role, sport, invite_code, family_id, coach_id, account_type, date_of_birth, avatar_path, bio, club, created_at"),
         supabase.from("lessons_view").select("*").order("lesson_date", { ascending: false }),
         supabase.from("drills").select("*").order("created_at", { ascending: false }),
@@ -295,6 +297,10 @@ export function useNoscaData(profile) {
            been re-run has no such function: the error leaves every group
            booking with no members, and the diary as it was. */
         supabase.rpc("my_group_bookings").then((r) => r, () => ({ data: null, error: true })),
+        /* who has said they will not be at a group lesson — the coach's
+           own lessons, a member's own, an adult's junior's. A project
+           without the table answers with an error and nobody is out. */
+        supabase.from("group_absences").select("booking_id, player_id").then((r) => r, () => ({ data: null, error: true })),
       ]);
 
       if (netErr(pRes) && netErr(lRes)) {
@@ -448,6 +454,11 @@ export function useNoscaData(profile) {
       }
       /* a run's lessons carry the run once the column exists; before
          that End finds them by the run's own weekday and time */
+      /* a member out of one group lesson: offered only once the table exists */
+      if (!rsvpProbed.current) {
+        rsvpProbed.current = true;
+        supabase.from("group_absences").select("booking_id").limit(1).then((pr) => setCanRsvp(!pr.error)).catch(() => setCanRsvp(false));
+      }
       if (!seriesProbed.current) {
         seriesProbed.current = true;
         supabase.from("bookings").select("recurring_id").limit(1).then((pr) => setSeriesLinks(!pr.error)).catch(() => setSeriesLinks(false));
@@ -509,6 +520,8 @@ export function useNoscaData(profile) {
       /* booking id to the members of this household it is for */
       const groupMine = {};
       ((gmRes && !gmRes.error && gmRes.data) || []).forEach((r) => { (groupMine[r.booking_id] = groupMine[r.booking_id] || []).push(r.player_id); });
+      const outBy = {};
+      ((gaRes && !gaRes.error && gaRes.data) || []).forEach((r) => { (outBy[r.booking_id] = outBy[r.booking_id] || []).push(r.player_id); });
       (bRes.data || []).filter((b) => inWindow(b.booking_date)).forEach((b) => {
         const [by, bm, bd] = String(b.booking_date).split("-").map(Number);
         const dt = new Date(by, bm - 1, bd);
@@ -528,6 +541,8 @@ export function useNoscaData(profile) {
              reads a booking's members as its roll, and an empty list
              emptied every register in the diary. */
           ...(groupMine[b.id] ? { forIds: groupMine[b.id] } : {}),
+          /* who said they will not be there — never "members" either */
+          ...(outBy[b.id] ? { outIds: outBy[b.id], outNames: outBy[b.id].map((id) => nameOf[id]).filter(Boolean) } : {}),
           playerId: b.player_id || null,
           status: b.status,
           duration: b.duration,
@@ -1660,13 +1675,21 @@ export function useNoscaData(profile) {
          other device until something else happened to cause a reload. */
       for (const table of ["lessons", "bookings", "messages", "coach_requests", "drills", "tips",
                            "attendance_sessions", "attendance_marks", "profiles", "preferences",
-                           "competitions", "recurring", "reviews", "families"]) {
+                           "competitions", "recurring", "reviews", "families", "group_absences"]) {
         channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, later);
       }
       channel = channel.subscribe();
     } catch (e) { channel = null; }
     return () => { if (channel) { try { supabase.removeChannel(channel); } catch (e) { /* already gone */ } } if (reloadTimer.current) clearTimeout(reloadTimer.current); };
   }, [profile?.id, load]);
+
+  /* a member, or an adult for a junior, out of one group lesson or back in */
+  const setGroupAbsence = async (bookingId, playerId, out) => {
+    const { error } = await supabase.rpc("set_group_absence", { p_booking: bookingId, p_player: playerId, p_out: !!out });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't save that. Please try again.") } };
+    await load();
+    return {};
+  };
 
   const leaveCoach = async () => {
     const { error } = await supabase.rpc("leave_coach");
@@ -1808,7 +1831,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, canRsvp, setGroupAbsence, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
