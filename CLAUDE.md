@@ -186,8 +186,9 @@ seeded data and no account.
   midnight UTC, the evening before on any phone west of Greenwich.
 - **Realtime is every readable table, and the database decides.** The
   hook's one channel listens to notifications, lessons, bookings,
-  messages, requests, drills, tips, registers, profiles and preferences
-  and debounces one `load()`. RLS applies to realtime as to a select,
+  messages, requests, drills, tips, registers, profiles, preferences
+  and who is out of a group lesson (`group_absences`), and debounces
+  one `load()`. RLS applies to realtime as to a select,
   so nothing is filtered client-side. New tables go in the publication
   block of nosca.sql AND the channel's list.
 - **pg_net lives in `net`.** `net.http_post`, whatever schema the
@@ -284,6 +285,21 @@ seeded data and no account.
   The founder asked for slightly more branding, unobtrusive, then for
   the mark bigger and bolder to the height of the icons: at 20px it
   read as a detail beside them.
+- **The hit area is not the glyph.** The header's Saved, Search and
+  Alerts draw 25 square and answered a finger 25 square on every
+  screen; Back answered 41, the month chevrons 34 and the diary's
+  pencil 26. Each carries a transparent `aria-hidden` span that reaches
+  past it and paints nothing: `HIT_REACH` makes an `IconBtn` (and the
+  profile pill) 44 tall and half its row's gap either side
+  (`--hit-gap`: 10 in a screen's header, 2 in the feed's pill), so two
+  neighbours meet in the middle of the gap and never overlap — 35 wide
+  in a header, 27 in the pill; Back, the chevrons and the pencil reach
+  44 square. 44 wide would mean wider gaps, which moves the icons the
+  founder approved, so it is not done. A new header control uses
+  `IconBtn` and gets the reach for nothing. Apple's 44pt, WCAG 2.5.5
+  (2.5.8's minimum is 24, which 25 already met).
+  `scripts/e2e/hit-areas.cjs` reads what a finger lands on
+  (`elementFromPoint`) as every role at 375 and 320.
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
   screens, hours · drills · tips, grids and rows, a body that scrolls
   — remembered as `preferences.setup_done`, and reachable again from
@@ -689,8 +705,8 @@ seeded data and no account.
   — every lesson of the day its own block, so a clinic never stands in
   for the person's own lesson that day — with the group's name where
   Cancel and Reschedule are (a member cannot
-  call off everyone's clinic; marking themselves out of one session, the
-  field's RSVP, is not built and nothing offers it), Settings › Calendar
+  call off everyone's clinic; Not going takes them out of that one
+  session, below), Settings › Calendar
   ("Lesson · Saturday clinic · Niamh Byrne", a parent's "Lesson ·
   Saoirse · …"), and the family's Coming up, which lists only the
   household's — it listed every group slot of the child's coach the
@@ -700,6 +716,44 @@ seeded data and no account.
   recipients, TeamSnap's Notify your team, Playtomic emailing every
   enrolled player; PGA Coach puts the coach's group event in the
   student's own app. `scripts/e2e/group-notify.cjs`; behaviour.sql 8f.
+- **A member says Not going to one group lesson, and the coach reads
+  who is coming.** Everyone in a group is going until they say
+  otherwise — Spond's default for weekly training — so only a no is
+  stored: one row of `group_absences` (booking, player, the coach copied
+  on so the policy reads no other table, who set it), written only by
+  `set_group_absence(booking, player, out)`: the member for themselves
+  or an adult for a junior they look after (a junior's diary is read
+  only, so a parent answers — deliberately unlike a private lesson,
+  which a junior may cancel), a group lesson confirmed and not started
+  by Ireland's clock, the player one of the group's members on the
+  roster (`group_members`, still revoked from clients). Read by the
+  member, their adults and the coach; no other family reads who is
+  out. The member's side is **Not going** under the group's name on
+  the Calendar view's block (`day-out`, 44 tall, where a private
+  lesson has Cancel · Reschedule), the box's eyebrow reading Not going
+  and the button **Going** once out (`data-out`), the List row "Not
+  going" beside the group (`agenda-out`), and `done`'s tick — "Not
+  going" · "Saturday clinic · Sun 25 Oct", a parent's leading with the
+  child. The coach is told by `trg_group_absences_notify`, by the whole
+  name as "Cian Murphy cancelled" is ("Cian Murphy can't make Saturday
+  clinic" · "Sat 24 Oct 9:00 am", and "… can make …" back in), landing
+  on the Diary on that day; reads "1 not going" on the List row
+  (`agenda-out-count`) and the Calendar block (`block-out-count`), in
+  `t.sub` (the caution colour read 2.8:1), and the names on the open
+  block (`block-out`) and the lesson's peek (`peek-out`), which reads a
+  booking's own length; and a register for that lesson not yet taken
+  opens with them marked Absent (`marksFor` in `Attendance`; a register
+  already taken comes back as it was, and the roll is still the
+  roster — no `members` on a booking row, `outIds` and `outNames`).
+  A member out is not reminded the evening before, and the session
+  leaves their Settings › Calendar and the family's Coming up. No
+  reason, no Maybe, no deadline, no nagging: the field offers them
+  (Teamer's reason for admins, TeamSnap's Maybe, Heja's reminders) and
+  a one-coach pilot needs the no. The hook probes the table
+  (`canRsvp`); until the founder re-runs `nosca.sql` nothing is offered
+  and every group lesson reads as before. Spond's Attending · Decline,
+  Heja's Going · Not going by a parent for a child, CourtReserve's
+  withdraw. `scripts/e2e/rsvp.cjs`; behaviour.sql 8h.
 - **Call off is a reason, the days, the lessons, the password.**
   `CallOff` (the `weather` sheet, opened from the plus, the peek and the
   diary) has nothing to do with weather in its name or its glyph — a
