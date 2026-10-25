@@ -613,7 +613,7 @@ exception when others then perform set_config('test.err', sqlerrm, false); end $
 commit;
 select current_setting('test.err') as h_e1b \gset
 select (select count(*) from public.group_absences where booking_id = :'g8' and player_id = :'a1' and coach_id = :'c1' and set_by = :'a1') as hr,
-       (select count(*) from public.notifications where user_id = :'c1' and kind = 'booking' and title = 'Aoife can''t make Saturday squad' and body = :'w8' and data->>'screen' = 'calendar' and data->>'id' = :'g8') as hn,
+       (select count(*) from public.notifications where user_id = :'c1' and kind = 'booking' and title = 'Aoife Nolan can''t make Saturday squad' and body = :'w8' and data->>'screen' = 'calendar' and data->>'id' = :'g8') as hn,
        (select count(*) from public.notifications where user_id <> :'c1' and title like '%can''t make%') as hother \gset
 select (:'h_e1' = '' and :'h_e1b' = '' and :hr = 1 and :hn = 1 and :hother = 0) as ok \gset
 \if :ok \echo PASS a member marks themselves out of one group lesson; the coach is told once, by first name, with the day (8h) \else \echo FAIL out e=:h_e1 again=:h_e1b row=:hr told=:hn other=:hother (8h) \endif
@@ -625,7 +625,7 @@ exception when others then perform set_config('test.err', sqlerrm, false); end $
 commit;
 select current_setting('test.err') as h_e2 \gset
 select (select count(*) from public.group_absences where booking_id = :'g8' and player_id = :'j1' and set_by = :'p1') as hr,
-       (select count(*) from public.notifications where user_id = :'c1' and title = 'Ellie can''t make Saturday squad' and body = :'w8') as hn \gset
+       (select count(*) from public.notifications where user_id = :'c1' and title = 'Ellie Tran can''t make Saturday squad' and body = :'w8') as hn \gset
 select (:'h_e2' = '' and :hr = 1 and :hn = 1) as ok \gset
 \if :ok \echo PASS an adult marks a junior they look after out of a group lesson (8h) \else \echo FAIL parent out e=:h_e2 row=:hr told=:hn (8h) \endif
 -- who reads it: the member, the junior's adult, the junior, the coach — never another family, a former member, another coach
@@ -726,7 +726,7 @@ exception when others then perform set_config('test.err', sqlerrm, false); end $
 commit;
 select current_setting('test.err') as h_e3b \gset
 select (select count(*) from public.group_absences where booking_id = :'g8' and player_id = :'a1') as hr,
-       (select count(*) from public.notifications where user_id = :'c1' and title = 'Aoife can make Saturday squad' and body = :'w8' and data->>'id' = :'g8') as hn \gset
+       (select count(*) from public.notifications where user_id = :'c1' and title = 'Aoife Nolan can make Saturday squad' and body = :'w8' and data->>'id' = :'g8') as hn \gset
 select (:'h_e3' = '' and :'h_e3b' = '' and :hr = 0 and :hn = 1) as ok \gset
 \if :ok \echo PASS a member back in: the answer goes and the coach is told once (8h) \else \echo FAIL back in e=:h_e3 again=:h_e3b row=:hr told=:hn (8h) \endif
 -- the evening before: a member who is out is not reminded, nor is her adult; the others are

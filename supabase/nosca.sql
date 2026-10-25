@@ -1939,9 +1939,11 @@ create trigger bookings_group_status_notify after update on public.bookings
   for each statement execute function public.trg_bookings_group_status_notify();
 
 -- ---------- a member out of one group lesson, or back in ----------
--- The coach is told, by the member's first name, the session on the body:
--- "Cian can't make Saturday clinic" · "Sat 24 Oct 9:00 am", and back in,
--- "Cian can make Saturday clinic". A row that goes with its booking or its
+-- The coach is told, by the member's whole name as "Cian Murphy
+-- cancelled" is, the session on the body: "Cian Murphy can't make
+-- Saturday clinic" · "Sat 24 Oct 9:00 am", and back in, "Cian Murphy can
+-- make Saturday clinic". The whole name is the face the alert finds, and
+-- two of a first name in one clinic are two people. A row that goes with its booking or its
 -- member (a cascade) tells nobody: the booking or the profile is gone by
 -- the time this runs. Nobody else is told — the member said it, or their
 -- parent did, and their own diary shows it.
@@ -1959,7 +1961,7 @@ begin
   grp := left(trim(b.group_name), 60);
   whn := public.nice_date(b.booking_date) || ' ' || b.start_time;
   perform public.notify(b.coach_id, 'booking',
-    public.first_name_of(r.player_id) || case when tg_op = 'INSERT' then ' can''t make ' else ' can make ' end || grp,
+    public.name_of(r.player_id) || case when tg_op = 'INSERT' then ' can''t make ' else ' can make ' end || grp,
     whn, jsonb_build_object('screen', 'calendar', 'id', r.booking_id));
   return null;
 exception when others then return null;

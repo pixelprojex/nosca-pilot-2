@@ -89,9 +89,9 @@ const { check, results, summary } = M.checker("rsvp");
       await out.click(); await page.waitForTimeout(1500);
       const t1 = await toastText(page); await shot("02-member-out");
       const row = db.absences.find((x) => x.booking_id === MB.today && x.player_id === IDS.adult);
-      const n1 = told(db, "coach", "Cian can't make Saturday clinic");
+      const n1 = told(db, "coach", "Cian Murphy can't make Saturday clinic");
       check("(a) Not going writes the member's answer through the function and says so", !!row && row.set_by === IDS.adult && db.rpcs.some((r) => r.fn === "set_group_absence") && /Not going/.test(t1), JSON.stringify(row) + " " + t1.slice(0, 200));
-      check("(a) the coach is told once, by first name, with the day", n1.length === 1 && /4:00 pm$/.test(n1[0].body || "") && n1[0].data.id === MB.today, JSON.stringify(n1));
+      check("(a) the coach is told once, by the whole name, with the day", n1.length === 1 && /4:00 pm$/.test(n1[0].body || "") && n1[0].data.id === MB.today, JSON.stringify(n1));
       const b2 = await blocks(page); const o2 = page.locator('[data-tour="day-out"]');
       check("(a) the block now reads Not going and offers Going", /^Not going/.test(b2[0] || "") && (await o2.getAttribute("data-out")) === "1" && (await o2.innerText()).trim() === "Going", JSON.stringify(b2));
       await tap(page, '[aria-label="Diary"]', 600);
@@ -101,7 +101,7 @@ const { check, results, summary } = M.checker("rsvp");
       check("(a) the List view's row says Not going beside the clinic", /Saturday clinic Not going/.test(rowTxt), rowTxt);
       await page.locator('[data-tour="agenda-mine"]', { hasText: "Saturday clinic" }).first().click(); await page.waitForTimeout(1200);
       await page.locator('[data-tour="day-out"]').click(); await page.waitForTimeout(1500);
-      check("(a) Going takes the answer back and the coach is told once", !db.absences.some((x) => x.player_id === IDS.adult) && told(db, "coach", "Cian can make Saturday clinic").length === 1, JSON.stringify(db.absences));
+      check("(a) Going takes the answer back and the coach is told once", !db.absences.some((x) => x.player_id === IDS.adult) && told(db, "coach", "Cian Murphy can make Saturday clinic").length === 1, JSON.stringify(db.absences));
       await ctx.close();
     }
     /* (b) Orla, for Saoirse: the clinic in five days */
@@ -113,7 +113,7 @@ const { check, results, summary } = M.checker("rsvp");
       check("(b) a parent booking for a child is offered Not going on the child's clinic", (await out.count()) === 1, JSON.stringify(await blocks(page)));
       if (await out.count()) { await out.click(); await page.waitForTimeout(1500); }
       const row = db.absences.find((x) => x.booking_id === MB.far && x.player_id === IDS.junior);
-      check("(b) …which marks the child out, set by the parent; the coach told by the child's name", !!row && row.set_by === IDS.parent && told(db, "coach", "Saoirse can't make Saturday clinic").length === 1, JSON.stringify(db.absences));
+      check("(b) …which marks the child out, set by the parent; the coach told by the child's whole name", !!row && row.set_by === IDS.parent && told(db, "coach", "Saoirse Kelly can't make Saturday clinic").length === 1, JSON.stringify(db.absences));
       await shot("04-parent-out");
       await ctx.close();
     }
@@ -153,12 +153,12 @@ const { check, results, summary } = M.checker("rsvp");
     {
       const db = memberDb();
       db.absences.push({ booking_id: MB.far, player_id: IDS.adult, coach_id: IDS.coach, set_by: IDS.adult, created_at: new Date(db.now()).toISOString() });
-      M.notify(db, IDS.coach, "booking", "Cian can't make Saturday clinic", `${dayPlus(db, 5)} 4:00 pm`, { screen: "calendar", id: MB.far });
+      M.notify(db, IDS.coach, "booking", "Cian Murphy can't make Saturday clinic", `${dayPlus(db, 5)} 4:00 pm`, { screen: "calendar", id: MB.far });
       db.absences.push({ booking_id: MB.today, player_id: IDS.junior, coach_id: IDS.coach, set_by: IDS.parent, created_at: new Date(db.now()).toISOString() });
       const { ctx, page, shot } = await boot(db, "coach");
       /* the home's catch-up carries an unread notice; else the bell */
-      let row = page.locator('[data-tour="catchup-list"] button', { hasText: "Cian can't make Saturday clinic" });
-      if (!(await row.count())) { await tap(page, '[aria-label="Alerts"]', 900); row = page.locator('[data-tour="alerts-list"] button', { hasText: "Cian can't make Saturday clinic" }); }
+      let row = page.locator('[data-tour="catchup-list"] button', { hasText: "Cian Murphy can't make Saturday clinic" });
+      if (!(await row.count())) { await tap(page, '[aria-label="Alerts"]', 900); row = page.locator('[data-tour="alerts-list"] button', { hasText: "Cian Murphy can't make Saturday clinic" }); }
       const had = await row.count(); if (had) { await row.first().dispatchEvent("click"); await page.waitForTimeout(1500); }
       const l = await page.evaluate(() => { const on = document.querySelector('[data-day][aria-pressed="true"]'); const v = document.querySelector('[data-tour="cal-view"] button[aria-pressed="true"]'); return { day: on ? on.getAttribute("data-day") : null, view: v ? v.getAttribute("aria-label") : null }; });
       const blk = page.locator('[data-tour="cal-block"]', { hasText: "Saturday clinic" });
@@ -168,11 +168,35 @@ const { check, results, summary } = M.checker("rsvp");
       /* today's clinic, Saoirse out: Register from the lesson's peek */
       await tap(page, '[aria-label="Diary"]', 600);
       const lb = page.locator('[data-tour="cal-view"] button[aria-label="List"]'); if (await lb.count()) { await lb.first().click(); await page.waitForTimeout(700); }
-      await page.locator('[data-tour="agenda-row"]', { hasText: "Saturday clinic" }).first().dispatchEvent("click"); await page.waitForTimeout(900);
+      const arow = page.locator('[data-tour="agenda-row"]', { hasText: "Saturday clinic" }).first();
+      const arowTxt = (await arow.innerText()).replace(/\s+/g, " ");
+      await arow.dispatchEvent("click"); await page.waitForTimeout(900);
+      const peekOut = (await page.locator('[data-tour="peek-out"]').count()) ? (await page.locator('[data-tour="peek-out"]').innerText()).replace(/\s+/g, " ") : "";
+      const peekHead = (await page.locator("[data-sheet]").first().innerText()).replace(/\s+/g, " ");
+      check("(f4) the peek reads the clinic at its own hour, as its block does", /Saturday clinic 4:00 pm · 60 min/.test(peekHead), peekHead.slice(0, 120));
+      await shot("06b-coach-peek");
+      check("(f3) the coach's List row counts who is not going, and the lesson's peek names them", /Saturday clinic 1 not going/.test(arowTxt) && /Not going\s*Saoirse Kelly/i.test(peekOut), `${arowTxt} · ${peekOut}`);
       await tap(page, '[data-tour="peek-register"]', 1200);
       const marks = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll("[data-reg-row]")].map((r) => [r.getAttribute("data-reg-row"), r.getAttribute("data-mark")])));
       await shot("07-coach-register");
       check("(f2) a fresh register for the clinic starts with the member out marked absent, nobody else marked", marks["Saoirse Kelly"] === "out" && marks["Cian Murphy"] === "" && Object.values(marks).filter((v) => v).length === 1, JSON.stringify(marks));
+      await ctx.close();
+    }
+    /* (f5) a register already taken for the clinic comes back as it was taken */
+    {
+      const db = memberDb();
+      db.absences.push({ booking_id: MB.today, player_id: IDS.junior, coach_id: IDS.coach, set_by: IDS.parent, created_at: new Date(db.now()).toISOString() });
+      const sid = "5e000000-0000-4000-8000-00000000rs01", date = dayPlus(db, 0);
+      db.sessions.push({ id: sid, coach_id: IDS.coach, label: "Saturday clinic", session_date: date, created_at: `${date}T08:00:00Z` });
+      db.marks.push({ id: "6e000000-0000-4000-8000-00000000rs01", session_id: sid, player_id: IDS.junior, state: "in" });
+      db.marks.push({ id: "6e000000-0000-4000-8000-00000000rs02", session_id: sid, player_id: IDS.adult, state: "out" });
+      const { ctx, page } = await boot(db, "coach");
+      await tap(page, '[aria-label="Diary"]', 600);
+      const lb = page.locator('[data-tour="cal-view"] button[aria-label="List"]'); if (await lb.count()) { await lb.first().click(); await page.waitForTimeout(700); }
+      await page.locator('[data-tour="agenda-row"]', { hasText: "Saturday clinic" }).first().dispatchEvent("click"); await page.waitForTimeout(900);
+      await tap(page, '[data-tour="peek-register"]', 1200);
+      const marks = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll("[data-reg-row]")].map((r) => [r.getAttribute("data-reg-row"), r.getAttribute("data-mark")])));
+      check("(f5) a register already taken comes back as taken — the member out stays where the coach marked her", marks["Saoirse Kelly"] === "in" && marks["Cian Murphy"] === "out", JSON.stringify(marks));
       await ctx.close();
     }
     /* (g) a session somebody is out of leaves the phone's calendar and the family's Coming up */

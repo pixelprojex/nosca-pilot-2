@@ -2486,6 +2486,9 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                         thing that tells a squad from a single lesson. */}
                     {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
                     <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{bk.who}</span>
+                    {/* who said they will not be at the group's lesson, counted
+                        where the coach reads the day; the peek names them */}
+                    {isGroup && bk.outIds && bk.outIds.length > 0 && <span data-tour="agenda-out-count" className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{bk.outIds.length} {tr("not going")}</span>}
                     <ChevronRight size={14} color={t.trace || t.faint} />
                   </button>
                 );
@@ -3309,10 +3312,19 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         <span className="flex-1 min-w-0">
           <span className="block truncate" style={{ ...TYPE.title, color: t.ink }}>{booking.who}</span>
           <span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>
-            {booking.time} · {duration} {tr("min")}
+            {/* the booking's own length — a clinic is an hour here as on its block */}
+            {booking.time} · {booking.duration || duration} {tr("min")}
           </span>
         </span>
       </div>
+
+      {/* the members who said they will not be at this one */}
+      {isGroup && booking.outNames && booking.outNames.length > 0 && (
+        <div data-tour="peek-out" className="px-4 py-3 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
+          <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not going")}</div>
+          <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{booking.outNames.join(", ")}</div>
+        </div>
+      )}
 
       {/* what today is for */}
       {focus && (

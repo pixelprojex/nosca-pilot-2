@@ -625,9 +625,9 @@ async function attach(page, db, opts = {}) {
         const at = db.absences.findIndex((x) => x.booking_id === b.id && x.player_id === pid);
         const whn = `${niceDate(b.booking_date)} ${b.start_time}`, grp = String(b.group_name).trim().slice(0, 60);
         if (args.p_out && at < 0) { db.absences.push({ booking_id: b.id, player_id: pid, coach_id: b.coach_id, set_by: meId, created_at: nowIso(db) });
-          notify(db, b.coach_id, "booking", `${firstOf(db, pid)} can't make ${grp}`, whn, { screen: "calendar", id: b.id }); }
+          notify(db, b.coach_id, "booking", `${nameOf(db, pid)} can't make ${grp}`, whn, { screen: "calendar", id: b.id }); }
         if (!args.p_out && at >= 0) { db.absences.splice(at, 1);
-          notify(db, b.coach_id, "booking", `${firstOf(db, pid)} can make ${grp}`, whn, { screen: "calendar", id: b.id }); }
+          notify(db, b.coach_id, "booking", `${nameOf(db, pid)} can make ${grp}`, whn, { screen: "calendar", id: b.id }); }
         return json(200, !!args.p_out);
       }
       /* the coach's taken times reach another player as times only — the
