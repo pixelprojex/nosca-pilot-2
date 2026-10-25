@@ -2428,8 +2428,9 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
               </span>
               <span className="flex-1" />
               {role === "coach" && (
-                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="p-1.5 active:opacity-50"
+                <button data-tour="agenda-edit" onClick={() => { haptic(9); soft(); onEditDay(day); }} className="relative p-1.5 active:opacity-50"
                         aria-label={tr("Edit this day")}>
+                  <span aria-hidden="true" className="absolute" style={{ inset: -9 }} />
                   <Edit3 size={14} color={t.faint} strokeWidth={2} />
                 </button>
               )}
@@ -6017,7 +6018,7 @@ function LessonFeed({ lessons, mediaFor, view, setView, onOpen, onPickFiles, loa
         </div>
         {right && (
           <div className="flex items-center gap-0.5 pl-1 pr-1.5 shrink-0" data-tour="feed-header"
-               style={{ height: 42, borderRadius: R.pill, background: "rgba(255,255,255,0.96)", pointerEvents: "auto" }}>
+               style={{ height: 42, borderRadius: R.pill, background: "rgba(255,255,255,0.96)", pointerEvents: "auto", "--hit-gap": "2px" }}>
             {right}
           </div>
         )}
@@ -7863,7 +7864,8 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
                     borderBottom: `1px solid ${shrunk ? t.hair : "transparent"}`, transition: "border-color 200ms" }}>
         <div className="flex items-center px-1.5" style={{ height: 46, marginTop: TOP_AIR }}>
           {onBack ? (
-            <button onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="p-2 active:opacity-40">
+            <button onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="relative p-2 active:opacity-40">
+              <span aria-hidden="true" className="absolute" style={{ inset: -1.5 }} />
               <ChevronLeft size={25} color={t.ink} strokeWidth={2.1} />
             </button>
           ) : (
@@ -8651,10 +8653,18 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
     </span>
   );
 };
+/* THE HIT AREA IS NOT THE GLYPH. A header control draws 25 square and
+   answers a finger 44 tall and as wide as its row lets it without
+   reaching into its neighbour: half the gap either side, so the targets
+   meet in the middle of the gap and never overlap (--hit-gap, the row's
+   own gap; 10 in a screen header, 2 in the feed's pill). Nothing drawn
+   moves. Apple's 44pt, WCAG 2.5.5's 44 tall. */
+const HIT_REACH = { top: "calc(50% - 22px)", bottom: "calc(50% - 22px)", left: "calc(var(--hit-gap, 10px) / -2)", right: "calc(var(--hit-gap, 10px) / -2)" };
 const IconBtn = ({ C, onOpen, label, count, tour }) => {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label} className="relative active:opacity-50 p-0.5">
+      <span aria-hidden="true" className="absolute" style={HIT_REACH} />
       <C size={21} color={t.ink} strokeWidth={1.6} />
       {count > 0 && (<span className="absolute rounded-full flex items-center justify-center" style={{ top: -6, right: -7, minWidth: 20, height: 20, padding: "0 5px", background: DANGER, border: `1.5px solid ${t.page}`, fontFamily: ui, fontSize: 12, fontWeight: 600, color: "#fff" }}>{count}</span>)}
     </button>
@@ -9403,7 +9413,8 @@ function ConnectPlayer({ sport, onDone, onBack }) {
 function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
   const t = useT();
   return (
-    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="flex items-center gap-2 rounded-full pl-1 pr-2.5 active:opacity-50" style={{ minHeight: 34, background: t.wash }}>
+    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="relative flex items-center gap-2 rounded-full pl-1 pr-2.5 active:opacity-50" style={{ minHeight: 34, background: t.wash }}>
+      <span aria-hidden="true" className="absolute" style={HIT_REACH} />
       <Avatar name={name} size={26} tint={tint} src={src} group={group} />
       <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
       <ChevronDown size={13} color={t.sub} />
@@ -16023,8 +16034,8 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         <div className="flex items-center justify-between mb-5">
           <span style={{ ...TYPE.heading, color: t.ink }}>{mo.name}</span>
           <span className="flex items-center gap-1">
-            <button onClick={() => move(-1)} disabled={mi === 0} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Previous month")}><ChevronLeft size={18} color={t.ink} /></button>
-            <button onClick={() => move(1)} disabled={mi >= months.length - 1} className="p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><ChevronRight size={18} color={t.ink} /></button>
+            <button onClick={() => move(-1)} disabled={mi === 0} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Previous month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -8, right: -2 }} /><ChevronLeft size={18} color={t.ink} /></button>
+            <button onClick={() => move(1)} disabled={mi >= months.length - 1} className="relative p-2 active:opacity-40 disabled:opacity-20" aria-label={tr("Next month")}><span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -5, left: -2, right: -8 }} /><ChevronRight size={18} color={t.ink} /></button>
           </span>
         </div>
         <div className={`grid mb-2`} style={{ gridTemplateColumns: `repeat(${prefs.weekends ? 7 : 5}, minmax(0, 1fr))` }}>
