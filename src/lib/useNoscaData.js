@@ -520,8 +520,11 @@ export function useNoscaData(profile) {
       /* booking id to the members of this household it is for */
       const groupMine = {};
       ((gmRes && !gmRes.error && gmRes.data) || []).forEach((r) => { (groupMine[r.booking_id] = groupMine[r.booking_id] || []).push(r.player_id); });
+      /* only somebody this person can name: a member who said Not going
+         and has since left the coach keeps a row the coach can read, and
+         an id with no name would be counted under a block naming nobody */
       const outBy = {};
-      ((gaRes && !gaRes.error && gaRes.data) || []).forEach((r) => { (outBy[r.booking_id] = outBy[r.booking_id] || []).push(r.player_id); });
+      ((gaRes && !gaRes.error && gaRes.data) || []).filter((r) => nameOf[r.player_id]).forEach((r) => { (outBy[r.booking_id] = outBy[r.booking_id] || []).push(r.player_id); });
       (bRes.data || []).filter((b) => inWindow(b.booking_date)).forEach((b) => {
         const [by, bm, bd] = String(b.booking_date).split("-").map(Number);
         const dt = new Date(by, bm - 1, bd);
@@ -542,7 +545,7 @@ export function useNoscaData(profile) {
              emptied every register in the diary. */
           ...(groupMine[b.id] ? { forIds: groupMine[b.id] } : {}),
           /* who said they will not be there — never "members" either */
-          ...(outBy[b.id] ? { outIds: outBy[b.id], outNames: outBy[b.id].map((id) => nameOf[id]).filter(Boolean) } : {}),
+          ...(outBy[b.id] ? { outIds: outBy[b.id], outNames: outBy[b.id].map((id) => nameOf[id]) } : {}),
           playerId: b.player_id || null,
           status: b.status,
           duration: b.duration,
@@ -1675,13 +1678,32 @@ export function useNoscaData(profile) {
          other device until something else happened to cause a reload. */
       for (const table of ["lessons", "bookings", "messages", "coach_requests", "drills", "tips",
                            "attendance_sessions", "attendance_marks", "profiles", "preferences",
-                           "competitions", "recurring", "reviews", "families", "group_absences"]) {
+                           "competitions", "recurring", "reviews", "families"]) {
         channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, later);
       }
       channel = channel.subscribe();
     } catch (e) { channel = null; }
     return () => { if (channel) { try { supabase.removeChannel(channel); } catch (e) { /* already gone */ } } if (reloadTimer.current) clearTimeout(reloadTimer.current); };
   }, [profile?.id, load]);
+
+  /* WHO IS OUT OF A GROUP LESSON, LIVE — on a channel of its own, opened
+     only once the table exists. Realtime subscribes a channel's tables in
+     one go and refuses the whole channel when one is not published, so on
+     a project whose SQL has not been re-run this table in the channel
+     above would have stopped the bell and the messages arriving live. */
+  useEffect(() => {
+    if (!profile?.id || !canRsvp || typeof supabase.channel !== "function") return;
+    let channel;
+    try {
+      channel = supabase.channel(`out:${profile.id}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "group_absences" }, () => {
+          if (reloadTimer.current) clearTimeout(reloadTimer.current);
+          reloadTimer.current = setTimeout(() => { reloadTimer.current = null; load(); }, 800);
+        })
+        .subscribe();
+    } catch (e) { channel = null; }
+    return () => { if (channel) { try { supabase.removeChannel(channel); } catch (e) { /* already gone */ } } };
+  }, [profile?.id, canRsvp, load]);
 
   /* a member, or an adult for a junior, out of one group lesson or back in */
   const setGroupAbsence = async (bookingId, playerId, out) => {

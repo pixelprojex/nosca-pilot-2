@@ -186,9 +186,13 @@ seeded data and no account.
   midnight UTC, the evening before on any phone west of Greenwich.
 - **Realtime is every readable table, and the database decides.** The
   hook's one channel listens to notifications, lessons, bookings,
-  messages, requests, drills, tips, registers, profiles, preferences
-  and who is out of a group lesson (`group_absences`), and debounces
-  one `load()`. RLS applies to realtime as to a select,
+  messages, requests, drills, tips, registers, profiles and preferences
+  and debounces one `load()`; who is out of a group lesson
+  (`group_absences`) has a channel of its own, opened once the hook's
+  probe finds the table — Realtime subscribes a channel's tables in one
+  go and refuses the whole channel when one is not published, so a new
+  table in the one channel would stop the bell and the messages arriving
+  live until the founder re-runs the SQL. RLS applies to realtime as to a select,
   so nothing is filtered client-side. New tables go in the publication
   block of nosca.sql AND the channel's list.
 - **pg_net lives in `net`.** `net.http_post`, whatever schema the
@@ -732,19 +736,28 @@ seeded data and no account.
   the Calendar view's block (`day-out`, 44 tall, where a private
   lesson has Cancel · Reschedule), the box's eyebrow reading Not going
   and the button **Going** once out (`data-out`), the List row "Not
-  going" beside the group (`agenda-out`), and `done`'s tick — "Not
+  going" under the group's name (`agenda-out`), and `done`'s tick — "Not
   going" · "Saturday clinic · Sun 25 Oct", a parent's leading with the
-  child. The coach is told by `trg_group_absences_notify`, by the whole
+  child; a child with a lesson ahead is reached in the parent's Diary
+  (the For strip, the first child opened) whether or not the coach has
+  set hours, because a coach who runs only a clinic offers none
+  (`aheadFor`). The coach is told by `trg_group_absences_notify`, by the whole
   name as "Cian Murphy cancelled" is ("Cian Murphy can't make Saturday
   clinic" · "Sat 24 Oct 9:00 am", and "… can make …" back in), landing
-  on the Diary on that day; reads "1 not going" on the List row
-  (`agenda-out-count`) and the Calendar block (`block-out-count`), in
-  `t.sub` (the caution colour read 2.8:1), and the names on the open
+  on the Diary on that day; reads "1 not going" under the group's name
+  on the List row (`agenda-out-count`) and on a line of its own on the
+  Calendar block (`block-out-count`) — beside the name it cut "Saturday
+  clinic" to "Satur…" at 320, and on the block's grey line it was a
+  third fact broken across two lines — in `t.sub` (the caution colour
+  read 2.8:1), and the names on the open
   block (`block-out`) and the lesson's peek (`peek-out`), which reads a
   booking's own length; and a register for that lesson not yet taken
-  opens with them marked Absent (`marksFor` in `Attendance`; a register
-  already taken comes back as it was, and the roll is still the
-  roster — no `members` on a booking row, `outIds` and `outNames`).
+  opens with them marked Absent (`marksFor` in `Attendance`, only those
+  on the roll it shows; a register already taken comes back as it was,
+  and the roll is still the roster — no `members` on a booking row,
+  `outIds` and `outNames`, and only somebody the reader can name: a
+  member who said Not going and then left the coach keeps a row the
+  coach can read and is counted nowhere).
   A member out is not reminded the evening before, and the session
   leaves their Settings › Calendar and the family's Coming up. No
   reason, no Maybe, no deadline, no nagging: the field offers them

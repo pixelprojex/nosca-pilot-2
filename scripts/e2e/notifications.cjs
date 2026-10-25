@@ -100,7 +100,7 @@ const { check, results, summary } = M.checker("notifications");
       await click(page, "Dismiss", 1000);
       const p = readPatches().slice(-1)[0];
       check("(b) Dismiss PATCHes read_at for everything unread", !!p && p.body.read_at && p.query.includes(N.booking2) && p.query.includes("read_at=is.null") && p.n === 1 && db.notifications.filter((n) => n.user_id === IDS.adult && !n.read_at).length === 0, p ? p.query : "no PATCH");
-      check("(b) the bell reads 0", (await M.bellCount(page)) === 0 && (await page.locator('[aria-label="Alerts"] span').count()) === 0, String(await M.bellCount(page)));
+      check("(b) the bell reads 0", (await M.bellCount(page)) === 0 && (await page.locator('[aria-label="Alerts"] span:not([aria-hidden="true"])').count()) === 0, String(await M.bellCount(page)));
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page, { carryOn: false });
       const t1 = await text(); await shot("06-adult-no-catchup");
       check("(b) a fresh open with nothing unread shows no catch-up", (await catchup(page).count()) === 0 && !t1.includes("While you were away"), t1.slice(0, 120));

@@ -843,7 +843,8 @@ const back = async (page, wait = 700) => { const b = page.locator('[aria-label="
 const codeBoxes = (page) => page.locator('input[autocapitalize="characters"]');
 /* six boxes; the first takes the whole code and the boxes share it out */
 const fillCode = async (page, code, from = 0) => { await codeBoxes(page).nth(from).fill(code); await page.waitForTimeout(900); };
-const bellCount = async (page) => { const b = page.locator('[aria-label="Alerts"] span'); return (await b.count()) ? Number(norm(await b.first().innerText())) : 0; };
+/* the bell's badge — never the transparent span that widens its hit area */
+const bellCount = async (page) => { const b = page.locator('[aria-label="Alerts"] span:not([aria-hidden="true"])'); return (await b.count()) ? Number(norm(await b.first().innerText())) : 0; };
 
 /* PASS / FAIL lines and a summary; every script exits 0 so the lines are read, not the code */
 function checker(label) {
