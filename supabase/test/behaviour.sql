@@ -948,10 +948,16 @@ select ((select count(*) from public.notifications where user_id = :'gp' and kin
     and (select count(*) from public.notifications where user_id = :'gp' and kind = 'accepted') = 1
     and (select count(*) from public.notifications where user_id = :'gj' and kind in ('accepted', 'declined')) = 1
     and (select count(*) from public.notifications where user_id = :'gm' and kind in ('accepted', 'declined', 'request')) = 0
-    and (select count(*) from public.notifications where user_id = :'gy' and kind = 'request') = 2
-    and (select count(*) from public.notifications where user_id = :'gx' and kind = 'request') = 2
-    and (select count(*) from public.notifications where user_id in (:'gx', :'gy')) = 4) as ok \gset
+    and (select count(*) from public.notifications where user_id = :'gy' and kind = 'request') = 1
+    and (select count(*) from public.notifications where user_id = :'gx' and kind = 'request') = 1
+    and (select count(*) from public.notifications where user_id in (:'gx', :'gy')) = 2) as ok \gset
 \if :ok \echo PASS closing the other requests tells nobody: one accepted each, nothing to the parent or the other coach (10d) \else \echo FAIL closing the other requests told somebody (10d) \endif
+-- the other coach's "asked to join" went with the request it was about; the one they can still answer stays
+select ((select count(*) from public.notifications where user_id = :'gy' and kind = 'request' and data->>'id' = :'req_py') = 0
+    and (select count(*) from public.notifications where user_id = :'gx' and kind = 'request' and data->>'id' = :'req_jx') = 0
+    and (select count(*) from public.notifications where user_id = :'gx' and kind = 'request' and data->>'id' = :'req_px') = 1
+    and (select count(*) from public.notifications where user_id = :'gy' and kind = 'request' and data->>'id' = :'req_jy') = 1) as ok \gset
+\if :ok \echo PASS the other coach s stale asked-to-join notice goes with the cancelled request, the answered one s stays (10d) \else \echo FAIL a cancelled request left its asked-to-join notice on the other coach s bell (10d) \endif
 
 -- Y, on a screen loaded before X said yes, accepts Gráinne; X does the same for Fionn
 begin; set local role authenticated; select set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', :'gy'), true) \gset _

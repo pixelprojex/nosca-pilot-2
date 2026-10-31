@@ -4099,17 +4099,10 @@ function AtRisk({ list, onMessage, pop, nouns = "players" }) {
             /* rows, one action: the number says it, the sentence is spare */
             <div className="nsc-list">
               {list.map((x) => (
-                <div key={x.id || x.name} className="flex items-center gap-3.5" style={{ minHeight: 66 }}>
-                  <Avatar name={x.name} size={40} />
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{x.name}</span>
-                    <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: x.weight >= 3 ? CAUTION : t.faint }}>
-                      {x.gap != null ? `${x.gap} ${tr("days")}` : tr(x.why)}
-                    </span>
-                  </span>
-                  <button onClick={() => { hapticCommit(); onMessage(x.id || x.name); }} className="shrink-0 px-3 active:opacity-60"
-                          style={{ minHeight: 40, ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Message")}</button>
-                </div>
+                <PersonRow key={x.id || x.name} name={x.name} subTone={x.weight >= 3 ? "caution" : "faint"}
+                           sub={x.gap != null ? `${x.gap} ${tr("days")}` : tr(x.why)}
+                           actions={<button onClick={() => { hapticCommit(); onMessage(x.id || x.name); }} className="shrink-0 px-3 active:opacity-60"
+                                            style={{ minHeight: 40, ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Message")}</button>} />
               ))}
             </div>
           )}
@@ -6724,26 +6717,12 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
     const todo = drills.filter((d) => d.playerId === k.id && !d.done).length;
     const nx = live.find((b) => b.playerId === k.id);
     return (
-      <button data-tour={i === 0 ? "family-kid" : undefined} onClick={() => { haptic(7); soft(); onOpenKid && onOpenKid(k); }}
-              className="w-full flex items-center gap-3.5 py-3 text-left active:opacity-50"
-              style={{ borderBottom: last ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}>
-        <Avatar name={k.name} size={42} src={avatarUrl(k.avatarPath)} />
-        <span className="flex-1 min-w-0">
-          <span className="block truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{first(k.name)}</span>
-          <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: nx ? t.sub : t.faint }}>
-            {nx ? `${fmtDay(nx.date)} · ${nx.time}` : k.coachId ? tr("Nothing booked") : tr("No coach yet")}
-          </span>
-        </span>
-        {/* said in words, on one line: two bare numbers in two boxes read
-            as nothing, and a box on a person's row is a box too far */}
-        {/* what is undone, never a total: the lessons live on the child's own screen */}
-        {todo > 0 && (
-          <span className="shrink-0" style={{ ...TYPE.caption, color: t.sub }}>
-            {`${todo} ${todo === 1 ? tr("drill") : tr("drills")}`}
-          </span>
-        )}
-        <ChevronRight size={15} color={t.trace || t.faint} />
-      </button>
+      <PersonRow tour={i === 0 ? "family-kid" : undefined} onTap={() => { haptic(7); soft(); onOpenKid && onOpenKid(k); }}
+                 className="py-1" style={{ borderBottom: last ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}
+                 name={first(k.name)} faceName={k.name} src={avatarUrl(k.avatarPath)} subTone={nx ? "ink" : "faint"}
+                 sub={nx ? `${fmtDay(nx.date)} · ${nx.time}` : k.coachId ? tr("Nothing booked") : tr("No coach yet")}
+                 /* what is undone, never a total: the lessons live on the child's own screen */
+                 value={todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null} chevron />
     );
   };
 
@@ -8557,10 +8536,69 @@ const HeaderAdd = ({ onTap, label, tour }) => {
   );
 };
 
-const TextBtn = ({ children, onClick, color, tour }) => {
+const TextBtn = ({ children, onClick, color, tour, quiet }) => {
   const t = useT();
-  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: color || t.ink }}>{children}</button>);
+  /* `quiet`: the caller's handler buzzes itself, so the button does not — two beats in one tap read as a stutter */
+  return (<button data-tour={tour} onClick={() => { if (!quiet) haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: color || t.ink }}>{children}</button>);
 };
+/* ONE PERSON ROW. A face, a name, one grey line and what sits on the
+   right — drawn ten ways in this file (faces 30 to 46, the name 57 to
+   73px in, 13.5 to 15px at 400 or 600, rows 56 to 76 tall). One face
+   (PERSON_FACE, the roster's 40, M3's 40dp avatar), one inset (the face
+   and gap-3.5), TYPE.body for the name and TYPE.caption for the line
+   under it, 64 tall at rest and never a fixed height. The
+   name is never cut: it takes a second line, and a third, before an
+   ellipsis, as the register's does; the grey line two lines (two facts,
+   never three, so two lines hold it). What sits on the right yields first: a `value`
+   is shrink-0 and stays; a pair of `actions` (Accept · Decline) drops
+   under the name on a narrow phone — the text asks for PERSON_TEXT_MIN
+   beside them and the actions wrap to a line of their own, on the
+   right, when the row cannot give it (84 keeps Accept · Decline beside
+   a name at 375 and Message beside a name at 320; `textMin` is there
+   for a row that needs more). */
+const PERSON_FACE = 40, PERSON_TEXT_MIN = 84;
+function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, className = "", style, attrs }) {
+  const t = useT();
+  const Tag = onTap ? "button" : "div";
+  /* the name takes a second and a third line before an ellipsis (a
+     30-letter double-barrelled name beside Chat's time at 320 needs the
+     third); the grey line two lines at most — two facts, never three */
+  const clamp = { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" };
+  const nameClamp = { ...clamp, WebkitLineClamp: 3 };
+  /* a grey line of two facts breaks only at its dot, each fact kept
+     whole — the dot rides inside the second fact's nowrap span, as the
+     feed's areas do, so a line never ends on it and "9:00 am" is never
+     split into "9:00" and "am" */
+  const subNode = typeof sub === "string" && sub.includes(" · ")
+    ? sub.split(" · ").map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className="whitespace-nowrap">{i ? "· " : ""}{part}</span></React.Fragment>)
+    : sub;
+  return (
+    <Tag data-tour={tour} data-person-row="" data-bold={bold ? "1" : undefined} onClick={onTap} {...(attrs || {})}
+         className={`w-full flex items-center gap-3.5 text-left ${actions ? "flex-wrap" : ""} ${onTap ? "active:opacity-50" : ""} ${className}`}
+         style={{ minHeight, ...style }}>
+      {/* the face is looked up by the whole name (FaceCtx keys on it, and
+          two letters are its initials) even where the label is a first
+          name alone, as the family's child row is */}
+      {face || <Avatar name={faceName || name} size={PERSON_FACE} src={src} group={group} />}
+      <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}` }}>
+        {/* `meta` sits on the name's line, on the right (Chat's time and dot) */}
+        {meta
+          ? <span className="flex items-baseline justify-between gap-2">
+              <span data-name="" className="min-w-0" style={{ ...TYPE.body, fontWeight: bold ? 600 : 400, color: t.ink, ...nameClamp }}>{name}</span>
+              <span className="shrink-0">{meta}</span>
+            </span>
+          : <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: bold ? 600 : 400, color: t.ink, ...nameClamp }}>{name}</span>}
+        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...clamp }}>{subNode}</span>}
+      </span>
+      {value && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{value}</span>}
+      {trailing}
+      {/* the pair of words on the right: a line of its own under the name
+          when the row cannot hold both (ml-auto keeps it on the right) */}
+      {actions && <span className="shrink-0 flex items-stretch gap-1 ml-auto" style={{ minHeight: 44 }}>{actions}</span>}
+      {chevron && <ChevronRight size={15} color={t.trace || t.faint} />}
+    </Tag>
+  );
+}
 function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, chevron, dot, icon, danger, right, tour }) {
   const t = useT();
   const Tag = onToggle ? "button" : "div";
@@ -12631,16 +12669,13 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             )}
             <Ruled style={{ marginBottom: SPACE.block }}>
               {showAsks && asks.slice(0, 3).map((r, i) => (
-                <div key={r.id} data-tour={i === 0 ? "today-asks" : undefined} className="flex items-center gap-3 pr-1"
-                     style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
-                  <Avatar name={r.who} size={30} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)} />
-                  <span className="flex-1 min-w-0">
-                    <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{r.who}</span>
-                    <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{askDay(r, cal)} · {r.time}</span>
-                  </span>
-                  <TextBtn color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
-                  <TextBtn color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
-                </div>
+                <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
+                           name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
+                           sub={`${askDay(r, cal)} · ${r.time}`}
+                           actions={<>
+                             <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
+                             <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
+                           </>} />
               ))}
               {shownJobs.map((j) => (
                 <HomeRow key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
@@ -13549,16 +13584,8 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
   /* a search only once the list is long enough to need one */
   const searchable = all.length > 8;
   const row = (key, tour, onTap, avatar, label, sub, subTone = "faint", value = null) => (
-    <button key={key} data-tour={tour} onClick={onTap} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-            style={{ minHeight: 64 }}>
-      {avatar}
-      <span className="flex-1 min-w-0">
-        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
-        {sub && <span className="block mt-0.5 truncate" data-standing={subTone} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint }}>{sub}</span>}
-      </span>
-      {value && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{value}</span>}
-      <ChevronRight size={15} color={t.trace || t.faint} />
-    </button>
+    <PersonRow key={key} tour={tour} onTap={onTap} face={avatar} name={label} sub={sub} subTone={subTone}
+               subAttrs={{ "data-standing": subTone }} value={value} chevron />
   );
   return (
     /* There was a filled accent circle in the header that opened the same
@@ -13607,7 +13634,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
               const stage = stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null;
               const st = standingFor && r.id ? standingFor[r.id] : null;
               return row(r.id || r.name, i === 0 ? "roster-row" : undefined, () => { haptic(6); push("player:" + (r.id || r.name)); },
-                <Avatar name={r.name} size={40} />, r.name,
+                <Avatar name={r.name} size={PERSON_FACE} />, r.name,
                 st ? st.text : [stage, `${r.lessons} ${r.lessons === 1 ? tr("lesson") : tr("lessons")}`].filter(Boolean).join(" · "),
                 st ? st.tone : "faint", st ? stage : null);
             })}
@@ -13629,12 +13656,12 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           )}
         </>) : (
           <div className="nsc-list">
-            {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={40} group />, g.name,
+            {groups.map((g) => row(g.id, "roster-group", () => { haptic(6); push("group:" + g.name); }, <Avatar name={g.name} size={PERSON_FACE} group />, g.name,
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
                 [countOf(membersOnRoster(g, all).length, nouns || "players"), `${(DAY_NAMES[g.day] || String(g.day || "")).slice(0, 3)} ${g.time}`].filter((x) => x.trim()).join(" · ")))}
             {row("new", "roster-newgroup", () => { hapticCommit(); sheet("group"); },
-                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: t.wash }}><Plus size={17} color={t.sub} strokeWidth={2} /></span>,
+                <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE, background: t.wash }}><Plus size={17} color={t.sub} strokeWidth={2} /></span>,
                 tr("Create a group"), null)}
           </div>
         )}
@@ -16280,25 +16307,22 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
   const kids = list.filter((c) => c.kind === "child");
   const split = kids.length > 0 && mine.length > 0;
   const hair = RULE.hair(t.ink);
+  /* the one person row: the name (bold while unread) with the time and
+     the dot on its line, then For <child> where the thread is a child's,
+     then the last line — it was its own shape, a 44 face and a 13.5
+     subhead, the one list on the coach's phone that did not match the
+     roster's rows */
   const Thread = ({ c, tour }) => (
-    <button key={c.id || c.name} data-tour={tour} onClick={() => { haptic(6); push("thread:" + (c.id || c.name)); }}
-            className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-            style={{ minHeight: 70, borderBottom: hair }}>
-      <Avatar name={c.name} size={44} group={c.group} />
-      <span className="flex-1 min-w-0">
-        <span className="flex items-baseline justify-between gap-2">
-          <span className="truncate" style={{ ...TYPE.subhead, fontWeight: c.unread ? 600 : 500, color: t.ink }}>{c.name}{c.group ? ` · ${c.n}` : ""}</span>
-          <span className="flex items-center gap-1.5 shrink-0">
-            {c.unread > 0 && <span className="rounded-full" style={{ width: 8, height: 8, background: t.ink }} />}
-            <span style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span>
-          </span>
-        </span>
-        {c.kind === "child" && c.sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.sub }}>{c.sub}</span>}
-        <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: c.unread ? t.ink : t.sub }}>
-          {c.last || (c.kind === "child" ? "" : c.sub) || preview(c.lastId)}
-        </span>
-      </span>
-    </button>
+    <PersonRow key={c.id || c.name} tour={tour} onTap={() => { haptic(6); push("thread:" + (c.id || c.name)); }} style={{ borderBottom: hair }}
+               name={`${c.name}${c.group ? ` · ${c.n}` : ""}`} faceName={c.name} group={c.group} bold={c.unread > 0} subTone="ink"
+               meta={<span className="flex items-center gap-1.5">
+                 {c.unread > 0 && <span className="rounded-full" style={{ width: 8, height: 8, background: t.ink }} />}
+                 <span style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span>
+               </span>}
+               sub={<>
+                 {c.kind === "child" && c.sub && <span className="block truncate" style={{ color: t.sub }}>{c.sub}</span>}
+                 <span className="block truncate" style={{ color: c.unread ? t.ink : t.sub }}>{c.last || (c.kind === "child" ? "" : c.sub) || preview(c.lastId)}</span>
+               </>} />
   );
   return (
     <Screen title={tr("Chat")} right={right}
@@ -17597,17 +17621,11 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
 
   /* still a question, so it is answered here rather than somewhere else */
   const Ask = ({ w }) => (
-    <div className="flex items-center gap-3 pr-1" style={{ minHeight: 60 }}>
-      <Avatar name={w.who} size={32} src={w.avatar} />
-      <span className="flex-1 min-w-0">
-        <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{w.who}</span>
-        <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{w.what}</span>
-      </span>
-      <button onClick={() => { hapticCommit(); soft(); w.onAccept(); }} className="shrink-0 px-2 active:opacity-60"
-              style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Accept")}</button>
-      <button onClick={() => { haptic(7); w.onDecline(); }} className="shrink-0 px-2 active:opacity-60"
-              style={{ ...TYPE.small, fontWeight: 500, color: t.faint }}>{tr("Decline")}</button>
-    </div>
+    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what}
+               actions={<>
+                 <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
+                 <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
+               </>} />
   );
 
   const nothing = list.length === 0 && waiting.length === 0;

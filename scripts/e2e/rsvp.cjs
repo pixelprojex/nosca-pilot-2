@@ -73,7 +73,12 @@ const { check, results, summary } = M.checker("rsvp");
     await tap(page, '[aria-label="Diary"]', 1500);
     const c = page.locator('[data-tour="cal-view"] button[aria-label="Calendar"]');
     if (await c.count()) { await c.first().click(); await page.waitForTimeout(700); }
-    if (day != null) { await page.locator(`[data-day="${day}"]`).first().click(); await page.waitForTimeout(900); }
+    /* a day given as an ISO date; the month grid is moved on first when
+       the day is next month's — a run on the 31st crosses into it */
+    if (day != null) {
+      if (day.slice(0, 7) !== M.ymd(new Date()).slice(0, 7)) { await page.locator('[aria-label="Next month"]').first().dispatchEvent("click"); await page.waitForTimeout(700); }
+      await page.locator(`[data-day="${Number(day.slice(8, 10))}"]`).first().click(); await page.waitForTimeout(900);
+    }
   };
   const blocks = (page) => page.locator('[data-tour="day-mine"]').allInnerTexts().then((xs) => xs.map((x) => x.replace(/\s+/g, " ")));
   const toastText = (page) => page.evaluate(() => document.body.innerText.replace(/\s+/g, " "));
@@ -108,7 +113,7 @@ const { check, results, summary } = M.checker("rsvp");
     {
       const db = memberDb();
       const { ctx, page, shot } = await boot(db, "parent");
-      await diaryCal(page, String(Number(dayPlus(db, 5).slice(8, 10))));
+      await diaryCal(page, dayPlus(db, 5));
       const out = page.locator('[data-tour="day-out"]'); await shot("03-parent-block");
       check("(b) a parent booking for a child is offered Not going on the child's clinic", (await out.count()) === 1, JSON.stringify(await blocks(page)));
       if (await out.count()) { await out.click(); await page.waitForTimeout(1500); }
@@ -122,7 +127,7 @@ const { check, results, summary } = M.checker("rsvp");
       const db = memberDb();
       db.prefs[IDS.coach].availability = { days: {} };
       const { ctx, page, shot } = await boot(db, "parent");
-      await diaryCal(page, String(Number(dayPlus(db, 5).slice(8, 10))));
+      await diaryCal(page, dayPlus(db, 5));
       const out = page.locator('[data-tour="day-out"]'); await shot("03b-parent-nohours");
       const n = await out.count();
       if (n) { await out.click(); await page.waitForTimeout(1500); }
@@ -133,7 +138,7 @@ const { check, results, summary } = M.checker("rsvp");
     {
       const db = memberDb();
       const { ctx, page } = await boot(db, "junior");
-      await diaryCal(page, String(Number(dayPlus(db, 5).slice(8, 10))));
+      await diaryCal(page, dayPlus(db, 5));
       check("(c) a junior's own diary offers no Not going (a parent answers)", (await page.locator('[data-tour="day-mine"]').count()) >= 1 && (await page.locator('[data-tour="day-out"]').count()) === 0, JSON.stringify(await blocks(page)));
       await ctx.close();
     }
@@ -232,8 +237,10 @@ const { check, results, summary } = M.checker("rsvp");
       const line = (await blk.count()) ? (await blk.first().innerText()).replace(/\s+/g, " ") : "";
       await shot("06-coach-lands");
       check("(f) the coach's notice opens the Diary on the clinic's day, its block counting one not going", had === 1 && l.day === String(Number(dayPlus(db, 5).slice(8, 10))) && l.view === "Calendar" && /1 not going/.test(line), `${had} ${JSON.stringify(l)} ${line}`);
-      /* today's clinic, Saoirse out: Register from the lesson's peek */
+      /* today's clinic, Saoirse out: Register from the lesson's peek — back
+         in today's month first when the landing went into next month's */
       await tap(page, '[aria-label="Diary"]', 600);
+      if (dayPlus(db, 5).slice(0, 7) !== dayPlus(db, 0).slice(0, 7)) { await page.locator('[aria-label="Previous month"]').first().dispatchEvent("click"); await page.waitForTimeout(700); }
       const lb = page.locator('[data-tour="cal-view"] button[aria-label="List"]'); if (await lb.count()) { await lb.first().click(); await page.waitForTimeout(700); }
       const arow = page.locator('[data-tour="agenda-row"]', { hasText: "Saturday clinic" }).first();
       const arowTxt = (await arow.innerText()).replace(/\s+/g, " ");
