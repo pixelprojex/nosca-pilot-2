@@ -85,7 +85,11 @@ seeded data and no account.
   the player's other open requests as `cancelled`, which tells nobody —
   a second coach's Accept used to move the player, a junior too, without
   a word to anyone. The hook reads the list again after a refusal so the
-  request leaves the screen. behaviour.sql 10d; `families-requests.cjs` (b2).
+  request leaves the screen. A request closed with nobody acting on
+  it — another coach's yes, the player's withdrawal — takes the coach's
+  "asked to join" notice with it in the same trigger (it opened Requests
+  with nothing waiting); a request the coach answered keeps its notice
+  as history. behaviour.sql 10d; `families-requests.cjs` (b2).
 - **Nobody is given a family.** A family is a row someone created. An
   adult in it looks after its juniors (`my_family_ids()`); a junior sees
   the family and nothing they cannot do. `data.family` is the family,
@@ -1831,6 +1835,33 @@ seeded data and no account.
   harness, with no bookings to read, keeps its count. `standingFor` is
   built in the roster route; `data-standing` on the line carries its
   tone for the suite. `scripts/e2e/roster.cjs`.
+- **One person row.** A face, a name, one grey line and what sits on
+  the right is `PersonRow` — the face 40 (`PERSON_FACE`: the roster's,
+  and Material's 40dp list avatar), a 14px gap, `TYPE.body` for the
+  name (600 only as a state, an unread thread), `TYPE.caption` for the
+  line under it, 64 tall at rest and never a fixed height. The roster's
+  players and groups, Chat's threads, the family's children, Today's
+  requests, the bell's requests and Drifting are it; the register, the
+  home's day rows, Join requests and the sheet pickers keep their own
+  shape for now. Nothing on it is cut: the name takes a second line,
+  and a third, before an ellipsis (as the register's does — two Saoirse
+  K… are two players), breaking at a space or a hyphen and never inside
+  a word; the grey line two lines at most with each fact kept whole
+  (`Sat 31 Oct · 9:00 am` breaks at its dot, which rides with the
+  second fact as the feed's areas do, never between 9:00 and am); a
+  value on the right (`HI 16.4`, `1 drill`) never gives way; a pair of
+  actions (Accept · Decline) is a line of its own under the name,
+  right-aligned and 44 tall, when the row cannot give the name
+  `textMin` beside them (84, which keeps the pair beside a name at
+  375; Drifting's one word asks 120, so a long Irish surname is never
+  split at 320). It was drawn ten ways — faces 30 to 46, the name 54
+  to 73px in, 13.5 to 15px at 400, 500 or 600, rows 56 to 76 — and at
+  320 the roster cut a standing line beside the level, the family cut
+  a child's name beside "1 drill", a request's day and time were cut
+  beside Accept, and Chat cut every long name. Material 3's 40dp avatar
+  and 16dp inset; UIKit's value cell, which stacks the text at a narrow
+  width rather than cutting it. `scripts/e2e/person-row.cjs` measures
+  every row as the coach and a parent at 375 and 320.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: rows with an avatar,
   a name and one grey line, each in its own box on the sport's edge

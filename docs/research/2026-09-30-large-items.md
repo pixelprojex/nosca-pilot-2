@@ -483,12 +483,45 @@ header's controls answer a finger 44 tall without a glyph moving
 their spacing allows without overlapping); Back, the month chevrons and
 the diary's pencil 44 square; `hit-areas.cjs`.
 
+### 28. One person row. **Built 31 October.**
+The face-and-name row was drawn ten ways: faces of 30, 32, 34, 36, 38,
+40, 42, 44 and 46px, the name 54 to 73px in, 13.5, 14.5 or 15px at
+400, 500 or 600, rows 56 to 76 tall; and at 320 the item on the right
+cut what mattered — the roster's standing line beside "HI 16.4", a
+child's name beside "1 drill", a request's day and time beside Accept
+· Decline, every long name in Chat. Apple's documented answer at a
+narrow width is to stack, not to cut (UIKit's value cell "positions the
+text and secondary text side by side if there's sufficient space;
+otherwise … stacks"); Apple's HIG says rows "may need to grow in
+height so that text isn't cropped" and asks for a 44pt hit; Material
+3's list item is a 40dp leading avatar, a 16dp inset, 56/72/88dp for
+one, two and three lines, the trailing slot sized to its content so the
+headline is what gives way; WCAG 1.4.10 wants the content whole at 320
+CSS px and 1.4.12 names fixed-height rows that clip text as the common
+failure. `PersonRow`: the face 40, a 14px gap, `TYPE.body` for the
+name (600 only for an unread thread) and `TYPE.caption` under it, 64
+tall at rest, the name wrapping to a second and a third line before an
+ellipsis and breaking only at a space or a hyphen, each fact of the
+grey line kept whole, a value never giving way, a pair of actions
+dropping to a line of its own under the name when the row cannot hold
+both. The roster, Chat, the family's children, Today's requests, the
+bell's requests and Drifting are it; the register, the home's day rows,
+Join requests and the sheet pickers are left for a later run. The
+visual item of the day; `person-row.cjs`. With it, one small functional
+fix: a request closed with nobody acting on it takes the other coach's
+"asked to join" notice with it (behaviour.sql 10d, `families-requests`
+(b2)) — the one-off delete in `nosca.sql` clears every such notice
+already on the founder's project in one go; a request the coach
+answered keeps its notice, so a coach who accepted from Today's strip
+without opening the bell keeps an unread "asked to join" that opens
+Requests with nothing waiting — the answered cousin, not fixed.
+
 ### Next candidates (unranked until read against the field)
-- One person row (visual, about a day): the face-and-name row is drawn
-  about ten ways — eight face sizes from 30 to 46px, the name starting
-  57 to 73px into the box, rows 56 to 76 tall — and at 320 the item on
-  the right cuts the name or the time on four surfaces. A shared row
-  with one face, one inset and a trailing slot that yields first.
+- The rest of the person rows (visual, 3): the bell's notice row (a
+  face with a kind badge; its title already wraps), the message picker,
+  the pick-a-player sheet, New group's people, the book-for sheet and
+  the recurring sheet's who — the sheet pickers, which `PersonRow`
+  fits once given a trailing tick.
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
   `reason` column and the Why sheet. And answers locked once the
@@ -615,3 +648,9 @@ the items above; a research spike first.
 - https://help.360player.com/en/articles/10267995-respond-to-an-event-invite (360Player: a parent accepts or declines for each child)
 - https://help.courtreserve.com/en/articles/11787240-public-booking-setup-guide-and-overview (CourtReserve: withdrawing from a clinic)
 - https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced (WCAG 2.5.5: 44 by 44 CSS pixels, the enhanced target)
+- https://developer.apple.com/documentation/uikit/uilistcontentconfiguration-swift.struct/preferssidebysidetextandsecondarytext (UIKit: text and secondary text side by side when there is room, otherwise stacked)
+- https://developer.apple.com/documentation/uikit/uilistcontentconfiguration-swift.struct/valuecell() (UIKit: the value cell, a primary label and a value label trailing it)
+- https://developer.apple.com/design/human-interface-guidelines/layout (HIG: rows may need to grow in height so text is not cropped)
+- https://developer.apple.com/design/human-interface-guidelines/lists-and-tables (HIG: succinct row text, minimise truncation)
+- https://github.com/androidx/androidx/blob/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/tokens/ListTokens.kt (Material 3: 40dp leading avatar, 16dp leading space, 56/72/88dp list items)
+- https://www.w3.org/WAI/WCAG21/Understanding/text-spacing (WCAG 1.4.12: fixed-height containers that clip text are the common failure)
