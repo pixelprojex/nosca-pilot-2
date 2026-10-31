@@ -208,6 +208,8 @@ function onRequestInsert(db, r) { notify(db, r.coach_id, "request", `${nameOf(db
 function onRequestDecided(db, r) {
   if (r.status === "accepted") notify(db, r.player_id, "accepted", `${nameOf(db, r.coach_id)} accepted you`, null, { screen: "home", id: r.id });
   else if (r.status === "declined") notify(db, r.player_id, "declined", `${nameOf(db, r.coach_id)} can't take you on`, null, { screen: "home", id: r.id });
+  /* trg_requests_notify: a request that closed with nobody acting on it takes the coach's "asked to join" with it */
+  else if (r.status === "cancelled") db.notifications = db.notifications.filter((n) => !(n.user_id === r.coach_id && n.kind === "request" && n.data && n.data.id === r.id));
 }
 /* trg_bookings_group_notify: a group's run, told once per statement —
    "Saturday clinic booked" · "6 lessons · from Sat 24 Oct 9:00 am" */
@@ -570,11 +572,11 @@ async function attach(page, db, opts = {}) {
         r.status = already ? "cancelled" : args.p_accept ? "accepted" : "declined"; r.decided_at = nowIso(db);
         if (args.p_accept) {
           if (player) player.coach_id = meId;
-          db.requests.filter((x) => x.player_id === r.player_id && x.status === "pending" && x.id !== r.id).forEach((x) => { x.status = "cancelled"; x.decided_at = nowIso(db); });
+          db.requests.filter((x) => x.player_id === r.player_id && x.status === "pending" && x.id !== r.id).forEach((x) => { x.status = "cancelled"; x.decided_at = nowIso(db); onRequestDecided(db, x); });
         }
         onRequestDecided(db, r); return json(204, undefined);
       }
-      if (fn === "cancel_request") { const r = db.requests.find((x) => x.id === args.p_id && x.player_id === meId && x.status === "pending"); if (r) { r.status = "cancelled"; r.decided_at = nowIso(db); } return json(204, undefined); }
+      if (fn === "cancel_request") { const r = db.requests.find((x) => x.id === args.p_id && x.player_id === meId && x.status === "pending"); if (r) { r.status = "cancelled"; r.decided_at = nowIso(db); onRequestDecided(db, r); } return json(204, undefined); }
       if (fn === "leave_coach") { mine.coach_id = null; return json(204, undefined); }
       if (fn === "create_family") {
         if (mine.family_id) return human("You're in a family already. Leave it first to start another.");

@@ -149,6 +149,8 @@ const leaks = [];
       await niamh.page.locator('[data-tour="today-requests"]').click(); await niamh.page.waitForTimeout(900);
       const n0 = await niamh.leak("coach requests, Gráinne asking"); await niamh.shot("10b-coach-grainne-asking");
       check("(b2) Niamh's Requests shows Gráinne asking", n0.includes("Gráinne Daly") && (await byText(niamh.page, "Accept").count()) === 1, n0.slice(0, 200));
+      const staleFor = (coachId, req) => db.notifications.filter((n) => n.user_id === coachId && n.kind === "request" && n.data && n.data.id === req.id).length;
+      check("(b2) both coaches' bells carry 'Gráinne Daly asked to join' while she is asking", staleFor(IDS.coach, toNiamh) === 1 && staleFor(IDS.yvonne, toYvonne) === 1, JSON.stringify({ niamh: staleFor(IDS.coach, toNiamh), yvonne: staleFor(IDS.yvonne, toYvonne) }));
       {
         const { ctx, page } = await boot("yvonne");
         await page.locator('[data-tour="today-requests"]').click(); await page.waitForTimeout(900);
@@ -171,6 +173,16 @@ const leaks = [];
       await niamh.page.waitForTimeout(1800);
       const n2 = await niamh.leak("coach requests after the refusal"); await niamh.shot("10d-coach-grainne-gone");
       check("(b2) the request that cannot be answered leaves Niamh's list", !n2.includes("Gráinne Daly") && (await byText(niamh.page, "Accept").count()) === 0, n2.slice(0, 200));
+      /* the stale notice: Yvonne's yes closed the request to Niamh as 'cancelled', and
+         Niamh's "Gráinne Daly asked to join" opened Requests with nothing waiting. The
+         trigger now takes it with the request (Yvonne's own stays: she answered it). */
+      check("(b2) the yes takes Niamh's 'asked to join' notice with the request it closed; Yvonne's stays as history",
+        staleFor(IDS.coach, toNiamh) === 0 && staleFor(IDS.yvonne, toYvonne) === 1, JSON.stringify({ niamh: staleFor(IDS.coach, toNiamh), yvonne: staleFor(IDS.yvonne, toYvonne) }));
+      /* the bell is on the home's header, not the pushed Requests screen: back to the root first */
+      await niamh.page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(niamh.page);
+      await tap(niamh.page, '[aria-label="Alerts"]', 900);
+      const bell = M.norm(await niamh.page.locator('[data-tour="alerts-list"]').innerText().catch(() => "")); await niamh.shot("10e-coach-bell-no-stale");
+      check("(b2) Niamh's bell no longer carries 'Gráinne Daly asked to join'", !bell.includes("Gráinne Daly asked to join") && (await niamh.page.locator('[data-tour="alerts-list"]').count()) === 1, bell.slice(0, 240));
       await niamh.ctx.close();
     }
 

@@ -1742,6 +1742,15 @@ begin
     elsif new.status = 'declined' then
       perform public.notify(new.player_id, 'declined', public.name_of(new.coach_id) || ' can''t take you on',
         null, jsonb_build_object('screen', 'home', 'id', new.id));
+    elsif new.status = 'cancelled' then
+      -- the request closed with nobody acting on it: the player withdrew
+      -- it, or another coach's yes closed it (respond_to_request). The
+      -- coach's "<name> asked to join" asks them to answer something that
+      -- is no longer there — it opened Requests with nothing waiting — so
+      -- it goes, in the same transaction as the fact it described. A
+      -- request the coach answered keeps its notice as history.
+      delete from public.notifications
+      where user_id = new.coach_id and kind = 'request' and data->>'id' = new.id::text;
     end if;
   end if;
   return new;
@@ -1750,6 +1759,12 @@ end $fn$;
 drop trigger if exists requests_notify on public.coach_requests;
 create trigger requests_notify after insert or update on public.coach_requests
   for each row execute function public.trg_requests_notify();
+-- Notices left from requests that closed quietly before the trigger did
+-- this (the guard's cleanup above runs before the trigger is replaced,
+-- so on the first re-run it fires the old body). Finds none after that.
+delete from public.notifications n
+using public.coach_requests r
+where n.kind = 'request' and n.user_id = r.coach_id and n.data->>'id' = r.id::text and r.status = 'cancelled';
 
 -- ---------- bookings: asked for, confirmed, cancelled, weather ----------
 create or replace function public.trg_bookings_notify()
