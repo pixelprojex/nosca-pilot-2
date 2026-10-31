@@ -226,6 +226,8 @@ const { check, results, summary } = M.checker("group-notify");
       const rows = await mineRows(page);
       check("(e) a junior member's Diary carries the clinic under the group's name", rows.some((r) => /^4:00 pm Saturday clinic/.test(r)), JSON.stringify(rows));
       await page.locator('[data-tour="cal-view"] button[aria-label="Calendar"]').click(); await page.waitForTimeout(700);
+      /* five days on may be next month's day (a run on the 31st): move the grid on first */
+      if (dayPlus(db, 5).slice(0, 7) !== dayPlus(db, 0).slice(0, 7)) { await page.locator('[aria-label="Next month"]').first().dispatchEvent("click"); await page.waitForTimeout(700); }
       await page.locator(`[data-day="${String(Number(dayPlus(db, 5).slice(8, 10)))}"]`).first().click(); await page.waitForTimeout(900);
       const b = await ownBlock(page); await shot("07-junior-block");
       check("(g) the junior's block names the group, never \"Booked by your parent\", with nothing to cancel", !!b.text && /Saturday clinic/.test(b.text) && !/Booked by your parent/.test(b.text) && b.cancel === 0 && b.reschedule === 0, JSON.stringify(b));

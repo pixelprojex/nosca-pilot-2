@@ -3,13 +3,14 @@
    73px in, 13.5 to 15px at 400 or 600, rows 56 to 76 tall — and at 320
    the item on the right cut the name or the time on Today's request
    row, the bell's request row, the roster's standing line and the
-   family's child row. Every one of those is PersonRow now: one face
-   (36), one inset, TYPE.body for the name and TYPE.caption for the line
-   under it, the name never cut (a second line before an ellipsis, as
-   the register's), a value kept and a pair of actions dropping under
-   the name when a narrow phone cannot hold both. This walks the coach,
-   a parent, an adult and a junior at 375 and 320 and measures every
-   row that carries data-row="person".
+   family's child row, and Chat cut every long name. Every one of those
+   is PersonRow now: one face (40), one inset, TYPE.body for the name
+   and TYPE.caption for the line under it, the name never cut (a second
+   and a third line before an ellipsis, as the register's), a value kept
+   and a pair of actions dropping under the name when a narrow phone
+   cannot hold both. This walks the coach and a parent at 375 and 320
+   and measures every row that carries data-person-row; an adult and a
+   junior, whose screens carry none, prove nothing else took the shape.
    node scripts/e2e/person-row.cjs <dist> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -70,6 +71,8 @@ const rows = (page, where) => page.evaluate((where) => {
     const nr = nameEl ? nameEl.getBoundingClientRect() : null, cs = nameEl ? getComputedStyle(nameEl) : null;
     const trailing = [...row.children].filter((c) => c !== face && c !== col && vis(c));
     const acts = row.querySelector(":scope > .ml-auto");
+    const btnH = acts ? [...acts.querySelectorAll("button")].map((b) => Math.round(b.getBoundingClientRect().height)) : [];
+    const faceText = face.textContent.trim();
     const trailCut = trailing.some((c) => [c, ...c.querySelectorAll("*")].some(cut));
     /* where a wrapped name breaks: the character before the second line's first — a space or a hyphen, never inside a word */
     let breakAt = null;
@@ -82,7 +85,7 @@ const rows = (page, where) => page.evaluate((where) => {
     const boxed = !!row.closest(".nsc-list");
     return { where, tour: row.getAttribute("data-tour") || "", name: nameEl ? nameEl.textContent.trim() : "", face: Math.round(fr.width),
       inset: nr ? Math.round(nr.left - fr.left) : null, fs: cs ? cs.fontSize : null, fw: cs ? cs.fontWeight : null, bold: row.hasAttribute("data-bold"),
-      actsH: acts ? Math.round(acts.getBoundingClientRect().height) : null,
+      actsH: acts ? Math.round(acts.getBoundingClientRect().height) : null, btnH, faceText,
       sub: subEl ? { fs: getComputedStyle(subEl).fontSize, t: subEl.textContent.trim(), cut: cut(subEl) } : null,
       nameCut: cut(nameEl), trailCut, wrapped: breakAt != null, breakOk, rowH: Math.round(rr.height), tag: row.tagName,
       border: getComputedStyle(row).borderBottomWidth, boxed,
@@ -159,14 +162,18 @@ const { check, results, summary } = M.checker("person-row");
     check("(f) the long name is drawn whole, on two lines where it must be, on Today's request, the roster and the bell at both widths", longRows.length >= 6 && longRows.every((r) => !r.nameCut), `${longRows.length} ${longRows.slice(0, 3).map(line).join(" | ")}`);
     const asks375 = found.asks375.concat(found.ask375), asks320 = found.asks320.concat(found.ask320);
     check("(g) Accept · Decline sit beside a short name at 375 and drop under the name at 320, on Today and in the bell, 44 tall either way",
-      asks375.some((r) => r.acts && r.acts.under === false) && asks320.length >= 2 && asks320.every((r) => r.acts && r.acts.under === true) && asks375.concat(asks320).every((r) => r.actsH >= 44),
-      JSON.stringify({ at375: asks375.map((r) => [r.name.slice(0, 12), r.acts && r.acts.under, r.actsH]), at320: asks320.map((r) => [r.name.slice(0, 12), r.acts && r.acts.under, r.actsH]) }));
+      asks375.some((r) => r.acts && r.acts.under === false) && asks320.length >= 2 && asks320.every((r) => r.acts && r.acts.under === true) && asks375.concat(asks320).every((r) => r.btnH.length === 2 && r.btnH.every((h) => h >= 44)),
+      JSON.stringify({ at375: asks375.map((r) => [r.name.slice(0, 12), r.acts && r.acts.under, r.btnH]), at320: asks320.map((r) => [r.name.slice(0, 12), r.acts && r.acts.under, r.btnH]) }));
     const short = all.filter((r) => r.rowH < 64);
     check("(h) every row is at least 64 tall at rest", short.length === 0, short.slice(0, 3).map(line).join(" | "));
     const wrapped = all.filter((r) => r.wrapped), split = wrapped.filter((r) => !r.breakOk);
     check("(i) a name that takes a second line breaks at a space or a hyphen, never inside a word — the 30-letter double-barrelled name at 320 among them", wrapped.some((r) => r.name === LONG_KID && /@320/.test(r.where)) && split.length === 0, `${wrapped.length} wrapped · ${split.slice(0, 3).map(line).join(" | ")}`);
     const tappable = all.filter((r) => r.tag === "BUTTON"), inert = all.filter((r) => r.tag !== "BUTTON");
     check("(j) a row that opens something is a button; a row whose actions are its buttons is not", tappable.length > 0 && inert.every((r) => r.acts), JSON.stringify({ tappable: tappable.length, inert: inert.map((r) => r.tour || r.name.slice(0, 10)) }));
+    const kidFaces = found.kids375.concat(found.kids320).map((r) => r.faceText);
+    check("(k) the family's child row carries the child's two initials, as the strip under it does — the face is the whole name's, the label the first name", kidFaces.length >= 4 && kidFaces.every((x) => x.length === 2), JSON.stringify(kidFaces));
+    const players = all.filter((r) => /^(adult|junior)@/.test(r.where));
+    check("(l) a player's home and bell carry no person row", players.length === 0, players.slice(0, 3).map(line).join(" | "));
     check("no page errors", errors.filter((e) => !/vibrate/.test(e)).length === 0, errors.slice(0, 3).join(" | "));
   } catch (e) {
     check("suite ran to the end", false, String(e && e.stack || e).slice(0, 400));

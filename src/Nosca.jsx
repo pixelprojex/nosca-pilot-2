@@ -4099,7 +4099,7 @@ function AtRisk({ list, onMessage, pop, nouns = "players" }) {
             /* rows, one action: the number says it, the sentence is spare */
             <div className="nsc-list">
               {list.map((x) => (
-                <PersonRow key={x.id || x.name} name={x.name} subTone={x.weight >= 3 ? "caution" : "faint"} textMin={120}
+                <PersonRow key={x.id || x.name} name={x.name} subTone={x.weight >= 3 ? "caution" : "faint"}
                            sub={x.gap != null ? `${x.gap} ${tr("days")}` : tr(x.why)}
                            actions={<button onClick={() => { hapticCommit(); onMessage(x.id || x.name); }} className="shrink-0 px-3 active:opacity-60"
                                             style={{ minHeight: 40, ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Message")}</button>} />
@@ -6719,7 +6719,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
     return (
       <PersonRow tour={i === 0 ? "family-kid" : undefined} onTap={() => { haptic(7); soft(); onOpenKid && onOpenKid(k); }}
                  className="py-1" style={{ borderBottom: last ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}
-                 name={first(k.name)} src={avatarUrl(k.avatarPath)} subTone={nx ? "ink" : "faint"}
+                 name={first(k.name)} faceName={k.name} src={avatarUrl(k.avatarPath)} subTone={nx ? "ink" : "faint"}
                  sub={nx ? `${fmtDay(nx.date)} · ${nx.time}` : k.coachId ? tr("Nothing booked") : tr("No coach yet")}
                  /* what is undone, never a total: the lessons live on the child's own screen */
                  value={todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null} chevron />
@@ -8536,9 +8536,10 @@ const HeaderAdd = ({ onTap, label, tour }) => {
   );
 };
 
-const TextBtn = ({ children, onClick, color, tour }) => {
+const TextBtn = ({ children, onClick, color, tour, quiet }) => {
   const t = useT();
-  return (<button data-tour={tour} onClick={() => { haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: color || t.ink }}>{children}</button>);
+  /* `quiet`: the caller's handler buzzes itself, so the button does not — two beats in one tap read as a stutter */
+  return (<button data-tour={tour} onClick={() => { if (!quiet) haptic(6); onClick(); }} className="px-1 active:opacity-40" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: color || t.ink }}>{children}</button>);
 };
 /* ONE PERSON ROW. A face, a name, one grey line and what sits on the
    right — drawn ten ways in this file (faces 30 to 46, the name 57 to
@@ -8553,10 +8554,10 @@ const TextBtn = ({ children, onClick, color, tour }) => {
    under the name on a narrow phone — the text asks for PERSON_TEXT_MIN
    beside them and the actions wrap to a line of their own, on the
    right, when the row cannot give it (84 keeps Accept · Decline beside
-   a name at 375; a row with one word on the right asks more, `textMin`,
-   so a long Irish surname is never split inside the word at 320). */
+   a name at 375 and Message beside a name at 320; `textMin` is there
+   for a row that needs more). */
 const PERSON_FACE = 40, PERSON_TEXT_MIN = 84;
-function PersonRow({ face, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, className = "", style, attrs }) {
+function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
   /* the name takes a second and a third line before an ellipsis (a
@@ -8575,7 +8576,10 @@ function PersonRow({ face, name, src, group, sub, subTone = "faint", subAttrs, m
     <Tag data-tour={tour} data-person-row="" data-bold={bold ? "1" : undefined} onClick={onTap} {...(attrs || {})}
          className={`w-full flex items-center gap-3.5 text-left ${actions ? "flex-wrap" : ""} ${onTap ? "active:opacity-50" : ""} ${className}`}
          style={{ minHeight, ...style }}>
-      {face || <Avatar name={name} size={PERSON_FACE} src={src} group={group} />}
+      {/* the face is looked up by the whole name (FaceCtx keys on it, and
+          two letters are its initials) even where the label is a first
+          name alone, as the family's child row is */}
+      {face || <Avatar name={faceName || name} size={PERSON_FACE} src={src} group={group} />}
       <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}` }}>
         {/* `meta` sits on the name's line, on the right (Chat's time and dot) */}
         {meta
@@ -8590,7 +8594,7 @@ function PersonRow({ face, name, src, group, sub, subTone = "faint", subAttrs, m
       {trailing}
       {/* the pair of words on the right: a line of its own under the name
           when the row cannot hold both (ml-auto keeps it on the right) */}
-      {actions && <span className="shrink-0 flex items-center gap-1 ml-auto" style={{ minHeight: 44 }}>{actions}</span>}
+      {actions && <span className="shrink-0 flex items-stretch gap-1 ml-auto" style={{ minHeight: 44 }}>{actions}</span>}
       {chevron && <ChevronRight size={15} color={t.trace || t.faint} />}
     </Tag>
   );
@@ -12669,8 +12673,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
                            sub={`${askDay(r, cal)} · ${r.time}`}
                            actions={<>
-                             <TextBtn color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
-                             <TextBtn color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
+                             <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
+                             <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
                            </>} />
               ))}
               {shownJobs.map((j) => (
@@ -16310,7 +16314,7 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
      roster's rows */
   const Thread = ({ c, tour }) => (
     <PersonRow key={c.id || c.name} tour={tour} onTap={() => { haptic(6); push("thread:" + (c.id || c.name)); }} style={{ borderBottom: hair }}
-               name={`${c.name}${c.group ? ` · ${c.n}` : ""}`} group={c.group} bold={c.unread > 0} subTone="ink"
+               name={`${c.name}${c.group ? ` · ${c.n}` : ""}`} faceName={c.name} group={c.group} bold={c.unread > 0} subTone="ink"
                meta={<span className="flex items-center gap-1.5">
                  {c.unread > 0 && <span className="rounded-full" style={{ width: 8, height: 8, background: t.ink }} />}
                  <span style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span>
@@ -17619,8 +17623,8 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const Ask = ({ w }) => (
     <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what}
                actions={<>
-                 <TextBtn color={t.ink} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
-                 <TextBtn color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
+                 <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
+                 <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
                </>} />
   );
 

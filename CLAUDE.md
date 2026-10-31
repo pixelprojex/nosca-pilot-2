@@ -1851,10 +1851,17 @@ seeded data and no account.
   second fact as the feed's areas do, never between 9:00 and am); a
   value on the right (`HI 16.4`, `1 drill`) never gives way; a pair of
   actions (Accept · Decline) is a line of its own under the name,
-  right-aligned and 44 tall, when the row cannot give the name
-  `textMin` beside them (84, which keeps the pair beside a name at
-  375; Drifting's one word asks 120, so a long Irish surname is never
-  split at 320). It was drawn ten ways — faces 30 to 46, the name 54
+  right-aligned and 44 tall (the buttons stretch to the line, not
+  only their wrapper), when the row cannot give the name `textMin`
+  beside them (84, which keeps the pair beside a name at 375 and
+  Drifting's Message beside a name at 320 — at 120 every Drifting row
+  was 100 tall with Message alone on a second line; a long surname
+  wraps inside its three lines instead). The face is looked up by the
+  whole name (`faceName`) where the label is a first name alone, as the
+  family's child row is — the disc read one initial and lost the
+  child's photo for a round of review. A `TextBtn` inside it is `quiet`:
+  the handler buzzes, so the button does not, or a tap read as two
+  beats. It was drawn ten ways — faces 30 to 46, the name 54
   to 73px in, 13.5 to 15px at 400, 500 or 600, rows 56 to 76 — and at
   320 the roster cut a standing line beside the level, the family cut
   a child's name beside "1 drill", a request's day and time were cut
