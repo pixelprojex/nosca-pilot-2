@@ -278,7 +278,12 @@ function onBookingUpdate(db, b, old, actor) {
   if (!b.player_id) return;   /* a group's lesson is told per statement, onGroupBookingsUpdate */
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
   const tellAdults = (title, body) => adultsFor(db, b.player_id).forEach((a) => notify(db, a, b.status === "weather" ? "weather" : "booking", title, body, { screen: "family", id: b.id }));
-  if (b.status === "confirmed") { notify(db, b.player_id, "booking", "Lesson confirmed", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, whn); }
+  if (b.status === "confirmed") {
+    /* an offer is one write: the request's row moved and confirmed, the line naming both hours */
+    const offered = old.status === "requested" && old.start_time !== b.start_time;
+    notify(db, b.player_id, "booking", "Lesson confirmed", offered ? `${whn} · asked for ${old.start_time}` : `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
+    tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, offered ? `${whn} · asked for ${old.start_time}` : whn);
+  }
   else if (b.status === "weather") { notify(db, b.player_id, "weather", "Called off — weather", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson called off`, `${whn} · weather`); }
   else if (b.status === "cancelled") {
     /* the reason leads the line when there is one, as trg_bookings_notify writes it */

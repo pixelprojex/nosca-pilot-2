@@ -823,6 +823,16 @@ select (select count(*) from public.notifications where user_id = '77777777-7777
        (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'rq2' and title like '% cancelled') as cn2 \gset
 select (:rqw = 1 and :ask2 = 0 and :wd2 = 1 and :cn2 = 0) as ok \gset
 \if :ok \echo PASS a request the player withdraws takes the coach s asked for a lesson with it and says withdrew, never cancelled (10e) \else \echo FAIL withdraw rows=:rqw asked=:ask2 withdrew=:wd2 cancelled=:cn2 (10e) \endif
+-- an offer is one write: the request's row moved to the offered hour and confirmed, one line to the player naming both hours
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-03-20', '10:00', 45, 'private', 'requested') returning id as rq3 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set start_time = '11:00', status = 'confirmed' where id = :'rq3' returning id) select count(*) as rqo from u \gset
+commit;
+select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq3' and title = 'Lesson confirmed' and body like '% 11:00 · asked for 10:00') as oc3,
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq3' and title <> 'Lesson confirmed') as ox3,
+       (select count(*) from public.bookings where id = :'rq3' and status = 'confirmed' and start_time = '11:00') as ob3 \gset
+select (:rqo = 1 and :oc3 = 1 and :ox3 = 0 and :ob3 = 1) as ok \gset
+\if :ok \echo PASS an offered time is one write and one line: Lesson confirmed at the new hour, asked for the old (10e) \else \echo FAIL offer rows=:rqo confirmed=:oc3 other=:ox3 row=:ob3 (10e) \endif
 -- a reason past 120 characters is refused and nothing is written
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-12', '11:00', 45, 'private', 'requested') returning id as bk3 \gset

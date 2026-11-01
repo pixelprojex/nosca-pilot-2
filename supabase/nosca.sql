@@ -1801,10 +1801,20 @@ begin
     end if;
   elsif tg_op = 'UPDATE' and new.status <> old.status then
     if new.status = 'confirmed' then
-      perform public.notify(new.player_id, 'booking', 'Lesson confirmed', whn || ' · ' || public.name_of(new.coach_id),
+      -- AN OFFER IS ONE WRITE: a request the coach cannot take at that
+      -- hour is the same row moved to the hour they can and confirmed,
+      -- so the player reads one line, the new time and what they asked
+      -- for (two facts; a player has one coach) — it was a cancel and a
+      -- fresh booking, "Lesson cancelled" for a lesson never had and then
+      -- "Lesson booked". Booked outright with no yes: the founder's call.
+      perform public.notify(new.player_id, 'booking', 'Lesson confirmed',
+        case when old.status = 'requested' and old.start_time <> new.start_time
+             then whn || ' · asked for ' || old.start_time
+             else whn || ' · ' || public.name_of(new.coach_id) end,
         jsonb_build_object('screen', 'calendar', 'id', new.id));
       for a in select public.adults_for(new.player_id) loop
-        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson confirmed', whn,
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson confirmed',
+          case when old.status = 'requested' and old.start_time <> new.start_time then whn || ' · asked for ' || old.start_time else whn end,
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     elsif new.status = 'weather' then

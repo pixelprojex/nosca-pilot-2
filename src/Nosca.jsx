@@ -21474,9 +21474,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <div className="mb-6">
                       <TimeGrid tour="decline-offer" cols={3} times={dayOpenTimes(declining)} picked={[]} onToggle={async (sl) => { hapticSuccess();
                                   if (data) {
-                                    /* the request is declined and the offered time booked in its place */
-                                    const r1 = await data.cancelBooking(declining.id, "cancelled");
-                                    const r2 = (r1 && r1.error) ? r1 : await data.addBookings([{ playerId: declining.playerId, date: declining.date || isoOf(declining.m, declining.d), time: sl, duration }]);
+                                    /* one write: the request's own row moved to the offered time and
+                                       confirmed, at its own length, so the player is told once */
+                                    const r2 = await data.offerTime(declining.id, declining.date || isoOf(declining.m, declining.d), sl);
                                     if (r2 && r2.error) { say(r2.error.message || tr("Couldn't offer that time.")); return; }
                                     setSheet(null); done(tr("Booked"), `${declining.who} · ${sl}`); return;
                                   }

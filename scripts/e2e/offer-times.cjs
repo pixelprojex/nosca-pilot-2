@@ -21,6 +21,12 @@
    o8     the clock as it is when the sheet opens, not when the app did
    o9     a time is offered only if the lesson fits clear of the others
    d6     a request left unanswered from last month offers nothing
+   d7     Just decline: Request declined, never Lesson cancelled
+   d8     an offered time is one write: the request moved and confirmed,
+          the player told once, "asked for 10:00 am" on the line
+   d9     a junior's request declined reaches the parent as a request
+   d10    a request the player takes back: the coach reads a withdrawal
+          and the asking notice goes with it
 
    Usage: node offer-times.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -31,25 +37,30 @@ const [distDir, portArg, outDir] = process.argv.slice(2);
 const PORT = Number(portArg || 4491), BASE = `http://localhost:${PORT}`;
 fs.mkdirSync(outDir, { recursive: true });
 
-const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", junior: "00000000-0000-4000-8000-00000000c41d" };
+const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", junior: "00000000-0000-4000-8000-00000000c41d", parent: "00000000-0000-4000-8000-00000000c0a7" };
+const FAM = "fa000000-0000-4000-8000-00000000fa01";
+const CC06 = "b0000000-0000-4000-8000-00000000cc06";   /* the request: tomorrow at 10:00 am */
 const WEEK = ["9:00 am", "10:00 am", "11:00 am", "4:00 pm", "5:00 pm"];
 const dayPlus = (db, n) => M.ymd(new Date(db.now() + n * 86400000));
 const TIMES = /\d{1,2}:\d\d [ap]m/g;
 const { check, summary } = M.checker("offer-times");
 
-function freshDb({ hours = true, away = null } = {}) {
+function freshDb({ hours = true, away = null, family = false, requestFor = "adult" } = {}) {
   const db = M.emptyDb();
   const person = (key, email, prof) => { M.addUser(db, { id: IDS[key], email }); return M.addProfile(db, { id: IDS[key], ...prof }); };
+  /* with `family`, Saoirse is a junior in Orla's family, so a notice about her reaches Orla */
+  if (family) M.addFamily(db, { id: FAM, code: "KEL7Y2", createdBy: IDS.parent });
   person("coach", "coach@t.ie", { role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M" });
   person("adult", "adult@t.ie", { role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1991-04-04" });
-  person("junior", "junior@t.ie", { role: "player", name: "Saoirse Kelly", type: "junior", coachId: IDS.coach, dob: "2013-09-09" });
+  if (family) person("parent", "parent@t.ie", { role: "player", name: "Orla Kelly", type: "parent", familyId: FAM });
+  person("junior", "junior@t.ie", { role: "player", name: "Saoirse Kelly", type: "junior", coachId: IDS.coach, dob: "2013-09-09", ...(family ? { familyId: FAM } : {}) });
   const week = hours ? M.weekOf(WEEK, [0, 1, 2, 3, 4, 5, 6]) : M.weekOf([], []);
   if (away) week.away = [{ from: away, to: away }];
   M.setPrefs(db, IDS.coach, { setup_done: true, availability: week });
   const t0 = dayPlus(db, 0), t1 = dayPlus(db, 1);
   M.addBooking(db, { id: "b0000000-0000-4000-8000-00000000cc03", coachId: IDS.coach, playerId: IDS.adult, date: t0, time: "4:00 pm", duration: 45 });
   M.addBooking(db, { id: "b0000000-0000-4000-8000-00000000cc05", coachId: IDS.coach, playerId: IDS.junior, date: t0, time: "11:00 am", duration: 45 });
-  M.addBooking(db, { id: "b0000000-0000-4000-8000-00000000cc06", coachId: IDS.coach, playerId: IDS.adult, date: t1, time: "10:00 am", duration: 45, status: "requested" });
+  M.addBooking(db, { id: CC06, coachId: IDS.coach, playerId: IDS[requestFor], date: t1, time: "10:00 am", duration: 45, status: "requested" });
   M.addBooking(db, { id: "b0000000-0000-4000-8000-00000000cc07", coachId: IDS.coach, playerId: IDS.junior, date: t1, time: "4:00 pm", duration: 45 });
   return db;
 }
@@ -58,8 +69,8 @@ function freshDb({ hours = true, away = null } = {}) {
   const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const errors = [];
-  const boot = async (db, hm = "10:30") => {
-    const u = Object.values(db.users).find((x) => x.id === IDS.coach);
+  const boot = async (db, hm = "10:30", role = "coach") => {
+    const u = Object.values(db.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
     /* half past ten today: 9:00 and 10:00 have been and gone */
@@ -82,6 +93,15 @@ function freshDb({ hours = true, away = null } = {}) {
   const offered = async (page) => (await page.locator("[data-sheet]").innerText()).match(TIMES) || [];
   /* a time offered is a button reading only that time */
   const offerButtons = (page) => page.locator("[data-sheet] button").evaluateAll((els) => els.map((e) => e.textContent.trim()).filter((x) => /^\d{1,2}:\d\d [ap]m$/.test(x)));
+  const dayOf = (iso) => Number(iso.slice(8, 10)), monthOf = (iso) => Number(iso.slice(5, 7));
+  /* a player's Diary on a day: the Calendar view, the month moved on where the day is in the next one */
+  const openDay = async (page, db, iso) => {
+    await M.tap(page, '[aria-label="Diary"]', 1000);
+    if ((await page.locator('[data-tour="cal-view"] button[aria-pressed="true"]').getAttribute("aria-label")) !== "Calendar") await M.tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 600);
+    if (monthOf(iso) !== monthOf(dayPlus(db, 0))) await M.tap(page, '[aria-label="Next month"]', 600);
+    await M.tap(page, `[data-day="${dayOf(iso)}"]`, 700);
+  };
+  const toldFor = (db, uid, id) => db.notifications.filter((n) => n.user_id === uid && n.data && n.data.id === id).map((n) => `${n.title} · ${n.body}`);
 
   try {
     /* ---------- (o) Cancel on the peek ---------- */
@@ -173,6 +193,62 @@ function freshDb({ hours = true, away = null } = {}) {
       const told = db.notifications.filter((n) => n.user_id === IDS.adult && n.data && n.data.id === "b0000000-0000-4000-8000-00000000cc06").map((n) => `${n.title} · ${n.body}`);
       check("(d7) Just decline tells the player Request declined · the day · the coach, never Lesson cancelled",
             told.length === 1 && /^Request declined · .* 10:00 am · /.test(told[0]) && !told.some((x) => /Lesson cancelled/.test(x)), JSON.stringify(told));
+      await ctx.close();
+    }
+
+    /* ---------- (d8) the offer is one write: the request moved and confirmed ---------- */
+    {
+      const db = freshDb();
+      const { ctx, page, shot } = await boot(db);
+      const before = db.bookings.length, t1 = dayPlus(db, 1);
+      await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(800);
+      await page.locator('[data-tour="decline-offer"] button', { hasText: /^11:00 am$/ }).click(); await page.waitForTimeout(900);
+      const t = M.norm(await M.rootText(page));
+      await shot("05-offered"); await page.waitForTimeout(600);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const theirs = db.bookings.filter((b) => b.player_id === IDS.adult && b.booking_date === t1);
+      check("(d8) an offered time is the request's own row moved and confirmed — never a cancel and a second booking",
+            !!req && req.status === "confirmed" && req.start_time === "11:00 am" && req.booking_date === t1 && theirs.length === 1 && db.bookings.length === before,
+            JSON.stringify({ status: req && req.status, time: req && req.start_time, theirs: theirs.length, added: db.bookings.length - before }));
+      const told = toldFor(db, IDS.adult, CC06);
+      check("(d8) …and the player is told once: Lesson confirmed · the day 11:00 am · asked for 10:00 am — no Lesson booked, no Request declined",
+            told.length === 1 && /^Lesson confirmed · .* 11:00 am · asked for 10:00 am$/.test(told[0]) && !told.some((x) => /Lesson booked|Lesson cancelled|Request declined/.test(x)), JSON.stringify(told));
+      check("(d8) the request leaves Today and the toast says Booked · Cian Murphy · 11:00 am",
+            (await page.locator("button", { hasText: /^Decline$/ }).count()) === 0 && /Booked/.test(t) && /Cian Murphy · 11:00 am/.test(t), t.slice(0, 200));
+      await ctx.close();
+    }
+
+    /* ---------- (d9) a junior's request declined reaches the parent as a request ---------- */
+    {
+      const db = freshDb({ family: true, requestFor: "junior" });
+      const { ctx, page } = await boot(db);
+      await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(800);
+      await page.locator("[data-sheet] button", { hasText: /^Just decline$/ }).first().click(); await page.waitForTimeout(1200);
+      const parent = toldFor(db, IDS.parent, CC06), child = toldFor(db, IDS.junior, CC06);
+      check("(d9) a junior's request declined: the parent reads Saoirse's request declined · the day, the child Request declined — never 's lesson cancelled",
+            parent.length === 1 && /^Saoirse's request declined · .* 10:00 am$/.test(parent[0]) && child.length === 1 && /^Request declined · .* 10:00 am · Niamh Byrne$/.test(child[0]),
+            JSON.stringify({ parent, child }));
+      await ctx.close();
+    }
+
+    /* ---------- (d10) the player takes a request back ---------- */
+    {
+      const db = freshDb();
+      /* the coach's own notice for the request, read already, as the trigger wrote it when it was asked */
+      M.addNotification(db, { userId: IDS.coach, kind: "booking", title: "Cian Murphy asked for a lesson", body: "10:00 am", data: { screen: "today", id: CC06 }, readAt: new Date(db.now() - 3600000).toISOString() });
+      const { ctx, page, shot } = await boot(db, "09:00", "adult");
+      await openDay(page, db, dayPlus(db, 1));
+      const t0 = M.norm(await M.rootText(page));
+      check("(d10) the player's Diary reads the request as waiting, with Cancel", /Requested/.test(t0) && (await page.locator('[data-tour="day-cancel"]').count()) === 1, t0.slice(0, 200));
+      await M.tap(page, '[data-tour="day-cancel"]', 800);
+      await page.locator('[data-tour="cancel-why"]', { hasText: "Away" }).click(); await page.waitForTimeout(300);
+      await shot("06-withdraw");
+      await page.locator("button", { hasText: /^Cancel the lesson$/ }).last().click(); await page.waitForTimeout(1800);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const coach = toldFor(db, IDS.coach, CC06);
+      check("(d10) the coach's asked-for notice goes and one line says Cian Murphy withdrew a request · Away · the day — never cancelled",
+            !!req && req.status === "cancelled" && coach.length === 1 && /^Cian Murphy withdrew a request · Away · .* 10:00 am$/.test(coach[0]) && !coach.some((x) => /asked for a lesson|cancelled/.test(x)),
+            JSON.stringify({ status: req && req.status, coach }));
       await ctx.close();
     }
 
