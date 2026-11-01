@@ -791,19 +791,38 @@ insert into public.bookings (coach_id, player_id, booking_date, start_time, dura
 with u as (update public.bookings set status = 'cancelled' where id = :'bk' returning id) select count(*) as n1 from u \gset
 commit;
 \if :n1 \echo PASS a player can cancel their own booking \else \echo FAIL player could not cancel their own booking \endif
-select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '%cancelled') = 1) as ok \gset
-\if :ok \echo PASS …and the coach is told who cancelled \else \echo FAIL no cancel notification for the coach \endif
+select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '% withdrew a request') = 1) as ok \gset
+\if :ok \echo PASS …and the coach is told who withdrew the request — it was a request, never a lesson \else \echo FAIL no withdrawal notification for the coach \endif
 \echo === 10b. the reason rides with the cancellation, and nothing else moves
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-11', '11:00', 45, 'private', 'requested') returning id as bk2 \gset
 with u as (update public.bookings set status = 'cancelled', cancel_reason = 'Unwell' where id = :'bk2' returning id) select count(*) as n2 from u \gset
 commit;
 \if :n2 \echo PASS a player may give a reason with the cancel (10b) \else \echo FAIL the policy refused a cancel that carried a reason (10b) \endif
-select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '%cancelled' and data->>'id' = :'bk2' and body like 'Unwell · %') = 1) as ok \gset
+select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '% withdrew a request' and data->>'id' = :'bk2' and body like 'Unwell · %') = 1) as ok \gset
 \if :ok \echo PASS the cancel reason leads the notice to the coach (10b) \else \echo FAIL the notice to the coach does not carry the reason (10b) \endif
 -- …and with no reason the notice is the day alone, as before the column
-select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '%cancelled' and data->>'id' = :'bk' and body not like '% · %') = 1) as ok \gset
+select ((select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '% withdrew a request' and data->>'id' = :'bk' and body not like '% · %') = 1) as ok \gset
 \if :ok \echo PASS a cancel with no reason reads the day alone (10b) \else \echo FAIL the reasonless cancel changed shape (10b) \endif
+-- 10e: a request answered no, or taken back, was never a lesson — never "Lesson cancelled"
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-03-06', '10:00', 45, 'private', 'requested') returning id as rq1 \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-03-13', '10:00', 45, 'private', 'requested') returning id as rq2 \gset
+select (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and kind = 'booking' and title like '% asked for a lesson' and data->>'id' in (:'rq1', :'rq2')) as ask0 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set status = 'cancelled' where id = :'rq1' returning id) select count(*) as rqc from u \gset
+commit;
+select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq1' and title = 'Request declined') as rd1,
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq1' and title = 'Lesson cancelled') as rl1 \gset
+select (:ask0 = 2 and :rqc = 1 and :rd1 = 1 and :rl1 = 0) as ok \gset
+\if :ok \echo PASS a request the coach declines tells the player Request declined, never Lesson cancelled (10e) \else \echo FAIL decline asked=:ask0 rows=:rqc declined=:rd1 cancelled=:rl1 (10e) \endif
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set status = 'cancelled' where id = :'rq2' returning id) select count(*) as rqw from u \gset
+commit;
+select (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'rq2' and title like '% asked for a lesson') as ask2,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'rq2' and title like '% withdrew a request') as wd2,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'rq2' and title like '% cancelled') as cn2 \gset
+select (:rqw = 1 and :ask2 = 0 and :wd2 = 1 and :cn2 = 0) as ok \gset
+\if :ok \echo PASS a request the player withdraws takes the coach s asked for a lesson with it and says withdrew, never cancelled (10e) \else \echo FAIL withdraw rows=:rqw asked=:ask2 withdrew=:wd2 cancelled=:cn2 (10e) \endif
 -- a reason past 120 characters is refused and nothing is written
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-12', '11:00', 45, 'private', 'requested') returning id as bk3 \gset

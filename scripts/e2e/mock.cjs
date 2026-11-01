@@ -284,6 +284,16 @@ function onBookingUpdate(db, b, old, actor) {
     /* the reason leads the line when there is one, as trg_bookings_notify writes it */
     const why = b.cancel_reason && String(b.cancel_reason).trim() ? `${String(b.cancel_reason).trim()} · ` : "";
     const toPlayer = why ? `${why}${whn}` : `${whn} · ${nameOf(db, b.coach_id)}`;
+    if (old.status === "requested") {
+      /* nothing was booked: the coach's no is "Request declined"; a withdrawal is
+         said to the coach as what it is and takes their "asked for a lesson" with
+         it, as trg_bookings_notify does */
+      if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Request declined", toPlayer, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s request declined`, `${why}${whn}`); return; }
+      for (let i = db.notifications.length - 1; i >= 0; i--) { const n = db.notifications[i]; if (n.user_id === b.coach_id && n.kind === "booking" && n.data && n.data.id === b.id) db.notifications.splice(i, 1); }
+      notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} withdrew a request`, `${why}${whn}`, { screen: "calendar", id: b.id });
+      if (actor && actor !== b.player_id) notify(db, b.player_id, "booking", "Request withdrawn", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
+      return;
+    }
     if (actor === b.coach_id) { notify(db, b.player_id, "booking", "Lesson cancelled", toPlayer, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson cancelled`, `${why}${whn}`); }
     else {
       notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} cancelled`, `${why}${whn}`, { screen: "calendar", id: b.id });

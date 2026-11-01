@@ -168,6 +168,11 @@ function freshDb({ hours = true, away = null } = {}) {
       const req = db.bookings.find((b) => b.id === "b0000000-0000-4000-8000-00000000cc06");
       check("(d4) with nothing open the sheet says so, offers no time, and Just decline still declines",
             none === 1 && /Nothing open that day/.test(t) && !(t.match(TIMES) || []).length && !!req && req.status === "cancelled", JSON.stringify({ none, status: req && req.status, t: t.slice(0, 120) }));
+      /* nothing was ever booked: the player is told "Request declined" with the
+         day and the coach — never "Lesson cancelled", a lesson they never had */
+      const told = db.notifications.filter((n) => n.user_id === IDS.adult && n.data && n.data.id === "b0000000-0000-4000-8000-00000000cc06").map((n) => `${n.title} · ${n.body}`);
+      check("(d7) Just decline tells the player Request declined · the day · the coach, never Lesson cancelled",
+            told.length === 1 && /^Request declined · .* 10:00 am · /.test(told[0]) && !told.some((x) => /Lesson cancelled/.test(x)), JSON.stringify(told));
       await ctx.close();
     }
 
