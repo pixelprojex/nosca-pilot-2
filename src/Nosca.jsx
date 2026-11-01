@@ -4538,14 +4538,8 @@ function PickPerson({ roster, title, sub, onPick, close }) {
       ) : (
         <div className="nsc-list" style={{ maxHeight: 320, overflowY: "auto" }}>
           {list.map((r, i) => (
-            <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
-                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 62,
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <Avatar name={r.name} size={34} />
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-              <ChevronRight size={14} color={t.trace || t.faint} />
-            </button>
+            <PersonRow key={r.id || r.name} name={r.name} chevron onTap={() => { hapticCommit(); soft(); onPick(r); }}
+                       style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }} />
           ))}
         </div>
       )}
@@ -7091,16 +7085,9 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
       ) : (
         <div className="nsc-list">
           {shown.map((p) => (
-            <button key={p.id || p.name} data-tour={p.group ? "thread-group" : p.all ? "thread-everyone" : "thread-person"}
-                    onClick={() => { haptic(6); if (!p.all && !p.group) close(); onPick(p); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 60 }}>
-              <Avatar name={p.name} size={38} group={!!p.all || !!p.group} />
-              <span className="flex-1 min-w-0">
-                <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
-                {p.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{p.sub}</span>}
-              </span>
-              <ChevronRight size={15} color={t.trace || t.faint} />
-            </button>
+            <PersonRow key={p.id || p.name} tour={p.group ? "thread-group" : p.all ? "thread-everyone" : "thread-person"}
+                       name={p.name} group={!!p.all || !!p.group} sub={p.sub} chevron
+                       onTap={() => { haptic(6); if (!p.all && !p.group) close(); onPick(p); }} />
           ))}
         </div>
       )}
@@ -8404,16 +8391,8 @@ const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
         const on = ids.has(p.id);
         const sub = caption && caption(p);
         return (
-          <button key={p.id} aria-pressed={on} aria-label={p.name} onClick={() => { haptic(7); soft(); onToggle(p); }}
-                  className="w-full flex items-center gap-3 text-left active:opacity-60"
-                  style={{ minHeight: 58 }}>
-            <Avatar name={p.name} size={34} group={p.group} src={avatarUrl(p.avatarPath)} />
-            <span className="flex-1 min-w-0">
-              <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
-              {sub && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
-            </span>
-            <WizCircle on={on} />
-          </button>
+          <PersonRow key={p.id} attrs={{ "aria-pressed": on, "aria-label": p.name }} name={p.name} group={p.group} src={avatarUrl(p.avatarPath)}
+                     sub={sub || undefined} trailing={<WizCircle on={on} />} onTap={() => { haptic(7); soft(); onToggle(p); }} />
         );
       })}
     </div>
@@ -17581,15 +17560,18 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
     const K = NOTIF_ICON[n.kind] || Bell;
     return (
       <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
-        <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }}
-                className="w-full flex items-start gap-3.5 px-1 text-left active:opacity-60"
-                /* the box is the edge: no hairline at the foot of a boxed row */
-                style={{ minHeight: 66, paddingTop: 15, paddingBottom: 15 }}>
-          <span className="relative shrink-0" style={{ width: 36, height: 36 }}>
+        <PersonRow className="px-1" onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}
+                   name={n.title} bold={!n.readAt} sub={n.body || undefined}
+                   meta={<span className="flex items-center gap-2">
+                     <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
+                     {/* one unread signal a surface: the dot here, the number in the bar */}
+                     {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.ink }} />}
+                   </span>}
+                   face={<span className="relative shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE }}>
             {face
-              ? <Avatar name={face.name} size={36} src={face.src} />
+              ? <Avatar name={face.name} size={PERSON_FACE} src={face.src} />
               : <span className="flex items-center justify-center"
-                      style={{ width: 36, height: 36, borderRadius: 18, background: t.wash }}>
+                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: t.wash }}>
                   <K size={16} color={t.sub} strokeWidth={1.7} />
                 </span>}
             {/* WHO, THEN WHAT. The face is read before any word beside it;
@@ -17603,18 +17585,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
                 <K size={9} color={t.sub} strokeWidth={2.2} />
               </span>
             )}
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 600, color: t.ink }}>{n.title}</span>
-            {n.body && <span className="block mt-1" style={{ ...TYPE.small, color: t.faint,
-                             display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{n.body}</span>}
-          </span>
-          <span className="shrink-0 flex items-center gap-2" style={{ marginTop: 3 }}>
-            <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
-            {/* one unread signal a surface: the dot here, the number in the bar */}
-            {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.ink }} />}
-          </span>
-        </button>
+          </span>} />
       </SwipeRow>
     );
   };
@@ -21362,10 +21333,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         row, boxed on the sport's edge like every other. */}
                     <div className="nsc-list">
                       {roster.map((r) => (
-                        <button key={r.id || r.name}
-                              className="w-full flex items-center gap-3.5 text-left active:opacity-60"
-                              style={{ minHeight: 58 }}
-                              onClick={async () => {
+                        <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} chevron
+                              onTap={async () => {
                                 haptic(7); soft();
                                 if (data) {
                                   const res = await data.addBooking({ playerId: r.id, date: isoOf(bookSlot.day.m, bookSlot.day.d), time: bookSlot.time, duration });
@@ -21377,11 +21346,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                   const k = key(bookSlot.day.m, bookSlot.day.d);
                                   nx[coachSport][k] = [...(nx[coachSport][k] || []), { time: bookSlot.time, who: r.name, kind: "Private" }];
                                   return nx; });
-                                setSheet(null); done(tr("Booked"), `${r.name} · ${bookSlot.time}`); }}>
-                          <Avatar name={r.name} size={34} src={avatarUrl(r.avatarPath)} />
-                          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: theme.ink }}>{r.name}</span>
-                          <ChevronRight size={15} color={theme.faint} />
-                        </button>
+                                setSheet(null); done(tr("Booked"), `${r.name} · ${bookSlot.time}`); }} />
                       ))}
                     </div>
                   </>
@@ -21528,21 +21493,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "pickRecurWho" ? (
                   <>
                     <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who's it for")}</h2>
-                    <div className="flex flex-col gap-2">
-                      {roster.map((r, i) => {
+                    {/* a named being in a list is a row: one boxed list of PersonRows, as every other picker */}
+                    <div className="nsc-list" data-tour="recur-who">
+                      {roster.map((r) => {
                         const has = mySeriesLive.some((x) => (r.id ? x.playerId === r.id : x.who === r.name) && !x.ended);
                         return (
-                          <Tile key={r.id || r.name} className="px-4 py-3.5" delay={i * 45}
-                                onPress={has ? null : () => { setRecurId(null); setRecurFor(r); setSheet("recurring"); }}>
-                            <div className="flex items-center gap-3.5" style={{ opacity: has ? 0.45 : 1 }}>
-                              <Avatar name={r.name} size={38} />
-                              <span className="flex-1 min-w-0">
-                                <span className="block truncate" style={{ fontFamily: ui, fontSize: 15, color: theme.ink }}>{r.name}</span>
-                                {has && <span className="block mt-0.5" style={{ ...TYPE.caption, color: theme.faint }}>{tr("Already has one")}</span>}
-                              </span>
-                              {!has && <ChevronRight size={15} color={theme.faint} />}
-                            </div>
-                          </Tile>
+                          <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} sub={has ? tr("Already has one") : undefined} chevron={!has}
+                                     style={{ opacity: has ? 0.45 : 1 }}
+                                     onTap={has ? undefined : () => { haptic(7); soft(); setRecurId(null); setRecurFor(r); setSheet("recurring"); }} />
                         );
                       })}
                     </div>

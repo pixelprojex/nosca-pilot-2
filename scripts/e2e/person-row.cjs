@@ -119,6 +119,11 @@ const { check, results, summary } = M.checker("person-row");
         await tap(page, '[aria-label="Roster"]', 1000); await grab("roster", true);
         const g = page.locator('button[aria-label="Groups"]'); if (await g.count()) { await g.first().dispatchEvent("click"); await page.waitForTimeout(700); await grab("roster-groups", true); }
         await tap(page, '[aria-label="Chat"]', 1000); await grab("chat", true);
+        /* the message picker: Everyone, the group, the people */
+        if (await page.locator('[data-tour="chat-new"]').count()) { await tap(page, '[data-tour="chat-new"]', 900); await grab("picker", true); await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(500); }
+        /* New group's people */
+        await tap(page, '[aria-label="Roster"]', 900);
+        const ng = page.getByRole("button", { name: "New group", exact: true }); if (await ng.count()) { await ng.first().dispatchEvent("click"); await page.waitForTimeout(900); await grab("newgroup", true); await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(500); }
         await tap(page, '[aria-label="Today"]', 800);
         /* the Actions row, not the filter tile of the same word above it */
         const dr = page.locator('button:not([aria-label="Drifting"])', { hasText: /^Drifting/ }); if (await dr.count()) { await dr.last().dispatchEvent("click"); await page.waitForTimeout(900); await grab("drifting", true); await tap(page, '[aria-label="Back"]', 700); }
@@ -143,12 +148,13 @@ const { check, results, summary } = M.checker("person-row");
     fs.writeFileSync(path.join(outDir, "rows.json"), JSON.stringify(all, null, 1));
     const at = (w, where) => all.filter((r) => r.where === `${w} ${where}`);
     const line = (r) => `${r.where} ${r.tour || "-"} face ${r.face} in${r.inset} ${r.fs}/${r.fw} h${r.rowH} ${r.name.slice(0, 22)}${r.nameCut ? " [NAME CUT]" : ""}${r.sub && r.sub.cut ? " [SUB CUT]" : ""}${r.trailCut ? " [TRAIL CUT]" : ""}`;
-    const found = { asks375: at("coach@375", "today").filter((r) => r.tour === "today-asks" || r.acts), roster375: at("coach@375", "roster"), groups375: at("coach@375", "roster-groups"), ask375: at("coach@375", "alerts"), kids375: at("parent@375", "family"), drift375: at("coach@375", "drifting"),
-                    asks320: at("coach@320", "today").filter((r) => r.acts), roster320: at("coach@320", "roster"), ask320: at("coach@320", "alerts"), kids320: at("parent@320", "family"), drift320: at("coach@320", "drifting") };
+    const found = { asks375: at("coach@375", "today").filter((r) => r.tour === "today-asks" || r.acts), roster375: at("coach@375", "roster"), groups375: at("coach@375", "roster-groups"), ask375: at("coach@375", "alerts").filter((r) => r.acts), kids375: at("parent@375", "family"), drift375: at("coach@375", "drifting"),
+                    asks320: at("coach@320", "today").filter((r) => r.acts), roster320: at("coach@320", "roster"), ask320: at("coach@320", "alerts").filter((r) => r.acts), kids320: at("parent@320", "family"), drift320: at("coach@320", "drifting") };
     const chat = { at375: at("coach@375", "chat").concat(at("parent@375", "chat")), at320: at("coach@320", "chat").concat(at("parent@320", "chat")) };
-    check("(a) the seven surfaces carry the one row, at 375 and at 320: Today's requests, the roster's players and groups, Chat, Drifting, the bell's requests, the family's children",
-      found.asks375.length >= 2 && found.roster375.length >= 3 && found.groups375.length >= 2 && found.ask375.length >= 1 && found.kids375.length >= 2 && found.drift375.length >= 1 && chat.at375.length >= 4
-      && found.asks320.length >= 2 && found.roster320.length >= 3 && found.ask320.length >= 1 && found.kids320.length >= 2 && found.drift320.length >= 1 && chat.at320.length >= 4,
+    const more = { picker375: at("coach@375", "picker"), picker320: at("coach@320", "picker"), newgroup375: at("coach@375", "newgroup"), newgroup320: at("coach@320", "newgroup"), notices375: at("coach@375", "alerts").filter((r) => !r.acts), notices320: at("coach@320", "alerts").filter((r) => !r.acts) };
+    check("(a) the ten surfaces carry the one row, at 375 and at 320: Today's requests, the roster's players and groups, Chat, the message picker, New group's people, Drifting, the bell's requests and its notices, the family's children",
+      found.asks375.length >= 2 && found.roster375.length >= 3 && found.groups375.length >= 2 && found.ask375.length >= 1 && found.kids375.length >= 2 && found.drift375.length >= 1 && chat.at375.length >= 4 && more.picker375.length >= 3 && more.newgroup375.length >= 3 && more.notices375.length >= 1
+      && found.asks320.length >= 2 && found.roster320.length >= 3 && found.ask320.length >= 1 && found.kids320.length >= 2 && found.drift320.length >= 1 && chat.at320.length >= 4 && more.picker320.length >= 3 && more.newgroup320.length >= 3 && more.notices320.length >= 1,
       JSON.stringify(Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.length]))));
     const faces = [...new Set(all.map((r) => r.face))];
     check("(b) one face: every row's face is 40", all.length > 0 && faces.length === 1 && faces[0] === 40, JSON.stringify(faces) + " " + all.filter((r) => r.face !== 40).slice(0, 3).map(line).join(" | "));
