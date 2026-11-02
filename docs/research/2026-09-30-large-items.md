@@ -546,7 +546,7 @@ item of the day; `offer-times.cjs` (d7)–(d10), behaviour.sql 10e. With
 it, the visual small fix from Next: the rest of the person rows — the
 bell's notices, the message picker, pick-a-player, New group's people,
 the book-for sheet, the recurring sheet's who — on `PersonRow`;
-`person-row.cjs` 13/13.
+`person-row.cjs` 13/13. The review (landed 2 November, the session having been cut off by a usage limit on the 1st): the one write lands only on a request still waiting; the ask row carries the request's own length, so an offer never lands on a held lesson; a request caught by a weather call-off reads Request declined; the player's sheet withdraws a request rather than cancelling a lesson; the bell's notice row given its air, an uncut title and a grey line whose words wrap.
 
 ### Next candidates (unranked until read against the field)
 - A reason on a declined request (functional, 2): optional, Square's,
