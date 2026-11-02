@@ -3,7 +3,10 @@
    reaching into a neighbour; Back, the month chevrons and the diary's
    pencil answer 44 square. Measured by elementFromPoint — what a finger
    actually lands on — as each role at 375 and 320, with nothing another
-   control owns taken (stolen 0) and no glyph moved.
+   control owns taken (stolen 0) and no glyph moved. The register's
+   Present and Absent are drawn 44 tall (they were 38) in a row still 62;
+   the log's Set level reaches 44 (it was 30) and the line it sits on
+   does not move.
    node scripts/e2e/hit-areas.cjs <dist> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -33,7 +36,7 @@ function freshDb() {
   return db;
 }
 const SELS = ['[data-tour="saved"]', '[data-tour="search"]', '[data-tour="alerts"]', '[data-tour="profile-pill"]', '[aria-label="Back"]', '[aria-label="Previous month"]', '[aria-label="Next month"]', '[data-tour="agenda-edit"]'];
-const measure = (page, scope) => page.evaluate(({ SELS, scope }) => {
+const measure = (page, scope, sels = SELS) => page.evaluate(({ SELS, scope }) => {
   const root = scope ? document.querySelector(scope) : document;
   if (!root) return [];
   const out = [];
@@ -43,7 +46,9 @@ const measure = (page, scope) => page.evaluate(({ SELS, scope }) => {
     const r = el.getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, n = 0, stolen = 0;
-    const others = Array.from(document.querySelectorAll("button, a[href], input, select, textarea, [role=button], [tabindex]")).filter((o) => o !== el && !el.contains(o) && !o.contains(el) && o.getClientRects().length).map((o) => o.getBoundingClientRect());
+    /* what a reach could take: every control in the same layer — the sheet's own when the scope is the sheet, since what lies under its scrim cannot be touched */
+    const layer = scope && /^\[data-sheet/.test(scope) ? root : document;
+    const others = Array.from(layer.querySelectorAll("button, a[href], input, select, textarea, [role=button], [tabindex]")).filter((o) => o !== el && !el.contains(o) && !o.contains(el) && o.getClientRects().length).map((o) => o.getBoundingClientRect());
     for (let y = Math.floor(cy - 45); y <= cy + 45; y++) for (let x = Math.floor(cx - 60); x <= cx + 60; x++) {
       if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
       const hit = document.elementFromPoint(x + 0.5, y + 0.5);
@@ -53,7 +58,7 @@ const measure = (page, scope) => page.evaluate(({ SELS, scope }) => {
     out.push({ sel, box: [+r.left.toFixed(1), +r.top.toFixed(1), +r.width.toFixed(1), +r.height.toFixed(1)], hit: n ? [x0, y0, x1 - x0 + 1, y1 - y0 + 1] : null, stolen, glyph: gr ? [+gr.left.toFixed(1), +gr.top.toFixed(1), +gr.width.toFixed(1)] : null });
   }
   return out;
-}, { SELS, scope });
+}, { SELS: sels, scope });
 (async () => {
   const { check, results, summary } = M.checker("hit-areas");
   const server = await M.startServer(distDir, PORT);
@@ -81,6 +86,34 @@ const measure = (page, scope) => page.evaluate(({ SELS, scope }) => {
       if (await clickIf(page, '[aria-label="Alerts"]')) all[k("alerts")] = await measure(page, null);
       await ctx.close();
     }
+    /* the register's Present and Absent, and the log's Set level, as the coach at both widths */
+    for (const width of [375, 320]) {
+      const db = freshDb();
+      const ctx = await browser.newContext({ viewport: { width, height: 760 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
+      const page = await ctx.newPage(); page.setDefaultTimeout(8000); await M.attach(page, db);
+      page.on("pageerror", (e) => errors.push(`coach: ${String(e.message || e)}`));
+      /* ten past four: the four o'clock lesson is running, so its peek carries the register and the log opens on its face */
+      await page.clock.setFixedTime(new Date(`${dayPlus(db, 0)}T16:10:00`));
+      const u = Object.values(db.users).find((x) => x.id === IDS.coach); await M.injectSession(page, M.session(u, db));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page); await page.waitForTimeout(800);
+      const k = (s) => `${width}/coach/${s}`;
+      await page.locator("button", { hasText: "Maximiliano Murphy" }).first().click(); await page.waitForTimeout(900);
+      if (await clickIf(page, '[data-tour="peek-register"]', 1000)) {
+        const reg = await measure(page, "[data-sheet]", ['[data-tour="register-in"]', '[data-tour="register-out"]']);
+        const rowH = await page.locator("[data-sheet] [data-reg-row]").first().evaluate((e) => Math.round(e.getBoundingClientRect().height)).catch(() => null);
+        reg.forEach((m) => { m.rowH = rowH; }); all[k("register")] = reg;
+        await page.screenshot({ path: path.join(outDir, `register-${width}.png`) });
+        await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(500);
+      }
+      await clickIf(page, '[data-tour="quick"]', 900); await clickIf(page, '[data-tour="quick-log"]', 900);
+      if (await clickIf(page, '[data-tour="wiz-who"]', 700)) {
+        const lg = await measure(page, null, ['[data-tour="wiz-stage"]']);
+        const lineH = await page.locator('[data-tour="wiz-when"]').first().evaluate((e) => Math.round(e.parentElement.getBoundingClientRect().height)).catch(() => null);
+        lg.forEach((m) => { m.lineH = lineH; }); all[k("log")] = lg;
+        await page.screenshot({ path: path.join(outDir, `log-${width}.png`) });
+      }
+      await ctx.close();
+    }
     fs.writeFileSync(path.join(outDir, "measure.json"), JSON.stringify(all, null, 1));
     const rows = Object.entries(all).flatMap(([k, v]) => v.map((m) => ({ k, ...m })));
     const fails = (pred) => rows.filter(pred).map((m) => `${m.k} ${m.sel} hit ${m.hit ? m.hit.slice(2).join("x") : "-"}`);
@@ -100,6 +133,10 @@ const measure = (page, scope) => page.evaluate(({ SELS, scope }) => {
     check("(f) no hit area reaches into another control", e.length === 0, e.slice(0, 4).join(" | "));
     const g = rows.filter((m) => icon(m) && m.glyph && Math.abs(m.glyph[2] - 21) > 0.5).map((m) => `${m.k} ${m.sel} ${m.glyph}`);
     check("(g) the glyphs are drawn as they were, 21 across", g.length === 0, g.slice(0, 4).join(" | "));
+    const reg = rows.filter((m) => /\/register$/.test(m.k)), hFail = fails((m) => /\/register$/.test(m.k) && (!m.hit || m.hit[3] < 44 || m.stolen > 0));
+    check("(h) the register's Present and Absent answer 44 tall and are drawn 44, inside the row's own 62, at 375 and 320", reg.length === 4 && hFail.length === 0 && reg.every((m) => m.box[3] >= 44 && m.rowH >= 62), `${hFail.slice(0, 4).join(" | ")} ${JSON.stringify(reg.map((m) => [m.k, m.box[3], m.hit && m.hit[3], m.rowH]))}`);
+    const lg = rows.filter((m) => /\/log$/.test(m.k)), iFail = fails((m) => /\/log$/.test(m.k) && (!m.hit || m.hit[3] < 44 || m.stolen > 0));
+    check("(i) the log's Set level answers 44 tall, and the line it sits on is still 30", lg.length === 2 && iFail.length === 0 && lg.every((m) => m.lineH != null && m.lineH <= 32), `${iFail.slice(0, 4).join(" | ")} ${JSON.stringify(lg.map((m) => [m.k, m.box[3], m.hit && m.hit[3], m.lineH]))}`);
     check("no page errors", errors.filter((x) => !/vibrate/.test(x)).length === 0, errors.slice(0, 3).join(" | "));
   } catch (e) {
     check("suite ran to the end", false, String(e && e.stack || e).slice(0, 400));

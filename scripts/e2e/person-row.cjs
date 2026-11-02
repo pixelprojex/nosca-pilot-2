@@ -61,6 +61,10 @@ function freshDb() {
   M.addNotification(db, { userId: IDS.coach, kind: "booking", title: `${LONG_KID} can't make Saturday clinic`, body: "Sat 7 Nov 9:00 am", createdAt: `${TODAY}T07:35:00Z` });
   M.addNotification(db, { userId: IDS.coach, kind: "booking", title: `${LONG_KID} cancelled`, body: "Had to collect the kids from school early · Sat 10 Oct 10:00 am", createdAt: `${TODAY}T07:30:00Z` });
   M.addNotification(db, { userId: IDS.adult, kind: "tip", title: "Niamh Byrne left a tip", body: "Keep the left arm straight through the backswing and finish high · Niamh Byrne", createdAt: `${TODAY}T07:40:00Z` });
+  /* the bell hides only the asking notice a request row already says: Cian's cancellation shows while
+     his request waits; a second "asked to join" from Maximiliano does not */
+  M.addNotification(db, { userId: IDS.coach, kind: "booking", title: "Cian Murphy cancelled", body: "Unwell · Sat 14 Nov 10:00 am", createdAt: `${TODAY}T07:25:00Z` });
+  M.addNotification(db, { userId: IDS.coach, kind: "request", title: `${LONG} asked to join`, body: null, createdAt: `${TODAY}T07:20:00Z` });
   /* one arrangement, so the recurring sheet's who carries an "Already has one" row */
   M.addRecurring(db, { coachId: IDS.coach, playerId: IDS.adult, weekday: 2, time: "10:00 am" });
   return db;
@@ -220,6 +224,8 @@ const { check, results, summary } = M.checker("person-row");
     const notice = (r) => /alerts$/.test(r.where) && !r.acts;
     const tight = all.filter((r) => notice(r) && r.air != null && r.air < 8), tall = all.filter((r) => notice(r) && r.rowH > 64);
     check("(n) the bell's notices have air above their words — the title starts at least 8px under the box's top, on a two-line notice too", tall.length >= 1 && tight.length === 0, JSON.stringify({ tall: tall.length, tight: tight.slice(0, 3).map((r) => `${r.where} ${r.name.slice(0, 16)} air ${r.air}`) }));
+    const bellNames = (w) => at(`coach@${w}`, "alerts").map((r) => r.name);
+    check("(o) the bell hides only the asking notice a request row already says: Cian Murphy cancelled shows while his request waits, a second asked to join does not", [375, 320].every((w) => bellNames(w).some((n) => /^Cian Murphy cancelled/.test(n)) && !bellNames(w).some((n) => /asked to join$/.test(n))), JSON.stringify({ at375: bellNames(375), at320: bellNames(320) }));
     check("no page errors", errors.filter((e) => !/vibrate/.test(e)).length === 0, errors.slice(0, 3).join(" | "));
   } catch (e) {
     check("suite ran to the end", false, String(e && e.stack || e).slice(0, 400));
