@@ -2571,7 +2571,7 @@ const CANCEL_REASONS = {
    coach's reasons are their own record — but promises only what it can
    do. A coach goes on to offer a time and their password; a player's
    own lesson ends here, on one button. */
-function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, reasonTravels = true }) {
+function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, reasonTravels = true, request = false }) {
   const t = useT();
   const [reason, setReason] = useState(null);
   const [note, setNote] = useState("");
@@ -2582,12 +2582,13 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
   /* Something else is a reason only once there are words — the sheet
      promises the reason travels, so nothing goes before there is one */
   const ready = !!reason && (reason !== "Something else" || note.trim().length > 0);
-  const label = offer ? tr("Cancel and offer this time") : tr("Cancel the lesson");
+  /* a request not yet answered is withdrawn, never cancelled: nothing was booked */
+  const label = offer ? tr("Cancel and offer this time") : request ? tr("Withdraw the request") : tr("Cancel the lesson");
 
   /* a coach's cancel is somebody else's lesson, so it ends on their
      password like the weather call-off does; a player's own does not */
   if (stage === "password") return (
-    <ConfirmPassword title={tr("Cancel lesson")}
+    <ConfirmPassword title={request ? tr("Withdraw request") : tr("Cancel lesson")}
                      detail={`${lesson}. ${reasonTravels ? tr("They are told straight away with the reason. Confirm with your password.") : tr("They are told straight away. Confirm with your password.")}`}
                      actionLabel={label} closeLabel={tr("Back")}
                      onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(); return { next: true }; }}
@@ -2611,7 +2612,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Cancel lesson")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{lesson}</p>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
@@ -2638,13 +2639,13 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
 
       <div className="p-4 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
         <p style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.sub }}>
-          {tr("We'll tell")} {other} {reasonTravels ? tr("straight away with the reason.") : tr("straight away.")} {tr("A cancelled lesson is not counted.")}
+          {tr("We'll tell")} {other} {reasonTravels ? tr("straight away with the reason.") : tr("straight away.")} {!request && tr("A cancelled lesson is not counted.")}
         </p>
       </div>
 
       {role === "coach"
         ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); if (slots.length) setStage("when"); else if (verify) setStage("password"); else finish(); }}>{tr("Next")}</Button>
-        : <Button tone="danger" disabled={!ready} onClick={finish}>{tr("Cancel the lesson")}</Button>}
+        : <Button tone="danger" disabled={!ready} onClick={finish}>{label}</Button>}
     </>
   );
 }
@@ -4538,14 +4539,8 @@ function PickPerson({ roster, title, sub, onPick, close }) {
       ) : (
         <div className="nsc-list" style={{ maxHeight: 320, overflowY: "auto" }}>
           {list.map((r, i) => (
-            <button key={r.id || r.name} onClick={() => { hapticCommit(); soft(); onPick(r); }}
-                    className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 62,
-                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <Avatar name={r.name} size={34} />
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-              <ChevronRight size={14} color={t.trace || t.faint} />
-            </button>
+            <PersonRow key={r.id || r.name} name={r.name} chevron onTap={() => { hapticCommit(); soft(); onPick(r); }}
+                       style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }} />
           ))}
         </div>
       )}
@@ -7091,16 +7086,9 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
       ) : (
         <div className="nsc-list">
           {shown.map((p) => (
-            <button key={p.id || p.name} data-tour={p.group ? "thread-group" : p.all ? "thread-everyone" : "thread-person"}
-                    onClick={() => { haptic(6); if (!p.all && !p.group) close(); onPick(p); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                    style={{ minHeight: 60 }}>
-              <Avatar name={p.name} size={38} group={!!p.all || !!p.group} />
-              <span className="flex-1 min-w-0">
-                <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
-                {p.sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{p.sub}</span>}
-              </span>
-              <ChevronRight size={15} color={t.trace || t.faint} />
-            </button>
+            <PersonRow key={p.id || p.name} tour={p.group ? "thread-group" : p.all ? "thread-everyone" : "thread-person"}
+                       name={p.name} group={!!p.all || !!p.group} sub={p.sub} chevron
+                       onTap={() => { haptic(6); if (!p.all && !p.group) close(); onPick(p); }} />
           ))}
         </div>
       )}
@@ -8404,16 +8392,8 @@ const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
         const on = ids.has(p.id);
         const sub = caption && caption(p);
         return (
-          <button key={p.id} aria-pressed={on} aria-label={p.name} onClick={() => { haptic(7); soft(); onToggle(p); }}
-                  className="w-full flex items-center gap-3 text-left active:opacity-60"
-                  style={{ minHeight: 58 }}>
-            <Avatar name={p.name} size={34} group={p.group} src={avatarUrl(p.avatarPath)} />
-            <span className="flex-1 min-w-0">
-              <span className="block truncate" style={{ ...TYPE.body, color: t.ink }}>{p.name}</span>
-              {sub && <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
-            </span>
-            <WizCircle on={on} />
-          </button>
+          <PersonRow key={p.id} attrs={{ "aria-pressed": on, "aria-label": p.name }} name={p.name} group={p.group} src={avatarUrl(p.avatarPath)}
+                     sub={sub || undefined} trailing={<WizCircle on={on} />} onTap={() => { haptic(7); soft(); onToggle(p); }} />
         );
       })}
     </div>
@@ -8557,21 +8537,30 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
    a name at 375 and Message beside a name at 320; `textMin` is there
    for a row that needs more). */
 const PERSON_FACE = 40, PERSON_TEXT_MIN = 84;
-function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, className = "", style, attrs }) {
+function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
   /* the name takes a second and a third line before an ellipsis (a
      30-letter double-barrelled name beside Chat's time at 320 needs the
-     third); the grey line two lines at most — two facts, never three */
+     third); the grey line two lines at most — two facts, never three.
+     `nameLines` 0 lifts the clamp: a notification's title carries the
+     fact, and is never cut */
   const clamp = { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" };
-  const nameClamp = { ...clamp, WebkitLineClamp: 3 };
+  const nameClamp = nameLines ? { ...clamp, WebkitLineClamp: nameLines } : { overflowWrap: "break-word" };
   /* a grey line of two facts breaks only at its dot, each fact kept
      whole — the dot rides inside the second fact's nowrap span, as the
      feed's areas do, so a line never ends on it and "9:00 am" is never
-     split into "9:00" and "am" */
+     split into "9:00" and "am". A fact is a day, a time, a name; words
+     (a typed reason, a tip's title) wrap like words, or they ran off
+     the box at 320 */
+  const FACT = 28;
   const subNode = typeof sub === "string" && sub.includes(" · ")
-    ? sub.split(" · ").map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className="whitespace-nowrap">{i ? "· " : ""}{part}</span></React.Fragment>)
+    ? sub.split(" · ").map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className={part.length <= FACT ? "whitespace-nowrap" : undefined}>{i ? "· " : ""}{part}</span></React.Fragment>)
     : sub;
+  /* a row that cannot be picked (the recurring sheet's "Already has one")
+     fades its face and its words, never its box: the edge stays the sport's */
+  const dim = muted ? { opacity: 0.45 } : undefined;
+  const faceNode = face || <Avatar name={faceName || name} size={PERSON_FACE} src={src} group={group} />;
   return (
     <Tag data-tour={tour} data-person-row="" data-bold={bold ? "1" : undefined} onClick={onTap} {...(attrs || {})}
          className={`w-full flex items-center gap-3.5 text-left ${actions ? "flex-wrap" : ""} ${onTap ? "active:opacity-50" : ""} ${className}`}
@@ -8579,8 +8568,8 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
       {/* the face is looked up by the whole name (FaceCtx keys on it, and
           two letters are its initials) even where the label is a first
           name alone, as the family's child row is */}
-      {face || <Avatar name={faceName || name} size={PERSON_FACE} src={src} group={group} />}
-      <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}` }}>
+      {muted ? <span className="shrink-0 flex" style={dim}>{faceNode}</span> : faceNode}
+      <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}`, ...dim }}>
         {/* `meta` sits on the name's line, on the right (Chat's time and dot) */}
         {meta
           ? <span className="flex items-baseline justify-between gap-2">
@@ -17581,15 +17570,18 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
     const K = NOTIF_ICON[n.kind] || Bell;
     return (
       <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
-        <button onClick={() => { haptic(8); soft(); onOpen && onOpen(n); }}
-                className="w-full flex items-start gap-3.5 px-1 text-left active:opacity-60"
-                /* the box is the edge: no hairline at the foot of a boxed row */
-                style={{ minHeight: 66, paddingTop: 15, paddingBottom: 15 }}>
-          <span className="relative shrink-0" style={{ width: 36, height: 36 }}>
+        <PersonRow className="py-3" nameLines={0} onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}
+                   name={n.title} bold={!n.readAt} sub={n.body || undefined}
+                   meta={<span className="flex items-center gap-2">
+                     <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
+                     {/* one unread signal a surface: the dot here, the number in the bar */}
+                     {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.ink }} />}
+                   </span>}
+                   face={<span className="relative shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE }}>
             {face
-              ? <Avatar name={face.name} size={36} src={face.src} />
+              ? <Avatar name={face.name} size={PERSON_FACE} src={face.src} />
               : <span className="flex items-center justify-center"
-                      style={{ width: 36, height: 36, borderRadius: 18, background: t.wash }}>
+                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: t.wash }}>
                   <K size={16} color={t.sub} strokeWidth={1.7} />
                 </span>}
             {/* WHO, THEN WHAT. The face is read before any word beside it;
@@ -17603,18 +17595,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
                 <K size={9} color={t.sub} strokeWidth={2.2} />
               </span>
             )}
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block" style={{ ...TYPE.body, fontWeight: n.readAt ? 400 : 600, color: t.ink }}>{n.title}</span>
-            {n.body && <span className="block mt-1" style={{ ...TYPE.small, color: t.faint,
-                             display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{n.body}</span>}
-          </span>
-          <span className="shrink-0 flex items-center gap-2" style={{ marginTop: 3 }}>
-            <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
-            {/* one unread signal a surface: the dot here, the number in the bar */}
-            {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.ink }} />}
-          </span>
-        </button>
+          </span>} />
       </SwipeRow>
     );
   };
@@ -19155,7 +19136,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     : null;
   /* A player's requests, waiting on the coach. */
   const liveAsks = data
-    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date }))
+    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date, duration: b.duration }))
     : null;
   /* The coach's own saved hours; for a player, their coach's. Nothing
      invented — a coach who has set nothing has an empty week. */
@@ -21362,10 +21343,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         row, boxed on the sport's edge like every other. */}
                     <div className="nsc-list">
                       {roster.map((r) => (
-                        <button key={r.id || r.name}
-                              className="w-full flex items-center gap-3.5 text-left active:opacity-60"
-                              style={{ minHeight: 58 }}
-                              onClick={async () => {
+                        <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} chevron
+                              onTap={async () => {
                                 haptic(7); soft();
                                 if (data) {
                                   const res = await data.addBooking({ playerId: r.id, date: isoOf(bookSlot.day.m, bookSlot.day.d), time: bookSlot.time, duration });
@@ -21377,11 +21356,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                   const k = key(bookSlot.day.m, bookSlot.day.d);
                                   nx[coachSport][k] = [...(nx[coachSport][k] || []), { time: bookSlot.time, who: r.name, kind: "Private" }];
                                   return nx; });
-                                setSheet(null); done(tr("Booked"), `${r.name} · ${bookSlot.time}`); }}>
-                          <Avatar name={r.name} size={34} src={avatarUrl(r.avatarPath)} />
-                          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: theme.ink }}>{r.name}</span>
-                          <ChevronRight size={15} color={theme.faint} />
-                        </button>
+                                setSheet(null); done(tr("Booked"), `${r.name} · ${bookSlot.time}`); }} />
                       ))}
                     </div>
                   </>
@@ -21413,6 +21388,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onDone={(parts) => done(tr("Record shared"), `${parts.length} ${tr("parts")}`)}
                                             close={() => setSheet(null)} />
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={role === "coach" ? dayOpenTimes(cancelBk) : []} duration={duration}
+                                            request={role !== "coach" && !!(cancelBk && cancelBk.status === "requested")}
                                             verify={data && role === "coach" ? data.verifyPassword : null}
                                             reasonTravels={!data || !!data.cancelReasons}
                                             onDone={async ({ reason, note, offer }) => {
@@ -21433,7 +21409,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                 const told = role === "coach" ? tr("Their diary is updated.")
                                                   : bk.playerId && account && bk.playerId !== account.id && bookFor ? `${bookFor.coachName || tr("Their coach")} ${tr("is told.")}`
                                                   : tr("Your coach is told.");
-                                                done(tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : told, DANGER);
+                                                done(role !== "coach" && bk.status === "requested" ? tr("Withdrawn") : tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : told, DANGER);
                                                 return;
                                               }
                                               setCancelNotice({ from: role === "coach" ? coachName : (activeProfile || {}).name, lesson: cancelling, reason, offer });
@@ -21509,9 +21485,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <div className="mb-6">
                       <TimeGrid tour="decline-offer" cols={3} times={dayOpenTimes(declining)} picked={[]} onToggle={async (sl) => { hapticSuccess();
                                   if (data) {
-                                    /* the request is declined and the offered time booked in its place */
-                                    const r1 = await data.cancelBooking(declining.id, "cancelled");
-                                    const r2 = (r1 && r1.error) ? r1 : await data.addBookings([{ playerId: declining.playerId, date: declining.date || isoOf(declining.m, declining.d), time: sl, duration }]);
+                                    /* one write: the request's own row moved to the offered time and
+                                       confirmed, at its own length, so the player is told once */
+                                    const r2 = await data.offerTime(declining.id, declining.date || isoOf(declining.m, declining.d), sl);
                                     if (r2 && r2.error) { say(r2.error.message || tr("Couldn't offer that time.")); return; }
                                     setSheet(null); done(tr("Booked"), `${declining.who} · ${sl}`); return;
                                   }
@@ -21528,21 +21504,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "pickRecurWho" ? (
                   <>
                     <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who's it for")}</h2>
-                    <div className="flex flex-col gap-2">
-                      {roster.map((r, i) => {
+                    {/* a named being in a list is a row: one boxed list of PersonRows, as every other picker */}
+                    <div className="nsc-list" data-tour="recur-who">
+                      {roster.map((r) => {
                         const has = mySeriesLive.some((x) => (r.id ? x.playerId === r.id : x.who === r.name) && !x.ended);
                         return (
-                          <Tile key={r.id || r.name} className="px-4 py-3.5" delay={i * 45}
-                                onPress={has ? null : () => { setRecurId(null); setRecurFor(r); setSheet("recurring"); }}>
-                            <div className="flex items-center gap-3.5" style={{ opacity: has ? 0.45 : 1 }}>
-                              <Avatar name={r.name} size={38} />
-                              <span className="flex-1 min-w-0">
-                                <span className="block truncate" style={{ fontFamily: ui, fontSize: 15, color: theme.ink }}>{r.name}</span>
-                                {has && <span className="block mt-0.5" style={{ ...TYPE.caption, color: theme.faint }}>{tr("Already has one")}</span>}
-                              </span>
-                              {!has && <ChevronRight size={15} color={theme.faint} />}
-                            </div>
-                          </Tile>
+                          <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} sub={has ? tr("Already has one") : undefined} chevron={!has} muted={has}
+                                     onTap={has ? undefined : () => { haptic(7); soft(); setRecurId(null); setRecurFor(r); setSheet("recurring"); }} />
                         );
                       })}
                     </div>

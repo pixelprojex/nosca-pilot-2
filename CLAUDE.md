@@ -884,6 +884,46 @@ seeded data and no account.
   confirmed lesson with no yes from the player — the founder's call.
   `scripts/e2e/cancel-reason.cjs`, `scripts/e2e/offer-times.cjs`;
   behaviour.sql 10b.
+- **A request answered no was never a lesson, and an offered time is
+  one write.** `trg_bookings_notify` reads `old.status`: a request the
+  coach declines tells the player "Request declined" · the reason, or
+  the day and the coach, and a junior's adults "Saoirse's request
+  declined" — never "Lesson cancelled", which it said for a year about a
+  lesson they never had; a request the player (or an adult for a junior)
+  takes back tells the coach "Cian Murphy withdrew a request" · the
+  reason and the day, and takes the coach's "asked for a lesson" notice
+  with it in the same transaction, as a join request withdrawn does — it
+  read "Cian Murphy cancelled" and left the asking notice opening Today
+  with nothing waiting. The decline sheet's Offer another time is one
+  write (`offerTime` in the hook: the request's own row moved to the
+  offered time and confirmed, at its own length), so the player is told
+  once, "Lesson confirmed" · "Mon 2 Nov 11:00 am · asked for 10:00 am" —
+  the confirmed branch reads `old.start_time`; a request confirmed at
+  its own time carries the coach's name as before — where it was a
+  cancel and a fresh insert: two notices for one tap, and a refused
+  insert left the player with neither. Booked outright with no yes from
+  the player, the founder's call: Square's "declined" and "declined with
+  changes", Wix's and Calendly's decline with an optional message, and
+  no product in the set waits for a second yes. The one write lands only
+  on a request still waiting (`.eq("status", "requested")`,
+  `confirmBooking` the same): a request the player took back while the
+  coach's sheet was open moves nowhere, the coach reads "Couldn't offer
+  that time" and the stale row leaves Today. The ask row carries the
+  request's own `duration`, so `dayOpenTimes` fits the offer at the
+  request's length, never the coach's default — an hour's request was
+  offered a half-hour gap and booked over the next lesson. A request
+  caught by a weather call-off reads "Request declined" · "Weather · the
+  day" on both sides (the `weather` branch reads `old.status` too). On
+  the player's side the sheet for a request still waiting reads Withdraw
+  request, ends on **Withdraw the request** and toasts "Withdrawn" —
+  never "Cancel the lesson" or "A cancelled lesson is not counted" for a
+  lesson they never had. The decline carries no reason yet. The bell
+  hides a `booking` notice naming somebody whose request is on the
+  screen already (`said` in `NotifCentre`), so "Cian Murphy cancelled"
+  is hidden while Cian has another request waiting — matched on the
+  name, not the request; a decision. The mock's `onBookingUpdate` says
+  the same as the trigger. `offer-times.cjs` (d7)–(d13); behaviour.sql
+  10e.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.
@@ -1837,38 +1877,55 @@ seeded data and no account.
   tone for the suite. `scripts/e2e/roster.cjs`.
 - **One person row.** A face, a name, one grey line and what sits on
   the right is `PersonRow` — the face 40 (`PERSON_FACE`: the roster's,
-  and Material's 40dp list avatar), a 14px gap, `TYPE.body` for the
-  name (600 only as a state, an unread thread), `TYPE.caption` for the
-  line under it, 64 tall at rest and never a fixed height. The roster's
+  and Material's 40dp list avatar), a 14px gap, `TYPE.body` for the name
+  (600 only as a state, an unread thread), `TYPE.caption` for the line
+  under it, 64 tall at rest and never a fixed height. The roster's
   players and groups, Chat's threads, the family's children, Today's
-  requests, the bell's requests and Drifting are it; the register, the
-  home's day rows, Join requests and the sheet pickers keep their own
-  shape for now. Nothing on it is cut: the name takes a second line,
-  and a third, before an ellipsis (as the register's does — two Saoirse
-  K… are two players), breaking at a space or a hyphen and never inside
-  a word; the grey line two lines at most with each fact kept whole
-  (`Sat 31 Oct · 9:00 am` breaks at its dot, which rides with the
-  second fact as the feed's areas do, never between 9:00 and am); a
-  value on the right (`HI 16.4`, `1 drill`) never gives way; a pair of
-  actions (Accept · Decline) is a line of its own under the name,
-  right-aligned and 44 tall (the buttons stretch to the line, not
-  only their wrapper), when the row cannot give the name `textMin`
-  beside them (84, which keeps the pair beside a name at 375 and
-  Drifting's Message beside a name at 320 — at 120 every Drifting row
-  was 100 tall with Message alone on a second line; a long surname
-  wraps inside its three lines instead). The face is looked up by the
-  whole name (`faceName`) where the label is a first name alone, as the
-  family's child row is — the disc read one initial and lost the
-  child's photo for a round of review. A `TextBtn` inside it is `quiet`:
-  the handler buzzes, so the button does not, or a tap read as two
-  beats. It was drawn ten ways — faces 30 to 46, the name 54
-  to 73px in, 13.5 to 15px at 400, 500 or 600, rows 56 to 76 — and at
-  320 the roster cut a standing line beside the level, the family cut
-  a child's name beside "1 drill", a request's day and time were cut
+  requests, the bell's requests and its notices (the badged face in the
+  `face` slot; 12px of air above and below, `py-3`, so a wrapped notice
+  never touches its box; the title unclamped — `nameLines={0}`: a
+  notification's title carries the fact and is never cut, and
+  "Maximiliano Ó Súilleabháin can't make Saturday clinic" lost the group
+  at 320 under the three-line clamp; the body at 12 — it was 12.5 on a
+  36px face), Drifting, the message picker (Everyone, each group, the
+  people), the pick-a-player sheet, New group's `PersonPicker` (the tick
+  in `trailing`), the book-for sheet's roster and the recurring sheet's
+  who (one boxed list, `recur-who`, "Already has one" as its grey line —
+  it was a column of tiles) are it; the register, the home's day rows
+  and Join requests keep their own shape for now. Nothing on it is cut:
+  the name takes a second line, and a third, before an ellipsis (as the
+  register's does — two Saoirse K… are two players), breaking at a space
+  or a hyphen and never inside a word; the grey line two lines at most
+  with each fact kept whole (`Sat 31 Oct · 9:00 am` breaks at its dot,
+  which rides with the second fact as the feed's areas do, never between
+  9:00 and am); a part of the line longer than 28 characters (`FACT`) is
+  words, not a fact — a typed reason, a tip's title — and wraps like
+  words, or it ran off the box at 320; a notice's body alone may end on
+  an ellipsis after two lines, the preview the phone's own list draws,
+  and never runs past its box; `muted` fades the face and the words of a
+  row that cannot be picked (the recurring sheet's "Already has one"),
+  never its box, so the edge stays the sport's; a value on the right
+  (`HI 16.4`, `1 drill`) never gives way; a pair of actions (Accept ·
+  Decline) is a line of its own under the name, right-aligned and 44
+  tall (the buttons stretch to the line, not only their wrapper), when
+  the row cannot give the name `textMin` beside them (84, which keeps
+  the pair beside a name at 375 and Drifting's Message beside a name at
+  320 — at 120 every Drifting row was 100 tall with Message alone on a
+  second line; a long surname wraps inside its three lines instead). The
+  face is looked up by the whole name (`faceName`) where the label is a
+  first name alone, as the family's child row is — the disc read one
+  initial and lost the child's photo for a round of review. A `TextBtn`
+  inside it is `quiet`: the handler buzzes, so the button does not, or a
+  tap read as two beats. It was drawn ten ways — faces 30 to 46, the
+  name 54 to 73px in, 13.5 to 15px at 400, 500 or 600, rows 56 to 76 —
+  and at 320 the roster cut a standing line beside the level, the family
+  cut a child's name beside "1 drill", a request's day and time were cut
   beside Accept, and Chat cut every long name. Material 3's 40dp avatar
   and 16dp inset; UIKit's value cell, which stacks the text at a narrow
   width rather than cutting it. `scripts/e2e/person-row.cjs` measures
-  every row as the coach and a parent at 375 and 320.
+  every row as the coach and a parent at 375 and 320 — the twelve
+  surfaces, counting only a sheet's own rows, the overflow of every grey
+  line and the air above a notice's title.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: rows with an avatar,
   a name and one grey line, each in its own box on the sport's edge

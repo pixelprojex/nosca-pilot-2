@@ -1801,10 +1801,29 @@ begin
     end if;
   elsif tg_op = 'UPDATE' and new.status <> old.status then
     if new.status = 'confirmed' then
-      perform public.notify(new.player_id, 'booking', 'Lesson confirmed', whn || ' · ' || public.name_of(new.coach_id),
+      -- AN OFFER IS ONE WRITE: a request the coach cannot take at that
+      -- hour is the same row moved to the hour they can and confirmed,
+      -- so the player reads one line, the new time and what they asked
+      -- for (two facts; a player has one coach) — it was a cancel and a
+      -- fresh booking, "Lesson cancelled" for a lesson never had and then
+      -- "Lesson booked". Booked outright with no yes: the founder's call.
+      perform public.notify(new.player_id, 'booking', 'Lesson confirmed',
+        case when old.status = 'requested' and old.start_time <> new.start_time
+             then whn || ' · asked for ' || old.start_time
+             else whn || ' · ' || public.name_of(new.coach_id) end,
         jsonb_build_object('screen', 'calendar', 'id', new.id));
       for a in select public.adults_for(new.player_id) loop
-        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson confirmed', whn,
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s lesson confirmed',
+          case when old.status = 'requested' and old.start_time <> new.start_time then whn || ' · asked for ' || old.start_time else whn end,
+          jsonb_build_object('screen', 'family', 'id', new.id));
+      end loop;
+    elsif new.status = 'weather' and old.status = 'requested' then
+      -- a request caught by a weather call-off was never a lesson either:
+      -- the decline's shape, with Weather as the reason
+      perform public.notify(new.player_id, 'booking', 'Request declined', 'Weather · ' || whn,
+        jsonb_build_object('screen', 'calendar', 'id', new.id));
+      for a in select public.adults_for(new.player_id) loop
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s request declined', 'Weather · ' || whn,
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     elsif new.status = 'weather' then
@@ -1814,6 +1833,34 @@ begin
         perform public.notify(a, 'weather', public.first_name_of(new.player_id) || '''s lesson called off', whn || ' · weather',
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
+    elsif new.status = 'cancelled' and old.status = 'requested' then
+      -- A REQUEST ANSWERED NO, OR TAKEN BACK. Nothing was ever booked, so
+      -- "Lesson cancelled" was the wrong fact: the player read a lesson
+      -- they never had taken away, and their adults the same. The coach's
+      -- no is "Request declined"; a withdrawal is said to the coach as
+      -- what it is, and takes the coach's "asked for a lesson" with it in
+      -- the same transaction — it opened Today with nothing waiting, as a
+      -- join request withdrawn did until trg_requests_notify took its
+      -- notice. A request the coach answered keeps its notice as history.
+      if actor is not null and actor = new.coach_id then
+        perform public.notify(new.player_id, 'booking', 'Request declined',
+          case when why <> '' then why || whn else whn || ' · ' || public.name_of(new.coach_id) end,
+          jsonb_build_object('screen', 'calendar', 'id', new.id));
+        for a in select public.adults_for(new.player_id) loop
+          perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s request declined', why || whn,
+            jsonb_build_object('screen', 'family', 'id', new.id));
+        end loop;
+      else
+        delete from public.notifications
+        where user_id = new.coach_id and kind = 'booking' and data->>'id' = new.id::text;
+        perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' withdrew a request', why || whn,
+          jsonb_build_object('screen', 'calendar', 'id', new.id));
+        -- withdrawn for them, by the adult who asked
+        if actor is not null and actor <> new.player_id then
+          perform public.notify(new.player_id, 'booking', 'Request withdrawn', whn || ' · ' || public.name_of(new.coach_id),
+            jsonb_build_object('screen', 'calendar', 'id', new.id));
+        end if;
+      end if;
     elsif new.status = 'cancelled' then
       -- two facts on the line: the reason and the day where there is a
       -- reason, else the day and the coach

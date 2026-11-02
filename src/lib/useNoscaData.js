@@ -1115,6 +1115,23 @@ export function useNoscaData(profile) {
     return {};
   };
 
+  /* AN OFFER IS ONE WRITE. The coach's answer to a request they cannot
+     take at that hour is the request's own row moved to the hour they
+     can and confirmed, so the player is told once — "Lesson confirmed"
+     · the new time · asked for the old. It was a cancel and a fresh
+     booking: two rows and two notices, "Lesson cancelled" for a lesson
+     never had and then "Lesson booked". Booked outright with no yes,
+     the founder's call. */
+  const offerTime = async (id, date, time) => {
+    /* only a request still waiting: one the player took back while the
+       sheet was open moves nowhere, and the stale row leaves Today */
+    const { data: rows, error } = await supabase.from("bookings").update({ booking_date: date, start_time: time, status: "confirmed" }).eq("id", id).eq("status", "requested").select("id");
+    if (error) return { error };
+    if (!rows || !rows.length) { await load(); return { error: { message: "Couldn't offer that time." } }; }
+    await load();
+    return {};
+  };
+
   /* CALLING OFF AHEAD
 
      A coach can see Thursday's forecast on Monday. Everything booked on
@@ -1171,9 +1188,9 @@ export function useNoscaData(profile) {
 
   /* The coach accepts a player's request. */
   const confirmBooking = async (id) => {
-    const { data: rows, error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id).select("id");
+    const { data: rows, error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id).eq("status", "requested").select("id");
     if (error) return { error };
-    if (!rows || !rows.length) return { error: { message: "Couldn't confirm that booking." } };
+    if (!rows || !rows.length) { await load(); return { error: { message: "Couldn't confirm that booking." } }; }
     await load();
     return {};
   };
@@ -1854,7 +1871,7 @@ export function useNoscaData(profile) {
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
     setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, canRsvp, setGroupAbsence, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
-    addBooking, addBookings, cancelBooking, confirmBooking, callOffDay, callOffBookings, moveBooking,
+    addBooking, addBookings, cancelBooking, offerTime, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,
     savePrefs, saveAvailability, saveGroups, updateProfile, changePassword, sendMessage, broadcast, markRead, submitReview, setLessonExtras,

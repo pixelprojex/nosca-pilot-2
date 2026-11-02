@@ -516,12 +516,43 @@ answered keeps its notice, so a coach who accepted from Today's strip
 without opening the bell keeps an unread "asked to join" that opens
 Requests with nothing waiting — the answered cousin, not fixed.
 
+### 29. Answering a request. **Built 1 November.**
+A request the coach declined told the player "Lesson cancelled" — a
+lesson they never had — and a junior's adults "Saoirse's lesson
+cancelled"; a request the player took back told the coach "Cian Murphy
+cancelled" and left the coach's "asked for a lesson" notice opening
+Today with nothing waiting; and the decline sheet's Offer another time
+was a cancel and a fresh insert, so one tap wrote "Request declined" and
+"Lesson booked" for one lesson, and a refused insert left the player
+with neither. Every product in the field with a request flow uses a
+distinct word for the no — Square Appointments' "declined" and "declined
+with changes" (its reschedule on a decline), Wix Bookings' Decline with
+an optional message, Calendly's decline on an event that requires
+confirmation, Acuity, MyTime, SimplyBook's Approve Bookings and
+Waitwhile's booking requests; a time the provider proposes instead is
+booked outright (Square's "declined with changes", Calendly's host
+proposing a new time) and no product in the set waits for a second yes;
+the reason is optional free text wherever one exists, Teamer's required
+decline reason being the exception, and on a member's side.
+`trg_bookings_notify` now reads `old.status`: "Request declined" · the
+reason or the day and the coach, "<First>'s request declined" to the
+adults; "<Name> withdrew a request" to the coach with the asking notice
+deleted in the same transaction, as 10d does for a join request; and the
+offer is one write — `offerTime` moves the request's own row and
+confirms it — with "Lesson confirmed" · "… 11:00 am · asked for 10:00
+am" from the confirmed branch's `old.start_time`. Booked with no yes,
+the founder's call; the decline carries no reason yet. The functional
+item of the day; `offer-times.cjs` (d7)–(d10), behaviour.sql 10e. With
+it, the visual small fix from Next: the rest of the person rows — the
+bell's notices, the message picker, pick-a-player, New group's people,
+the book-for sheet, the recurring sheet's who — on `PersonRow`;
+`person-row.cjs` 13/13. The review (landed 2 November, the session having been cut off by a usage limit on the 1st): the one write lands only on a request still waiting; the ask row carries the request's own length, so an offer never lands on a held lesson; a request caught by a weather call-off reads Request declined; the player's sheet withdraws a request rather than cancelling a lesson; the bell's notice row given its air, an uncut title and a grey line whose words wrap.
+
 ### Next candidates (unranked until read against the field)
-- The rest of the person rows (visual, 3): the bell's notice row (a
-  face with a kind badge; its title already wraps), the message picker,
-  the pick-a-player sheet, New group's people, the book-for sheet and
-  the recurring sheet's who — the sheet pickers, which `PersonRow`
-  fits once given a trailing tick.
+- A reason on a declined request (functional, 2): optional, Square's,
+  Wix's and Calendly's message on the no; the decline sheet asking Why
+  first, as Cancel's does, the player reading it first as a
+  cancellation's reason is read.
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
   `reason` column and the Why sheet. And answers locked once the
@@ -654,3 +685,13 @@ the items above; a research spike first.
 - https://developer.apple.com/design/human-interface-guidelines/lists-and-tables (HIG: succinct row text, minimise truncation)
 - https://github.com/androidx/androidx/blob/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/tokens/ListTokens.kt (Material 3: 40dp leading avatar, 16dp leading space, 56/72/88dp list items)
 - https://www.w3.org/WAI/WCAG21/Understanding/text-spacing (WCAG 1.4.12: fixed-height containers that clip text are the common failure)
+- https://api.squareup.com/help/us/en/article/8444-accept-or-decline-appointments (Square Appointments: a request is accepted, declined, or "declined with changes" — a new time booked in its place)
+- https://squareup.com/help/au/en/article/8070-customize-notifications-for-square-appointments (Square: the client's notifications name a declined request as declined)
+- https://support.wix.com/en/article/wix-bookings-requiring-approval-for-appointments (Wix Bookings: Approve or Decline, with an optional message to the client)
+- https://help.calendly.com/hc/en-us/articles/14079031268375 (Calendly: an event that requires confirmation is confirmed or declined, with a message)
+- https://community.calendly.com/how-do-i-40/how-to-propose-as-host-a-new-time-to-a-booked-meeting-2932 (Calendly: a host proposing a new time books it)
+- https://help.acuityscheduling.com/hc/en-us/articles/16676926555533 (Acuity: a request held until the provider confirms or declines)
+- https://help.mytime.com/support/solutions/articles/31000174877 (MyTime: booking requests approved or declined)
+- https://help.simplybook.me/wiki/Approve_Bookings_custom_feature (SimplyBook: Approve Bookings, a pending booking confirmed or declined)
+- https://help.waitwhile.com/en/articles/9976570-how-do-booking-requests-work-in-waitwhile (Waitwhile: a booking request accepted or declined)
+- https://help.teamer.net/knowledge/member/events/respond-to-an-event-invite (Teamer: a member's decline carries a required reason)
