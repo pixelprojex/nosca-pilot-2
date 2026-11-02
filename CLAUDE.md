@@ -294,20 +294,24 @@ seeded data and no account.
   the mark bigger and bolder to the height of the icons: at 20px it
   read as a detail beside them.
 - **The hit area is not the glyph.** The header's Saved, Search and
-  Alerts draw 25 square and answered a finger 25 square on every
-  screen; Back answered 41, the month chevrons 34 and the diary's
-  pencil 26. Each carries a transparent `aria-hidden` span that reaches
-  past it and paints nothing: `HIT_REACH` makes an `IconBtn` (and the
-  profile pill) 44 tall and half its row's gap either side
-  (`--hit-gap`: 10 in a screen's header, 2 in the feed's pill), so two
-  neighbours meet in the middle of the gap and never overlap — 35 wide
-  in a header, 27 in the pill; Back, the chevrons and the pencil reach
-  44 square. 44 wide would mean wider gaps, which moves the icons the
-  founder approved, so it is not done. A new header control uses
-  `IconBtn` and gets the reach for nothing. Apple's 44pt, WCAG 2.5.5
-  (2.5.8's minimum is 24, which 25 already met).
-  `scripts/e2e/hit-areas.cjs` reads what a finger lands on
-  (`elementFromPoint`) as every role at 375 and 320.
+  Alerts draw 25 square and answered a finger 25 square on every screen;
+  Back answered 41, the month chevrons 34 and the diary's pencil 26.
+  Each carries a transparent `aria-hidden` span that reaches past it and
+  paints nothing: `HIT_REACH` makes an `IconBtn` (and the profile pill)
+  44 tall and half its row's gap either side (`--hit-gap`: 10 in a
+  screen's header, 2 in the feed's pill), so two neighbours meet in the
+  middle of the gap and never overlap — 35 wide in a header, 27 in the
+  pill; Back, the chevrons and the pencil reach 44 square. 44 wide would
+  mean wider gaps, which moves the icons the founder approved, so it is
+  not done. A new header control uses `IconBtn` and gets the reach for
+  nothing. Apple's 44pt, WCAG 2.5.5 (2.5.8's minimum is 24, which 25
+  already met). `scripts/e2e/hit-areas.cjs` reads what a finger lands on
+  (`elementFromPoint`) as every role at 375 and 320. The register's
+  Present and Absent are drawn 44 tall (they were 38) inside a row that
+  was 62 already; the log's Set level keeps its 30px line and reaches 44
+  — 5 up into the gap under the name, 9 down into the air over the grid
+  — so the line does not move and nothing of the row above is taken
+  (`hit-areas.cjs` (h), (i)).
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
   screens, hours · drills · tips, grids and rows, a body that scrolls
   — remembered as `preferences.setup_done`, and reachable again from
@@ -918,12 +922,13 @@ seeded data and no account.
   request, ends on **Withdraw the request** and toasts "Withdrawn" —
   never "Cancel the lesson" or "A cancelled lesson is not counted" for a
   lesson they never had. The decline carries no reason yet. The bell
-  hides a `booking` notice naming somebody whose request is on the
-  screen already (`said` in `NotifCentre`), so "Cian Murphy cancelled"
-  is hidden while Cian has another request waiting — matched on the
-  name, not the request; a decision. The mock's `onBookingUpdate` says
-  the same as the trigger. `offer-times.cjs` (d7)–(d13); behaviour.sql
-  10e.
+  hides the asking notice a request row on the screen already says
+  (`said` in `NotifCentre`: a `request` or `booking` notice with "asked"
+  in its title naming somebody waiting) and nothing else — it hid every
+  booking notice naming them, so "Cian Murphy cancelled" vanished while
+  Cian had another request waiting (`person-row.cjs` (o)). The mock's
+  `onBookingUpdate` says the same as the trigger. `offer-times.cjs`
+  (d7)–(d13); behaviour.sql 10e.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.
