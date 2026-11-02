@@ -548,6 +548,28 @@ bell's notices, the message picker, pick-a-player, New group's people,
 the book-for sheet, the recurring sheet's who — on `PersonRow`;
 `person-row.cjs` 13/13. The review (landed 2 November, the session having been cut off by a usage limit on the 1st): the one write lands only on a request still waiting; the ask row carries the request's own length, so an offer never lands on a held lesson; a request caught by a weather call-off reads Request declined; the player's sheet withdraws a request rather than cancelling a lesson; the bell's notice row given its air, an uncut title and a grey line whose words wrap.
 
+### 30. The register's Present and Absent at 44; Set level's reach; the bell's asking notice. **Built 2 November.**
+Two hit targets recorded since 25 October and left: the register's
+Present and Absent were drawn and answered 38 tall, the log's Set level
+30, under Apple's 44pt and WCAG 2.5.5's enhanced target (the rest of the
+header met it on 25 October through a reach that moved no glyph).
+Present and Absent are drawn 44 now — the row was 62 already, so nothing
+else moves, and a bigger tile reads as the button it is; Set level keeps
+its 30px line and reaches 44 through a transparent span, 5 up into the
+gap under the name and 9 down into the air over the grid, so the line
+does not move and nothing of the row above is taken. The field's
+attendance screens (TeamSnap's availability tracking, Spond's
+attendance) document the flow and not their control sizes, so the
+numbers are the platforms': Apple's 44pt, Material's 48dp, WCAG's 44
+enhanced and 24 minimum. The visual item of the day, small by design:
+the session that ran 1 November was cut off by a usage limit before its
+merge, so this window landed two cycles. With it, one small functional
+fix: the bell hid every request- or booking-kind notice naming somebody
+with a request on the screen, so "Cian Murphy cancelled" vanished while
+Cian had another request waiting; it hides only the asking notice the
+request row already says now (`said`, "asked" in the title).
+`hit-areas.cjs` (h), (i); `person-row.cjs` (o).
+
 ### Next candidates (unranked until read against the field)
 - A reason on a declined request (functional, 2): optional, Square's,
   Wix's and Calendly's message on the no; the decline sheet asking Why
@@ -695,3 +717,5 @@ the items above; a research spike first.
 - https://help.simplybook.me/wiki/Approve_Bookings_custom_feature (SimplyBook: Approve Bookings, a pending booking confirmed or declined)
 - https://help.waitwhile.com/en/articles/9976570-how-do-booking-requests-work-in-waitwhile (Waitwhile: a booking request accepted or declined)
 - https://help.teamer.net/knowledge/member/events/respond-to-an-event-invite (Teamer: a member's decline carries a required reason)
+- https://helpme.teamsnap.com/article/660-track-event-availability (TeamSnap: a coach tracks attendance by reviewing each player's availability per event)
+- https://www.spond.com/en-us/news-and-blog/team-availability-management-app/ (Spond: attendance registered per event, with reminders to those who have not answered)

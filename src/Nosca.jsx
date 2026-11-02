@@ -4730,9 +4730,9 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
                   return (
-                    <button key={v} onClick={() => mark(r.id, v)}
+                    <button key={v} onClick={() => mark(r.id, v)} data-tour={`register-${v}`}
                             className="flex items-center justify-center active:opacity-70"
-                            style={{ minWidth: 66, minHeight: 38, borderRadius: R.control,
+                            style={{ minWidth: 66, minHeight: 44, borderRadius: R.control,
                                      background: on ? tone : "transparent",
                                      border: `${EDGE_W}px solid ${on ? tone : EDGE(t)}`,
                                      ...TYPE.caption, fontWeight: 600,
@@ -13423,7 +13423,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               </span>
               {stages.length > 0 && (
                 <>
-                  <button data-tour="wiz-stage" onClick={() => { haptic(6); setView("stage"); }} className="flex items-center gap-1 active:opacity-60" style={{ minHeight: 30, marginLeft: SPACE.row }}>
+                  <button data-tour="wiz-stage" onClick={() => { haptic(6); setView("stage"); }} className="relative flex items-center gap-1 active:opacity-60" style={{ minHeight: 30, marginLeft: SPACE.row }}>
+                    {/* the hit area is not the glyph: a reach of 44 tall (5 up, into the gap under the
+                        name, 9 down, into the air over the grid), so the line it sits on does not move
+                        and nothing of the row above is taken */}
+                    <span aria-hidden="true" className="absolute" style={{ top: -5, bottom: -9, left: -6, right: -6 }} />
                     {/* the level they are on, or the one thing still to
                         answer — never a control labelled "Level" holding
                         nothing. It never blocks Log it: a coach's first
@@ -17535,7 +17539,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
      join you" and "Eoin Walsh asked to join" on one screen is the app
      talking to itself. */
   const asked = waiting.map((w) => String(w.who || "").toLowerCase()).filter(Boolean);
-  const said = (n) => (n.kind === "request" || n.kind === "booking")
+  const said = (n) => (n.kind === "request" || n.kind === "booking") && /\basked\b/i.test(String(n.title || ""))
     && asked.some((nm) => String(n.title || "").toLowerCase().includes(nm));
   const list = items.filter((n) => !said(n));
 
