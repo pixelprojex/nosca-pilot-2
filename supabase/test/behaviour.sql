@@ -812,9 +812,10 @@ begin; set local role authenticated; select set_config('request.jwt.claims', '{"
 with u as (update public.bookings set status = 'cancelled' where id = :'rq1' returning id) select count(*) as rqc from u \gset
 commit;
 select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq1' and title = 'Request declined') as rd1,
-       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq1' and title = 'Lesson cancelled') as rl1 \gset
-select (:ask0 = 2 and :rqc = 1 and :rd1 = 1 and :rl1 = 0) as ok \gset
-\if :ok \echo PASS a request the coach declines tells the player Request declined, never Lesson cancelled (10e) \else \echo FAIL decline asked=:ask0 rows=:rqc declined=:rd1 cancelled=:rl1 (10e) \endif
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq1' and title = 'Lesson cancelled') as rl1,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'rq1' and title like '% asked for a lesson') as ask1 \gset
+select (:ask0 = 2 and :rqc = 1 and :rd1 = 1 and :rl1 = 0 and :ask1 = 1) as ok \gset
+\if :ok \echo PASS a request the coach declines tells the player Request declined, never Lesson cancelled, and keeps the coach s own notice as history (10e) \else \echo FAIL decline asked=:ask0 rows=:rqc declined=:rd1 cancelled=:rl1 kept=:ask1 (10e) \endif
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
 with u as (update public.bookings set status = 'cancelled' where id = :'rq2' returning id) select count(*) as rqw from u \gset
 commit;
@@ -830,9 +831,27 @@ with u as (update public.bookings set start_time = '11:00', status = 'confirmed'
 commit;
 select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq3' and title = 'Lesson confirmed' and body like '% 11:00 · asked for 10:00') as oc3,
        (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq3' and title <> 'Lesson confirmed') as ox3,
-       (select count(*) from public.bookings where id = :'rq3' and status = 'confirmed' and start_time = '11:00') as ob3 \gset
-select (:rqo = 1 and :oc3 = 1 and :ox3 = 0 and :ob3 = 1) as ok \gset
-\if :ok \echo PASS an offered time is one write and one line: Lesson confirmed at the new hour, asked for the old (10e) \else \echo FAIL offer rows=:rqo confirmed=:oc3 other=:ox3 row=:ob3 (10e) \endif
+       (select count(*) from public.bookings where id = :'rq3' and status = 'confirmed' and start_time = '11:00') as ob3,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'rq3' and title like '% asked for a lesson') as ask3 \gset
+select (:rqo = 1 and :oc3 = 1 and :ox3 = 0 and :ob3 = 1 and :ask3 = 1) as ok \gset
+\if :ok \echo PASS an offered time is one write and one line: Lesson confirmed at the new hour, asked for the old, the coach s notice kept (10e) \else \echo FAIL offer rows=:rqo confirmed=:oc3 other=:ox3 row=:ob3 kept=:ask3 (10e) \endif
+-- the one write lands only on a request still waiting: a request already taken back moves nowhere and tells nobody
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set start_time = '11:00', status = 'confirmed' where id = :'rq2' and status = 'requested' returning id) select count(*) as rqg from u \gset
+commit;
+select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq2' and title = 'Lesson confirmed') as gc2,
+       (select count(*) from public.bookings where id = :'rq2' and status = 'cancelled' and start_time = '10:00') as gb2 \gset
+select (:rqg = 0 and :gc2 = 0 and :gb2 = 1) as ok \gset
+\if :ok \echo PASS the guarded offer moves no request already taken back, and the player hears nothing (10e) \else \echo FAIL guarded offer rows=:rqg confirmed=:gc2 row=:gb2 (10e) \endif
+-- a request caught by a weather call-off was never a lesson either
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-03-27', '10:00', 45, 'private', 'requested') returning id as rq4 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set status = 'weather' where id = :'rq4' returning id) select count(*) as rqx from u \gset
+commit;
+select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq4' and title = 'Request declined' and body like 'Weather · %') as wd4,
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq4' and title like 'Called off%') as wc4 \gset
+select (:rqx = 1 and :wd4 = 1 and :wc4 = 0) as ok \gset
+\if :ok \echo PASS a request caught by a weather call-off reads Request declined · Weather, never Called off (10e) \else \echo FAIL weather on a request rows=:rqx declined=:wd4 calledoff=:wc4 (10e) \endif
 -- a reason past 120 characters is refused and nothing is written
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-12', '11:00', 45, 'private', 'requested') returning id as bk3 \gset

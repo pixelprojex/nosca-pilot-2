@@ -1123,9 +1123,11 @@ export function useNoscaData(profile) {
      never had and then "Lesson booked". Booked outright with no yes,
      the founder's call. */
   const offerTime = async (id, date, time) => {
-    const { data: rows, error } = await supabase.from("bookings").update({ booking_date: date, start_time: time, status: "confirmed" }).eq("id", id).select("id");
+    /* only a request still waiting: one the player took back while the
+       sheet was open moves nowhere, and the stale row leaves Today */
+    const { data: rows, error } = await supabase.from("bookings").update({ booking_date: date, start_time: time, status: "confirmed" }).eq("id", id).eq("status", "requested").select("id");
     if (error) return { error };
-    if (!rows || !rows.length) return { error: { message: "Couldn't offer that time." } };
+    if (!rows || !rows.length) { await load(); return { error: { message: "Couldn't offer that time." } }; }
     await load();
     return {};
   };
@@ -1186,9 +1188,9 @@ export function useNoscaData(profile) {
 
   /* The coach accepts a player's request. */
   const confirmBooking = async (id) => {
-    const { data: rows, error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id).select("id");
+    const { data: rows, error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", id).eq("status", "requested").select("id");
     if (error) return { error };
-    if (!rows || !rows.length) return { error: { message: "Couldn't confirm that booking." } };
+    if (!rows || !rows.length) { await load(); return { error: { message: "Couldn't confirm that booking." } }; }
     await load();
     return {};
   };

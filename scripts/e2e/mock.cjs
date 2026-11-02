@@ -284,6 +284,11 @@ function onBookingUpdate(db, b, old, actor) {
     notify(db, b.player_id, "booking", "Lesson confirmed", offered ? `${whn} · asked for ${old.start_time}` : `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
     tellAdults(`${firstOf(db, b.player_id)}'s lesson confirmed`, offered ? `${whn} · asked for ${old.start_time}` : whn);
   }
+  else if (b.status === "weather" && old.status === "requested") {
+    /* a request caught by a weather call-off was never a lesson: the decline's shape, Weather as the reason */
+    notify(db, b.player_id, "booking", "Request declined", `Weather · ${whn}`, { screen: "calendar", id: b.id });
+    adultsFor(db, b.player_id).forEach((a) => notify(db, a, "booking", `${firstOf(db, b.player_id)}'s request declined`, `Weather · ${whn}`, { screen: "family", id: b.id }));
+  }
   else if (b.status === "weather") { notify(db, b.player_id, "weather", "Called off — weather", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id }); tellAdults(`${firstOf(db, b.player_id)}'s lesson called off`, `${whn} · weather`); }
   else if (b.status === "cancelled") {
     /* the reason leads the line when there is one, as trg_bookings_notify writes it */

@@ -25,8 +25,12 @@
    d8     an offered time is one write: the request moved and confirmed,
           the player told once, "asked for 10:00 am" on the line
    d9     a junior's request declined reaches the parent as a request
-   d10    a request the player takes back: the coach reads a withdrawal
-          and the asking notice goes with it
+   d10    a request the player takes back: Withdraw the request, the coach
+          reads a withdrawal and the asking notice goes with it
+   d11    a request taken back while the coach's sheet is open is offered
+          nothing: the one write lands on no row
+   d12    the decline fits the request's own length, not the coach's
+   d13    a request caught by a weather call-off reads Request declined
 
    Usage: node offer-times.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -243,12 +247,83 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       await M.tap(page, '[data-tour="day-cancel"]', 800);
       await page.locator('[data-tour="cancel-why"]', { hasText: "Away" }).click(); await page.waitForTimeout(300);
       await shot("06-withdraw");
-      await page.locator("button", { hasText: /^Cancel the lesson$/ }).last().click(); await page.waitForTimeout(1800);
+      /* nothing was booked, so the sheet withdraws a request: never "Cancel the lesson", never "not counted" */
+      const ts = await sheetText(page);
+      check("(d10) the player's sheet reads Withdraw request and ends on Withdraw the request — never Cancel the lesson, never 'not counted'",
+            /Withdraw request/.test(ts) && (await page.locator("button", { hasText: /^Withdraw the request$/ }).count()) === 1 && !/Cancel the lesson|not counted/.test(ts), ts.slice(0, 200));
+      await page.locator("button", { hasText: /^Withdraw the request$/ }).last().click(); await page.waitForTimeout(900);
+      const tw = M.norm(await M.rootText(page));
+      check("(d10) …and the toast says Withdrawn", /Withdrawn/.test(tw) && !/Cancelled/.test(tw), tw.slice(0, 160));
+      await page.waitForTimeout(900);
       const req = db.bookings.find((b) => b.id === CC06);
       const coach = toldFor(db, IDS.coach, CC06);
       check("(d10) the coach's asked-for notice goes and one line says Cian Murphy withdrew a request · Away · the day — never cancelled",
             !!req && req.status === "cancelled" && coach.length === 1 && /^Cian Murphy withdrew a request · Away · .* 10:00 am$/.test(coach[0]) && !coach.some((x) => /asked for a lesson|cancelled/.test(x)),
             JSON.stringify({ status: req && req.status, coach }));
+      await ctx.close();
+    }
+
+    /* ---------- (d11) a request taken back while the sheet is open ---------- */
+    {
+      const db = freshDb();
+      const { ctx, page } = await boot(db);
+      await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(800);
+      /* the player withdraws under the coach's open sheet */
+      const req = db.bookings.find((b) => b.id === CC06); req.status = "cancelled"; req.cancel_reason = "Away";
+      const before = db.patches.length;
+      await page.locator('[data-tour="decline-offer"] button', { hasText: /^11:00 am$/ }).click(); await page.waitForTimeout(900);
+      const t = M.norm(await M.rootText(page));
+      await page.waitForTimeout(900);
+      const patch = db.patches.slice(before).find((x) => x.table === "bookings");
+      const told = toldFor(db, IDS.adult, CC06);
+      check("(d11) a request taken back while the sheet is open is offered nothing: the write lands on no row, the row stays cancelled at 10:00 am, the player hears nothing, the coach reads Couldn't offer that time",
+            !!patch && patch.n === 0 && req.status === "cancelled" && req.start_time === "10:00 am" && !told.some((x) => /Lesson confirmed/.test(x)) && /Couldn't offer that time/.test(t),
+            JSON.stringify({ n: patch && patch.n, status: req.status, time: req.start_time, told, t: t.slice(0, 120) }));
+      await ctx.close();
+    }
+
+    /* ---------- (d12) the request's own length, not the coach's ---------- */
+    {
+      const db = freshDb();
+      const h = db.prefs[IDS.coach].availability;
+      const six = ["9:00 am", "10:00 am", "11:00 am", "11:30 am", "4:00 pm", "5:00 pm"];
+      Object.keys(h.days).forEach((k) => { h.days[k] = six; }); h.slots = six; h.duration = 30;
+      db.bookings.find((b) => b.id === CC06).duration = 60;
+      const t1 = dayPlus(db, 1);
+      M.addBooking(db, { id: "b0000000-0000-4000-8000-00000000cc08", coachId: IDS.coach, playerId: IDS.junior, date: t1, time: "11:30 am", duration: 30 });
+      const { ctx, page } = await boot(db);
+      await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(800);
+      const dt = await offerButtons(page);
+      check("(d12) the decline fits the request's own hour, not the coach's half hour: 11:00 am would run into Saoirse's 11:30, so 9:00 am and 5:00 pm alone", JSON.stringify(dt) === JSON.stringify(["9:00 am", "5:00 pm"]), dt.join(", ") || "none");
+      await page.locator('[data-tour="decline-offer"] button', { hasText: /^9:00 am$/ }).click(); await page.waitForTimeout(1500);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const mins = (s) => { const m = s.match(/(\d+):(\d\d) ([ap]m)/); return (Number(m[1]) % 12 + (m[3] === "pm" ? 12 : 0)) * 60 + Number(m[2]); };
+      const day = db.bookings.filter((b) => b.coach_id === IDS.coach && b.booking_date === t1 && b.status === "confirmed").map((b) => [mins(b.start_time), mins(b.start_time) + b.duration]).sort((a, b) => a[0] - b[0]);
+      const overlap = day.some((x, i) => i > 0 && x[0] < day[i - 1][1]);
+      check("(d12) the offer keeps the request's hour: confirmed at 9:00 am for 60 minutes, and no two of the coach's lessons that day overlap", !!req && req.status === "confirmed" && req.start_time === "9:00 am" && req.duration === 60 && !overlap, JSON.stringify({ status: req && req.status, time: req && req.start_time, dur: req && req.duration, day }));
+      await ctx.close();
+    }
+
+    /* ---------- (d13) a request caught by a weather call-off ---------- */
+    {
+      const db = freshDb({ family: true, requestFor: "junior" });
+      const { ctx, page, shot } = await boot(db);
+      await M.tap(page, '[data-tour="quick"]', 900);
+      await M.tap(page, '[data-tour="quick-weather"]', 900);
+      await M.click(page, "Weather", 400); await M.click(page, "Next", 700);
+      /* today is picked; add tomorrow, where the request is */
+      await page.getByRole("button", { name: /· \d lessons?$/ }).nth(1).click(); await page.waitForTimeout(300);
+      await M.click(page, "Next", 700);
+      const n = await page.locator('[data-sheet] button[aria-pressed="true"]').count();
+      await shot("07-calloff-request");
+      await page.locator("[data-sheet] button", { hasText: new RegExp(`^Call off ${n} lessons$`) }).first().click(); await page.waitForTimeout(800);
+      await page.locator('input[type="password"]').fill("secret12");
+      await page.locator("button", { hasText: new RegExp(`^Call off ${n} lessons$`) }).last().click(); await page.waitForTimeout(2200);
+      const req = db.bookings.find((b) => b.id === CC06);
+      const child = toldFor(db, IDS.junior, CC06), parent = toldFor(db, IDS.parent, CC06);
+      check("(d13) a request caught by a weather call-off reads Request declined · Weather to the child and Saoirse's request declined · Weather to the parent — never Called off",
+            !!req && req.status === "weather" && child.length === 1 && /^Request declined · Weather · .* 10:00 am$/.test(child[0]) && parent.length === 1 && /^Saoirse's request declined · Weather · .* 10:00 am$/.test(parent[0]),
+            JSON.stringify({ n, status: req && req.status, child, parent }));
       await ctx.close();
     }
 

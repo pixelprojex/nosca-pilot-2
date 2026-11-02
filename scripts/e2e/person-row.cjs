@@ -55,6 +55,14 @@ function freshDb() {
   M.addNotification(db, { userId: IDS.coach, kind: "calendar", title: `${LONG} asked for a lesson`, body: "Wed 4 Nov 10:00 am", createdAt: `${TODAY}T07:40:00Z` });
   M.addNotification(db, { userId: IDS.max, kind: "lesson", title: "Lesson logged", body: "Bunker play", createdAt: `${TODAY}T07:40:00Z` });
   M.addNotification(db, { userId: IDS.parent, kind: "booking", title: "Caoimhe's lesson tomorrow · 4:00 pm", body: null, createdAt: `${TODAY}T07:40:00Z` });
+  /* the shapes that cut: a whole name's title beside the time, a typed reason and a tip's words in the
+     grey line — about Caoimhe, who has no request waiting: the bell hides a booking notice naming
+     somebody whose request is on the screen already */
+  M.addNotification(db, { userId: IDS.coach, kind: "booking", title: `${LONG_KID} can't make Saturday clinic`, body: "Sat 7 Nov 9:00 am", createdAt: `${TODAY}T07:35:00Z` });
+  M.addNotification(db, { userId: IDS.coach, kind: "booking", title: `${LONG_KID} cancelled`, body: "Had to collect the kids from school early · Sat 10 Oct 10:00 am", createdAt: `${TODAY}T07:30:00Z` });
+  M.addNotification(db, { userId: IDS.adult, kind: "tip", title: "Niamh Byrne left a tip", body: "Keep the left arm straight through the backswing and finish high · Niamh Byrne", createdAt: `${TODAY}T07:40:00Z` });
+  /* one arrangement, so the recurring sheet's who carries an "Already has one" row */
+  M.addRecurring(db, { coachId: IDS.coach, playerId: IDS.adult, weekday: 2, time: "10:00 am" });
   return db;
 }
 
@@ -82,11 +90,14 @@ const rows = (page, where) => page.evaluate((where) => {
     }
     const txt = nameEl ? nameEl.textContent : "";
     const breakOk = breakAt == null ? true : /[\s-]/.test(txt[breakAt - 1]) || /\s/.test(txt[breakAt]);
-    const boxed = !!row.closest(".nsc-list");
-    return { where, tour: row.getAttribute("data-tour") || "", name: nameEl ? nameEl.textContent.trim() : "", face: Math.round(fr.width),
+    const boxed = !!row.closest(".nsc-list"), sheet = !!row.closest("[data-sheet]");
+    /* words that run past the box: a nowrap fact wider than the column */
+    const subOver = subEl ? subEl.scrollWidth > subEl.clientWidth + 1 : false;
+    return { where, tour: row.getAttribute("data-tour") || "", name: nameEl ? nameEl.textContent.trim() : "", face: Math.round(fr.width), sheet, subOver,
+      air: nr ? Math.round(nr.top - rr.top) : null,
       inset: nr ? Math.round(nr.left - fr.left) : null, fs: cs ? cs.fontSize : null, fw: cs ? cs.fontWeight : null, bold: row.hasAttribute("data-bold"),
       actsH: acts ? Math.round(acts.getBoundingClientRect().height) : null, btnH, faceText,
-      sub: subEl ? { fs: getComputedStyle(subEl).fontSize, t: subEl.textContent.trim(), cut: cut(subEl) } : null,
+      sub: subEl ? { fs: getComputedStyle(subEl).fontSize, t: subEl.textContent.trim(), cut: cut(subEl) || subOver } : null,
       nameCut: cut(nameEl), trailCut, wrapped: breakAt != null, breakOk, rowH: Math.round(rr.height), tag: row.tagName,
       border: getComputedStyle(row).borderBottomWidth, boxed,
       acts: acts ? { top: Math.round(acts.getBoundingClientRect().top), under: nr ? acts.getBoundingClientRect().top >= nr.bottom - 1 : null } : null };
@@ -124,7 +135,22 @@ const { check, results, summary } = M.checker("person-row");
         /* New group's people */
         await tap(page, '[aria-label="Roster"]', 900);
         const ng = page.getByRole("button", { name: "New group", exact: true }); if (await ng.count()) { await ng.first().dispatchEvent("click"); await page.waitForTimeout(900); await grab("newgroup", true); await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(500); }
+        /* the recurring sheet's who: Diary › List › Recurring lessons › the plus */
+        await tap(page, '[aria-label="Diary"]', 1000);
+        const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
+        if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+        if (await page.locator('[data-tour="cal-recurring"]').count()) {
+          await tap(page, '[data-tour="cal-recurring"]', 1000);
+          if (await page.locator('[data-tour="recur-add"]').count()) { await tap(page, '[data-tour="recur-add"]', 900); await grab("recurwho", true); await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(500); }
+          await tap(page, '[aria-label="Back"]', 700);
+        }
         await tap(page, '[aria-label="Today"]', 800);
+        /* the pick-a-player sheet: the plus › Tip */
+        if (await page.locator('[data-tour="quick"]').count()) {
+          await tap(page, '[data-tour="quick"]', 900);
+          if (await page.locator('[data-tour="quick-tip"]').count()) { await tap(page, '[data-tour="quick-tip"]', 900); await grab("pickwho", true); }
+          await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(500);
+        }
         /* the Actions row, not the filter tile of the same word above it */
         const dr = page.locator('button:not([aria-label="Drifting"])', { hasText: /^Drifting/ }); if (await dr.count()) { await dr.last().dispatchEvent("click"); await page.waitForTimeout(900); await grab("drifting", true); await tap(page, '[aria-label="Back"]', 700); }
         await tap(page, '[aria-label="Alerts"]', 1000); await grab("alerts", true);
@@ -151,19 +177,27 @@ const { check, results, summary } = M.checker("person-row");
     const found = { asks375: at("coach@375", "today").filter((r) => r.tour === "today-asks" || r.acts), roster375: at("coach@375", "roster"), groups375: at("coach@375", "roster-groups"), ask375: at("coach@375", "alerts").filter((r) => r.acts), kids375: at("parent@375", "family"), drift375: at("coach@375", "drifting"),
                     asks320: at("coach@320", "today").filter((r) => r.acts), roster320: at("coach@320", "roster"), ask320: at("coach@320", "alerts").filter((r) => r.acts), kids320: at("parent@320", "family"), drift320: at("coach@320", "drifting") };
     const chat = { at375: at("coach@375", "chat").concat(at("parent@375", "chat")), at320: at("coach@320", "chat").concat(at("parent@320", "chat")) };
-    const more = { picker375: at("coach@375", "picker"), picker320: at("coach@320", "picker"), newgroup375: at("coach@375", "newgroup"), newgroup320: at("coach@320", "newgroup"), notices375: at("coach@375", "alerts").filter((r) => !r.acts), notices320: at("coach@320", "alerts").filter((r) => !r.acts) };
-    check("(a) the ten surfaces carry the one row, at 375 and at 320: Today's requests, the roster's players and groups, Chat, the message picker, New group's people, Drifting, the bell's requests and its notices, the family's children",
-      found.asks375.length >= 2 && found.roster375.length >= 3 && found.groups375.length >= 2 && found.ask375.length >= 1 && found.kids375.length >= 2 && found.drift375.length >= 1 && chat.at375.length >= 4 && more.picker375.length >= 3 && more.newgroup375.length >= 3 && more.notices375.length >= 1
-      && found.asks320.length >= 2 && found.roster320.length >= 3 && found.ask320.length >= 1 && found.kids320.length >= 2 && found.drift320.length >= 1 && chat.at320.length >= 4 && more.picker320.length >= 3 && more.newgroup320.length >= 3 && more.notices320.length >= 1,
-      JSON.stringify(Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.length]))));
+    /* a sheet's rows are the ones inside it — the list behind the scrim does not count */
+    const more = { picker375: at("coach@375", "picker").filter((r) => /^thread-/.test(r.tour)), picker320: at("coach@320", "picker").filter((r) => /^thread-/.test(r.tour)),
+                   newgroup375: at("coach@375", "newgroup").filter((r) => r.sheet), newgroup320: at("coach@320", "newgroup").filter((r) => r.sheet),
+                   recurwho375: at("coach@375", "recurwho").filter((r) => r.sheet), recurwho320: at("coach@320", "recurwho").filter((r) => r.sheet),
+                   pickwho375: at("coach@375", "pickwho").filter((r) => r.sheet), pickwho320: at("coach@320", "pickwho").filter((r) => r.sheet),
+                   notices375: at("coach@375", "alerts").filter((r) => !r.acts), notices320: at("coach@320", "alerts").filter((r) => !r.acts) };
+    check("(a) the twelve surfaces carry the one row, at 375 and at 320: Today's requests, the roster's players and groups, Chat, the message picker, New group's people, the recurring sheet's who, the pick-a-player sheet, Drifting, the bell's requests and its notices, the family's children",
+      found.asks375.length >= 2 && found.roster375.length >= 3 && found.groups375.length >= 2 && found.ask375.length >= 1 && found.kids375.length >= 2 && found.drift375.length >= 1 && chat.at375.length >= 4 && more.picker375.length >= 3 && more.newgroup375.length >= 3 && more.recurwho375.length >= 3 && more.pickwho375.length >= 3 && more.notices375.length >= 3
+      && found.asks320.length >= 2 && found.roster320.length >= 3 && found.ask320.length >= 1 && found.kids320.length >= 2 && found.drift320.length >= 1 && chat.at320.length >= 4 && more.picker320.length >= 3 && more.newgroup320.length >= 3 && more.recurwho320.length >= 3 && more.pickwho320.length >= 3 && more.notices320.length >= 3,
+      JSON.stringify(Object.fromEntries(Object.entries({ ...found, ...more }).map(([k, v]) => [k, v.length]))));
     const faces = [...new Set(all.map((r) => r.face))];
     check("(b) one face: every row's face is 40", all.length > 0 && faces.length === 1 && faces[0] === 40, JSON.stringify(faces) + " " + all.filter((r) => r.face !== 40).slice(0, 3).map(line).join(" | "));
     const insets = [...new Set(all.map((r) => r.inset))];
     check("(c) one inset: the name starts 54px from the face's left on every row — the face and the 14px gap", insets.length === 1 && insets[0] === 54, JSON.stringify(insets) + " " + all.filter((r) => r.inset !== 54).slice(0, 3).map(line).join(" | "));
     const type = [...new Set(all.map((r) => `${r.fs}/${r.fw}${r.bold ? " unread" : ""}`))], subs = [...new Set(all.filter((r) => r.sub).map((r) => r.sub.fs))];
     check("(d) one type: the name 14.5px at 400 everywhere, 600 only on an unread thread, the grey line 12px", type.every((x) => x === "14.5px/400" || x === "14.5px/600 unread") && type.includes("14.5px/400") && all.some((r) => r.bold && /chat/.test(r.where)) && subs.length === 1 && subs[0] === "12px", JSON.stringify({ type, subs }));
-    const cutRows = all.filter((r) => r.nameCut || (r.sub && r.sub.cut) || r.trailCut);
-    check("(e) nothing is cut on any row at 375 or 320 — the name, the grey line, the value", cutRows.length === 0, cutRows.slice(0, 4).map(line).join(" | "));
+    /* a notice's body alone may end on an ellipsis after two lines — a preview, as the phone's own
+       notification list draws one; the tap opens the thing. It may never run past the box (m) */
+    const preview = (r) => /alerts$/.test(r.where) && !r.acts && r.sub && r.sub.cut && !r.subOver;
+    const cutRows = all.filter((r) => r.nameCut || (r.sub && r.sub.cut && !preview(r)) || r.trailCut);
+    check("(e) nothing is cut on any row at 375 or 320 — the name, the grey line, the value; a notice's body alone may end on an ellipsis after two lines", cutRows.length === 0, cutRows.slice(0, 4).map(line).join(" | "));
     const longRows = all.filter((r) => r.name === LONG);
     check("(f) the long name is drawn whole, on two lines where it must be, on Today's request, the roster and the bell at both widths", longRows.length >= 6 && longRows.every((r) => !r.nameCut), `${longRows.length} ${longRows.slice(0, 3).map(line).join(" | ")}`);
     const asks375 = found.asks375.concat(found.ask375), asks320 = found.asks320.concat(found.ask320);
@@ -175,11 +209,17 @@ const { check, results, summary } = M.checker("person-row");
     const wrapped = all.filter((r) => r.wrapped), split = wrapped.filter((r) => !r.breakOk);
     check("(i) a name that takes a second line breaks at a space or a hyphen, never inside a word — the 30-letter double-barrelled name at 320 among them", wrapped.some((r) => r.name === LONG_KID && /@320/.test(r.where)) && split.length === 0, `${wrapped.length} wrapped · ${split.slice(0, 3).map(line).join(" | ")}`);
     const tappable = all.filter((r) => r.tag === "BUTTON"), inert = all.filter((r) => r.tag !== "BUTTON");
-    check("(j) a row that opens something is a button; a row whose actions are its buttons is not", tappable.length > 0 && inert.every((r) => r.acts), JSON.stringify({ tappable: tappable.length, inert: inert.map((r) => r.tour || r.name.slice(0, 10)) }));
+    check("(j) a row that opens something is a button; a row whose actions are its buttons is not; a row that cannot be picked carries a grey line saying why", tappable.length > 0 && inert.every((r) => r.acts || (r.sub && r.sub.t)) && inert.some((r) => !r.acts && r.sub && /Already has one/.test(r.sub.t)), JSON.stringify({ tappable: tappable.length, inert: inert.map((r) => r.tour || r.name.slice(0, 10)) }));
     const kidFaces = found.kids375.concat(found.kids320).map((r) => r.faceText);
     check("(k) the family's child row carries the child's two initials, as the strip under it does — the face is the whole name's, the label the first name", kidFaces.length >= 4 && kidFaces.every((x) => x.length === 2), JSON.stringify(kidFaces));
-    const players = all.filter((r) => /^(adult|junior)@/.test(r.where));
-    check("(l) a player's home and bell carry no person row", players.length === 0, players.slice(0, 3).map(line).join(" | "));
+    const homes = all.filter((r) => /^(adult|junior)@\d+ home$/.test(r.where)), bells = all.filter((r) => /^(adult|junior)@\d+ alerts$/.test(r.where));
+    check("(l) a player's home carries no person row, and their bell only notices — a button each, no actions", homes.length === 0 && bells.length >= 2 && bells.every((r) => r.tag === "BUTTON" && !r.acts), JSON.stringify({ homes: homes.length, bells: bells.map(line) }));
+    /* words in the grey line wrap; a day and a time stay whole. The fixture carries a typed reason and a tip's words */
+    const over = all.filter((r) => r.subOver), wordy = all.filter((r) => r.sub && r.sub.t.length > 40);
+    check("(m) no grey line runs past its box at 375 or 320: a typed reason and a tip's words wrap, a day and a time stay whole", wordy.length >= 4 && over.length === 0, JSON.stringify({ wordy: wordy.length, over: over.slice(0, 3).map(line) }));
+    const notice = (r) => /alerts$/.test(r.where) && !r.acts;
+    const tight = all.filter((r) => notice(r) && r.air != null && r.air < 8), tall = all.filter((r) => notice(r) && r.rowH > 64);
+    check("(n) the bell's notices have air above their words — the title starts at least 8px under the box's top, on a two-line notice too", tall.length >= 1 && tight.length === 0, JSON.stringify({ tall: tall.length, tight: tight.slice(0, 3).map((r) => `${r.where} ${r.name.slice(0, 16)} air ${r.air}`) }));
     check("no page errors", errors.filter((e) => !/vibrate/.test(e)).length === 0, errors.slice(0, 3).join(" | "));
   } catch (e) {
     check("suite ran to the end", false, String(e && e.stack || e).slice(0, 400));

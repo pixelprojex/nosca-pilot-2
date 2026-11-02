@@ -1817,6 +1817,15 @@ begin
           case when old.status = 'requested' and old.start_time <> new.start_time then whn || ' · asked for ' || old.start_time else whn end,
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
+    elsif new.status = 'weather' and old.status = 'requested' then
+      -- a request caught by a weather call-off was never a lesson either:
+      -- the decline's shape, with Weather as the reason
+      perform public.notify(new.player_id, 'booking', 'Request declined', 'Weather · ' || whn,
+        jsonb_build_object('screen', 'calendar', 'id', new.id));
+      for a in select public.adults_for(new.player_id) loop
+        perform public.notify(a, 'booking', public.first_name_of(new.player_id) || '''s request declined', 'Weather · ' || whn,
+          jsonb_build_object('screen', 'family', 'id', new.id));
+      end loop;
     elsif new.status = 'weather' then
       perform public.notify(new.player_id, 'weather', 'Called off — weather', whn || ' · ' || public.name_of(new.coach_id),
         jsonb_build_object('screen', 'calendar', 'id', new.id));

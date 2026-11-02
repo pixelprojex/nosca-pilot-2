@@ -2571,7 +2571,7 @@ const CANCEL_REASONS = {
    coach's reasons are their own record — but promises only what it can
    do. A coach goes on to offer a time and their password; a player's
    own lesson ends here, on one button. */
-function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, reasonTravels = true }) {
+function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, reasonTravels = true, request = false }) {
   const t = useT();
   const [reason, setReason] = useState(null);
   const [note, setNote] = useState("");
@@ -2582,12 +2582,13 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
   /* Something else is a reason only once there are words — the sheet
      promises the reason travels, so nothing goes before there is one */
   const ready = !!reason && (reason !== "Something else" || note.trim().length > 0);
-  const label = offer ? tr("Cancel and offer this time") : tr("Cancel the lesson");
+  /* a request not yet answered is withdrawn, never cancelled: nothing was booked */
+  const label = offer ? tr("Cancel and offer this time") : request ? tr("Withdraw the request") : tr("Cancel the lesson");
 
   /* a coach's cancel is somebody else's lesson, so it ends on their
      password like the weather call-off does; a player's own does not */
   if (stage === "password") return (
-    <ConfirmPassword title={tr("Cancel lesson")}
+    <ConfirmPassword title={request ? tr("Withdraw request") : tr("Cancel lesson")}
                      detail={`${lesson}. ${reasonTravels ? tr("They are told straight away with the reason. Confirm with your password.") : tr("They are told straight away. Confirm with your password.")}`}
                      actionLabel={label} closeLabel={tr("Back")}
                      onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(); return { next: true }; }}
@@ -2611,7 +2612,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
 
   return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Cancel lesson")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{lesson}</p>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
@@ -2638,13 +2639,13 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
 
       <div className="p-4 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
         <p style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.sub }}>
-          {tr("We'll tell")} {other} {reasonTravels ? tr("straight away with the reason.") : tr("straight away.")} {tr("A cancelled lesson is not counted.")}
+          {tr("We'll tell")} {other} {reasonTravels ? tr("straight away with the reason.") : tr("straight away.")} {!request && tr("A cancelled lesson is not counted.")}
         </p>
       </div>
 
       {role === "coach"
         ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); if (slots.length) setStage("when"); else if (verify) setStage("password"); else finish(); }}>{tr("Next")}</Button>
-        : <Button tone="danger" disabled={!ready} onClick={finish}>{tr("Cancel the lesson")}</Button>}
+        : <Button tone="danger" disabled={!ready} onClick={finish}>{label}</Button>}
     </>
   );
 }
@@ -8536,21 +8537,30 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
    a name at 375 and Message beside a name at 320; `textMin` is there
    for a row that needs more). */
 const PERSON_FACE = 40, PERSON_TEXT_MIN = 84;
-function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, className = "", style, attrs }) {
+function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
   /* the name takes a second and a third line before an ellipsis (a
      30-letter double-barrelled name beside Chat's time at 320 needs the
-     third); the grey line two lines at most — two facts, never three */
+     third); the grey line two lines at most — two facts, never three.
+     `nameLines` 0 lifts the clamp: a notification's title carries the
+     fact, and is never cut */
   const clamp = { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" };
-  const nameClamp = { ...clamp, WebkitLineClamp: 3 };
+  const nameClamp = nameLines ? { ...clamp, WebkitLineClamp: nameLines } : { overflowWrap: "break-word" };
   /* a grey line of two facts breaks only at its dot, each fact kept
      whole — the dot rides inside the second fact's nowrap span, as the
      feed's areas do, so a line never ends on it and "9:00 am" is never
-     split into "9:00" and "am" */
+     split into "9:00" and "am". A fact is a day, a time, a name; words
+     (a typed reason, a tip's title) wrap like words, or they ran off
+     the box at 320 */
+  const FACT = 28;
   const subNode = typeof sub === "string" && sub.includes(" · ")
-    ? sub.split(" · ").map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className="whitespace-nowrap">{i ? "· " : ""}{part}</span></React.Fragment>)
+    ? sub.split(" · ").map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className={part.length <= FACT ? "whitespace-nowrap" : undefined}>{i ? "· " : ""}{part}</span></React.Fragment>)
     : sub;
+  /* a row that cannot be picked (the recurring sheet's "Already has one")
+     fades its face and its words, never its box: the edge stays the sport's */
+  const dim = muted ? { opacity: 0.45 } : undefined;
+  const faceNode = face || <Avatar name={faceName || name} size={PERSON_FACE} src={src} group={group} />;
   return (
     <Tag data-tour={tour} data-person-row="" data-bold={bold ? "1" : undefined} onClick={onTap} {...(attrs || {})}
          className={`w-full flex items-center gap-3.5 text-left ${actions ? "flex-wrap" : ""} ${onTap ? "active:opacity-50" : ""} ${className}`}
@@ -8558,8 +8568,8 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
       {/* the face is looked up by the whole name (FaceCtx keys on it, and
           two letters are its initials) even where the label is a first
           name alone, as the family's child row is */}
-      {face || <Avatar name={faceName || name} size={PERSON_FACE} src={src} group={group} />}
-      <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}` }}>
+      {muted ? <span className="shrink-0 flex" style={dim}>{faceNode}</span> : faceNode}
+      <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}`, ...dim }}>
         {/* `meta` sits on the name's line, on the right (Chat's time and dot) */}
         {meta
           ? <span className="flex items-baseline justify-between gap-2">
@@ -17560,7 +17570,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
     const K = NOTIF_ICON[n.kind] || Bell;
     return (
       <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
-        <PersonRow className="px-1" onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}
+        <PersonRow className="py-3" nameLines={0} onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}
                    name={n.title} bold={!n.readAt} sub={n.body || undefined}
                    meta={<span className="flex items-center gap-2">
                      <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
@@ -19126,7 +19136,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     : null;
   /* A player's requests, waiting on the coach. */
   const liveAsks = data
-    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date }))
+    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date, duration: b.duration }))
     : null;
   /* The coach's own saved hours; for a player, their coach's. Nothing
      invented — a coach who has set nothing has an empty week. */
@@ -21378,6 +21388,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onDone={(parts) => done(tr("Record shared"), `${parts.length} ${tr("parts")}`)}
                                             close={() => setSheet(null)} />
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={role === "coach" ? dayOpenTimes(cancelBk) : []} duration={duration}
+                                            request={role !== "coach" && !!(cancelBk && cancelBk.status === "requested")}
                                             verify={data && role === "coach" ? data.verifyPassword : null}
                                             reasonTravels={!data || !!data.cancelReasons}
                                             onDone={async ({ reason, note, offer }) => {
@@ -21398,7 +21409,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                 const told = role === "coach" ? tr("Their diary is updated.")
                                                   : bk.playerId && account && bk.playerId !== account.id && bookFor ? `${bookFor.coachName || tr("Their coach")} ${tr("is told.")}`
                                                   : tr("Your coach is told.");
-                                                done(tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : told, DANGER);
+                                                done(role !== "coach" && bk.status === "requested" ? tr("Withdrawn") : tr("Cancelled"), offer ? `${tr("Rebooked")} ${offer}` : told, DANGER);
                                                 return;
                                               }
                                               setCancelNotice({ from: role === "coach" ? coachName : (activeProfile || {}).name, lesson: cancelling, reason, offer });
@@ -21498,8 +21509,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                       {roster.map((r) => {
                         const has = mySeriesLive.some((x) => (r.id ? x.playerId === r.id : x.who === r.name) && !x.ended);
                         return (
-                          <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} sub={has ? tr("Already has one") : undefined} chevron={!has}
-                                     style={{ opacity: has ? 0.45 : 1 }}
+                          <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} sub={has ? tr("Already has one") : undefined} chevron={!has} muted={has}
                                      onTap={has ? undefined : () => { haptic(7); soft(); setRecurId(null); setRecurFor(r); setSheet("recurring"); }} />
                         );
                       })}
