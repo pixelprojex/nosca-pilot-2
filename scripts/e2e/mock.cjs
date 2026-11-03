@@ -113,8 +113,8 @@ function addNotification(db, { id = uuid("aa000000"), userId, kind, title, body 
    on delete set null). Leave it out for a one-off — or for a project
    whose SQL has not been re-run, where db.missingColumns.bookings names
    "recurring_id" and every read drops the key. */
-function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, groupName = null, date, time, duration = 45, status = "confirmed", recurringId = null }) {
-  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, booking_date: date, start_time: time, duration, kind: groupName ? "group" : "private", status, logged_id: null, recurring_id: recurringId, created_at: nowIso(db) };
+function addBooking(db, { id = uuid("b0000000"), coachId, playerId = null, groupName = null, date, time, duration = 45, status = "confirmed", recurringId = null, note = null }) {
+  const row = { id, coach_id: coachId, player_id: playerId, group_name: groupName, booking_date: date, start_time: time, duration, kind: groupName ? "group" : "private", status, logged_id: null, recurring_id: recurringId, note, created_at: nowIso(db) };
   db.bookings.push(row); return row;
 }
 /* a standing arrangement, the row of public.recurring: `weekday` is the
@@ -262,7 +262,8 @@ function onBookingInsert(db, b, actor) {
   if (!b.player_id) return;
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
   if (b.status === "requested") {
-    notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} asked for a lesson`, whn, { screen: "today", id: b.id });
+    /* the player's note rides on the asking line, as trg_bookings_notify writes it */
+    notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} asked for a lesson`, `${whn}${String(b.note || "").trim() ? ` · ${String(b.note).trim()}` : ""}`, { screen: "today", id: b.id });
     /* asked for on their behalf — the child is told it happened */
     if (actor && actor !== b.player_id) {
       notify(db, b.player_id, "booking", "Lesson asked for", `${whn} · ${nameOf(db, b.coach_id)}`, { screen: "calendar", id: b.id });
@@ -766,7 +767,7 @@ async function attach(page, db, opts = {}) {
       const made = rows.map((r) => {
         const base = { id: uuid(), created_at: nowIso(db) };
         if (table === "lessons") Object.assign(base, { player_id: null, group_name: null, kind: "private", subs: [], notes: null, lesson_date: ymd(new Date(db.now())), unread: true, rating_requested: false, sent_by: null });
-        if (table === "bookings") Object.assign(base, { player_id: null, group_name: null, duration: 45, kind: "private", status: "confirmed", logged_id: null, recurring_id: null });
+        if (table === "bookings") Object.assign(base, { player_id: null, group_name: null, duration: 45, kind: "private", status: "confirmed", logged_id: null, recurring_id: null, note: null });
         if (table === "recurring") Object.assign(base, { player_id: null, group_name: null, cadence: "weekly", until_date: null });
         if (table === "drills") Object.assign(base, { done: false, due: null });
         if (table === "messages") Object.assign(base, { read_at: null });

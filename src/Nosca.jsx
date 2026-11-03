@@ -3327,6 +3327,9 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         </span>
       </div>
 
+      {/* what the player asked for, in their words, on the request this lesson came from */}
+      {booking.note && <p data-tour="peek-note" className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{tr("Asked for")} · {booking.note}</p>}
+
       {/* the members who said they will not be at this one */}
       {isGroup && booking.outNames && booking.outNames.length > 0 && (
         <div data-tour="peek-out" className="px-4 py-3 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
@@ -12660,7 +12663,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               {showAsks && asks.slice(0, 3).map((r, i) => (
                 <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
-                           sub={`${askDay(r, cal)} · ${r.time}`}
+                           sub={`${askDay(r, cal)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`}
                            actions={<>
                              <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
                              <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
@@ -18184,6 +18187,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [mainSport, setMainSport] = useState({}); // profileId -> sport id
   const [askedFor, setAskedFor] = useState(account ? [] : SEED_ASKS);
   const [declining, setDeclining] = useState(null);
+  /* the player's note on a request, and the coach's reason on the no */
+  const [askNote, setAskNote] = useState("");
+  const [declineWhy, setDeclineWhy] = useState(null);
+  const [declineNote, setDeclineNote] = useState("");
   const [messageGroup, setMessageGroup] = useState(null);   // the saved group a message goes to, or null for Everyone
   /* Someone who plays two sports shouldn't be asked which one every
      time they open the app. Set once, per person. */
@@ -19140,7 +19147,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     : null;
   /* A player's requests, waiting on the coach. */
   const liveAsks = data
-    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date, duration: b.duration }))
+    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: b.note || "", playerId: b.playerId, date: b.date, duration: b.duration }))
     : null;
   /* The coach's own saved hours; for a player, their coach's. Nothing
      invented — a coach who has set nothing has an empty week. */
@@ -19763,7 +19770,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          their coach's hours — whichever view of the diary it came from. */
       if (bookFor) return bookKid(bookFor, b);
       hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
-      const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
+      const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration, note: b.note });
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
       hapticSuccess(); done(tr("Asked"), tr("Your coach will confirm.")); return;
     }
@@ -20080,7 +20087,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   })() : null;
   const bookKid = async (kid, b) => {
     hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
-    const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration });
+    const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration, note: b.note });
     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
     hapticSuccess(); done(tr("Asked"), `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}`);
   };
@@ -20411,8 +20418,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             onAccept: () => acceptRequest(r), onDecline: () => declineRequest(r) })),
       ...(liveAsks || []).map((r) => ({ id: `ask-${r.id}`, who: r.who,
             avatar: avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath),
-            what: `${askDay(r, calendar)} · ${r.time}`,
-            onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setSheet("decline"); } })),
+            what: `${askDay(r, calendar)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`,
+            onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); } })),
     ];
     /* A notification names the person it is about first — "Cian Murphy
        asked for…", "Niamh Byrne logged your lesson" — so the face can be
@@ -20930,7 +20937,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   onAttend={(bk) => { setAttendFor(bk || null); setSheet("attend"); }}
                   onAddPlayer={() => setSheet("invite")}
                   onAccept={acceptAsk}
-                  onDecline={(r) => { setDeclining(r); setSheet("decline"); }}
+                  onDecline={(r) => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); }}
                   onInvite={() => setSheet("invite")}
                   layout={layout} onAction={runQuick} lessonCount={archive.length}
                   push={push} go={go} />
@@ -21373,7 +21380,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <p className="mb-6" style={{ ...TYPE.small, color: theme.sub }}>
                       {span(bookSlot.time, duration)} · {bookFor ? bookFor.name.split(" ")[0] : ((conn || {}).coach || tr("your coach"))}
                     </p>
-                    <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } done(tr("Asked"), tr("Your coach will confirm.")); }}>
+                    {/* a note for the coach — what they want to work on, in their words; the
+                        field is offered only where the project's bookings carry it */}
+                    {data && data.bookingNotes && (
+                      <div className="mb-5" data-tour="ask-note">
+                        <VoiceArea value={askNote} onChange={setAskNote} rows={2}
+                                   ph={(() => { const n = bookFor ? bookFor.coachName : (conn || {}).coach; return n ? `${tr("Note for")} ${String(n).split(" ")[0]}` : tr("Note for your coach"); })()} />
+                      </div>
+                    )}
+                    <Button onClick={() => { const note = askNote; setSheet(null); setAskNote(""); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time, note }); return; } done(tr("Asked"), tr("Your coach will confirm.")); }}>
                       {bookFor ? `${tr("Request for")} ${bookFor.name.split(" ")[0]}` : tr("Request")}
                     </Button>
                   </>
@@ -21479,8 +21494,33 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} />
               : sheet === "decline" && declining ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Offer another time")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Decline request")}</h2>
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
+                    {/* what the player asked for, in their words */}
+                    {declining.note && <p className="mb-5" data-tour="decline-note" style={{ ...TYPE.body, color: theme.ink }}>{declining.note}</p>}
+                    {/* why — the coach's own reasons, optional; the chosen one leads the
+                        player's "Request declined", as a cancellation's reason does */}
+                    <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: theme.faint }}>{tr("Why")}</div>
+                    <div className="nsc-list mb-5">
+                      {CANCEL_REASONS.coach.map((r, i) => {
+                        const on = declineWhy === r;
+                        return (
+                          <button key={r} data-tour="decline-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setDeclineWhy(on ? null : r); }}
+                                  className="w-full flex items-center gap-3 text-left"
+                                  style={{ minHeight: 52, background: on ? theme.ink : theme.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                            <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : theme.ink }}>{tr(r)}</span>
+                            {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {declineWhy === "Something else" && (
+                      <div className="mb-5" data-tour="decline-why-note">
+                        <VoiceArea value={declineNote} onChange={setDeclineNote} rows={2} ph={tr("Reason")} />
+                      </div>
+                    )}
+                    <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: theme.faint }}>{tr("Offer another time")}</div>
                     {!dayOpenTimes(declining).length && <p className="mb-6" data-offer-none style={{ ...TYPE.small, color: theme.sub }}>{tr("Nothing open that day")}</p>}
                     {/* that day's open times on the app's one time grid, as the
                         cancel sheet's Offer another time — it was a rail of pills
@@ -21500,8 +21540,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     </div>
                     )}
                     <Button tone="dangerQuiet" onClick={async () => {
-                              if (data) { const r = await data.cancelBooking(declining.id, "cancelled"); if (r && r.error) { say(r.error.message); return; } }
+                              /* the reason rides on the row, so the trigger leads the player's notice with it */
+                              const why = declineWhy === "Something else" ? (String(declineNote || "").trim() || null) : declineWhy;
+                              if (data) { const r = await data.cancelBooking(declining.id, "cancelled", why); if (r && r.error) { say(r.error.message); return; } }
                               setAskedFor((v) => v.filter((x) => x !== declining));
+                              setDeclineWhy(null); setDeclineNote("");
                               setSheet(null); say(tr("Declined")); }}>{tr("Just decline")}</Button>
                   </>
                 )

@@ -337,6 +337,8 @@ alter table public.preferences add column if not exists player_notes   jsonb not
 -- closed", or what they typed): the Cancel sheet promises the other side
 -- is told with the reason, and the notice leads with it
 alter table public.bookings    add column if not exists cancel_reason  text check (char_length(cancel_reason) <= 120);
+-- what the player asked for, in their words, on the request they made ("Bunker play before the medal")
+alter table public.bookings    add column if not exists note           text check (char_length(note) <= 200);
 -- the run a lesson was booked by: the recurring row whose slot put it in
 -- the diary, so a change to the run can find the lessons it made. Set
 -- null, never cascade — a run's past lessons, their registers and their
@@ -1781,8 +1783,9 @@ begin
   if new.player_id is null then return new; end if;
   if tg_op = 'INSERT' then
     if new.status = 'requested' then
+      -- the player's note rides on the asking line: "Thu 5 Nov 10:00 am · Bunker play before the medal"
       perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' asked for a lesson',
-        whn, jsonb_build_object('screen', 'today', 'id', new.id));
+        whn || coalesce(' · ' || nullif(trim(new.note), ''), ''), jsonb_build_object('screen', 'today', 'id', new.id));
       -- ASKED FOR ON THEIR BEHALF. A junior cannot book, so a parent
       -- does it for them — and until now the child heard nothing until
       -- the coach confirmed it, if they were told then at all. Their own
