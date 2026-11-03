@@ -386,26 +386,31 @@ seeded data and no account.
   hour. A coach's List never drops a confirmed lesson: a day with a
   booking is a day whatever its hours, and a booked time outside the
   week's hours is a row (`edit-day.cjs` (e1)). `diary.cjs` (a2), (a3).
-- **The Diary's Calendar view, and the sheets it opens, are boxes on the
-  sport's edge.** The selected day: every lesson of the person's that day
-  is a box of one `.nsc-list` (`day-mine`: the eyebrow, the time alone,
-  its length and the coach, the group or who booked it, then Cancel ·
-  Reschedule as the box's foot, 44 tall), where they sat between
-  hairlines and a 20px Cancel ran into the time at 320; the coach's
-  lessons (`ScheduleBlock`, `cal-block`) are the same box at 8px — they
-  were pale 16px accent cards, a fourth box style on one screen — a group
-  marked with the List view's 3px bar, the open block's stats on the
-  wash and its buttons on the edge, and a booking's own length read, so a
-  clinic is an hour on both sides; the call-off row (`cal-weather`) is on
-  the edge with the calendar and its X; the day's heading is the List
-  view's form — Today, Tomorrow, `Sat 24 Oct` — said once (it was the long
-  date with the same again in an eyebrow under it). The reasons on
-  Cancel, Call off and End (`cancel-why`, `calloff-why`, `end-why`) are
-  boxes of one list with the chosen one in ink, as a chosen tile is —
-  they were a 1.2:1 hairline and a 1.09:1 tint, green on one sheet and
-  red on two, so the reason a player is told first was the hardest thing
-  on the sheet to see. The free times' box, the List view, the month
-  grid, Hours and EditDay are as they were. `scripts/e2e/calendar-day.cjs`.
+- **The Diary's Calendar view, and the sheets it opens, are boxes on
+  the sport's edge.** The selected day: every lesson of the person's
+  that day is a box of one `.nsc-list` (`day-mine`: the eyebrow, the
+  time alone, its length and the coach, the group or who booked it, then
+  Cancel · Reschedule as the box's foot, 44 tall), where they sat
+  between hairlines and a 20px Cancel ran into the time at 320; the
+  coach's lessons (`ScheduleBlock`, `cal-block`) are the same box at 8px
+  — they were pale 16px accent cards, a fourth box style on one screen —
+  a group marked with the List view's 3px bar, the open block's stats on
+  the wash and its buttons on the edge, and a booking's own length read,
+  so a clinic is an hour on both sides, its grey line two nowrap facts —
+  the time, then the dot riding with the kind — so where it must wrap at
+  320 the dot leads the second line and never ends the first (`rsvp.cjs`
+  (h2); the test container's fallback typeface changed to Inter
+  overnight and the line stopped fitting in one at 320, on main's build
+  too); the call-off row (`cal-weather`) is on the edge with the
+  calendar and its X; the day's heading is the List view's form — Today,
+  Tomorrow, `Sat 24 Oct` — said once (it was the long date with the same
+  again in an eyebrow under it). The reasons on Cancel, Call off and End
+  (`cancel-why`, `calloff-why`, `end-why`) are boxes of one list with
+  the chosen one in ink, as a chosen tile is — they were a 1.2:1
+  hairline and a 1.09:1 tint, green on one sheet and red on two, so the
+  reason a player is told first was the hardest thing on the sheet to
+  see. The free times' box, the List view, the month grid, Hours and
+  EditDay are as they were. `scripts/e2e/calendar-day.cjs`.
 - **Who a booking is for is chosen before the slot.** The diary carries
   a "For" strip for any adult with a bookable child — themselves (if
   they have a coach) and each child — and the hours shown are that
