@@ -8108,13 +8108,17 @@ function VoiceInput({ value, onChange, ph, style, autoFocus }) {
 }
 
 /* Multi-line version — the one coaches will actually lean on. */
-function VoiceArea({ value, onChange, ph, rows = 3 }) {
+function VoiceArea({ value, onChange, ph, rows = 3, max = 0 }) {
   const t = useT();
+  /* the cap is at the field, typed or spoken, as the bio's is — the hook's
+     own slice is a backstop, never the only word: a note cut there would
+     reach the coach short while the toast said Asked */
+  const cap = (s) => (max ? String(s).slice(0, max) : s);
   return (
     <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, border: `1px solid ${HAIR(t.ink, 0.14)}` }}>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={ph}
+      <textarea value={value} onChange={(e) => onChange(cap(e.target.value))} rows={rows} placeholder={ph} maxLength={max || undefined}
                 className="flex-1 min-w-0 outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
-      <div className="pb-2"><MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} /></div>
+      <div className="pb-2"><MicBtn onText={(txt) => onChange(cap(value ? value + " " + txt : txt))} /></div>
     </div>
   );
 }
@@ -8548,7 +8552,7 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
    a name at 375 and Message beside a name at 320; `textMin` is there
    for a row that needs more). */
 const PERSON_FACE = 40, PERSON_TEXT_MIN = 84;
-function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, muted = false, className = "", style, attrs }) {
+function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
   /* the name takes a second and a third line before an ellipsis (a
@@ -8558,6 +8562,8 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
      fact, and is never cut */
   const clamp = { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" };
   const nameClamp = nameLines ? { ...clamp, WebkitLineClamp: nameLines } : { overflowWrap: "break-word" };
+  /* `subLines` 0 lifts the grey line's clamp too: a request's note is read whole on the row the coach answers from */
+  const subClamp = subLines ? { ...clamp, WebkitLineClamp: subLines } : { overflowWrap: "break-word" };
   /* a grey line of two facts breaks only at its dot, each fact kept
      whole — the dot rides inside the second fact's nowrap span, as the
      feed's areas do, so a line never ends on it and "9:00 am" is never
@@ -8588,7 +8594,7 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
               <span className="shrink-0">{meta}</span>
             </span>
           : <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: bold ? 600 : 400, color: t.ink, ...nameClamp }}>{name}</span>}
-        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...clamp }}>{subNode}</span>}
+        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...subClamp }}>{subNode}</span>}
       </span>
       {value && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{value}</span>}
       {trailing}
@@ -12672,7 +12678,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                 <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
                            /* the player's words need the row's width: Accept · Decline drop under the name, the row's own way */
-                           textMin={r.note ? 220 : undefined}
+                           textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
                            sub={`${askDay(r, cal)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`}
                            actions={<>
                              <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
@@ -17619,7 +17625,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
 
   /* still a question, so it is answered here rather than somewhere else */
   const Ask = ({ w }) => (
-    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what} textMin={w.note ? 220 : undefined}
+    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what} textMin={w.note ? 180 : undefined} subLines={w.note ? 0 : undefined}
                actions={<>
                  <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
                  <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
@@ -20905,7 +20911,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
-                                                            onBookInto={(day, h) => { setBookSlot({ day, time: h }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
+                                                            onBookInto={(day, h) => { setBookSlot({ day, time: h }); setAskNote(""); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")}
                                                             kids={data ? (data.dependants || []).map((k) => { const h = (data.hoursByPlayer || {})[k.id] || {}; return { ...k, canBook: !!k.coachId && (Object.values(h.days || {}).some((x) => x && x.length) || datedOf(h.extra, calendar).some((x) => !isPast(x.m, x.d, calendar))), ahead: aheadFor(k.id) }; }) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
@@ -21394,7 +21400,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         field is offered only where the project's bookings carry it */}
                     {data && data.bookingNotes && (
                       <div className="mb-5" data-tour="ask-note">
-                        <VoiceArea value={askNote} onChange={setAskNote} rows={2}
+                        <VoiceArea value={askNote} onChange={setAskNote} rows={2} max={200}
                                    ph={(() => { const n = bookFor ? bookFor.coachName : (conn || {}).coach; return n ? `${tr("Note for")} ${String(n).split(" ")[0]}` : tr("Note for your coach"); })()} />
                       </div>
                     )}
@@ -21527,7 +21533,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     </div>
                     {declineWhy === "Something else" && (
                       <div className="mb-5" data-tour="decline-why-note">
-                        <VoiceArea value={declineNote} onChange={setDeclineNote} rows={2} ph={tr("Reason")} />
+                        <VoiceArea value={declineNote} onChange={setDeclineNote} rows={2} ph={tr("Reason")} max={120} />
                       </div>
                     )}
                     <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: theme.faint }}>{tr("Offer another time")}</div>

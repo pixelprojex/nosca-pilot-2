@@ -865,7 +865,9 @@ begin; set local role authenticated; select set_config('request.jwt.claims', '{"
 \set ON_ERROR_STOP off
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, note) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-04-10', '10:00', 45, 'private', 'requested', repeat('x', 201));
 \set ON_ERROR_STOP on
-rollback;
+-- commit, not rollback: a transaction the refusal aborted rolls back on commit and raises nothing,
+-- while a row the check wrongly let in would be kept, counted, and fail the line below
+commit;
 select ((select count(*) from public.bookings where player_id = '88888888-8888-4888-8888-888888888888' and booking_date = '2027-04-10') = 0) as ok \gset
 \if :ok \echo PASS a note past 200 characters is refused, and nothing is written (10f; the error above is the refusal) \else \echo FAIL an over-long note landed (10f) \endif
 -- a reason past 120 characters is refused and nothing is written

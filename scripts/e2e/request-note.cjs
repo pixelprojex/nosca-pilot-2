@@ -12,6 +12,8 @@
    before.
 
    a1-a4  the player's note: the field, the row, the coach's Today row and bell
+   a5-a6  the cap at the field (200, typed or spoken); a note abandoned
+          by the scrim never comes back
    b1-b3  the decline: the note on the sheet, Why, the reason leading the notice
    c1     Something else, in the coach's words
    d1     accepted: the peek reads what was asked for
@@ -30,7 +32,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", junior: "00000000-0000-4000-8000-00000000c41d", parent: "00000000-0000-4000-8000-00000000c0a7" };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const WEEK = ["9:00 am", "10:00 am", "11:00 am", "4:00 pm", "5:00 pm"];
-const NOTE = "Bunker play before the medal";
+const NOTE = "Bunker play before the medal on Sunday, and the pitch shot from a tight lie if there is time";
 const dayPlus = (db, n) => M.ymd(new Date(db.now() + n * 86400000));
 const { check, summary } = M.checker("request-note");
 
@@ -50,9 +52,9 @@ function freshDb({ family = false } = {}) {
   const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const errors = [];
-  const boot = async (db, role, hm = "09:00") => {
+  const boot = async (db, role, hm = "09:00", width = 390) => {
     const u = Object.values(db.users).find((x) => x.id === IDS[role]);
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     const page = await ctx.newPage(); page.setDefaultTimeout(8000);
     await page.clock.setFixedTime(new Date(`${dayPlus(db, 0)}T${hm}:00`)); await M.attach(page, db);
     page.on("pageerror", (e) => errors.push(`${role}: ${String(e.message || e)}`));
@@ -104,13 +106,35 @@ function freshDb({ family = false } = {}) {
       await M.tap(c.page, '[aria-label="Alerts"]', 1000);
       const bell = M.norm(await c.page.locator("[data-person-row]").filter({ hasText: "Cian Murphy" }).first().innerText());
       await c.shot("03-bell-ask");
-      /* the words take the row's width: nothing cut, Accept · Decline on a line of their own under the name */
-      const fit = await c.page.evaluate(() => [...document.querySelectorAll("[data-person-row]")].filter((r) => /Cian Murphy/.test(r.textContent) && r.querySelector(":scope > .ml-auto")).map((r) => {
-        const sub = r.querySelector("[data-sub]"), name = r.querySelector("[data-name]"), acts = r.querySelector(":scope > .ml-auto");
-        return { cut: sub.scrollHeight > sub.clientHeight + 1 || sub.scrollWidth > sub.clientWidth + 1, under: acts.getBoundingClientRect().top >= name.getBoundingClientRect().bottom - 1 }; }));
-      check("(a4) Today's request row and the bell's carry the note under the name, after the day and the time — nothing cut, Accept · Decline on a line of their own",
-            row.includes(NOTE) && /\d{1,2}:\d\d [ap]m/.test(row) && bell.includes(NOTE) && /Accept/.test(bell) && fit.length >= 1 && fit.every((f) => !f.cut && f.under), JSON.stringify({ row: row.slice(0, 120), bell: bell.slice(0, 120), fit }));
+      /* the words take the row's width: nothing cut (the note whole, two lines), Accept · Decline on a
+         line of their own under the name, and the face beside the name — at 390 and at 320 */
+      const rowsFit = (page) => page.evaluate(() => [...document.querySelectorAll("[data-person-row]")].filter((r) => /Cian Murphy/.test(r.textContent) && r.querySelector(":scope > .ml-auto")).map((r) => {
+        const sub = r.querySelector("[data-sub]"), name = r.querySelector("[data-name]"), acts = r.querySelector(":scope > .ml-auto"), face = r.children[0];
+        return { cut: sub.scrollHeight > sub.clientHeight + 1 || sub.scrollWidth > sub.clientWidth + 1, lines: Math.round(sub.getBoundingClientRect().height / 16),
+                 under: acts.getBoundingClientRect().top >= name.getBoundingClientRect().bottom - 1, beside: Math.abs(face.getBoundingClientRect().top - name.getBoundingClientRect().top) < 24 && name.getBoundingClientRect().left > face.getBoundingClientRect().right }; }));
+      const fit = await rowsFit(c.page);
       await c.ctx.close();
+      const n = await boot(db, "coach", "09:00", 320);
+      const fit320 = await rowsFit(n.page); await n.shot("02b-today-ask-320");
+      await M.tap(n.page, '[aria-label="Alerts"]', 1000); const bell320 = await rowsFit(n.page); await n.shot("03b-bell-ask-320");
+      await n.ctx.close();
+      const all = [...fit, ...fit320, ...bell320];
+      check("(a4) Today's request row and the bell's carry the note under the name, whole on its own lines — nothing cut, Accept · Decline on a line of their own, the face beside the name at 390 and at 320",
+            row.includes(NOTE) && /\d{1,2}:\d\d [ap]m/.test(row) && bell.includes(NOTE) && /Accept/.test(bell) && fit.length >= 1 && fit320.length >= 1 && bell320.length >= 1 && all.every((f) => !f.cut && f.under && f.beside) && all.some((f) => f.lines >= 2),
+            JSON.stringify({ row: row.slice(0, 120), bell: bell.slice(0, 120), fit, fit320, bell320 }));
+      /* the cap is at the field: a longer note stops at 200, typed; the row never carries a cut sentence the toast called Asked */
+      const p2 = await boot(db, "adult");
+      await openAsk(p2.page);
+      const long = "Bunker play before the medal on Sunday, and the pitch shot from a tight lie if there is time afterwards, then a look at the putting stroke which has gone short and jabby since the clocks went back last month".slice(0, 264);
+      await p2.page.locator('[data-tour="ask-note"] textarea').fill(long); await p2.page.waitForTimeout(200);
+      const held = await p2.page.locator('[data-tour="ask-note"] textarea').inputValue();
+      check("(a5) the field holds 200 characters and no more, typed or spoken, so nothing is cut behind the player's back", long.length > 200 && held.length === 200 && held === long.slice(0, 200), `typed ${long.length} held ${held.length}`);
+      /* a note typed and abandoned by the scrim never comes back on the next sheet */
+      await p2.page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await p2.page.waitForTimeout(500);
+      await p2.page.locator('[data-tour="agenda-book"]').first().click(); await p2.page.waitForTimeout(900);
+      const again = await p2.page.locator('[data-tour="ask-note"] textarea').inputValue();
+      check("(a6) a note typed and abandoned by the scrim is gone when the next sheet opens", again === "", `again=${JSON.stringify(again).slice(0, 40)}`);
+      await p2.ctx.close();
     }
 
     /* ---------- (b) the decline: the note on the sheet, Why, the reason on the notice ---------- */
