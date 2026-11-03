@@ -6759,13 +6759,19 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
           {rest.length > 0 && (<>
             <RowHead>{tr("Coming up")}</RowHead>
             <div className="nsc-list mb-7" data-tour="family-upcoming">
-              {rest.map((b) => (
+              {rest.map((b) => {
+                /* a clinic names the child it is for and the group — "Saoirse · Saturday
+                   clinic" — where it named the group alone; a private lesson the child */
+                const kids = b.group ? (b.forIds || []).map((id) => first(nameOf(id))).filter(Boolean).join(", ") : "";
+                const label = b.group ? [kids, b.groupName || b.who].filter(Boolean).join(" · ") : (first(nameOf(b.playerId)) || b.who);
+                return (
                 <div key={b.id} className="flex items-center gap-3 py-3" style={{ borderBottom: RULE.hair(t.ink) }}>
                   <span className="shrink-0" style={{ width: 84, ...TYPE.caption, color: t.faint }}>{fmtDay(b.date)}</span>
-                  <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{first(nameOf(b.playerId)) || b.who}</span>
+                  <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
                   <span className="shrink-0" style={{ ...TYPE.small, color: b.status === "requested" ? CAUTION : t.sub }}>{b.time}</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </>)}
           {!next && rest.length === 0 && (
