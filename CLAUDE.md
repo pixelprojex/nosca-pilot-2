@@ -959,11 +959,25 @@ seeded data and no account.
   decline, which writes the reason on the row as `cancel_reason` so the
   player reads "Request declined · Double booked · Thu 5 Nov 10:00 am",
   a cancellation's shape; the offer path ignores the reason, and both
-  entry points reset it. Calendly's invitee question ("Please share
-  anything that will help prepare for our meeting"), Acuity's intake
-  answers shown on the appointment, Square's note at booking; Wix's and
-  Calendly's message on a decline. `scripts/e2e/request-note.cjs`;
-  behaviour.sql 10f.
+  entry points reset it. The cap is at the field: `VoiceArea` takes
+  `max` and cuts the typed and the dictated path alike (200 on the note,
+  120 on the decline's words, the bio's own pattern), and the hook's
+  slice is only a backstop — a note cut there reached the coach short
+  while the toast said Asked. The sheet's note is reset when the sheet
+  opens (`onBookInto`), so words typed and abandoned by the scrim never
+  ride on the next ask. With a note the request rows ask `textMin` 180,
+  not more: 54 and 180 fit inside the 242 a box leaves at 320, so the
+  face stays beside the name while the pair still drops under it;
+  `subLines={0}` lifts the grey line's two-line clamp there, so the
+  coach reads the whole note on the row they answer from.
+  behaviour.sql's refusal of a note past 200 characters ends on
+  `commit`, not `rollback`: an aborted transaction rolls back on commit
+  and raises nothing, while a row the check wrongly let in would be kept
+  and counted — a `rollback` passed either way. Calendly's invitee
+  question ("Please share anything that will help prepare for our
+  meeting"), Acuity's intake answers shown on the appointment, Square's
+  note at booking; Wix's and Calendly's message on a decline.
+  `scripts/e2e/request-note.cjs`; behaviour.sql 10f.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.
