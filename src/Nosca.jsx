@@ -7407,8 +7407,10 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
             <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
+            {/* two facts, each kept whole: where the line must wrap at 320 it breaks
+                before the dot, which rides with the kind — a line never ends on it */}
             <span className="block mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>
-              {span(item.time, len)} · {item.kind}
+              <span data-block-time className="whitespace-nowrap">{span(item.time, len)}</span> <span data-block-kind className="whitespace-nowrap">· {item.kind}</span>
             </span>
             {/* who said they will not be there, a line of its own: two facts
                 on the grey line, and the count never broken across two */}
