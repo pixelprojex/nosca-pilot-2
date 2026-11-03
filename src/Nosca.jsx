@@ -12663,6 +12663,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               {showAsks && asks.slice(0, 3).map((r, i) => (
                 <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
+                           /* the player's words need the row's width: Accept · Decline drop under the name, the row's own way */
+                           textMin={r.note ? 220 : undefined}
                            sub={`${askDay(r, cal)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`}
                            actions={<>
                              <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
@@ -17609,7 +17611,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
 
   /* still a question, so it is answered here rather than somewhere else */
   const Ask = ({ w }) => (
-    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what}
+    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what} textMin={w.note ? 220 : undefined}
                actions={<>
                  <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
                  <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
@@ -20418,7 +20420,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             onAccept: () => acceptRequest(r), onDecline: () => declineRequest(r) })),
       ...(liveAsks || []).map((r) => ({ id: `ask-${r.id}`, who: r.who,
             avatar: avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath),
-            what: `${askDay(r, calendar)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`,
+            what: `${askDay(r, calendar)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`, note: r.note || "",
             onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); } })),
     ];
     /* A notification names the person it is about first — "Cian Murphy

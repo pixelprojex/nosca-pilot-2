@@ -104,8 +104,12 @@ function freshDb({ family = false } = {}) {
       await M.tap(c.page, '[aria-label="Alerts"]', 1000);
       const bell = M.norm(await c.page.locator("[data-person-row]").filter({ hasText: "Cian Murphy" }).first().innerText());
       await c.shot("03-bell-ask");
-      check("(a4) Today's request row and the bell's carry the note under the name, after the day and the time",
-            row.includes(NOTE) && /\d{1,2}:\d\d [ap]m/.test(row) && bell.includes(NOTE) && /Accept/.test(bell), JSON.stringify({ row: row.slice(0, 120), bell: bell.slice(0, 120) }));
+      /* the words take the row's width: nothing cut, Accept · Decline on a line of their own under the name */
+      const fit = await c.page.evaluate(() => [...document.querySelectorAll("[data-person-row]")].filter((r) => /Cian Murphy/.test(r.textContent) && r.querySelector(":scope > .ml-auto")).map((r) => {
+        const sub = r.querySelector("[data-sub]"), name = r.querySelector("[data-name]"), acts = r.querySelector(":scope > .ml-auto");
+        return { cut: sub.scrollHeight > sub.clientHeight + 1 || sub.scrollWidth > sub.clientWidth + 1, under: acts.getBoundingClientRect().top >= name.getBoundingClientRect().bottom - 1 }; }));
+      check("(a4) Today's request row and the bell's carry the note under the name, after the day and the time — nothing cut, Accept · Decline on a line of their own",
+            row.includes(NOTE) && /\d{1,2}:\d\d [ap]m/.test(row) && bell.includes(NOTE) && /Accept/.test(bell) && fit.length >= 1 && fit.every((f) => !f.cut && f.under), JSON.stringify({ row: row.slice(0, 120), bell: bell.slice(0, 120), fit }));
       await c.ctx.close();
     }
 
