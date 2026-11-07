@@ -911,6 +911,22 @@ rollback;
 \if :ok1 \echo PASS another player of the same coach sees the taken time through coach_busy_slots \else \echo FAIL coach_busy_slots did not hand back the taken time \endif
 \if :ok2 \echo PASS …and still cannot read whose booking it is \else \echo FAIL a booking row leaked to a different player \endif
 
+-- 10g: a player's cancel may not rewrite the note they asked with — booking_unchanged() pins it
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, note) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-04-17', '10:00', 45, 'private', 'requested', 'Bunker play') returning id as rq7 \gset
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+\set ON_ERROR_STOP off
+update public.bookings set status = 'cancelled', note = 'Something else' where id = :'rq7';
+\set ON_ERROR_STOP on
+commit;
+select (select count(*) from public.bookings where id = :'rq7' and status = 'requested' and note = 'Bunker play') as kept7 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set status = 'cancelled' where id = :'rq7' returning id) select count(*) as nc7 from u \gset
+commit;
+select (:kept7 = 1 and :nc7 = 1 and (select note from public.bookings where id = :'rq7') = 'Bunker play') as ok \gset
+\if :ok \echo PASS a player s cancel may not rewrite the note on the ask: refused with the note changed, taken with the note as it was (10g; the error above is the refusal) \else \echo FAIL cancel with a changed note kept=:kept7 plain cancel rows=:nc7 (10g) \endif
+
 \echo === 10c. a run s lessons carry the run, and outlive it
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
 insert into public.recurring (coach_id, player_id, weekday, start_time, cadence) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', 1, '5:00 pm', 'weekly') returning id as run \gset
