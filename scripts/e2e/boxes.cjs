@@ -393,6 +393,26 @@ const metaOf = (page, title) => page.evaluate((title) => {
       await ctx.close();
     }
 
+    /* the outline of a control: its sides, its inline width, the ground
+       under it and the contrast of its edge and its word against that */
+    const reRgba = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(",").map((x) => +x); return { rgb: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 }; };
+    const reLum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+    const reContrast = (a, b) => { const [x, y] = [reLum(a), reLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const flat = (c, ground) => { const p = reRgba(c); return p.rgb.map((v, i) => v * p.a + ground[i] * (1 - p.a)); };
+    const outlinesOf = (page, sel, text) => page.evaluate(([sel, src, flags]) => {
+      const text = new RegExp(src, flags);
+      const ground = (el) => { for (let n = el.parentElement; n; n = n.parentElement) { const b = getComputedStyle(n).backgroundColor; const m = b.match(/rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(",").map((x) => +x); if (p.length < 4 || p[3] === 1) return p.slice(0, 3); } } return [255, 255, 255]; };
+      return [...document.querySelectorAll(sel)].filter((b) => b.getBoundingClientRect().width > 0 && text.test(b.textContent.trim()))
+        .map((b) => { const cs = getComputedStyle(b);
+          return { label: b.textContent.trim(), bg: cs.backgroundColor, ground: ground(b), fg: cs.color, inline: b.style.borderTopWidth,
+                   sides: ["Top", "Right", "Bottom", "Left"].map((x) => `${cs[`border${x}Width`]} ${cs[`border${x}Style`]} ${cs[`border${x}Color`]}`) }; });
+    }, [sel, text.source, text.flags]).catch(() => []);
+    /* Chrome reports a 0.5px border back as 1px, so the width is read
+       off the element's own style as well: EDGE_W, 1.5px */
+    const edgeOk = (o, edge, style) => o.inline === "1.5px" && o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) >= 1 && st === style && c.join(" ") === edge; });
+    const edgeRatio = (o) => { const c = o.sides[0].split(" ").slice(2).join(" "); return reContrast(flat(c, o.ground), o.ground); };
+    const told = (os) => os.map((o) => `${o.label}: ${o.inline} ${o.sides[0]} ${edgeRatio(o).toFixed(2)}:1 label ${reContrast(flat(o.fg, o.ground), o.ground).toFixed(2)}:1`).join(" | ");
+
     /* ---------- the register's controls on the edge ----------
        Present and Absent, before either is chosen, and "Someone not in
        the diary" are controls whose outline is the only thing that says
@@ -403,23 +423,6 @@ const metaOf = (page, title) => page.evaluate((title) => {
     {
       const dbR = freshDb();
       M.addBooking(dbR, { coachId: IDS.rider, playerId: IDS.tadhg, date: TODAY, time: "9:00 am" });
-      const reRgba = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(",").map((x) => +x); return { rgb: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 }; };
-      const reLum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
-      const reContrast = (a, b) => { const [x, y] = [reLum(a), reLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-      const flat = (c, ground) => { const p = reRgba(c); return p.rgb.map((v, i) => v * p.a + ground[i] * (1 - p.a)); };
-      const outlinesOf = (page, sel, text) => page.evaluate(([sel, src, flags]) => {
-        const text = new RegExp(src, flags);
-        const ground = (el) => { for (let n = el.parentElement; n; n = n.parentElement) { const b = getComputedStyle(n).backgroundColor; const m = b.match(/rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(",").map((x) => +x); if (p.length < 4 || p[3] === 1) return p.slice(0, 3); } } return [255, 255, 255]; };
-        return [...document.querySelectorAll(sel)].filter((b) => b.getBoundingClientRect().width > 0 && text.test(b.textContent.trim()))
-          .map((b) => { const cs = getComputedStyle(b);
-            return { label: b.textContent.trim(), bg: cs.backgroundColor, ground: ground(b), fg: cs.color, inline: b.style.borderTopWidth,
-                     sides: ["Top", "Right", "Bottom", "Left"].map((x) => `${cs[`border${x}Width`]} ${cs[`border${x}Style`]} ${cs[`border${x}Color`]}`) }; });
-      }, [sel, text.source, text.flags]).catch(() => []);
-      /* Chrome reports a 0.5px border back as 1px, so the width is read
-         off the element's own style as well: EDGE_W, 1.5px */
-      const edgeOk = (o, edge, style) => o.inline === "1.5px" && o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) >= 1 && st === style && c.join(" ") === edge; });
-      const edgeRatio = (o) => { const c = o.sides[0].split(" ").slice(2).join(" "); return reContrast(flat(c, o.ground), o.ground); };
-      const told = (os) => os.map((o) => `${o.label}: ${o.inline} ${o.sides[0]} ${edgeRatio(o).toFixed(2)}:1 label ${reContrast(flat(o.fg, o.ground), o.ground).toFixed(2)}:1`).join(" | ");
       const MARK = /^(Present|Absent)$/;
       for (const [role, sport, who, minRows] of [["coach", "golf", "Saturday clinic", 3], ["rider", "equestrian", "Tadhg Ryan", 1]]) {
         const { ctx, page, shot } = await boot(role, dbR);
@@ -441,6 +444,112 @@ const metaOf = (page, title) => page.evaluate((title) => {
           walk.length === 1 && edgeOk(walk[0], EDGE[sport], "dashed") && edgeRatio(walk[0]) >= 3, told(walk));
         await ctx.close();
       }
+    }
+
+
+    /* ---------- no control on the hairline ----------
+       The quiet Button (Just decline), Decline on a join request, the
+       manager's End, Message and Stay on the coach's profile, Copy,
+       Cancel and Stay on the family screen and the bin in the drill
+       library are controls whose outline is the only thing that says
+       where they are. They were a 1px hairline — the theme's hair, or
+       the ink at 14% or 18%, 1.1 to 1.5:1 against the paper — where the
+       register's tiles and every box are EDGE(t) at EDGE_W, under WCAG
+       1.4.11's 3:1 for a control's boundary. A fresh fixture with a join
+       request, a booking request and an arrangement to end. */
+    {
+      const dbC = freshDb();
+      const GR = "00000000-0000-4000-8000-00000000a1ce";
+      M.addUser(dbC, { id: GR, email: "grainne@t.ie" }); M.addProfile(dbC, { id: GR, role: "player", name: "Gráinne Nic Gearailt", type: "adult", dob: "1990-01-01" });
+      M.addRequest(dbC, { playerId: GR, coachId: IDS.coach, notify: true });
+      M.addBooking(dbC, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(3)), time: "9:00 am", status: "requested" });
+      M.addRecurring(dbC, { coachId: IDS.coach, playerId: IDS.adult, weekday: 2, time: "9:00 am" });
+      /* every visible button under `scope` outlined on all four sides and filled with nothing */
+      const outlined = (page, scope) => page.evaluate((scope) => {
+        const root = scope ? document.querySelector(scope) : document; if (!root) return [];
+        const ground = (el) => { for (let n = el.parentElement; n; n = n.parentElement) { const b = getComputedStyle(n).backgroundColor; const m = b.match(/rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(",").map((x) => +x); if (p.length < 4 || p[3] === 1) return p.slice(0, 3); } } return [255, 255, 255]; };
+        return [...root.querySelectorAll("button")].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+          .map((b) => { const cs = getComputedStyle(b), r = b.getBoundingClientRect();
+            return { label: (b.getAttribute("aria-label") || b.textContent).replace(/\s+/g, " ").trim().slice(0, 24), bg: cs.backgroundColor, ground: ground(b), fg: cs.color, inline: b.style.borderTopWidth,
+                     h: Math.round(r.height), radius: cs.borderTopLeftRadius,
+                     sides: ["Top", "Right", "Bottom", "Left"].map((x) => `${cs[`border${x}Width`]} ${cs[`border${x}Style`]} ${cs[`border${x}Color`]}`) }; })
+          .filter((o) => o.bg === "rgba(0, 0, 0, 0)" && o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) > 0 && st !== "none" && c.join(" ") !== "rgba(0, 0, 0, 0)"; }));
+      }, scope).catch(() => []);
+      const weak = (os) => os.filter((o) => edgeRatio(o) < 3);
+      const onEdge = (os, edge) => os.length > 0 && os.every((o) => edgeOk(o, edge, "solid") && edgeRatio(o) >= 3);
+      const only = (os, re) => os.filter((o) => re.test(o.label));
+      const seen = [];   // for (s9)
+      const meet = async (page, scope, at) => { const os = await outlined(page, scope); os.forEach((o) => seen.push({ ...o, at })); return os; };
+      const toList = async (page) => { const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]'); if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700); };
+      const toSettings = async (page) => { await tap(page, '[data-tour="profile-pill"]', 800); if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 800); };
+      /* the coach: a join request's Decline, the decline sheet's Just decline, the manager's End, the library's bins */
+      {
+        const { ctx, page, shot } = await boot("coach", dbC);
+        await tap(page, '[aria-label="Today"]', 900);
+        await tap(page, '[data-tour="today-requests"]', 1000);
+        const join = await meet(page, '[data-scroll="screen"]', "join requests");
+        await shot("13-join-decline");
+        check("(s1) a join request's Decline is outlined on golf's edge at 1.5px, at least 3:1 — the filled Accept beside it carries no outline",
+          onEdge(only(join, /^Decline$/), EDGE.golf) && only(join, /^Accept$/).length === 0, told(join).slice(0, 300));
+        await tap(page, '[aria-label="Today"]', 900);
+        await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(900);
+        const dec = await meet(page, "[data-sheet]", "decline sheet");
+        await shot("13-decline-sheet");
+        check("(s2) Just decline, the quiet Button, is outlined on the edge at 1.5px, at least 3:1, its red word 4.5:1",
+          onEdge(only(dec, /^Just decline$/), EDGE.golf) && only(dec, /^Just decline$/).every((o) => reContrast(flat(o.fg, o.ground), o.ground) >= 4.5), told(dec).slice(0, 300));
+        await closeSheet(page);
+        await tap(page, '[aria-label="Diary"]', 1000); await toList(page);
+        await tap(page, '[data-tour="cal-recurring"]', 1000);
+        const man = await meet(page, '[data-scroll="screen"]', "recurring manager");
+        await shot("13-manager-end");
+        const end = only(man, /^End$/);
+        check("(s3) the manager's End is the app's control — the edge at 1.5px, at least 3:1, the control's corner, 40 tall — not a hairline pill",
+          onEdge(end, EDGE.golf) && end.every((o) => o.radius === "10px" && o.h >= 40), told(end) + ` ${JSON.stringify(end.map((o) => [o.radius, o.h]))}`);
+        await tap(page, '[aria-label="Today"]', 900); await toSettings(page);
+        await tap(page, '[data-tour="settings-library"]', 1000);
+        /* the bin sits inside a drill's unfolded row */
+        await page.locator('[data-scroll="screen"] button[aria-expanded]').first().click().catch(() => {}); await page.waitForTimeout(600);
+        const lib = await meet(page, '[data-scroll="screen"]', "drill library");
+        await shot("13-library-bin");
+        check("(s4) the bin on an unfolded drill is outlined on the edge, at least 3:1", onEdge(only(lib, /^Delete$/), EDGE.golf) && only(lib, /^Delete$/).length >= 1, told(lib).slice(0, 300));
+        await ctx.close();
+      }
+      /* a player: the coach's profile — Message, and Stay under Leave */
+      {
+        const { ctx, page, shot } = await boot("adult", dbC);
+        await toSettings(page);
+        await tap(page, '[data-tour="settings-family"]', 1000);
+        const prof = await meet(page, '[data-scroll="screen"]', "coach profile");
+        check("(s5) Message on the coach's profile is outlined on the edge, at least 3:1 (it was the ink at 18%)", onEdge(only(prof, /^Message$/), EDGE.golf), told(prof).slice(0, 300));
+        await tap(page, '[data-tour="coach-leave"]', 700);
+        const lv = await meet(page, '[data-scroll="screen"]', "leave coach");
+        await shot("13-coach-leave-stay");
+        check("(s6) Stay beside the red Leave is outlined on the edge, at least 3:1", onEdge(only(lv, /^Stay$/), EDGE.golf) && only(lv, /^Stay$/).length === 1, told(lv).slice(0, 300));
+        await ctx.close();
+      }
+      /* a parent: the family screen — Copy, the rename's Cancel, Stay under Leave */
+      {
+        const { ctx, page, shot } = await boot("parent", dbC);
+        await tap(page, '[aria-label="Family"]', 900);
+        await tap(page, '[data-tour="family-settings"]', 1000);
+        const fam = await meet(page, '[data-scroll="screen"]', "family screen");
+        await shot("13-family-copy");
+        check("(s7) Copy on the family code card is outlined on the edge, at least 3:1, on the control's corner, and Share beside it carries the same corner",
+          onEdge(only(fam, /^Copy$/), EDGE.golf) && only(fam, /^Copy$/).every((o) => o.radius === "10px")
+            && (await page.evaluate(() => { const b = document.querySelector('[data-tour="family-share"]'); return b ? getComputedStyle(b).borderTopLeftRadius : null; })) === "10px", told(fam).slice(0, 300));
+        await page.locator('[data-scroll="screen"]').getByText("Name", { exact: true }).first().click().catch(() => {}); await page.waitForTimeout(600);
+        const ren = await meet(page, '[data-scroll="screen"]', "rename");
+        check("(s8) the rename's Cancel is outlined on the edge, at least 3:1", onEdge(only(ren, /^Cancel$/), EDGE.golf) && only(ren, /^Cancel$/).length === 1, told(ren).slice(0, 300));
+        await page.locator("button", { hasText: /^Cancel$/ }).first().click().catch(() => {}); await page.waitForTimeout(400);
+        await page.locator('[data-scroll="screen"]').getByText("Leave", { exact: true }).first().click().catch(() => {}); await page.waitForTimeout(600);
+        const lf = await meet(page, '[data-scroll="screen"]', "leave family");
+        await shot("13-family-leave-stay");
+        check("(s8b) Stay beside Leave on the family screen is outlined on the edge, at least 3:1", onEdge(only(lf, /^Stay$/), EDGE.golf) && only(lf, /^Stay$/).length === 1, told(lf).slice(0, 300));
+        await ctx.close();
+      }
+      const weakSeen = weak(seen);
+      check("(s9) no outlined control met on the way reads under 3:1 — nothing is left on the hairline",
+        seen.length >= 8 && weakSeen.length === 0, `${seen.length} met · weak ${weakSeen.map((o) => `${o.at}: ${o.label} ${edgeRatio(o).toFixed(2)}:1`).join(" | ").slice(0, 300)}`);
     }
 
     check("(o) no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
