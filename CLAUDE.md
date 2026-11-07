@@ -1293,6 +1293,29 @@ seeded data and no account.
   by that name") is a line under the field, never a box.
   `scripts/e2e/boxes.cjs` walks every one as the coach, the player and
   a parent, and fails on a box off the edge or a rule inside one.
+- **No control on the hairline.** Every outlined control is on
+  `EDGE(t)` at `EDGE_W`, the way every box, tile and tick box has been
+  since October: the `Button`'s `quiet` and `dangerQuiet` tones (Just
+  decline, Keep my account), Decline on a join request, the Recurring
+  manager's End (the control's corner and 40 tall; it was a 34px pill),
+  Message and Stay on the coach's profile, Copy, Cancel and Stay on the
+  family screen (Copy and Share on the control's corner, not pills),
+  Keep it beside a competition's Remove, Dismiss on a lesson to write
+  up, Pick from Contacts, the bin in the drill library, the lesson
+  page's second row of actions, Saved's Remove all — and the harness's
+  Close, transcribe, capture cards and annotate tools, for the one
+  rule. They were `1px solid t.hair` (1.21:1 on golf's paper) or the
+  ink at 14% and 18% (1.33 and 1.45:1): a word in a box whose box could
+  not be seen, under WCAG 1.4.11's 3:1 for a control's boundary — the
+  outline is the only thing that says where the control is. The edge
+  reads 3.42:1 on golf's paper and 3.0 to 4.1:1 across the sports; a
+  filled control (Accept, Share, Leave) carries no outline; the
+  manager's ended arrangements are one boxed list of muted person
+  rows. Material's outlined button draws its side in the `outline`
+  role for the same reason. `boxes.cjs` (s1)–(s9) measures Decline,
+  Just decline, End, the bin, Message, both Stays, Copy and Cancel as
+  the coach, a player and a parent, and sweeps every outlined control
+  met on the way for one under 3:1.
 - **The paper is `#FEFEFE`, one step off pure white, the same for
   every sport.** Every theme's `page` is that value; `surface` is
   white; the sport's colour lives in `wash`, the accent, the mark, the

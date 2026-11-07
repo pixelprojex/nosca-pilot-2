@@ -592,6 +592,23 @@ row, so the player reads "Request declined · Double booked · Thu 5 Nov
 10:00 am", a cancellation's shape. The functional item of the day;
 `request-note.cjs`, behaviour.sql 10f.
 
+### 32. No control on the hairline. **Built 7 November.**
+Every box, tile and tick box has been on the sport's edge (`EDGE(t)`
+at 1.5px, 3.0 to 4.1:1) since October, and a dozen outlined controls
+were still a 1px hairline — the theme's hair at 1.21:1, or the ink at
+14% and 18% — a word in a box whose box could not be seen: the quiet
+Button (Just decline), Decline on a join request, the Recurring
+manager's End (a 34px pill), Message and Stay on the coach's profile,
+Copy, Cancel and Stay on the family screen, Keep it, Dismiss, Pick from
+Contacts, the drill library's bin, the lesson page's second row of
+actions, Saved's Remove all. WCAG 1.4.11 asks 3:1 of a control's
+boundary where the boundary is what says the control is there;
+Material's outlined button draws its side in the `outline` role for the
+same reason. Every one is on the edge now, the manager's End on the
+control's corner at 40 tall, Copy and Share the same, and the manager's
+ended arrangements one boxed list of muted person rows. The visual item
+of the day; `boxes.cjs` (s1)–(s9).
+
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
@@ -741,3 +758,6 @@ the items above; a research spike first.
 - https://community.calendly.com/how-do-i-40/when-does-please-share-anything-that-will-help-prepare-for-our-meeting-come-up-682 (Calendly: the default question, on by default and editable per event)
 - https://help.acuityscheduling.com/hc/en-us/sections/47803209214221-Collect-client-info (Acuity: intake forms per appointment type, the answers shown on the appointment)
 - https://community.squareup.com/t5/Questions-How-To/Appointment-notes-Is-there-a-way-to-request-specific-information/m-p/287917 (Square Appointments: one free-text note on the last booking page)
+- https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast (WCAG 1.4.11: a control's visual boundary at 3:1 where the boundary is what identifies it)
+- https://api.flutter.dev/flutter/material/OutlinedButton-class.html (Material 3: the outlined button's side drawn in the theme's outline colour, a medium-emphasis action)
+- https://developer.android.com/reference/kotlin/androidx/compose/material3/OutlinedButton.composable (Material 3 on Compose: OutlinedButton, medium emphasis, the outline role)
