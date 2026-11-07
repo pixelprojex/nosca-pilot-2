@@ -68,7 +68,7 @@ figcaption .ask{color:var(--warn)}
 <div class="wrap">
 <header class="head">
   <h1>Every item, drawn</h1>
-  <p>${ITEMS.length} kinds of thing, ${count} items counting pairs and multiples, from the description of 7 Nov 2026. Each is a flat vector drawing in the garment's own colours, cut and pattern. These are the pictures the app uses; any one can be redrawn from a photo.</p>
+  <p>${ITEMS.length} kinds of thing, ${count} items counting pairs and multiples, from the description of 7 Nov 2026 and the ten jacket photos. Each is drawn as a flat lay with soft shading, in the garment's own colours, cut, pattern and marks. These are the pictures the app uses; any one can be redrawn from a photo.</p>
   ${asks.length ? `<div class="asks"><b>${asks.length} details were not given and are guessed</b><ul>${asks.map(i => `<li><a href="#i-${esc(i.id)}">${esc(i.name)}</a>: ${esc(i.ask)}</li>`).join("")}</ul></div>` : ""}
 </header>
 ${sections}
