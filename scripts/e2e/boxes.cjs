@@ -526,7 +526,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await tap(page, '[data-tour="roster-newgroup"]', 900);
         const grp = await meet(page, "[data-sheet]", "new group");
         await shot("13-new-group-chips");
-        const chips = only(grp, /Cian Murphy|Saoirse Kelly|Aoife Doyle|Eoin Breathnach/);
+        const chips = only(grp, /Cian|Saoirse|Aoife|Eoin/);   // a chip reads its initials and the first name
         check("(s11) New group's unpicked chips are outlined on the edge, at least 3:1 — a white fill on the white sheet counts as nothing", chips.length >= 2 && onEdge(chips, EDGE.golf), told(grp).slice(0, 300));
         await closeSheet(page);
         await ctx.close();
@@ -563,8 +563,8 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await shot("13-family-leave-stay");
         check("(s8b) Stay beside Leave on the family screen is outlined on the edge, at least 3:1", onEdge(only(lf, /^Stay$/), EDGE.golf) && only(lf, /^Stay$/).length === 1, told(lf).slice(0, 300));
         await tap(page, '[aria-label="Diary"]', 1000);
-        const strip = await meet(page, '[data-tour="cal-family"]', "for strip");
-        check("(s12) the Diary's For strip: the chips not chosen are outlined on the edge, at least 3:1", strip.length >= 1 && onEdge(strip, EDGE.golf), told(strip).slice(0, 300));
+        const strip = await meet(page, '[data-tour="cal-for"]', "for strip");
+        check("(s12) the Diary's For strip: the tiles not chosen are outlined on the edge, at least 3:1", strip.length >= 1 && onEdge(strip, EDGE.golf), told(strip).slice(0, 300));
         await ctx.close();
       }
       const weakSeen = weak(seen);

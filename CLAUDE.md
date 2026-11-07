@@ -1310,11 +1310,11 @@ seeded data and no account.
   page's second row of actions, Saved's Remove all, the layout editor's
   Reset and its Remove minus, the lesson edit sheet's Add a clip, the
   Add player sheet's tiles, the coach's Drills button, sign-up's
-  `Choice` tiles, New group's chips, the Diary's For strip, the lessons
+  `Choice` tiles, New group's chips, the lessons
   ticked to end or call off, the sporting record's rows and the
   main-sport rows (chosen in ink or the accent, the edge at rest) —
   and the harness's Close, transcribe, capture cards, annotate tools,
-  check-ins and plans, for the one rule. The first pass took the
+  check-ins, plans and family filter chips, for the one rule. The first pass took the
   twenty-four on `t.hair` and the three on the ink at 14% and 18%; the
   review found eleven more drawn at 0.5px, as a surface fill on the
   hairline, or as `on ? t.ink : t.hair`, which no grep for `t.hair` on
@@ -1329,8 +1329,8 @@ seeded data and no account.
   rows. Material's outlined button draws its side in the `outline`
   role for the same reason. `boxes.cjs` (s1)–(s12) measures Decline,
   Just decline, End, the bin, Reset, New group's chips, Message, both
-  Stays, Copy and Cancel, and the For strip as the coach, a player and
-  a parent, and sweeps every outlined control met on the way for one
+  Stays, Copy and Cancel, and the Diary's For strip as the coach, a
+  player and a parent, and sweeps every outlined control met on the way for one
   under 3:1.
 - **The paper is `#FEFEFE`, one step off pure white, the same for
   every sport.** Every theme's `page` is that value; `surface` is
