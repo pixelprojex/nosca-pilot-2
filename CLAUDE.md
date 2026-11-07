@@ -1307,9 +1307,19 @@ seeded data and no account.
   family screen (Copy and Share on the control's corner, not pills),
   Keep it beside a competition's Remove, Dismiss on a lesson to write
   up, Pick from Contacts, the bin in the drill library, the lesson
-  page's second row of actions, Saved's Remove all — and the harness's
-  Close, transcribe, capture cards and annotate tools, for the one
-  rule. They were `1px solid t.hair` (1.21:1 on golf's paper) or the
+  page's second row of actions, Saved's Remove all, the layout editor's
+  Reset and its Remove minus, the lesson edit sheet's Add a clip, the
+  Add player sheet's tiles, the coach's Drills button, sign-up's
+  `Choice` tiles, New group's chips, the Diary's For strip, the lessons
+  ticked to end or call off, the sporting record's rows and the
+  main-sport rows (chosen in ink or the accent, the edge at rest) —
+  and the harness's Close, transcribe, capture cards, annotate tools,
+  check-ins and plans, for the one rule. The first pass took the
+  twenty-four on `t.hair` and the three on the ink at 14% and 18%; the
+  review found eleven more drawn at 0.5px, as a surface fill on the
+  hairline, or as `on ? t.ink : t.hair`, which no grep for `t.hair` on
+  a `<button>` sees — the sweep below counts a white fill on the white
+  sheet as nothing. They were `1px solid t.hair` (1.21:1 on golf's paper) or the
   ink at 14% and 18% (1.33 and 1.45:1): a word in a box whose box could
   not be seen, under WCAG 1.4.11's 3:1 for a control's boundary — the
   outline is the only thing that says where the control is. The edge
@@ -1317,10 +1327,11 @@ seeded data and no account.
   filled control (Accept, Share, Leave) carries no outline; the
   manager's ended arrangements are one boxed list of muted person
   rows. Material's outlined button draws its side in the `outline`
-  role for the same reason. `boxes.cjs` (s1)–(s9) measures Decline,
-  Just decline, End, the bin, Message, both Stays, Copy and Cancel as
-  the coach, a player and a parent, and sweeps every outlined control
-  met on the way for one under 3:1.
+  role for the same reason. `boxes.cjs` (s1)–(s12) measures Decline,
+  Just decline, End, the bin, Reset, New group's chips, Message, both
+  Stays, Copy and Cancel, and the For strip as the coach, a player and
+  a parent, and sweeps every outlined control met on the way for one
+  under 3:1.
 - **The paper is `#FEFEFE`, one step off pure white, the same for
   every sport.** Every theme's `page` is that value; `surface` is
   white; the sport's colour lives in `wash`, the accent, the mark, the

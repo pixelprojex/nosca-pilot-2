@@ -2710,12 +2710,12 @@ function RecordTransfer({ name, fromCoach, toCoach, onDone, close }) {
             <button key={r.id} onClick={() => { haptic(9); soft(); toggle(r.id); }} className="w-full flex items-center gap-3.5 px-4 text-left"
                     style={{ minHeight: 66, borderRadius: R.control,
                              background: on ? (r.sensitive ? `${DANGER}0D` : `${t.accent}0D`) : t.surface,
-                             border: `1px solid ${on ? (r.sensitive ? `${DANGER}3A` : `${t.accent}3A`) : t.hair}`,
+                             border: `${EDGE_W}px solid ${on ? (r.sensitive ? `${DANGER}3A` : `${t.accent}3A`) : EDGE(t)}`,
                              transition: "background 200ms, border-color 200ms",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex items-center justify-center shrink-0"
                     style={{ width: 22, height: 22, borderRadius: R.control,
-                             border: `1.5px solid ${on ? (r.sensitive ? DANGER : t.accent) : t.hair}`,
+                             border: `${EDGE_W}px solid ${on ? (r.sensitive ? DANGER : t.accent) : EDGE(t)}`,
                              background: on ? (r.sensitive ? DANGER : t.accent) : "transparent" }}>
                 {on && <Check size={12} color="#fff" strokeWidth={2.1} />}
               </span>
@@ -4228,7 +4228,7 @@ function CheckIns({ role, list, onAnswer, onSend, pop, say }) {
               ) : role === "coach" ? (
                 <div className="flex gap-2.5">
                   <button onClick={() => { haptic(8); say(tr("Opens the mark-up tools")); }} className="px-4 active:opacity-60"
-                          style={{ minHeight: 46, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
+                          style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                    ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Mark it up")}</button>
                   <button onClick={() => { hapticCommit(); onAnswer(c); }} className="flex-1 active:opacity-75"
                           style={{ minHeight: 46, borderRadius: R.control, background: t.accent,
@@ -4320,7 +4320,7 @@ function DefaultSport({ name, mine, current, onPick, close }) {
                     className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-70"
                     style={{ minHeight: 74, borderRadius: R.surface,
                              background: on ? `${sp.theme.accent}12` : t.surface,
-                             border: on ? `1px solid ${sp.theme.accent}44` : `1px solid ${HAIR(t.ink, 0.14)}`,
+                             border: on ? `${EDGE_W}px solid ${sp.theme.accent}44` : `${EDGE_W}px solid ${EDGE(t)}`,
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />
               <span className="flex-1 min-w-0">
@@ -7188,7 +7188,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
                     onClick={() => { haptic(7); soft(); setKept(on ? [...kept, b.id] : kept.filter((x) => x !== b.id)); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left"
                     style={{ minHeight: 52, borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                             border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 180ms" }}>
+                             border: `${EDGE_W}px solid ${on ? `${DANGER}44` : EDGE(t)}`, transition: "background 180ms" }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{fmtWeekDay(localDate(b.date))}</span>
               <span style={{ ...TYPE.caption, color: t.faint }}>{span(b.time, b.duration || duration)}</span>
               {on ? <Check size={17} color={DANGER} strokeWidth={2.1} /> : <span style={{ width: 17 }} />}
@@ -7283,7 +7283,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
                           onClick={() => { haptic(7); soft(); setKept(on ? [...kept, idOf(b)] : kept.filter((x) => x !== idOf(b))); }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left"
                           style={{ borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                                   border: `1px solid ${on ? `${DANGER}44` : t.hair}`, transition: "background 180ms" }}>
+                                   border: `${EDGE_W}px solid ${on ? `${DANGER}44` : EDGE(t)}`, transition: "background 180ms" }}>
                     <Avatar name={b.who} size={32} />
                     <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{b.who}</span>
                     <span style={{ fontFamily: ui, fontSize: 12, color: b.status === "requested" ? CAUTION : t.faint }}>{span(b.time, duration)}{b.status === "requested" ? ` · ${tr("asked")}` : ""}</span>
@@ -9163,7 +9163,7 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
             onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             style={{ minHeight: 62, borderRadius: R.surface, background: on ? t.ink : t.surface,
-                     border: `1px solid ${on ? t.ink : t.hair}`, willChange: "transform",
+                     border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, willChange: "transform",
                      transition: "background 220ms, border-color 220ms, transform 150ms cubic-bezier(.22,1,.36,1)",
                      animation: `fadeUp 460ms cubic-bezier(.22,1,.36,1) ${delay}ms both` }}>
       {Icon && <Icon size={20} color={on ? t.accent : t.sub} strokeWidth={1.6} />}
@@ -9355,7 +9355,7 @@ function CoachPlan({ onDone, onBack }) {
             const on = band === b;
             return (
               <button key={b} onClick={() => pick(b)} className="rounded-full px-4 active:opacity-60"
-                      style={{ minHeight: 42, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : t.hair}`,
+                      style={{ minHeight: 42, background: on ? t.ink : t.surface, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`,
                                fontFamily: ui, fontSize: 14, fontWeight: 600, color: on ? "#fff" : t.sub }}>{b}</button>
             );
           })}
@@ -9372,7 +9372,7 @@ function CoachPlan({ onDone, onBack }) {
                 const rec = BAND_TO_PLAN[band] === p.id;
                 return (
                   <button key={p.id} onClick={() => { haptic(8); setPlan(p.id); }} className="w-full rounded-3xl p-5 text-left"
-                          style={{ background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : t.hair}`, transition: "background 180ms" }}>
+                          style={{ background: on ? t.ink : t.surface, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, transition: "background 180ms" }}>
                     <div className="flex items-baseline justify-between">
                       <span className="flex items-center gap-2">
                         <span style={{ fontFamily: display, fontSize: 23, color: on ? "#fff" : t.ink }}>{p.name}</span>
@@ -12349,7 +12349,7 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
                     aria-label={`${tr("Remove")} ${tr(A.label)}`}
                     className="absolute flex items-center justify-center active:opacity-60 disabled:opacity-25"
                     style={{ top: -7, left: -7, width: 24, height: 24, borderRadius: 12, zIndex: 6,
-                             background: t.page, border: `1px solid ${HAIR(t.ink, 0.18)}`,
+                             background: t.page, border: `${EDGE_W}px solid ${EDGE(t)}`,
                              opacity: drag ? 0 : 1, transition: "opacity 160ms" }}>
               <Minus size={13} color={t.sub} strokeWidth={2.6} />
             </button>
@@ -12437,7 +12437,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
 
           <button onClick={() => { haptic(9); soft(); onSave(onBoard ? { board: BOARD_ORDER, boardCols: 3 } : { quick: QUICK_ORDER }); }}
                   className="w-full active:opacity-60"
-                  style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`,
+                  style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                            ...TYPE.small, fontWeight: 600, color: t.sub }}>
             {tr("Reset")}
           </button>
@@ -15008,7 +15008,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
         {routes.map((r, i) => (
           <button key={r.id} onClick={() => openRoute(r.id)} disabled={!joinCode}
                   className="flex flex-col items-center justify-center gap-2.5 active:opacity-60 disabled:opacity-30"
-                  style={{ minHeight: 92, borderRadius: R.control, background: t.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`,
+                  style={{ minHeight: 92, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             <r.Icon size={20} color={t.accent} strokeWidth={1.6} />
             <span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{r.label}</span>
@@ -15128,7 +15128,7 @@ function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
           const on = members.some((x) => x.id === p.id);
           return (
             <button key={p.id} onClick={() => tog(p)} className="rounded-full pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
-                    style={{ minHeight: 42, background: on ? t.ink : t.surface, border: `1px solid ${on ? t.ink : t.hair}` }}>
+                    style={{ minHeight: 42, background: on ? t.ink : t.surface, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}` }}>
               <Avatar name={p.name} size={30} />
               <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{p.name.split(" ")[0]}</span>
               {on && <Check size={13} color={STEADY} strokeWidth={2.1} />}
@@ -15422,7 +15422,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
   return (
     <Screen title={tr("Drills")} right={right}>
       <div className="px-6 mb-6">
-        <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left active:opacity-70" style={{ background: t.surface, borderRadius: R.surface, border: `0.5px solid ${HAIR(t.ink, 0.14)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
+        <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left active:opacity-70" style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
           <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
           <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 20, color: t.ink }}>{tr("Set drills")}</span><span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{tr("Choose who, and what they practise")}</span></span>
           <ChevronRight size={17} color={t.trace || t.faint} />
@@ -15983,7 +15983,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                 return (
                   <button key={n} onClick={() => { haptic(5); setFamFilter(n); }} className="px-3.5 shrink-0 active:opacity-60"
                           style={{ minHeight: 32, borderRadius: R.surface, background: on ? t.ink : "transparent",
-                                   border: `1px solid ${on ? t.ink : t.hair}`, fontFamily: ui, fontSize: 12, fontWeight: 600,
+                                   border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, fontFamily: ui, fontSize: 12, fontWeight: 600,
                                    color: on ? "#fff" : t.sub }}>{n}</button>
                 );
               })}
@@ -17844,7 +17844,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
                onChange={(e) => { const f = Array.from(e.target.files || []); e.target.value = ""; if (f.length) { onAddFiles(f); close(); } }} />
         <button onClick={() => { haptic(8); fileRef.current && fileRef.current.click(); }}
                 className="w-full flex items-center justify-center gap-2 mb-4 active:opacity-60"
-                style={{ minHeight: 48, borderRadius: R.control, border: `0.5px solid ${HAIR(t.ink, 0.18)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
           <Plus size={15} color={t.sub} strokeWidth={2.2} />{tr("Add a clip, photo or voice note")}
         </button>
       </>)}

@@ -473,7 +473,10 @@ const metaOf = (page, title) => page.evaluate((title) => {
             return { label: (b.getAttribute("aria-label") || b.textContent).replace(/\s+/g, " ").trim().slice(0, 24), bg: cs.backgroundColor, ground: ground(b), fg: cs.color, inline: b.style.borderTopWidth,
                      h: Math.round(r.height), radius: cs.borderTopLeftRadius,
                      sides: ["Top", "Right", "Bottom", "Left"].map((x) => `${cs[`border${x}Width`]} ${cs[`border${x}Style`]} ${cs[`border${x}Color`]}`) }; })
-          .filter((o) => o.bg === "rgba(0, 0, 0, 0)" && o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) > 0 && st !== "none" && c.join(" ") !== "rgba(0, 0, 0, 0)"; }));
+          /* filled with nothing: transparent, or a fill the eye cannot tell from the ground (white on the white sheet) */
+          .filter((o) => { const m = o.bg.match(/rgba?\(([^)]+)\)/); const p = m ? m[1].split(",").map((x) => +x) : null;
+                           const bare = o.bg === "rgba(0, 0, 0, 0)" || (!!p && (p.length < 4 || p[3] === 1) && p.slice(0, 3).every((v, i) => Math.abs(v - o.ground[i]) <= 1));
+                           return bare && o.sides.every((x) => { const [w, st, ...c] = x.split(" "); return parseFloat(w) > 0 && st !== "none" && c.join(" ") !== "rgba(0, 0, 0, 0)"; }); });
       }, scope).catch(() => []);
       const weak = (os) => os.filter((o) => edgeRatio(o) < 3);
       const onEdge = (os, edge) => os.length > 0 && os.every((o) => edgeOk(o, edge, "solid") && edgeRatio(o) >= 3);
@@ -512,6 +515,20 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const lib = await meet(page, '[data-scroll="screen"]', "drill library");
         await shot("13-library-bin");
         check("(s4) the bin on an unfolded drill is outlined on the edge, at least 3:1", onEdge(only(lib, /^Delete$/), EDGE.golf) && only(lib, /^Delete$/).length >= 1, told(lib).slice(0, 300));
+        /* the review's finds: the layout editor's Reset, and New group's chips */
+        await tap(page, '[aria-label="Today"]', 900); await toSettings(page);
+        await tap(page, '[data-tour="settings-shortcuts"]', 1000);
+        const lay = await meet(page, '[data-scroll="screen"]', "shortcuts");
+        await shot("13-shortcuts-reset");
+        check("(s10) the layout editor's Reset is outlined on the edge, at least 3:1 (it was the ink at 18%, 0.5px)", onEdge(only(lay, /^Reset$/), EDGE.golf), told(lay).slice(0, 300));
+        await tap(page, '[aria-label="Roster"]', 900);
+        await tap(page, '[data-tour="roster-tab"] button:has-text("Groups")', 700);
+        await tap(page, '[data-tour="roster-newgroup"]', 900);
+        const grp = await meet(page, "[data-sheet]", "new group");
+        await shot("13-new-group-chips");
+        const chips = only(grp, /Cian Murphy|Saoirse Kelly|Aoife Doyle|Eoin Breathnach/);
+        check("(s11) New group's unpicked chips are outlined on the edge, at least 3:1 — a white fill on the white sheet counts as nothing", chips.length >= 2 && onEdge(chips, EDGE.golf), told(grp).slice(0, 300));
+        await closeSheet(page);
         await ctx.close();
       }
       /* a player: the coach's profile — Message, and Stay under Leave */
@@ -545,11 +562,14 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const lf = await meet(page, '[data-scroll="screen"]', "leave family");
         await shot("13-family-leave-stay");
         check("(s8b) Stay beside Leave on the family screen is outlined on the edge, at least 3:1", onEdge(only(lf, /^Stay$/), EDGE.golf) && only(lf, /^Stay$/).length === 1, told(lf).slice(0, 300));
+        await tap(page, '[aria-label="Diary"]', 1000);
+        const strip = await meet(page, '[data-tour="cal-family"]', "for strip");
+        check("(s12) the Diary's For strip: the chips not chosen are outlined on the edge, at least 3:1", strip.length >= 1 && onEdge(strip, EDGE.golf), told(strip).slice(0, 300));
         await ctx.close();
       }
       const weakSeen = weak(seen);
       check("(s9) no outlined control met on the way reads under 3:1 — nothing is left on the hairline",
-        seen.length >= 8 && weakSeen.length === 0, `${seen.length} met · weak ${weakSeen.map((o) => `${o.at}: ${o.label} ${edgeRatio(o).toFixed(2)}:1`).join(" | ").slice(0, 300)}`);
+        seen.length >= 12 && weakSeen.length === 0, `${seen.length} met · weak ${weakSeen.map((o) => `${o.at}: ${o.label} ${edgeRatio(o).toFixed(2)}:1`).join(" | ").slice(0, 300)}`);
     }
 
     check("(o) no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));

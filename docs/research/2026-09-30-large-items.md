@@ -601,13 +601,18 @@ Button (Just decline), Decline on a join request, the Recurring
 manager's End (a 34px pill), Message and Stay on the coach's profile,
 Copy, Cancel and Stay on the family screen, Keep it, Dismiss, Pick from
 Contacts, the drill library's bin, the lesson page's second row of
-actions, Saved's Remove all. WCAG 1.4.11 asks 3:1 of a control's
+actions, Saved's Remove all — and, found by the review, the layout
+editor's Reset, the lesson edit sheet's Add a clip, the Add player
+sheet's tiles, the coach's Drills button, sign-up's Choice tiles, New
+group's chips, the Diary's For strip, the lessons ticked to end or call
+off, the sporting record's rows: drawn at 0.5px, as a surface fill on
+the hairline, or as the hairline at rest and ink when chosen. WCAG 1.4.11 asks 3:1 of a control's
 boundary where the boundary is what says the control is there;
 Material's outlined button draws its side in the `outline` role for the
 same reason. Every one is on the edge now, the manager's End on the
 control's corner at 40 tall, Copy and Share the same, and the manager's
 ended arrangements one boxed list of muted person rows. The visual item
-of the day; `boxes.cjs` (s1)–(s9).
+of the day; `boxes.cjs` (s1)–(s12).
 
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a
