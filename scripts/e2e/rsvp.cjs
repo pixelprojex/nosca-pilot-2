@@ -197,9 +197,13 @@ const { check, results, summary } = M.checker("rsvp");
         const c = page.locator('[data-tour="cal-view"] button[aria-label="Calendar"]'); await c.first().click(); await page.waitForTimeout(800);
         const blk = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tour="cal-block"]')].find((x) => /Saturday clinic/.test(x.textContent)); if (!b) return null;
           const line = [...b.querySelectorAll("span.block")].find((x) => /pm · Group/.test(x.textContent)); const cnt = b.querySelector('[data-tour="block-out-count"]');
-          return { line: line ? line.getBoundingClientRect().height : null, lineText: line ? line.textContent : "", cnt: cnt ? cnt.getBoundingClientRect().height : null, cntText: cnt ? cnt.textContent : "" }; });
+          const tm = line && line.querySelector("[data-block-time]"), kd = line && line.querySelector("[data-block-kind]");
+          /* the time whole on one line; the kind whole, beside it or under it with the dot leading — never a line ending on the dot */
+          return { line: line ? line.getBoundingClientRect().height : null, lineText: line ? line.textContent : "", time: tm ? tm.getBoundingClientRect().height : null,
+                   kindWhole: kd ? kd.getBoundingClientRect().height < 24 && /^· /.test(kd.textContent) : false,
+                   cnt: cnt ? cnt.getBoundingClientRect().height : null, cntText: cnt ? cnt.textContent : "" }; });
         await shot("09-coach-320-block");
-        check("(h2) at 320 the block's grey line is the time and the kind on one line, and \"2 not going\" whole on its own", !!blk && blk.line < 24 && !/not going/.test(blk.lineText) && blk.cnt < 24 && blk.cntText === "2 not going", JSON.stringify(blk));
+        check("(h2) at 320 the block's grey line keeps the time whole on one line and the kind whole with the dot leading it, and \"2 not going\" whole on its own", !!blk && blk.time != null && blk.time < 24 && blk.kindWhole && !/not going/.test(blk.lineText) && blk.cnt < 24 && blk.cntText === "2 not going", JSON.stringify(blk));
         await ctx.close();
       }
       {

@@ -852,6 +852,24 @@ select (select count(*) from public.notifications where user_id = '88888888-8888
        (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'rq4' and title like 'Called off%') as wc4 \gset
 select (:rqx = 1 and :wd4 = 1 and :wc4 = 0) as ok \gset
 \if :ok \echo PASS a request caught by a weather call-off reads Request declined · Weather, never Called off (10e) \else \echo FAIL weather on a request rows=:rqx declined=:wd4 calledoff=:wc4 (10e) \endif
+-- 10f: a request carries the player's note, and the coach's asking line reads it
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, note) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-04-03', '10:00', 45, 'private', 'requested', 'Bunker play before the medal') returning id as rq5 \gset
+commit;
+select (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'rq5' and title like '% asked for a lesson' and body like '% 10:00 · Bunker play before the medal') as nt5,
+       (select count(*) from public.bookings where id = :'rq5' and note = 'Bunker play before the medal') as bn5 \gset
+select (:nt5 = 1 and :bn5 = 1) as ok \gset
+\if :ok \echo PASS a player s request carries their note, and the coach s asking line reads it (10f) \else \echo FAIL request note notice=:nt5 row=:bn5 (10f) \endif
+-- a note past 200 characters is refused and nothing is written
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+\set ON_ERROR_STOP off
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status, note) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-04-10', '10:00', 45, 'private', 'requested', repeat('x', 201));
+\set ON_ERROR_STOP on
+-- commit, not rollback: a transaction the refusal aborted rolls back on commit and raises nothing,
+-- while a row the check wrongly let in would be kept, counted, and fail the line below
+commit;
+select ((select count(*) from public.bookings where player_id = '88888888-8888-4888-8888-888888888888' and booking_date = '2027-04-10') = 0) as ok \gset
+\if :ok \echo PASS a note past 200 characters is refused, and nothing is written (10f; the error above is the refusal) \else \echo FAIL an over-long note landed (10f) \endif
 -- a reason past 120 characters is refused and nothing is written
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
 insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2026-10-12', '11:00', 45, 'private', 'requested') returning id as bk3 \gset

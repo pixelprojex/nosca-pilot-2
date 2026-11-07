@@ -386,26 +386,31 @@ seeded data and no account.
   hour. A coach's List never drops a confirmed lesson: a day with a
   booking is a day whatever its hours, and a booked time outside the
   week's hours is a row (`edit-day.cjs` (e1)). `diary.cjs` (a2), (a3).
-- **The Diary's Calendar view, and the sheets it opens, are boxes on the
-  sport's edge.** The selected day: every lesson of the person's that day
-  is a box of one `.nsc-list` (`day-mine`: the eyebrow, the time alone,
-  its length and the coach, the group or who booked it, then Cancel ·
-  Reschedule as the box's foot, 44 tall), where they sat between
-  hairlines and a 20px Cancel ran into the time at 320; the coach's
-  lessons (`ScheduleBlock`, `cal-block`) are the same box at 8px — they
-  were pale 16px accent cards, a fourth box style on one screen — a group
-  marked with the List view's 3px bar, the open block's stats on the
-  wash and its buttons on the edge, and a booking's own length read, so a
-  clinic is an hour on both sides; the call-off row (`cal-weather`) is on
-  the edge with the calendar and its X; the day's heading is the List
-  view's form — Today, Tomorrow, `Sat 24 Oct` — said once (it was the long
-  date with the same again in an eyebrow under it). The reasons on
-  Cancel, Call off and End (`cancel-why`, `calloff-why`, `end-why`) are
-  boxes of one list with the chosen one in ink, as a chosen tile is —
-  they were a 1.2:1 hairline and a 1.09:1 tint, green on one sheet and
-  red on two, so the reason a player is told first was the hardest thing
-  on the sheet to see. The free times' box, the List view, the month
-  grid, Hours and EditDay are as they were. `scripts/e2e/calendar-day.cjs`.
+- **The Diary's Calendar view, and the sheets it opens, are boxes on
+  the sport's edge.** The selected day: every lesson of the person's
+  that day is a box of one `.nsc-list` (`day-mine`: the eyebrow, the
+  time alone, its length and the coach, the group or who booked it, then
+  Cancel · Reschedule as the box's foot, 44 tall), where they sat
+  between hairlines and a 20px Cancel ran into the time at 320; the
+  coach's lessons (`ScheduleBlock`, `cal-block`) are the same box at 8px
+  — they were pale 16px accent cards, a fourth box style on one screen —
+  a group marked with the List view's 3px bar, the open block's stats on
+  the wash and its buttons on the edge, and a booking's own length read,
+  so a clinic is an hour on both sides, its grey line two nowrap facts —
+  the time, then the dot riding with the kind — so where it must wrap at
+  320 the dot leads the second line and never ends the first (`rsvp.cjs`
+  (h2); the test container's fallback typeface changed to Inter
+  overnight and the line stopped fitting in one at 320, on main's build
+  too); the call-off row (`cal-weather`) is on the edge with the
+  calendar and its X; the day's heading is the List view's form — Today,
+  Tomorrow, `Sat 24 Oct` — said once (it was the long date with the same
+  again in an eyebrow under it). The reasons on Cancel, Call off and End
+  (`cancel-why`, `calloff-why`, `end-why`) are boxes of one list with
+  the chosen one in ink, as a chosen tile is — they were a 1.2:1
+  hairline and a 1.09:1 tint, green on one sheet and red on two, so the
+  reason a player is told first was the hardest thing on the sheet to
+  see. The free times' box, the List view, the month grid, Hours and
+  EditDay are as they were. `scripts/e2e/calendar-day.cjs`.
 - **Who a booking is for is chosen before the slot.** The diary carries
   a "For" strip for any adult with a bookable child — themselves (if
   they have a coach) and each child — and the hours shown are that
@@ -680,53 +685,54 @@ seeded data and no account.
   squad of six was six threads and six identical lines.
   `scripts/e2e/group-message.cjs`.
 - **A group's lessons reach its members.** A group booking carries a
-  name and no player, and for a long time `trg_bookings_notify`
-  returned at once for it and `remind_bookings` skipped it: a clinic
-  booked, rained off or cancelled told no member and no parent while
-  the call-off said "everyone affected is told", and a member's Diary
-  drew the clinic's hour as a hole. The members live on the coach's own
-  `preferences.groups` (`memberIds`, or for a group saved before ids
-  the one roster row of each name — two of a name hear nothing), which
-  only the internal `group_members(coach, group)` reads — revoked from
-  every client role, because it would hand anybody a coach's players —
-  and only players still on the coach's roster: somebody who has left
-  hears nothing more. `trg_bookings_group_notify` tells a run once per
-  member per insert ("Saturday clinic booked" · "6 lessons · from Sat
-  24 Oct 9:00 am"), and `trg_bookings_group_status_notify` tells a
-  change of status once per member for each group, status and reason in
-  the statement — confirmed, called off for weather, cancelled with the
-  reason first; when End or a call-off takes several in one go it is
-  one line naming the days, "Course closed · Sat 24 Oct 9:00 am, Sat 7
-  Nov 9:00 am" (a call-off can skip a week, and "2 lessons · from" read
-  as the next two), past three "6 lessons · Sat 24 Oct – Sat 28 Nov"
-  (row by row it was a notice a week to every family) — each member and a junior member's
-  adults ("Saoirse's Saturday clinic called off"), never the coach;
-  `remind_bookings` says "Saturday clinic tomorrow · 4:00 pm", a
-  member's check matching only their own Diary line, so an adult in a
-  group with her own child still gets her own beside the child's;
-  `trg_lesson_attendees_notify` says "Lesson
-  logged" to each person marked at a group lesson (the lesson is
-  written before its attendees, so its own trigger sees nobody), and a
-  clip added later reaches them all. The member's side is
-  `my_group_bookings()` — the group bookings the caller, or a junior
-  they look after, is in, and whose (a junior gets their own and nobody
-  else's) — read into `forIds` on each group booking (never `members`:
-  the register reads a booking's members as its roll, and an empty list
-  emptied every register in the diary for a round): the Diary's List row
-  under the group's name, the Calendar block at the group's own length
-  — every lesson of the day its own block, so a clinic never stands in
-  for the person's own lesson that day — with the group's name where
-  Cancel and Reschedule are (a member cannot
-  call off everyone's clinic; Not going takes them out of that one
-  session, below), Settings › Calendar
-  ("Lesson · Saturday clinic · Niamh Byrne", a parent's "Lesson ·
-  Saoirse · …"), and the family's Coming up, which lists only the
-  household's — it listed every group slot of the child's coach the
-  policy lets a parent read. A project without the function leaves
-  every booking with no members and the app as it was; no notice goes
-  out until the founder re-runs `nosca.sql`. Spond's Cancel and notify
-  recipients, TeamSnap's Notify your team, Playtomic emailing every
-  enrolled player; PGA Coach puts the coach's group event in the
+  name and no player, and for a long time `trg_bookings_notify` returned
+  at once for it and `remind_bookings` skipped it: a clinic booked,
+  rained off or cancelled told no member and no parent while the
+  call-off said "everyone affected is told", and a member's Diary drew
+  the clinic's hour as a hole. The members live on the coach's own
+  `preferences.groups` (`memberIds`, or for a group saved before ids the
+  one roster row of each name — two of a name hear nothing), which only
+  the internal `group_members(coach, group)` reads — revoked from every
+  client role, because it would hand anybody a coach's players — and
+  only players still on the coach's roster: somebody who has left hears
+  nothing more. `trg_bookings_group_notify` tells a run once per member
+  per insert ("Saturday clinic booked" · "6 lessons · from Sat 24 Oct
+  9:00 am"), and `trg_bookings_group_status_notify` tells a change of
+  status once per member for each group, status and reason in the
+  statement — confirmed, called off for weather, cancelled with the
+  reason first; when End or a call-off takes several in one go it is one
+  line naming the days, "Course closed · Sat 24 Oct 9:00 am, Sat 7 Nov
+  9:00 am" (a call-off can skip a week, and "2 lessons · from" read as
+  the next two), past three "6 lessons · Sat 24 Oct – Sat 28 Nov" (row
+  by row it was a notice a week to every family) — each member and a
+  junior member's adults ("Saoirse's Saturday clinic called off"), never
+  the coach; `remind_bookings` says "Saturday clinic tomorrow · 4:00
+  pm", a member's check matching only their own Diary line, so an adult
+  in a group with her own child still gets her own beside the child's;
+  `trg_lesson_attendees_notify` says "Lesson logged" to each person
+  marked at a group lesson (the lesson is written before its attendees,
+  so its own trigger sees nobody), and a clip added later reaches them
+  all. The member's side is `my_group_bookings()` — the group bookings
+  the caller, or a junior they look after, is in, and whose (a junior
+  gets their own and nobody else's) — read into `forIds` on each group
+  booking (never `members`: the register reads a booking's members as
+  its roll, and an empty list emptied every register in the diary for a
+  round): the Diary's List row under the group's name, the Calendar
+  block at the group's own length — every lesson of the day its own
+  block, so a clinic never stands in for the person's own lesson that
+  day — with the group's name where Cancel and Reschedule are (a member
+  cannot call off everyone's clinic; Not going takes them out of that
+  one session, below), Settings › Calendar ("Lesson · Saturday clinic ·
+  Niamh Byrne", a parent's "Lesson · Saoirse · …"), and the family's
+  Coming up, which lists only the household's — it listed every group
+  slot of the child's coach the policy lets a parent read — and names
+  the child and the group on a clinic's row ("Saoirse · Saturday
+  clinic"; it named the child alone, so a clinic and a private lesson
+  read the same; `group-notify.cjs` (i)). A project without the function
+  leaves every booking with no members and the app as it was; no notice
+  goes out until the founder re-runs `nosca.sql`. Spond's Cancel and
+  notify recipients, TeamSnap's Notify your team, Playtomic emailing
+  every enrolled player; PGA Coach puts the coach's group event in the
   student's own app. `scripts/e2e/group-notify.cjs`; behaviour.sql 8f.
 - **A member says Not going to one group lesson, and the coach reads
   who is coming.** Everyone in a group is going until they say
@@ -929,6 +935,49 @@ seeded data and no account.
   Cian had another request waiting (`person-row.cjs` (o)). The mock's
   `onBookingUpdate` says the same as the trigger. `offer-times.cjs`
   (d7)–(d13); behaviour.sql 10e.
+- **A request carries words both ways: the player's note on the ask,
+  the coach's reason on the no.** The request sheet (`bookSelf`) carries
+  one field under the day and the time — `ask-note`, a `VoiceArea` whose
+  placeholder is "Note for Niamh" (the coach's first name; a parent's
+  for the child's coach) — and the words ride on the row as
+  `bookings.note` (200 characters), written only where the column
+  exists: the hook probes it (`bookingNotes`) as it probes
+  `cancel_reason`, and a project whose SQL has not been re-run offers no
+  field and takes the request as before. The coach reads the note after
+  the day and the time on Today's request row and the bell's request row
+  (`textMin` 220 with a note, so Accept · Decline take a line of their
+  own under the name rather than squeezing the words — beside the pair
+  the grey line had a hundred pixels and the time ended on an ellipsis),
+  on the decline sheet (`decline-note`), on the asking line in the bell
+  ("Cian Murphy asked for a lesson" · "Thu 5 Nov 10:00 am · Bunker play
+  before the medal", `trg_bookings_notify`'s insert branch), and on the
+  lesson's peek once accepted (`peek-note`, "Asked for · …"). The
+  decline sheet is **Decline request**: the player's words, then Why —
+  `CANCEL_REASONS.coach` as the boxed list Cancel uses (`decline-why`),
+  optional, a tap on the chosen one clearing it, Something else with
+  words (`decline-why-note`) — then Offer another time's grid, then Just
+  decline, which writes the reason on the row as `cancel_reason` so the
+  player reads "Request declined · Double booked · Thu 5 Nov 10:00 am",
+  a cancellation's shape; the offer path ignores the reason, and both
+  entry points reset it. The cap is at the field: `VoiceArea` takes
+  `max` and cuts the typed and the dictated path alike (200 on the note,
+  120 on the decline's words, the bio's own pattern), and the hook's
+  slice is only a backstop — a note cut there reached the coach short
+  while the toast said Asked. The sheet's note is reset when the sheet
+  opens (`onBookInto`), so words typed and abandoned by the scrim never
+  ride on the next ask. With a note the request rows ask `textMin` 180,
+  not more: 54 and 180 fit inside the 242 a box leaves at 320, so the
+  face stays beside the name while the pair still drops under it;
+  `subLines={0}` lifts the grey line's two-line clamp there, so the
+  coach reads the whole note on the row they answer from.
+  behaviour.sql's refusal of a note past 200 characters ends on
+  `commit`, not `rollback`: an aborted transaction rolls back on commit
+  and raises nothing, while a row the check wrongly let in would be kept
+  and counted — a `rollback` passed either way. Calendly's invitee
+  question ("Please share anything that will help prepare for our
+  meeting"), Acuity's intake answers shown on the appointment, Square's
+  note at booking; Wix's and Calendly's message on a decline.
+  `scripts/e2e/request-note.cjs`; behaviour.sql 10f.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.

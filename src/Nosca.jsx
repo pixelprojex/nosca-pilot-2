@@ -3327,6 +3327,9 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         </span>
       </div>
 
+      {/* what the player asked for, in their words, on the request this lesson came from */}
+      {booking.note && <p data-tour="peek-note" className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{tr("Asked for")} · {booking.note}</p>}
+
       {/* the members who said they will not be at this one */}
       {isGroup && booking.outNames && booking.outNames.length > 0 && (
         <div data-tour="peek-out" className="px-4 py-3 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
@@ -6756,13 +6759,19 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
           {rest.length > 0 && (<>
             <RowHead>{tr("Coming up")}</RowHead>
             <div className="nsc-list mb-7" data-tour="family-upcoming">
-              {rest.map((b) => (
+              {rest.map((b) => {
+                /* a clinic names the child it is for and the group — "Saoirse · Saturday
+                   clinic" — where it named the group alone; a private lesson the child */
+                const kids = b.group ? (b.forIds || []).map((id) => first(nameOf(id))).filter(Boolean).join(", ") : "";
+                const label = b.group ? [kids, b.groupName || b.who].filter(Boolean).join(" · ") : (first(nameOf(b.playerId)) || b.who);
+                return (
                 <div key={b.id} className="flex items-center gap-3 py-3" style={{ borderBottom: RULE.hair(t.ink) }}>
                   <span className="shrink-0" style={{ width: 84, ...TYPE.caption, color: t.faint }}>{fmtDay(b.date)}</span>
-                  <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{first(nameOf(b.playerId)) || b.who}</span>
+                  <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
                   <span className="shrink-0" style={{ ...TYPE.small, color: b.status === "requested" ? CAUTION : t.sub }}>{b.time}</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </>)}
           {!next && rest.length === 0 && (
@@ -7398,8 +7407,10 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
             <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
+            {/* two facts, each kept whole: where the line must wrap at 320 it breaks
+                before the dot, which rides with the kind — a line never ends on it */}
             <span className="block mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>
-              {span(item.time, len)} · {item.kind}
+              <span data-block-time className="whitespace-nowrap">{span(item.time, len)}</span> <span data-block-kind className="whitespace-nowrap">· {item.kind}</span>
             </span>
             {/* who said they will not be there, a line of its own: two facts
                 on the grey line, and the count never broken across two */}
@@ -8097,13 +8108,17 @@ function VoiceInput({ value, onChange, ph, style, autoFocus }) {
 }
 
 /* Multi-line version — the one coaches will actually lean on. */
-function VoiceArea({ value, onChange, ph, rows = 3 }) {
+function VoiceArea({ value, onChange, ph, rows = 3, max = 0 }) {
   const t = useT();
+  /* the cap is at the field, typed or spoken, as the bio's is — the hook's
+     own slice is a backstop, never the only word: a note cut there would
+     reach the coach short while the toast said Asked */
+  const cap = (s) => (max ? String(s).slice(0, max) : s);
   return (
     <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, border: `1px solid ${HAIR(t.ink, 0.14)}` }}>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={ph}
+      <textarea value={value} onChange={(e) => onChange(cap(e.target.value))} rows={rows} placeholder={ph} maxLength={max || undefined}
                 className="flex-1 min-w-0 outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
-      <div className="pb-2"><MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} /></div>
+      <div className="pb-2"><MicBtn onText={(txt) => onChange(cap(value ? value + " " + txt : txt))} /></div>
     </div>
   );
 }
@@ -8537,7 +8552,7 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
    a name at 375 and Message beside a name at 320; `textMin` is there
    for a row that needs more). */
 const PERSON_FACE = 40, PERSON_TEXT_MIN = 84;
-function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, muted = false, className = "", style, attrs }) {
+function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
   /* the name takes a second and a third line before an ellipsis (a
@@ -8547,6 +8562,8 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
      fact, and is never cut */
   const clamp = { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" };
   const nameClamp = nameLines ? { ...clamp, WebkitLineClamp: nameLines } : { overflowWrap: "break-word" };
+  /* `subLines` 0 lifts the grey line's clamp too: a request's note is read whole on the row the coach answers from */
+  const subClamp = subLines ? { ...clamp, WebkitLineClamp: subLines } : { overflowWrap: "break-word" };
   /* a grey line of two facts breaks only at its dot, each fact kept
      whole — the dot rides inside the second fact's nowrap span, as the
      feed's areas do, so a line never ends on it and "9:00 am" is never
@@ -8577,7 +8594,7 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
               <span className="shrink-0">{meta}</span>
             </span>
           : <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: bold ? 600 : 400, color: t.ink, ...nameClamp }}>{name}</span>}
-        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...clamp }}>{subNode}</span>}
+        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...subClamp }}>{subNode}</span>}
       </span>
       {value && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{value}</span>}
       {trailing}
@@ -12660,7 +12677,9 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
               {showAsks && asks.slice(0, 3).map((r, i) => (
                 <PersonRow key={r.id} tour={i === 0 ? "today-asks" : undefined} className="pr-1" style={{ borderBottom: RULE.hair(t.ink) }}
                            name={r.who} src={avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath)}
-                           sub={`${askDay(r, cal)} · ${r.time}`}
+                           /* the player's words need the row's width: Accept · Decline drop under the name, the row's own way */
+                           textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
+                           sub={`${askDay(r, cal)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`}
                            actions={<>
                              <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
                              <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
@@ -17606,7 +17625,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
 
   /* still a question, so it is answered here rather than somewhere else */
   const Ask = ({ w }) => (
-    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what}
+    <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what} textMin={w.note ? 180 : undefined} subLines={w.note ? 0 : undefined}
                actions={<>
                  <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
                  <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
@@ -18184,6 +18203,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [mainSport, setMainSport] = useState({}); // profileId -> sport id
   const [askedFor, setAskedFor] = useState(account ? [] : SEED_ASKS);
   const [declining, setDeclining] = useState(null);
+  /* the player's note on a request, and the coach's reason on the no */
+  const [askNote, setAskNote] = useState("");
+  const [declineWhy, setDeclineWhy] = useState(null);
+  const [declineNote, setDeclineNote] = useState("");
   const [messageGroup, setMessageGroup] = useState(null);   // the saved group a message goes to, or null for Everyone
   /* Someone who plays two sports shouldn't be asked which one every
      time they open the app. Set once, per person. */
@@ -19140,7 +19163,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     : null;
   /* A player's requests, waiting on the coach. */
   const liveAsks = data
-    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: "", playerId: b.playerId, date: b.date, duration: b.duration }))
+    ? (liveBookingRows || []).filter((b) => b.status === "requested").map((b) => ({ id: b.id, who: b.who, m: b.m, d: b.d, time: b.time, note: b.note || "", playerId: b.playerId, date: b.date, duration: b.duration }))
     : null;
   /* The coach's own saved hours; for a player, their coach's. Nothing
      invented — a coach who has set nothing has an empty week. */
@@ -19763,7 +19786,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          their coach's hours — whichever view of the diary it came from. */
       if (bookFor) return bookKid(bookFor, b);
       hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
-      const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration });
+      const res = await data.addBooking({ date: isoOf(b.m, b.d), time: b.time, duration, note: b.note });
       if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
       hapticSuccess(); done(tr("Asked"), tr("Your coach will confirm.")); return;
     }
@@ -20080,7 +20103,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   })() : null;
   const bookKid = async (kid, b) => {
     hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
-    const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration });
+    const res = await data.addBooking({ playerId: kid.id, date: isoOf(b.m, b.d), time: b.time, duration, note: b.note });
     if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't send that request.")); return; }
     hapticSuccess(); done(tr("Asked"), `${kid.name.split(" ")[0]} · ${tr("the coach will confirm")}`);
   };
@@ -20411,8 +20434,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             onAccept: () => acceptRequest(r), onDecline: () => declineRequest(r) })),
       ...(liveAsks || []).map((r) => ({ id: `ask-${r.id}`, who: r.who,
             avatar: avatarUrl(((roster || []).find((x) => x.id === r.playerId) || {}).avatarPath),
-            what: `${askDay(r, calendar)} · ${r.time}`,
-            onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setSheet("decline"); } })),
+            what: `${askDay(r, calendar)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`, note: r.note || "",
+            onAccept: () => acceptAsk(r), onDecline: () => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); } })),
     ];
     /* A notification names the person it is about first — "Cian Murphy
        asked for…", "Niamh Byrne logged your lesson" — so the face can be
@@ -20888,7 +20911,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
-                                                            onBookInto={(day, h) => { setBookSlot({ day, time: h }); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
+                                                            onBookInto={(day, h) => { setBookSlot({ day, time: h }); setAskNote(""); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")}
                                                             kids={data ? (data.dependants || []).map((k) => { const h = (data.hoursByPlayer || {})[k.id] || {}; return { ...k, canBook: !!k.coachId && (Object.values(h.days || {}).some((x) => x && x.length) || datedOf(h.extra, calendar).some((x) => !isPast(x.m, x.d, calendar))), ahead: aheadFor(k.id) }; }) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
@@ -20930,7 +20953,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                   onAttend={(bk) => { setAttendFor(bk || null); setSheet("attend"); }}
                   onAddPlayer={() => setSheet("invite")}
                   onAccept={acceptAsk}
-                  onDecline={(r) => { setDeclining(r); setSheet("decline"); }}
+                  onDecline={(r) => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); }}
                   onInvite={() => setSheet("invite")}
                   layout={layout} onAction={runQuick} lessonCount={archive.length}
                   push={push} go={go} />
@@ -21373,7 +21396,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     <p className="mb-6" style={{ ...TYPE.small, color: theme.sub }}>
                       {span(bookSlot.time, duration)} · {bookFor ? bookFor.name.split(" ")[0] : ((conn || {}).coach || tr("your coach"))}
                     </p>
-                    <Button onClick={() => { setSheet(null); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time }); return; } done(tr("Asked"), tr("Your coach will confirm.")); }}>
+                    {/* a note for the coach — what they want to work on, in their words; the
+                        field is offered only where the project's bookings carry it */}
+                    {data && data.bookingNotes && (
+                      <div className="mb-5" data-tour="ask-note">
+                        <VoiceArea value={askNote} onChange={setAskNote} rows={2} max={200}
+                                   ph={(() => { const n = bookFor ? bookFor.coachName : (conn || {}).coach; return n ? `${tr("Note for")} ${String(n).split(" ")[0]}` : tr("Note for your coach"); })()} />
+                      </div>
+                    )}
+                    <Button onClick={() => { const note = askNote; setSheet(null); setAskNote(""); if (data) { book({ m: bookSlot.day.m, d: bookSlot.day.d, time: bookSlot.time, note }); return; } done(tr("Asked"), tr("Your coach will confirm.")); }}>
                       {bookFor ? `${tr("Request for")} ${bookFor.name.split(" ")[0]}` : tr("Request")}
                     </Button>
                   </>
@@ -21479,8 +21510,33 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             close={() => setSheet(null)} />
               : sheet === "decline" && declining ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Offer another time")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Decline request")}</h2>
                     <p className="mb-5" style={{ ...TYPE.small, color: theme.faint }}>{declining.who}</p>
+                    {/* what the player asked for, in their words */}
+                    {declining.note && <p className="mb-5" data-tour="decline-note" style={{ ...TYPE.body, color: theme.ink }}>{declining.note}</p>}
+                    {/* why — the coach's own reasons, optional; the chosen one leads the
+                        player's "Request declined", as a cancellation's reason does */}
+                    <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: theme.faint }}>{tr("Why")}</div>
+                    <div className="nsc-list mb-5">
+                      {CANCEL_REASONS.coach.map((r, i) => {
+                        const on = declineWhy === r;
+                        return (
+                          <button key={r} data-tour="decline-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setDeclineWhy(on ? null : r); }}
+                                  className="w-full flex items-center gap-3 text-left"
+                                  style={{ minHeight: 52, background: on ? theme.ink : theme.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                            <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : theme.ink }}>{tr(r)}</span>
+                            {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {declineWhy === "Something else" && (
+                      <div className="mb-5" data-tour="decline-why-note">
+                        <VoiceArea value={declineNote} onChange={setDeclineNote} rows={2} ph={tr("Reason")} max={120} />
+                      </div>
+                    )}
+                    <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: theme.faint }}>{tr("Offer another time")}</div>
                     {!dayOpenTimes(declining).length && <p className="mb-6" data-offer-none style={{ ...TYPE.small, color: theme.sub }}>{tr("Nothing open that day")}</p>}
                     {/* that day's open times on the app's one time grid, as the
                         cancel sheet's Offer another time — it was a rail of pills
@@ -21500,8 +21556,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     </div>
                     )}
                     <Button tone="dangerQuiet" onClick={async () => {
-                              if (data) { const r = await data.cancelBooking(declining.id, "cancelled"); if (r && r.error) { say(r.error.message); return; } }
+                              /* the reason rides on the row, so the trigger leads the player's notice with it */
+                              const why = declineWhy === "Something else" ? (String(declineNote || "").trim() || null) : declineWhy;
+                              if (data) { const r = await data.cancelBooking(declining.id, "cancelled", why); if (r && r.error) { say(r.error.message); return; } }
                               setAskedFor((v) => v.filter((x) => x !== declining));
+                              setDeclineWhy(null); setDeclineNote("");
                               setSheet(null); say(tr("Declined")); }}>{tr("Just decline")}</Button>
                   </>
                 )

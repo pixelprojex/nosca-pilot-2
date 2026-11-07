@@ -159,6 +159,7 @@ export function useNoscaData(profile) {
   const [canSendClip, setCanSendClip] = useState(false); // does lessons.sent_by exist on this project?
   const clipProbed = useRef(false);
   const [cancelReasons, setCancelReasons] = useState(false); // does bookings.cancel_reason exist on this project?
+  const [bookingNotes, setBookingNotes] = useState(false);   // does bookings.note exist on this project?
   const reasonProbed = useRef(false);
   const [seriesLinks, setSeriesLinks] = useState(false); // does bookings.recurring_id exist on this project?
   const seriesProbed = useRef(false);
@@ -451,6 +452,7 @@ export function useNoscaData(profile) {
       if (!reasonProbed.current) {
         reasonProbed.current = true;
         supabase.from("bookings").select("cancel_reason").limit(1).then((pr) => setCancelReasons(!pr.error)).catch(() => setCancelReasons(false));
+        supabase.from("bookings").select("note").limit(1).then((pr) => setBookingNotes(!pr.error)).catch(() => setBookingNotes(false));
       }
       /* a run's lessons carry the run once the column exists; before
          that End finds them by the run's own weekday and time */
@@ -549,6 +551,7 @@ export function useNoscaData(profile) {
           playerId: b.player_id || null,
           status: b.status,
           duration: b.duration,
+          note: b.note || null,
           date: b.booking_date,
           m: dt.getMonth() + 1,
           d: dt.getDate(),
@@ -1054,7 +1057,7 @@ export function useNoscaData(profile) {
 
   /* a booking in the diary. A player creating one may only request; the
      database enforces that, so the status is set accordingly here. */
-  const addBooking = async ({ playerId, groupName, date, time, duration = 45 }) => {
+  const addBooking = async ({ playerId, groupName, date, time, duration = 45, note = "" }) => {
     if (!isCoach && isJunior) {
       /* The interface already hides this action for a junior; this is
          the second, independent line — reached if it's ever called
@@ -1074,6 +1077,9 @@ export function useNoscaData(profile) {
       duration,
       kind: groupName ? "group" : "private",
       status: isCoach ? "confirmed" : "requested",
+      /* the player's words on the ask — only where the column exists; a project
+         whose SQL has not been re-run takes the request without them */
+      ...(bookingNotes && String(note || "").trim() ? { note: String(note).trim().slice(0, 200) } : {}),
     });
     if (!error) await load();
     return { error };
@@ -1870,7 +1876,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, canRsvp, setGroupAbsence, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, bookingNotes, canRsvp, setGroupAbsence, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, offerTime, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

@@ -240,7 +240,7 @@ const { check, results, summary } = M.checker("group-notify");
       await shot("08-parent-family");
       const up = (await page.locator('[data-tour="family-upcoming"]').count()) ? (await page.locator('[data-tour="family-upcoming"]').innerText()).replace(/\s+/g, " ") : "";
       const kid = (await page.locator('[data-tour="family-kid"]').count()) ? (await page.locator('[data-tour="family-kid"]').first().innerText()).replace(/\s+/g, " ") : "";
-      check("(i) the family's Coming up holds the child's clinic and never a group she is not in", /4:00 pm/.test(up) && !/Tuesday squad/.test(up), up);
+      check("(i) the family's Coming up holds the child's clinic, named for the child and the group — Saoirse · Saturday clinic — and never a group she is not in", /4:00 pm/.test(up) && /Saoirse · Saturday clinic/.test(up) && !/Tuesday squad/.test(up), up);
       check("(i) …and the child's row carries the clinic, not Nothing booked", /4:00 pm/.test(kid) && !/Nothing booked/.test(kid), kid);
       await diaryList(page);
       const rows = await mineRows(page);

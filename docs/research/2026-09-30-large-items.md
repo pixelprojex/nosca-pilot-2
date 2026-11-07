@@ -570,11 +570,29 @@ Cian had another request waiting; it hides only the asking notice the
 request row already says now (`said`, "asked" in the title).
 `hit-areas.cjs` (h), (i); `person-row.cjs` (o).
 
+### 31. A request carries words both ways. **Built 3 November.**
+A player asking for a lesson had nowhere to say what for, and a coach
+saying no had nowhere to say why: the ask was a day and a time, the no
+was "Request declined" with the day and the coach. Every booking product
+in the field carries words with a request — Calendly's default invitee
+question ("Please share anything that will help prepare for our
+meeting"), Acuity's intake answers shown on the appointment itself,
+Square's one free-text note on the last booking page — and a decline
+carries a message (Wix Bookings, Calendly). Now the request sheet
+carries a note for the coach by first name, with dictation, on
+`bookings.note` (200 characters, written only where the column exists);
+the coach reads it on Today's request row and the bell's (Accept ·
+Decline dropping under the name so the words have the width), on the
+decline sheet, on the asking line, and on the lesson's peek once
+accepted ("Asked for · …"); a parent's request for a child notes the
+child's coach. The decline sheet is Decline request: the words, Why with
+the coach's own cancel reasons (optional, Something else in their
+words), the times to offer, Just decline — and the reason rides on the
+row, so the player reads "Request declined · Double booked · Thu 5 Nov
+10:00 am", a cancellation's shape. The functional item of the day;
+`request-note.cjs`, behaviour.sql 10f.
+
 ### Next candidates (unranked until read against the field)
-- A reason on a declined request (functional, 2): optional, Square's,
-  Wix's and Calendly's message on the no; the decline sheet asking Why
-  first, as Cancel's does, the player reading it first as a
-  cancellation's reason is read.
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
   `reason` column and the Why sheet. And answers locked once the
@@ -719,3 +737,7 @@ the items above; a research spike first.
 - https://help.teamer.net/knowledge/member/events/respond-to-an-event-invite (Teamer: a member's decline carries a required reason)
 - https://helpme.teamsnap.com/article/660-track-event-availability (TeamSnap: a coach tracks attendance by reviewing each player's availability per event)
 - https://www.spond.com/en-us/news-and-blog/team-availability-management-app/ (Spond: attendance registered per event, with reminders to those who have not answered)
+- https://calendly.com/help/how-to-add-or-remove-invitee-questions (Calendly: invitee questions on the booking page, "Please share anything that will help prepare for our meeting" the default)
+- https://community.calendly.com/how-do-i-40/when-does-please-share-anything-that-will-help-prepare-for-our-meeting-come-up-682 (Calendly: the default question, on by default and editable per event)
+- https://help.acuityscheduling.com/hc/en-us/sections/47803209214221-Collect-client-info (Acuity: intake forms per appointment type, the answers shown on the appointment)
+- https://community.squareup.com/t5/Questions-How-To/Appointment-notes-Is-there-a-way-to-request-specific-information/m-p/287917 (Square Appointments: one free-text note on the last booking page)
