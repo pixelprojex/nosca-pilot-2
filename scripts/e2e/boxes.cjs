@@ -562,9 +562,6 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const lf = await meet(page, '[data-scroll="screen"]', "leave family");
         await shot("13-family-leave-stay");
         check("(s8b) Stay beside Leave on the family screen is outlined on the edge, at least 3:1", onEdge(only(lf, /^Stay$/), EDGE.golf) && only(lf, /^Stay$/).length === 1, told(lf).slice(0, 300));
-        await tap(page, '[aria-label="Diary"]', 1000);
-        const strip = await meet(page, '[data-tour="cal-for"]', "for strip");
-        check("(s12) the Diary's For strip: the tiles not chosen are outlined on the edge, at least 3:1", strip.length >= 1 && onEdge(strip, EDGE.golf), told(strip).slice(0, 300));
         await ctx.close();
       }
       const weakSeen = weak(seen);

@@ -612,7 +612,7 @@ Material's outlined button draws its side in the `outline` role for the
 same reason. Every one is on the edge now, the manager's End on the
 control's corner at 40 tall, Copy and Share the same, and the manager's
 ended arrangements one boxed list of muted person rows. The visual item
-of the day; `boxes.cjs` (s1)–(s12).
+of the day; `boxes.cjs` (s1)–(s11).
 
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a

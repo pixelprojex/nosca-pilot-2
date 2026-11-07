@@ -1327,10 +1327,9 @@ seeded data and no account.
   filled control (Accept, Share, Leave) carries no outline; the
   manager's ended arrangements are one boxed list of muted person
   rows. Material's outlined button draws its side in the `outline`
-  role for the same reason. `boxes.cjs` (s1)–(s12) measures Decline,
+  role for the same reason. `boxes.cjs` (s1)–(s11) measures Decline,
   Just decline, End, the bin, Reset, New group's chips, Message, both
-  Stays, Copy and Cancel, and the Diary's For strip as the coach, a
-  player and a parent, and sweeps every outlined control met on the way for one
+  Stays, Copy and Cancel as the coach, a player and a parent, and sweeps every outlined control met on the way for one
   under 3:1.
 - **The paper is `#FEFEFE`, one step off pure white, the same for
   every sport.** Every theme's `page` is that value; `surface` is
