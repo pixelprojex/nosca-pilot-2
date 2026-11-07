@@ -117,6 +117,8 @@ export const ITEMS = [
     draw: { t: "top", fill: C.beige, collar: "hood", pockets: "kangaroo", hem: "rib", cuffs: "rib", mark: flag() } },
   { id: "waffle-white-crew", cat: "sweaters", name: "White waffle crew neck", brand: "", sub: "Crew neck", fit: "Loose, baggy", colours: ["White"], notes: "No logo.", warmth: 3, formality: 2,
     draw: { t: "top", fill: C.white, pattern: { kind: "waffle" }, collar: "crew", wide: true, hem: "rib", cuffs: "rib" } },
+  { id: "rl-white-fine-waffle-crew", cat: "sweaters", name: "White fine-waffle crew neck", brand: "Ralph Lauren", sub: "Crew neck", fit: "Very tight", colours: ["White"], notes: "Very fine waffle knit. A very nice sweater.", warmth: 3, formality: 3,
+    draw: { t: "top", fill: C.white, pattern: { kind: "waffle", s: 3.6 }, collar: "crew", taper: true, hem: "rib", cuffs: "rib", mark: pony(C.navy, .9) } },
   { id: "rl-beige-cable-crew", cat: "sweaters", name: "Beige cable-knit crew neck", brand: "Ralph Lauren", sub: "Crew neck", fit: "Tight", colours: ["Beige"], warmth: 4, formality: 3,
     draw: { t: "top", fill: C.beige, pattern: { kind: "cable" }, collar: "crew", taper: true, hem: "rib", cuffs: "rib", mark: pony(C.navy, .9) } },
   { id: "rl-beige-cable-qzip", cat: "sweaters", name: "Beige cable-knit quarter-zip", brand: "Ralph Lauren", sub: "Quarter-zip", fit: "Tight", colours: ["Beige"], warmth: 4, formality: 3,

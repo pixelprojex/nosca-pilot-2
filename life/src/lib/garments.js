@@ -71,9 +71,9 @@ function patternDef(id, p) {
     const d = fold(p.base), l = lift(p.base);
     return `<pattern id="${id}" patternUnits="userSpaceOnUse" width="4" height="10"><rect width="4" height="10" fill="${p.base}"/><rect width="1.3" height="10" fill="${d}"/><rect x="2.4" width=".8" height="10" fill="${l}" opacity=".6"/></pattern>`;
   }
-  if (kind === "waffle") {
-    const d = fold(p.base), l = lift(p.base);
-    return `<pattern id="${id}" patternUnits="userSpaceOnUse" width="7" height="7"><rect width="7" height="7" fill="${p.base}"/><rect x="1" y="1" width="5" height="5" fill="${d}" opacity=".55"/><rect x="1.6" y="1.6" width="3.8" height="3.8" fill="${p.base}"/><path d="M1.6 1.6 H5.4" stroke="${l}" stroke-width=".7" opacity=".6"/></pattern>`;
+  if (kind === "waffle") { // s: cell size; 7 is a chunky waffle, 4 a fine one
+    const d = fold(p.base), l = lift(p.base), z = p.s ?? 7, i = z * .14, w = z - 2 * i, i2 = z * .23, w2 = z - 2 * i2;
+    return `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${z}" height="${z}"><rect width="${z}" height="${z}" fill="${p.base}"/><rect x="${i.toFixed(2)}" y="${i.toFixed(2)}" width="${w.toFixed(2)}" height="${w.toFixed(2)}" fill="${d}" opacity=".55"/><rect x="${i2.toFixed(2)}" y="${i2.toFixed(2)}" width="${w2.toFixed(2)}" height="${w2.toFixed(2)}" fill="${p.base}"/><path d="M${i2.toFixed(2)} ${i2.toFixed(2)} H${(z - i2).toFixed(2)}" stroke="${l}" stroke-width=".6" opacity=".6"/></pattern>`;
   }
   if (kind === "seams") {
     const d = fold(p.base);
