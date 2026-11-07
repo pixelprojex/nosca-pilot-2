@@ -970,6 +970,11 @@ seeded data and no account.
   face stays beside the name while the pair still drops under it;
   `subLines={0}` lifts the grey line's two-line clamp there, so the
   coach reads the whole note on the row they answer from.
+  A player's own cancel may change the status and the reason and
+  nothing else, the note included: `booking_unchanged()` has an
+  eight-column form that pins `note`, and the cancel policy calls it
+  (behaviour.sql 10g); the seven-column form stays for a policy that
+  still calls it.
   behaviour.sql's refusal of a note past 200 characters ends on
   `commit`, not `rollback`: an aborted transaction rolls back on commit
   and raises nothing, while a row the check wrongly let in would be kept

@@ -881,6 +881,17 @@ as $fn$
                   where b.id = p_id and b.coach_id = p_coach and b.player_id is not distinct from p_player
                     and b.booking_date = p_date and b.start_time = p_time and b.duration = p_dur and b.kind = p_kind);
 $fn$;
+-- …and the note the player asked with (bookings.note, 3 November): a
+-- cancel may not rewrite it either. The seven-column form stays for a
+-- project whose policy still calls it; the policy below calls this one.
+create or replace function public.booking_unchanged(p_id uuid, p_coach uuid, p_player uuid, p_date date, p_time text, p_dur smallint, p_kind text, p_note text)
+returns boolean language sql stable security definer set search_path = ''
+as $fn$
+  select exists (select 1 from public.bookings b
+                  where b.id = p_id and b.coach_id = p_coach and b.player_id is not distinct from p_player
+                    and b.booking_date = p_date and b.start_time = p_time and b.duration = p_dur and b.kind = p_kind
+                    and b.note is not distinct from p_note);
+$fn$;
 
 -- is this person a junior? Either answer marks them as one — what they
 -- chose at sign-up, or their date of birth — the same rule the app uses.
@@ -1185,7 +1196,8 @@ begin
     'my_coach_id()', 'is_junior_of(uuid)', 'is_junior()', 'my_family_id()', 'my_family_member_ids()',
     'my_family_ids()', 'my_family_coach_ids()', 'my_players_guardian_ids()', 'coach_of(uuid)',
     'my_pending_coach_ids()', 'my_requesting_player_ids()', 'coach_availability(uuid)',
-    'my_attendance_session_ids()', 'my_lesson_ids()', 'booking_unchanged(uuid,uuid,uuid,date,text,smallint,text)'
+    'my_attendance_session_ids()', 'my_lesson_ids()', 'booking_unchanged(uuid,uuid,uuid,date,text,smallint,text)',
+    'booking_unchanged(uuid,uuid,uuid,date,text,smallint,text,text)'
   ] loop
     execute format('revoke all on function public.%s from public, anon', fn);
     execute format('grant execute on function public.%s to authenticated', fn);
@@ -2815,7 +2827,8 @@ create policy "bookings: a guardian requests one for their family" on public.boo
 -- A player, or their guardian, may cancel one of their own bookings and
 -- nothing else about it: the new row may carry status = 'cancelled' and
 -- the reason they give, and booking_unchanged() holds the coach, the
--- player, the day, the time, the length and the kind to what they were
+-- player, the day, the time, the length, the kind and the note they
+-- asked with to what they were
 -- (the check used to pin the status alone, so a cancel could re-address
 -- the booking — and its notice — to any coach). Without the policy the
 -- app's Cancel said "Cancelled" while the update touched zero rows.
@@ -2823,7 +2836,7 @@ create policy "bookings: a player or guardian cancels their own" on public.booki
   for update to authenticated
   using (player_id = auth.uid() or player_id in (select public.my_family_ids()))
   with check (status = 'cancelled'
-              and public.booking_unchanged(id, coach_id, player_id, booking_date, start_time, duration, kind));
+              and public.booking_unchanged(id, coach_id, player_id, booking_date, start_time, duration, kind, note));
 
 -- ---------- group_absences ----------
 -- read only; written through set_group_absence(). Never reads its own table.
