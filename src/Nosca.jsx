@@ -14632,8 +14632,8 @@ function JoinRequests({ requests, onAccept, onDecline, pop, nouns }) {
                   </span></span>
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => onDecline(r)} className="flex-1 rounded-2xl active:opacity-60" style={{ minHeight: 48, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Decline")}</button>
-                <button onClick={() => onAccept(r)} className="flex-1 rounded-2xl active:opacity-75" style={{ minHeight: 48, background: STEADY, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.onAccent }}>{tr("Accept")}</button>
+                <button onClick={() => onDecline(r)} className="flex-1 active:opacity-60" style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Decline")}</button>
+                <button onClick={() => onAccept(r)} className="flex-1 active:opacity-75" style={{ minHeight: 48, borderRadius: R.control, background: STEADY, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.onAccent }}>{tr("Accept")}</button>
               </div>
             </Card>
           ))}

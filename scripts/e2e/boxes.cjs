@@ -492,9 +492,10 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await tap(page, '[data-tour="today-requests"]', 1000);
         const join = await meet(page, '[data-scroll="screen"]', "join requests");
         await shot("13-join-decline");
-        const accept = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tour="request-card"] button')].find((x) => x.textContent.trim() === "Accept"); return b ? getComputedStyle(b).backgroundColor : null; });
-        check("(s1) a join request's Decline is outlined on golf's edge at 1.5px, at least 3:1 — and Accept beside it is filled, not outlined",
-          onEdge(only(join, /^Decline$/), EDGE.golf) && !!accept && accept !== "rgba(0, 0, 0, 0)", told(join).slice(0, 300) + ` accept ${accept}`);
+        const accept = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tour="request-card"] button')].find((x) => x.textContent.trim() === "Accept"); return b ? { bg: getComputedStyle(b).backgroundColor, radius: getComputedStyle(b).borderTopLeftRadius } : null; });
+        check("(s1) a join request's Decline is outlined on golf's edge at 1.5px, at least 3:1, on the control's corner — and Accept beside it is filled, not outlined, the same corner (they were 16px)",
+          onEdge(only(join, /^Decline$/), EDGE.golf) && only(join, /^Decline$/).every((o) => o.radius === "10px") && !!accept && accept.bg !== "rgba(0, 0, 0, 0)" && accept.radius === "10px",
+          told(join).slice(0, 300) + ` decline r ${only(join, /^Decline$/).map((o) => o.radius).join(",")} accept ${JSON.stringify(accept)}`);
         await tap(page, '[aria-label="Today"]', 900);
         await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(900);
         const dec = await meet(page, "[data-sheet]", "decline sheet");
