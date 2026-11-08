@@ -199,6 +199,28 @@ seeded data and no account.
   live until the founder re-runs the SQL. RLS applies to realtime as to a select,
   so nothing is filtered client-side. New tables go in the publication
   block of nosca.sql AND the channel's list.
+- **Back to the front, the data loads again.** A phone that was put
+  away kept no socket — the browser throttles the heartbeat in the
+  background and then closes the connection — and a channel that
+  rejoins is told nothing of what it missed, so a lesson booked, a
+  request made or a group a member was added to while the app was away
+  stayed off the screen until the next event or a fresh open; a
+  member's Diary never saw the clinic they had been added to, carried
+  under Found, not fixed since 24 October. `useNoscaData` loads again
+  on every return to the front — `visibilitychange` to visible,
+  `pageshow`, `focus` — at most once in `RETURN_GAP_MS` (20 seconds; a
+  flick between apps is not a day away) and never while the phone says
+  it is offline, which the `online` listener beside it answers; a sheet
+  that was open stays open, as it does through every realtime load, and
+  nothing is shown for it — the screen is simply right. It is the
+  companion of the build check that already ran on the same events
+  (the return-to-front reload under Settings › Version). TanStack
+  Query's `refetchOnWindowFocus`, on by default on `visibilitychange`;
+  the field's answer to a Supabase socket that drops in the background
+  is a load on return, since a rejoin replays nothing.
+  `scripts/e2e/refresh.cjs` plays it against the mock, whose realtime
+  socket is swallowed: a lesson booked, a member added, a request made,
+  a sheet left open, offline, focus and pageshow.
 - **pg_net lives in `net`.** `net.http_post`, whatever schema the
   extension was created in. `extensions.net_http_post` existed nowhere,
   the trigger swallowed the error, and every notification was written
