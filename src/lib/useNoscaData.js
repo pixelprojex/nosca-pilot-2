@@ -18,6 +18,8 @@ import { putSnapshot, getSnapshot } from "./offline";
 
 /* "Sep", not "SEP" and not en-IE's "Sept": every date the app shows
    comes from this table, in the case a person would write it */
+/* how long after one return-to-front load the next one may run */
+export const RETURN_GAP_MS = 20000;
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* THE ONE KEY A REGISTER IS FILED AND FOUND UNDER: the day it was
@@ -690,6 +692,37 @@ export function useNoscaData(profile) {
     const back = () => { if (offlineRef.current) load(); };
     window.addEventListener("online", back);
     return () => window.removeEventListener("online", back);
+  }, [load]);
+
+  /* BACK TO THE FRONT: LOAD AGAIN. A phone that was put away kept no
+     socket — the browser throttles the heartbeat in the background and
+     then closes the connection, and a channel that rejoins is told
+     nothing of what it missed — so a lesson booked, a request made or a
+     group's members changed while the app was away stayed off the
+     screen until the next event or a fresh open; a member's Diary never
+     saw the clinic they had been added to. Every return to the front
+     (visibilitychange to visible, pageshow, focus) loads the data again,
+     at most once in RETURN_GAP_MS — a flick between apps is not a day
+     away — and never while the phone says it is offline, which the
+     `online` event above answers. The way TanStack Query refetches on
+     window focus by default; nothing is shown for it, the screen is
+     simply right. */
+  const returnedAt = useRef(0);
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof window === "undefined") return undefined;
+    returnedAt.current = Date.now();
+    const back = () => {
+      if (document.visibilityState !== "visible") return;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+      const now = Date.now();
+      if (now - returnedAt.current < RETURN_GAP_MS) return;
+      returnedAt.current = now;
+      load();
+    };
+    document.addEventListener("visibilitychange", back);
+    window.addEventListener("pageshow", back);
+    window.addEventListener("focus", back);
+    return () => { document.removeEventListener("visibilitychange", back); window.removeEventListener("pageshow", back); window.removeEventListener("focus", back); };
   }, [load]);
 
   /* ---------------- writes ---------------- */
