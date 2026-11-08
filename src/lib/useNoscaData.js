@@ -285,7 +285,7 @@ export function useNoscaData(profile) {
       try {
         const snap = await getSnapshot(profile.id);
         if (stale()) return true;
-        if (snap && snap.data) { applySnapshot(snap.data); setOffline(true); return true; }
+        if (snap && snap.data) { applySnapshot(snap.data); setOffline(true); loadedOnce.current = true; return true; }   // the kept copy on the screen is a loaded screen
       } catch (e) { /* no copy: the error below stands */ }
       return false;
     };
@@ -333,8 +333,9 @@ export function useNoscaData(profile) {
       ]);
 
       if (stale()) return;
+      /* once loaded, a network failure on either anchor is the network gone — a radio waking up drops some requests and not others */
+      if (loadedOnce.current && (netErr(pRes) || netErr(lRes))) { lostNetwork(); return; }
       if (netErr(pRes) && netErr(lRes)) {
-        if (loadedOnce.current) { lostNetwork(); return; }
         if (await useSnapshot()) return;
         throw new Error("No connection");
       }
@@ -409,6 +410,7 @@ export function useNoscaData(profile) {
           Promise.all(withCoach.map((k) => supabase.rpc("coach_availability", { p_player: k.id }))),
           Promise.all(withCoach.map((k) => supabase.rpc("coach_busy_slots", { p_player: k.id }))),
         ]);
+        if (stale()) return;
         setHoursByPlayer(Object.fromEntries(withCoach.map((k, i) => [k.id, (got[i] && !got[i].error && got[i].data) || {}])));
         setBusyByPlayer(Object.fromEntries(withCoach.map((k, i) => [k.id, busyRows(busy[i])])));
       } else {
@@ -522,6 +524,7 @@ export function useNoscaData(profile) {
         const { data: marks } = await supabase
           .from("attendance_marks")
           .select("session_id, player_id, state");
+        if (stale()) return;
         const byId = Object.fromEntries(sessions.map((s) => [s.id, s]));
         const out = {}, days = {};
         (marks || []).forEach((mk) => {
@@ -707,7 +710,8 @@ export function useNoscaData(profile) {
          not left spinning forever with no way out. */
       setLoadError(e && e.message ? e.message : "Couldn't load your data.");
     } finally {
-      setLoading(false);
+      /* a superseded load leaves the loading screen to the one that superseded it */
+      if (!stale()) setLoading(false);
     }
   /* Keyed on the id, not the profile object: the sign-in context hands
      out a new object on every refresh, and reloading all of this each
@@ -747,7 +751,8 @@ export function useNoscaData(profile) {
       if (!network && document.visibilityState !== "visible") return;
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       const now = Date.now();
-      if (!network && !offlineRef.current && now - returnedAt.current < RETURN_GAP_MS) return;
+      /* on the kept copy every return loads, but the three events one return fires are one load */
+      if (!network && now - returnedAt.current < (offlineRef.current ? 2000 : RETURN_GAP_MS)) return;
       returnedAt.current = now;
       load();
     };

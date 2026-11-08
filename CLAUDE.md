@@ -226,10 +226,16 @@ seeded data and no account.
   radio waking up fails its first fetch), and after that waits for the
   network's own word or the next return. A reload the database refuses,
   or one that comes back without the person's own row, is not a load
-  either: the screen stays. Every load carries a sequence number and a
-  load that lands after a newer one began commits nothing — the return
-  load runs beside the realtime channel's and a write's own, and the
-  newest is the truth whatever order the server answered in. It is the
+  either: the screen stays; the kept copy counts as a loaded screen,
+  so a refused reload never wipes it, and a network failure on either
+  of the two anchor reads is the network gone, since a radio waking up
+  drops some requests and not others. Every load carries a sequence
+  number and a load that lands after a newer one began commits nothing
+  — not even the end of the loading screen, which is the newer load's
+  to end — the return load runs beside the realtime channel's and a
+  write's own, and the newest is the truth whatever order the server
+  answered in; on the kept copy the three events one return fires are
+  one load. It is the
   companion of the build check that already ran on the same events
   (the return-to-front reload under Settings › Version). TanStack
   Query's `refetchOnWindowFocus`, on by default on `visibilitychange`;
