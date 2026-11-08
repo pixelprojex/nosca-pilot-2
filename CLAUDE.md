@@ -210,9 +210,26 @@ seeded data and no account.
   on every return to the front — `visibilitychange` to visible,
   `pageshow`, `focus` — at most once in `RETURN_GAP_MS` (20 seconds; a
   flick between apps is not a day away) and never while the phone says
-  it is offline, which the `online` listener beside it answers; a sheet
-  that was open stays open, as it does through every realtime load, and
-  nothing is shown for it — the screen is simply right. It is the
+  it is offline — the network coming back (`online`) is a return of its
+  own, not held to the gap, and loads whatever the offline return
+  skipped; nor is a return held to the gap while the app sits on its
+  kept copy. A sheet that was open stays open, as it does through every
+  realtime load, and nothing is shown for it — the screen is simply
+  right. **A reload that fails keeps the screen.** Once the first load
+  has landed the state on the screen is the kept copy: a reload the
+  network refuses says Offline and leaves every row as it was (it took
+  the snapshot written from that very state, rewinding a notice marked
+  read, and with no snapshot it put up the error page over a working
+  app), and postgrest-js itself retries a failed read three times over
+  seven seconds (1s, 2s, 4s) before the hook hears of it; the hook then
+  tries once more `RETRY_MS` on while the phone says it is online (a
+  radio waking up fails its first fetch), and after that waits for the
+  network's own word or the next return. A reload the database refuses,
+  or one that comes back without the person's own row, is not a load
+  either: the screen stays. Every load carries a sequence number and a
+  load that lands after a newer one began commits nothing — the return
+  load runs beside the realtime channel's and a write's own, and the
+  newest is the truth whatever order the server answered in. It is the
   companion of the build check that already ran on the same events
   (the return-to-front reload under Settings › Version). TanStack
   Query's `refetchOnWindowFocus`, on by default on `visibilitychange`;
@@ -220,7 +237,9 @@ seeded data and no account.
   is a load on return, since a rejoin replays nothing.
   `scripts/e2e/refresh.cjs` plays it against the mock, whose realtime
   socket is swallowed: a lesson booked, a member added, a request made,
-  a sheet left open, offline, focus and pageshow.
+  a sheet left open, a dead zone and the network's return, focus and
+  pageshow, and a reload whose every request fails with the phone
+  saying online — the screen kept, Offline said, the retry.
 - **pg_net lives in `net`.** `net.http_post`, whatever schema the
   extension was created in. `extensions.net_http_post` existed nowhere,
   the trigger swallowed the error, and every notification was written

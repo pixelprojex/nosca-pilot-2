@@ -67,7 +67,7 @@ const { check, results, summary } = M.checker("refresh");
   const setVis = (page, state) => page.evaluate((state) => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
     Object.defineProperty(document, "hidden", { configurable: true, get: () => state === "hidden" });
-    document.dispatchEvent(new Event("visibilitychange"));
+    document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
   }, state);
   /* put the app away for `ms` and bring it back */
   const away = async (page, ms) => { await setVis(page, "hidden"); await later(page, ms); await setVis(page, "visible"); await page.waitForTimeout(1600); };
@@ -119,7 +119,7 @@ const { check, results, summary } = M.checker("refresh");
       const g0 = gets(db, "bookings");
       await away(page, GAP + 11000);
       await shot("03-sheet-stays");
-      check("(c) the request sheet that was open before the app was put away is still open after the reload", open0 === 1 && (await page.locator("[data-sheet]").count()) === 1 && gets(db, "bookings") > g0,
+      check("(c) back to the front with the request sheet open, the data loads again and the sheet stays open", open0 === 1 && (await page.locator("[data-sheet]").count()) === 1 && gets(db, "bookings") > g0,
             `sheet ${open0}→${await page.locator("[data-sheet]").count()} · bookings read ${g0}→${gets(db, "bookings")}`);
       await ctx.close();
     }
@@ -144,13 +144,19 @@ const { check, results, summary } = M.checker("refresh");
       const db = freshDb();
       const { ctx, page } = await boot("adult", db);
       await tap(page, '[aria-label="Diary"]', 1000); await toList(page);
+      const m0 = await mine(page);
       await ctx.setOffline(true); await page.waitForTimeout(300);
       const online = await page.evaluate(() => navigator.onLine);
       const g0 = gets(db, "bookings");
+      /* the coach books while the phone is in a dead zone */
+      M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(5)), time: "9:00 am" });
       await away(page, GAP + 11000);
-      check("(e1) while the phone says it is offline a return loads nothing (the online event does that)", online === false && gets(db, "bookings") === g0, `onLine ${online} · bookings read ${g0}→${gets(db, "bookings")}`);
-      await ctx.setOffline(false); await page.waitForTimeout(1500);
+      check("(e1) while the phone says it is offline a return loads nothing and the screen is left as it was — the strip is the phone's own word, the rows stay",
+            online === false && gets(db, "bookings") === g0 && (await page.locator('[data-tour="offline-strip"]').count()) === 1 && (await mine(page)) === m0,
+            `onLine ${online} · bookings read ${g0}→${gets(db, "bookings")} · strip ${await page.locator('[data-tour="offline-strip"]').count()} · rows ${m0}→${await mine(page)}`);
+      await ctx.setOffline(false); await page.waitForTimeout(1800);
       const g1 = gets(db, "bookings");
+      check("(e1b) the network coming back loads what the offline return skipped: the lesson booked in the dead zone is on the Diary", g1 > g0 && (await mine(page)) === m0 + 1, `bookings read ${g0}→${g1} · rows ${m0}→${await mine(page)}`);
       await later(page, GAP + 11000);
       await page.evaluate(() => window.dispatchEvent(new Event("focus"))); await page.waitForTimeout(1500);
       const g2 = gets(db, "bookings");
@@ -159,6 +165,31 @@ const { check, results, summary } = M.checker("refresh");
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }))); await page.waitForTimeout(1500);
       const g3 = gets(db, "bookings");
       check("(e3) a page restored from the back-forward cache (pageshow) is a return too", g3 > g2, `bookings read ${g2}→${g3}`);
+      await ctx.close();
+    }
+
+    /* ---------- (f) a return whose fetch fails while the phone says it is online ---------- */
+    {
+      const db = freshDb();
+      const { ctx, page, shot } = await boot("adult", db);
+      await tap(page, '[aria-label="Diary"]', 1000); await toList(page);
+      const m0 = await mine(page);
+      /* the radio is waking: every request to the server fails, the phone still says online */
+      db.offline = true;
+      M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(6)), time: "10:30 am" });
+      await away(page, GAP + 11000);
+      /* postgrest-js retries a failed read three times over seven seconds (1s, 2s, 4s) before the hook hears of it */
+      await page.waitForTimeout(8500);
+      await shot("05-reload-failed");
+      const strip1 = await page.locator('[data-tour="offline-strip"]').count();
+      check("(f1) the reload that could not reach the server keeps the screen as it was and says Offline — no error page, no rewind to the kept copy",
+            (await mine(page)) === m0 && strip1 === 1 && !/Couldn't load|No connection/.test(await M.rootText(page)), `rows ${m0}→${await mine(page)} · strip ${strip1} · ${(await M.rootText(page)).slice(0, 120)}`);
+      db.offline = false;
+      /* the hook's one retry, RETRY_MS after the failure */
+      await page.waitForTimeout(7000);
+      await shot("05-retried");
+      check("(f2) one retry a moment later brings the server's answer: the strip goes and the lesson booked meanwhile is on the Diary",
+            (await page.locator('[data-tour="offline-strip"]').count()) === 0 && (await mine(page)) === m0 + 1, `strip ${await page.locator('[data-tour="offline-strip"]').count()} · rows ${m0}→${await mine(page)}`);
       await ctx.close();
     }
 

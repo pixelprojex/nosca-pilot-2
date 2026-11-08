@@ -623,10 +623,16 @@ was away stayed off the screen until the next event or a fresh open;
 the member's Diary never saw the clinic they had been added to (carried
 since 24 October). The hook loads again on every return to the front
 (visibilitychange to visible, pageshow, focus), at most once in twenty
-seconds, never while the phone says it is offline, and a sheet that was
-open stays open — the way TanStack Query refetches on window focus by
-default, and the field's answer to a realtime socket dropped in the
-background. The functional item of the day; `refresh.cjs`.
+seconds, never while the phone says it is offline (the network's return
+loads what that skipped), and a sheet that was open stays open — the way
+TanStack Query refetches on window focus by default, and the field's
+answer to a realtime socket dropped in the background. The review made
+the reload safe to fire at the moment a radio wakes: a reload that fails
+keeps the screen and says Offline rather than rewinding to the snapshot
+or putting up the error page, tries once more after postgrest-js's own
+three retries, and every load carries a sequence number so an older
+answer never lands on a newer one. The functional item of the day;
+`refresh.cjs`.
 
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a

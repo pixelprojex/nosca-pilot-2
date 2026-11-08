@@ -20,6 +20,9 @@ import { putSnapshot, getSnapshot } from "./offline";
    comes from this table, in the case a person would write it */
 /* how long after one return-to-front load the next one may run */
 export const RETURN_GAP_MS = 20000;
+/* how long after a reload that could not reach the server, with the
+   phone saying it is online, one retry is made */
+export const RETRY_MS = 4000;
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /* THE ONE KEY A REGISTER IS FILED AND FOUND UNDER: the day it was
@@ -226,6 +229,14 @@ export function useNoscaData(profile) {
      loads again and clears it. */
   const [offline, setOffline] = useState(false);
   const offlineRef = useRef(false); offlineRef.current = offline;
+  /* a load that lands after a newer one began commits nothing: the
+     newest is the truth, whatever order the server answered in */
+  const loadSeq = useRef(0);
+  /* once the first load has landed, the state on the screen is the kept
+     copy — a reload that fails keeps it rather than rewinding to the
+     snapshot written from it, and never shows the error page */
+  const loadedOnce = useRef(false);
+  const retryTimer = useRef(null), retryUsed = useRef(false);
   const [goodAt, setGoodAt] = useState(0);
   const applySnapshot = (d) => {
     setRoster(d.roster || []); setLessons(d.lessons || []); setDrills(d.drills || []); setTips(d.tips || []); setRegisters(d.registers || {});
@@ -246,6 +257,18 @@ export function useNoscaData(profile) {
 
   const load = useCallback(async () => {
     if (!profile) return;
+    const seq = ++loadSeq.current; const stale = () => seq !== loadSeq.current;
+    /* the network went while the app was on its feet: keep the screen,
+       say Offline, and try once more in a moment if the phone thinks it
+       is online (a radio waking up fails its first fetch); a second
+       failure waits for the network's own word or the next return */
+    const lostNetwork = () => {
+      setOffline(true);
+      if ((typeof navigator === "undefined" || navigator.onLine !== false) && !retryUsed.current && !retryTimer.current) {
+        retryUsed.current = true;
+        retryTimer.current = setTimeout(() => { retryTimer.current = null; load(); }, RETRY_MS);
+      }
+    };
     /* `loading` is true only until the first load lands. Every write
        below calls load() again to pick up its own result, and flipping
        loading back on for those would swap the whole interface for a
@@ -261,13 +284,16 @@ export function useNoscaData(profile) {
     const useSnapshot = async () => {
       try {
         const snap = await getSnapshot(profile.id);
+        if (stale()) return true;
         if (snap && snap.data) { applySnapshot(snap.data); setOffline(true); return true; }
       } catch (e) { /* no copy: the error below stands */ }
       return false;
     };
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       /* the phone knows it is offline: straight to the copy, no waiting
-         on retries that cannot succeed */
+         on retries that cannot succeed — or, once loaded, the screen as
+         it stands */
+      if (loadedOnce.current) { lostNetwork(); setLoading(false); return; }
       if (!(await useSnapshot())) setLoadError("No connection");
       setLoading(false);
       return;
@@ -306,10 +332,15 @@ export function useNoscaData(profile) {
         supabase.from("group_absences").select("booking_id, player_id").then((r) => r, () => ({ data: null, error: true })),
       ]);
 
+      if (stale()) return;
       if (netErr(pRes) && netErr(lRes)) {
+        if (loadedOnce.current) { lostNetwork(); return; }
         if (await useSnapshot()) return;
         throw new Error("No connection");
       }
+      /* a reload the database refused (not the network): the state on
+         the screen is the last good one and stays */
+      if (loadedOnce.current && (pRes.error || lRes.error)) return;
       setOffline(false);
 
       const people = pRes.data || [];
@@ -335,6 +366,9 @@ export function useNoscaData(profile) {
         .select("id, name, role, sport, invite_code, coach_id, family_id, account_type, date_of_birth, avatar_path, bio, club, phone")
         .eq("id", profile.id)
         .maybeSingle();
+      if (stale()) return;
+      /* a signed-in person's own row always comes back; a reload without it is not a load */
+      if (loadedOnce.current && !mine) return;
       setMe(mine || null);
       setInviteCode(mine?.invite_code || null);
       if (mine) setLinks({ coach: mine.coach_id || null, family: mine.family_id || null });
@@ -365,6 +399,7 @@ export function useNoscaData(profile) {
       const busyRows = (r) => (r && !r.error && Array.isArray(r.data) ? r.data : []).map((b) => ({ date: b.booking_date, time: b.start_time, duration: b.duration }));
       if (!isCoach) {
         const [{ data: hours, error: hoursErr }, busy] = await Promise.all([supabase.rpc("coach_availability"), supabase.rpc("coach_busy_slots")]);
+        if (stale()) return;
         setCoachAvailability(hoursErr ? {} : (hours || {}));
         setBusySlots(busyRows(busy));
       }
@@ -663,6 +698,8 @@ export function useNoscaData(profile) {
         : null
     );
     setMyReview(!isCoach ? (allReviews.find((r) => r.player_id === profile.id) || null) : null);
+    loadedOnce.current = true; retryUsed.current = false;
+    if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
     setGoodAt(Date.now());
     } catch (e) {
       /* Whatever went wrong — a missing table because a migration
@@ -686,14 +723,6 @@ export function useNoscaData(profile) {
                               family, dependants, hoursByPlayer, requests, myRequest, notifications, me, declinedBy, threads, reviewSummary, myReview, reviews,
                               coachAvailability, busySlots, busyByPlayer, links }).catch(() => {});
   }, [goodAt]);
-  /* back on a network: load for real */
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    const back = () => { if (offlineRef.current) load(); };
-    window.addEventListener("online", back);
-    return () => window.removeEventListener("online", back);
-  }, [load]);
-
   /* BACK TO THE FRONT: LOAD AGAIN. A phone that was put away kept no
      socket — the browser throttles the heartbeat in the background and
      then closes the connection, and a channel that rejoins is told
@@ -703,26 +732,31 @@ export function useNoscaData(profile) {
      saw the clinic they had been added to. Every return to the front
      (visibilitychange to visible, pageshow, focus) loads the data again,
      at most once in RETURN_GAP_MS — a flick between apps is not a day
-     away — and never while the phone says it is offline, which the
-     `online` event above answers. The way TanStack Query refetches on
-     window focus by default; nothing is shown for it, the screen is
-     simply right. */
+     away — and never while the phone says it is offline: the network
+     coming back (`online`) is a return of its own, loads whatever the
+     offline return skipped, and is not held to the gap; nor is a
+     return while the app sits on its kept copy. The way TanStack Query
+     refetches on window focus by default; nothing is shown for it, the
+     screen is simply right. */
   const returnedAt = useRef(0);
   useEffect(() => {
     if (typeof document === "undefined" || typeof window === "undefined") return undefined;
     returnedAt.current = Date.now();
-    const back = () => {
-      if (document.visibilityState !== "visible") return;
+    const back = (ev) => {
+      const network = !!(ev && ev.type === "online");
+      if (!network && document.visibilityState !== "visible") return;
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       const now = Date.now();
-      if (now - returnedAt.current < RETURN_GAP_MS) return;
+      if (!network && !offlineRef.current && now - returnedAt.current < RETURN_GAP_MS) return;
       returnedAt.current = now;
       load();
     };
     document.addEventListener("visibilitychange", back);
     window.addEventListener("pageshow", back);
     window.addEventListener("focus", back);
-    return () => { document.removeEventListener("visibilitychange", back); window.removeEventListener("pageshow", back); window.removeEventListener("focus", back); };
+    window.addEventListener("online", back);
+    return () => { document.removeEventListener("visibilitychange", back); window.removeEventListener("pageshow", back); window.removeEventListener("focus", back); window.removeEventListener("online", back);
+                   if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; } };
   }, [load]);
 
   /* ---------------- writes ---------------- */
