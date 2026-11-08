@@ -614,6 +614,26 @@ control's corner at 40 tall, Copy and Share the same, and the manager's
 ended arrangements one boxed list of muted person rows. The visual item
 of the day; `boxes.cjs` (s1)–(s11).
 
+### 33. Back to the front, the data loads again. **Built 8 November.**
+A phone put away keeps no socket — the browser throttles the heartbeat
+in the background and then closes the connection — and a Supabase
+channel that rejoins is told nothing of what it missed, so a lesson
+booked, a request made or a group a member was added to while the app
+was away stayed off the screen until the next event or a fresh open;
+the member's Diary never saw the clinic they had been added to (carried
+since 24 October). The hook loads again on every return to the front
+(visibilitychange to visible, pageshow, focus), at most once in twenty
+seconds, never while the phone says it is offline (the network's return
+loads what that skipped), and a sheet that was open stays open — the way
+TanStack Query refetches on window focus by default, and the field's
+answer to a realtime socket dropped in the background. The review made
+the reload safe to fire at the moment a radio wakes: a reload that fails
+keeps the screen and says Offline rather than rewinding to the snapshot
+or putting up the error page, tries once more after postgrest-js's own
+three retries, and every load carries a sequence number so an older
+answer never lands on a newer one. The functional item of the day;
+`refresh.cjs`.
+
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
@@ -766,3 +786,6 @@ the items above; a research spike first.
 - https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast (WCAG 1.4.11: a control's visual boundary at 3:1 where the boundary is what identifies it)
 - https://api.flutter.dev/flutter/material/OutlinedButton-class.html (Material 3: the outlined button's side drawn in the theme's outline colour, a medium-emphasis action)
 - https://developer.android.com/reference/kotlin/androidx/compose/material3/OutlinedButton.composable (Material 3 on Compose: OutlinedButton, medium emphasis, the outline role)
+- https://tanstack.com/query/v5/docs/framework/react/guides/window-focus-refetching (TanStack Query: refetch on window focus, on by default, on visibilitychange)
+- https://github.com/orgs/supabase/discussions/19387 (Supabase: realtime idle reconnects — the socket dropping while a tab is in the background)
+- https://rxdb.info/articles/alternatives/supabase-alternative.md (a client that reconnects is not told what it missed and must fetch again)
