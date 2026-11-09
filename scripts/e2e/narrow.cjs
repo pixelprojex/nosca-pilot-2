@@ -83,7 +83,7 @@ const { check, results, summary } = M.checker("narrow");
   const liveRow = (page) => page.evaluate(() => {
     const reg = document.querySelector('[data-tour="day-register"]'); if (!reg) return null;
     const row = reg.parentElement, body = row.querySelector("button");
-    const nm = body.querySelector("span.flex-1 > span"); const nr = nm.getBoundingClientRect(), rr = reg.getBoundingClientRect();
+    const nm = body.querySelector("[data-name]"); const nr = nm.getBoundingClientRect(), rr = reg.getBoundingClientRect();
     const lh = parseFloat(getComputedStyle(nm).lineHeight) || 18;
     return { name: nm.textContent.trim(), nameW: Math.round(nr.width), lines: Math.round(nr.height / lh), nameCut: nm.scrollHeight > nm.clientHeight + 1 || nm.scrollWidth > nm.clientWidth + 1, nameBottom: Math.round(nr.bottom),
              regTop: Math.round(rr.top), regH: Math.round(rr.height), regLabel: reg.textContent.trim(), rowH: Math.round(row.getBoundingClientRect().height) };
@@ -153,13 +153,26 @@ const { check, results, summary } = M.checker("narrow");
       await ctx.close();
     }
 
+    /* ---------- (c3)–(c5) the live row's rule is the name, not the width ---------- */
+    for (const [width, at, who, beside] of [[360, "16:10", "Cian Murphy", true], [375, "16:10", "Cian Murphy", true], [360, "09:10", LONG, false]]) {
+      const { ctx, page, shot } = await boot("coach", width, at);
+      await tap(page, '[aria-label="Today"]', 900);
+      const o = await liveRow(page);
+      await shot(`03-live-row-${who.split(" ")[0]}`);
+      const ok = !!o && o.name === who && !o.nameCut && o.regLabel === "Register" && (beside ? (o.regTop < o.nameBottom - 8 && o.rowH <= 64) : (o.regTop >= o.nameBottom - 2 && o.nameW >= 85));
+      check(beside
+        ? `(c${width === 360 ? 3 : 4}) at ${width} a short name keeps Register beside it on a 60px row — a fixed basis dropped it under every name at 360`
+        : `(c5) at 360 the long name's longest word does not fit beside Register, so Register takes a line of its own under it`, ok, JSON.stringify(o));
+      await ctx.close();
+    }
+
     /* ---------- (d) the Diary's List row with a long name ---------- */
     {
       const { ctx, page, shot } = await boot("coach", 320);
       await tap(page, '[aria-label="Diary"]', 900);
       const o = await page.evaluate((LONG) => {
         const row = [...document.querySelectorAll('[data-tour="agenda-row"]')].find((r) => r.textContent.includes(LONG.split(" ")[0])); if (!row) return null;
-        const nm = row.querySelector("span.flex-1 > span"), r = nm.getBoundingClientRect(), lh = parseFloat(getComputedStyle(nm).lineHeight) || 18;
+        const nm = row.querySelector("[data-name]"), r = nm.getBoundingClientRect(), lh = parseFloat(getComputedStyle(nm).lineHeight) || 18;
         return { text: nm.textContent.trim(), w: Math.round(r.width), lines: Math.round(r.height / lh), cut: nm.scrollWidth > nm.clientWidth + 1 || nm.scrollHeight > nm.clientHeight + 1, rowH: Math.round(row.getBoundingClientRect().height) };
       }, LONG);
       await shot("04-diary-row");

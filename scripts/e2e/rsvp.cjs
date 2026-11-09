@@ -184,7 +184,7 @@ const { check, results, summary } = M.checker("rsvp");
       db.absences.push({ booking_id: MB.today, player_id: IDS.adult, coach_id: IDS.coach, set_by: IDS.adult, created_at: new Date(db.now()).toISOString() });
       db.absences.push({ booking_id: MB.today, player_id: IDS.junior, coach_id: IDS.coach, set_by: IDS.parent, created_at: new Date(db.now()).toISOString() });
       const fit = (page, sel) => page.evaluate((sel) => [...document.querySelectorAll(sel)].map((el) => {
-        const name = el.querySelector(".truncate"), cnt = el.querySelector('[data-tour$="out-count"], [data-tour="agenda-out"]');
+        const name = el.querySelector("[data-name]"), cnt = el.querySelector('[data-tour$="out-count"], [data-tour="agenda-out"]');
         return { name: name ? name.scrollWidth <= name.clientWidth + 1 : null, text: name ? name.textContent : "", cnt: cnt ? cnt.getBoundingClientRect().height : null };
       }), sel);
       {

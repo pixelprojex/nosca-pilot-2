@@ -138,8 +138,10 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia &
    had 33px between the mark and the icons and read "D…". Everything
    else that gives way at 320 gives way by content, not by width: a
    control that cannot sit beside a name takes a line of its own under
-   it (the person row's `textMin` rule, the register's marks and the
-   live row's Register). `scripts/e2e/narrow.cjs` measures all of it. */
+   it — the register's marks by the person row's `textMin` rule, the
+   live row's Register by the name's longest word (`DayRow`). A fixed
+   basis there dropped Register under every name on a 360px phone.
+   `scripts/e2e/narrow.cjs` measures all of it at 320, 360 and 375. */
 const NARROW_MQ = "(max-width: 350px)";
 function useNarrow() {
   const read = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(NARROW_MQ).matches;
@@ -2482,7 +2484,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     {/* Not going under the group's name, never beside it: at 320
                         beside it cut "Saturday clinic" to "Saturday…" */}
                     <span className="flex-1 min-w-0">
-                      <span className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{mn.groupName || coachName || tr("Your coach")}</span>
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{mn.groupName || coachName || tr("Your coach")}</span>
                       {mn.out && <span data-tour="agenda-out" className="block" style={{ ...TYPE.small, color: t.sub }}>{tr("Not going")}</span>}
                     </span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
@@ -2517,7 +2519,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     <span className="flex-1 min-w-0">
                       {/* the whole name on a second line before an ellipsis, as every
                           row's is: it read "Maximiliano Ó Súil…" beside the time at 320 */}
-                      <span className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
                       {isGroup && bk.outIds && bk.outIds.length > 0 && <span data-tour="agenda-out-count" className="block" style={{ ...TYPE.small, color: t.sub }}>{bk.outIds.length} {tr("not going")}</span>}
                     </span>
                     <ChevronRight size={14} color={t.trace || t.faint} />
@@ -12193,16 +12195,19 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   const t = useT();
   const grp = l.kind && l.kind.startsWith("Group");
   const border = last ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`;
-  const body = (
+  /* `wordMin`: the name's column keeps its longest word as its least
+     width (no min-w-0), so the live row below wraps Register under the
+     name only where a word of the name would not fit beside it */
+  const body = (wordMin) => (
     <>
       <Rail tone={variant === "now" ? t.ink : undefined}>{l.time}</Rail>
       {grp ? (
         <span className="rounded-full flex items-center justify-center shrink-0"
               style={{ width: 30, height: 30, background: `${GROUP}18` }}><Users size={13} color={GROUP} /></span>
       ) : <Avatar name={l.who} size={30} src={avatar} />}
-      <span className="flex-1 min-w-0">
-        {/* the whole name — two players with one first name are two rows — on a second line rather than an ellipsis */}
-        <span className="block" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
+      <span className={wordMin ? "flex-1" : "flex-1 min-w-0"}>
+        {/* the whole name — two players with one first name are two rows — on a second line, and a third, rather than an ellipsis */}
+        <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
         {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: variant === "now" ? t.ink : t.faint }}>{until}</span>}
       </span>
     </>
@@ -12218,14 +12223,17 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   /* the lesson happening now carries its own button, so the row body and
      the register are two targets rather than a button inside a button */
   if (variant === "now") {
-    /* the body asks for the rail, the face and the person row's textMin
-       for the name; where the row cannot give it that beside Register
-       (320 — the name had 32px and was cut), Register takes a line of
-       its own under the name, on the right */
+    /* Register sits beside the name while every word of the name fits
+       beside it, and takes a line of its own under the name, on the
+       right, where one would not (320 — the name had 32px and was cut).
+       The body's basis is 0 and its least width its content's, so the
+       row breaks its line on the name's longest word — the content, not
+       a width: a fixed basis dropped Register under "Cian Murphy" on
+       every 360px phone, and sat 3px from doing so at 375 */
     return (
       <div className="w-full flex flex-wrap items-center gap-x-3.5" style={frame}>
         <button onClick={() => { haptic(7); soft(); onPeek(l); }}
-                className="min-w-0 flex items-center gap-3.5 text-left active:opacity-50" style={{ flex: `1 1 ${RAIL + 58 + PERSON_TEXT_MIN}px`, minHeight: 60 }}>{body}</button>
+                className="flex items-center gap-3.5 text-left active:opacity-50" style={{ flex: "1 1 0%" }}>{body(true)}</button>
         <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 ml-auto px-3.5 my-2 active:opacity-70"
                 style={{ minHeight: 36, borderRadius: R.control, background: t.accent,
                          ...TYPE.caption, fontWeight: 600, color: t.onAccent }}>{tr("Register")}</button>
@@ -12235,7 +12243,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   return (
     <button onClick={() => { haptic(7); soft(); variant === "log" ? onLogFor(l) : onPeek(l); }}
             className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={frame}>
-      {body}
+      {body(false)}
       {variant === "log"
         ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Log")}</span>
         : <ChevronRight size={14} color={t.trace || t.faint} />}

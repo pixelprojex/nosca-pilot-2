@@ -2084,18 +2084,25 @@ seeded data and no account.
   it, on the right — the person row's `textMin` rule. The register's
   name asks for `PERSON_TEXT_MIN` (84) beside Present · Absent and the
   pair wraps under it (`flex-wrap`, the pair in one `ml-auto` span, 44
-  tall with 6px of air); the live row's body asks for the rail, the face
-  and the same 84 beside Register (`RAIL + 58 + PERSON_TEXT_MIN`) and
-  Register wraps under it; a name takes a second line, and a third,
-  before an ellipsis (the live row's clamp was 2, the Diary's rows were
-  `truncate`). At 375 the marks and Register stay beside the name, and
-  the long name is whole on three lines. The parent's Diary is titled
+  tall with 6px of air); the live row's Register sits beside the name
+  while every word of the name fits beside it and takes a line of its
+  own under the name where one would not — the body's flex basis is 0
+  and its least width its content's, so the row breaks its line on the
+  name's longest word (a fixed basis of rail + face + 84 dropped
+  Register under "Cian Murphy" on every 360px phone, the common Android
+  width, and sat 3px from doing so at 375); a name takes a second line,
+  and a third, before an ellipsis (the live row's clamp was 2, the
+  Diary's rows were `truncate`). At 375 the marks and Register stay
+  beside the long name, whole on three lines; at 360 a short name keeps
+  Register beside it on a 60px row and the long name drops it under.
+  The Diary's rows carry `data-name` for the suites (`rsvp.cjs` read
+  them by `.truncate`). The parent's Diary is titled
   "Book for Saoirse", the carried decision since 24 October, and sixteen
   letters do not fit the 80px a root screen's row leaves at 320 whatever
   the pill does — it is cut there until the title is decided. Material's
   app bar guidance: do not truncate a title; SAP Fiori's top app bar:
   avoid truncating or shrinking text. `scripts/e2e/narrow.cjs` measures
-  all of it at 320 and 375.
+  all of it at 320, 360 and 375.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: rows with an avatar,
   a name and one grey line, each in its own box on the sport's edge
