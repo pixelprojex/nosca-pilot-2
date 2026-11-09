@@ -131,6 +131,29 @@ const dropMemory = (key) => { for (const k of [...SCREEN_MEMORY.keys()]) if (k.s
 const dropDeeperMemory = (depth) => { for (const k of [...SCREEN_MEMORY.keys()]) if (Number(k.split(":")[0]) > depth) SCREEN_MEMORY.delete(k); };
 /* a piece of screen state that is still there when the screen comes back */
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* NOTHING IS CUT AT 320. The narrowest phones (the first SE, the small
+   Androids) are the one width the app changes shape for: the header's
+   pill drops its first name there (`useNarrow`), because it was the one
+   thing in the row that could give — with it there the compact title
+   had 33px between the mark and the icons and read "D…". Everything
+   else that gives way at 320 gives way by content, not by width: a
+   control that cannot sit beside a name takes a line of its own under
+   it — the register's marks by the person row's `textMin` rule, the
+   live row's Register by the name's longest word (`DayRow`). A fixed
+   basis there dropped Register under every name on a 360px phone.
+   `scripts/e2e/narrow.cjs` measures all of it at 320, 360 and 375. */
+const NARROW_MQ = "(max-width: 350px)";
+function useNarrow() {
+  const read = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(NARROW_MQ).matches;
+  const [narrow, setNarrow] = useState(read);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const mq = window.matchMedia(NARROW_MQ), on = () => setNarrow(mq.matches);
+    if (mq.addEventListener) mq.addEventListener("change", on); else mq.addListener(on);
+    return () => { if (mq.removeEventListener) mq.removeEventListener("change", on); else mq.removeListener(on); };
+  }, []);
+  return narrow;
+}
 function useKept(name, initial) {
   const nav = useContext(NavCtx);
   const [v, setV] = useState(() => { const r = kept(nav.key, name); return r === undefined ? (typeof initial === "function" ? initial() : initial) : r; });
@@ -2461,7 +2484,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     {/* Not going under the group's name, never beside it: at 320
                         beside it cut "Saturday clinic" to "Saturday…" */}
                     <span className="flex-1 min-w-0">
-                      <span className="block truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{mn.groupName || coachName || tr("Your coach")}</span>
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{mn.groupName || coachName || tr("Your coach")}</span>
                       {mn.out && <span data-tour="agenda-out" className="block" style={{ ...TYPE.small, color: t.sub }}>{tr("Not going")}</span>}
                     </span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
@@ -2494,7 +2517,9 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                         under its name where the coach reads the day (beside it,
                         the name went to "Satur…" at 320); the peek names them */}
                     <span className="flex-1 min-w-0">
-                      <span className="block truncate" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{bk.who}</span>
+                      {/* the whole name on a second line before an ellipsis, as every
+                          row's is: it read "Maximiliano Ó Súil…" beside the time at 320 */}
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
                       {isGroup && bk.outIds && bk.outIds.length > 0 && <span data-tour="agenda-out-count" className="block" style={{ ...TYPE.small, color: t.sub }}>{bk.outIds.length} {tr("not going")}</span>}
                     </span>
                     <ChevronRight size={14} color={t.trace || t.faint} />
@@ -4716,15 +4741,20 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           {who.map((r, i) => {
             const m = marks[r.id];
             return (
-              <div key={r.id} data-reg-row={r.name} data-mark={m || ""} className="flex items-center gap-2.5 px-3"
+              <div key={r.id} data-reg-row={r.name} data-mark={m || ""} className="flex flex-wrap items-center gap-x-2.5 px-3"
                    style={{ minHeight: 62, borderBottom: `1px solid ${t.hair}`,
                             animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <Avatar name={r.name} size={32} />
                 {/* the whole name, on two lines if it must: two Saoirse K…
-                    are two players the coach cannot tell apart */}
-                <span className="flex-1 min-w-0 py-2"
-                      style={{ ...TYPE.body, color: m === "out" ? t.faint : t.ink, overflowWrap: "break-word", hyphens: "auto", lineHeight: 1.25 }}>{r.name}</span>
+                    are two players the coach cannot tell apart. The row
+                    gives it the person row's textMin beside the marks; where
+                    it cannot (320 — the name had 52px and five hyphenated
+                    lines), Present · Absent take a line of their own under
+                    it, on the right, as Accept · Decline do */}
+                <span data-name="" className="min-w-0 py-2"
+                      style={{ flex: `1 1 ${PERSON_TEXT_MIN}px`, ...TYPE.body, color: m === "out" ? t.faint : t.ink, overflowWrap: "break-word", hyphens: "auto", lineHeight: 1.25 }}>{r.name}</span>
 
+                <span className="shrink-0 flex items-center gap-2.5 ml-auto py-1.5">
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
                   return (
@@ -4740,6 +4770,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                     </button>
                   );
                 })}
+                </span>
               </div>
             );
           })}
@@ -7864,7 +7895,10 @@ function Screen({ title, meta, onBack, right, action, children, large = true, ba
                one piece of branding inside the app, in the sport's own tone */
             <span className="flex items-center" aria-hidden="true" data-tour="brand-mark" style={{ width: 50, height: 41, paddingLeft: 9 }}><Mark size={HEADER_MARK.size} weight={HEADER_MARK.weight} color={t.mark} /></span>
           )}
-          <span className="flex-1 text-center truncate px-2"
+          {/* the title is never cut: at 320 the pill on the right drops its
+              name (`useNarrow`) rather than the title its letters; `truncate`
+              stays only as the backstop narrow.cjs proves is never reached */}
+          <span data-tour="screen-title" className="flex-1 min-w-0 text-center truncate px-1.5"
                 style={{ fontFamily: ui, fontSize: 16, fontWeight: 600, color: t.ink,
                          opacity: shrunk ? 1 : 0, transition: "opacity 180ms" }}>{title}</span>
           <span className="flex items-center justify-end gap-2.5 pr-3" style={{ minWidth: 41 }}>{right}</span>
@@ -9469,11 +9503,16 @@ function ConnectPlayer({ sport, onDone, onBack }) {
 ================================================================== */
 function FamilyPill({ name, tint, src, onOpen, tour, group, label }) {
   const t = useT();
+  const narrow = useNarrow();
+  const word = group ? name : (name || "").split(" ")[0];
+  /* at 320 the pill is the face and the chevron — the wash and the
+     chevron still say it opens something; the name was the one thing
+     in the header row that could give, and the title gave instead */
   return (
-    <button data-tour={tour} onClick={() => { haptic(6); onOpen(); }} aria-label={label || undefined} title={name || undefined} className="relative flex items-center gap-2 rounded-full pl-1 pr-2.5 active:opacity-50" style={{ minHeight: 34, background: t.wash }}>
+    <button data-tour={tour} data-narrow={narrow ? "1" : undefined} onClick={() => { haptic(6); onOpen(); }} aria-label={label || (narrow ? word : undefined) || undefined} title={name || undefined} className="relative flex items-center gap-2 rounded-full pl-1 pr-2.5 active:opacity-50" style={{ minHeight: 34, background: t.wash }}>
       <span aria-hidden="true" className="absolute" style={HIT_REACH} />
       <Avatar name={name} size={26} tint={tint} src={src} group={group} />
-      <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{group ? name : (name || "").split(" ")[0]}</span>
+      {!narrow && <span className="truncate" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: t.ink, maxWidth: 96 }}>{word}</span>}
       <ChevronDown size={13} color={t.sub} />
     </button>
   );
@@ -12156,16 +12195,19 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   const t = useT();
   const grp = l.kind && l.kind.startsWith("Group");
   const border = last ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`;
-  const body = (
+  /* `wordMin`: the name's column keeps its longest word as its least
+     width (no min-w-0), so the live row below wraps Register under the
+     name only where a word of the name would not fit beside it */
+  const body = (wordMin) => (
     <>
       <Rail tone={variant === "now" ? t.ink : undefined}>{l.time}</Rail>
       {grp ? (
         <span className="rounded-full flex items-center justify-center shrink-0"
               style={{ width: 30, height: 30, background: `${GROUP}18` }}><Users size={13} color={GROUP} /></span>
       ) : <Avatar name={l.who} size={30} src={avatar} />}
-      <span className="flex-1 min-w-0">
-        {/* the whole name — two players with one first name are two rows — on a second line rather than an ellipsis */}
-        <span className="block" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{l.who}</span>
+      <span className={wordMin ? "flex-1" : "flex-1 min-w-0"}>
+        {/* the whole name — two players with one first name are two rows — on a second line, and a third, rather than an ellipsis */}
+        <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
         {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: variant === "now" ? t.ink : t.faint }}>{until}</span>}
       </span>
     </>
@@ -12181,11 +12223,18 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   /* the lesson happening now carries its own button, so the row body and
      the register are two targets rather than a button inside a button */
   if (variant === "now") {
+    /* Register sits beside the name while every word of the name fits
+       beside it, and takes a line of its own under the name, on the
+       right, where one would not (320 — the name had 32px and was cut).
+       The body's basis is 0 and its least width its content's, so the
+       row breaks its line on the name's longest word — the content, not
+       a width: a fixed basis dropped Register under "Cian Murphy" on
+       every 360px phone, and sat 3px from doing so at 375 */
     return (
-      <div className="w-full flex items-center gap-3.5" style={frame}>
+      <div className="w-full flex flex-wrap items-center gap-x-3.5" style={frame}>
         <button onClick={() => { haptic(7); soft(); onPeek(l); }}
-                className="flex-1 min-w-0 flex items-center gap-3.5 text-left active:opacity-50">{body}</button>
-        <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 px-3.5 active:opacity-70"
+                className="flex items-center gap-3.5 text-left active:opacity-50" style={{ flex: "1 1 0%" }}>{body(true)}</button>
+        <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 ml-auto px-3.5 my-2 active:opacity-70"
                 style={{ minHeight: 36, borderRadius: R.control, background: t.accent,
                          ...TYPE.caption, fontWeight: 600, color: t.onAccent }}>{tr("Register")}</button>
       </div>
@@ -12194,7 +12243,7 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
   return (
     <button onClick={() => { haptic(7); soft(); variant === "log" ? onLogFor(l) : onPeek(l); }}
             className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={frame}>
-      {body}
+      {body(false)}
       {variant === "log"
         ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Log")}</span>
         : <ChevronRight size={14} color={t.trace || t.faint} />}
