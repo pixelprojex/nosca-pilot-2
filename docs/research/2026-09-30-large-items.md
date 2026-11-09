@@ -648,8 +648,10 @@ shape by width — the header's pill drops its first name at 350 and
 under, since it was the one thing in the row that could give and the
 approved icons do not move — and everything else gives way by content:
 a control that cannot sit beside a name takes a line of its own under
-it, the person row's rule, and a name takes a second and a third line
-before an ellipsis. Material's app bar guidance says not to truncate a
+it (the register's marks by the person row's textMin; the live row's
+Register by the name's longest word, since a fixed width dropped it
+under every name on a 360px phone), and a name takes a second and a
+third line before an ellipsis. Material's app bar guidance says not to truncate a
 title; SAP Fiori's top app bar says to avoid truncating or shrinking
 text; iOS's own compact bar truncates, which the founder's "nothing is
 cut" rule is stricter than. The visual item of the day; `narrow.cjs`.
