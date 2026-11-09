@@ -634,6 +634,26 @@ three retries, and every load carries a sequence number so an older
 answer never lands on a newer one. The functional item of the day;
 `refresh.cjs`.
 
+### 34. Nothing is cut at 320. **Built 9 November.**
+The narrowest phone is a real one (the first SE, the small Androids;
+WCAG 1.4.10 asks for the content whole at 320 CSS pixels), and the
+carried note since 24 October named two places that gave way there:
+the compact header, once a screen had scrolled, cut its own title to
+"D…" — 33px between the mark and a 225px cluster of the pill and three
+icons — and the coach's live row gave the name 32 of the 85px it needs
+beside Register. Measuring found two more: the register's row gave a
+26-letter name 52px and five hyphenated lines beside two 66px marks,
+and the Diary's List row read "Maximiliano Ó Súil…". One thing changes
+shape by width — the header's pill drops its first name at 350 and
+under, since it was the one thing in the row that could give and the
+approved icons do not move — and everything else gives way by content:
+a control that cannot sit beside a name takes a line of its own under
+it, the person row's rule, and a name takes a second and a third line
+before an ellipsis. Material's app bar guidance says not to truncate a
+title; SAP Fiori's top app bar says to avoid truncating or shrinking
+text; iOS's own compact bar truncates, which the founder's "nothing is
+cut" rule is stricter than. The visual item of the day; `narrow.cjs`.
+
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
@@ -789,3 +809,6 @@ the items above; a research spike first.
 - https://tanstack.com/query/v5/docs/framework/react/guides/window-focus-refetching (TanStack Query: refetch on window focus, on by default, on visibilitychange)
 - https://github.com/orgs/supabase/discussions/19387 (Supabase: realtime idle reconnects — the socket dropping while a tab is in the background)
 - https://rxdb.info/articles/alternatives/supabase-alternative.md (a client that reconnects is not told what it missed and must fetch again)
+- https://material.io/components/app-bars-top (Material: a top app bar's title is not truncated — wrap it or use a large bar)
+- https://www.sap.com/design-system/fiori-design-android/v25-8/components/m3-standard-components/top-app-bar/usage (SAP Fiori for Android: avoid truncating or shrinking the top app bar's text)
+- https://developer.apple.com/forums/thread/806043 (Apple forums: navigation titles hidden or truncated in the compact bar)

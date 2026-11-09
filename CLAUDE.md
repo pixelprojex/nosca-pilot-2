@@ -2065,6 +2065,37 @@ seeded data and no account.
   every row as the coach and a parent at 375 and 320 — the twelve
   surfaces, counting only a sheet's own rows, the overflow of every grey
   line and the air above a notice's title.
+- **Nothing is cut at 320.** The narrowest phone is a real one (the
+  first SE, the small Androids; WCAG 1.4.10 asks for the content whole
+  at 320 CSS pixels), and four places gave way there: the compact
+  header, once a screen had scrolled, cut its own title to "D…" between
+  the mark and the right-hand cluster (the title had 33px, the cluster
+  225); the register's row gave "Maximiliano Ó Súilleabháin" 52px and
+  five hyphenated lines beside two 66px marks; the coach's live row on
+  the home gave the name 32 of the 85px it needs beside Register and cut
+  it on a two-line clamp; and the Diary's List row read "Maximiliano Ó
+  Súil…" beside the time. Width changes the shape in one place only:
+  the header's pill drops its first name at 350 and under (`useNarrow`,
+  a `matchMedia` hook; `data-narrow` on the pill) — it was the one thing
+  in the row that could give, and with it gone the title has 80px, which
+  every tab's name fits; the icons the founder approved do not move, and
+  at 375 the pill keeps its name. Everything else gives way by content:
+  a control that cannot sit beside a name takes a line of its own under
+  it, on the right — the person row's `textMin` rule. The register's
+  name asks for `PERSON_TEXT_MIN` (84) beside Present · Absent and the
+  pair wraps under it (`flex-wrap`, the pair in one `ml-auto` span, 44
+  tall with 6px of air); the live row's body asks for the rail, the face
+  and the same 84 beside Register (`RAIL + 58 + PERSON_TEXT_MIN`) and
+  Register wraps under it; a name takes a second line, and a third,
+  before an ellipsis (the live row's clamp was 2, the Diary's rows were
+  `truncate`). At 375 the marks and Register stay beside the name, and
+  the long name is whole on three lines. The parent's Diary is titled
+  "Book for Saoirse", the carried decision since 24 October, and sixteen
+  letters do not fit the 80px a root screen's row leaves at 320 whatever
+  the pill does — it is cut there until the title is decided. Material's
+  app bar guidance: do not truncate a title; SAP Fiori's top app bar:
+  avoid truncating or shrinking text. `scripts/e2e/narrow.cjs` measures
+  all of it at 320 and 375.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: rows with an avatar,
   a name and one grey line, each in its own box on the sport's edge
