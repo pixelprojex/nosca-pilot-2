@@ -169,7 +169,9 @@ export function useNoscaData(profile) {
   const [seriesLinks, setSeriesLinks] = useState(false); // does bookings.recurring_id exist on this project?
   const seriesProbed = useRef(false);
   const [canRsvp, setCanRsvp] = useState(false); // does group_absences exist on this project?
+  const [canMove, setCanMove] = useState(false); // does move_booking() exist on this project?
   const rsvpProbed = useRef(false);
+  const moveProbed = useRef(false);
   const [tips, setTips] = useState([]);
   const [registers, setRegisters] = useState({});
   const [registerDays, setRegisterDays] = useState({});   // register key -> the session's day, for Attendance on Progress
@@ -499,6 +501,14 @@ export function useNoscaData(profile) {
       if (!rsvpProbed.current) {
         rsvpProbed.current = true;
         supabase.from("group_absences").select("booking_id").limit(1).then((pr) => setCanRsvp(!pr.error)).catch(() => setCanRsvp(false));
+      }
+      /* a lesson moved in one write, both sides: offered only once the
+         function exists — asked with nothing, it refuses in words, which
+         is how it says it is there; a project without it says PGRST202 */
+      if (!moveProbed.current) {
+        moveProbed.current = true;
+        supabase.rpc("move_booking", { p_booking: null, p_date: null, p_time: null })
+          .then((pr) => setCanMove(!(pr.error && pr.error.code === "PGRST202"))).catch(() => setCanMove(false));
       }
       if (!seriesProbed.current) {
         seriesProbed.current = true;
@@ -1248,10 +1258,18 @@ export function useNoscaData(profile) {
     return { count: (rows || []).length };
   };
 
-  /* Moving a booking rather than losing it: same row, new day or time.
-     Coach only — the policies refuse a player anything but a request
-     and a cancellation. */
+  /* Moving a booking rather than losing it: same row, new day or time,
+     the status kept. Through move_booking() once the project has it —
+     the checks and the other side's notice live there, so the return
+     says the player is told; before that the coach's own update, which
+     the policies allow and which tells nobody. */
   const moveBooking = async (id, { date, time, duration } = {}) => {
+    if (canMove && date && time && !duration) {
+      const { error } = await supabase.rpc("move_booking", { p_booking: id, p_date: date, p_time: time });
+      if (error) return { error: { message: rpcMessage(error, "Couldn't move that lesson.") } };
+      await load();
+      return { told: true };
+    }
     const patch = {};
     if (date) patch.booking_date = date;
     if (time) patch.start_time = time;
@@ -1260,6 +1278,19 @@ export function useNoscaData(profile) {
     const { data: rows, error } = await supabase.from("bookings").update(patch).eq("id", id).select("id");
     if (error) return { error: { message: rpcMessage(error, "Couldn't move that lesson.") } };
     if (!rows || !rows.length) return { error: { message: "Couldn't move that lesson." } };
+    await load();
+    return {};
+  };
+
+  /* A player, or an adult for a junior they look after, asks for a lesson
+     to move: the same row goes to the new day and hour as a request, the
+     old time given up, and the coach accepts or declines it as any ask.
+     Only through move_booking() — the policies let a player change a
+     booking's status and reason and nothing else. */
+  const askMove = async (id, { date, time } = {}) => {
+    if (!canMove) return { error: { message: "The coach's app needs updating before a lesson can be moved." } };
+    const { error } = await supabase.rpc("move_booking", { p_booking: id, p_date: date, p_time: time });
+    if (error) return { error: { message: rpcMessage(error, "Couldn't move that lesson.") } };
     await load();
     return {};
   };
@@ -1948,7 +1979,7 @@ export function useNoscaData(profile) {
     reviewSummary, myReview, reviews, coachAvailability, busySlots, busyByPlayer,
     reload: load,
     logLesson, updateLesson, deleteLesson, removeLessonMedia, addLessonMedia,
-    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, bookingNotes, canRsvp, setGroupAbsence, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
+    setDrill, setDrills: assignDrills, drillsDue, reminderOn, setReminderTime, noteUpload, onUploadRetry, canSendClip, cancelReasons, bookingNotes, canRsvp, setGroupAbsence, canMove, askMove, seriesLinks, updateRecurring, seriesBookings, linkSeries, sendClip, logPractice, markLessonSeen, updateDrill, removeDrill, tickDrill, setTip, takeRegister, mediaFor, lessonMedia: lessonMediaShared, requestRating,
     addBooking, addBookings, cancelBooking, offerTime, confirmBooking, callOffDay, callOffBookings, moveBooking,
     addCompetition, removeCompetition,
     addRecurring, removeRecurring,

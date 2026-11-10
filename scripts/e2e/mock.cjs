@@ -275,9 +275,29 @@ function onBookingInsert(db, b, actor) {
   }
 }
 function onBookingUpdate(db, b, old, actor) {
-  if (b.status === old.status) return;
   if (!b.player_id) return;   /* a group's lesson is told per statement, onGroupBookingsUpdate */
   const whn = `${niceDate(b.booking_date)} ${b.start_time}`;
+  /* a lesson moved (move_booking): the coach's move keeps it and the player
+     reads where it is now and where it was; a player's move is a request at
+     the new time, the coach's earlier asking line goes and one line says
+     what is asked — as trg_bookings_notify writes it. An offer (a request
+     moved and confirmed in one write) is the confirmed branch's, below. */
+  const moved = (b.booking_date !== old.booking_date || b.start_time !== old.start_time) && !(old.status === "requested" && b.status === "confirmed");
+  if (moved) {
+    const was = `${niceDate(old.booking_date)} ${old.start_time}`;
+    if (actor === b.coach_id) {
+      const req = b.status === "requested";
+      notify(db, b.player_id, "booking", req ? "Request moved" : "Lesson moved", `${whn} · was ${was}`, { screen: "calendar", id: b.id });
+      adultsFor(db, b.player_id).forEach((a) => notify(db, a, "booking", `${firstOf(db, b.player_id)}'s ${req ? "request" : "lesson"} moved`, `${whn} · was ${was}`, { screen: "family", id: b.id }));
+    } else {
+      for (let i = db.notifications.length - 1; i >= 0; i--) { const n = db.notifications[i]; if (n.user_id === b.coach_id && n.kind === "booking" && n.data && n.data.id === b.id) db.notifications.splice(i, 1); }
+      if (old.status === "confirmed") notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} asked to move a lesson`, `${whn} · was ${was}`, { screen: "today", id: b.id });
+      else notify(db, b.coach_id, "booking", `${nameOf(db, b.player_id)} asked for a lesson`, `${whn}${b.note && String(b.note).trim() ? ` · ${String(b.note).trim()}` : ""}`, { screen: "today", id: b.id });
+      if (actor && actor !== b.player_id) notify(db, b.player_id, "booking", "Move asked for", `${whn} · was ${was}`, { screen: "calendar", id: b.id });
+    }
+    return;
+  }
+  if (b.status === old.status) return;
   const tellAdults = (title, body) => adultsFor(db, b.player_id).forEach((a) => notify(db, a, b.status === "weather" ? "weather" : "booking", title, body, { screen: "family", id: b.id }));
   if (b.status === "confirmed") {
     /* an offer is one write: the request's row moved and confirmed, the line naming both hours */
@@ -652,6 +672,33 @@ async function attach(page, db, opts = {}) {
         if (!args.p_out && at >= 0) { db.absences.splice(at, 1);
           notify(db, b.coach_id, "booking", `${nameOf(db, pid)} can make ${grp}`, whn, { screen: "calendar", id: b.id }); }
         return json(200, !!args.p_out);
+      }
+      /* move_booking(): one write moves a lesson to a new day or hour — the
+         coach's keeps its status, a player's (or an adult's for a junior) is
+         a request at the new time — the checks and the words of nosca.sql,
+         the other side told as trg_bookings_notify tells them. db.noMove
+         plays a project whose SQL has not been re-run. */
+      if (fn === "move_booking") {
+        if (db.noMove) return json(404, { code: "PGRST202", message: "Could not find the function public.move_booking in the schema cache" });
+        if (!args.p_booking) return human("No lesson to move.");
+        if (!args.p_date || !String(args.p_time || "").trim()) return human("Pick a day and a time.");
+        const b = db.bookings.find((x) => x.id === args.p_booking);
+        if (!b) return human("That lesson isn't there any more.");
+        if (!b.player_id) return human("A group's lesson is called off and booked again, not moved.");
+        if (!["requested", "confirmed"].includes(b.status)) return human("That lesson isn't going ahead.");
+        const today = ymd(new Date(db.now()));
+        if (b.booking_date < today) return human("That lesson has started.");
+        if (args.p_date < today) return human("That time has gone.");
+        const nt = String(args.p_time).trim();
+        if (args.p_date === b.booking_date && nt === String(b.start_time).trim()) return human("That is when it is.");
+        const isCoach = meId === b.coach_id, theirs = meId === b.player_id || S.looked.includes(b.player_id);
+        if (!isCoach && !theirs) return human("Only the coach, the player or their parent can move that.");
+        if (!isCoach && meId === b.player_id && S.iAmJunior) return human("A parent moves a junior's lesson.");
+        if (db.bookings.some((o) => o.coach_id === b.coach_id && o.id !== b.id && o.booking_date === args.p_date && String(o.start_time).trim() === nt && ["requested", "confirmed"].includes(o.status))) return human("That time is taken.");
+        const old = { ...b };
+        b.booking_date = args.p_date; b.start_time = nt; if (!isCoach) b.status = "requested";
+        onBookingUpdate(db, b, old, meId);
+        return json(200, { ...b });
       }
       /* the coach's taken times reach another player as times only — the
          same shape as the function in nosca.sql */
