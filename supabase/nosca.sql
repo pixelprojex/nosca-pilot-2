@@ -1159,6 +1159,65 @@ end $fn$;
 revoke all on function public.set_group_absence(uuid, uuid, boolean) from public, anon;
 grant execute on function public.set_group_absence(uuid, uuid, boolean) to authenticated;
 
+-- ---------- a lesson moved, not cancelled and booked again ----------
+-- One write moves the row to a new day or hour. The coach's move keeps
+-- the lesson's status; a player's — or an adult's for a junior they look
+-- after — asks, so the row is a request at the new time and the coach
+-- accepts or declines it as they would any ask (Square's client
+-- reschedule under approval; Calendly and Acuity free the old time the
+-- moment a client reschedules). Refused: a lesson that has begun by
+-- Ireland's clock, a time gone, the time it is at, a time the coach
+-- already holds (requested or confirmed), a group's lesson (its members
+-- are told of a status change only, so a clinic keeps the call-off), a
+-- junior moving their own, and anybody else's lesson. The policies on
+-- bookings let a player change the status and the reason and nothing
+-- else, which is why this is a function. trg_bookings_notify tells the
+-- other side.
+create or replace function public.move_booking(p_booking uuid, p_date date, p_time text)
+returns public.bookings
+language plpgsql security definer set search_path = ''
+as $fn$
+declare
+  me uuid := auth.uid();
+  b public.bookings%rowtype;
+  here timestamp := now() at time zone 'Europe/Dublin';
+  t time; nt time;
+  mine boolean; theirs boolean;
+begin
+  if me is null then raise exception 'You need to be signed in to do that.'; end if;
+  if p_booking is null then raise exception 'No lesson to move.'; end if;
+  if p_date is null or nullif(trim(p_time), '') is null then raise exception 'Pick a day and a time.'; end if;
+  select * into b from public.bookings bk where bk.id = p_booking for update;
+  if not found then raise exception 'That lesson isn''t there any more.'; end if;
+  if b.player_id is null then raise exception 'A group''s lesson is called off and booked again, not moved.'; end if;
+  if b.status not in ('requested', 'confirmed') then raise exception 'That lesson isn''t going ahead.'; end if;
+  begin t := to_timestamp(trim(b.start_time), 'HH12:MI am')::time; exception when others then t := null; end;
+  begin nt := to_timestamp(trim(p_time), 'HH12:MI am')::time; exception when others then nt := null; end;
+  if b.booking_date < here::date or (b.booking_date = here::date and coalesce(t, time '23:59') <= here::time) then
+    raise exception 'That lesson has started.';
+  end if;
+  if p_date < here::date or (p_date = here::date and coalesce(nt, time '23:59') <= here::time) then
+    raise exception 'That time has gone.';
+  end if;
+  if p_date = b.booking_date and trim(p_time) = trim(b.start_time) then raise exception 'That is when it is.'; end if;
+  mine := (me = b.coach_id);
+  theirs := (me = b.player_id) or (b.player_id in (select public.my_family_ids()));
+  if not mine and not theirs then raise exception 'Only the coach, the player or their parent can move that.'; end if;
+  if not mine and me = b.player_id and public.is_junior() then raise exception 'A parent moves a junior''s lesson.'; end if;
+  if exists (select 1 from public.bookings o
+              where o.coach_id = b.coach_id and o.id <> b.id and o.booking_date = p_date
+                and trim(o.start_time) = trim(p_time) and o.status in ('requested', 'confirmed')) then
+    raise exception 'That time is taken.';
+  end if;
+  update public.bookings
+     set booking_date = p_date, start_time = trim(p_time), status = case when mine then status else 'requested' end
+   where id = b.id
+   returning * into b;
+  return b;
+end $fn$;
+revoke all on function public.move_booking(uuid, date, text) from public, anon;
+grant execute on function public.move_booking(uuid, date, text) to authenticated;
+
 -- registers you, or someone you look after, were marked in. The
 -- sessions policy needs this because it may not read the marks table
 -- directly: the marks policy reads sessions, and two tables reading
@@ -1814,6 +1873,47 @@ begin
           jsonb_build_object('screen', 'family', 'id', new.id));
       end loop;
     end if;
+  elsif tg_op = 'UPDATE' and (new.booking_date <> old.booking_date or new.start_time <> old.start_time)
+        and not (old.status = 'requested' and new.status = 'confirmed') then
+    -- A LESSON MOVED, NOT CANCELLED AND BOOKED AGAIN. move_booking()
+    -- writes the same row at the new day or hour: the coach's move keeps
+    -- the lesson, and the player reads where it is now and where it was
+    -- (two facts; a player has one coach); a player's move is a request
+    -- at the new time, so the coach's earlier asking line for the row
+    -- goes and one line says what is asked, landing on Today where
+    -- Accept · Decline are. An offer — a request moved and confirmed in
+    -- one write — is the confirmed branch's, below. Before this a time
+    -- change told nobody, and Move was a cancel, a reason, a password
+    -- and a fresh booking: "Lesson cancelled" for a lesson still on.
+    declare
+      was text := public.nice_date(old.booking_date) || ' ' || old.start_time;
+    begin
+      if actor is not null and actor = new.coach_id then
+        perform public.notify(new.player_id, 'booking',
+          case when new.status = 'requested' then 'Request moved' else 'Lesson moved' end, whn || ' · was ' || was,
+          jsonb_build_object('screen', 'calendar', 'id', new.id));
+        for a in select public.adults_for(new.player_id) loop
+          perform public.notify(a, 'booking',
+            public.first_name_of(new.player_id) || case when new.status = 'requested' then '''s request moved' else '''s lesson moved' end,
+            whn || ' · was ' || was, jsonb_build_object('screen', 'family', 'id', new.id));
+        end loop;
+      else
+        delete from public.notifications
+        where user_id = new.coach_id and kind = 'booking' and data->>'id' = new.id::text;
+        if old.status = 'confirmed' then
+          perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' asked to move a lesson',
+            whn || ' · was ' || was, jsonb_build_object('screen', 'today', 'id', new.id));
+        else
+          perform public.notify(new.coach_id, 'booking', public.name_of(new.player_id) || ' asked for a lesson',
+            whn || coalesce(' · ' || nullif(trim(new.note), ''), ''), jsonb_build_object('screen', 'today', 'id', new.id));
+        end if;
+        -- asked on their behalf: the junior reads it in their own diary
+        if actor is not null and actor <> new.player_id then
+          perform public.notify(new.player_id, 'booking', 'Move asked for', whn || ' · was ' || was,
+            jsonb_build_object('screen', 'calendar', 'id', new.id));
+        end if;
+      end if;
+    end;
   elsif tg_op = 'UPDATE' and new.status <> old.status then
     if new.status = 'confirmed' then
       -- AN OFFER IS ONE WRITE: a request the coach cannot take at that
