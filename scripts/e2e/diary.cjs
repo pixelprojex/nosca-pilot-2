@@ -151,7 +151,9 @@ const leaks = [];
       await page.locator('[data-tour="agenda-row"]', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       const t4 = await leak("coach peek"); await shot("09-coach-peek");
       check("(b) the peek sheet shows no invented past lessons", !t4.includes("Short game") && !t4.includes("14 Jun"), t4.slice(0, 200));
-      await click(page, "Move");
+      /* the peek's Cancel: its Move moves the lesson now (move.cjs), and the
+         cancel with a reason, an offer and the password is the Cancel tile's */
+      await click(page, "Cancel");
       /* a named reason — Something else needs words before Next wakes */
       await page.locator('[data-tour="cancel-why"]', { hasText: "Unwell" }).click(); await page.waitForTimeout(300);
       await click(page, "Next");
