@@ -1172,7 +1172,8 @@ grant execute on function public.set_group_absence(uuid, uuid, boolean) to authe
 -- junior moving their own, and anybody else's lesson. The policies on
 -- bookings let a player change the status and the reason and nothing
 -- else, which is why this is a function. trg_bookings_notify tells the
--- other side.
+-- other side. Asked with no lesson it returns null and raises nothing:
+-- that is the app's probe for it.
 create or replace function public.move_booking(p_booking uuid, p_date date, p_time text)
 returns public.bookings
 language plpgsql security definer set search_path = ''
@@ -1185,7 +1186,10 @@ declare
   mine boolean; theirs boolean;
 begin
   if me is null then raise exception 'You need to be signed in to do that.'; end if;
-  if p_booking is null then raise exception 'No lesson to move.'; end if;
+  -- asked with no lesson it answers nothing, quietly: the app asks once
+  -- that way to learn the function is here (a project without it says
+  -- PGRST202), and a refusal was a 400 on every page the crawls opened
+  if p_booking is null then return null; end if;
   if p_date is null or nullif(trim(p_time), '') is null then raise exception 'Pick a day and a time.'; end if;
   select * into b from public.bookings bk where bk.id = p_booking for update;
   if not found then raise exception 'That lesson isn''t there any more.'; end if;

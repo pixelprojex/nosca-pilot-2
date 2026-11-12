@@ -680,7 +680,8 @@ async function attach(page, db, opts = {}) {
          plays a project whose SQL has not been re-run. */
       if (fn === "move_booking") {
         if (db.noMove) return json(404, { code: "PGRST202", message: "Could not find the function public.move_booking in the schema cache" });
-        if (!args.p_booking) return human("No lesson to move.");
+        /* the app's probe: asked with nothing, the function answers null and raises nothing */
+        if (!args.p_booking) return json(200, null);
         if (!args.p_date || !String(args.p_time || "").trim()) return human("Pick a day and a time.");
         const b = db.bookings.find((x) => x.id === args.p_booking);
         if (!b) return human("That lesson isn't there any more.");

@@ -503,8 +503,9 @@ export function useNoscaData(profile) {
         supabase.from("group_absences").select("booking_id").limit(1).then((pr) => setCanRsvp(!pr.error)).catch(() => setCanRsvp(false));
       }
       /* a lesson moved in one write, both sides: offered only once the
-         function exists — asked with nothing, it refuses in words, which
-         is how it says it is there; a project without it says PGRST202 */
+         function exists — asked with nothing it answers null and raises
+         nothing (a refusal was a 400 in the console on every page), and
+         a project without it says PGRST202 */
       if (!moveProbed.current) {
         moveProbed.current = true;
         supabase.rpc("move_booking", { p_booking: null, p_date: null, p_time: null })

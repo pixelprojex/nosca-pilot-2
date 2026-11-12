@@ -1014,8 +1014,9 @@ seeded data and no account.
   `trg_bookings_notify` has a move branch ahead of the status branches
   that leaves the offer (a request moved and confirmed in one write) to
   the confirmed branch. The hook probes the function once (`canMove`:
-  asked with nothing it refuses in words, a project without it says
-  PGRST202); `moveBooking` goes through it when it is there and says
+  asked with no lesson it answers null and raises nothing — a refusal
+  was a 400 in the console on every page the crawls opened — and a
+  project without it says PGRST202); `moveBooking` goes through it when it is there and says
   `told`, else the coach's own update as before, which tells nobody;
   `askMove` only through it. Until the founder re-runs `nosca.sql` both
   sides keep what they had: the coach's Move is the Cancel sheet — a

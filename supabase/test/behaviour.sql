@@ -1006,6 +1006,11 @@ select (select count(*) from public.notifications where user_id = '77777777-7777
        (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'mv4' and title like '% asked to move %') as mv5 \gset
 select (:'st5' = 'requested' and :ask5 = 1 and :new5 = 1 and :mv5 = 0) as ok \gset
 \if :ok \echo PASS a request moved by the player is one asking line at the new time, the old one gone (10h) \else \echo FAIL request move st=:st5 asks=:ask5 new=:new5 moved=:mv5 (10h) \endif
+-- asked with no lesson the function answers null and raises nothing — the app's probe for it
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+select (public.move_booking(null, null, null) is null) as ok \gset
+commit;
+\if :ok \echo PASS asked with no lesson, move_booking() answers null and raises nothing (10h) \else \echo FAIL the probe call raised or answered a row (10h) \endif
 -- a group's lesson is not moved by the function: its members are told of a status change only
 insert into public.bookings (coach_id, player_id, group_name, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', null, 'Saturday clinic', '2027-05-15', '10:00 am', 60, 'group', 'confirmed') returning id as mv6 \gset
 \set ON_ERROR_STOP off
