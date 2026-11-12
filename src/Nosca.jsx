@@ -3745,11 +3745,14 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   <div className="flex gap-1 mt-4">
                     {DAY_NAMES.map((d, k) => {
                       const on = x.day === k;
+                      /* the chosen day in ink, as a chosen tile is — it was filled
+                         in STEADY, a second filled colour on the screen and the
+                         success green for a plain choice */
                       return (<button key={k} onClick={() => { haptic(5); soft(); onEdit(x, { day: k }); }}
                                       className="flex-1 active:opacity-60"
-                                      style={{ minHeight: 36, borderRadius: R.field, background: on ? STEADY : t.wash,
+                                      style={{ minHeight: 36, borderRadius: R.field, background: on ? t.ink : t.wash,
                                                fontFamily: ui, fontSize: 12, fontWeight: 600,
-                                               color: on ? t.onAccent : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
+                                               color: on ? "#fff" : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
                                 {d.slice(0, 2)}</button>);
                     })}
                   </div>
