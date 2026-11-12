@@ -656,6 +656,25 @@ title; SAP Fiori's top app bar says to avoid truncating or shrinking
 text; iOS's own compact bar truncates, which the founder's "nothing is
 cut" rule is stricter than. The visual item of the day; `narrow.cjs`.
 
+### 35. A lesson moves in one write, and the other side is told. **Built 10 November.**
+Move on the coach's peek opened the Cancel sheet — a reason, an offered
+time, the password, and two notices to the player, "Lesson cancelled"
+for a lesson that still happened; a player's Reschedule cancelled with
+the reason "Rescheduling" and left them to hunt for a new time; and
+`trg_bookings_notify` said nothing when a lesson's day or hour changed,
+so the hook's `moveBooking` had no caller. Now one Move sheet — the
+fortnight's days with an open time, then the times at the lesson's own
+length — and one write through `move_booking()`: the coach's keeps the
+lesson and tells the player where it is now and where it was; a
+player's, or a parent's for a child, asks, the row goes to the new
+time as a request, the old time given up, and the coach reads "asked
+to move a lesson" on Today with Accept · Decline — Square's client
+reschedule under approval, pending until the business accepts or
+declines; Calendly and Acuity free the original time the moment a
+client reschedules and tell the host both times. A group's lesson
+keeps the call-off: its members are told of a status change only. The
+functional item of the day; `move.cjs`, behaviour.sql 10h.
+
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
@@ -814,3 +833,7 @@ the items above; a research spike first.
 - https://material.io/components/app-bars-top (Material: a top app bar's title is not truncated — wrap it or use a large bar)
 - https://www.sap.com/design-system/fiori-design-android/v25-8/components/m3-standard-components/top-app-bar/usage (SAP Fiori for Android: avoid truncating or shrinking the top app bar's text)
 - https://developer.apple.com/forums/thread/806043 (Apple forums: navigation titles hidden or truncated in the compact bar)
+- https://calendly.com/help/how-to-reschedule-a-meeting (Calendly: rescheduling frees the original time slot and notifies the invitee; a host-initiated reschedule updates or cancels the original)
+- https://acuityscheduling.com/learn/reschedule-an-appointment (Acuity: a client reschedules into the business's open times; the business is notified with the new time)
+- https://support.schedulista.com/en/articles/2322989-how-can-a-client-reschedule-their-appointment-online (Schedulista: the provider's reschedule notice names the original and the updated time)
+- https://squareup.com/help/us/en/article/6729 (Square Appointments: client-rescheduled, business-accepted and business-declined reschedule notifications; a request is pending under approval)

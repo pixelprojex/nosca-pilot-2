@@ -927,6 +927,101 @@ commit;
 select (:kept7 = 1 and :nc7 = 1 and (select note from public.bookings where id = :'rq7') = 'Bunker play') as ok \gset
 \if :ok \echo PASS a player s cancel may not rewrite the note on the ask: refused with the note changed, taken with the note as it was (10g; the error above is the refusal) \else \echo FAIL cancel with a changed note kept=:kept7 plain cancel rows=:nc7 (10g) \endif
 
+\echo === 10h. a lesson moves in one write, and the other side is told
+-- a parent with a family, a junior in it who asked the second coach (accepted below), and a stranger with no coach
+insert into auth.users (id, email, raw_user_meta_data) values ('a0a0a0a0-a0a0-4a0a-8a0a-a0a0a0a0a0a0', 'parent.move@example.ie', '{"role":"player","name":"Parent Move","sport":"golf","account_type":"parent","date_of_birth":"1980-01-01"}');
+select f.code as mfam from public.profiles p join public.families f on f.id = p.family_id where p.id = 'a0a0a0a0-a0a0-4a0a-8a0a-a0a0a0a0a0a0' \gset
+insert into auth.users (id, email, raw_user_meta_data) values ('b0b0b0b0-b0b0-4b0b-8b0b-b0b0b0b0b0b0', 'junior.move@example.ie', jsonb_build_object('role','player','name','Junior Move','sport','golf','account_type','junior','date_of_birth','2013-01-01','coach_code', (select invite_code from public.profiles where id = '77777777-7777-4777-8777-777777777777'), 'family_code', :'mfam'));
+insert into auth.users (id, email, raw_user_meta_data) values ('c0c0c0c0-c0c0-4c0c-8c0c-c0c0c0c0c0c0', 'stranger.move@example.ie', '{"role":"player","name":"Stranger Move","sport":"golf","account_type":"adult","date_of_birth":"1990-01-01"}');
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+select public.respond_to_request((select id from public.coach_requests where player_id = 'b0b0b0b0-b0b0-4b0b-8b0b-b0b0b0b0b0b0' and status = 'pending'), true);
+commit;
+select ((select coach_id from public.profiles where id = '88888888-8888-4888-8888-888888888888') = '77777777-7777-4777-8777-777777777777' and (select coach_id from public.profiles where id = 'b0b0b0b0-b0b0-4b0b-8b0b-b0b0b0b0b0b0') = '77777777-7777-4777-8777-777777777777') as ok \gset
+\if :ok \echo PASS fixture: Player Two and Junior Move are the second coach s players (10h) \else \echo FAIL fixture for 10h: Player Two or Junior Move is not the coach s player \endif
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-05-01', '10:00 am', 45, 'private', 'confirmed') returning id as mv1 \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-05-01', '11:00 am', 45, 'private', 'confirmed') returning id as mv2 \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', 'b0b0b0b0-b0b0-4b0b-8b0b-b0b0b0b0b0b0', '2027-05-02', '10:00 am', 45, 'private', 'confirmed') returning id as mv3 \gset
+insert into public.bookings (coach_id, player_id, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', '2027-05-03', '10:00 am', 45, 'private', 'requested') returning id as mv4 \gset
+-- the coach's move: one write, the status kept, the player told where it is now and where it was
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+select status as st1 from public.move_booking(:'mv1', '2027-05-08', '9:00 am') \gset
+commit;
+select (select count(*) from public.bookings where id = :'mv1' and booking_date = '2027-05-08' and start_time = '9:00 am' and status = 'confirmed') as row1,
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'mv1' and title = 'Lesson moved' and body like '% 9:00 am · was % 10:00 am') as told1,
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'mv1' and title = 'Lesson cancelled') as cn1 \gset
+select (:'st1' = 'confirmed' and :row1 = 1 and :told1 = 1 and :cn1 = 0) as ok \gset
+\if :ok \echo PASS the coach s move is one write: the lesson keeps its status at the new hour and the player reads Lesson moved · the new time · was the old (10h) \else \echo FAIL coach move st=:st1 row=:row1 told=:told1 cancelled=:cn1 (10h) \endif
+-- a player's move is a request at the new time; the coach reads who asked and hears nothing else; the yes says Lesson confirmed
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+select status as st2 from public.move_booking(:'mv2', '2027-05-08', '11:00 am') \gset
+commit;
+select (select count(*) from public.bookings where id = :'mv2' and booking_date = '2027-05-08' and start_time = '11:00 am' and status = 'requested') as row2,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'mv2' and title = 'Player Two asked to move a lesson' and body like '% 11:00 am · was % 11:00 am') as told2,
+       (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'mv2' and title in ('Lesson moved', 'Move asked for', 'Request moved')) as self2 \gset
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+with u as (update public.bookings set status = 'confirmed' where id = :'mv2' and status = 'requested' returning id) select count(*) as acc2 from u \gset
+commit;
+select (select count(*) from public.notifications where user_id = '88888888-8888-4888-8888-888888888888' and data->>'id' = :'mv2' and title = 'Lesson confirmed') as conf2 \gset
+select (:'st2' = 'requested' and :row2 = 1 and :told2 = 1 and :self2 = 0 and :acc2 = 1 and :conf2 = 1) as ok \gset
+\if :ok \echo PASS a player s move is a request at the new time: the coach reads asked to move · the new time · was the old, hears nothing else, and the yes says Lesson confirmed (10h) \else \echo FAIL player move st=:st2 row=:row2 told=:told2 self=:self2 acc=:acc2 conf=:conf2 (10h) \endif
+-- a parent moves a junior's lesson: the coach told who asked, the child told in their own diary
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"a0a0a0a0-a0a0-4a0a-8a0a-a0a0a0a0a0a0","role":"authenticated"}', true) \gset _
+select status as st3 from public.move_booking(:'mv3', '2027-05-09', '10:00 am') \gset
+commit;
+select (select count(*) from public.bookings where id = :'mv3' and booking_date = '2027-05-09' and status = 'requested') as row3,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'mv3' and title = 'Junior Move asked to move a lesson' and body like '% · was %') as told3,
+       (select count(*) from public.notifications where user_id = 'b0b0b0b0-b0b0-4b0b-8b0b-b0b0b0b0b0b0' and data->>'id' = :'mv3' and title = 'Move asked for' and body like '% · was %') as kid3 \gset
+select (:'st3' = 'requested' and :row3 = 1 and :told3 = 1 and :kid3 = 1) as ok \gset
+\if :ok \echo PASS a parent moves a junior s lesson: a request at the new time, the coach told who asked, the child told in their own diary (10h) \else \echo FAIL parent move st=:st3 row=:row3 told=:told3 kid=:kid3 (10h) \endif
+-- refused, and nothing written: a junior moving their own, a stranger, a time the coach holds, the time it is at, a time gone
+\set ON_ERROR_STOP off
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"b0b0b0b0-b0b0-4b0b-8b0b-b0b0b0b0b0b0","role":"authenticated"}', true) \gset _
+select public.move_booking(:'mv3', '2027-05-10', '10:00 am');
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"c0c0c0c0-c0c0-4c0c-8c0c-c0c0c0c0c0c0","role":"authenticated"}', true) \gset _
+select public.move_booking(:'mv1', '2027-05-10', '10:00 am');
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+select public.move_booking(:'mv2', '2027-05-08', '9:00 am');
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+select public.move_booking(:'mv1', '2027-05-08', '9:00 am');
+commit;
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+select public.move_booking(:'mv1', '2020-01-01', '9:00 am');
+commit;
+\set ON_ERROR_STOP on
+select (select count(*) from public.bookings where id = :'mv1' and booking_date = '2027-05-08' and start_time = '9:00 am' and status = 'confirmed') as k1,
+       (select count(*) from public.bookings where id = :'mv2' and booking_date = '2027-05-08' and start_time = '11:00 am' and status = 'confirmed') as k2,
+       (select count(*) from public.bookings where id = :'mv3' and booking_date = '2027-05-09' and status = 'requested') as k3,
+       (select count(*) from public.notifications where data->>'id' in (:'mv1', :'mv2', :'mv3') and (title like '%moved%' or title like '%asked to move%')) as n4 \gset
+select (:k1 = 1 and :k2 = 1 and :k3 = 1 and :n4 = 3) as ok \gset
+\if :ok \echo PASS refused with nothing written: a junior moving their own, a stranger, a time the coach holds, the time it is at, a time gone (10h; the five errors above are the refusals) \else \echo FAIL refusals k1=:k1 k2=:k2 k3=:k3 notices=:n4 (10h) \endif
+-- a request the player moves is one asking line at the new time, the old one gone
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+select status as st5 from public.move_booking(:'mv4', '2027-05-10', '10:00 am') \gset
+commit;
+select (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'mv4' and title like '% asked for a lesson') as ask5,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'mv4' and title like '% asked for a lesson' and body like '% 10 May 10:00 am%') as new5,
+       (select count(*) from public.notifications where user_id = '77777777-7777-4777-8777-777777777777' and data->>'id' = :'mv4' and title like '% asked to move %') as mv5 \gset
+select (:'st5' = 'requested' and :ask5 = 1 and :new5 = 1 and :mv5 = 0) as ok \gset
+\if :ok \echo PASS a request moved by the player is one asking line at the new time, the old one gone (10h) \else \echo FAIL request move st=:st5 asks=:ask5 new=:new5 moved=:mv5 (10h) \endif
+-- asked with no lesson the function answers null and raises nothing — the app's probe for it
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"88888888-8888-4888-8888-888888888888","role":"authenticated"}', true) \gset _
+select (public.move_booking(null, null, null) is null) as ok \gset
+commit;
+\if :ok \echo PASS asked with no lesson, move_booking() answers null and raises nothing (10h) \else \echo FAIL the probe call raised or answered a row (10h) \endif
+-- a group's lesson is not moved by the function: its members are told of a status change only
+insert into public.bookings (coach_id, player_id, group_name, booking_date, start_time, duration, kind, status) values ('77777777-7777-4777-8777-777777777777', null, 'Saturday clinic', '2027-05-15', '10:00 am', 60, 'group', 'confirmed') returning id as mv6 \gset
+\set ON_ERROR_STOP off
+begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
+select public.move_booking(:'mv6', '2027-05-22', '10:00 am');
+commit;
+\set ON_ERROR_STOP on
+select (select count(*) from public.bookings where id = :'mv6' and booking_date = '2027-05-15') as g6 \gset
+select (:g6 = 1) as ok \gset
+\if :ok \echo PASS a group s lesson is not moved by the function (10h; the error above is the refusal) \else \echo FAIL group move g6=:g6 (10h) \endif
+
 \echo === 10c. a run s lessons carry the run, and outlive it
 begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"77777777-7777-4777-8777-777777777777","role":"authenticated"}', true) \gset _
 insert into public.recurring (coach_id, player_id, weekday, start_time, cadence) values ('77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', 1, '5:00 pm', 'weekly') returning id as run \gset

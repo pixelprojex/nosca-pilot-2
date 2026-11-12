@@ -227,6 +227,9 @@ const { check, results, summary } = M.checker("recurring");
       const tc = chipThere ? await waitToast(page, /^Updated/) : { hit: null, seen: [] };
       await page.waitForTimeout(1200); await shot("05-manager-chip");
       const cp = since(db.patches, m1.patches, "recurring");
+      /* the chosen chip is a chosen tile: filled in the ink with white words, never the success green */
+      const chipLook = chipThere ? await chip.first().evaluate((el) => { const cs = getComputedStyle(el); const m = cs.backgroundColor.match(/\d+/g) || []; const lum = m.length >= 3 ? (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 : 1; return { bg: cs.backgroundColor, fg: cs.color, lum: Math.round(lum * 100) / 100 }; }) : null;
+      check("(c2) the chosen day chip is filled in the ink with white words — never the success green", !!chipLook && chipLook.fg === "rgb(255, 255, 255)" && chipLook.lum < 0.25, JSON.stringify(chipLook));
       check("(c) a day chip on Cian's tile sends one PATCH to recurring id=eq.S with the new weekday, no DELETE, no POST",
         cp.length === 1 && idsOf(cp[0].query).join() === REC.S && cp[0].body.weekday === toDay && cp[0].n === 1
           && since(db.deletes, m1.deletes, "recurring").length === 0 && since(db.posts, m1.posts, "recurring").length === 0 && db.recurring.some((r) => r.id === REC.S && r.weekday === toDay),

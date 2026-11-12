@@ -2586,6 +2586,49 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
    that a reason is required, the other party is told immediately, and
    a replacement time is offered in the same breath — cancelling and
    rebooking as one action rather than two. */
+/* MOVE A LESSON — one sheet for both sides. Which day: the fortnight
+   ahead, only the days with an open time, as tiles on the app's one date
+   form; Which time: that day's open times at the lesson's own length, the
+   TimeGrid; then one button. The coach's Move keeps the lesson and tells
+   the player; a player's Ask to move is a request at the new time the
+   coach answers, the old time given up — the grey line under the button
+   says both. It was Cancel for the coach (a reason, an offered time, the
+   password, two notices to the player) and a cancel with "Rescheduling"
+   and "Pick a new time" for the player. */
+function MoveLessonBody({ ask, who, when, days, openFor, foot, onMove, close }) {
+  const t = useT();
+  const [day, setDay] = useState(null);
+  const [time, setTime] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const times = day ? openFor(day) : [];
+  const go = async () => {
+    if (!day || !time || busy) return;
+    hapticCommit(); setBusy(true); setErr(null);
+    const r = await onMove(day, time);
+    setBusy(false);
+    if (r && r.error) { hapticWarn(); setErr(r.error.message || tr("Couldn't move that lesson.")); return; }
+    close();
+  };
+  return (
+    <div data-tour="move-sheet">
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{ask ? tr("Ask to move") : tr("Move")}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{who} · {when}</p>
+      <p className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Which day")}</p>
+      {days.length
+        ? <div className="mb-5"><TileGrid cols={3}>{days.map((d) => <ActTile key={d.iso} label={d.label} on={day === d.iso} tour="move-day" aria={d.label} h={56} onTap={() => { haptic(6); setDay(d.iso); setTime(null); }} />)}</TileGrid></div>
+        : <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing open in the next two weeks")}</p>}
+      {day && (<>
+        <p className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Which time")}</p>
+        <div className="mb-6"><TimeGrid tour="move-time" cols={3} times={times} picked={time} onToggle={(sl) => { haptic(6); setTime(time === sl ? null : sl); }} /></div>
+      </>)}
+      {err && <p className="mb-3" data-tour="move-error" style={{ ...TYPE.small, color: DANGER }}>{err}</p>}
+      <Button tour="move-go" onClick={go} disabled={!day || !time || busy}>{busy ? tr("Moving…") : ask ? tr("Ask to move") : tr("Move")}</Button>
+      {foot && <p className="mt-3 text-center" data-tour="move-foot" style={{ ...TYPE.caption, color: t.faint }}>{foot}</p>}
+    </div>
+  );
+}
+
 const CANCEL_REASONS = {
   coach: ["Unwell", "Course closed", "Double booked", "Family reasons", "Something else"],
   player: ["Unwell", "Work or school", "Away", "Injured", "Something else"],
@@ -3322,7 +3365,7 @@ function NewLessonArrival({ lesson, coach, onOpen }) {
    of sessions were, and anything they're building towards. Everything
    else was noise. */
 function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], lessonCount,
-                      onProfile, onLog, onNoShow, onCancel, onWeather, onCapture, onRegister, onHistory, onEditComp, close }) {
+                      onProfile, onLog, onNoShow, onCancel, onMove, onWeather, onCapture, onRegister, onHistory, onEditComp, close }) {
   const t = useT();
   const live = useLive();
   const f = fileFor(booking.who, live);
@@ -3431,7 +3474,9 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         {[{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null },
           { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null },
           onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
-          { Ico: CalendarDays, lbl: tr("Move"),    act: onCancel,   tone: null },
+          /* a move where the project can move (one write, the player told);
+             a lesson without a player — a group's — keeps the cancel path */
+          { Ico: CalendarDays, lbl: tr("Move"),    act: onMove || onCancel, tone: null, tour: "peek-move" },
           { Ico: CalendarX,    lbl: tr("Call off"), act: onWeather, tone: DANGER },
           { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean).map(({ Ico, lbl, act, tone, tour }) => (
           <button key={lbl} data-tour={tour} onClick={() => { haptic(7); soft(); act && act(); }}
@@ -3700,11 +3745,14 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   <div className="flex gap-1 mt-4">
                     {DAY_NAMES.map((d, k) => {
                       const on = x.day === k;
+                      /* the chosen day in ink, as a chosen tile is — it was filled
+                         in STEADY, a second filled colour on the screen and the
+                         success green for a plain choice */
                       return (<button key={k} onClick={() => { haptic(5); soft(); onEdit(x, { day: k }); }}
                                       className="flex-1 active:opacity-60"
-                                      style={{ minHeight: 36, borderRadius: R.field, background: on ? STEADY : t.wash,
+                                      style={{ minHeight: 36, borderRadius: R.field, background: on ? t.ink : t.wash,
                                                fontFamily: ui, fontSize: 12, fontWeight: 600,
-                                               color: on ? t.onAccent : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
+                                               color: on ? "#fff" : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
                                 {d.slice(0, 2)}</button>);
                     })}
                   </div>
@@ -15916,7 +15964,7 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
 }
 
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, onMove }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -16218,7 +16266,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                           reason; Reschedule says that much on its own. The harness keeps
                           the one-tap cancel. */}
                       <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
-                      <button data-tour="day-reschedule" onClick={() => { hapticCommit(); onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
+                      {/* a real account asks for the lesson to move — one write, a
+                          request at the new time; a project without the function, and
+                          the harness, keep the cancel and "Pick a new time" */}
+                      <button data-tour="day-reschedule" onClick={() => { hapticCommit(); if (live && onMove && myDay.id) { onMove(myDay); return; } onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
                     </div>}
               </div>
             ))}
@@ -18305,6 +18356,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [calledOff, setCalledOff] = useState(null);
   const [cancelling, setCancelling] = useState(null);
   const [cancelBk, setCancelBk] = useState(null);    // the booking behind `cancelling`, for a real account
+  const [moveBk, setMoveBk] = useState(null);        // the booking the Move sheet is on
+  const [moveFor, setMoveFor] = useState(null);      // whose lesson it is — self, or a child booked for
   const [cancelNotice, setCancelNotice] = useState(null);
   const [transferTo, setTransferTo] = useState(null);
   const [reduceMotion, setReduceMotion] = useDeviceSetting("reduceMotion", false);
@@ -19246,7 +19299,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      the diary's rule now (openTimes: the day's hours, the date's
      blocked and added times, nothing past), with a requested time
      held as well — an offer must never land on somebody's ask. */
-  const dayOpenTimes = (b) => {
+  const dayOpenTimes = (b, exceptId) => {
     if (!b) return data ? [] : slots.slice(0, 6);
     const dt = b.date ? localDate(b.date) : null;
     const ok = dt && !Number.isNaN(dt.getTime());
@@ -19257,7 +19310,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (ok && (dt.getFullYear() !== yearOf(m, calendar) || isoOf(m, d) < isoOf(todayMD.m, todayMD.d))) return [];
     if (myAway.has(isoOf(m, d))) return [];
     const held = data
-      ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((x) => !x.status || x.status === "confirmed" || x.status === "requested")]))
+      ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((x) => (exceptId == null || x.id !== exceptId) && (!x.status || x.status === "confirmed" || x.status === "requested"))]))
       : mySeedBooked;
     /* the clock as it is now — the calendar keeps the minute of the day's
        first render, and a phone left open all day would offer the morning */
@@ -19292,13 +19345,48 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     for (const b of busy || []) {
       const dt = localDate(b.date); if (Number.isNaN(dt.getTime())) continue;
       const k = key(dt.getMonth() + 1, dt.getDate());
-      if (!(out[k] || []).some((x) => x.time === b.time)) out[k] = [...(out[k] || []), { time: b.time, taken: true }];
+      if (!(out[k] || []).some((x) => x.time === b.time)) out[k] = [...(out[k] || []), { time: b.time, duration: b.duration, taken: true }];
     }
     return out;
   };
   const playerBooked = data && role === "player"
     ? withBusy(mySeedBooked, bookFor ? ((data.busyByPlayer || {})[bookFor.id] || []) : (data.busySlots || []))
     : mySeedBooked;
+  /* THE OPEN TIMES OF A DAY, FOR A LESSON MOVED THERE — a player's side
+     of dayOpenTimes: the coach's hours as the person reads them (a
+     child's coach's for a parent moving a child's lesson), the days
+     away, the coach's other bookings as busy times and the household's
+     own, by their lengths, with the lesson's own row left out so a lesson
+     may move beside itself. The coach's side is dayOpenTimes with the
+     row left out the same way. */
+  const moveOpenTimes = (bk, iso, who) => {
+    if (!data || !bk) return [];
+    const dt = localDate(iso); if (Number.isNaN(dt.getTime())) return [];
+    const m = dt.getMonth() + 1, d = dt.getDate();
+    if (dt.getFullYear() !== yearOf(m, calendar) || isoOf(m, d) < isoOf(todayMD.m, todayMD.d)) return [];
+    const kid = who && account && who !== account.id ? who : null;
+    const hp = kid ? ((data.hoursByPlayer || {})[kid] || {}) : null;
+    const avail = kid ? (hp.days || {}) : myAvail;
+    const blocked = kid ? datedOf(hp.blocked, calendar) : myBlocked;
+    const extra = kid ? datedOf(hp.extra, calendar) : myExtra;
+    const away = kid ? awayDays(hp) : myAway;
+    if (away.has(isoOf(m, d))) return [];
+    const busy = kid ? ((data.busyByPlayer || {})[kid] || []) : (data.busySlots || []);
+    const own = Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((x) => x.id !== bk.id && (!x.status || x.status === "confirmed" || x.status === "requested"))]));
+    const held = withBusy(own, busy);
+    const live = (() => { const n = new Date(); return { ...calendar, nowMins: n.getHours() * 60 + n.getMinutes() }; })();
+    const len = bk.duration || duration;
+    const heldHere = held[key(m, d)] || [];
+    const clear = (tm) => { const a = parseTime(tm); if (a == null) return true;
+      return heldHere.every((x) => { const s0 = parseTime(x.time); if (s0 == null) return true; return a + len <= s0 || s0 + (x.duration || duration) <= a; }); };
+    return openTimes(m, d, avail, blocked, [], held, live, extra).filter(clear);
+  };
+  /* the fortnight ahead, only the days with an open time, on the app's one date form */
+  const moveDays = (openFor) => {
+    const out = [], base = new Date(); base.setHours(12, 0, 0, 0);
+    for (let i = 0; i < 14; i++) { const dd = new Date(base); dd.setDate(dd.getDate() + i); const iso = isoDay(dd); if (openFor(iso).length) out.push({ iso, label: fmtIsoDay(iso) }); }
+    return out;
+  };
   const mySeriesLive = data ? mySeries : series;
   /* Anyone with a lesson still to come. Someone booked for Thursday is
      not drifting on Tuesday, whatever the gap behind them says. */
@@ -20954,6 +21042,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             seriesList={mySeries} onEditSeries={(r) => { setRecurId(r.id || null); setRecurFor(r.playerId ? personOf(r.playerId) : { name: r.who }); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
+                                                            onMove={data && data.canMove ? (bk) => { setMoveBk(bk); setMoveFor(bookFor ? bookFor.id : (account ? account.id : null)); setSheet("move"); } : null}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h) => { setBookSlot({ day, time: h }); setAskNote(""); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")}
@@ -21395,6 +21484,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               else push("capture:" + peek.who); }}
                                             onRegister={() => { const bk = peek; setSheet(null); setTimeout(() => { setAttendFor(bk); setSheet("attend"); }, 180); }}
                                             onCancel={() => { setCancelling(`${peek.who} · ${peek.time}`); setCancelBk(peek); setSheet("cancel"); }}
+                                            onMove={data && data.canMove && peek && peek.id && peek.playerId ? () => { setMoveBk(peek); setMoveFor(peek.playerId); setSheet("move"); } : null}
                                             close={() => setSheet(null)} />
               : sheet === "editDay" && editDay ? <EditDay day={editDay} duration={duration}
                                             avail={myAvail || {}} blocked={myBlocked || []} extra={myExtra || []} writeDay={writeDay}
@@ -21466,6 +21556,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             toCoach={transferTo || tr("your new coach")}
                                             onDone={(parts) => done(tr("Record shared"), `${parts.length} ${tr("parts")}`)}
                                             close={() => setSheet(null)} />
+              : sheet === "move" && moveBk && data ? (() => {
+                  /* one sheet for both sides: the coach moves (one write, the
+                     player told), a player or a parent for a child asks (a
+                     request at the new time, the old time given up) */
+                  const bk = moveBk, len = bk.duration || duration, ask = role !== "coach";
+                  const kid = ask && bookFor && moveFor && account && moveFor !== account.id ? bookFor : null;
+                  const coachFirst = String((kid ? kid.coachName : (conn && conn.coach)) || tr("your coach")).split(" ")[0];
+                  const playerFirst = String(bk.who || "").split(" ")[0];
+                  const when = `${bk.date ? fmtIsoDay(bk.date) : ""} · ${bk.time}`;
+                  const openFor = (iso) => (ask ? moveOpenTimes(bk, iso, moveFor) : dayOpenTimes({ date: iso, duration: len }, bk.id)).filter((tm) => !(iso === bk.date && tm === bk.time));
+                  return <MoveLessonBody ask={ask} who={ask ? (kid ? kid.name.split(" ")[0] : coachFirst) : bk.who} when={when} days={moveDays(openFor)} openFor={openFor}
+                           foot={ask ? `${coachFirst} ${tr("confirms the new time")} · ${when} ${tr("is given up")}` : `${playerFirst} ${tr("is told")}`}
+                           onMove={async (day, tm) => {
+                             const r = ask ? await data.askMove(bk.id, { date: day, time: tm }) : await data.moveBooking(bk.id, { date: day, time: tm });
+                             if (r && r.error) return r;
+                             done(ask ? tr("Asked") : tr("Moved"), [`${fmtIsoDay(day)} · ${tm}`, ask ? `${coachFirst} ${tr("confirms")}` : (r && r.told ? `${playerFirst} ${tr("is told")}` : null)].filter(Boolean).join(" · "));
+                             return r;
+                           }} close={() => setSheet(null)} />;
+                })()
               : sheet === "cancel" ? <CancelLesson role={role} lesson={cancelling || tr("Your lesson")} slots={role === "coach" ? dayOpenTimes(cancelBk) : []} duration={duration}
                                             request={role !== "coach" && !!(cancelBk && cancelBk.status === "requested")}
                                             verify={data && role === "coach" ? data.verifyPassword : null}

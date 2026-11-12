@@ -982,6 +982,54 @@ seeded data and no account.
   Cian had another request waiting (`person-row.cjs` (o)). The mock's
   `onBookingUpdate` says the same as the trigger. `offer-times.cjs`
   (d7)–(d13); behaviour.sql 10e.
+- **A lesson moves in one write, and the other side is told.** `Move`
+  on the coach's peek (`peek-move`) and **Reschedule** on a player's
+  block (`day-reschedule`, a parent's on a child's) open one sheet
+  (`MoveLessonBody`, `move-sheet`): Which day — the fortnight ahead,
+  only the days with an open time, as tiles on the app's one date form
+  (`move-day`) — then Which time, that day's open times at the lesson's
+  own length (`move-time`, the `TimeGrid`: the coach's own hours and
+  bookings through `dayOpenTimes` with the moving row left out, so a
+  lesson may move beside itself; a player's through `moveOpenTimes`,
+  the coach's hours as they read them, the days away, the coach's other
+  bookings as busy times by their lengths), then one button
+  (`move-go`). The coach's **Move** keeps the lesson's status and the
+  player reads "Lesson moved" · the new time · was the old (two facts;
+  a junior's adults "Saoirse's lesson moved"); a player's **Ask to
+  move** is a request at the new time — the row moved, the old time
+  given up, the coach's earlier asking line for it gone — and the coach
+  reads "Cian Murphy asked to move a lesson" · the new time · was the
+  old on Today, where Accept · Decline are; a parent's for a child tells
+  the child "Move asked for" in their own diary. The grey line under
+  the button says both: "Niamh confirms the new time · Tue 10 Nov ·
+  9:00 am is given up"; the toasts are "Moved" · the time · "Cian is
+  told" and "Asked" · the time · "Niamh confirms". The write is
+  `move_booking(p_booking, p_date, p_time)`, security definer — the
+  policies let a player change a booking's status and reason and
+  nothing else — which refuses a lesson begun by Ireland's clock, a time
+  gone, the time it is at, a time the coach holds (requested or
+  confirmed), a group's lesson (its members are told of a status change
+  only, so a clinic keeps the call-off and its peek's Move keeps the
+  cancel path), a junior moving their own and anybody else's lesson;
+  `trg_bookings_notify` has a move branch ahead of the status branches
+  that leaves the offer (a request moved and confirmed in one write) to
+  the confirmed branch. The hook probes the function once (`canMove`:
+  asked with no lesson it answers null and raises nothing — a refusal
+  was a 400 in the console on every page the crawls opened — and a
+  project without it says PGRST202); `moveBooking` goes through it when it is there and says
+  `told`, else the coach's own update as before, which tells nobody;
+  `askMove` only through it. Until the founder re-runs `nosca.sql` both
+  sides keep what they had: the coach's Move is the Cancel sheet — a
+  reason, an offered time, the password, two notices to the player,
+  "Lesson cancelled" for a lesson still on — and a player's Reschedule
+  is a cancel with the reason "Rescheduling" and "Pick a new time",
+  which is what every move was until now; `trg_bookings_notify` said
+  nothing when a lesson's day or hour changed, and the hook's
+  `moveBooking` had no caller. Square's client reschedule under
+  approval (pending until the business accepts or declines, both sides
+  notified); Calendly and Acuity free the original time the moment a
+  client reschedules and tell the host both times. `scripts/e2e/move.cjs`;
+  behaviour.sql 10h.
 - **A request carries words both ways: the player's note on the ask,
   the coach's reason on the no.** The request sheet (`bookSelf`) carries
   one field under the day and the time — `ask-note`, a `VoiceArea` whose
