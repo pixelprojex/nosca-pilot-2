@@ -13764,9 +13764,11 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
                 /* the members still on the roster — the picker's count and the
                    page's list, one number on all three; never a nought */
                 [countOf(membersOnRoster(g, all).length, nouns || "players"), `${(DAY_NAMES[g.day] || String(g.day || "")).slice(0, 3)} ${g.time}`].filter((x) => x.trim()).join(" · ")))}
-            {row("new", "roster-newgroup", () => { hapticCommit(); sheet("group"); },
+            {/* the one New group sheet, under the one name: it opened a second
+                sheet of chips headed the same, and read "Create a group" */}
+            {row("new", "roster-newgroup", () => { hapticCommit(); sheet("newGroup"); },
                 <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE, background: t.wash }}><Plus size={17} color={t.sub} strokeWidth={2} /></span>,
-                tr("Create a group"), null)}
+                tr("New group"), null)}
           </div>
         )}
       </div>
@@ -14707,33 +14709,36 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
 /* A code puts someone in this queue. Nothing about them reaches the
    coach's roster until the coach says yes — which is the safeguarding
    default when the person on the other end may be a minor. */
-function JoinRequests({ requests, onAccept, onDecline, pop, nouns }) {
+function JoinRequests({ requests, onAccept, onDecline, pop }) {
   const t = useT();
+  /* the day the person asked, in the app's one date form; the hook's
+     `when` ("8 Nov") stands in where there is no timestamp */
+  const askedOn = (r) => { const d = r.createdAt ? new Date(r.createdAt) : null; return d && !isNaN(d) ? fmtWeekDay(d) : r.when; };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Requests")} onBack={pop} meta={requests.length ? `${requests.length} waiting` : "Nothing waiting"}>
+      <Screen title={tr("Requests")} onBack={pop} meta={requests.length ? `${requests.length} waiting` : null}>
         <div className="px-6 pb-2">
           {requests.length === 0 ? (
-            <Card className="p-8 text-center">
-              <span className="rounded-full flex items-center justify-center mx-auto mb-4" style={{ width: 52, height: 52, background: t.wash }}><Check size={22} color={t.sub} strokeWidth={2} /></span>
-              <p style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{tr("All clear")}</p>
-              <p className="mt-2" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>New {nouns} using your code will appear here first.</p>
-            </Card>
-          ) : requests.map((r) => (
-            <Card key={r.id || r.name} className="p-5 mb-3" tour="request-card">
-              <div className="flex items-center gap-3.5 mb-4">
-                <Avatar name={r.name} size={46} />
-                <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{r.name}</span>
-                  <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>
-                    {[r.note, r.sport && SPORTS[r.sport] ? SPORTS[r.sport].label : null, r.junior ? tr("Under 18") : null, r.when].filter(Boolean).join(" · ")}
-                  </span></span>
-              </div>
-              <div className="flex gap-2.5">
-                <button onClick={() => onDecline(r)} className="flex-1 active:opacity-60" style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.sub }}>{tr("Decline")}</button>
-                <button onClick={() => onAccept(r)} className="flex-1 active:opacity-75" style={{ minHeight: 48, borderRadius: R.control, background: STEADY, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.onAccent }}>{tr("Accept")}</button>
-              </div>
-            </Card>
-          ))}
+            /* an empty state is a line, never a box */
+            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing waiting")}</p>
+          ) : (
+            /* ONE PERSON ROW, as Today's booking requests and the bell's: the
+               face, the name, one grey line of facts, Accept · Decline as the
+               row's text actions — Accept in ink, Decline quiet. Each was a
+               card with a filled success-green Accept and an outlined Decline,
+               the one person in the app drawn as a card. */
+            <div className="nsc-list">
+              {requests.map((r) => (
+                <PersonRow key={r.id || r.name} tour="request-card" className="pr-1" name={r.name}
+                           sub={[r.note, r.sport && SPORTS[r.sport] ? SPORTS[r.sport].label : null, r.junior ? tr("Under 18") : null, askedOn(r)].filter(Boolean).join(" · ")}
+                           textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
+                           actions={<>
+                             <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept(r); }}>{tr("Accept")}</TextBtn>
+                             <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline(r); }}>{tr("Decline")}</TextBtn>
+                           </>} />
+              ))}
+            </div>
+          )}
         </div>
       </Screen>
     </SwipeBack>
@@ -15160,13 +15165,16 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
         {DAY_NAMES.map((d, i) => {
           const on = day === i;
           return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
-                          style={{ minHeight: 42, borderRadius: R.control, background: on ? STEADY : t.wash,
-                                   fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.onAccent : t.sub,
+                          /* the chosen day in ink, as a chosen tile is — the accent is
+                             spent on Create group, and it was the success green */
+                          style={{ minHeight: 42, borderRadius: R.control, background: on ? t.ink : t.wash,
+                                   fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? "#fff" : t.sub,
                                    transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{d.slice(0, 2)}</button>);
         })}
       </div>
       <div className="mb-5">
-        <TimeGrid cols={3} times={ALL_TIMES.slice(0, 6)} picked={time} onToggle={setTime} />
+        {/* every time, not the first six: a junior clinic is after school */}
+        <TimeGrid cols={4} times={ALL_TIMES} picked={time} onToggle={setTime} />
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -15195,74 +15203,6 @@ const DRILL_SECONDS = (text) => {
   return /min/i.test(m[2]) ? n * 60 : n;
 };
 
-function GroupCreate({ cfg, coachSport, onCreate, close, livePlayers }) {
-  const t = useT();
-  const [name, setName] = useState("");
-  const [members, setMembers] = useState([]);
-  const [day, setDay] = useState(5);
-  const [time, setTime] = useState("8:00 am");
-  const [weeks, setWeeks] = useState(8);
-  const [showAll, setShowAll] = useState(false);
-  /* rows, so two players called the same thing are two members; the
-     harness has no ids, so its rows are { id: name, name } */
-  const tog = (p) => { haptic(5); setMembers(members.some((x) => x.id === p.id) ? members.filter((x) => x.id !== p.id) : [...members, p]); };
-  const ready = name.trim() && members.length > 0;
-  const POOL = (livePlayers ?? PLAYERS).map((p) => (typeof p === "string" ? { id: p, name: p } : p));
-  const shown = showAll ? POOL : POOL.slice(0, 4);
-
-  return (
-    <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("New group")}</h2>
-
-      <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("e.g. Saturday clinic")} autoFocus /></div>
-
-      <div className="flex items-baseline justify-between mb-2.5 px-1">
-        <span style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 500, color: t.sub }}>{tr("Members")}</span>
-        <span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{members.length} picked</span>
-      </div>
-      <div className="flex flex-wrap gap-2 mb-2">
-        {shown.map((p) => {
-          const on = members.some((x) => x.id === p.id);
-          return (
-            <button key={p.id} onClick={() => tog(p)} className="rounded-full pl-1.5 pr-3.5 flex items-center gap-2 active:opacity-60"
-                    style={{ minHeight: 42, background: on ? t.ink : t.surface, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}` }}>
-              <Avatar name={p.name} size={30} />
-              <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{p.name.split(" ")[0]}</span>
-              {on && <Check size={13} color={STEADY} strokeWidth={2.1} />}
-            </button>
-          );
-        })}
-      </div>
-      {!showAll && POOL.length > 4 && (
-        <button onClick={() => { haptic(8); soft(); setShowAll(true); }} className="mb-4 px-1 active:opacity-50" style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>
-          Show {POOL.length - 4} more
-        </button>
-      )}
-      {(showAll || POOL.length <= 4) && <div className="mb-4" />}
-
-      <div className="mb-2.5 px-1" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 500, color: t.sub }}>{tr("Repeats")}</div>
-      <div className="flex gap-1.5 mb-3">{DAY_NAMES.map((n, i) => {
-        const on = day === i;
-        return (<button key={n} onClick={() => { haptic(6); setDay(i); }} className="flex-1 rounded-xl active:opacity-60"
-                        style={{ minHeight: 44, background: on ? t.accent : t.wash, fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{n.slice(0,2)}</button>);
-      })}</div>
-      <div className="mb-4"><TimeGrid cols={4} times={ALL_TIMES} picked={time} onToggle={(tt) => { haptic(6); setTime(tt); }} /></div>
-
-      <div className="flex items-center justify-between mb-5 px-1">
-        <span style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>For {weeks} weeks</span>
-        <div className="flex items-center gap-3">
-          <button onClick={() => { haptic(6); setWeeks(Math.max(1, weeks - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer weeks")}><Minus size={15} color={t.ink} /></button>
-          <span style={{ fontFamily: display, fontSize: 21, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
-          <button onClick={() => { haptic(6); setWeeks(Math.min(12, weeks + 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("More weeks")}><Plus size={15} color={t.ink} /></button>
-        </div>
-      </div>
-
-      <Button disabled={!ready} onClick={() => { onCreate({ name: name.trim(), members: members.map((m) => m.name), memberIds: members.map((m) => m.id), day, time, weeks, sport: coachSport }); close(); }}>
-        {ready ? `Create · ${weeks} ${DAY_NAMES[day]}s from now` : "Name it and pick members"}
-      </Button>
-    </>
-  );
-}
 
 /* ==================================================================
    PAYMENTS / PRICING (unchanged in substance)
@@ -20957,7 +20897,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = <VideoAnnotate angle={ang} transcript={cfg.transcript}
                           onSave={(shapes, caps) => setAnnotations((a) => ({ ...a, [ang]: { shapes, caps } }))} pop={pop} say={say} />;
   } else if (screen === "requests") {
-    body = <JoinRequests requests={openRequests} onAccept={acceptRequest} onDecline={declineRequest} pop={pop} nouns={cfg.nouns} />;
+    body = <JoinRequests requests={openRequests} onAccept={acceptRequest} onDecline={declineRequest} pop={pop} />;
   } else if (screen === "layout") {
     body = <LayoutEditor layout={layout} onSave={saveLayout} pop={pop} say={say} />;
   } else if (screen === "clips") {
@@ -21450,7 +21390,6 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                   dueOn={data ? !!data.drillsDue : true} nextLesson={assignTo ? nextLessonIsoFor(assignTo) : null} />
               : sheet === "tip" ? <TipBody prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
                                             onSet={doSetTip} close={() => setSheet(null)} />
-              : sheet === "group" ? <GroupCreate livePlayers={data ? data.roster : null} cfg={cfg} coachSport={coachSport} onCreate={createGroup} close={() => setSheet(null)} />
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} 
                                                     close={() => setSheet(null)} say={say} />
               : sheet === "password" ? <ChangePasswordBody onSubmit={data ? (pw) => data.changePassword(pw) : null} say={say} close={() => setSheet(null)} />

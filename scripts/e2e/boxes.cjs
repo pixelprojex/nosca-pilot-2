@@ -269,7 +269,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       await page.locator('[data-scroll="screen"] button', { hasText: /^Groups$/ }).first().click(); await page.waitForTimeout(700);
       const grp = await audit(page, '[data-scroll="screen"]', EDGE.golf);
       const gr = await holder(page, '[data-tour="roster-group"]');
-      check("(f2) the Groups half is boxed rows, Create a group among them", fine(grp) && !!gr && /nsc-list/.test(gr.parent) && (await page.locator('[data-tour="roster-newgroup"]').count()) === 1, `${said(grp)} · ${JSON.stringify(gr)}`);
+      check("(f2) the Groups half is boxed rows, New group among them", fine(grp) && !!gr && /nsc-list/.test(gr.parent) && (await page.locator('[data-tour="roster-newgroup"]').count()) === 1, `${said(grp)} · ${JSON.stringify(gr)}`);
       await page.locator('[data-scroll="screen"] button', { hasText: /^Players$/ }).first().click(); await page.waitForTimeout(600);
 
       /* the player file: the tip centred, the foot boxed, the lessons with no rule inside */
@@ -491,11 +491,15 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await tap(page, '[aria-label="Today"]', 900);
         await tap(page, '[data-tour="today-requests"]', 1000);
         const join = await meet(page, '[data-scroll="screen"]', "join requests");
-        await shot("13-join-decline");
-        const accept = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tour="request-card"] button')].find((x) => x.textContent.trim() === "Accept"); return b ? { bg: getComputedStyle(b).backgroundColor, radius: getComputedStyle(b).borderTopLeftRadius } : null; });
-        check("(s1) a join request's Decline is outlined on golf's edge at 1.5px, at least 3:1, on the control's corner — and Accept beside it is filled, not outlined, the same corner (they were 16px)",
-          onEdge(only(join, /^Decline$/), EDGE.golf) && only(join, /^Decline$/).every((o) => o.radius === "10px") && !!accept && accept.bg !== "rgba(0, 0, 0, 0)" && accept.radius === "10px",
-          told(join).slice(0, 300) + ` decline r ${only(join, /^Decline$/).map((o) => o.radius).join(",")} accept ${JSON.stringify(accept)}`);
+        await shot("13-join-requests");
+        /* a join request is the one person row now: its Accept · Decline are the row's
+           text actions, so no outlined control is met here; the box is the edge */
+        const jr = await audit(page, '[data-scroll="screen"]', EDGE.golf);
+        const jacts = await page.evaluate(() => [...document.querySelectorAll('[data-tour="request-card"] .ml-auto button')].map((b) => { const cs = getComputedStyle(b); return { label: b.textContent.trim(), bg: cs.backgroundColor, bw: cs.borderTopWidth, bs: cs.borderTopStyle, fg: cs.color, h: Math.round(b.getBoundingClientRect().height) }; }));
+        const jink = await page.evaluate(() => { const n = document.querySelector('[data-tour="request-card"] [data-name]'); return n ? getComputedStyle(n).color : null; });
+        check("(s1) a join request is the one person row in a box on golf's edge — Accept · Decline its text actions, no outline and no fill, 44 tall, Accept in ink (it was a card with a filled success-green Accept and an outlined Decline)",
+          fine(jr) && only(join, /^(Decline|Accept)$/).length === 0 && jacts.length >= 2 && jacts.every((a) => a.bg === "rgba(0, 0, 0, 0)" && (a.bw === "0px" || a.bs === "none") && a.h >= 44) && jacts.some((a) => a.label === "Accept" && a.fg === jink),
+          `${said(jr)} · ${JSON.stringify(jacts).slice(0, 200)} ink ${jink} · ${told(join).slice(0, 120)}`);
         await tap(page, '[aria-label="Today"]', 900);
         await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(900);
         const dec = await meet(page, "[data-sheet]", "decline sheet");
@@ -527,9 +531,15 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await tap(page, '[data-tour="roster-tab"] button:has-text("Groups")', 700);
         await tap(page, '[data-tour="roster-newgroup"]', 900);
         const grp = await meet(page, "[data-sheet]", "new group");
-        await shot("13-new-group-chips");
-        const chips = only(grp, /Cian|Saoirse|Aoife|Eoin/);   // a chip reads its initials and the first name
-        check("(s11) New group's unpicked chips are outlined on the edge, at least 3:1 — a white fill on the white sheet counts as nothing", chips.length >= 2 && onEdge(chips, EDGE.golf), told(grp).slice(0, 300));
+        await shot("13-new-group-people");
+        /* the one New group sheet: its people are boxed person rows on the edge (the
+           row opened a second sheet of round chips, "e.g. Saturday clinic", for a long time) */
+        const ng = await audit(page, "[data-sheet]", EDGE.golf);
+        const ngText = (await sheetText(page)).replace(/\s+/g, " ");
+        /* the picker's rows: buttons whose edge is the list's own rule, not an inline style, so
+           `audit` vouches for the edge and the colour and only the ratio is read off each */
+        const people = only(grp, /Cian|Saoirse|Aoife|Eoin/);
+        check("(s11) the roster's New group row opens the one New group sheet: its people boxed rows on the edge, at least 3:1, under \"Group name\" — no chips, no second sheet", fine(ng) && people.length >= 2 && people.every((o) => edgeRatio(o) >= 3) && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1, `${said(ng)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
         await closeSheet(page);
         await ctx.close();
       }

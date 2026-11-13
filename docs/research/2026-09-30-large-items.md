@@ -675,6 +675,24 @@ client reschedules and tell the host both times. A group's lesson
 keeps the call-off: its members are told of a status change only. The
 functional item of the day; `move.cjs`, behaviour.sql 10h.
 
+### 36. One New group sheet, and Join requests are person rows. **Built 13 November.**
+Visual. New group opened two sheets: the plus and the roster's tile a
+sheet of boxed person rows, "Group name", a day row filled in the
+success green and six times; the roster's foot row ("Create a group")
+a second sheet of round chips, "e.g. Saturday clinic", every time and
+"Create · 8 Fridays from now" — one thing drawn two ways under two
+names, carried as found since 9 November. And Join requests drew each
+person as a card — a 46px face, a filled success-green Accept, an
+outlined Decline, and an empty state of a tick in a disc with a
+sentence — where every other person in the app is one row with
+Accept · Decline as text actions (Today's booking requests, the
+bell's). Now one sheet from all three controls, the chosen day in ink
+and every time offered, and Requests as the one person row in a boxed
+list with a line for nothing waiting: Instagram's follow requests, a
+row per name with Confirm · Delete beside it; Material 3's list item
+with its actions in the trailing slot. The visual item of the day;
+`new-group.cjs`, `join-requests.cjs`.
+
 ### Next candidates (unranked until read against the field)
 - A reason on Not going, optional, read by the coach first as a
   cancellation's is (Teamer, TeamSnap, SportMember, 360Player): a
@@ -837,3 +855,6 @@ the items above; a research spike first.
 - https://acuityscheduling.com/learn/reschedule-an-appointment (Acuity: a client reschedules into the business's open times; the business is notified with the new time)
 - https://support.schedulista.com/en/articles/2322989-how-can-a-client-reschedule-their-appointment-online (Schedulista: the provider's reschedule notice names the original and the updated time)
 - https://squareup.com/help/us/en/article/6729 (Square Appointments: client-rescheduled, business-accepted and business-declined reschedule notifications; a request is pending under approval)
+- https://developer.android.com/reference/kotlin/androidx/compose/material3/ListItem.composable (Material 3's list item: leading content, the headline, supporting text and trailing content — the row's controls sit in the trailing slot)
+- https://material-web.dev/components/list (Material Web's list item, with its trailing slot and trailing supporting text)
+- https://www.alphr.com/find-follow-request-instagram/ (Instagram's follow requests: a list of names, Confirm and Delete beside each one)
