@@ -2113,6 +2113,33 @@ seeded data and no account.
   every row as the coach and a parent at 375 and 320 — the twelve
   surfaces, counting only a sheet's own rows, the overflow of every grey
   line and the air above a notice's title.
+- **One New group sheet, and Join requests are person rows.** New group
+  is `CreateGroup` (the `newGroup` sheet) from every control that opens
+  it — the roster's tile, the roster's Groups-half foot row
+  (`roster-newgroup`, which reads New group, not "Create a group") and
+  the plus: "Group name", the people as `PersonPicker`'s boxed rows
+  picked by id, the week as a day row with the chosen day in ink (it was
+  the success green; the accent is spent on Create group), every one of
+  `ALL_TIMES` (it offered the first six, ending at half three, and a
+  junior clinic is after school), the weeks, Create group. The foot row
+  opened a second sheet (`GroupCreate`) of round chips, "e.g. Saturday
+  clinic", four times to a row and "Create · 8 Fridays from now" — one
+  thing drawn two ways under two names, carried as found since
+  9 November; it is gone. `JoinRequests` is one boxed list of
+  `PersonRow`s (`request-card`): the face, the whole name, one grey line
+  of the facts — the sport, Under 18, the day they asked in the app's
+  form (`Thu 12 Nov`, off `createdAt`; the hook's `when` read "8 Nov")
+  — and Accept · Decline as the row's text actions, Accept in ink,
+  Decline in `t.faint`, as Today's booking requests and the bell's;
+  beside the name where it fits, a line of their own under it at 320.
+  With nothing waiting the screen is the line "Nothing waiting" and no
+  subtitle. The empty state was a card with a tick in a disc and a
+  sentence, and each request a card with a 46px face, a filled STEADY
+  Accept and an outlined Decline — the one person in the app drawn as a
+  card. Instagram's follow requests are rows with Confirm · Delete
+  beside each name; Material 3's list item carries its actions in the
+  trailing slot. `scripts/e2e/new-group.cjs`,
+  `scripts/e2e/join-requests.cjs`; `boxes.cjs` (s1), (s11).
 - **Nothing is cut at 320.** The narrowest phone is a real one (the
   first SE, the small Androids; WCAG 1.4.10 asks for the content whole
   at 320 CSS pixels), and four places gave way there: the compact
