@@ -554,6 +554,8 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await tap(page, '[data-tour="cal-recurring"]', 1000);
         await tap(page, '[data-tour="recur-add"]', 1000);
         const sRec = await h2Size();
+        /* the sheet opens on who: pick the first person, and the day row and the cadence are drawn */
+        const who = page.locator('[data-tour="recur-who"] button').first(); if (await who.count()) { await who.click(); await page.waitForTimeout(700); }
         const recDays = await page.evaluate(() => { const s = document.querySelector("[data-sheet]"); if (!s) return null; const h = s.querySelector("h2"); const txt = (b) => b.textContent.trim();
           const pick = (re) => [...s.querySelectorAll("button")].filter((b) => re.test(txt(b))).map((b) => ({ d: txt(b), bg: getComputedStyle(b).backgroundColor }));
           return { ink: h ? getComputedStyle(h).color : null, days: pick(/^(Mo|Tu|We|Th|Fr|Sa|Su)$/), freq: pick(/^(Weekly|Fortnightly|Monthly)$/) }; });
