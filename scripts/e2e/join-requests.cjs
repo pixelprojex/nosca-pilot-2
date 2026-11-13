@@ -141,9 +141,11 @@ const line = (r) => `${r.name.slice(0, 14)} face ${r.face} ${r.fs}/${r.fw} sub "
       await toRequests(page);
       const R = await rows(page); await shot("04-requests-320");
       const eoin = R.find((r) => r.name === "Eoin Walsh"), max = R.find((r) => r.name === LONG);
-      /* with the pair under it the long name has the row's width and sits on one line at 320 */
-      check("(i) at 320 the long name is whole with Accept · Decline on a line of their own under it, 44 tall; Eoin's keep beside his name; nothing runs past its box",
-        R.length === 2 && !!max && !max.nameCut && max.under === true && max.btns.every((b) => b.h >= 44) && !!eoin && !eoin.nameCut && eoin.under === false && R.every((r) => r.sub && !r.sub.over && r.btns.every((b) => b.right <= r.boxRight)),
+      /* at 320 the row cannot give a name its 84px beside the pair, so the pair takes a line of its
+         own under both names (the one row's rule, as Today's requests and the bell's); with the
+         row's width the long name sits whole on one line */
+      check("(i) at 320 Accept · Decline sit on a line of their own under both names, 44 tall, and the long name is whole; nothing runs past its box",
+        R.length === 2 && !!max && !max.nameCut && max.under === true && max.btns.every((b) => b.h >= 44) && !!eoin && !eoin.nameCut && eoin.under === true && eoin.btns.every((b) => b.h >= 44) && R.every((r) => r.sub && !r.sub.over && r.btns.every((b) => b.right <= r.boxRight)),
         R.map((r) => `${line(r)} wrapped ${r.wrapped} cut ${r.nameCut} right ${r.btns.map((b) => b.right).join("/")} box ${r.boxRight}`).join(" | "));
       await ctx.close();
     }
