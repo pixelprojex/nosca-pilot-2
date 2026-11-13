@@ -541,6 +541,39 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const people = only(grp, /Cian|Saoirse|Aoife|Eoin/);
         check("(s11) the roster's New group row opens the one New group sheet: its people boxed rows on the edge, at least 3:1, under \"Group name\" — no chips, no second sheet", fine(ng) && people.length >= 2 && people.every((o) => edgeRatio(o) >= 3) && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1, `${said(ng)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
         await closeSheet(page);
+        /* ONE SHEET TITLE: every sheet's h2 is TYPE.title (19px) — nine were 24 or 25 */
+        const h2Size = () => page.evaluate(() => { const h = document.querySelector("[data-sheet] h2"); return h ? getComputedStyle(h).fontSize : null; });
+        await tap(page, '[data-tour="roster-tab"] button:has-text("Players")', 600);
+        await page.getByRole("button", { name: "New group", exact: true }).first().click(); await page.waitForTimeout(900);
+        const sNew = await h2Size(); await closeSheet(page);
+        await tap(page, '[data-tour="roster-invite"]', 900);
+        const sInv = await h2Size(); await closeSheet(page);
+        await tap(page, '[aria-label="Chat"]', 900); await tap(page, '[data-tour="chat-new"]', 900);
+        const sMsg = await h2Size(); await closeSheet(page);
+        await tap(page, '[aria-label="Diary"]', 1000); await toList(page);
+        await tap(page, '[data-tour="cal-recurring"]', 1000);
+        await tap(page, '[data-tour="recur-add"]', 1000);
+        const sRec = await h2Size();
+        const recDays = await page.evaluate(() => { const s = document.querySelector("[data-sheet]"); if (!s) return null; const h = s.querySelector("h2"); const txt = (b) => b.textContent.trim();
+          const pick = (re) => [...s.querySelectorAll("button")].filter((b) => re.test(txt(b))).map((b) => ({ d: txt(b), bg: getComputedStyle(b).backgroundColor }));
+          return { ink: h ? getComputedStyle(h).color : null, days: pick(/^(Mo|Tu|We|Th|Fr|Sa|Su)$/), freq: pick(/^(Weekly|Fortnightly|Monthly)$/) }; });
+        await shot("13-recurring-sheet");
+        await closeSheet(page);
+        check("(s12) one sheet title: New group, Invite players, New message and the recurring Set up sheet carry TYPE.title's 19px (they were 24 and 25 beside the twenty-two at 19)", [sNew, sInv, sMsg, sRec].every((x) => x === "19px"), JSON.stringify({ sNew, sInv, sMsg, sRec }));
+        check("(s13) the recurring sheet's chosen day and cadence are filled with the ink, as a chosen tile is — never the accent, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === recDays.ink).length === 1 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.bg === recDays.ink).length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(47, 107, 58)"), JSON.stringify(recDays).slice(0, 300));
+        await ctx.close();
+      }
+      /* the To log screen: person rows in one boxed list, Log as the row's action */
+      {
+        const dbT = freshDb();
+        M.addBooking(dbT, { coachId: IDS.coach, playerId: IDS.junior, date: M.ymd(dayFrom(-3)), time: "9:00 am" });
+        const { ctx, page, shot } = await boot("coach", dbT);
+        await tap(page, '[aria-label="Today"]', 900);
+        await tap(page, '[data-tour="today-writeup"]', 1000);
+        const tl = await audit(page, '[data-scroll="screen"]', EDGE.golf);
+        const tlRows = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] [data-person-row]')].map((r) => ({ name: (r.querySelector("[data-name]") || {}).textContent, sub: ((r.querySelector("[data-sub]") || {}).textContent || "").replace(/\s+/g, " ").trim(), acts: [...r.querySelectorAll(".ml-auto button")].map((b) => `${b.textContent.trim()} ${Math.round(b.getBoundingClientRect().height)} ${getComputedStyle(b).backgroundColor}`), boxed: !!r.closest(".nsc-list") })));
+        await shot("14-to-log");
+        check("(s14) To log is the one person row in a boxed list on the edge — the face, the name, the day and the time, Log as the row's 44-tall text action (it was a card with a date tile, an outlined Dismiss and a filled Log lesson)", fine(tl) && tlRows.length === 1 && tlRows[0].boxed && /Saoirse Kelly/.test(tlRows[0].name || "") && DAY_FORM.test(tlRows[0].sub.split(" · ")[0].trim()) && /9:00 am/.test(tlRows[0].sub) && tlRows[0].acts.length === 1 && /^Log 44 rgba\(0, 0, 0, 0\)$/.test(tlRows[0].acts[0]), `${said(tl)} · ${JSON.stringify(tlRows)}`);
         await ctx.close();
       }
       /* a player: the coach's profile — Message, and Stay under Leave */
