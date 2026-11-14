@@ -2695,7 +2695,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
           return (
             <button key={r} data-tour="cancel-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
               {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
@@ -7293,7 +7293,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
           return (
             <button key={r} data-tour="end-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
               {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
@@ -7412,7 +7412,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
           return (
             <button key={r} data-tour="calloff-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
               {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
@@ -7472,12 +7472,12 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
      pale accent card at 16px, a fourth box style on one screen — with a
      group marked as the List view marks it, the 3px bar */
   return (
-    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 8 }}>
+    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 8, background: t.wash, border: `${EDGE_W}px solid transparent` }}>
       <button onClick={() => { haptic(7); soft(); setOpen(!open); }} className="w-full text-left px-5 py-4">
         <div className="flex items-center gap-3.5">
           {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
           {!isGroup ? <Avatar name={item.who} size={42} />
-            : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.wash }}>
+            : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.surface }}>
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
             <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
@@ -7507,7 +7507,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           {/* the numbers */}
           {/* A group has no file, and f.done is 0 for every real
               account — the roster is where a real count lives. */}
-          <div className="flex mx-5 mb-4" style={{ background: t.wash, borderRadius: R.control }}>
+          <div className="flex mx-5 mb-4" style={{ background: t.surface, borderRadius: R.control }}>
             {/* on the wash the faint caption reads 4.4:1, under the 4.5:1 a
                 word needs; the sub tone reads over 7 */}
             {!isGroup && (
@@ -7518,13 +7518,13 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
 
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
             {isGroup && item.outNames && item.outNames.length > 0 && (
-              <div data-tour="block-out" className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
+              <div data-tour="block-out" className="px-4 py-3" style={{ borderRadius: R.control, background: t.surface }}>
                 <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not going")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{item.outNames.join(", ")}</div>
               </div>
             )}
             {f.tip && (
-              <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
+              <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.surface }}>
                 <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Working on")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
@@ -16237,7 +16237,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             {booked.length > 0 && (
               <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
                       className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
-                      style={{ minHeight: 54, borderRadius: 8, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+                      style={{ minHeight: 54, borderRadius: 8, background: t.wash, border: `${EDGE_W}px solid transparent` }}>
                 {/* a calendar with an X, as on the plus: a coach calls off for a
                     closed course as often as for rain */}
                 <CalendarX size={16} color={t.sub} strokeWidth={1.6} />
@@ -21615,7 +21615,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         return (
                           <button key={r} data-tour="decline-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setDeclineWhy(on ? null : r); }}
                                   className="w-full flex items-center gap-3 text-left"
-                                  style={{ minHeight: 52, background: on ? theme.ink : theme.surface, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                                  style={{ minHeight: 52, background: on ? theme.ink : theme.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                             <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : theme.ink }}>{tr(r)}</span>
                             {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
