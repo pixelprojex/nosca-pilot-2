@@ -25,6 +25,7 @@ const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.ge
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const nice = (x) => `${DAYS[x.getDay()]} ${x.getDate()} ${MON[x.getMonth()]}`;
 const EDGE_GOLF = "rgba(47, 107, 58, 0.72)";
+const WASH_GOLF = "rgb(235, 243, 234)";   // a list row sits on the wash with no edge (14 November)
 
 function freshDb() {
   const db = M.emptyDb();
@@ -58,7 +59,7 @@ const rows = (page) => page.evaluate(() => {
     const acts = row.querySelector(":scope > .ml-auto");
     const btns = acts ? [...acts.querySelectorAll("button")].map((b) => { const cs = getComputedStyle(b), r = b.getBoundingClientRect(); return { label: b.textContent.trim(), bg: cs.backgroundColor, bw: cs.borderTopWidth, bs: cs.borderTopStyle, fg: cs.color, h: Math.round(r.height), right: Math.round(r.right) }; }) : [];
     return { name: nameEl.textContent.trim(), person: row.hasAttribute("data-person-row"), tag: row.tagName,
-             inList: row.parentElement.classList.contains("nsc-list"), edge: `${bs.borderTopWidth} ${bs.borderTopStyle} ${bs.borderTopColor}`, radius: bs.borderTopLeftRadius,
+             inList: row.parentElement.classList.contains("nsc-list"), bg: bs.backgroundColor, edge: `${bs.borderTopWidth} ${bs.borderTopStyle} ${bs.borderTopColor}`, radius: bs.borderTopLeftRadius,
              boxRight: Math.round(br.right), rowRight: Math.round(rr.right), face: Math.round(fr.width), inset: Math.round(nr.left - fr.left),
              fs: ncs.fontSize, fw: ncs.fontWeight, ink: ncs.color, nameCut: cut(nameEl), wrapped: nr.height > parseFloat(ncs.fontSize) * 1.8,   // a second line (the line height reads "normal")
              sub: subEl ? { t: subEl.textContent.replace(/\s+/g, " ").trim(), fs: getComputedStyle(subEl).fontSize, over: subEl.scrollWidth > subEl.clientWidth + 1 } : null,
@@ -93,8 +94,8 @@ const line = (r) => `${r.name.slice(0, 14)} face ${r.face} ${r.fs}/${r.fw} sub "
       const { ctx, page, text, shot } = await boot(db, "coach", 375);
       await toRequests(page);
       const t0 = await text(); const R = await rows(page); await shot("01-requests-375");
-      check("(a) Requests opens from Today's strip, its subtitle the count — two waiting — and each request is a person row in one boxed list on golf's edge, 8px corners, no card",
-        /Requests/.test(t0) && /2 waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && /^1\.5px solid|^1px solid|^2px solid/.test(r.edge) && r.edge.endsWith(EDGE_GOLF) && r.radius === "8px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
+      check("(a) Requests opens from Today's strip, its subtitle the count — two waiting — and each request is a person row in one list on golf's wash, 8px corners, no edge, no card",
+        /Requests/.test(t0) && /2 waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && r.bg === WASH_GOLF && r.radius === "8px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
         `${t0.slice(0, 80)} · ${R.map(line).join(" | ")}`);
       check("(b) the one row: the face 40, the name 54px in at 14.5px/400, the grey line 12px", R.length === 2 && R.every((r) => r.face === 40 && r.inset === 54 && r.fs === "14.5px" && r.fw === "400" && r.sub && r.sub.fs === "12px"), R.map(line).join(" | "));
       const eoin = R.find((r) => r.name === "Eoin Walsh"), max = R.find((r) => r.name === LONG);

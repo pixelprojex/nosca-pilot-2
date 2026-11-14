@@ -84,7 +84,9 @@ const audit = (page, scope, edge) => page.evaluate(([scope, edge]) => {
     [...list.children].forEach((box) => {
       if (!vis(box)) return; out.boxes++;
       const cs = getComputedStyle(box);
-      const sides = ["Top", "Right", "Bottom", "Left"].every((s) => parseFloat(cs[`border${s}Width`]) >= 1 && cs[`border${s}Color`] === edge && cs[`border${s}Style`] === "solid");
+      /* a list row sits on the sport's wash with no edge (14 November): the fill is the wash and every side is transparent or nought */
+      const WASH_OF = { "rgba(47, 107, 58, 0.72)": "rgb(235, 243, 234)", "rgba(122, 59, 74, 0.72)": "rgb(246, 239, 242)" };
+      const sides = cs.backgroundColor === WASH_OF[edge] && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === "rgba(0, 0, 0, 0)" || parseFloat(cs[`border${s}Width`]) === 0);
       if (!sides || cs.borderTopLeftRadius !== "8px") out.bad.push(`${label(box)} · ${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius}`);
       const bw = box.getBoundingClientRect().width;
       [box, ...box.querySelectorAll("*")].forEach((el) => {
@@ -113,7 +115,7 @@ const rowsOf = (page, scope, js) => page.evaluate(([scope, js]) => {
   return rows.map((r) => {
     const cs = getComputedStyle(r), p = r.parentElement;
     return { text: (r.innerText || "").replace(/\s+/g, " ").slice(0, 24), parent: p.className.slice(0, 40), inList: p.classList.contains("nsc-list"), inDay: !!r.closest(".nsc-day"),
-             top: `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`, bottom: `${cs.borderBottomWidth} ${cs.borderBottomStyle} ${cs.borderBottomColor}`, left: `${cs.borderLeftWidth} ${cs.borderLeftColor}`, radius: cs.borderTopLeftRadius };
+             top: `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`, bottom: `${cs.borderBottomWidth} ${cs.borderBottomStyle} ${cs.borderBottomColor}`, left: `${cs.borderLeftWidth} ${cs.borderLeftColor}`, bg: cs.backgroundColor, radius: cs.borderTopLeftRadius };
   });
 }, [scope, js]);
 /* the one .nsc-day under `scope`: its edge, corners, and the rows' rules inside */
@@ -125,7 +127,9 @@ const dayBox = (page, scope) => page.evaluate((scope) => {
 }, scope);
 const dayFine = (d, edge, hair) => !!d && d.n >= 2 && d.edge === edge && parseFloat(d.w) >= 1 && d.radius === "8px" && d.inner.every((x) => x === `1px ${hair}`) && d.last === "none";
 /* boxed: each row its own box in an .nsc-list on the edge, or a row inside an .nsc-day */
-const boxedRows = (rows, edge) => !!rows && rows.length > 0 && rows.every((r) => (r.inList && r.left.endsWith(edge) && r.radius === "8px") || r.inDay);
+const WASH = { golf: "rgb(235, 243, 234)", equestrian: "rgb(246, 239, 242)" };   // the sport's wash: a list row's fill since 14 November
+const WASH_FOR = (edge) => ({ "rgba(47, 107, 58, 0.72)": WASH.golf, "rgba(122, 59, 74, 0.72)": WASH.equestrian })[edge];
+const boxedRows = (rows, edge) => !!rows && rows.length > 0 && rows.every((r) => (r.inList && r.bg === WASH_FOR(edge) && r.radius === "8px") || r.inDay);
 const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map((r) => `"${r.text}" parent[${r.parent}] list=${r.inList} day=${r.inDay} bottom ${r.bottom} left ${r.left}`).join(" | ")}` : "no scope";
 
 (async () => {

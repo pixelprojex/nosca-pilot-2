@@ -176,7 +176,8 @@ const { check, results, summary } = M.checker("recurring");
         if (!list) return { label, ok: false, why: "not in a .nsc-list" };
         const box = [...list.children].find((c) => c === row || c.contains(row));
         const cs = getComputedStyle(box);
-        const sides = ["Top", "Right", "Bottom", "Left"].every((s) => parseFloat(cs[`border${s}Width`]) >= 1 && cs[`border${s}Color`] === edge && cs[`border${s}Style`] === "solid");
+        const WASH_OF = { "rgba(47, 107, 58, 0.72)": "rgb(235, 243, 234)" };   // a list row sits on the wash with no edge (14 November)
+        const sides = cs.backgroundColor === WASH_OF[edge] && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === "rgba(0, 0, 0, 0)" || parseFloat(cs[`border${s}Width`]) === 0);
         const bw = box.getBoundingClientRect().width; const rules = [];
         [box, ...box.querySelectorAll("*")].forEach((el) => {
           const wide = el === box || el.getBoundingClientRect().width >= 0.6 * bw;
@@ -188,7 +189,7 @@ const { check, results, summary } = M.checker("recurring");
         const ok = sides && cs.borderTopLeftRadius === "8px" && rules.length === 0;
         return { label, ok, why: `${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius} rules[${rules.slice(0, 2).join(" | ")}]` };
       }), "rgba(47, 107, 58, 0.72)");
-      check("(a2) each Recurring row is its own box in a .nsc-list: golf's edge on four sides, 8px corners, no rule inside",
+      check("(a2) each Recurring row is its own row in a .nsc-list: golf's wash, no edge, 8px corners, no rule inside",
         boxes.length === 3 && boxes.every((b) => b.ok), boxes.length ? boxes.map((b) => `${b.label}: ${b.ok ? "ok" : b.why}`).join(" || ") : "no cal-series rows");
 
       /* (b) Update after another time: the same row, changed in place */

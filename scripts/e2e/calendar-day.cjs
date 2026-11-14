@@ -29,6 +29,7 @@ const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-00
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const REC = "c0000000-0000-4000-8000-00000000ca01";
 const EDGE = { golf: "rgba(47, 107, 58, 0.72)", equestrian: "rgba(122, 59, 74, 0.72)" };
+const WASH = { golf: "rgb(235, 243, 234)", equestrian: "rgb(246, 239, 242)" };   // the sport's wash: a list row's fill since 14 November
 const HAIRLINE = "rgb(228, 236, 225)";
 const GROUP = "rgb(110, 90, 147)";
 const WEEK = ["9:00 am", "10:00 am", "11:00 am", "11:30 am", "4:00 pm", "5:00 pm"];
@@ -93,8 +94,8 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
   }), tour);
   const reasonChecks = async (page, id, tour, pick, edge) => {
     const rs = await reasons(page, tour);
-    check(`(${id}) the reasons are boxes of one list on the sport's edge, 8px corners — never the hairline`,
-          rs.length >= 3 && rs.every((r) => r.inList && r.border === edge && r.bw >= 1 && r.radius === "8px"), JSON.stringify(rs.slice(0, 3)));
+    check(`(${id}) the reasons are rows of one list on the sport's wash, 8px corners — never the hairline`,
+          rs.length >= 3 && rs.every((r) => r.inList && (r.t === pick || r.bg === (edge === EDGE.golf ? WASH.golf : WASH.equestrian)) && r.radius === "8px"), JSON.stringify(rs.slice(0, 3)));
     await page.locator(`[data-tour="${tour}"]`, { hasText: new RegExp(`^${pick}$`) }).first().click(); await page.waitForTimeout(500);
     const on = (await reasons(page, tour)).find((r) => r.t === pick);
     check(`(${id}) …and the chosen one is ink with white words, not a 6% tint`, !!on && lum(on.bg) < 0.03 && lum(on.fg) > 0.8, JSON.stringify(on));
@@ -112,9 +113,9 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       const blocks = await page.evaluate(() => [...document.querySelectorAll('[data-tour="cal-block"]')].map((b) => {
         const s = getComputedStyle(b);
         const bar = [...b.querySelectorAll("span")].find((x) => getComputedStyle(x).width === "3px");
-        return { t: b.innerText.replace(/\s+/g, " ").slice(0, 80), border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, bar: bar ? getComputedStyle(bar).backgroundColor : null };
+        return { t: b.innerText.replace(/\s+/g, " ").slice(0, 80), bg: s.backgroundColor, border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, bar: bar ? getComputedStyle(bar).backgroundColor : null };
       }));
-      check("(c5) each of the coach's lessons is a box on the sport's edge at 8px — not a pale 16px accent card", blocks.length === 3 && blocks.every((b) => b.border === EDGE.golf && b.bw >= 1 && b.radius === "8px"), JSON.stringify(blocks));
+      check("(c5) each of the coach's lessons is a row on the sport's wash at 8px, no edge — not a pale 16px accent card", blocks.length === 3 && blocks.every((b) => b.bg === WASH.golf && b.radius === "8px"), JSON.stringify(blocks));
       const clinic = blocks.find((b) => /Saturday clinic/.test(b.t));
       check("(c5) …a group keeps the List view's 3px bar in its own colour", !!clinic && clinic.bar === GROUP, JSON.stringify(clinic));
       check("(c3) the coach reads the clinic at its own hour, 11:00 am–12:00 pm — not the diary's 45 minutes, not an am stripped across noon", !!clinic && /11:00 am–12:00 pm/.test(clinic.t), JSON.stringify(clinic));
@@ -128,8 +129,8 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       await shot("02-coach-block-open");
       check("(c3) …and opened, its Length reads 60m", !!opened && opened.len === "60", JSON.stringify(opened));
       check("(c5) …with nothing inside it on the hairline", !!opened && opened.onHair === 0, JSON.stringify(opened));
-      const weather = await page.evaluate(() => { const b = document.querySelector('[data-tour="cal-weather"]'); if (!b) return null; const s = getComputedStyle(b); const svg = b.querySelector("svg"); return { border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, cls: svg ? svg.getAttribute("class") : "" }; });
-      check("(c6) the call-off row is on the sport's edge at 8px, with the calendar-and-X glyph — never the rain", !!weather && weather.border === EDGE.golf && weather.bw >= 1 && weather.radius === "8px" && /calendar-x/.test(weather.cls) && !/cloud-rain/.test(weather.cls), JSON.stringify(weather));
+      const weather = await page.evaluate(() => { const b = document.querySelector('[data-tour="cal-weather"]'); if (!b) return null; const s = getComputedStyle(b); const svg = b.querySelector("svg"); return { bg: s.backgroundColor, border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, cls: svg ? svg.getAttribute("class") : "" }; });
+      check("(c6) the call-off row is on the sport's wash at 8px, with the calendar-and-X glyph — never the rain", !!weather && weather.bg === WASH.golf && weather.radius === "8px" && /calendar-x/.test(weather.cls) && !/cloud-rain/.test(weather.cls), JSON.stringify(weather));
       /* (w2) Call off, from that row */
       await tap(page, '[data-tour="cal-weather"]', 1000);
       await reasonChecks(page, "w2", "calloff-why", "Weather", EDGE.golf); await shot("03-calloff-why");
@@ -161,13 +162,13 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
         const cancel = b.querySelector('[data-tour="day-cancel"]'), resched = b.querySelector('[data-tour="day-reschedule"]');
         const hit = (a, c) => !!(a && c) && !(a.right <= c.left || c.right <= a.left || a.bottom <= c.top || c.bottom <= a.top);
         const onHair = [...b.querySelectorAll("*")].filter((el) => { const st = getComputedStyle(el); return ["Top", "Bottom", "Left", "Right"].some((k) => parseFloat(st[`border${k}Width`]) > 0 && st[`border${k}Style`] !== "none" && st[`border${k}Color`] === hair); }).length;
-        return { time: time ? time.textContent.trim() : null, inList: b.parentElement.classList.contains("nsc-list"), border: [s.borderTopColor, s.borderBottomColor, s.borderLeftColor, s.borderRightColor], onHair,
+        return { time: time ? time.textContent.trim() : null, inList: b.parentElement.classList.contains("nsc-list"), bg: s.backgroundColor, border: [s.borderTopColor, s.borderBottomColor, s.borderLeftColor, s.borderRightColor], onHair,
                  cancelH: cancel ? Math.round(r(cancel).height) : null, reschedH: resched ? Math.round(r(resched).height) : null,
                  clear: cancel ? !hit(r(cancel), r(time)) && !hit(r(resched), r(time)) : null, below: cancel && len ? r(cancel).top >= r(len).bottom - 1 : null, text: b.innerText.replace(/\s+/g, " ") };
       }), HAIRLINE);
       if (w === 390) {
-        check("(c1) every lesson of the player's day is its own box of one list, on the sport's edge all round, nothing inside on the hairline",
-              mine.length === 3 && mine.every((m) => m.inList && m.border.every((c) => c === EDGE.golf) && m.onHair === 0), JSON.stringify(mine.map((m) => ({ t: m.time, inList: m.inList, border: m.border[2], onHair: m.onHair }))));
+        check("(c1) every lesson of the player's day is its own row of one list, on the sport's wash with no edge, nothing inside on the hairline",
+              mine.length === 3 && mine.every((m) => m.inList && m.bg === WASH.golf && m.onHair === 0), JSON.stringify(mine.map((m) => ({ t: m.time, inList: m.inList, border: m.border[2], onHair: m.onHair }))));
         const clinic = mine.find((m) => /Saturday clinic/.test(m.text));
         check("(c3) the member reads the clinic as the coach does: 11:00 am–12:00 pm, an hour", !!clinic && clinic.time === "11:00 am–12:00 pm" && /60 min with/.test(clinic.text), JSON.stringify(clinic));
         const free = await page.evaluate(() => [...document.querySelectorAll("[data-cal-day] .nsc-day button, [data-cal-day] .nsc-day span")].map((x) => x.textContent.trim()).filter((x) => /–/.test(x)));
