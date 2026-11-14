@@ -2446,7 +2446,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
 
             {/* one quiet line, not a header competing with the rows */}
             <div className="flex items-center gap-2.5 mb-2.5 px-1">
-              <span style={{ ...TYPE.heading, fontSize: 16, color: t.ink }}>
+              <span style={{ ...TYPE.heading, color: t.ink }}>
                 {isToday ? tr("Today") : (day.m === tomorrow.m && day.d === tomorrow.d) ? tr("Tomorrow") : `${DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)} ${day.d} ${day.mo.name.split(" ")[0].slice(0, 3)}`}
               </span>
               <span className="flex-1" />
@@ -2683,7 +2683,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
       <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{lesson}</p>
 
-      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Why")}</div>
       <div className="nsc-list mb-5">
         {CANCEL_REASONS[role === "coach" ? "coach" : "player"].map((r, i) => {
           const on = reason === r;
@@ -2876,11 +2876,11 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                    animation: "contentRise 340ms cubic-bezier(.22,1,.36,1) both" }}>
               <VoiceInput value={name} onChange={setName} ph={tr("Name")} autoFocus />
 
-              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Kind")}</div>
+              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Kind")}</div>
               <TimeGrid cols={3} times={[tr("Competition"), tr("Tournament"), tr("Match"), tr("Regatta"), tr("Trial")]}
                         picked={kind} onToggle={setKind} />
 
-              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Date")}</div>
+              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Date")}</div>
               <div className="flex gap-2">
                 <input value={dd} onChange={(e) => setDd(e.target.value.replace(/\D/g, "").slice(0, 2))}
                        placeholder="DD" inputMode="numeric" className="outline-none text-center"
@@ -2891,10 +2891,10 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
                 </select>
               </div>
 
-              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
+              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Time")}</div>
               <TimeGrid times={ALL_TIMES.filter((_, i) => i % 2 === 0).slice(0, 6)} picked={time} onToggle={setTime} />
 
-              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Where")}</div>
+              <div className="mt-4 mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Where")}</div>
               <VoiceInput value={where} onChange={setWhere} ph={tr("Club or venue")} />
 
               <div className="mt-5">
@@ -2944,7 +2944,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
 
           {!live && all.length > 0 && all[0].days <= 21 && (
             <Tile className="px-5 py-[18px] mt-4" delay={200}>
-              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
                 {tr("Between now and then")}
               </div>
               <p style={{ fontFamily: display, fontSize: 15.5, lineHeight: 1.65, color: t.ink }}>
@@ -3277,7 +3277,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
       <div className="absolute flex items-baseline gap-2" style={{ bottom: 76,
              animation: "streakUp 560ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
         <span style={{ fontFamily: display, fontSize: 38, letterSpacing: "-0.04em", color: t.accent }}>{tally}</span>
-        <span style={{ fontFamily: ui, fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(244,246,243,0.4)" }}>
+        <span style={{ ...TYPE.caption, color: "rgba(244,246,243,0.55)" }}>
           {tr("logged today")}
         </span>
       </div>
@@ -3299,7 +3299,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
           {ask === "error" && <span data-tour="burst-ask-error" style={{ fontFamily: ui, fontSize: 12.5, color: "#FF8A80" }}>{askErr}</span>}
           <button onClick={askNow} disabled={ask === "busy" || ask === "done"} data-ask={ask}
                   className="flex items-center gap-2 px-5 active:opacity-60"
-                  style={{ minHeight: 44, borderRadius: R.pill, border: `0.5px solid ${ask === "done" ? "transparent" : "rgba(255,255,255,0.28)"}`,
+                  style={{ minHeight: 44, borderRadius: R.pill, border: `1px solid ${ask === "done" ? "transparent" : "rgba(255,255,255,0.5)"}`,
                            background: ask === "done" ? "rgba(255,255,255,0.14)" : "transparent", opacity: ask === "busy" ? 0.6 : 1,
                            fontFamily: ui, fontSize: 12.5, fontWeight: ask === "done" ? 600 : 500, color: "rgba(255,255,255,0.92)",
                            transition: `background ${MOTION.settle}ms, opacity ${MOTION.settle}ms` }}>
@@ -3563,7 +3563,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
       )}
 
       <div className="flex items-center" style={{ marginTop: SPACE.block, marginBottom: SPACE.tight }}>
-        <span className="flex-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Times")}</span>
+        <span className="flex-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Times")}</span>
         {(free.length > 0 || editing) && (
           <button data-tour="editday-edit" onClick={() => { haptic(6); setEditing(!editing); setAdding(false); }} aria-pressed={editing} className="px-2 active:opacity-60"
                   style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{editing ? tr("Done") : tr("Edit")}</button>
@@ -3679,7 +3679,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
             </p>
           ) : (
             <>
-              <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>
                 {mine.length} {tr("saved to this lesson")}
               </div>
               <div className="flex flex-col gap-2.5">
@@ -3781,7 +3781,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
 
           {past.length > 0 && (
             <>
-              <div className="mt-7 mb-3 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>
+              <div className="mt-7 mb-3 px-1" style={{ ...TYPE.eyebrow, color: t.sub }}>
                 {tr("Ended")}
               </div>
               <div className="nsc-list">
@@ -4157,16 +4157,11 @@ function AtRisk({ list, onMessage, pop, nouns = "players" }) {
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Drifting")} onBack={pop}
-              meta={list.length ? countOf(list.length, nouns) : tr("Nobody drifting")}>
+              meta={list.length ? countOf(list.length, nouns) : null}>
         <div className="px-6 pb-2">
           {list.length === 0 ? (
-            <div className="py-14 text-center">
-              <span className="rounded-full inline-flex items-center justify-center mb-5"
-                    style={{ width: 62, height: 62, background: t.wash, animation: "breathe 4s ease-in-out infinite" }}>
-                <Check size={24} color={STEADY} strokeWidth={2.1} />
-              </span>
-              <p style={{ ...TYPE.title, color: t.ink }}>{tr("Everyone's booked in")}</p>
-            </div>
+            /* an empty state is a line, never a box — it was a breathing disc with a success-green tick */
+            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nobody drifting")}</p>
           ) : (
             /* rows, one action: the number says it, the sentence is spare */
             <div className="nsc-list">
@@ -4352,7 +4347,7 @@ function PhotoSheet({ name, current, onSet, onClear, close, say }) {
         {tr("Choose a photo")}
       </button>
 
-      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Or a colour")}</div>
+      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Or a colour")}</div>
       <div className="flex flex-wrap gap-2.5 mb-6">
         {tints.map((c, i) => (
           <button key={c} onClick={() => { haptic(8); soft(); onSet(c); }}
@@ -4829,7 +4824,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           <span style={{ ...TYPE.small, color: t.faint }}>{tr("of")} {who.length} {tr("present")}</span>
           <span className="flex-1" />
           {!ready && (
-            <span style={{ ...TYPE.caption, color: CAUTION }}>{who.length - done} {tr("unmarked")}</span>
+            <span style={{ ...TYPE.caption, color: t.sub }}>{who.length - done} {tr("unmarked")}</span>
           )}
         </div>
 
@@ -4908,7 +4903,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
       {(roster || []).length > 0 && (walkIn || (lessons || []).length === 0) && (
         <>
           {(lessons || []).length > 0 && (
-            <p className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Not in the diary")}</p>
+            <p className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not in the diary")}</p>
           )}
           <div className="nsc-list">
             {(roster || []).map((r, i) => (
@@ -6497,7 +6492,7 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close, closeLa
                  onKeyDown={(e) => { if (e.key === "Enter") go(); }}
                  className="w-full outline-none px-4"
                  style={{ minHeight: 54, borderRadius: R.surface, background: t.surface,
-                          border: `1px solid ${err ? DANGER : t.hair}`,
+                          border: `${EDGE_W}px solid ${err ? DANGER : EDGE(t)}`,
                           fontFamily: ui, fontSize: 16, color: t.ink }} />
           {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
         </div>
@@ -6810,7 +6805,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
               than one young player to be next. */}
           {next && (isJunior || dependants.length > 1) && (
             <div className="mb-6" data-tour="family-next">
-              <div style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Next up")}</div>
+              <div style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Next up")}</div>
               <p className="mt-1.5" style={{ ...TYPE.title, color: t.ink }}>
                 {first(nameOf(next.playerId)) || first(next.who) || tr("Lesson")}
               </p>
@@ -7086,7 +7081,7 @@ function RateLesson({ focus, coach, onDone, close }) {
   const [picked, setPicked] = useState([]);
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("Rate it")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Rate it")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{focus} · {coach}</p>
 
       <div className="flex justify-center gap-2.5 mb-7">
@@ -7156,7 +7151,7 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
   const shown = people.filter((p) => !term || p.name.toLowerCase().includes(term));
   return (
     <>
-      <h2 className="mb-4" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New message")}</h2>
+      <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("New message")}</h2>
       <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 46, borderRadius: R.surface, background: t.wash }}>
         <Search size={15} color={t.trace || t.faint} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
@@ -7188,7 +7183,7 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
   const [note, setNote] = useState("");
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("Next time")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Next time")}</h2>
       
       <div className="mb-5">
         <FocusGrid areas={cfg.focus} picked={[pick]} onToggle={setPick} />
@@ -7267,7 +7262,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
                     onClick={() => { haptic(7); soft(); setKept(on ? [...kept, b.id] : kept.filter((x) => x !== b.id)); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left"
                     style={{ minHeight: 52, borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                             border: `${EDGE_W}px solid ${on ? `${DANGER}44` : EDGE(t)}`, transition: "background 180ms" }}>
+                             border: `${EDGE_W}px solid ${on ? DANGER : EDGE(t)}`, transition: "background 180ms" }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{fmtWeekDay(localDate(b.date))}</span>
               <span style={{ ...TYPE.caption, color: t.faint }}>{span(b.time, b.duration || duration)}</span>
               {on ? <Check size={17} color={DANGER} strokeWidth={2.1} /> : <span style={{ width: 17 }} />}
@@ -7286,7 +7281,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
   return (
     <div data-tour="end-series">
       {head(tr("End"), what)}
-      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Why")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Why")}</div>
       <div className="nsc-list mb-5">
         {CANCEL_REASONS.coach.map((r, i) => {
           const on = reason === r;
@@ -7353,7 +7348,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
       <div className="flex flex-col gap-3 mb-6">
         {chosenDays.map((d) => (
           <div key={d.key}>
-            <div className="mb-1.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{d.label}</div>
+            <div className="mb-1.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{d.label}</div>
             <div className="flex flex-col gap-2">
               {d.bookings.map((b) => {
                 const on = !kept.includes(idOf(b));
@@ -7362,7 +7357,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
                           onClick={() => { haptic(7); soft(); setKept(on ? [...kept, idOf(b)] : kept.filter((x) => x !== idOf(b))); }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left"
                           style={{ borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                                   border: `${EDGE_W}px solid ${on ? `${DANGER}44` : EDGE(t)}`, transition: "background 180ms" }}>
+                                   border: `${EDGE_W}px solid ${on ? DANGER : EDGE(t)}`, transition: "background 180ms" }}>
                     <Avatar name={b.who} size={32} />
                     <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{b.who}</span>
                     <span style={{ fontFamily: ui, fontSize: 12, color: b.status === "requested" ? CAUTION : t.faint }}>{span(b.time, duration)}{b.status === "requested" ? ` · ${tr("asked")}` : ""}</span>
@@ -7534,7 +7529,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                       className="w-full flex items-center gap-3 px-4 py-3 text-left active:opacity-60"
                       style={{ borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
                 <span className="flex-1">
-                  <span className="block mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Last lesson")}</span>
+                  <span className="block mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
                 </span>
                 <ChevronRight size={15} color={t.trace || t.faint} />
@@ -7553,7 +7548,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
               <button onClick={() => { hapticCommit(); onLog && onLog(item); }} className="flex-1 active:opacity-75"
                       style={{ minHeight: 46, borderRadius: R.control, background: t.accent,
                                fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.onAccent }}>
-                {tr("Log lesson")}
+                {tr("Log")}
               </button>
             </div>
           </div>
@@ -8434,8 +8429,8 @@ const HomeRow = ({ label, value, tone, onPress, tour }) => {
   return (
     <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className="w-full flex items-center gap-4 text-left active:opacity-50"
-            style={{ minHeight: 52, borderBottom: RULE.hair(t.ink) }}>
-      <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
+            style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
+      <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
     </button>
@@ -9119,7 +9114,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
   const ready = { hours: true, drills: true, tips: true }[now];
   const head = { hours: tr("Hours"), drills: tr("Drills"), tips: tr("Tips") }[now];
 
-  const Label = ({ children }) => <div className="mb-3 mt-7 first:mt-0" style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</div>;
+  const Label = ({ children }) => <div className="mb-3 mt-7 first:mt-0" style={{ ...TYPE.eyebrow, color: t.sub }}>{children}</div>;
   const AddOwn = ({ value, onChange, ph, onAdd }) => (
     <div className="flex gap-2 mt-5">
       <div className="flex-1"><VoiceInput value={value} onChange={onChange} ph={ph} /></div>
@@ -9402,7 +9397,7 @@ function CoachClub({ sport, onDone, onBack }) {
         <div className="mt-8"><VoiceInput value={nameText} onChange={setNameText} ph={tr("Hollow Brook Golf")} autoFocus /></div>
         {ready && (
           <div className="mt-6">
-            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Preview")}</div>
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Preview")}</div>
             <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
               <Mark size={26} color={SPORTS[sport].theme.accent} />
               <span className="flex-1" style={{ fontFamily: display, fontSize: 17, color: "#fff" }}>{nameText.trim()}</span>
@@ -9445,7 +9440,7 @@ function CoachPlan({ onDone, onBack }) {
 
         {band && (
           <div className="mt-8">
-            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>
               Recommended for you
             </div>
             <div className="flex flex-col gap-3">
@@ -9748,7 +9743,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
   return (
     <>
-      <h2 className="mb-5" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>
+      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>
         {kids.length ? "Profiles" : "Your account"}
       </h2>
       {kids.length > 0 && (
@@ -9778,7 +9773,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
 
       {mySports.length > 1 && (
         <>
-          <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Main sport")}</div>
+          <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Main sport")}</div>
           <div className="mb-5">
             <SportGrid ids={mySports} picked={main || mySports[0]} onPick={(sp) => onSetMain && onSetMain(sp)} />
           </div>
@@ -9823,7 +9818,7 @@ function TipsHistory({ cfg, tips, pop }) {
     <SwipeBack onBack={pop}>
       <Screen title={tr("What you've worked on")} onBack={pop} meta={`${tips.length} from your coach`}>
         {tips.length === 0 ? (
-          <div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing yet — your coach will set one after your next lesson.</p></Card></div>
+          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing yet")}</p>
         ) : (
           <>
             {anyFocus && (
@@ -9831,7 +9826,7 @@ function TipsHistory({ cfg, tips, pop }) {
             )}
             <div className="px-6 pb-4">
               {shown.length === 0 ? (
-                <Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing under {f} yet.</p></Card>
+                <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>Nothing under {f}</p>
               ) : shown.map((tip, i) => (
                 <Card key={tip.id} className="p-5 mb-3">
                   <div className="flex items-center justify-between mb-2">
@@ -10521,7 +10516,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
     </button>
   );
 
-  const Label = ({ children, tour }) => <div data-tour={tour} className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</div>;
+  const Label = ({ children, tour }) => <div data-tour={tour} className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{children}</div>;
 
   return (
     <SwipeBack onBack={pop}>
@@ -12497,7 +12492,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
           {/* THE BOARD IS THE EDITOR. Not a preview above a list of
               rows with chevrons — the thing itself, at its real size,
               rearranged by moving it. */}
-          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 9 }}>
+          <div className="px-1" style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 9 }}>
             {tr("Drag to arrange")}
           </div>
           <div style={{ marginBottom: SPACE.section }}>
@@ -12713,7 +12708,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {nextRows.length > 0 && (
           <Ruled style={{ marginBottom: SPACE.block }}>
             <button onClick={() => { haptic(6); soft(); setNextOpen(!nextOpen); }} aria-expanded={nextOpen} data-tour="today-nextday"
-                    className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 56, paddingLeft: 20, paddingRight: 16 }}>
+                    className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 60 }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nextDay}</span>
               <span className="shrink-0" style={{ ...TYPE.body, color: t.faint }}>{nextRows.length}</span>
               <ChevronDown size={15} color={t.trace || t.faint} style={{ transform: nextOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
@@ -12739,7 +12734,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             /* a clip a player sent and the coach has not looked at yet */
             toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To write up"), n: toLog.length,
+            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
             (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
@@ -12919,7 +12914,7 @@ const WizLabel = ({ children, right }) => {
   const t = useT();
   return (
     <div className="flex items-center justify-between" style={{ marginTop: 20, marginBottom: 10 }}>
-      <span style={{ ...TYPE.eyebrow, color: t.faint }}>{children}</span>{right}
+      <span style={{ ...TYPE.eyebrow, color: t.sub }}>{children}</span>{right}
     </div>
   );
 };
@@ -13889,7 +13884,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   const mineDrills = drills || [];
   const done = mineDrills.filter((d) => d.done).length;
   const meta = n ? [`${n} ${n === 1 ? tr("lesson") : tr("lessons")}`, p.first ? `${tr("since")} ${fmtWeekDay(p.first)}` : null].filter(Boolean).join(" · ") : "";
-  const section = { ...TYPE.eyebrow, color: t.faint, marginBottom: 10 };
+  const section = { ...TYPE.eyebrow, color: t.sub, marginBottom: 10 };
   const box = { background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 8, padding: "14px 16px" };
   const firstPoint = p.points[0], lastPoint = p.points[p.points.length - 1];
   return (
@@ -14460,7 +14455,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
   const preview = seriesOccurrences(day, Math.min(total, 3), freq, undefined, undefined, calendar);
   return (
     <>
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.02em", color: t.ink }}>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>
         {existing ? existing.who : `Set up ${(name || "").split(" ")[0]}`}
       </h2>
 
@@ -14469,12 +14464,13 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         {DAY_NAMES.map((n, i) => {
           const on = day === i;
           return (<button key={n} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
-                          style={{ minHeight: 44, borderRadius: R.control, background: on ? t.accent : t.wash,
+                          /* the chosen day in ink, as a chosen tile is — the accent is Save's */
+                          style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
                                    fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{n.slice(0, 2)}</button>);
         })}
       </div>
 
-      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Time")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Time")}</div>
       <div className="mb-5">
         <TimeGrid cols={3} times={slots.map((sl) => span(sl, duration))} picked={time ? span(time, duration) : null}
                   onToggle={(lbl) => setTime(slots.find((sl) => span(sl, duration) === lbl))} />
@@ -14485,7 +14481,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         {[["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]].map(([id, lbl]) => {
           const on = freq === id;
           return (<button key={id} onClick={() => { haptic(5); setFreq(id); }} className="flex-1 active:opacity-60"
-                          style={{ minHeight: 44, borderRadius: R.control, background: on ? t.accent : t.wash,
+                          style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
                                    fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{lbl}</button>);
         })}
       </div>
@@ -14749,33 +14745,32 @@ function JoinRequests({ requests, onAccept, onDecline, pop }) {
    instead of disappearing, and each one opens the log pre-filled. */
 function UnloggedLessons({ items, onLog, onDismiss, pop }) {
   const t = useT();
+  /* the day in the app's one form off the row's date; the harness's seeded
+     rows carry a day and a month alone */
+  const dayOf = (u) => (u.date ? fmtIsoDay(u.date) : `${u.d} ${monthName(u.m).slice(0, 3)}`);
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("To log")} onBack={pop} meta={items.length ? `${items.length} waiting` : "Nothing outstanding"}>
+      <Screen title={tr("To log")} onBack={pop} meta={items.length ? `${items.length} waiting` : null}>
         <div className="px-6 pb-2">
           {items.length === 0 ? (
-            <Card className="p-8 text-center">
-              <span className="rounded-full flex items-center justify-center mx-auto mb-4" style={{ width: 52, height: 52, background: t.wash }}><Check size={22} color={t.sub} strokeWidth={2} /></span>
-              <p style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{tr("Nothing outstanding")}</p>
-            </Card>
-          ) : items.map((u, i) => (
-            <Card key={i} className="p-5 mb-3">
-              <div className="flex items-center gap-3.5 mb-4">
-                <span className="rounded-2xl flex flex-col items-center justify-center shrink-0" style={{ width: 46, height: 46, background: t.wash }}>
-                  <span style={{ fontFamily: display, fontSize: 17, lineHeight: 1, color: t.ink }}>{u.d}</span>
-                  <span style={{ ...TYPE.caption, fontWeight: 500, color: t.faint }}>
-                    {monthName(u.m).slice(0, 3)}
-                  </span>
-                </span>
-                <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 19, color: t.ink }}>{u.who}</span>
-                  <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{u.time} · {u.kind}</span></span>
-              </div>
-              <div className="flex gap-2.5">
-                {onDismiss && <button onClick={() => { haptic(8); onDismiss(u); }} className="rounded-2xl px-5 active:opacity-60" style={{ minHeight: 48, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.sub }}>{tr("Skip")}</button>}
-                <button onClick={() => { hapticCommit(); onLog(u); }} className="flex-1 rounded-2xl active:opacity-75" style={{ minHeight: 48, background: t.accent, fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.onAccent }}>{tr("Log lesson")}</button>
-              </div>
-            </Card>
-          ))}
+            /* an empty state is a line, never a box */
+            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing outstanding")}</p>
+          ) : (
+            /* ONE PERSON ROW: the face, the name, the day and the time, Log as
+               the row's action — each was a card with a date tile, an outlined
+               Dismiss and a filled "Log lesson" (the tile says Log) */
+            <div className="nsc-list">
+              {items.map((u, i) => (
+                <PersonRow key={u.id || `${u.date || ""}|${u.who}|${i}`} className="pr-1" name={u.who}
+                           group={/group/i.test(u.kind || "") || (!!u.groupName && !u.playerId)}
+                           sub={`${dayOf(u)} · ${u.time}`}
+                           actions={<>
+                             <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onLog(u); }}>{tr("Log")}</TextBtn>
+                             {onDismiss && <TextBtn quiet color={t.faint} onClick={() => { haptic(8); onDismiss(u); }}>{tr("Dismiss")}</TextBtn>}
+                           </>} />
+              ))}
+            </div>
+          )}
         </div>
       </Screen>
     </SwipeBack>
@@ -15097,7 +15092,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
   };
   return (
     <>
-      <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("Invite")} {nouns}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Invite")} {nouns}</h2>
 
       <div className="px-5 py-4 mb-5 flex items-center gap-3" style={{ borderRadius: R.surface, background: t.wash }}>
         <span className="flex-1 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{shown || "—"}</span>
@@ -15148,10 +15143,10 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
 
   return (
     <>
-      <h2 className="mb-5" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{tr("New group")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("New group")}</h2>
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
 
-      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
         {members.length ? `${members.length} ${nouns}` : tr("Members")}
       </div>
       <div className="mb-5">
@@ -15160,7 +15155,7 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
                       onToggle={(pl) => toggle(pl.id)} />
       </div>
 
-      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("When")}</div>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("When")}</div>
       <div className="flex gap-1.5 mb-3">
         {DAY_NAMES.map((d, i) => {
           const on = day === i;
@@ -15217,7 +15212,7 @@ function Subscription({ pop, say, plan }) {
       <Screen title={tr("Subscription")} onBack={pop} meta="">
         <div className="px-6">
           <div className="pb-6 mb-6" style={{ borderBottom: `1px solid ${t.hair}` }}>
-            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Current plan")}</span>
+            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Current plan")}</span>
             <div className="flex items-baseline justify-between">
               <span style={{ fontFamily: display, fontSize: 29, letterSpacing: "-0.03em", color: t.ink }}>{BRAND} {current.name}</span>
               <span style={{ fontFamily: display, fontSize: 22, color: t.ink }}>€{current.price}<span style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>/mo</span></span>
@@ -15225,7 +15220,7 @@ function Subscription({ pop, say, plan }) {
             <div className="mt-2" style={{ ...TYPE.small, color: t.faint }}>{current.blurb} · renews 21 August</div>
           </div>
 
-          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Change plan")}</div>
+          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Change plan")}</div>
           <div style={{ borderTop: `1px solid ${t.hair}` }}>
             {PLANS.map((pl) => {
               const on = pl.id === current.id;
@@ -15467,7 +15462,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
-      <div className="px-6 pb-2"><Card>{live && rows.length === 0 ? (<div className="p-7 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No one on your roster yet")}</p></div>) : rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
+      <div className="px-6 pb-2">{live && rows.length === 0 ? (<p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No one on your roster yet")}</p>) : <Card>{rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
         <div key={r.id}>
         <Row label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
              right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: Math.min(r.total, 12) }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
@@ -15490,7 +15485,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
           </div>
         )}
         </div>
-      ); })}</Card></div>
+      ); })}</Card>}</div>
     </Screen>
   );
 }
@@ -15640,7 +15635,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
 
   if (stage === "who") return (
     <>
-      <h2 className="mb-5" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Who's playing")}</h2>
+      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Who's playing")}</h2>
       <Card>{(livePlayers ?? PLAYERS).map((p, i) => (<Row key={p} label={p} chevron last={i === (livePlayers ?? PLAYERS).length - 1} icon={<Avatar name={p} size={38} />} onToggle={() => { setWho(p); setStage("drills"); }} />))}</Card>
     </>
   );
@@ -15726,7 +15721,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
           </button>
           {editSlots && (
             <Card className="p-5 mt-3">
-              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Lesson length")}</div>
+              <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Lesson length")}</div>
               <div className="mb-5">
                 <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d}m`)} picked={`${duration}m`}
                           onToggle={(x) => setDuration(Number(String(x).replace("m", "")))} />
@@ -15737,7 +15732,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                   the list. A tap on a time deleted it for a round, and typing
                   "7:30 pm" into a box was the only way to add one. */}
               <div className="flex items-center mb-2.5">
-                <span className="flex-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Start times")}</span>
+                <span className="flex-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Start times")}</span>
                 <button onClick={() => { haptic(6); setRemoving(!removing); setAddingTime(false); }} aria-pressed={removing} className="px-2 active:opacity-60"
                         style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{removing ? tr("Done") : tr("Edit")}</button>
               </div>
@@ -15976,7 +15971,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           child's name, not the parent's. */}
       {role === "player" && (kids || []).some((k) => k.canBook || k.ahead) && ((selfCanBook ? 1 : 0) + (kids || []).filter((k) => k.canBook || k.ahead).length) > 1 && (
         <div className="px-6 mb-4" data-tour="cal-for">
-          <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("For")}</div>
+          <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("For")}</div>
           {/* who the lesson is for, as faces — the hours shown are that
               person's coach's, so this is the first thing answered */}
           <div className="flex gap-2.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
@@ -16165,13 +16160,13 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
       {/* ---- the selected day, as a readable column ---- */}
       <div className="px-6" data-cal-day>
         <div className="flex items-baseline justify-between mb-4">
-          <span style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.025em", color: t.ink }}>{dayHead}</span>
+          <span style={{ ...TYPE.title, color: t.ink }}>{dayHead}</span>
           <span style={{ ...TYPE.caption, color: t.faint }}>
             {/* a count that is nought is not a fact worth a line: the day
                 reads what it has, and nothing when it has nothing */}
             {role === "coach"
               ? [booked.length ? `${booked.length} ${tr("booked")}` : null, open.length ? `${open.length} ${tr("free")}` : null].filter(Boolean).join(" · ")
-              : readOnly ? tr("View only") : open.length ? `${open.length} ${tr("available")}` : ""}
+              : readOnly ? tr("View only") : open.length ? `${open.length} ${tr("free")}` : ""}
           </span>
         </div>
 
@@ -16184,7 +16179,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <div className="nsc-list mb-5">
             {myDays.map((myDay) => (
               <div key={myDay.id || myDay.time} data-tour="day-mine" className="py-4">
-                <span className="block mb-2" style={{ ...TYPE.eyebrow, color: myDay.out ? t.sub : t.faint }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : myDay.out ? tr("Not going") : tr("Your lesson")}</span>
+                <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : myDay.out ? tr("Not going") : tr("Your lesson")}</span>
                 <span className="block" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.duration || duration)}</span>
                 <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.duration || duration} min with {conn?.coach || "your coach"}</div>
                 {myDay.group
@@ -16249,7 +16244,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             )}
 
             {open.length > 0 && prefs.showFree && (<>
-              <div className="mt-6 mb-2.5" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Free")}</div>
+              <div className="mt-6 mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Free")}</div>
               <TimeList times={open.map((x) => span(x, duration))} picked={pick ? span(pick, duration) : null}
                         onPick={(label) => { const time = open.find((x) => span(x, duration) === label); setPick(pick === time ? null : time); }} />
             </>)}
@@ -16276,7 +16271,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <div className="mt-6">
             {/* a real player asks for one lesson at a time; standing slots are the coach's to set */}
             {!live && (<>
-            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Repeat")}</span>
+            <span className="block mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Repeat")}</span>
             <div className="mb-5">
               <Segmented options={["Just once", "Weekly", "Fortnightly", "Monthly"]}
                          value={{ once: "Just once", weekly: "Weekly", fortnightly: "Fortnightly", monthly: "Monthly" }[recurrence]}
@@ -16295,7 +16290,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         )}
         {role === "coach" && seriesList && seriesList.length > 0 && (
           <div className="mt-8">
-            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Recurring")}</div>
+            <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Recurring")}</div>
             {/* the app's list, a box per arrangement; a tap opens that
                 arrangement by its id — it handed the sheet a name, and the
                 sheet opened a blank Set up whose Save went nowhere */}
@@ -16379,12 +16374,12 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
         {list.length === 0 ? (
           <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No conversations yet")}</p>
         ) : (<>
-          {split && <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Yours")}</div>}
+          {split && <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Yours")}</div>}
           <div className="nsc-list">
             {mine.map((c, i) => <Thread key={c.id || c.name} c={c} tour={i === 0 ? "chat-row" : undefined} />)}
           </div>
           {kids.length > 0 && (<>
-            {split && <div className="mt-6 mb-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Children")}</div>}
+            {split && <div className="mt-6 mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Children")}</div>}
             <div className="nsc-list">
               {kids.map((c, i) => <Thread key={c.id || c.name} c={c} tour={!split && i === 0 ? "chat-row" : undefined} />)}
             </div>
@@ -16424,7 +16419,7 @@ function BroadcastBody({ nouns, say, done, close, onSend, group = null, members 
   const named = firsts.length > 4 ? `${firsts.slice(0, 3).join(" · ")} · +${firsts.length - 3}` : firsts.join(" · ");
   return (
     <>
-      <h2 className="mb-1" data-tour={group ? "group-message" : undefined} style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{group ? `${tr("Message")} ${group}` : tr("Message everyone")}</h2>
+      <h2 className="mb-1" data-tour={group ? "group-message" : undefined} style={{ ...TYPE.title, color: t.ink }}>{group ? `${tr("Message")} ${group}` : tr("Message everyone")}</h2>
       {group && named && <p className="mb-5" data-tour="group-message-to" style={{ ...TYPE.small, color: t.sub }}>{named}</p>}
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Message")} /></div>
       <Button disabled={!text.trim() || busy} onClick={send}>{busy ? tr("Sending…") : tr("Send")}</Button>
@@ -16449,11 +16444,11 @@ function ClipSendBody({ who, child, areas, file, say, close, onSend }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="clip-send" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{`${tr("Send to")} ${who}`}</h2>
+      <h2 className="mb-1" data-tour="clip-send" style={{ ...TYPE.title, color: t.ink }}>{`${tr("Send to")} ${who}`}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[kind, child ? `${tr("for")} ${child}` : null].filter(Boolean).join(" · ")}</p>
       {areas && areas.length > 0 && (
         <div className="mb-5">
-          <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("About")}</div>
+          <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("About")}</div>
           <FocusGrid areas={areas} picked={focus ? [focus] : []} onToggle={(id) => setFocus((f) => (f === id ? null : id))} h={46} cols={evenCols(areas.length)} tour="clip-focus" />
         </div>
       )}
@@ -16479,7 +16474,7 @@ function ClipReplyBody({ who, focus, say, close, onSend }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="clip-reply-sheet" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Reply")}</h2>
+      <h2 className="mb-1" data-tour="clip-reply-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Reply")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{[`${tr("To")} ${who}`, focus].filter(Boolean).join(" · ")}</p>
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={4} ph={tr("Reply")} /></div>
       <Button disabled={busy || !text.trim()} onClick={send} tour="clip-reply-send">{busy ? tr("Sending…") : tr("Send")}</Button>
@@ -16502,7 +16497,7 @@ function PlayerNoteBody({ who, value, say, close, onSave }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="player-note" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Notes")}</h2>
+      <h2 className="mb-1" data-tour="player-note" style={{ ...TYPE.title, color: t.ink }}>{tr("Notes")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${who} · ${tr("Private")}`}</p>
       <div className="mb-6"><VoiceArea value={text} onChange={setText} rows={5} ph={tr("Notes")} /></div>
       <Button disabled={busy || (text || "").trim() === (value || "").trim()} onClick={save} tour="player-note-save">{busy ? tr("Saving…") : tr("Save")}</Button>
@@ -16526,11 +16521,11 @@ function PracticeLogBody({ areas, say, close, onSave }) {
   };
   return (
     <>
-      <h2 className="mb-1" data-tour="practice-log" style={{ fontFamily: display, fontSize: 25, letterSpacing: "-0.01em", color: t.ink }}>{tr("Practice")}</h2>
+      <h2 className="mb-1" data-tour="practice-log" style={{ ...TYPE.title, color: t.ink }}>{tr("Practice")}</h2>
       <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{tr("Today")}</p>
       {areas && areas.length > 0 && (
         <div className="mb-5">
-          <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Worked on")}</div>
+          <div className="mb-2.5 px-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Worked on")}</div>
           <FocusGrid areas={areas} picked={picked} onToggle={(id) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))} h={46} cols={evenCols(areas.length)} tour="practice-focus" />
         </div>
       )}
@@ -16767,7 +16762,7 @@ function Branding({ swatch, setSwatch, clubName, setClubName, nouns, pop, say, l
           ))}</Card></div>
         </>)}
         <div className="px-6 pb-2"><Card className="p-5">
-          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Preview")}</div>
+          <div className="mb-3" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Preview")}</div>
           <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: `${t.accent}0F`, border: `0.5px solid ${t.accent}2E` }}>
             <Mark size={26} color={t.accent} /><span className="flex-1" style={{ ...TYPE.heading, color: t.ink }}>{clubName || "Your club"}</span>
             <span className="rounded-full px-3 py-1.5" style={{ background: t.accent, fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.onAccent }}>{tr("Request")}</span>
@@ -17387,7 +17382,7 @@ function InviteBody({ code, say }) {
   };
   return (
     <div className="flex flex-col items-center">
-      <h2 className="mb-1" style={{ fontFamily: display, fontSize: 25, color: t.ink }}>{tr("Invite a player")}</h2>
+      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Invite a player")}</h2>
       <p className="mb-6 text-center" style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("They enter the code or scan this.")}</p>
       <div className="rounded-3xl p-4 mb-5" style={{ border: `1px solid ${t.hair}`, background: "#fff" }}>
         {url ? <QrImage url={url} size={148} /> : <QrSvg size={148} />}
@@ -17434,7 +17429,7 @@ function DeleteBody({ onCancel, say }) {
   const t = useT();
   return (
     <>
-      <h2 className="mb-3" style={{ fontFamily: display, fontSize: 25, color: t.ink }}>{tr("Delete your account")}</h2>
+      <h2 className="mb-3" style={{ ...TYPE.title, color: t.ink }}>{tr("Delete your account")}</h2>
       <p className="mb-6" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.6, color: t.sub }}>This removes your profile, any linked family profiles, your lessons, drills, tips, messages and every clip stored with them. It cannot be undone, and your subscription must be cancelled separately in the App Store.</p>
       <div className="mb-3"><Button tone="dangerQuiet" onClick={() => say("Account deletion requested")}>{tr("Delete permanently")}</Button></div>
       <Button tone="quiet" onClick={onCancel}>{tr("Keep my account")}</Button>
@@ -17485,7 +17480,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
         </div>
         <div className="flex-1 overflow-y-auto pt-5">
           {/* nothing until there is a term: the field is the whole screen */}
-          {!term ? null : total === 0 ? (<div className="px-6"><Card className="p-8 text-center"><p style={{ fontFamily: ui, fontSize: 14.5, color: t.sub }}>Nothing matching “{q}”.</p></Card></div>
+          {!term ? null : total === 0 ? (<p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>Nothing matching “{q}”</p>
           ) : (<>
             {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<FileText size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
@@ -17616,7 +17611,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const earlier = shownList.filter((n) => at(n) < startOfYesterday);
 
   const Eyeb = ({ children }) => (
-    <div className="px-1" style={{ ...TYPE.eyebrow, color: t.faint, marginBottom: 7 }}>{children}</div>
+    <div className="px-1" style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 7 }}>{children}</div>
   );
 
   /* WHOSE IS IT. Almost everything here happened because of a person,
@@ -17860,7 +17855,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Edit lesson")}</h2>
       <p className="mb-5" style={{ ...TYPE.caption, color: t.faint }}>{lesson.who} · {lesson.d} {lesson.m}</p>
 
-      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Focus")}</div>
+      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Focus")}</div>
       <div className="mb-4">
         <TimeGrid cols={2} times={options} picked={focus} onToggle={setFocus} />
       </div>
@@ -17871,12 +17866,12 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
         <MicBtn onText={(txt) => { setFocus(txt); setErr(""); }} size={26} />
       </div>
 
-      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("The day it happened")}</div>
+      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("The day it happened")}</div>
       <input type="date" value={date || ""} onChange={(e) => setDate(e.target.value)} aria-label={tr("Lesson date")}
              className="w-full outline-none px-4 mb-4"
              style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15.5, color: t.ink }} />
 
-      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.faint }}>{tr("Notes")}</div>
+      <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Notes")}</div>
       <div className="mb-4"><VoiceArea value={note} onChange={setNote} rows={4} ph={tr("What happened, in your words")} /></div>
 
       {onAddFiles && (<>
@@ -21484,7 +21479,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "rebookAfter" ? (
                   <>
-                    <h2 className="mb-1" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: theme.ink }}>{tr("Book the next one")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Book the next one")}</h2>
                     <p className="mb-6" style={{ fontFamily: ui, fontSize: 13.5, color: theme.faint }}>{(conn || {}).coach}</p>
                     <Button onClick={() => { setSheet(null); if (data) { go("calendar"); return; } done(tr("Booked"), tr("Same time next week")); }}>{tr("Book it")}</Button>
                     <button onClick={() => { setSheet(null); go("calendar"); }} className="w-full mt-3 py-3 active:opacity-50"
@@ -21567,8 +21562,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                  happens to be — calling Thursday off on Monday is the whole
                  point of it */
               : sheet === "cancelLesson" ? <ConfirmPassword
-                                            title={tr("Cancel this lesson")}
-                                            detail={peek ? `${peek.who} · ${peek.time}. ${tr("They are told and the time is freed. Confirm with your password.")}` : tr("Confirm with your password.")}
+                                            title={tr("Cancel lesson")}
+                                            detail={peek ? `${peek.who} · ${peek.time}. ${tr("They are told. Confirm with your password.")}` : tr("Confirm with your password.")}
                                             actionLabel={tr("Cancel the lesson")} closeLabel={tr("Keep it")}
                                             onConfirm={async (pw) => {
                                               if (data) { const c = await data.verifyPassword(pw); if (c.error) return c; }
@@ -21658,7 +21653,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                 )
               : sheet === "pickRecurWho" ? (
                   <>
-                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who's it for")}</h2>
+                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>{tr("Who")}</h2>
                     {/* a named being in a list is a row: one boxed list of PersonRows, as every other picker */}
                     <div className="nsc-list" data-tour="recur-who">
                       {roster.map((r) => {

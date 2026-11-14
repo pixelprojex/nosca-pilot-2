@@ -2140,6 +2140,48 @@ seeded data and no account.
   beside each name; Material 3's list item carries its actions in the
   trailing slot. `scripts/e2e/new-group.cjs`,
   `scripts/e2e/join-requests.cjs`; `boxes.cjs` (s1), (s11).
+- **One sheet title, and empty states are lines.** Every sheet's `h2`
+  is `TYPE.title` (19px, the ladder's title): New group, Invite
+  players, New message, Next time, the recurring Set up sheet, Your
+  account and the harness's Rate it, Who's playing and Book the next
+  one were 24 or 25 beside the twenty-two at 19. The recurring sheet's
+  chosen day and cadence are the ink, as a chosen tile is (they were
+  the accent, which is Save's). **To log** (`UnloggedLessons`) is one
+  boxed list of `PersonRow`s — the face, the name, `Thu 10 Nov · 9:00
+  am`, Log as the row's text action (the tile's word; it read "Log
+  lesson") — and reads "Nothing outstanding" as a line with no
+  subtitle; each was a card with a date tile, an outlined Dismiss and
+  a filled Log lesson, the To log cousin of the Join requests cards.
+  An empty state is a line everywhere: the player's tips screen
+  ("Nothing yet"), the coach's Drills screen with nobody on the
+  roster, the search with nothing matching — never a `Card p-8`.
+  `boxes.cjs` (s12)–(s14).
+- **The evening sprint of 13 November, second batch — from a six-lens
+  visual audit of every surface (the findings are in
+  `docs/cycles/2026-11-13-sprint.md`).** One name: Today's Actions row
+  reads To log, as the screen it opens and the tile (it read "To write
+  up"); the Calendar view's open block says Log, not "Log lesson"; the
+  home's "Don't log" password sheet is headed Cancel lesson and says
+  "They are told" (it promised a freed time for a lesson already
+  taught); the recurring pick-a-player sheet is headed Who. The home's
+  column of boxes on one rhythm: `HomeRow` and the folded next-day row
+  are 60 tall with their labels in ink, as the lesson rows are (they
+  were 52 and 56, grey beside ink). The last seven sheet titles off the
+  ladder — Message <group>, Send to, Reply, Notes, Practice, Invite a
+  player, Delete your account — are `TYPE.title`. One label grey:
+  every `TYPE.eyebrow` label is `t.sub`, as `Eyebrow` and `RowHead`
+  are (forty-three were `t.faint`, 4.4:1 at 12.5px). Drifting's empty
+  state is the line "Nobody drifting" with no subtitle (it was a
+  breathing disc with a success-green tick over "Everyone's booked
+  in"). Contrast: the register's unmarked count is `t.sub`, not CAUTION
+  (2.86:1); the burst's "logged today" is `TYPE.caption` at 55% white,
+  not tracked capitals, and Ask for a rating sits on a 1px 50% line
+  (it was 0.5px at 28%, 2.4:1); a ticked lesson on Call off and End
+  carries DANGER whole on its edge (it was DANGER at 27%, 1.5:1); the
+  password field is on `EDGE(t)` at `EDGE_W`, not the hairline. The
+  Diary's day heading is `TYPE.heading` in List and `TYPE.title` in
+  Calendar (16 and 21, off the ladder), and the open count reads "N
+  free" on both sides (the player's read "available").
 - **Nothing is cut at 320.** The narrowest phone is a real one (the
   first SE, the small Androids; WCAG 1.4.10 asks for the content whole
   at 320 CSS pixels), and four places gave way there: the compact
