@@ -1936,10 +1936,15 @@ const ShimmerCSS = () => (
     .nsc-ruled > div > *:last-child { border-bottom: none !important; }
     /* the inset form of the same law: a lid and a foot in the section
        weight, and the last row's own hairline suppressed */
-    /* a list is a column of boxes: each row its own surface with a
-       clear edge, never a run of text separated by hairlines */
+    /* a list is a column of soft rows: each row its own surface on the
+       sport's wash with no edge — never a run of text separated by
+       hairlines, and no longer a rimmed box per item (the founder's
+       visual-ease ask of 13 November: the sport's edge stays on tiles,
+       the one action, cards and the sheet; a row of content sits on the
+       wash, so a screen reads as paper with a few objects on it). The
+       transparent border keeps the old width, so nothing moves. */
     .nsc-list { border: none !important; }
-    .nsc-list > * { background: var(--surface); border: 1.5px solid var(--edge) !important; border-radius: 8px;
+    .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
                     margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* a swipeable row pads its sliding surface, not the box, so the
@@ -1949,7 +1954,7 @@ const ShimmerCSS = () => (
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--surface) !important; padding-left: 14px; padding-right: 14px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--wash) !important; padding-left: 14px; padding-right: 14px; }
     .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -12639,7 +12644,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
       {banner}
       <div className="px-6 pt-3">
 
-        <div style={{ marginBottom: SPACE.block }}>
+        <div style={{ marginBottom: SPACE.section }}>
           <PageHead pad={false} title={dateLine} />
         </div>
 
@@ -12667,7 +12672,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {/* the editor is reached from the foot of the plus sheet and from
             Settings › Shortcuts; a permanent customise link under the
             primary control is chrome no home screen carries */}
-        <div style={{ height: SPACE.block }} />
+        <div style={{ height: SPACE.section }} />
 
         {/* ---- THE DAY, IN ONE COLUMN ----
 
@@ -12706,7 +12711,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
 
         {/* ---- THE NEXT DAY, FOLDED ---- */}
         {nextRows.length > 0 && (
-          <Ruled style={{ marginBottom: SPACE.block }}>
+          <Ruled style={{ marginBottom: SPACE.section }}>
             <button onClick={() => { haptic(6); soft(); setNextOpen(!nextOpen); }} aria-expanded={nextOpen} data-tour="today-nextday"
                     className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 60 }}>
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{nextDay}</span>
@@ -12782,7 +12787,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {/* the archive is not a chore, so it does not sit under Actions:
             its own row, on its own */}
         {lessonCount > 0 && (
-          <Ruled style={{ marginBottom: SPACE.block }}>
+          <Ruled style={{ marginBottom: SPACE.section }}>
             <HomeRow tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
           </Ruled>
         )}
@@ -13695,7 +13700,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
        line carries values, and nought is not one. */
     <Screen title={L.roster} right={right}
             meta={[`${all.length} ${nouns}`, groups.length ? `${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}` : null].filter(Boolean).join(" · ")}>
-      <div className="px-6" style={{ marginBottom: SPACE.row }}>
+      <div className="px-6" style={{ marginBottom: SPACE.section }}>
         <TileGrid cols={2}>
           <ActTile tour="roster-invite" tone="accent" Icon={UserPlus} label={tr("Add player")} onTap={() => sheet("import")} />
           <ActTile Icon={Users} label={tr("New group")} onTap={() => sheet("newGroup")} />
@@ -17003,7 +17008,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           <ChevronRight size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
         </button>
         {isOpen && (
-          <div style={{ background: t.wash }}>
+          <div style={{ background: t.surface }}>
             {options.map((o) => (
               <button key={o.id} aria-pressed={value === o.id} onClick={() => { haptic(6); onPick(o.id); setOpenPick(null); }}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
@@ -21078,7 +21083,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--edge": EDGE(theme),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme),
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">

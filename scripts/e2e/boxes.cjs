@@ -89,8 +89,10 @@ const audit = (page, scope, edge) => page.evaluate(([scope, edge]) => {
     [...list.children].forEach((box) => {
       if (!vis(box)) return; out.boxes++;
       const cs = getComputedStyle(box);
-      const sides = ["Top", "Right", "Bottom", "Left"].every((s) => parseFloat(cs[`border${s}Width`]) >= 1 && cs[`border${s}Color`] === edge && cs[`border${s}Style`] === "solid");
-      if (!sides || cs.borderTopLeftRadius !== "8px") out.bad.push(`${label(box)} · ${cs.borderTopWidth} ${cs.borderTopColor} (want ${edge}) r${cs.borderTopLeftRadius}`);
+      /* a list row sits on the sport's wash with no edge (14 November): the fill is the wash and every side is transparent or nought */
+      const WASH_OF = { "rgba(47, 107, 58, 0.72)": "rgb(235, 243, 234)", "rgba(122, 59, 74, 0.72)": "rgb(246, 239, 242)" };
+      const sides = cs.backgroundColor === WASH_OF[edge] && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === "rgba(0, 0, 0, 0)" || parseFloat(cs[`border${s}Width`]) === 0);
+      if (!sides || cs.borderTopLeftRadius !== "8px") out.bad.push(`${label(box)} · ${cs.borderTopWidth} ${cs.borderTopColor} (want the wash ${WASH_OF[edge]}, no edge) bg ${cs.backgroundColor} r${cs.borderTopLeftRadius}`);
       const bw = box.getBoundingClientRect().width;
       [box, ...box.querySelectorAll("*")].forEach((el) => {
         const day = el.closest(".nsc-day"); if (day && box.contains(day) && day !== el) return;
@@ -539,7 +541,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         /* the picker's rows: buttons whose edge is the list's own rule, not an inline style, so
            `audit` vouches for the edge and the colour and only the ratio is read off each */
         const people = only(grp, /Cian|Saoirse|Aoife|Eoin/);
-        check("(s11) the roster's New group row opens the one New group sheet: its people boxed rows on the edge, at least 3:1, under \"Group name\" — no chips, no second sheet", fine(ng) && people.length >= 2 && people.every((o) => edgeRatio(o) >= 3) && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1, `${said(ng)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
+        check("(s11) the roster's New group row opens the one New group sheet: its people rows on the wash under \"Group name\" — no chips, no second sheet", fine(ng) && (await page.locator('[data-sheet] button[aria-pressed][aria-label]').count()) >= 2 && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1, `${said(ng)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
         await closeSheet(page);
         /* ONE SHEET TITLE: every sheet's h2 is TYPE.title (19px) — nine were 24 or 25 */
         const h2Size = () => page.evaluate(() => { const h = document.querySelector("[data-sheet] h2"); return h ? getComputedStyle(h).fontSize : null; });

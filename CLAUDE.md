@@ -1334,6 +1334,31 @@ seeded data and no account.
   Join), and Settings. It was cut to a bare face that opened Settings
   once, and the founder asked for it back the same day. A coach's face
   still opens their settings directly.
+- **A row of content sits on the sport's wash with no edge; the edge is
+  for what is chosen from or acted on.** The founder's visual-ease ask
+  of 13 November: people found the app too much at once — a rimmed box
+  per row, every list a column of outlined boxes — and could not find
+  their way to the features. Since 14 November `.nsc-list > *` is the
+  wash (`--wash`, the theme's `wash` beside `--surface` and `--edge` on
+  the root) with a transparent 1.5px border, so nothing moves and no
+  line is drawn: the home's day rows, the folded next day, the Actions
+  rows and All lessons, the roster's players and groups, Chat, the
+  bell, Settings' rows (one that unfolds lays its options on the
+  surface inside the wash row), the sheets' person rows, the Calendar
+  view's blocks and the reason lists — a screen reads as paper with a
+  few soft objects on it. The sport's edge stays on `ActTile`,
+  `TileGrid`, `TimeGrid`, `Card`, the outlined `Button`s and tick boxes,
+  and on `.nsc-day` (a container of rows: the Diary's day box, the
+  register, the tip prompts keep their rimmed box and their rules
+  inside). The home breathes `SPACE.section` where it changes subject
+  (the board → Today, the folded next day → Actions, Actions → All
+  lessons), the roster between its two tiles and the people. This
+  supersedes the bullet below where it says every list box carries the
+  edge; the rest of that bullet (one list language, no rule inside a
+  box, `.nsc-swipe` / `.nsc-flush`, the empty-state line) stands.
+  `scripts/e2e/ease.cjs`; `boxes.cjs`, `lists.cjs`, `calendar-day.cjs`,
+  `join-requests.cjs` and `recurring.cjs` read the wash where they read
+  the edge.
 - **A list is a column of boxes, and every edge is the sport's own
   dark tone, 1.5px, with nothing glowing around it.** `EDGE(t)` is the
   sport's `mark` at 72% over the paper (the brand green before a sport)
