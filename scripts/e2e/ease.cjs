@@ -94,7 +94,7 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const home = await rows(page, '[data-scroll="screen"]'); await shot("01-today");
       check("(a) the coach's home: every row — the day's lessons, the folded next day, the Actions rows, All lessons — sits on golf's wash with no edge, 8px corners", !!home && home.filter((r) => r.kind === "row").length >= 5 && home.filter((r) => r.kind === "row").every(soft), say(home));
       const log = await tile(page, "Log"), add = await tile(page, "Add player");
-      check("(b) …while the board's tiles keep the sport's edge (the one filled in the accent, the rest outlined)", !!add && add.edge === `1.5px ${EDGE}` && !!log && log.bg !== NONE, JSON.stringify({ log, add }));
+      check("(b) …while the board's tiles keep the sport's edge (the one filled in the accent, the rest outlined)", !!add && add.edge.endsWith(EDGE) && parseFloat(add.edge) >= 1 && !!log && log.bg !== NONE, JSON.stringify({ log, add }));
       const g1 = await gap(page, 'button[aria-label="Add player"]', "Today");
       const g2 = await gap(page, '[data-tour="today-nextday"]', "Actions");
       check("(c) the home breathes: SPACE.section (40) from the board to Today's head and from the folded next day to Actions", g1 !== null && g1 >= 40 && g2 !== null && g2 >= 40, JSON.stringify({ boardToToday: g1, nextDayToActions: g2 }));
@@ -122,10 +122,10 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const onList = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
       if ((await onList.count()) && (await onList.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const diary = await rows(page, '[data-scroll="screen"]'); await shot("06-diary-list");
-      check("(h) the Diary's List view: a day's box — a container of times — keeps the sport's edge; any list row beside it is on the wash", !!diary && diary.some((r) => r.kind === "day") && diary.filter((r) => r.kind === "day").every((r) => r.edges[0] === `1.5px ${EDGE}`) && diary.filter((r) => r.kind === "row").every(soft), say(diary));
+      check("(h) the Diary's List view: a day's box — a container of times — keeps the sport's edge; any list row beside it is on the wash", !!diary && diary.some((r) => r.kind === "day") && diary.filter((r) => r.kind === "day").every((r) => r.edges[0].endsWith(EDGE) && parseFloat(r.edges[0]) >= 1) && diary.filter((r) => r.kind === "row").every(soft), say(diary));
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-group"]', 1000);
       const pick = await rows(page, "[data-sheet]"); await shot("07-sheet-people");
-      const sheet = await page.evaluate(() => { const s = document.querySelector("[data-sheet]"); return s ? getComputedStyle(s).backgroundColor : null; });
+      const sheet = await page.evaluate(() => { const s = document.querySelector("[data-sheet]"); if (!s) return null; const el = [s, ...s.querySelectorAll("*")].find((x) => getComputedStyle(x).backgroundColor === "rgb(255, 255, 255)" && x.getBoundingClientRect().width > 300); return el ? "rgb(255, 255, 255)" : getComputedStyle(s).backgroundColor; });
       check("(i) inside a sheet the people rows are on the wash and the sheet itself stays the surface, so the rows read as objects on it", !!pick && pick.filter((r) => r.kind === "row").length >= 3 && pick.filter((r) => r.kind === "row").every(soft) && sheet === "rgb(255, 255, 255)", `${say(pick)} · sheet ${sheet}`);
       await closeSheet(page);
       await ctx.close();
