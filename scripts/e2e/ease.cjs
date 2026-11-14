@@ -125,8 +125,9 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       check("(h) the Diary's List view: a day's box — a container of times — keeps the sport's edge; any list row beside it is on the wash", !!diary && diary.some((r) => r.kind === "day") && diary.filter((r) => r.kind === "day").every((r) => r.edges[0].endsWith(EDGE) && parseFloat(r.edges[0]) >= 1) && diary.filter((r) => r.kind === "row").every(soft), say(diary));
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-group"]', 1000);
       const pick = await rows(page, "[data-sheet]"); await shot("07-sheet-people");
-      const sheet = await page.evaluate(() => { const s = document.querySelector("[data-sheet]"); if (!s) return null; const el = [s, ...s.querySelectorAll("*")].find((x) => getComputedStyle(x).backgroundColor === "rgb(255, 255, 255)" && x.getBoundingClientRect().width > 300); return el ? "rgb(255, 255, 255)" : getComputedStyle(s).backgroundColor; });
-      check("(i) inside a sheet the people rows are on the wash and the sheet itself stays the surface, so the rows read as objects on it", !!pick && pick.filter((r) => r.kind === "row").length >= 3 && pick.filter((r) => r.kind === "row").every(soft) && sheet === "rgb(255, 255, 255)", `${say(pick)} · sheet ${sheet}`);
+      /* the ground the rows sit on: the first painted ancestor of a row inside the sheet — the panel, never the wash */
+      const sheet = await page.evaluate(() => { const row = document.querySelector("[data-sheet] .nsc-list > *"); let el = row && row.parentElement; while (el && getComputedStyle(el).backgroundColor === "rgba(0, 0, 0, 0)") el = el.parentElement; return el ? getComputedStyle(el).backgroundColor : null; });
+      check("(i) inside a sheet the people rows are on the wash and the sheet itself stays the surface, so the rows read as objects on it", !!pick && pick.filter((r) => r.kind === "row").length >= 3 && pick.filter((r) => r.kind === "row").every(soft) && !!sheet && sheet !== WASH, `${say(pick)} · ground ${sheet}`);
       await closeSheet(page);
       await ctx.close();
     }
