@@ -95,7 +95,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
   const reasonChecks = async (page, id, tour, pick, edge) => {
     const rs = await reasons(page, tour);
     check(`(${id}) the reasons are rows of one list on the sport's wash, 8px corners — never the hairline`,
-          rs.length >= 3 && rs.every((r) => r.inList && (r.t === pick || r.bg === WASH.golf) && r.radius === "8px"), JSON.stringify(rs.slice(0, 3)));
+          rs.length >= 3 && rs.every((r) => r.inList && (r.t === pick || r.bg === (edge === EDGE.golf ? WASH.golf : WASH.equestrian)) && r.radius === "8px"), JSON.stringify(rs.slice(0, 3)));
     await page.locator(`[data-tour="${tour}"]`, { hasText: new RegExp(`^${pick}$`) }).first().click(); await page.waitForTimeout(500);
     const on = (await reasons(page, tour)).find((r) => r.t === pick);
     check(`(${id}) …and the chosen one is ink with white words, not a 6% tint`, !!on && lum(on.bg) < 0.03 && lum(on.fg) > 0.8, JSON.stringify(on));
