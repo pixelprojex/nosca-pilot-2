@@ -1359,6 +1359,18 @@ seeded data and no account.
   `scripts/e2e/ease.cjs`; `boxes.cjs`, `lists.cjs`, `calendar-day.cjs`,
   `join-requests.cjs` and `recurring.cjs` read the wash where they read
   the edge.
+- **14 November, from the sprint's audit (the second batch of the
+  day).** The offline strip's words and glyph are the ink on the
+  caution colour (white read 2.86:1); Away's line is `t.sub`, the red
+  Call off beside it the signal. The Who page's filter tiles are 44
+  tall; the live row's Register 44 inside its 60px row; the log's Mark
+  it up on the control's corner at 44, not a 36px pill. Every row of a
+  diary day's box is 56 tall (they stepped 48, 50 and 56 by kind).
+  Nothing today on the home is a line, not a box of its own. Hours'
+  Slots row carries no clock in a disc and reads "5 times · 45 min";
+  its "Tap a time to add it" is gone; EditDay's add grid is three
+  across, as Hours' is. `ease.cjs`, `boxes.cjs`, `edit-day.cjs`,
+  `hit-areas.cjs`, `narrow.cjs`, `refresh.cjs` and `away.cjs` read it.
 - **A list is a column of boxes, and every edge is the sport's own
   dark tone, 1.5px, with nothing glowing around it.** `EDGE(t)` is the
   sport's `mark` at 72% over the paper (the brand green before a sport)
