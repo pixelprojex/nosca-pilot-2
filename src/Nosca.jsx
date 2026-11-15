@@ -2696,7 +2696,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
   return (
     <>
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{request ? tr("Withdraw request") : tr("Cancel lesson")}</h2>
-      <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{lesson}</p>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{lesson}</p>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Why")}</div>
       <div className="nsc-list mb-5">
@@ -3472,18 +3472,12 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       )}
 
       {/* one action, and the ways out */}
-      <button data-tour="peek-log" onClick={() => { hapticCommit(); onLog(); }}
-              onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-              onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-              onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-              className="w-full flex items-center justify-center gap-2 active:opacity-90"
-              style={{ minHeight: 56, borderRadius: R.control, background: t.accent, willChange: "transform",
-                       boxShadow: `0 6px 18px ${t.accent}2E`,
-                       transition: "transform 160ms cubic-bezier(.34,1.56,.64,1)",
-                       ...TYPE.subhead, color: t.onAccent }}>
-        {tr("Log")}
-        <ArrowRight size={16} color={t.onAccent} strokeWidth={2.1} />
-      </button>
+      {/* the app's one filled button, as the Cancel and Call off sheets'
+          — it was an inline button with its own corner and glow, one of
+          three primary shapes in one flow */}
+      <Button tour="peek-log" onClick={onLog}>
+        <span className="inline-flex items-center justify-center gap-2">{tr("Log")}<ArrowRight size={16} color={t.onAccent} strokeWidth={2.1} /></span>
+      </Button>
 
       <div className="flex mt-3" style={{ borderTop: RULE.section(t.ink), paddingTop: 12 }}>
         {[{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null },
@@ -3593,8 +3587,10 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
           const face = { minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: t.surface,
                          ...TYPE.small, fontWeight: 600, color: bk ? t.faint : t.ink };
           const inner = (<>
-            <span className="block" style={FIG}>{span(h, duration)}</span>
-            {bk && <span className="block truncate w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.faint }}>{bk.who}</span>}
+            {/* the start time alone: the length is one value for the day and
+                reads in the sheet's sub; "10:00–10:45 am" wrapped at 320 */}
+            <span className="block" style={FIG}>{h}</span>
+            {bk && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.faint, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>}
           </>);
           if (editing && !bk) return (
             <button key={h} data-time={h} onClick={() => removeTime(h)} aria-label={`${tr("Remove")} ${h}`}
@@ -3612,9 +3608,9 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
         })}
         {!editing && addable.length > 0 && (
           <button data-tour="editday-add" onClick={() => { haptic(6); setAdding(!adding); }} aria-label={tr("Add a time")} aria-pressed={adding}
-                  className="flex items-center justify-center gap-1 active:opacity-70"
+                  className="flex flex-col items-center justify-center gap-0.5 active:opacity-70"
                   style={{ minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px dashed ${EDGE(t)}`, background: adding ? t.wash : "transparent", ...TYPE.small, fontWeight: 600, color: t.ink }}>
-            <Plus size={14} strokeWidth={2.2} />{tr("Add a time")}
+            <Plus size={14} strokeWidth={2.2} /><span style={{ whiteSpace: "nowrap" }}>{tr("Add a time")}</span>
           </button>
         )}
       </div>
@@ -3757,26 +3753,29 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                 <>
                   {/* day, time and how often — a standing lesson moves
                       more often than people expect */}
-                  <div className="flex gap-1 mt-4">
+                  <div className="flex gap-1.5 mt-4">
                     {DAY_NAMES.map((d, k) => {
                       const on = x.day === k;
                       /* the chosen day in ink, as a chosen tile is — it was filled
                          in STEADY, a second filled colour on the screen and the
-                         success green for a plain choice */
-                      return (<button key={k} onClick={() => { haptic(5); soft(); onEdit(x, { day: k }); }}
+                         success green for a plain choice; 44 tall on the
+                         control's corner, as the Set up sheet's seven are */
+                      return (<button key={k} aria-label={d} onClick={() => { haptic(5); soft(); onEdit(x, { day: k }); }}
                                       className="flex-1 active:opacity-60"
-                                      style={{ minHeight: 36, borderRadius: R.field, background: on ? t.ink : t.wash,
-                                               fontFamily: ui, fontSize: 12, fontWeight: 600,
+                                      style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
+                                               ...TYPE.small, fontWeight: 600,
                                                color: on ? "#fff" : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
                                 {d.slice(0, 2)}</button>);
                     })}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="flex-1">
-                      <Segmented options={["Weekly", "Fortnightly", "Monthly"].map(tr)}
-                                 value={tr(["Weekly", "Fortnightly", "Monthly"].find((f) => String(x.freq || "Weekly").toLowerCase() === f.toLowerCase()) || "Weekly")}
-                                 onChange={(lbl) => onEdit(x, { freq: ["Weekly", "Fortnightly", "Monthly"].find((f) => tr(f) === lbl) })} />
-                    </span>
+                  <div className="mt-2">
+                    <Segmented options={["Weekly", "Fortnightly", "Monthly"].map(tr)}
+                               value={tr(["Weekly", "Fortnightly", "Monthly"].find((f) => String(x.freq || "Weekly").toLowerCase() === f.toLowerCase()) || "Weekly")}
+                               onChange={(lbl) => onEdit(x, { freq: ["Weekly", "Fortnightly", "Monthly"].find((f) => tr(f) === lbl) })} />
+                  </div>
+                  {/* End on a line of its own under the Segmented: beside it the
+                      three words ran into one at 320 */}
+                  <div className="flex items-center justify-end gap-1.5 mt-2">
                     {/* an end date is not kept for a real account yet, so the two are not offered */}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 active:opacity-60"
                             style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
@@ -4605,15 +4604,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
       <h2 style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
       {sub && <p className="mt-1 mb-5" style={{ ...TYPE.small, color: t.faint }}>{sub}</p>}
 
-      <div className="flex items-center gap-2.5 px-4 mb-4"
-           style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
-        <Search size={15} color={t.trace || t.faint} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
-               className="flex-1 bg-transparent outline-none"
-               style={{ ...TYPE.body, color: t.ink }} />
-        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.trace || t.faint} /></button>
-           : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
-      </div>
+      <SearchField value={q} onChange={setQ} className="mb-4" />
 
       {list.length === 0 ? (
         <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name")}</p>
@@ -4843,18 +4834,9 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           )}
         </div>
 
-        <button onClick={() => { if (!ready) return; hapticSuccess(); chime();
-                                 onSubmit(picked, marks); setPicked(null); }}
-                disabled={!ready}
-                className="w-full flex items-center justify-center gap-2 active:opacity-90"
-                style={{ minHeight: 56, borderRadius: R.control,
-                         background: ready ? t.accent : t.wash,
-                         boxShadow: ready ? `0 6px 18px ${t.accent}2E` : "none",
-                         ...TYPE.subhead, color: ready ? t.onAccent : t.faint,
-                         transition: "background 220ms, color 220ms" }}>
-          {tr("Submit register")}
-          {ready && <Check size={17} color={t.onAccent} strokeWidth={2.4} />}
-        </button>
+        <Button disabled={!ready} onClick={() => { hapticSuccess(); chime(); onSubmit(picked, marks); setPicked(null); }}>
+          <span className="inline-flex items-center justify-center gap-2">{tr("Submit register")}{ready && <Check size={17} color={t.onAccent} strokeWidth={2.4} />}</span>
+        </Button>
       </>
     );
   }
@@ -6512,12 +6494,9 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close, closeLa
           {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
         </div>
 
-        <button onClick={go} disabled={busy || !pass}
-                className="w-full mt-6 active:opacity-85 disabled:opacity-30"
-                style={{ minHeight: 54, borderRadius: R.control, background: DANGER,
-                         ...TYPE.subhead, fontSize: 15.5, color: "#fff" }}>
-          {busy ? "…" : actionLabel}
-        </button>
+        <div className="mt-6">
+          <Button tone="danger" disabled={busy || !pass} onClick={go}>{busy ? "…" : actionLabel}</Button>
+        </div>
         <button onClick={close} className="w-full mt-2.5 active:opacity-60"
                 style={{ minHeight: 48, ...TYPE.body, fontSize: 14.5, color: t.faint }}>
           {closeLabel || tr("Cancel")}
@@ -7167,13 +7146,7 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
   return (
     <>
       <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("New message")}</h2>
-      <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 46, borderRadius: R.surface, background: t.wash }}>
-        <Search size={15} color={t.trace || t.faint} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none"
-               style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-        {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={14} color={t.trace || t.faint} /></button>
-           : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
-      </div>
+      <SearchField value={q} onChange={setQ} className="mb-4" />
       {shown.length === 0 ? (
         <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</p>
       ) : (
@@ -7243,7 +7216,7 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
   );
   const head = (title, line) => (<>
     <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
-    <p className="mb-5" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{line}</p>
+    <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{line}</p>
   </>);
 
   if (!rows.length) return (
@@ -7336,6 +7309,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
   const affected = chosenDays.flatMap((d) => d.bookings).filter((b) => !kept.includes(idOf(b)));
   const n = affected.length;
   const noun = n === 1 ? tr("lesson") : tr("lessons");
+  const opened = days.find((d) => startKeys.includes(d.key)) || null;   // the day the sheet was opened from, for the head
   const back = (to) => (
     <button onClick={() => { haptic(6); setStage(to); }} className="w-full mt-3 py-3 active:opacity-50"
             style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
@@ -7359,7 +7333,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
   if (stage === "which") return (
     <>
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which lessons")}</h2>
-      <p className="mb-4" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Untick any that still go ahead")}</p>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("Untick any that still go ahead")}</p>
       <div className="flex flex-col gap-3 mb-6">
         {chosenDays.map((d) => (
           <div key={d.key}>
@@ -7367,17 +7341,20 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
             <div className="flex flex-col gap-2">
               {d.bookings.map((b) => {
                 const on = !kept.includes(idOf(b));
+                /* the one person row: the time under the name as its grey
+                   line, so the name has the row's width and takes a second
+                   line rather than being cut ("Maximili…" at 320); a
+                   group's booking is the group's glyph, never initials */
+                const isGroup = !!b.groupName || b.kind === "Group" || b.type === "Group";
                 return (
-                  <button key={idOf(b)} aria-pressed={on}
-                          onClick={() => { haptic(7); soft(); setKept(on ? [...kept, idOf(b)] : kept.filter((x) => x !== idOf(b))); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                          style={{ borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
-                                   border: `${EDGE_W}px solid ${on ? DANGER : EDGE(t)}`, transition: "background 180ms" }}>
-                    <Avatar name={b.who} size={32} />
-                    <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{b.who}</span>
-                    <span style={{ fontFamily: ui, fontSize: 12, color: b.status === "requested" ? CAUTION : t.faint }}>{span(b.time, duration)}{b.status === "requested" ? ` · ${tr("asked")}` : ""}</span>
-                    {on ? <Check size={17} color={DANGER} strokeWidth={2.1} /> : <span style={{ width: 17 }} />}
-                  </button>
+                  <PersonRow key={idOf(b)} name={b.who} group={isGroup} className="px-4" minHeight={56}
+                             sub={`${span(b.time, duration)}${b.status === "requested" ? ` · ${tr("asked")}` : ""}`}
+                             subTone={b.status === "requested" ? "caution" : "faint"}
+                             trailing={on ? <Check size={17} color={DANGER} strokeWidth={2.1} /> : <span style={{ width: 17 }} />}
+                             attrs={{ "aria-pressed": on }}
+                             onTap={() => { haptic(7); soft(); setKept(on ? [...kept, idOf(b)] : kept.filter((x) => x !== idOf(b))); }}
+                             style={{ borderRadius: R.control, background: on ? `${DANGER}0F` : t.surface,
+                                      border: `${EDGE_W}px solid ${on ? DANGER : EDGE(t)}`, transition: "background 180ms" }} />
                 );
               })}
             </div>
@@ -7392,7 +7369,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
   if (stage === "days") return (
     <>
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Which days")}</h2>
-      <p className="mb-4" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr(reason || "")}</p>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr(reason || "")}</p>
       {days.length === 0
         ? <p className="mb-6" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked in the next month")}</p>
         : (
@@ -7415,7 +7392,12 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
   return (
     <>
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Call off")}</h2>
-      <p className="mb-4" style={{ fontFamily: ui, fontSize: 13.5, color: t.faint }}>{tr("Why")}</p>
+      {/* one head across Call off · Cancel · End · Decline · Move: the facts
+          in TYPE.small under the title (the day this was opened from), then
+          Why as the eyebrow over the reasons — it was the grey subtitle
+          here and an eyebrow on the other four */}
+      {opened && <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{opened.label}</p>}
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Why")}</div>
       <div className="nsc-list mb-6">
         {CALL_OFF_REASONS.map((r, i) => {
           const on = reason === r;
@@ -8163,6 +8145,27 @@ function useDictation(onText, onNotice) {
   return { state, start, stop, supported };
 }
 
+/* ONE SEARCH FIELD. A pill on the wash, 46 tall, the glass in the trace
+   grey, the words at 16px — the size under which iOS Safari zooms the
+   page when a finger lands in the box — and the microphone that gives
+   way to the clear cross. The roster, the archive, the pick-a-player
+   sheets, the log's Who page, the drill library and Settings all draw
+   it; they were one field drawn five ways (a pill at 15px, 16px
+   corners at 15px, 10px corners at 14.5px), three of them zooming. */
+function SearchField({ value, onChange, placeholder, tour, onEnter, className = "", mic = true }) {
+  const t = useT();
+  const ph = placeholder || tr("Search");
+  return (
+    <div data-tour={tour} className={`flex items-center gap-2.5 px-4 ${className}`} style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
+      <Search size={15} color={t.trace || t.faint} />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} aria-label={ph} enterKeyHint="search"
+             onKeyDown={onEnter ? (e) => { if (e.key === "Enter") { e.preventDefault(); onEnter(); } } : undefined}
+             className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+      {value ? <button onClick={() => { haptic(6); onChange(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.trace || t.faint} /></button>
+             : mic ? <MicBtn onText={(txt) => onChange(txt)} size={28} /> : null}
+    </div>
+  );
+}
 function MicBtn({ onText, size = 34, tint, onNotice }) {
   const t = useT();
   const notice = useContext(NoticeCtx);
@@ -13334,14 +13337,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <WizHero>{adding ? tr("Who else") : tr("Who")}</WizHero>
             {POOL_W.length > 0 && (
               <div className="px-6 pb-3" style={{ position: "sticky", top: 0, zIndex: 1, background: t.page }}>
-                <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-                  <Search size={15} color={t.trace || t.faint} />
-                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} enterKeyHint="search" aria-label={tr("Search")}
-                         onKeyDown={(e) => { if (e.key === "Enter" && faces[0]) { e.preventDefault(); pickPerson(faces[0]); } }}
-                         className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
-                  {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
-                     : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
-                </div>
+                <SearchField value={q} onChange={setQ} tour="wiz-who-search" onEnter={() => { if (faces[0]) pickPerson(faces[0]); }} />
               </div>
             )}
             <div className="px-6 pb-6">
@@ -13724,12 +13720,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
       <div className="px-6 pb-2">
         {tab === nounTitle || groups.length === 0 ? (<>
           {searchable && (
-            <div className="flex items-center gap-2.5 px-4 mb-4" style={{ minHeight: 44, borderRadius: R.pill, background: t.wash }}>
-              <Search size={15} color={t.trace || t.faint} />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-              {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
-                 : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
-            </div>
+            <SearchField value={q} onChange={setQ} className="mb-4" />
           )}
           <div className="nsc-list">
             {list.length === 0 ? (
@@ -14380,13 +14371,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           </div>
         )}
         {sift && (<div className="px-6 mb-3">
-          <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash }}>
-            <Search size={16} color={t.trace || t.faint} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")}
-                   className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
-               : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
-          </div>
+          <SearchField value={q} onChange={setQ} />
         </div>)}
 
         {forPlayer && onClearPlayer && (
@@ -14704,7 +14689,7 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           return people.length > 0 && (<>
             <Eyebrow>{tr("Members")}</Eyebrow>
             <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members">{people.map((r, i) => (
-                <Row key={r.id || r.name} label={r.name} icon={<Avatar name={r.name} size={36} />} chevron last onToggle={() => onOpen && onOpen(r)} />
+                <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} chevron onTap={() => onOpen && onOpen(r)} />
               ))}</div>
             </div>
           </>);
@@ -15114,16 +15099,14 @@ function ImportRoster({ close, say, noun, nouns, code }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        {routes.map((r, i) => (
-          <button key={r.id} onClick={() => openRoute(r.id)} disabled={!joinCode}
-                  className="flex flex-col items-center justify-center gap-2.5 active:opacity-60 disabled:opacity-30"
-                  style={{ minHeight: 92, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
-                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-            <r.Icon size={20} color={t.accent} strokeWidth={1.6} />
-            <span style={{ fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.ink }}>{r.label}</span>
-          </button>
-        ))}
+      {/* the app's one tile — the glyph in ink, the sport's edge — where
+          four hand-drawn tiles carried four accent glyphs on 10px corners
+          over the roster's own 16px tiles; a tap before the code has
+          arrived says so */}
+      <div className="mb-5">
+        <TileGrid cols={2}>
+          {routes.map((r, i) => <ActTile key={r.id} h={92} Icon={r.Icon} label={r.label} delay={i * 22} onTap={() => openRoute(r.id)} />)}
+        </TileGrid>
       </div>
 
       {canPickContacts && (
@@ -15417,13 +15400,7 @@ function PlayerDrillLibrary({ items, toggle, pop }) {
     <Screen title={tr("All drills")} onBack={pop} meta={items.length ? `${items.length} ${items.length === 1 ? tr("drill") : tr("drills")}${done ? ` · ${done} ${tr("done")}` : ""}` : ""}>
       {items.length > 8 && (
         <div className="px-6 pb-3">
-          <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-            <Search size={15} color={t.trace || t.faint} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} aria-label={tr("Search")} enterKeyHint="search"
-                   className="flex-1 outline-none min-w-0" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")}><X size={15} color={t.trace || t.faint} /></button>
-               : <MicBtn onText={(txt) => setQ(txt)} size={28} />}
-          </div>
+          <SearchField value={q} onChange={setQ} />
         </div>
       )}
       {items.length === 0 ? (
@@ -15754,7 +15731,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                           className="relative flex items-center justify-center active:opacity-70"
                           style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: t.surface, ...TYPE.small, fontWeight: 600, color: t.ink,
                                    animation: removing ? "wiggle 420ms ease-in-out infinite" : "none" }}>
-                    {span(sl, duration)}
+                    {sl}
                     {removing && (
                       <span className="absolute flex items-center justify-center" style={{ left: -6, top: -6, width: 18, height: 18, borderRadius: 9, background: DANGER }}>
                         <Minus size={11} color="#fff" strokeWidth={3} />
@@ -15764,9 +15741,9 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                 ))}
                 {!removing && (
                   <button onClick={() => { haptic(6); setAddingTime(!addingTime); }} aria-label={tr("Add a time")} aria-pressed={addingTime}
-                          className="flex items-center justify-center gap-1 active:opacity-70"
+                          className="flex flex-col items-center justify-center gap-0.5 active:opacity-70"
                           style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px dashed ${EDGE(t)}`, background: addingTime ? t.wash : "transparent", ...TYPE.small, fontWeight: 600, color: t.ink }}>
-                    <Plus size={14} strokeWidth={2.2} />{tr("Add a time")}
+                    <Plus size={14} strokeWidth={2.2} /><span style={{ whiteSpace: "nowrap" }}>{tr("Add a time")}</span>
                   </button>
                 )}
               </div>
@@ -17156,13 +17133,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         </div>
 
         <div className="px-6 mb-6">
-          <div className="flex items-center gap-2.5 px-4" style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
-            <Search size={15} color={t.trace || t.faint} strokeWidth={2} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search settings")} aria-label={tr("Search settings")}
-                   className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
-            {q ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="p-1 active:opacity-50"><X size={15} color={t.trace || t.faint} strokeWidth={2} /></button>
-               : <MicBtn onText={(txt) => setQ(txt)} size={26} />}
-          </div>
+          <SearchField value={q} onChange={setQ} placeholder={tr("Search settings")} />
         </div>
         {needle && shown.length === 0 && (
           <p className="px-6 py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing called")} “{q}”</p>
@@ -21736,7 +21707,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     {declining.note && <p className="mb-5" data-tour="decline-note" style={{ ...TYPE.body, color: theme.ink }}>{declining.note}</p>}
                     {/* why — the coach's own reasons, optional; the chosen one leads the
                         player's "Request declined", as a cancellation's reason does */}
-                    <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: theme.faint }}>{tr("Why")}</div>
+                    <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: theme.sub }}>{tr("Why")}</div>
                     <div className="nsc-list mb-5">
                       {CANCEL_REASONS.coach.map((r, i) => {
                         const on = declineWhy === r;

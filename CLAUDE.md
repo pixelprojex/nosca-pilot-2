@@ -1362,6 +1362,35 @@ seeded data and no account.
   `scripts/e2e/ease.cjs`; `boxes.cjs`, `lists.cjs`, `calendar-day.cjs`,
   `join-requests.cjs` and `recurring.cjs` read the wash where they read
   the edge.
+- **15 November, from the sprint's audit (the third batch).** One
+  search field: `SearchField` — a pill on the wash, 46 tall, the words
+  at 16px, the size under which iOS Safari zooms the page when a finger
+  lands in the box, the microphone giving way to the clear cross — on
+  the roster, the archive, the pick-a-player and New message sheets,
+  the log's Who page (`wiz-who-search`, Return still picks the top
+  match), the drill library and Settings; it was one field drawn five
+  ways, three of them zooming. Call off's Which lessons are `PersonRow`s
+  (the time under the name as the grey line, a request's in the caution
+  colour, a group's booking the group's glyph) on the control's corner
+  with DANGER whole on a ticked row's edge, so a name takes a second
+  line rather than "Maximili…" at 320. One head across Call off · Cancel
+  · End · Decline · Move: the facts in `TYPE.small` under the title (Call
+  off's is the day it was opened from), then Why as the eyebrow in
+  `t.sub` over the reasons. The peek's Log, the register's Submit and the
+  password sheet's confirm are the app's `Button` (it was three primary
+  shapes in one flow: 10px corners with a glow, 16px with the cast
+  shadow, 10px with none). Hours' and EditDay's tiles carry the start
+  time alone — the length is one value for the day and reads in the
+  Slots row and the sheet's sub; "10:00–10:45 am" wrapped at 320 — a
+  booked tile's name takes two lines before an ellipsis, and Add a time
+  stacks its plus over the words so nothing breaks mid-phrase. The
+  recurring manager's day chips are 44 tall on the control's corner, as
+  the Set up sheet's, and End sits on a line of its own under the
+  Segmented, which read "WeeklyFortnightlyMonthly" beside it at 320. The
+  Add player sheet's four routes are `ActTile`s in a `TileGrid` — the
+  glyph in ink, the sport's edge — where four hand-drawn 10px tiles
+  carried four accent glyphs. The group page's members are `PersonRow`s
+  (40 face, 64 tall), not 36px `Row`s. `scripts/e2e/sprint-3.cjs`.
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red
