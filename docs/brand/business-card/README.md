@@ -32,6 +32,11 @@ two uploads:
 | Front (green) | `nosca-card-front-colour.pdf` | `nosca-card-front-foil.pdf` |
 | Back (white) | `nosca-card-back-colour.pdf` | `nosca-card-back-foil.pdf` |
 
+`png/` holds the same four files as 600 dpi images (2079 × 1394 px, the bleed
+included) for a phone that will not open the PDFs; MOO takes PNG for the
+colour artwork. Upload the PDFs where you can — they are vector, and MOO's
+foil guide asks for a PDF.
+
 Every PDF is 88 × 59 mm — the 84 × 55 trim with MOO's 2 mm bleed all
 round — and carries the trim as its TrimBox. Do not add crop marks; MOO
 adds its own. `alt-olive/` is the same front on a dark olive ground, in
