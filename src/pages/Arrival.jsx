@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Copy, Share2 } from "lucide-react";
 import { ThemeCtx, NEUTRAL, BRAND, tr, ui, display, R, STEADY, DANGER, Mark, Button, haptic, hapticSuccess } from "../Nosca";
 import { joinLink, shareOrCopy, copyText } from "../lib/share";
+import { isStandalone } from "../lib/install";
 
 /* ARRIVAL
  *
@@ -44,13 +45,15 @@ export default function Arrival({ role, profile, data, onDone }) {
     else if (r === "failed") flash(tr("Couldn't share"), true);
   };
 
-  const go = (tour) => {
+  const go = (tour, install = false) => {
     haptic(10);
     /* The one thing that opens the walkthrough. Nothing else does — a
        sign-in on a new device used to replay it, because "have you seen
-       this" was kept per browser rather than tied to signing up. */
+       this" was kept per browser rather than tied to signing up. The
+       Home Screen guide is handed on the same way. */
     try {
       if (tour) window.sessionStorage.setItem("nosca.tour.now", "1");
+      if (install) window.sessionStorage.setItem("nosca.install.now", "1");
     } catch (e) { /* private mode — they can start it from Settings */ }
     onDone();
   };
@@ -116,6 +119,13 @@ export default function Arrival({ role, profile, data, onDone }) {
 
         <div className="px-7 shrink-0" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))",
                                                  animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 360ms both" }}>
+          {/* still in a browser tab: the way onto the phone, before the app */}
+          {!isStandalone() && (
+            <button onClick={() => go(false, true)} data-tour="arrival-install" className="w-full mb-3 active:opacity-60"
+                    style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: NEUTRAL.sub }}>
+              {tr("Add Nosca to your Home Screen")}
+            </button>
+          )}
           <Button tone="ink" onClick={() => go(true)}>{tr("Show me around")}</Button>
           <button onClick={() => go(false)} className="w-full mt-3 active:opacity-60"
                   style={{ minHeight: 44, fontFamily: ui, fontSize: 14.5, color: NEUTRAL.sub }}>

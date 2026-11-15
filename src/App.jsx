@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import Auth from "./pages/Auth";
 import Arrival from "./pages/Arrival";
+import InstallPage from "./pages/Install";
 import Nosca from "./Nosca";
 import { useNoscaData, avatarUrl, localDate } from "./lib/useNoscaData";
 import { registerSw, syncSubscription } from "./lib/push";
@@ -20,6 +21,15 @@ const isDemoUrl = () => typeof window !== "undefined" && (
   window.location.search.includes("demo")
   || window.location.hash.includes("demo")
   || window.location.pathname.replace(/\/+$/, "").endsWith("/demo")
+);
+
+/* /install — the page the business card's second QR code opens: how to
+   put Nosca on a Home Screen, for anyone, signed in or not. Netlify's
+   catch-all serves the app for every path, so the path is read here.
+   Never in the design harness. */
+const isInstallUrl = () => typeof window !== "undefined" && !isDemoUrl() && (
+  /^\/install\/?$/i.test(window.location.pathname)
+  || new URLSearchParams(window.location.search).has("install")
 );
 
 /* A join link — https://<site>/?join=CODE or ?family=CODE — is read once
@@ -171,6 +181,7 @@ function Gate() {
 
   // The design harness needs no account — it is for us, not for users.
   if (demo) return <Nosca demo />;
+  if (isInstallUrl()) return <InstallPage />;
 
   if (session === undefined) return null;
   if (!session) return <Auth invite={invite} onInviteUsed={inviteUsed} />;

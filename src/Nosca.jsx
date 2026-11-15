@@ -5,15 +5,37 @@ import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import { MAX_UPLOAD_MB, avatarUrl, registerKey, localDate } from "./lib/useNoscaData";
 import { useDownloads, fmtBytes } from "./lib/useDownloads";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
+import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf } from "./lib/install";
 import { supabase } from "./lib/supabase";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
+/* THE LIST'S OWN RULES, shared with the pages that render without
+   Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
+   each its own surface on the wash with no edge. Interpolated into the
+   style block below at the place the rules have always held, so the
+   cascade inside the app is unchanged; the comments that explain them
+   are there. */
+export const LIST_CSS = `    .nsc-list { border: none !important; }
+    .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
+                    margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
+    .nsc-list > *:last-child { margin-bottom: 0; }
+    /* a swipeable row pads its sliding surface, not the box, so the
+       red action behind it never peeks out at the edges */
+    .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
+    /* a row that unfolds (Settings' value lists) pads its own head and
+       options so the open list's wash runs to the box's edge and the
+       head's label lines up with every other row */
+    .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--wash) !important; padding-left: 14px; padding-right: 14px; }
+`;
+
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
   Delete, Lock, Mail, Camera, Video as VideoIcon, Image as ImageIcon, ChevronDown, Search, Bell, FileText,
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
-  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat } from "lucide-react";
+  Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat,
+  Share, EllipsisVertical, Menu, MonitorDown, SquarePlus } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
@@ -1943,19 +1965,7 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-    .nsc-list { border: none !important; }
-    .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
-                    margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
-    .nsc-list > *:last-child { margin-bottom: 0; }
-    /* a swipeable row pads its sliding surface, not the box, so the
-       red action behind it never peeks out at the edges */
-    .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
-    /* a row that unfolds (Settings' value lists) pads its own head and
-       options so the open list's wash runs to the box's edge and the
-       head's label lines up with every other row */
-    .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--wash) !important; padding-left: 14px; padding-right: 14px; }
-    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
+${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
@@ -17094,6 +17104,9 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     ] },
     { title: tr("Support"), tour: "settings-support", rows: [
       { label: tr("Walkthrough"), tour: "settings-tour", onTap: () => onTour && onTour(), keys: ["tour", "guide", "how", "screens"] },
+      /* the way onto the phone for anyone still in a browser tab; the
+         business card's second code opens the same guide at /install */
+      !isStandalone() && { label: tr("Add to Home Screen"), tour: "settings-install", onTap: () => push("install"), keys: ["install", "home screen", "homescreen", "phone", "app", "icon", "add", "download", "dock"] },
       role !== "coach" && { label: tr("Attendance"), tour: "settings-attendance", onTap: () => push("attendance"), keys: ["record", "register"] },
       /* one row, straight to the mail app: a screen of two rows that
          each opened it was three taps for one thing */
@@ -17323,6 +17336,118 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
         <Eyebrow>{tr("Quiet hours")}</Eyebrow>
         <div className="px-6 pb-2"><Card><Row label={tr("Hold alerts overnight")} sub="10:00 pm to 7:00 am" last right={<Toggle on={quiet} onChange={setQuiet} />} /></Card>
 </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+/* ADD TO HOME SCREEN
+
+   The way onto the phone, for anyone still in a browser tab. Three sets
+   of steps — iPhone (an iPad too), Android, Computer — on the app's
+   Segmented, opened on the one this device is (`platformOf`), each step
+   a row of the phone's own words with the phone's own glyph where one
+   helps (the Share square, the three dots, the three lines). Where the
+   browser offers to install (Chrome and Edge fire `beforeinstallprompt`,
+   caught in lib/install.js) the guide leads with one button, Install
+   Nosca, which opens the browser's own sheet; Safari never offers, so an
+   iPhone always reads the steps. Reached three ways: /install, the page
+   the business card's second QR code opens, for anyone, signed in or
+   not (pages/Install.jsx); Settings › Add to Home Screen, a row that
+   is not there once the app is on a Home Screen; and the arrival
+   screen's quiet line after sign-up (`nosca.install.now`). An iPhone
+   signs in once more inside the installed app — iOS gives a Home
+   Screen app its own storage — and the last step says so. */
+const INSTALL_TABS = ["iPhone", "Android", "Computer"];
+const INSTALL_TAB = { iphone: "iPhone", android: "Android", computer: "Computer" };
+function installSteps(tab, browser) {
+  if (tab === "iPhone") return [
+    { icon: Share, text: tr("Tap Share"), sub: browser === "safari" || browser === "other"
+        ? tr("The square with an arrow, at the foot of Safari — top right on an iPad")
+        : tr("The square with an arrow, beside the address bar") },
+    { icon: SquarePlus, text: tr("Tap Add to Home Screen"), sub: tr("Scroll the list if it isn't showing") },
+    { text: tr("Tap Add"), sub: tr("Nosca opens from your Home Screen like any app — sign in there once") },
+  ];
+  if (tab === "Android") {
+    if (browser === "samsung") return [
+      { icon: Menu, text: tr("Tap the menu"), sub: tr("Three lines, at the foot of the screen") },
+      { text: tr("Tap Add page to") },
+      { text: tr("Tap Home screen, then Add") },
+    ];
+    if (browser === "firefox") return [
+      { icon: EllipsisVertical, text: tr("Tap the menu"), sub: tr("Three dots, top right") },
+      { text: tr("Tap Install") },
+    ];
+    return [
+      { icon: EllipsisVertical, text: tr("Tap the menu"), sub: tr("Three dots, top right") },
+      { icon: SquarePlus, text: tr("Tap Add to Home screen"), sub: tr("Or Install app, where Chrome offers it") },
+      { text: tr("Tap Install") },
+    ];
+  }
+  if (browser === "safari") return [
+    { text: tr("Open the File menu") },
+    { text: tr("Choose Add to Dock"), sub: tr("Safari 17 or later") },
+    { text: tr("Click Add") },
+  ];
+  if (browser === "firefox") return [
+    { text: tr("Open Nosca in Chrome, Edge or Safari"), sub: tr("Firefox can't install web apps on a computer") },
+  ];
+  return [
+    { icon: MonitorDown, text: tr("Click the install icon"), sub: tr("At the right of the address bar — or the menu, then Install Nosca") },
+    { text: tr("Click Install") },
+  ];
+}
+export function InstallGuide({ tour = "install" }) {
+  const t = useT();
+  const [tab, setTab] = useState(() => INSTALL_TAB[platformOf()] || "Computer");
+  const [offer, setOffer] = useState(canPromptInstall);
+  const [done, setDone] = useState(isStandalone);
+  const [note, setNote] = useState("");
+  useEffect(() => onInstallPromptChange((on) => setOffer(on)), []);
+  const browser = browserOf();
+  const install = async () => {
+    haptic(10);
+    const r = await promptInstall();
+    if (r === "accepted") { hapticSuccess(); setDone(true); }
+    else if (r === "dismissed") setNote(tr("Not installed"));
+    else setNote(tr("Couldn't open the install sheet"));
+  };
+  if (done) return <p data-tour={`${tour}-done`} style={{ ...TYPE.body, color: t.ink }}>{tr("Nosca is on your Home Screen")}</p>;
+  const button = offer && tab !== "iPhone";
+  const steps = installSteps(tab, browser);
+  return (
+    <div data-tour={tour}>
+      <p style={{ ...TYPE.lede, color: t.sub, marginBottom: SPACE.block }}>{tr("Nosca opens full screen from your Home Screen, with notifications.")}</p>
+      <Segmented options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
+      {button && (
+        <div style={{ marginTop: SPACE.block }}>
+          <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>
+          {note && <p className="text-center" role="status" style={{ ...TYPE.caption, color: DANGER, marginTop: SPACE.tight }}>{note}</p>}
+          <p className="text-center" style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr("Or by hand")}</p>
+        </div>
+      )}
+      <div className="nsc-list" data-tour={`${tour}-steps`} style={{ marginTop: button ? SPACE.tight : SPACE.block }}>
+        {steps.map((st, i) => {
+          const Glyph = st.icon;
+          return (
+            <div key={st.text} className="flex items-start gap-3.5" style={{ padding: "14px 16px", minHeight: 56 }}>
+              <span style={{ ...TYPE.body, fontWeight: 600, color: t.ink, width: 16, flexShrink: 0 }}>{i + 1}</span>
+              {Glyph ? <Glyph size={18} strokeWidth={1.8} color={t.ink} style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true" /> : null}
+              <span className="min-w-0 flex-1">
+                <span className="block" style={{ ...TYPE.body, color: t.ink }}>{st.text}</span>
+                {st.sub && <span className="block" style={{ ...TYPE.caption, color: t.sub, marginTop: 2 }}>{st.sub}</span>}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+function InstallScreen({ pop }) {
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Add to Home Screen")} onBack={pop}>
+        <div className="px-6 pb-6"><InstallGuide /></div>
       </Screen>
     </SwipeBack>
   );
@@ -18351,6 +18476,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       if (window.sessionStorage.getItem("nosca.tour.now") === "1") {
         window.sessionStorage.removeItem("nosca.tour.now");
         setTour(true);
+      }
+      /* the arrival's other way on: the Home Screen guide first, then
+         the app under it */
+      if (window.sessionStorage.getItem("nosca.install.now") === "1") {
+        window.sessionStorage.removeItem("nosca.install.now");
+        push("install");
       }
     } catch (e) { /* storage unavailable — nothing to consume */ }
   }, []);
@@ -20451,6 +20582,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const threadName = screen.slice("thread:".length);
     const isGroupThread = Object.values(groups).flat().some((g) => g.name === threadName);
     body = <Thread role={role} name={threadName} isGroup={isGroupThread} pop={pop} say={say} />;
+  } else if (screen === "install") { body = <InstallScreen pop={pop} />;
   } else if (screen.startsWith("legal:")) { body = <Legal docKey={screen.split(":")[1]} pop={pop} />;
   } else if (screen.startsWith("player:")) {
     const pkey = screen.slice("player:".length);

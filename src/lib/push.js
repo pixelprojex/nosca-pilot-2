@@ -17,6 +17,8 @@
  * gets a plain answer instead of a crash.
  */
 
+import { isIos, isStandalone } from "./install";
+
 const SW_URL = "/sw.js";
 
 function vapidKey() {
@@ -29,23 +31,6 @@ function vapidKey() {
 
 function hasWindow() {
   return typeof window !== "undefined" && typeof navigator !== "undefined";
-}
-
-function isIos() {
-  if (!hasWindow()) return false;
-  const ua = navigator.userAgent || "";
-  if (/iPad|iPhone|iPod/.test(ua)) return true;
-  // iPadOS reports itself as a Mac; the touch points give it away.
-  return navigator.platform === "MacIntel" && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1;
-}
-
-function isStandalone() {
-  if (!hasWindow()) return false;
-  try {
-    if (navigator.standalone === true) return true;
-    if (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) return true;
-  } catch { /* fine */ }
-  return false;
 }
 
 /* "unsupported"     — this browser cannot do web push at all
