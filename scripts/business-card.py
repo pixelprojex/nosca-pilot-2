@@ -148,23 +148,34 @@ def front_colour(path, ground):
 
 def front_foil(path):
     c = page(path)
-    # the stripes, everywhere but the band, out to the bleed edge
+    # two wedges of pinstripes in opposite corners, each finished with a
+    # fine gold edge, leaving a clear diagonal band for the mark — the
+    # movement of MOO's foil sample, set off-axis so the card reads drawn
+    W, H, B = TRIM_W, TRIM_H, BLEED
+    tr_wedge = [(W * 0.44, -B), (W + B, -B), (W + B, H * 0.58)]          # top right
+    bl_wedge = [(-B, H * 0.42), (-B, H + B), (W * 0.56, H + B)]          # bottom left
     c.saveState()
     clip = c.beginPath()
-    clip.rect(0, Y(BAND_TOP), PAGE_W * mm, (BAND_TOP + BLEED) * mm)                 # above the band
-    clip.rect(0, 0, PAGE_W * mm, (TRIM_H - BAND_BOTTOM + BLEED) * mm)                # below it
+    for poly in (tr_wedge, bl_wedge):
+        clip.moveTo(X(poly[0][0]), Y(poly[0][1]))
+        for x, y in poly[1:]: clip.lineTo(X(x), Y(y))
+        clip.close()
     c.clipPath(clip, stroke=0, fill=0)
     c.setStrokeColor(FOIL); c.setLineWidth(STRIPE_W * mm); c.setLineCap(0)
-    step = STRIPE_PITCH * math.sqrt(2) * mm                                           # the pitch, measured along x
+    step = STRIPE_PITCH * math.sqrt(2) * mm
     d = -PAGE_H * mm - step
     L = (PAGE_W + PAGE_H) * mm * 2
     while d < PAGE_W * mm + step:
-        c.line(d, -10 * mm, d + L, L - 10 * mm)                                       # bottom-left to top-right
+        c.line(d, -10 * mm, d + L, L - 10 * mm)
         d += step
     c.restoreState()
-    # the mark and the word, centred in the band
+    # the wedges' inner edges, one hairline of gold each (1.4 pt)
+    c.setStrokeColor(FOIL); c.setLineWidth(0.5 * mm); c.setLineCap(0)
+    for (x1, y1), (x2, y2) in ((tr_wedge[0], tr_wedge[2]), (bl_wedge[0], bl_wedge[2])):
+        c.line(X(x1), Y(y1), X(x2), Y(y2))
+    # the mark and the word, centred
     mark(c, (TRIM_W - MARK_W) / 2, MARK_TOP, MARK_W, FOIL)
-    base = MARK_TOP + MARK_W * 25 / 40 + WORD_GAP + CAP * WORD_SIZE / mm * 0.3528 / 0.3528 * 0.3528
+    base = MARK_TOP + MARK_W * 25 / 40 + WORD_GAP + CAP * WORD_SIZE * 0.3528
     text(c, TRIM_W / 2 + WORD_TRACK * WORD_SIZE * 0.3528 / 2, base, "NOSCA", "IS-Medium", WORD_SIZE, FOIL, track=WORD_TRACK, align="centre")
     c.showPage(); c.save()
 
@@ -172,39 +183,39 @@ def front_foil(path):
 # White. The mark (foil) top left and NOSCA (printed) top right; the
 # name; one line of what Nosca is; the two codes with what each does.
 NAME, ROLE = "Fionn Breathnach", "Founder"
-LINE = ["One app for coach,", "player and parent."]
-SPORTS = ["Golf · Tennis", "Rowing · Squash", "Padel · Equestrian"]
-LEAD = 3.6                                      # mm between the small lines (8 pt at 1.28)
-QR_SIZE, QR_GAP = 16.5, 5.0                     # mm; 29 modules at 0.57 mm each, a 2.5 mm quiet zone between
-QR_TOP = 33.0
-CAPTIONS = ["Open Nosca", "Add to phone"]
+LINE = ["Coaching, linked.", "One app for coach, player and parent."]
+SPORTS = "Golf · Tennis · Rowing · Squash · Padel · Equestrian"
+QR_SIZE = 17.0                                  # mm; version 3, 29 modules at 0.59 mm each
+QR_X, QR_TOP = TRIM_W - MARGIN - 17.0, 22.5
+CAPTION = "Scan to start"
+RULE_Y = 16.5                                   # the gold rule under the head
 
 def back_colour(path, site):
     c = page(path)
     c.setFillColor(WHITE); c.rect(0, 0, PAGE_W * mm, PAGE_H * mm, stroke=0, fill=1)
-    small_mark_w = 10.0
-    # NOSCA, printed, right, on the mark's centre line
-    text(c, TRIM_W - MARGIN, MARGIN + small_mark_w * 25 / 40 / 2 + CAP * 8 * 0.3528 / 2, "NOSCA", "IS-Medium", 8, GREEN, track=0.42, align="right")
-    # the person
-    text(c, MARGIN, 22.5, NAME, "IS-SemiBold", 11.5, INK)
-    text(c, MARGIN, 26.9, ROLE, "IS", 8, GREY)
-    # the line
-    y = QR_TOP + QR_SIZE - (len(LINE) + len(SPORTS) - 1) * LEAD   # the block ends on the codes' foot
-    for s in LINE:
-        text(c, MARGIN, y, s, "IS-Medium", 8, INK); y += LEAD
-    for s in SPORTS:
-        text(c, MARGIN, y, s, "IS", 8, GREY); y += LEAD
-    # the codes, with what each one does above it
-    x2 = TRIM_W - MARGIN - QR_SIZE
-    x1 = x2 - QR_GAP - QR_SIZE
-    for x, cap, url in ((x1, CAPTIONS[0], site.rstrip("/") + "/"), (x2, CAPTIONS[1], site.rstrip("/") + "/install")):
-        text(c, x, QR_TOP - 2.0, cap, "IS-Medium", 7.5, INK)
-        qr(c, x, QR_TOP, QR_SIZE, url, GREEN)
+    # the person, under the gold rule
+    text(c, MARGIN, 25.0, NAME, "IS-SemiBold", 12, INK)
+    text(c, MARGIN, 29.6, ROLE, "IS", 8, GREY)
+    # what Nosca is, ending on the code's foot
+    foot = QR_TOP + QR_SIZE
+    text(c, MARGIN, foot - 2.4, LINE[0], "IS-Medium", 8, INK)
+    text(c, MARGIN, foot + 1.3, LINE[1], "IS", 8, INK)
+    # the sports, one line under everything, the width of the card
+    text(c, MARGIN, TRIM_H - MARGIN, SPORTS, "IS", 7.5, GREY, track=0.02)
+    # one code, to the guide that gets the app onto the phone and then opens it
+    text(c, QR_X + QR_SIZE, foot + 3.6, CAPTION, "IS-Medium", 7.5, INK, align="right")
+    qr(c, QR_X, QR_TOP, QR_SIZE, site.rstrip("/") + "/install", GREEN)
     c.showPage(); c.save()
 
 def back_foil(path):
     c = page(path)
-    mark(c, MARGIN, MARGIN, 10.0, FOIL)
+    small = 11.0
+    mark(c, MARGIN, MARGIN, small, FOIL)
+    # NOSCA in gold on the mark's centre line, right — 10 pt, MOO's floor for foil type
+    text(c, TRIM_W - MARGIN, MARGIN + small * 25 / 80 + CAP * 10 * 0.3528 / 2, "NOSCA", "IS-Medium", 10, FOIL, track=0.42, align="right")
+    # a fine gold rule across the card under the head (1.4 pt)
+    c.setStrokeColor(FOIL); c.setLineWidth(0.5 * mm)
+    c.line(X(MARGIN), Y(RULE_Y), X(TRIM_W - MARGIN), Y(RULE_Y))
     c.showPage(); c.save()
 
 # ---------------------------------------------------------------- preview
@@ -278,7 +289,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(HERE, "..", "docs", "brand", "business-card"))
     ap.add_argument("--site", default="https://nosca-pilot-2.netlify.app")
-    ap.add_argument("--ground", default="green", choices=["green", "olive"])
+    ap.add_argument("--ground", default="olive", choices=["green", "olive"])
     ap.add_argument("--no-preview", action="store_true")
     a = ap.parse_args()
     out = os.path.abspath(a.out); os.makedirs(out, exist_ok=True)
@@ -287,7 +298,7 @@ def main():
     front_foil(os.path.join(out, "nosca-card-front-foil.pdf"))
     back_colour(os.path.join(out, "nosca-card-back-colour.pdf"), a.site)
     back_foil(os.path.join(out, "nosca-card-back-foil.pdf"))
-    print("codes:", a.site.rstrip("/") + "/", a.site.rstrip("/") + "/install")
+    print("code:", a.site.rstrip("/") + "/install")
     if not a.no_preview: preview(out, a.ground)
 
 if __name__ == "__main__":

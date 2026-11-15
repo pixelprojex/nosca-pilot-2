@@ -67,9 +67,11 @@ const openSettings = async (page) => {
       const s0 = await steps(page);
       check("(a) a computer's Chrome reads the install icon at the right of the address bar", s0.length === 2 && /install icon/.test(s0[0]) && /address bar/.test(s0[0]) && /Click Install/.test(s0[1]), s0.join(" | "));
       await pick(page, "iPhone"); const s1 = await steps(page);
-      check("(a) iPhone: Share, Add to Home Screen, Add — and sign in there once", s1.length === 3 && /Tap Share/.test(s1[0]) && /Add to Home Screen/.test(s1[1]) && /^3\s*Tap Add\b/.test(s1[2]) && /sign in there once/.test(s1[2]), s1.join(" | "));
+      check("(a) iPhone opens on iOS 26: ⋯, Share, Add to Home Screen, Open as Web App and Add, then open it and sign in once", (await page.locator('[data-tour="install-version"] button[aria-pressed="true"]').getAttribute("aria-label")) === "iOS 26" && s1.length === 5 && /Tap ⋯/.test(s1[0]) && /three lines/.test(s1[0]) && /Tap Share/.test(s1[1]) && /Add to Home Screen/.test(s1[2]) && /View More/.test(s1[2]) && /Open as Web App/.test(s1[3]) && /Sign in there once/.test(s1[4]) && /iOS Version/.test(await text()), s1.join(" | "));
+      await M.tap(page, '[data-tour="install-version"] [aria-label="iOS 18 or earlier"]', 500); const s1b = await steps(page);
+      check("(a) iOS 18 or earlier: Share in Safari's bar, Add to Home Screen, Add, open it", s1b.length === 4 && /Tap Share/.test(s1b[0]) && /Add to Home Screen/.test(s1b[1]) && /Tap Add/.test(s1b[2]) && /Open Nosca/.test(s1b[3]), s1b.join(" | "));
       await pick(page, "Android"); const s2 = await steps(page);
-      check("(a) Android: the three dots, Add to Home screen, Install", s2.length === 3 && /Three dots/.test(s2[0]) && /Add to Home screen/.test(s2[1]) && /Tap Install/.test(s2[2]), s2.join(" | "));
+      check("(a) Android in Chrome: ⋮, Add to home screen, Install rather than a shortcut, open it", s2.length === 4 && /Three dots/.test(s2[0]) && /Add to home screen/.test(s2[1]) && /Tap Install/.test(s2[2]) && /Create shortcut/.test(s2[2]) && /Open Nosca/.test(s2[3]), s2.join(" | "));
       const small = await page.evaluate(() => Array.from(document.querySelectorAll("#root *"))
         .filter((el) => !el.children.length && el.textContent.trim() && el.dataset.tour !== "wordmark" && parseFloat(getComputedStyle(el).fontSize) < 12)
         .map((el) => `${el.textContent.trim().slice(0, 24)} @ ${getComputedStyle(el).fontSize}`));
@@ -83,10 +85,11 @@ const openSettings = async (page) => {
 
     /* ---------- (b) an iPhone in Safari ---------- */
     {
-      const { ctx, page } = await boot({ device: "iPhone 13" });
+      /* a real iOS 17 Safari (Playwright's iPhone profile reports Version/26) */
+      const { ctx, page } = await boot({ device: "iPhone 13", ua: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1" });
       await guide(page);
       const s = await steps(page);
-      check("(b) an iPhone opens on its own steps: Share at the foot of Safari, top right on an iPad", (await pressed(page)) === "iPhone" && /foot of Safari/.test(s[0]) && /iPad/.test(s[0]), `${await pressed(page)} | ${s[0]}`);
+      check("(b) an older iPhone opens on its own platform and version: Share at the foot of Safari", (await pressed(page)) === "iPhone" && (await page.locator('[data-tour="install-version"] button[aria-pressed="true"]').getAttribute("aria-label")) === "iOS 18 or earlier" && /foot of Safari/.test(s[0]) && /iPad/.test(s[0]), `${await pressed(page)} | ${s[0]}`);
       check("(b) no Install button on an iPhone — Safari never offers one", (await page.locator('[data-tour="install-now"]').count()) === 0);
       await ctx.close();
     }
@@ -105,7 +108,7 @@ const openSettings = async (page) => {
       await guide(page); await page.waitForTimeout(600);
       check("(c) an Android phone opens on Android", (await pressed(page)) === "Android", await pressed(page));
       const btn = page.locator('[data-tour="install-now"]');
-      check("(c) a Chrome that offers to install leads with one button, Install Nosca, the steps under it as Or by hand", (await btn.count()) === 1 && /Install Nosca/.test(await btn.innerText()) && /Or by hand/.test(await text()) && (await steps(page)).length === 3, (await text()).slice(0, 220));
+      check("(c) a Chrome that offers to install leads with one button, Install Nosca, the steps under it as Or by hand", (await btn.count()) === 1 && /Install Nosca/.test(await btn.innerText()) && /Or by hand/.test(await text()) && (await steps(page)).length === 4, (await text()).slice(0, 220));
       await shot("c-android-offer");
       await btn.click(); await page.waitForTimeout(700);
       const prompted = await page.evaluate(() => window.__prompted);
@@ -118,7 +121,17 @@ const openSettings = async (page) => {
       const { ctx, page } = await boot({ ua: SAMSUNG });
       await guide(page);
       const s = await steps(page);
-      check("(d) Samsung Internet: the three lines, Add page to, Home screen", (await pressed(page)) === "Android" && /Three lines/.test(s[0]) && /Add page to/.test(s[1]) && /Home screen/.test(s[2]), s.join(" | "));
+      check("(d) Samsung Internet opens on Samsung: ☰, Add page to, Home screen, Add, open it", (await pressed(page)) === "Android" && (await page.locator('[data-tour="install-version"] button[aria-pressed="true"]').getAttribute("aria-label")) === "Samsung" && s.length === 5 && /Three lines/.test(s[0]) && /Add page to/.test(s[1]) && /Home screen/.test(s[2]) && /Tap Add/.test(s[3]), s.join(" | "));
+      await ctx.close();
+    }
+
+    /* ---------- (b2) iOS 26 Safari: the OS reads 18_6 in its user agent, Version/26 is the truth ---------- */
+    {
+      const { ctx, page } = await boot({ ua: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1" });
+      await guide(page);
+      check("(b2) an iOS 26 iPhone opens on iOS 26, whose first step is ⋯", (await page.locator('[data-tour="install-version"] button[aria-pressed="true"]').getAttribute("aria-label")) === "iOS 26" && /Tap ⋯/.test((await steps(page))[0]));
+      await M.tap(page, '[data-tour="install-close"]', 300); await page.waitForLoadState("networkidle"); await page.waitForTimeout(900);
+      check("(k) the X leaves the guide for the app: sign-up for a stranger", new URL(page.url()).pathname === "/" && /Create account/.test(await M.rootText(page)), page.url());
       await ctx.close();
     }
 

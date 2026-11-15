@@ -32,6 +32,11 @@ two uploads:
 | Front (green) | `nosca-card-front-colour.pdf` | `nosca-card-front-foil.pdf` |
 | Back (white) | `nosca-card-back-colour.pdf` | `nosca-card-back-foil.pdf` |
 
+`png/` holds the same four files as 600 dpi images (2079 × 1394 px, the bleed
+included) for a phone that will not open the PDFs; MOO takes PNG for the
+colour artwork. Upload the PDFs where you can — they are vector, and MOO's
+foil guide asks for a PDF.
+
 Every PDF is 88 × 59 mm — the 84 × 55 trim with MOO's 2 mm bleed all
 round — and carries the trim as its TrimBox. Do not add crop marks; MOO
 adds its own. `alt-olive/` is the same front on a dark olive ground, in
@@ -40,8 +45,7 @@ shared.
 
 ## What is on it
 
-**Front.** The brand's bottle green edge to edge (the colour of the app
-icon the person is about to put on their phone), fine gold pinstripes
+**Front.** A deep olive edge to edge fine gold pinstripes
 across the top and bottom thirds, and a clear band through the middle
 with the mark and NOSCA — the composition of MOO's own gold-foil sample,
 and the lockup of the app's front door. The ground is the only printed
@@ -104,3 +108,9 @@ python3 scripts/business-card.py --ground olive --out docs/brand/business-card/a
 The previews simulate the foil (a gold gradient where the foil file is
 black), trim the bleed and round the corners; the PDFs themselves hold
 the foil as black, as MOO wants it.
+
+## Revised 15 November
+
+One code (`/install`, the guide first, its X out to the app), olive front with the stripes in two
+opposing corner wedges, gold on both sides (MOO foils both or neither): the back's mark, NOSCA and a
+fine rule. The files are also served at `https://nosca-pilot-2.netlify.app/card/` for a phone.

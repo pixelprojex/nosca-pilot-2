@@ -1785,7 +1785,17 @@ seeded data and no account.
   Safari never offers, so an iPhone always reads the steps, and its
   last step says "sign in there once" — iOS gives a Home Screen app its
   own storage, so a person who signed up in Safari signs in again
-  inside the app. Once the app is on a Home Screen (`isStandalone`,
+  inside the app. Under the platform a second `Segmented` (`install-version`)
+  picks what actually changes the taps — iOS 26 · iOS 18 or earlier (iOS 26
+  moved Share into the ⋯ menu beside the address bar, three lines on some
+  layouts; `iosMajor` reads Safari's own `Version/`, because Safari freezes
+  the OS in its user agent at 18_6), Chrome · Samsung, Chrome or Edge ·
+  Safari — opened on the one this device is, with "Settings › General ›
+  About › iOS Version" under it for a person who does not know; every tap
+  is a step, down to Open as Web App and "choose Install rather than
+  Create shortcut" (the founder found the first version skipped the
+  small ones). The page's X (`install-close`) is the way out to the app,
+  as Open Nosca is. Once the app is on a Home Screen (`isStandalone`,
   `navigator.standalone` or `display-mode: standalone`) the guide reads
   "Nosca is on your Home Screen" and nothing else. The three ways in:
   **/install** (`pages/Install.jsx`, read by the gate in App.jsx before
@@ -1801,8 +1811,13 @@ seeded data and no account.
   `scripts/business-card.py` writes MOO's four files (a colour PDF and
   a black-foil PDF a side, 88 × 59 mm with the 84 × 55 trim boxed) and
   the previews into `docs/brand/business-card/`; the codes carry the
-  site's root and `/install`, drawn as vector squares; the README there
-  is the order. `scripts/e2e/install.cjs`.
+  one code, `/install`, drawn as vector squares (it was two — the app and
+  the guide — and the founder asked for one that opens the guide first);
+  the front is the olive ground with gold pinstripes in two opposing
+  corner wedges, the back white with the mark, NOSCA and a rule in gold —
+  MOO foils both sides or neither. The README there is the order, and
+  `public/card/` serves the files at `/card/` for a phone (copy them
+  there after a re-run). `scripts/e2e/install.cjs`.
 - **Away is a span of days on the coach's hours, and no diary offers a
   time on them.** Settings › Away (`settings-away`, a coach only, found
   by "holiday", "vacation", "off", "closed"; its `sub` the next span

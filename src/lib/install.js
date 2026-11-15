@@ -84,3 +84,13 @@ export function browserOf() {
   if (/Safari/i.test(s)) return "safari";
   return "other";
 }
+
+/* The iOS version, for the steps that moved in iOS 26 (Share went into the
+   ⋯ menu). Safari freezes the OS in its user agent at 18_6 from iOS 26 on,
+   so its own Version/ is read first; another browser's OS number after. */
+export function iosMajor() {
+  if (!isIos()) return null;
+  const s = ua();
+  const v = s.match(/Version\/(\d+)/) || s.match(/OS (\d+)_/);
+  return v ? Number(v[1]) : null;
+}
