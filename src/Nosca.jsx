@@ -8,6 +8,26 @@ import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from
 import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf } from "./lib/install";
 import { supabase } from "./lib/supabase";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
+/* THE LIST'S OWN RULES, shared with the pages that render without
+   Nosca mounted (pages/Install.jsx): a list is a column of soft rows,
+   each its own surface on the wash with no edge. Interpolated into the
+   style block below at the place the rules have always held, so the
+   cascade inside the app is unchanged; the comments that explain them
+   are there. */
+export const LIST_CSS = `    .nsc-list { border: none !important; }
+    .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
+                    margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
+    .nsc-list > *:last-child { margin-bottom: 0; }
+    /* a swipeable row pads its sliding surface, not the box, so the
+       red action behind it never peeks out at the edges */
+    .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
+    /* a row that unfolds (Settings' value lists) pads its own head and
+       options so the open list's wash runs to the box's edge and the
+       head's label lines up with every other row */
+    .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--wash) !important; padding-left: 14px; padding-right: 14px; }
+`;
+
 import {
   ChevronLeft, ChevronRight, Check, Play, Pause, Plus, Minus, X, Mic, Square, Home,
   Calendar, CalendarDays, MessageCircle, Send, Users, User, ArrowRight, QrCode, Share2,
@@ -1945,19 +1965,7 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-    .nsc-list { border: none !important; }
-    .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
-                    margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
-    .nsc-list > *:last-child { margin-bottom: 0; }
-    /* a swipeable row pads its sliding surface, not the box, so the
-       red action behind it never peeks out at the edges */
-    .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
-    /* a row that unfolds (Settings' value lists) pads its own head and
-       options so the open list's wash runs to the box's edge and the
-       head's label lines up with every other row */
-    .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--wash) !important; padding-left: 14px; padding-right: 14px; }
-    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
+${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
