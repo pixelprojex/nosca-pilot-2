@@ -44,6 +44,8 @@ function freshDb() {
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.long, date: TODAY, time: "9:00 am" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "10:30 am" });
   M.addBooking(db, { coachId: IDS.coach, groupName: "Saturday clinic", date: TODAY, time: "12:00 pm", duration: 60 });
+  /* Dara: a lesson a month ago and nothing booked — drifting */
+  M.addLesson(db, { coachId: IDS.coach, playerId: "00000000-0000-4000-8000-0000000a0003", date: M.ymd(new Date(Date.now() - 30 * 864e5)), focus: "Putting" });
   /* a running arrangement, for the manager */
   M.addRecurring(db, { id: "7e000000-0000-4000-8000-00000000000a", coachId: IDS.coach, playerId: IDS.adult, weekday: 2, time: "10:30 am" });
   for (let i = 0; i < 9; i++) M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: `2026-0${1 + (i % 9)}-1${i}`.replace(/-1(\d)$/, (m, d) => `-1${d}`), focus: "Short game" });
@@ -214,6 +216,47 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const members = await page.locator('[data-tour="group-members"] [data-person-row]').evaluateAll((els) => els.map((e) => ({ h: e.getBoundingClientRect().height, face: (e.querySelector("span, img, div") || {}).getBoundingClientRect ? e.firstElementChild.getBoundingClientRect().width : 0, t: e.textContent.trim() })));
       await shot("f-group-page");
       check("(f) the group's members are person rows: 64 tall, the face 40", members.length === 2 && members.every((m) => m.h >= 64 && Math.round(m.face) === 40), JSON.stringify(members));
+      await ctx.close();
+    }
+
+    /* ---------- (g) the second batch: "45 min", the outlined red, one outlined size, the log's title, Drifting's day ---------- */
+    {
+      const { ctx, page, shot } = await boot({ width: 320 });
+      await openSettings(page); await tap(page, '[data-tour="settings-availability"]', 900);
+      if (!(await page.locator('[data-tour="avail-times"]').count())) { await page.locator("button", { hasText: "Slots and lesson length" }).first().click().catch(() => {}); await page.waitForTimeout(600); }
+      const lengths = await page.locator('button[aria-pressed]').filter({ hasText: /^\d+ ?m(in)?$/ }).allInnerTexts();
+      check("(g) Hours' length tiles read \"45 min\", never \"45m\"", lengths.length >= 3 && lengths.every((x) => / min$/.test(x)), lengths.join(", "));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[aria-label="Diary"]', 1000);
+      const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
+      if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+      await page.locator('[data-tour="agenda-edit"]').first().dispatchEvent("click"); await page.waitForTimeout(900);
+      const off = page.locator('[data-tour="editday-calloff"]').first();
+      const offR = (await off.count()) ? await styleOf(off, "borderRadius") : "none", offC = (await off.count()) ? await styleOf(off, "color") : "none", offB = (await off.count()) ? await styleOf(off, "borderTopWidth") : "none";
+      check("(g) EditDay's Call off is the outlined red Button, not a bare word", offR === "16px" && offC === DANGER && px(offB) >= 1, `${offR} ${offC} ${offB}`);
+      await shot("g-editday-calloff-320");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[data-tour="today-archive"]', 1000);
+      await page.locator('[data-tour="lesson-row"], [data-lesson-row], button:has-text("Short game")').first().click().catch(() => {}); await page.waitForTimeout(900);
+      const outlined = await page.locator("button").evaluateAll((els) => els.filter((e) => /^(Message|Log|Mark it up|Study|Compare)$/.test((e.textContent || "").trim()) && getComputedStyle(e).borderTopWidth !== "0px").map((e) => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height), fs: getComputedStyle(e).fontSize })));
+      check("(g) the lesson page's outlined controls are one size", outlined.length >= 2 && outlined.every((x) => x.h >= 46 && x.fs === outlined[0].fs), JSON.stringify(outlined));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
+      await page.locator('button[aria-label]').filter({ hasText: /Maximiliano/ }).first().click(); await page.waitForTimeout(900);
+      const hero = await page.evaluate(() => { const el = [...document.querySelectorAll("span")].find((x) => /^Maximiliano Ó Súilleabháin$/.test(x.textContent.trim()) && getComputedStyle(x).fontSize === "24px"); return el ? { trunc: el.classList.contains("truncate"), h: el.getBoundingClientRect().height, over: el.scrollWidth - el.clientWidth } : null; });
+      check("(g) the log's title takes a second line for a long name rather than cutting it", !!hero && !hero.trunc && hero.over <= 1 && hero.h > 26 && hero.h <= 60, JSON.stringify(hero));
+      await shot("g-log-hero-320");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      const drift = page.locator("button", { hasText: /Drifting/ }).first();
+      if (await drift.count()) {
+        await drift.click(); await page.waitForTimeout(900);
+        const row = page.locator("[data-person-row]").filter({ hasText: "Dara Ryan" }).first();
+        const sub = (await row.count()) ? await row.locator("[data-sub]").first().innerText() : "";
+        const msg = row.locator("button", { hasText: /^Message$/ }).first();
+        const msgColor = (await msg.count()) ? await styleOf(msg, "color") : "none";
+        check("(g) Drifting reads the day of the last lesson, never an age, and Message is in ink", /^Last lesson · (Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d/.test(sub.replace(/\s+/g, " ")) && msgColor !== ACCENT, `${sub} · ${msgColor}`);
+        await shot("g-drifting-320");
+      } else check("(g) Drifting reads the day of the last lesson, never an age, and Message is in ink", false, "no Drifting row on Today");
       await ctx.close();
     }
 

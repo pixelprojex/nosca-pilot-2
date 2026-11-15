@@ -1390,7 +1390,23 @@ seeded data and no account.
   Add player sheet's four routes are `ActTile`s in a `TileGrid` — the
   glyph in ink, the sport's edge — where four hand-drawn 10px tiles
   carried four accent glyphs. The group page's members are `PersonRow`s
-  (40 face, 64 tall), not 36px `Row`s. `scripts/e2e/sprint-3.cjs`.
+  (40 face, 64 tall), not 36px `Row`s. The same day's second batch:
+  the sheet's red secondary action is the one outlined red `Button`
+  (`dangerQuiet`) — EditDay's Call off and the Set up sheet's End were
+  bare red words beside the manager's outlined End; a length reads
+  "45 min" wherever it is read (Hours' tiles and the open block's Stat
+  read "45m"); the player's requested box carries the eyebrow
+  "Requested", the List row's word, not a sentence with "your" in it;
+  "No lessons this day" is drawn only on a day with nothing on it,
+  never under the person's own lesson box; the Diary's For strip names
+  the adult (`me`, the account by name, so FaceCtx gives the photo) where
+  it read "You" with a Y in the disc; Drifting's grey line is the day of
+  the last lesson ("Last lesson · Tue 13 Oct", the roster's form) and
+  its Message is a quiet `TextBtn` in ink — it read "31 days" with three
+  accents down the screen; the log's title takes a second line for a
+  long name rather than "Maximiliano Ó S…"; the lesson page's second
+  row of outlined controls is the stage's size (46, `TYPE.body`), not a
+  lesser 44 at 12.5. `scripts/e2e/sprint-3.cjs` (g).
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red
