@@ -185,7 +185,7 @@ const { check, results, summary } = M.checker("group-notify");
     };
     const mineRows = (page) => page.locator('[data-tour="agenda-mine"]').allInnerTexts().then((xs) => xs.map((x) => x.replace(/\s+/g, " ").trim()));
     const ownBlock = (page) => page.evaluate(() => {
-      const el = [...document.querySelectorAll("span")].find((x) => /^(Your lesson|Requested — waiting on your coach)$/.test(x.textContent));
+      const el = [...document.querySelectorAll("span")].find((x) => /^(Your lesson|Requested)$/.test(x.textContent));
       return { text: el ? el.parentElement.innerText.replace(/\s+/g, " ") : null, cancel: document.querySelectorAll('[data-tour="day-cancel"]').length, reschedule: document.querySelectorAll('[data-tour="day-reschedule"]').length };
     });
     const toSettings = async (page) => {

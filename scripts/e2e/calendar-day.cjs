@@ -124,7 +124,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       const opened = await page.evaluate((hair) => {
         const b = [...document.querySelectorAll('[data-tour="cal-block"]')].find((x) => /Saturday clinic/.test(x.innerText)); if (!b) return null;
         const onHair = [...b.querySelectorAll("*")].filter((el) => { const s = getComputedStyle(el); return ["Top", "Bottom", "Left", "Right"].some((k) => parseFloat(s[`border${k}Width`]) > 0 && s[`border${k}Style`] !== "none" && s[`border${k}Color`] === hair); }).length;
-        return { len: (b.innerText.match(/(\d+)m\b/) || [])[1] || null, onHair };
+        return { len: (b.innerText.match(/(\d+) min\b/) || [])[1] || null, onHair };
       }, HAIRLINE);
       await shot("02-coach-block-open");
       check("(c3) …and opened, its Length reads 60m", !!opened && opened.len === "60", JSON.stringify(opened));
@@ -204,9 +204,9 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
           const lum = (c) => { const v = String(c).match(/[\d.]+/g).slice(0, 3).map(Number).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
           const ratio = (a, c) => { const [x, y] = [lum(a), lum(c)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
           const caps = [...b.querySelectorAll("div")].filter((x) => /^(Lessons|Length)$/.test(x.textContent.trim()) && !x.children.length);
-          return { len: (b.innerText.match(/(\d+)m\b/) || [])[1] || null, caps: caps.map((x) => { let el = x, bg = "rgba(0, 0, 0, 0)"; while (el && /rgba\(0, 0, 0, 0\)|transparent/.test(bg)) { bg = getComputedStyle(el).backgroundColor; el = el.parentElement; } return { t: x.textContent.trim(), r: Math.round(ratio(getComputedStyle(x).color, bg) * 100) / 100 }; }) };
+          return { len: (b.innerText.match(/(\d+) min\b/) || [])[1] || null, caps: caps.map((x) => { let el = x, bg = "rgba(0, 0, 0, 0)"; while (el && /rgba\(0, 0, 0, 0\)|transparent/.test(bg)) { bg = getComputedStyle(el).backgroundColor; el = el.parentElement; } return { t: x.textContent.trim(), r: Math.round(ratio(getComputedStyle(x).color, bg) * 100) / 100 }; }) };
         });
-        check("(c8) the coach's private lesson reads its own length, 9:00–9:45 am and 45m", /9:00–9:45 am/.test(said) && !!cap && cap.len === "45", JSON.stringify({ said: said.slice(0, 60), cap }));
+        check("(c8) the coach's private lesson reads its own length, 9:00–9:45 am and 45 min", /9:00–9:45 am/.test(said) && !!cap && cap.len === "45", JSON.stringify({ said: said.slice(0, 60), cap }));
         check("(c9) the open block's Lessons and Length captions read 4.5:1 or more on the wash", !!cap && cap.caps.length === 2 && cap.caps.every((c) => c.r >= 4.5), JSON.stringify(cap && cap.caps));
         const clinic = await page.locator('[data-tour="cal-block"]', { hasText: "Saturday clinic" }).first().innerText().then((x) => x.replace(/\s+/g, " ")).catch(() => "");
         check("(c10) a live group's line reads '· Group', never a trailing 'Group ·'", /· Group\b/.test(clinic) && !/Group ·/.test(clinic), clinic);

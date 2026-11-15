@@ -3631,8 +3631,10 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
       </div>
 
       {(day.booked || []).length > 0 && (
-        <button data-tour="editday-calloff" onClick={() => { haptic(8); onWeather(); }} className="w-full py-3 text-left active:opacity-50"
-                style={{ marginTop: SPACE.row, ...TYPE.small, color: DANGER }}>{tr("Call off")}</button>
+        <div style={{ marginTop: SPACE.row }}>
+          {/* the one outlined red, as the manager's End and Just decline — it was a bare 12.5px word */}
+          <Button tone="dangerQuiet" tour="editday-calloff" onClick={onWeather}>{tr("Call off")}</Button>
+        </div>
       )}
     </>
   );
@@ -4162,7 +4164,7 @@ function atRisk(roster, series, live, bookedIds) {
     else if (!booked && gap >= 21) { why = "Nothing booked, and it's been a while"; weight = 3; }
     else if (!booked && gap >= 14) { why = "Nothing in the diary"; weight = 2; }
     else if (gap >= 28) { why = "Long gap since their last lesson"; weight = 2; }
-    return why ? { name: r.name, id: r.id, why, weight, gap, done } : null;
+    return why ? { name: r.name, id: r.id, why, weight, gap, done, last: live ? (r.lastLesson || null) : null } : null;
   }).filter(Boolean).sort((a, b) => b.weight - a.weight);
 }
 
@@ -4181,9 +4183,10 @@ function AtRisk({ list, onMessage, pop, nouns = "players" }) {
             <div className="nsc-list">
               {list.map((x) => (
                 <PersonRow key={x.id || x.name} name={x.name} subTone={x.weight >= 3 ? "caution" : "faint"}
-                           sub={x.gap != null ? `${x.gap} ${tr("days")}` : tr(x.why)}
-                           actions={<button onClick={() => { hapticCommit(); onMessage(x.id || x.name); }} className="shrink-0 px-3 active:opacity-60"
-                                            style={{ minHeight: 40, ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Message")}</button>} />
+                           /* the day of the last lesson, as the roster's row reads it — never
+                              "31 days"; the harness, with days alone, counts back from today */
+                           sub={(() => { const d = x.last ? localDate(x.last) : x.gap != null ? new Date(Date.now() - x.gap * 86400000) : null; return d ? `${tr("Last lesson")} · ${fmtWeekDay(d)}` : tr(x.why); })()}
+                           actions={<TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onMessage(x.id || x.name); }}>{tr("Message")}</TextBtn>} />
               ))}
             </div>
           )}
@@ -7505,7 +7508,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             {!isGroup && (
               <Stat value={lessonsFor ? (lessonsFor(item.who) ?? 0) : f.done} label={tr("Lessons")} capTone={t.sub} />
             )}
-            <Stat value={`${len}m`} label={tr("Length")} capTone={t.sub} />
+            <Stat value={`${len} min`} label={tr("Length")} capTone={t.sub} />
           </div>
 
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
@@ -10683,7 +10686,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                     <div className="flex gap-2 mt-2.5">
                       {rest.map((a) => (
                         <button key={a.k} onClick={() => { haptic(8); soft(); a.act(); }} className="flex-1 active:opacity-60"
-                                style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{a.lbl}</button>
+                                style={{ minHeight: 46, borderRadius: R.control, background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>{a.lbl}</button>
                       ))}
                     </div>
                   )}
@@ -13517,7 +13520,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
             <div className="flex items-center gap-3">
               <button onClick={() => { haptic(6); setAdding(false); setView("who"); }} className="flex-1 min-w-0 text-left active:opacity-60" style={{ minHeight: 44 }}>
                 <span className="flex items-end gap-1.5">
-                  <span className="truncate" style={{ ...TYPE.screen, color: t.ink }}>{heroText}</span>
+                  <span className="min-w-0" style={{ ...TYPE.screen, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{heroText}</span>
                   <ChevronDown size={14} color={t.trace || t.faint} strokeWidth={2} style={{ marginBottom: 6, flexShrink: 0 }} />
                 </span>
               </button>
@@ -14510,8 +14513,9 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       </Button>
       {/* End opens the End sheet in this one sheet, so nothing closes it here */}
       {existing && (
-        <button data-tour="series-end" onClick={() => { haptic(9); onEnd(existing); }} className="w-full mt-3 py-3 active:opacity-50"
-                style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
+        <div className="mt-3">
+          <Button tone="dangerQuiet" tour="series-end" onClick={() => onEnd(existing)}>{tr("End")}</Button>
+        </div>
       )}
     </>
   );
@@ -15712,8 +15716,8 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
             <Card className="p-5 mt-3">
               <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Lesson length")}</div>
               <div className="mb-5">
-                <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d}m`)} picked={`${duration}m`}
-                          onToggle={(x) => setDuration(Number(String(x).replace("m", "")))} />
+                <TimeGrid cols={DURATIONS.length} times={DURATIONS.map((d) => `${d} min`)} picked={`${duration} min`}
+                          onToggle={(x) => setDuration(parseInt(String(x), 10))} />
               </div>
               {/* THE START TIMES: a tile a time, and nothing goes by a tap.
                   Edit turns each tile's corner into a red minus, as a phone's
@@ -15887,7 +15891,7 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
 }
 
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, onMove }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -15963,7 +15967,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           {/* who the lesson is for, as faces — the hours shown are that
               person's coach's, so this is the first thing answered */}
           <div className="flex gap-2.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-            {selfCanBook && <div className="shrink-0 flex" style={{ width: 96 }}><FaceTile person={{ id: "me", name: tr("You") }} on={!forName} onTap={() => onClearFor && onClearFor()} /></div>}
+            {selfCanBook && <div className="shrink-0 flex" style={{ width: 96 }}><FaceTile person={me || { id: "me", name: tr("You") }} on={!forName} onTap={() => onClearFor && onClearFor()} /></div>}
             {(kids || []).filter((k) => k.canBook || k.ahead).map((k) => (
               <div key={k.id} className="shrink-0 flex" style={{ width: 96 }}>
                 <FaceTile person={k} on={forName === k.name.split(" ")[0]} onTap={() => onBookFor && onBookFor(k)} />
@@ -16167,7 +16171,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           <div className="nsc-list mb-5">
             {myDays.map((myDay) => (
               <div key={myDay.id || myDay.time} data-tour="day-mine" className="py-4">
-                <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{myDay.status === "requested" ? tr("Requested — waiting on your coach") : myDay.out ? tr("Not going") : tr("Your lesson")}</span>
+                <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{myDay.status === "requested" ? tr("Requested") : myDay.out ? tr("Not going") : tr("Your lesson")}</span>
                 <span className="block" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.duration || duration)}</span>
                 <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.duration || duration} min with {conn?.coach || "your coach"}</div>
                 {myDay.group
@@ -16240,9 +16244,13 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         ) : awayOn(mo.idx, sel) ? (
           <AwayLine role="player" name={conn && conn.coach} />
         ) : dayHours.length === 0 ? (
-          <div className="py-10 text-center">
-            <p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No lessons this day")}</p>
-          </div>
+          /* the line is for a day with nothing on it: under the person's own
+             lesson box it contradicted the box */
+          myDays.length === 0 ? (
+            <div className="py-10 text-center">
+              <p style={{ ...TYPE.body, color: t.sub }}>{tr("No lessons this day")}</p>
+            </div>
+          ) : null
         ) : (
           (() => {
             const free = dayHours.filter((tm) => !booked.find((b) => b.time === tm) && !blocked.some((b) => b.m === mo.idx && b.d === sel && b.time === tm));
@@ -21087,6 +21095,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             onRecurring={() => push("recurring")}
                                                             kids={data ? (data.dependants || []).map((k) => { const h = (data.hoursByPlayer || {})[k.id] || {}; return { ...k, canBook: !!k.coachId && (Object.values(h.days || {}).some((x) => x && x.length) || datedOf(h.extra, calendar).some((x) => !isPast(x.m, x.d, calendar))), ahead: aheadFor(k.id) }; }) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
+                                                            /* the For strip's own tile is the adult by name — the face
+                                                               comes from FaceCtx, as everywhere — never "You" with a Y */
+                                                            me={account ? { id: account.id, name: account.name } : null}
                                                             onBookFor={(k) => { setBookFor(k); }}
                                                             landing={diaryLanding} onLanded={() => setDiaryLanding(null)} />;
   } else if (screen === "messages") { body = <MessageList role={role} threads={liveThreads} push={push} right={slimRight} empty={freshAccount} onNew={() => setSheet("newThread")} />;
