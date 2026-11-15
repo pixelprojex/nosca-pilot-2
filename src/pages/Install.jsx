@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { ThemeCtx, NEUTRAL, BRAND, tr, ui, display, Mark, Button, InstallGuide, haptic } from "../Nosca";
+import { ThemeCtx, NEUTRAL, BRAND, tr, display, Mark, Button, InstallGuide, haptic, EDGE } from "../Nosca";
 import { registerSw } from "../lib/push";
 
 /* ADD TO HOME SCREEN — https://<site>/install
@@ -17,7 +17,9 @@ export default function InstallPage() {
   const open = () => { haptic(10); window.location.assign("/"); };
   return (
     <ThemeCtx.Provider value={NEUTRAL}>
-      <div className="flex flex-col" style={{ minHeight: "100dvh", background: NEUTRAL.page }}>
+      {/* the wash and the edge the app's root sets, so the guide's rows
+          sit on the wash here as they do inside the app */}
+      <div className="flex flex-col" style={{ minHeight: "100dvh", background: NEUTRAL.page, "--surface": NEUTRAL.surface, "--wash": NEUTRAL.wash, "--edge": EDGE(NEUTRAL) }}>
         <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
         <div className="shrink-0 flex items-center justify-center gap-2 pt-4" style={{ animation: "fadeUp 620ms cubic-bezier(.22,1,.36,1) both" }}>
           <Mark size={15} color={NEUTRAL.faint} />
