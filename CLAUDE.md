@@ -57,15 +57,18 @@ three rounds were spent on fixes that had landed.
 main.jsx → App.jsx (auth gate)
              ├── lib/AuthContext.jsx   session + profile
              ├── pages/Auth.jsx        sign-up / sign-in
+             ├── pages/Arrival.jsx     once, after sign-up — the code, the walkthrough
+             ├── pages/Install.jsx     /install — the Home Screen guide the card's code opens
+             ├── lib/install.js        the device, and the browser's own install offer
              ├── lib/useNoscaData.js   every database read and write
              └── Nosca.jsx             the entire UI (~14k lines, ~360 components)
                    └── lib/useCapture.js
 ```
 
 `src/Nosca.jsx` is both the design prototype and the production UI.
-`src/pages/*` (except Auth.jsx), `src/components/*` and
-`App.pilot.jsx.bak` are dead code from an abandoned multi-file
-approach. `?demo`, `#demo` or `/demo` renders the design harness with
+`src/pages/*` (except Auth.jsx, Arrival.jsx and Install.jsx),
+`src/components/*` and `App.pilot.jsx.bak` are dead code from an
+abandoned multi-file approach. `?demo`, `#demo` or `/demo` renders the design harness with
 seeded data and no account.
 
 ## Rules — each of these cost a deploy to learn
@@ -1721,6 +1724,40 @@ seeded data and no account.
   walks the player, a parent for a child, the coach's To review and
   bell, and a project without the column; behaviour.sql 8b the
   policies and the triggers.
+- **Add to Home Screen is one guide, reached three ways, and the
+  business card's second code opens it.** `InstallGuide` in Nosca:
+  iPhone (an iPad too) · Android · Computer on the app's `Segmented`
+  (`install-platform`), opened on the device it is read on
+  (`platformOf` in `lib/install.js`), the steps as `.nsc-list` rows in
+  the phone's own words with the phone's own glyph where one helps
+  (Safari's Share square, Chrome's three dots, Samsung's three lines —
+  the plain ones a phone already uses), the one or two steps that
+  differ by browser read off `browserOf`. Where the browser offers to
+  install (Chrome and Edge fire `beforeinstallprompt`; `lib/install.js`
+  catches it at module load and keeps it, without cancelling Chrome's
+  own bar) the guide leads with **Install Nosca** (`install-now`), the
+  browser's own sheet in one tap, the steps under it as "Or by hand";
+  Safari never offers, so an iPhone always reads the steps, and its
+  last step says "sign in there once" — iOS gives a Home Screen app its
+  own storage, so a person who signed up in Safari signs in again
+  inside the app. Once the app is on a Home Screen (`isStandalone`,
+  `navigator.standalone` or `display-mode: standalone`) the guide reads
+  "Nosca is on your Home Screen" and nothing else. The three ways in:
+  **/install** (`pages/Install.jsx`, read by the gate in App.jsx before
+  anything else, never in the harness) — the page the card's second QR
+  code opens, for anyone, signed in or not, ending on Open Nosca
+  (`install-open`); **Settings › Add to Home Screen** (`settings-install`,
+  found by "install", "phone", "icon", "dock"), a row that is not there
+  once the app is installed; and the arrival screen's quiet line
+  **Add Nosca to your Home Screen** (`arrival-install`, above Show me
+  around, in a browser tab only), which hands on with
+  `nosca.install.now` as the walkthrough hands on with `nosca.tour.now`,
+  and the app opens on the guide with Home under it. The card itself:
+  `scripts/business-card.py` writes MOO's four files (a colour PDF and
+  a black-foil PDF a side, 88 × 59 mm with the 84 × 55 trim boxed) and
+  the previews into `docs/brand/business-card/`; the codes carry the
+  site's root and `/install`, drawn as vector squares; the README there
+  is the order. `scripts/e2e/install.cjs`.
 - **Away is a span of days on the coach's hours, and no diary offers a
   time on them.** Settings › Away (`settings-away`, a coach only, found
   by "holiday", "vacation", "off", "closed"; its `sub` the next span
