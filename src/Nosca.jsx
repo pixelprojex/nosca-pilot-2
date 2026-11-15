@@ -5,7 +5,7 @@ import { joinLink, shareOrCopy, copyText } from "./lib/share";
 import { MAX_UPLOAD_MB, avatarUrl, registerKey, localDate } from "./lib/useNoscaData";
 import { useDownloads, fmtBytes } from "./lib/useDownloads";
 import { pushSupport, subscribePush, unsubscribePush, currentSubscription } from "./lib/push";
-import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf } from "./lib/install";
+import { canPromptInstall, onInstallPromptChange, promptInstall, isStandalone, platformOf, browserOf, iosMajor } from "./lib/install";
 import { supabase } from "./lib/supabase";
 import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRAND_PAPER } from "./lib/brandmark.jsx";
 /* THE LIST'S OWN RULES, shared with the pages that render without
@@ -35,7 +35,7 @@ import {
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
   Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat,
-  Share, EllipsisVertical, Menu, MonitorDown, SquarePlus } from "lucide-react";
+  Share, Ellipsis, EllipsisVertical, Menu, MonitorDown, SquarePlus } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
@@ -17338,37 +17338,54 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
    Screen app its own storage — and the last step says so. */
 const INSTALL_TABS = ["iPhone", "Android", "Computer"];
 const INSTALL_TAB = { iphone: "iPhone", android: "Android", computer: "Computer" };
-function installSteps(tab, browser) {
-  if (tab === "iPhone") return [
-    { icon: Share, text: tr("Tap Share"), sub: browser === "safari" || browser === "other"
-        ? tr("The square with an arrow, at the foot of Safari — top right on an iPad")
-        : tr("The square with an arrow, beside the address bar") },
-    { icon: SquarePlus, text: tr("Tap Add to Home Screen"), sub: tr("Scroll the list if it isn't showing") },
-    { text: tr("Tap Add"), sub: tr("Nosca opens from your Home Screen like any app — sign in there once") },
+/* the second choice under each platform: what actually changes the taps */
+const INSTALL_SUBS = {
+  iPhone: ["iOS 26", "iOS 18 or earlier"],
+  Android: ["Chrome", "Samsung"],
+  Computer: ["Chrome or Edge", "Safari"],
+};
+const INSTALL_HINT = {
+  iPhone: "Not sure? Settings › General › About › iOS Version",
+  Android: "Samsung phones open links in Samsung Internet unless Chrome was chosen",
+  Computer: null,
+};
+const installSubFor = (tab, browser) => {
+  if (tab === "iPhone") { const v = iosMajor(); return v && v < 26 ? "iOS 18 or earlier" : "iOS 26"; }
+  if (tab === "Android") return browser === "samsung" ? "Samsung" : "Chrome";
+  return browser === "safari" ? "Safari" : "Chrome or Edge";
+};
+const OPEN_STEP = { text: tr("Open Nosca from your Home Screen"), sub: tr("Sign in there once — it keeps you signed in after that") };
+function installSteps(sub) {
+  if (sub === "iOS 26") return [
+    { icon: Ellipsis, text: tr("Tap ⋯ beside the address bar"), sub: tr("Three dots — three lines (☰) on some layouts") },
+    { icon: Share, text: tr("Tap Share"), sub: tr("The square with an arrow") },
+    { icon: SquarePlus, text: tr("Tap Add to Home Screen"), sub: tr("Tap View More or scroll down if it isn't showing") },
+    { text: tr("Leave Open as Web App on, then tap Add") },
+    OPEN_STEP,
   ];
-  if (tab === "Android") {
-    if (browser === "samsung") return [
-      { icon: Menu, text: tr("Tap the menu"), sub: tr("Three lines, at the foot of the screen") },
-      { text: tr("Tap Add page to") },
-      { text: tr("Tap Home screen, then Add") },
-    ];
-    if (browser === "firefox") return [
-      { icon: EllipsisVertical, text: tr("Tap the menu"), sub: tr("Three dots, top right") },
-      { text: tr("Tap Install") },
-    ];
-    return [
-      { icon: EllipsisVertical, text: tr("Tap the menu"), sub: tr("Three dots, top right") },
-      { icon: SquarePlus, text: tr("Tap Add to Home screen"), sub: tr("Or Install app, where Chrome offers it") },
-      { text: tr("Tap Install") },
-    ];
-  }
-  if (browser === "safari") return [
-    { text: tr("Open the File menu") },
-    { text: tr("Choose Add to Dock"), sub: tr("Safari 17 or later") },
+  if (sub === "iOS 18 or earlier") return [
+    { icon: Share, text: tr("Tap Share"), sub: tr("The square with an arrow, in the bar at the foot of Safari — top right on an iPad") },
+    { icon: SquarePlus, text: tr("Scroll down, tap Add to Home Screen") },
+    { text: tr("Tap Add, top right") },
+    OPEN_STEP,
+  ];
+  if (sub === "Samsung") return [
+    { icon: Menu, text: tr("Tap ☰ at the foot of the screen"), sub: tr("Three lines, bottom right") },
+    { text: tr("Tap Add page to") },
+    { text: tr("Tap Home screen") },
+    { text: tr("Tap Add") },
+    OPEN_STEP,
+  ];
+  if (sub === "Chrome") return [
+    { icon: EllipsisVertical, text: tr("Tap ⋮ beside the address bar"), sub: tr("Three dots, top right") },
+    { icon: SquarePlus, text: tr("Tap Add to home screen"), sub: tr("Called Install app on some phones") },
+    { text: tr("Tap Install"), sub: tr("If asked, choose Install rather than Create shortcut") },
+    OPEN_STEP,
+  ];
+  if (sub === "Safari") return [
+    { text: tr("Open the File menu"), sub: tr("Safari 17 or later, on a Mac") },
+    { text: tr("Choose Add to Dock") },
     { text: tr("Click Add") },
-  ];
-  if (browser === "firefox") return [
-    { text: tr("Open Nosca in Chrome, Edge or Safari"), sub: tr("Firefox can't install web apps on a computer") },
   ];
   return [
     { icon: MonitorDown, text: tr("Click the install icon"), sub: tr("At the right of the address bar — or the menu, then Install Nosca") },
@@ -17377,12 +17394,14 @@ function installSteps(tab, browser) {
 }
 export function InstallGuide({ tour = "install" }) {
   const t = useT();
-  const [tab, setTab] = useState(() => INSTALL_TAB[platformOf()] || "Computer");
+  const browser = browserOf();
+  const [tab, setTabRaw] = useState(() => INSTALL_TAB[platformOf()] || "Computer");
+  const [sub, setSub] = useState(() => installSubFor(INSTALL_TAB[platformOf()] || "Computer", browser));
+  const setTab = (x) => { setTabRaw(x); setSub(installSubFor(x, x === INSTALL_TAB[platformOf()] ? browser : "")); };
   const [offer, setOffer] = useState(canPromptInstall);
   const [done, setDone] = useState(isStandalone);
   const [note, setNote] = useState("");
   useEffect(() => onInstallPromptChange((on) => setOffer(on)), []);
-  const browser = browserOf();
   const install = async () => {
     haptic(10);
     const r = await promptInstall();
@@ -17392,11 +17411,15 @@ export function InstallGuide({ tour = "install" }) {
   };
   if (done) return <p data-tour={`${tour}-done`} style={{ ...TYPE.body, color: t.ink }}>{tr("Nosca is on your Home Screen")}</p>;
   const button = offer && tab !== "iPhone";
-  const steps = installSteps(tab, browser);
+  const steps = installSteps(sub);
   return (
     <div data-tour={tour}>
       <p style={{ ...TYPE.lede, color: t.sub, marginBottom: SPACE.block }}>{tr("Nosca opens full screen from your Home Screen, with notifications.")}</p>
       <Segmented options={INSTALL_TABS} value={tab} onChange={setTab} tour={`${tour}-platform`} />
+      <div style={{ marginTop: SPACE.tight }}>
+        <Segmented options={INSTALL_SUBS[tab]} value={sub} onChange={setSub} tour={`${tour}-version`} />
+      </div>
+      {INSTALL_HINT[tab] && <p data-tour={`${tour}-hint`} style={{ ...TYPE.caption, color: t.sub, marginTop: SPACE.tight }}>{tr(INSTALL_HINT[tab])}</p>}
       {button && (
         <div style={{ marginTop: SPACE.block }}>
           <Button tone="accent" onClick={install} tour={`${tour}-now`}>{tr("Install Nosca")}</Button>
