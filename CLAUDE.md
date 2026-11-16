@@ -1406,7 +1406,16 @@ seeded data and no account.
   accents down the screen; the log's title takes a second line for a
   long name rather than "Maximiliano Ó S…"; the lesson page's second
   row of outlined controls is the stage's size (46, `TYPE.body`), not a
-  lesser 44 at 12.5. `scripts/e2e/sprint-3.cjs` (g).
+  lesser 44 at 12.5. `scripts/e2e/sprint-3.cjs` (g). On 16 November:
+  the Move sheet's head is the person on one line and the day and time
+  on the next (three facts on one grey line before); a coach's Calendar
+  day with hours and nothing booked reads "Nothing booked" as a line
+  (`cal-nothing`) and offers no Set hours — the button sent a coach to
+  set hours they had; the Diary's List foot, Recurring lessons, is a box
+  of its own lined up with the day boxes (it was a bare row on a section
+  rule); Set drills' title is `TYPE.title` and its labels `RowHead`s on
+  the cards' edge; the register's way back to All lessons is the label
+  grey, never the accent. `sprint-3.cjs` (h).
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red
