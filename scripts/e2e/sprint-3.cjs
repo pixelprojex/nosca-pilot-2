@@ -260,6 +260,39 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await ctx.close();
     }
 
+    /* ---------- (h) 16 November: Move's sub, the Calendar view's empty day, the Diary's foot box, Set drills' head, the register's way back ---------- */
+    {
+      const { ctx, page, shot } = await boot();
+      /* the peek's Move: who, then when, on two lines */
+      await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+      if (await page.locator('[data-tour="peek-move"]').count()) {
+        await tap(page, '[data-tour="peek-move"]', 900);
+        const subs = await page.locator('[data-tour="move-sheet"] h2 ~ p').evaluateAll((els) => els.slice(0, 2).map((e) => e.textContent.trim()));
+        check("(h) Move's head: the person on one line, the day and time on the next", subs.length === 2 && subs[0] === "Cian Murphy" && /\d:\d\d (am|pm)/.test(subs[1]) && !subs[0].includes("·"), JSON.stringify(subs));
+      } else check("(h) Move's head: the person on one line, the day and time on the next", false, "no Move on the peek");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      /* the Diary's List foot: Recurring lessons is a box of its own, the column's width */
+      await tap(page, '[aria-label="Diary"]', 1000);
+      const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
+      if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+      const foot = await page.locator('[data-tour="cal-recurring"]').first().evaluate((el) => { const r = el.getBoundingClientRect(); const day = document.querySelector(".nsc-day"); const d = day ? day.getBoundingClientRect() : null; return { bg: getComputedStyle(el).backgroundColor, l: Math.round(r.left), w: Math.round(r.width), dl: d ? Math.round(d.left) : null, dw: d ? Math.round(d.width) : null, rule: getComputedStyle(el).borderTopWidth }; });
+      check("(h) the Diary's Recurring lessons is a wash box lined up with the day boxes above it", foot.bg === "rgb(235, 243, 234)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
+      await shot("h-diary-foot");
+      /* the Calendar view on a day with hours and nothing booked: a line, no Set hours */
+      await tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
+      const nextDay = await page.evaluate(() => { const b = [...document.querySelectorAll("[data-day]")].map((x) => Number(x.getAttribute("data-day"))); const today = new Date().getDate(); return b.find((d) => d > today + 1) || null; });
+      if (nextDay) await tap(page, `[data-day="${nextDay}"]`, 700);
+      check("(h) a day with hours and nothing booked reads Nothing booked and offers no Set hours", (await page.locator('[data-tour="cal-nothing"]').count()) === 1 && (await page.locator("button", { hasText: /^Set hours$/ }).count()) === 0, String(nextDay));
+      /* Set drills from the player file: the title on the ladder */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
+      await page.locator('[data-tour="roster-row"]').filter({ hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+      await M.click(page, "Drills", 900);
+      const h2 = page.locator("[data-sheet] h2", { hasText: /^Drills for Cian/ }).first();
+      check("(h) Set drills' title is TYPE.title (19px), not a 23px literal", (await h2.count()) === 1 && (await styleOf(h2, "fontSize")) === "19px", (await h2.count()) ? await styleOf(h2, "fontSize") : "none");
+      await ctx.close();
+    }
+
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
   } catch (e) {
     check("(x) the suite ran to the end", false, String(e && e.stack || e).slice(0, 500));

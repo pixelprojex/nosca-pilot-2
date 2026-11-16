@@ -2585,12 +2585,15 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
           here, under the days they repeat through — they used to sit
           above the List/Calendar toggle, first thing on the screen. */}
       {role === "coach" ? (
-        <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
-                className="w-full flex items-center gap-3 px-6 text-left active:opacity-60"
-                style={{ minHeight: 56, marginTop: 10, borderTop: RULE.section(t.ink) }}>
-          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("Recurring lessons")}</span>
-          <ChevronRight size={15} color={t.trace || t.faint} />
-        </button>
+        /* a box of its own at the column's foot, as All lessons is on the home —
+           it was a bare row on a section rule, the one unboxed row in the Diary */
+        <div className="nsc-list" style={{ marginTop: SPACE.block }}>
+          <button data-tour="cal-recurring" onClick={() => { haptic(9); soft(); onRecurring && onRecurring(); }}
+                  className="w-full flex items-center gap-3 text-left active:opacity-60" style={{ minHeight: 56 }}>
+            <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{tr("Recurring lessons")}</span>
+            <ChevronRight size={15} color={t.trace || t.faint} />
+          </button>
+        </div>
       ) : <div style={{ height: 26 }} />}
       </div>
     </div>
@@ -2628,7 +2631,9 @@ function MoveLessonBody({ ask, who, when, days, openFor, foot, onMove, close }) 
   return (
     <div data-tour="move-sheet">
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{ask ? tr("Ask to move") : tr("Move")}</h2>
-      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{who} · {when}</p>
+      {/* who, then when — "Cian Murphy · Fri 13 Nov · 10:30 am" was three facts on one grey line */}
+      <p style={{ ...TYPE.small, color: t.sub }}>{who}</p>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.faint }}>{when}</p>
       <p className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Which day")}</p>
       {days.length
         ? <div className="mb-5"><TileGrid cols={3}>{days.map((d) => <ActTile key={d.iso} label={d.label} on={day === d.iso} tour="move-day" aria={d.label} h={56} onTap={() => { haptic(6); setDay(d.iso); setTime(null); }} />)}</TileGrid></div>
@@ -4771,8 +4776,9 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
       <>
         <button onClick={() => { haptic(6); setPicked(null); }}
                 className="flex items-center gap-1.5 mb-4 active:opacity-50"
-                style={{ ...TYPE.small, color: t.accent }}>
-          <ChevronLeft size={15} color={t.accent} strokeWidth={2.2} /> {tr("All lessons")}
+                style={{ ...TYPE.small, color: t.sub, minHeight: 44 }}>
+          {/* a way back, not the screen's one action: the label grey, never the accent */}
+          <ChevronLeft size={15} color={t.sub} strokeWidth={2.2} /> {tr("All lessons")}
         </button>
 
         <h2 style={{ ...TYPE.title, color: t.ink }}>{picked.who}</h2>
@@ -15642,22 +15648,22 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
 
   return (
     <>
-      <div className="flex items-center gap-1 mb-1 -ml-2">{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>)}
-        <h2 style={{ fontFamily: display, fontSize: 23, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
+      <div className={`flex items-center gap-1 mb-1 ${preset ? "" : "-ml-2"}`}>{!preset && (<button onClick={() => setStage("who")} className="p-2 active:opacity-40" aria-label={tr("Back")}><ChevronLeft size={22} color={t.ink} /></button>)}
+        <h2 style={{ ...TYPE.title, color: t.ink }}>Drills for {who?.split(" ")[0]}</h2></div>
 
       {recommended.length > 0 && (<>
-        <Eyebrow>{tr("Recommended")}</Eyebrow>
+        <RowHead>{tr("Recommended")}</RowHead>
         <Card className="mb-4">{recommended.map((dr, i) => <DrillRow key={dr.t} dr={dr} i={i} arr={recommended} />)}</Card>
       </>)}
 
       {rest.length > 0 && (!showAll && recommended.length > 0 ? (
         <button onClick={() => { haptic(8); soft(); setShowAll(true); }} className="w-full text-left mb-4 active:opacity-50" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>Show {rest.length} more</button>
       ) : (<>
-        <Eyebrow>{recommended.length > 0 ? "Everything else" : "Your drills"}</Eyebrow>
+        <RowHead>{recommended.length > 0 ? "Everything else" : "Your drills"}</RowHead>
         <Card className="mb-4">{rest.map((dr, i) => <DrillRow key={dr.t} dr={dr} i={i} arr={rest} />)}</Card>
       </>))}
 
-      <Eyebrow>{library.length ? tr("Or write a new one") : tr("Write one")}</Eyebrow>
+      <RowHead>{library.length ? tr("Or write a new one") : tr("Write one")}</RowHead>
       <div className="mb-2"><VoiceInput value={custom} onChange={setCustom} ph={tr("Drill name")} /></div>
       {custom.trim() && (
         <div className="mb-2"><VoiceInput value={customDesc} onChange={setCustomDesc} ph={tr("How to do it")} /></div>
@@ -16219,7 +16225,10 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                                  onCancel={(l) => onCancelWithReason && onCancelWithReason(l)} push={push} />
                 ))}
               </>
-            ) : awayOn(mo.idx, sel) ? null : <FreeDay onSetHours={() => push("availability")} />}
+            ) : awayOn(mo.idx, sel) ? null : (
+              /* the day has hours, so no Set hours: the free times under it say the rest */
+              <p data-tour="cal-nothing" style={{ ...TYPE.body, color: t.faint, marginBottom: SPACE.tight }}>{tr("Nothing booked")}</p>
+            )}
 
             {booked.length > 0 && (
               <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
