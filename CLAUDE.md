@@ -1415,7 +1415,23 @@ seeded data and no account.
   of its own lined up with the day boxes (it was a bare row on a section
   rule); Set drills' title is `TYPE.title` and its labels `RowHead`s on
   the cards' edge; the register's way back to All lessons is the label
-  grey, never the accent. `sprint-3.cjs` (h).
+  grey, never the accent. `sprint-3.cjs` (h). On 17 November: the
+  lesson's peek carries the whole name on two lines before an
+  ellipsis, its actions three to a row under 350 (six labels in 45px
+  columns ran together as "CaptureRegister" at 320), its last lessons
+  as rows with a chevron and All lessons as the home's grey row at the
+  list's foot (it was an accent link under the boxes, a second accent
+  beside Log), and a group's peek carries no Move (it opened the Cancel
+  sheet beside Cancel); the month grid marks a coach's day with lessons
+  with the List view's ink dot, 4px, a day merely open with the
+  hairline one, and a day gone reads in the trace grey (it was the
+  hairline, 1.2:1); the group page's sessions are the archive's
+  `LessonRow` — the poster, what was worked on, the day and the head
+  count, the Download disc — and open the write-up (they were static
+  boxes in three literal sizes); Set drills' first stage is **Who**
+  over `PersonRow`s (`assign-who`; it was "Who's playing" over hairline
+  rows), Show N more is in ink, and the asleep button reads Set drills,
+  never "Pick or write a drill". `sprint-3.cjs` (i), (i320).
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red
