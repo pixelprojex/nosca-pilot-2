@@ -48,6 +48,8 @@ function freshDb() {
   M.addLesson(db, { coachId: IDS.coach, playerId: "00000000-0000-4000-8000-0000000a0003", date: M.ymd(new Date(Date.now() - 30 * 864e5)), focus: "Putting" });
   /* a running arrangement, for the manager */
   M.addRecurring(db, { id: "7e000000-0000-4000-8000-00000000000a", coachId: IDS.coach, playerId: IDS.adult, weekday: 2, time: "10:30 am" });
+  /* (i) a clinic session already taught, for the group page's lesson rows */
+  M.addLesson(db, { coachId: IDS.coach, groupName: "Saturday clinic", date: M.ymd(new Date(Date.now() - 3 * 864e5)), focus: "Bunker play", notes: "Splash, not dig." });
   for (let i = 0; i < 9; i++) M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: `2026-0${1 + (i % 9)}-1${i}`.replace(/-1(\d)$/, (m, d) => `-1${d}`), focus: "Short game" });
   return db;
 }
@@ -290,6 +292,78 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await M.click(page, "Drills", 900);
       const h2 = page.locator("[data-sheet] h2", { hasText: /^Drills for Cian/ }).first();
       check("(h) Set drills' title is TYPE.title (19px), not a 23px literal", (await h2.count()) === 1 && (await styleOf(h2, "fontSize")) === "19px", (await h2.count()) ? await styleOf(h2, "fontSize") : "none");
+      await ctx.close();
+    }
+
+    /* ---------- (i) 17 November: the peek (A2, A14, A15), the month grid (B11), the group page (C7), Set drills' who (C13) ---------- */
+    {
+      const { ctx, page, shot } = await boot();
+      /* the peek's lessons: rows with a chevron, All lessons the home's grey row */
+      await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+      const all = page.locator('[data-tour="peek-all"]');
+      const allColor = (await all.count()) ? await styleOf(all.locator("span").last(), "color") : "none";
+      const rowsChev = await page.locator('[data-tour="peek-lessons"] > *').evaluateAll((els) => els.map((e) => e.querySelectorAll("svg").length > 0));
+      const accentLink = await sheet(page).locator("button", { hasText: /^All \d+ lessons$/ }).count();
+      await shot("i-peek");
+      check("(i) the peek's All lessons is a grey row with its chevron inside the list, not an accent link", (await all.count()) === 1 && allColor !== ACCENT && /^All lessons\s*\d+$/.test((await all.innerText()).replace(/\n/g, " ").trim()) && accentLink === 0, `${allColor} ${accentLink}`);
+      check("(i) every row of the peek's lessons says it opens something (a chevron)", rowsChev.length >= 2 && rowsChev.every(Boolean), JSON.stringify(rowsChev));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      /* a clinic's peek: no Move that opens the Cancel sheet */
+      await page.locator("button", { hasText: "Saturday clinic" }).first().click(); await page.waitForTimeout(900);
+      const acts = await page.locator('[data-tour="peek-actions"] > button').allInnerTexts();
+      check("(i) a group's peek has no Move (it opened Cancel beside Cancel)", (await page.locator('[data-tour="peek-move"]').count()) === 0 && acts.length >= 4 && acts.some((x) => /Cancel/.test(x)), JSON.stringify(acts));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      /* the month grid: a booked day carries the ink dot, a day gone is legible */
+      await tap(page, '[aria-label="Diary"]', 1000);
+      await tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
+      const today = new Date(`${TODAY}T12:00:00`).getDate();
+      const other = await page.evaluate((td) => { const b = [...document.querySelectorAll("[data-day]")].map((x) => Number(x.getAttribute("data-day"))); return b.find((d) => d > td) || null; }, today);
+      if (other) await tap(page, `[data-day="${other}"]`, 600);
+      const mark = await page.locator(`[data-day="${today}"] [data-mark]`).evaluate((el) => ({ m: el.getAttribute("data-mark"), bg: el.firstElementChild ? getComputedStyle(el.firstElementChild).backgroundColor : null, w: el.firstElementChild ? el.firstElementChild.getBoundingClientRect().width : 0 })).catch(() => null);
+      check("(i) the month grid marks a coach's day with lessons with the ink dot, 4px, as the List view's ticker", !!other && !!mark && mark.m === "booked" && mark.w === 4 && mark.bg !== "rgb(228, 236, 225)", JSON.stringify({ other, mark }));
+      if (today > 1) {
+        const pastColor = await styleOf(page.locator('[data-day="1"] span').first(), "color");
+        check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(228, 236, 225)", pastColor);
+      }
+      await shot("i-month");
+      /* the group page: each session is a lesson row that opens the write-up */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
+      await page.locator("button", { hasText: /^Groups$/ }).first().click(); await page.waitForTimeout(700);
+      await page.locator('[data-tour="roster-group"]').first().click(); await page.waitForTimeout(1000);
+      const ses = page.locator('[data-tour="group-sessions"] > *');
+      const sesText = (await ses.count()) ? (await ses.first().innerText()).replace(/\n/g, " ") : "";
+      const sesFs = (await ses.count()) ? await styleOf(ses.first().locator("span", { hasText: /^Bunker play$/ }), "fontSize") : "none";
+      await shot("i-group-page");
+      check("(i) a group session is the app's lesson row: the focus at the body size, the day on the grey line", (await ses.count()) === 1 && /Bunker play/.test(sesText) && /(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}/.test(sesText) && sesFs !== "18px", `${sesText} ${sesFs}`);
+      if (await ses.count()) { await ses.first().locator("button").first().click(); await page.waitForTimeout(1200); }
+      check("(i) …and opens the session's write-up", /Splash, not dig/.test(M.norm(await M.rootText(page))), (await M.rootText(page)).slice(0, 200));
+      /* Set drills from the library: Who, person rows, Show more in ink, the verb asleep */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[aria-label="Your profile"]', 900); await tap(page, '[data-tour="settings-library"]', 900);
+      await page.locator('[data-scroll="screen"] .nsc-list button[aria-expanded]').first().click(); await page.waitForTimeout(500);
+      await page.locator('[data-scroll="screen"] button', { hasText: /^Set drills$/ }).first().click(); await page.waitForTimeout(900);
+      const h2 = await sheet(page).locator("h2").first().innerText().catch(() => "");
+      const who = await sheet(page).locator('[data-tour="assign-who"] [data-person-row]').count();
+      check("(i) Set drills' first stage is titled Who over person rows (it was \"Who's playing\")", h2.trim() === "Who" && who >= 9, `${h2} ${who}`);
+      await shot("i-assign-who");
+      if (who) { await sheet(page).locator('[data-tour="assign-who"] [data-person-row]').first().click(); await page.waitForTimeout(800); }
+      const more = sheet(page).locator('[data-tour="assign-more"]');
+      const moreColor = (await more.count()) ? await styleOf(more, "color") : null;
+      check("(i) Show N more is in ink — the accent is Set's", moreColor === null || moreColor !== ACCENT, String(moreColor));
+      const set = sheet(page).locator("button", { hasText: /^(Set drills|Pick or write a drill)$/ }).first();
+      check("(i) the asleep button reads the verb, Set drills, never an instruction", (await set.count()) === 1 && (await set.innerText()).trim() === "Set drills" && (await set.isDisabled()), (await set.count()) ? await set.innerText() : "none");
+      await ctx.close();
+    }
+    /* ---------- (i320) the peek at 320: the whole name, the actions in two rows of three ---------- */
+    {
+      const { ctx, page, shot } = await boot({ width: 320 });
+      await page.locator("button", { hasText: "Maximiliano" }).first().click(); await page.waitForTimeout(900);
+      const title = await page.locator('[data-tour="peek-title"]').evaluate((el) => ({ t: el.textContent, whole: el.scrollHeight <= el.clientHeight + 1, lines: Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight || "24")) })).catch(() => null);
+      const labels = await page.locator('[data-tour="peek-actions"] > button').evaluateAll((bs) => bs.map((b) => { const sp = b.querySelector("span:last-child"); const br = b.getBoundingClientRect(); return { t: sp.textContent, fit: sp.scrollWidth <= br.width + 0.5, top: Math.round(br.top) }; }));
+      await shot("i320-peek");
+      check("(i320) the peek's title is the whole long name, on two lines rather than cut", !!title && title.t === "Maximiliano Ó Súilleabháin" && title.whole, JSON.stringify(title));
+      check("(i320) the peek's actions sit three to a row, every label whole in its column", labels.length >= 5 && labels.every((l) => l.fit) && new Set(labels.map((l) => l.top)).size === 2, JSON.stringify(labels));
       await ctx.close();
     }
 

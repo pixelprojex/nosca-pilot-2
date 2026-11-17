@@ -180,17 +180,20 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await tap(page, '[aria-label="Roster"]', 900);
       await page.locator(`${SCREEN} button`, { hasText: /^Groups$/ }).first().click(); await page.waitForTimeout(700);
       await page.locator('[data-tour="roster-group"]').first().click(); await page.waitForTimeout(1000);
-      const ses = await rowsOf(page, SCREEN, `return [...root.querySelectorAll("span")].filter((s) => s.textContent === "Putting" || s.textContent === "Bunker play · Course management · Putting").map((s) => s.parentElement.parentElement);`);
+      /* each session is the app's LessonRow now (17 November): the row is the list's child */
+      const ses = await rowsOf(page, SCREEN, `return [...root.querySelectorAll('[data-tour="group-sessions"] > *')].filter((r) => /Putting/.test(r.textContent));`);
       const sesA = await audit(page, SCREEN, EDGE.golf);
       await shot("p-group-sessions");
       check("(p) the group page's sessions are boxed rows on golf's edge, no rule inside", boxedRows(ses, EDGE.golf) && ses.length === 2 && fine(sesA), `${rowSaid(ses)} · ${said(sesA)}`);
-      const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelectorAll("span"); return sp[1] ? sp[1].textContent.trim() : ""; }) : []; });
+      /* the day leads the row's grey line, the archive's form */
+      const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); return sp ? sp.textContent.split(" · ")[0].trim() : ""; }) : []; });
       check("(p2) each session reads the app's one day (Thu 15 Oct), never \"15 Oct\"", sesDays.length === 2 && sesDays.every((d) => DAY_FORM.test(d)), JSON.stringify(sesDays));
       /* at 360 a three-area session still keeps its day on one line */
       await page.setViewportSize({ width: 360, height: 780 }); await page.waitForTimeout(400);
-      const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelectorAll("span"); if (!sp[1]) return null; const r0 = sp[0].getBoundingClientRect(), r1 = sp[1].getBoundingClientRect(); return { lines: sp[1].getClientRects().length, h: Math.round(r1.height), gap: Math.round(r1.left - r0.right) }; }) : []; });
+      /* the grey line under the focus: one line, never cut (the day and the head count fit whole) */
+      const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); if (!sp) return null; const r1 = sp.getBoundingClientRect(); return { lines: sp.getClientRects().length, h: Math.round(r1.height), gap: sp.scrollWidth <= sp.clientWidth ? 8 : 0 }; }) : []; });
       await shot("p3-group-sessions-360");
-      check("(p3) at 360 every session's day stays whole on one line, clear of a three-area focus", dayLines.length === 2 && dayLines.every((x) => x && x.lines === 1 && x.h <= 18 && x.gap >= 8), JSON.stringify(dayLines));
+      check("(p3) at 360 every session's day stays whole on one line, uncut", dayLines.length === 2 && dayLines.every((x) => x && x.lines === 1 && x.h <= 18 && x.gap >= 8), JSON.stringify(dayLines));
       await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
 
       /* (s) the hours' days */
