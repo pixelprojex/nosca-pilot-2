@@ -3391,6 +3391,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
   const f = fileFor(booking.who, live);
   const isGroup = booking.kind && booking.kind.startsWith("Group");
   const focus = agreed || f.tip;
+  const narrow = useNarrow();
+  const count = lessonCount ?? f.done;
 
   const lessons = (past || (live ? [] : null) || f.recent || [   /* a real account never falls through to the seeded list */
     { d: "14 Jun", focus: "Chipping", note: "Cleaner contact off a tight lie." },
@@ -3407,7 +3409,10 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
                   style={{ width: 46, height: 46, background: `${GROUP}18` }}><Users size={19} color={GROUP} strokeWidth={1.6} /></span>
           : <Avatar name={booking.who} size={46} />}
         <span className="flex-1 min-w-0">
-          <span className="block truncate" style={{ ...TYPE.title, color: t.ink }}>{booking.who}</span>
+          {/* the whole name, a second line before an ellipsis — "Maximiliano
+              Ó Súilleab…" at 320 */}
+          <span data-tour="peek-title" className="block" style={{ ...TYPE.title, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2,
+                       WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{booking.who}</span>
           <span className="block mt-0.5" style={{ ...TYPE.small, color: t.faint }}>
             {/* the booking's own length — a clinic is an hour here as on its block */}
             {booking.time} · {booking.duration || duration} {tr("min")}
@@ -3434,32 +3439,31 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         </div>
       )}
 
-      {/* the last couple — a box each, the app's list */}
-      <div className="nsc-list">
+      {/* the last couple — a box each, the app's list — and the way to
+          them all as the list's last row, the home's own, grey with its
+          chevron: it was "All 2 lessons" in the accent under the boxes, a
+          second accent on a sheet whose one action is Log, and the rows
+          above it opened the archive with nothing to say so */}
+      {(count > 0 || lessons.length > 0) && (
+      <div className="nsc-list mb-5" data-tour="peek-lessons">
         {lessons.map((l, i) => (
           <button key={i} onClick={() => { haptic(7); onHistory && onHistory(); }}
-                  className="w-full flex items-baseline gap-4 py-3 text-left active:opacity-50"
-                  style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
+                  className="w-full flex items-center gap-4 py-3 text-left active:opacity-50"
+                  style={{ minHeight: 60, animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
             {/* the harness writes "14 Jun" into d; a real lesson keeps
                 the day and the month apart */}
             <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{l.iso ? fmtWeekDay(localDate(l.iso)) : l.m ? `${l.d} ${l.m}` : l.d}</span>
             <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+            <ChevronRight size={15} color={t.trace || t.faint} />
           </button>
         ))}
+        {/* f.done is the seeded file's count and is always 0 for a real
+            account, so this read "All 0 lessons" and went somewhere
+            empty. The roster carries the real one. */}
+        {count > 0 && <HomeRow boxed tour="peek-all" label={tr("All lessons")} value={String(count)} onPress={onHistory} />}
       </div>
-
-      {/* f.done is the seeded file's count and is always 0 for a real
-          account, so this read "All 0 lessons" and went somewhere
-          empty. The roster carries the real one. */}
-      {(lessonCount ?? f.done) > 0 ? (
-        <button onClick={() => { haptic(8); soft(); onHistory && onHistory(); }}
-                className="w-full py-3 mb-5 text-left active:opacity-50"
-                style={{ ...TYPE.small, color: t.accent }}>
-          {tr("All")} {lessonCount ?? f.done} {tr("lessons")}
-        </button>
-      ) : (
-        <p className="w-full py-3 mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
       )}
+      {!(count > 0) && <p className="w-full py-3 mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>}
 
       {/* what they're building towards — the player's own, plus yours */}
       {comps.length > 0 && (
@@ -3484,20 +3488,26 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         <span className="inline-flex items-center justify-center gap-2">{tr("Log")}<ArrowRight size={16} color={t.onAccent} strokeWidth={2.1} /></span>
       </Button>
 
-      <div className="flex mt-3" style={{ borderTop: RULE.section(t.ink), paddingTop: 12 }}>
-        {[{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null },
+      {/* six to a row; under 350 two rows of three, so "Capture" and
+          "Register" are never run together in 45px columns */}
+      {(() => { const acts = [{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null },
           { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null },
           onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
-          /* a move where the project can move (one write, the player told);
-             a lesson without a player — a group's — keeps the cancel path */
-          { Ico: CalendarDays, lbl: tr("Move"),    act: onMove || onCancel, tone: null, tour: "peek-move" },
+          /* a move where the project can move (one write, the player told),
+             else the cancel path it always was; a group's lesson has no
+             Move at all — it opened the Cancel sheet beside Cancel */
+          (onMove || !isGroup) ? { Ico: CalendarDays, lbl: tr("Move"), act: onMove || onCancel, tone: null, tour: "peek-move" } : null,
           { Ico: CalendarX,    lbl: tr("Call off"), act: onWeather, tone: DANGER },
-          { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean).map(({ Ico, lbl, act, tone, tour }) => (
+          { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean);
+        return (
+      <div data-tour="peek-actions" className="grid mt-3" style={{ gridTemplateColumns: `repeat(${narrow ? 3 : acts.length}, minmax(0, 1fr))`,
+                                                rowGap: 12, borderTop: RULE.section(t.ink), paddingTop: 12 }}>
+        {acts.map(({ Ico, lbl, act, tone, tour }) => (
           <button key={lbl} data-tour={tour} onClick={() => { haptic(7); soft(); act && act(); }}
                   onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.94)"; }}
                   onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                   onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  className="flex-1 flex flex-col items-center gap-1.5 py-1 active:opacity-60"
+                  className="flex flex-col items-center gap-1.5 py-1 active:opacity-60"
                   style={{ willChange: "transform", transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)" }}>
             <span className="rounded-full flex items-center justify-center"
                   style={{ width: 38, height: 38, background: tone ? `${tone}12` : t.wash }}>
@@ -3507,6 +3517,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           </button>
         ))}
       </div>
+        ); })()}
     </>
   );
 }
@@ -8451,12 +8462,14 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
 
 /* a fact and its value, on one line. A label over a value in two lines
    was five of these stacked down the player's home: a page of labels. */
-const HomeRow = ({ label, value, tone, onPress, tour }) => {
+/* `boxed`: inside a .nsc-list the box is the edge, so the row draws no
+   foot rule of its own (the peek's All lessons) */
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false }) => {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className="w-full flex items-center gap-4 text-left active:opacity-50"
-            style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
+            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
       <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
@@ -14636,13 +14649,14 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    be answered is answered and what cannot is not shown. The head count
    comes from a register — never from who is in the group, which would
    report a full house at every session nobody was marked at. */
-function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null }) {
+function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null,
+                        onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport }) {
   const t = useT();
   const real = !!sessions;
   const weeks = real ? sessions.map((l) => {
     const reg = (registers || {})[`${l.d} ${l.m} ${group.name}`] || null;
     const marks = reg ? Object.values(reg) : [];
-    return { when: l.iso ? fmtIsoDay(l.iso) : `${Number(l.d) || l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
+    return { lesson: l, when: l.iso ? fmtIsoDay(l.iso) : `${Number(l.d) || l.d} ${l.m}`, covered: l.focus, subs: l.subs || [],
              present: reg ? marks.filter((x) => x === "in").length : null,
              absent: reg ? marks.filter((x) => x === "out").length : 0 };
   }) : [
@@ -14652,6 +14666,12 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
   ];
   const counted = weeks.filter((w) => w.present != null);
   const avg = counted.length ? Math.round(counted.reduce((n, w) => n + w.present, 0) / counted.length) : null;
+  /* a real session is the app's one lesson row — the poster, what was
+     worked on, the day and who was there, the Download disc — and it
+     opens the write-up; it was a static box in three literal sizes, the
+     one list of lessons that was not a LessonRow and opened nothing */
+  const posterFor = (l) => { const m = liveMedia ? liveMedia[l.id] : null; return m && m.length ? m[0] : null; };
+  const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
   return (
     <SwipeBack onBack={pop}>
       <Screen title={group.name} onBack={pop} meta={`${DAY_NAMES[group.day]}s ${group.time}`}>
@@ -14675,13 +14695,18 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           {weeks.length === 0 && (
             <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No sessions yet")}</p>
           )}
-          {weeks.length > 0 && <div className="nsc-list" data-tour="group-sessions">{weeks.map((w, i) => (
+          {weeks.length > 0 && real && onLesson && <div className="nsc-list" data-tour="group-sessions">{weeks.map((w, i) => (
+            <LessonRow key={w.lesson.id || i} lesson={w.lesson} index={i} first={false} poster={posterFor(w.lesson)} need={needFor(w.lesson)} sport={sport}
+                       facts={[lessonDay(w.lesson), w.present != null ? `${w.present} ${tr("of")} ${group.members.length}` : null]}
+                       onOpen={(l) => onLesson(l)} onDownload={onDownload} />
+          ))}</div>}
+          {weeks.length > 0 && !(real && onLesson) && <div className="nsc-list" data-tour="group-sessions">{weeks.map((w, i) => (
             <div key={i} className="py-3.5">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="flex-1 min-w-0" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.02em", color: t.ink }}>{w.covered}</span>
-                <span className="shrink-0" style={{ fontFamily: ui, fontSize: 12, whiteSpace: "nowrap", color: t.faint }}>{w.when}</span>
+                <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{w.covered}</span>
+                <span className="shrink-0" style={{ ...TYPE.caption, whiteSpace: "nowrap", color: t.faint }}>{w.when}</span>
               </div>
-              {w.subs.length > 0 && <div className="mt-1.5" style={{ fontFamily: ui, fontSize: 13, color: t.sub }}>{w.subs.join(" · ")}</div>}
+              {w.subs.length > 0 && <div className="mt-1.5" style={{ ...TYPE.small, color: t.sub }}>{w.subs.join(" · ")}</div>}
               {/* only a register can say who was there; without one the
                   session simply carries no head count */}
               {w.present != null && (
@@ -15635,8 +15660,12 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
 
   if (stage === "who") return (
     <>
-      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Who's playing")}</h2>
-      <Card>{(livePlayers ?? PLAYERS).map((p, i) => (<Row key={p} label={p} chevron last={i === (livePlayers ?? PLAYERS).length - 1} icon={<Avatar name={p} size={38} />} onToggle={() => { setWho(p); setStage("drills"); }} />))}</Card>
+      {/* a title is a noun, never a question; the people are the app's
+          one person row in a box, as the pick-a-player sheet's — it was
+          "Who's playing" over hairline rows with 38px faces */}
+      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Who")}</h2>
+      <div className="nsc-list" data-tour="assign-who">{(livePlayers ?? PLAYERS).map((p) => (
+        <PersonRow key={p} name={p} chevron onTap={() => { hapticCommit(); soft(); setWho(p); setStage("drills"); }} />))}</div>
     </>
   );
 
@@ -15657,7 +15686,8 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
       </>)}
 
       {rest.length > 0 && (!showAll && recommended.length > 0 ? (
-        <button onClick={() => { haptic(8); soft(); setShowAll(true); }} className="w-full text-left mb-4 active:opacity-50" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.accent }}>Show {rest.length} more</button>
+        /* in ink: the accent on this sheet is Set's */
+        <button data-tour="assign-more" onClick={() => { haptic(8); soft(); setShowAll(true); }} className="w-full text-left mb-4 active:opacity-50" style={{ ...TYPE.small, fontWeight: 600, color: t.ink, minHeight: 44 }}>{tr("Show")} {rest.length} {tr("more")}</button>
       ) : (<>
         <RowHead>{recommended.length > 0 ? "Everything else" : "Your drills"}</RowHead>
         <Card className="mb-4">{rest.map((dr, i) => <DrillRow key={dr.t} dr={dr} i={i} arr={rest} />)}</Card>
@@ -15690,7 +15720,7 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
           chosen.push(fresh);
         } else close();
         onAssign(who, chosen, dueOn && due ? due : null, kept);
-      }}>{total ? `Set ${total} drill${total > 1 ? "s" : ""}` : "Pick or write a drill"}</Button>
+      }}>{/* the verb, asleep until there is a drill — never an instruction */}{total ? `Set ${total} drill${total > 1 ? "s" : ""}` : tr("Set drills")}</Button>
     </>
   );
 }
@@ -16144,9 +16174,17 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                                fontFamily: ui, fontSize: 14.5, fontWeight: on ? 600 : available ? 500 : 400,
                                /* a day away is struck through, the way a diary crosses a day out */
                                textDecoration: !gone && awayOn(mo.idx, d) ? "line-through" : "none",
-                               color: on ? "#fff" : gone ? t.hair : available ? t.ink : t.faint }}>{d}</span>
-                <span style={{ height: 5, marginTop: 1 }}>
+                               /* a day gone is read, not hidden: the trace grey
+                                  (it was the hairline, 1.2:1 — ghosts a coach
+                                  counting back could not read) */
+                               color: on ? "#fff" : gone ? (t.trace || t.faint) : available ? t.ink : t.faint }}>{d}</span>
+                {/* a coach's day with lessons carries the List view's
+                    ticker mark, an ink dot; a day merely open the faint
+                    one — both were the one hairline dot, so the grid could
+                    not say which days held lessons */}
+                <span style={{ height: 5, marginTop: 1 }} data-mark={mine ? "mine" : role === "coach" && dayBooked > 0 && !gone && !on ? "booked" : available && !on ? "open" : undefined}>
                   {mine ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.accent }} />
+                        : role === "coach" && dayBooked > 0 && !gone && !on ? <span className="block rounded-full" style={{ width: 4, height: 4, background: t.ink }} />
                         : available && !on ? <span className="block rounded-full" style={{ width: 3, height: 3, background: t.hair }} /> : null}
                 </span>
               </button>
@@ -21030,7 +21068,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              onOpen={(r) => push("player:" + (data ? r.id : r.name))}
                              onMessage={membersOnRoster(g, roster).length ? (grp) => { setMessageGroup(grp); setSheet("broadcast"); } : null}
                              sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
-                             registers={registers} /> : <div />;
+                             registers={registers} sport={coachSport} onDownload={downloadLesson}
+                             liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
+                             onLesson={data ? (l) => push(`clesson:${l.id}:${gname}`) : null} /> : <div />;
   } else if (screen.startsWith("annotate:")) {
     const ang = screen.slice("annotate:".length);
     body = <VideoAnnotate angle={ang} transcript={cfg.transcript}

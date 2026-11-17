@@ -169,9 +169,10 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const st = await sheetText(page);
       const peek = await audit(page, "[data-sheet]", EDGE.golf);
       await shot("01-peek");
-      check("(a) the peek's last lessons and competitions are the app's list — a box each on golf's edge, no rule inside", peeked && fine(peek) && peek.boxes === 3 && /Short game/.test(st) && /Autumn Medal/.test(st), said(peek));
+      /* four boxes since 17 November: the two lessons, All lessons as the list's last row (A14), the competition */
+      check("(a) the peek's last lessons, All lessons and competitions are the app's list — a box each on golf's edge, no rule inside", peeked && fine(peek) && peek.boxes === 4 && /Short game/.test(st) && /Autumn Medal/.test(st), said(peek));
       check("(a2) the competition reads its own day, never a countdown, and one that has been is not on it", st.includes(nice(dayFrom(12))) && !/\b\d+d\b/.test(st) && !/Club Fourball/.test(st), st.slice(-220));
-      const cols = await page.evaluate(() => [...document.querySelectorAll("[data-sheet] .nsc-list > * > span:first-child")].map((s) => ({ d: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
+      const cols = await page.evaluate(() => [...document.querySelectorAll("[data-sheet] .nsc-list > :not([data-tour=peek-all]) > span:first-child")].map((s) => ({ d: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
       const days = cols.map((c) => c.d);
       check("(a3) every day on the peek is the app's one form, in one column", days.length === 3 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-12)) && cols.every((c) => Math.abs(c.at - cols[0].at) <= 1), JSON.stringify(cols));
       await closeSheet(page);
