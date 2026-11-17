@@ -3460,7 +3460,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         {/* f.done is the seeded file's count and is always 0 for a real
             account, so this read "All 0 lessons" and went somewhere
             empty. The roster carries the real one. */}
-        {count > 0 && <HomeRow tour="peek-all" label={tr("All lessons")} value={String(count)} onPress={onHistory} />}
+        {count > 0 && <HomeRow boxed tour="peek-all" label={tr("All lessons")} value={String(count)} onPress={onHistory} />}
       </div>
       )}
       {!(count > 0) && <p className="w-full py-3 mb-5" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>}
@@ -8462,12 +8462,14 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
 
 /* a fact and its value, on one line. A label over a value in two lines
    was five of these stacked down the player's home: a page of labels. */
-const HomeRow = ({ label, value, tone, onPress, tour }) => {
+/* `boxed`: inside a .nsc-list the box is the edge, so the row draws no
+   foot rule of its own (the peek's All lessons) */
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false }) => {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
             className="w-full flex items-center gap-4 text-left active:opacity-50"
-            style={{ minHeight: 60, borderBottom: RULE.hair(t.ink) }}>
+            style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
       <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
