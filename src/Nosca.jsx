@@ -14,13 +14,13 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
    style block below at the place the rules have always held, so the
    cascade inside the app is unchanged; the comments that explain them
    are there. */
-export const LIST_CSS = `    .nsc-list { border: none !important; }
+export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 2px; }
     .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
-                    box-shadow: 0 3px 0 var(--lip, rgba(0,0,0,.08));
-                    transition: transform .22s cubic-bezier(.3,1.6,.5,1), box-shadow .22s cubic-bezier(.3,1.6,.5,1);
+                    box-shadow: 0 2px 0 var(--lip, rgba(0,0,0,.08));
+                    transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1);
                     margin-bottom: 12px; padding-left: 14px !important; padding-right: 14px !important; }
-    /* a row that is one button sinks onto its foot under the finger */
-    .nsc-list > button:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--lip, rgba(0,0,0,.08)); transition: none; }
+    /* a row that is one button sinks onto its foot under the finger (the one press, data-down) */
+    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 var(--lip, rgba(0,0,0,.08)); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
@@ -477,18 +477,63 @@ export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : 
 /* dramatic, at the founder's word ("don't be afraid of dramatic kind
    of 3D effects"): six points of lip under a button or a tile, and the
    press takes five of them, so a key goes right down like a real one */
-export const LIP_H = 5, LIP_PRESS = 4;
+export const LIP_H = 4, LIP_PRESS = 3;
 export const lipOf = (c, h = LIP_H) => `0 ${h}px 0 ${c}`;
 /* the press, written straight to the node (no React render under the
    thumb): down sinks the face onto its lip at once, with nothing eased;
    up it springs back, a touch past and home, the way a key returns */
-const SPRING = "cubic-bezier(.3,1.6,.5,1)";
+const SPRING = "cubic-bezier(.2,.7,.3,1)";
 export const press3d = (c, h = LIP_H, by = h - 1, extra = "") => {
   const rest = `${lipOf(c, h)}${extra ? `, ${extra}` : ""}`, down = `${lipOf(c, h - by)}${extra ? `, ${extra}` : ""}`;
-  const d = (e) => { const el = e.currentTarget; if (el.disabled) return; el.style.transition = "none"; el.style.transform = `translateY(${by}px)`; el.style.boxShadow = down; };
-  const u = (e) => { const el = e.currentTarget; el.style.transition = `transform 240ms ${SPRING}, box-shadow 240ms ${SPRING}, background-color 200ms, opacity 160ms`; el.style.transform = "none"; el.style.boxShadow = rest; };
-  return { rest, handlers: { onPointerDown: d, onPointerUp: u, onPointerCancel: u, onPointerLeave: u } };
+  /* the press itself is the one listener's below: the key carries its two shapes */
+  return { rest, handlers: { "data-press": "", "data-rest": rest, "data-dn": down, "data-by": by } };
 };
+/* ONE PRESS FOR THE WHOLE APP (18 November). The founder found the keys
+   choppy: every key sank the instant a finger touched it — the start of a
+   scroll as much as a tap — and sprang back with an overshoot, so a list
+   jittered under the thumb. One listener now presses every key, row and
+   n-key the same way, the way a phone's own lists do: a finger that moves
+   is a scroll and presses nothing; a finger that stays sinks the key after
+   PRESS_DELAY; a tap quicker than that still shows the press for a beat;
+   letting go eases back with no bounce (Lares's 0.12s ease-out). */
+const PRESS_DELAY = 70, PRESS_SEL = "[data-press], .n-key, .nsc-list > button, [class*='active:']";
+const sinkKey = (f) => {
+  if (!f) return;
+  f.setAttribute("data-down", "");
+  const dn = f.getAttribute("data-dn");
+  if (dn != null) { f.style.transition = "none"; f.style.transform = `translateY(${f.getAttribute("data-by")}px)`; f.style.boxShadow = dn; }
+};
+const riseKey = (f) => {
+  if (!f) return;
+  f.removeAttribute("data-down");
+  const rest = f.getAttribute("data-rest");
+  if (rest != null) { f.style.transition = `transform 150ms ${SPRING}, box-shadow 150ms ${SPRING}`; f.style.transform = "none"; f.style.boxShadow = rest; }
+};
+if (typeof window !== "undefined" && typeof document !== "undefined" && !window.__nscPress) {
+  window.__nscPress = true;
+  let face = null, timer = 0, sx = 0, sy = 0;
+  const faceOf = (b) => (b.hasAttribute("data-round") && b.querySelector("[data-face]")) || b;
+  const drop = () => { clearTimeout(timer); timer = 0; riseKey(face); face = null; };
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    const b = e.target && e.target.closest ? e.target.closest(PRESS_SEL) : null;
+    if (face) drop();
+    if (!b || b.disabled) return;
+    face = faceOf(b); sx = e.clientX; sy = e.clientY;
+    if (e.pointerType === "mouse") sinkKey(face);
+    else timer = setTimeout(() => { timer = 0; sinkKey(face); }, PRESS_DELAY);
+  }, true);
+  document.addEventListener("pointermove", (e) => {
+    if (face && Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 10) drop();
+  }, { capture: true, passive: true });
+  document.addEventListener("pointerup", () => {
+    if (!face) return;
+    const f = face; face = null;
+    if (timer) { clearTimeout(timer); timer = 0; sinkKey(f); setTimeout(() => riseKey(f), 90); return; }
+    riseKey(f);
+  }, true);
+  document.addEventListener("pointercancel", () => { if (face) drop(); }, true);
+}
 /* Radius carries meaning rather than decoration: a control you press is
    nearly square, a surface that holds content is softer, and only the
    things that are genuinely pill-shaped are pills. Uniform curvature
@@ -2034,13 +2079,14 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; box-shadow: 0 3px 0 var(--edge); }
+${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
        carries a deeper tone where the face is coloured (a chosen mark). */
-    .n-key { box-shadow: 0 4px 0 var(--key-lip, var(--edge)); transition: transform .24s cubic-bezier(.3,1.6,.5,1), box-shadow .24s cubic-bezier(.3,1.6,.5,1), background-color .18s, color .18s, border-color .18s; -webkit-tap-highlight-color: transparent; }
-    .n-key:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-lip, var(--edge)); transition: none; }
+    .n-key { box-shadow: 0 3px 0 var(--key-lip, var(--edge)); transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .18s, color .18s, border-color .18s; -webkit-tap-highlight-color: transparent; }
+    input::placeholder, textarea::placeholder { color: var(--faint, #8E958F); opacity: 1; }
+    .n-key[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-lip, var(--edge)); transition: none; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
@@ -3580,14 +3626,16 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
         return (
       <div data-tour="peek-actions" className="grid mt-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                                                 columnGap: 8, rowGap: 16, borderTop: RULE.section(t.ink), paddingTop: 14 }}>
-        {acts.map(({ Ico, lbl, act, tone, tour }) => (
-          /* the app's round key, three to a row at every width: white on
-             the sport's edge, Call off and Cancel red in the glyph and the
-             word — they were 40px discs six across, small circles under a
-             full-width Log */
-          <ActTile key={lbl} tour={tour} Icon={Ico} label={lbl} face={56} round
-                   tone={tone ? "dangerQuiet" : "quiet"} onTap={() => { act && act(); }} />
-        ))}
+        {/* the app's round key, three to a row at every width, calm on the
+            wash (Log above is the one action; six rings of the edge under
+            it read as a field of green): Call off and Cancel red in the
+            glyph and the word — they were 40px discs six across */}
+        <ClusterCtx.Provider value={true}>
+          {acts.map(({ Ico, lbl, act, tone, tour }) => (
+            <ActTile key={lbl} tour={tour} Icon={Ico} label={lbl} face={56} round
+                     tone={tone ? "dangerQuiet" : "quiet"} onTap={() => { act && act(); }} />
+          ))}
+        </ClusterCtx.Provider>
       </div>
         ); })()}
     </>
@@ -3760,12 +3808,8 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
               { label: tr("Action shot"), sub: tr("A position"), Icon: ImageIcon, act: () => add("action") },
             ].map((o, i) => (
               <button key={o.label} onClick={o.act}
-                      onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.97)"; }}
-                      onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                      onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       className="flex flex-col items-start justify-center gap-1.5 px-4 n-key"
                       style={{ minHeight: 96, borderRadius: R.surface, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`,
-                               willChange: "transform", transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <o.Icon size={20} color={i < 2 ? t.accent : t.sub} strokeWidth={1.6} />
                 <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{o.label}</span>
@@ -4455,9 +4499,6 @@ function PhotoSheet({ name, current, onSet, onClear, close, say }) {
       <div className="flex flex-wrap gap-2.5 mb-6">
         {tints.map((c, i) => (
           <button key={c} onClick={() => { haptic(8); soft(); onSet(c); }}
-                  onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.9)"; }}
-                  onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                  onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                   className="rounded-full active:opacity-80"
                   style={{ width: 44, height: 44, background: c, willChange: "transform",
                            border: current === c ? `2.5px solid ${t.ink}` : "none",
@@ -7062,7 +7103,7 @@ function Tile({ children, onPress, accent, className = "", style = {}, delay = 0
           style={{ background: accent ? `${accent}0E` : t.surface, borderRadius: R.surface,
                    position: "relative", overflow: "hidden", zIndex: 1,
                    border: accent ? `${EDGE_W}px solid ${accent}2E` : `${EDGE_W}px solid ${EDGE(t)}`, boxShadow: p.rest,
-                   transition: "transform 140ms ease-out, box-shadow 140ms ease-out", willChange: "transform",
+                   transition: "transform 140ms ease-out, box-shadow 140ms ease-out",
                    /* backwards, never both: a held end frame beats the press's own transform */
                    animation: `liftIn 420ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards`, ...style }}>
       {/* one pass of light as it arrives, never again */}
@@ -8257,7 +8298,7 @@ function SearchField({ value, onChange, placeholder, tour, onEnter, className = 
   const t = useT();
   const ph = placeholder || tr("Search");
   return (
-    <div data-tour={tour} className={`flex items-center gap-2.5 px-4 ${className}`} style={{ minHeight: 46, borderRadius: R.pill, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 3) }}>
+    <div data-tour={tour} className={`flex items-center gap-2.5 px-4 ${className}`} style={{ minHeight: 46, borderRadius: R.pill, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
       <Search size={15} color={t.trace || t.faint} />
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} aria-label={ph} enterKeyHint="search"
              onKeyDown={onEnter ? (e) => { if (e.key === "Enter") { e.preventDefault(); onEnter(); } } : undefined}
@@ -8290,7 +8331,7 @@ function MicBtn({ onText, size = 34, tint, onNotice }) {
 function VoiceInput({ value, onChange, ph, style, autoFocus }) {
   const t = useT();
   return (
-    <div className="flex items-center gap-2 rounded-2xl px-4" style={{ minHeight: 54, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 3), ...style }}>
+    <div className="flex items-center gap-2 rounded-2xl px-4" style={{ minHeight: 54, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), ...style }}>
       <input value={value} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} placeholder={ph}
              className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
       <MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} />
@@ -8306,7 +8347,7 @@ function VoiceArea({ value, onChange, ph, rows = 3, max = 0 }) {
      reach the coach short while the toast said Asked */
   const cap = (s) => (max ? String(s).slice(0, max) : s);
   return (
-    <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, border: `1px solid ${HAIR(t.ink, 0.14)}`, boxShadow: lipOf(SOFT_LIP(t), 3) }}>
+    <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, border: `1px solid ${HAIR(t.ink, 0.14)}`, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
       <textarea value={value} onChange={(e) => onChange(cap(e.target.value))} rows={rows} placeholder={ph} maxLength={max || undefined}
                 className="flex-1 min-w-0 outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
       <div className="pb-2"><MicBtn onText={(txt) => onChange(cap(value ? value + " " + txt : txt))} /></div>
@@ -8385,7 +8426,7 @@ const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap })
    sites. */
 const Ruled = ({ children, className = "", style = {} }) => (
   /* rows as boxes — the nsc-list rules draw each child as its own surface */
-  <div className={`nsc-list nsc-ruled overflow-x-hidden ${className}`} style={style}>{children}</div>
+  <div className={`nsc-list nsc-ruled ${className}`} style={{ overflowX: "clip", ...style }}>{children}</div>
 );
 
 /* RAIL — the leading figure column.
@@ -8407,7 +8448,7 @@ const Rail = ({ children, tone, style = {} }) => {
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
   return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
-                  boxShadow: lipOf(EDGE(t), 3),
+                  boxShadow: lipOf(EDGE(t), 2),
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -8443,10 +8484,10 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
             className="w-full disabled:opacity-30"
             {...p.handlers}
             /* 50 drawn and the lip under it: the same 54 it always took */
-            style={{ minHeight: 50, marginBottom: LIP_H, borderRadius: R.surface, fontFamily: ui, fontSize: 15.5, fontWeight: 650, letterSpacing: "0.005em",
+            style={{ minHeight: 50, marginBottom: LIP_H, borderRadius: R.surface, fontFamily: ui, fontSize: 15.5, fontWeight: 600, letterSpacing: "0.005em",
                      boxShadow: p.rest,
                      transition: `transform 140ms ease-out, box-shadow 140ms ease-out, opacity ${MOTION.instant}ms`,
-                     willChange: "transform", ...face }}>{children}</button>
+                     ...face }}>{children}</button>
   );
 }
 /* AN ICON FOR EVERY THING A COACH WORKS ON
@@ -8518,10 +8559,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   /* dangerQuiet: the white key with the red in the glyph and the word
      (the peek's Call off · Cancel) */
   const redWord = tone === "dangerQuiet";
-  const quietTile = tone !== "accent" && tone !== "danger" && !on;
-  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : TINT(t);
+  /* A RIM IS FOR THE PROMINENT FEW: in a grid of more than six (the log's
+     areas, the plus's eight) a quiet key drops its outline and stands on
+     the sport's wash with the soft lip of a row — a dozen outlined keys
+     read busy, and the founder said so before the keys were raised */
+  const calm = useContext(ClusterCtx) && (tone === "quiet" || tone === "dangerQuiet") && !on;
+  const quietTile = tone !== "accent" && tone !== "danger" && !on && !calm;
+  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : calm ? t.wash : TINT(t);
   const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? "#fff" : redWord ? DANGER : t.ink;
-  const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
+  const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? MIX(t.ink, "#000000", 0.55) : calm ? SOFT_LIP(t) : TINT_LIP(t);
   /* the second kind keeps the sport's edge as its outline, 3:1 and over */
   const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
@@ -8537,18 +8583,18 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      small button in the middle of a big page. Under 72 tall the glyph
      and the word share one line. */
   if (Icon && !block && round !== true && cols === 2) {
-    const p = press3d(lipC, 4, 3, ring);
+    const p = press3d(lipC, 3, 2, ring);
     const stacked = h >= 72;
     return (
       <button data-tour={tour} data-lip="" data-tile="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
               {...p.handlers}
               className={`relative w-full flex text-left ${stacked ? "flex-col items-start justify-between" : "items-center"}`}
               style={{ minHeight: h, gap: stacked ? 10 : 12, padding: stacked ? "14px 14px 13px" : "0 16px", borderRadius: R.surface, background: bg,
-                       boxShadow: p.rest, willChange: "transform", border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`, animation: enter,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
-        <Icon size={22} color={fg} strokeWidth={quietTile ? 1.8 : 2} className="shrink-0" />
+        <Icon size={22} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} className="shrink-0" />
         <span className={wrap ? "min-w-0" : "min-w-0 max-w-full truncate"}
-              style={{ fontFamily: ui, fontSize: 14, fontWeight: 650, letterSpacing: "-0.005em", lineHeight: 1.2, color: fg }}>{label}</span>
+              style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: 1.2, color: fg }}>{label}</span>
         {badge}
       </button>
     );
@@ -8557,22 +8603,18 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   if (Icon && !block) {
     /* the face sinks the whole lip onto the paper, as Lares's node does —
        sized to its row: three across 64, four 56, more 46 */
-    const f = faceSize || (cols >= 5 ? 46 : cols === 4 ? 56 : 64), lip = f <= 48 ? 4 : 5;
+    const f = faceSize || (cols >= 5 ? 46 : cols === 4 ? 56 : 64), lip = 3;
     const rest = `${lipOf(lipC, lip)}${ring ? `, ${ring}` : ""}`, down = `${lipOf(lipC, 0)}${ring ? `, ${ring}` : ""}`;
-    const face = (e) => e.currentTarget.querySelector("[data-face]");
-    const dn = (e) => { const el = face(e); if (!el) return; el.style.transition = "none"; el.style.transform = `translateY(${lip}px)`; el.style.boxShadow = down; };
-    const up = (e) => { const el = face(e); if (!el) return; el.style.transition = "transform 240ms cubic-bezier(.3,1.6,.5,1), box-shadow 240ms cubic-bezier(.3,1.6,.5,1)"; el.style.transform = "none"; el.style.boxShadow = rest; };
     return (
-      <button data-tour={tour} data-round="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
-              onPointerDown={dn} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}
+      <button data-tour={tour} data-round="" data-press="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
               className="relative w-full flex flex-col items-center"
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
-        <span data-face="" data-lip="" className="relative flex items-center justify-center rounded-full"
-              style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest, willChange: "transform",
+        <span data-face="" data-lip="" data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
+              style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
                        border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
           {/* the glyph in ink on the white key, never the accent (the accent is the one action's) */}
-          <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={quietTile ? 1.8 : 2} />
+          <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
         {!iconOnly && (
@@ -8584,12 +8626,12 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
     );
   }
 
-  const p = press3d(lipC, 4, 3, ring);
+  const p = press3d(lipC, 3, 2, ring);
   return (
     <button data-tour={tour} data-lip="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
             {...p.handlers}
             className={`relative w-full flex items-center justify-center ${block && Icon ? "gap-2.5" : "flex-col gap-1.5"}`}
-            style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest, willChange: "transform",
+            style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest,
                      border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`, animation: enter,
                      transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
@@ -8599,7 +8641,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           Icon and the label centres on its own. */}
       {Icon && <Icon size={block ? 20 : h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={block ? 2.2 : 1.7} />}
       <span className={Icon && !wrap ? (block ? "truncate" : "truncate px-2") : wrap ? "px-1 text-center" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: block && Icon ? 15.5 : Icon ? 12.5 : 13.5, fontWeight: 650, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
+            style={{ fontFamily: ui, fontSize: block && Icon ? 15.5 : Icon ? 12.5 : 13.5, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
       {badge}
     </button>
   );
@@ -8659,16 +8701,16 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         const on = has(x), off = disabled && disabled.includes(x);
         /* a time is a small key on a three-point lip: the chosen one ink
            on a deeper ink, the rest on the sport's edge or the wash's */
-        const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-        const p = press3d(lc, 4, 3);
-        void cluster;
+        const calm = cluster && !on;
+        const lc = on ? MIX(t.ink, "#000000", 0.55) : calm ? SOFT_LIP(t) : TINT_LIP(t);
+        const p = press3d(lc, 3, 2);
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} data-lip="" aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
                   {...p.handlers}
-                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : TINT(t),
-                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, opacity: off ? 0.35 : 1,
+                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : calm ? t.wash : TINT(t),
+                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? t.ink : calm ? "transparent" : EDGE(t)}`, opacity: off ? 0.35 : 1,
                            fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
-                           color: on ? "#fff" : t.ink, willChange: "transform",
+                           color: on ? "#fff" : t.ink,
                            transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>{x}</button>
         );
       })}
@@ -8777,14 +8819,14 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
           /* each a key in its own sport's colour: the sport's tint on a
              deeper tint, the sport's full colour once chosen */
           const lc = on ? LIP(th.mark) : `${th.mark}B8`;
-          const p = press3d(lc, LIP_H, LIP_PRESS);
+          const p = press3d(lc, 3, 2);
           return (
             <button key={id} data-lip="" aria-label={add ? `${tr("Add")} ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
                     {...p.handlers}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
                     style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : th.wash, boxShadow: p.rest,
-                             border: `${EDGE_W}px solid ${on ? th.mark : `${th.mark}B8`}`, willChange: "transform",
-                             transition: `background ${MOTION.settle}ms, transform 240ms cubic-bezier(.3,1.6,.5,1), box-shadow 240ms cubic-bezier(.3,1.6,.5,1)` }}>
+                             border: `${EDGE_W}px solid ${on ? th.mark : `${th.mark}B8`}`,
+                             transition: `background ${MOTION.settle}ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)` }}>
               {add
                 ? <Plus size={18} color={th.mark} strokeWidth={2.2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: on ? "#fff" : th.mark }} />}
@@ -8897,11 +8939,8 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
   return (
     <Tag data-tour={tour} onClick={onToggle ? () => { haptic(6); onToggle(); } : undefined}
          className={`w-full flex items-center gap-3.5 px-5 text-left ${onToggle ? "active:opacity-50" : ""}`}
-         onPointerDown={(e) => { if (onToggle) e.currentTarget.style.transform = "scale(0.97)"; }}
-         onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-         onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
          style={{ minHeight: 56, borderBottom: last ? "none" : `1px solid ${t.hair}`,
-                  transition: "transform 130ms cubic-bezier(.22,1,.36,1)", willChange: "transform" }}>
+                  transition: "transform 130ms cubic-bezier(.22,1,.36,1)" }}>
       {icon}
       {onToggle && !chevron && !icon && !right && (
         <span className="flex items-center justify-center shrink-0"
@@ -8989,7 +9028,9 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const initials = (name || "").split(" ").map((x) => x[0]).filter(Boolean).slice(0, 2).join("");
   /* a face on a wash tile would be wash on wash: `bg`/`fg` let the
      surface underneath decide, so the disc always reads */
-  const disc = tint || bg || t.wash;
+  /* its own disc, a step deeper than the wash: on a row of the wash a
+     wash disc vanished and the initials floated */
+  const disc = tint || bg || MIX(t.wash, t.mark || t.accent || t.ink, 0.12);
   const mark = tint ? "#fff" : fg || t.sub;
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
@@ -9451,14 +9492,14 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
      chosen; the entrance fills backwards only, or its last frame would
      hold the transform the press writes */
   const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-  const p = press3d(lc, 4, 3);
+  const p = press3d(lc, 3, 2);
   return (
     <button onClick={() => { haptic(8); soft(); onSelect(); }} aria-pressed={!!on} data-lip=""
             className="w-full flex items-center gap-4 px-5 text-left"
             {...p.handlers}
             style={{ minHeight: 62, marginBottom: 10, borderRadius: R.surface, background: on ? t.ink : TINT(t),
-                     border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, willChange: "transform", boxShadow: p.rest,
-                     transition: "background 220ms, border-color 220ms, transform 240ms cubic-bezier(.3,1.6,.5,1), box-shadow 240ms cubic-bezier(.3,1.6,.5,1)",
+                     border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, boxShadow: p.rest,
+                     transition: "background 220ms, border-color 220ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)",
                      animation: `fadeUp 460ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards` }}>
       {Icon && <Icon size={20} color={on ? t.accent : t.sub} strokeWidth={1.6} />}
       {dot && <span className="rounded-full shrink-0" style={{ width: 9, height: 9, background: dot }} />}
@@ -10140,9 +10181,6 @@ function PlayerHome({ conn, lessons, go, push, right, nextBooking, upcoming = []
               not be something to read, it should be something to do. */}
           {tipText && (
             <button data-tour="home-tip" onClick={() => { hapticCommit(); soft(); push("tips"); }}
-                    onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
-                    onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                    onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                     className="w-full text-left relative overflow-hidden px-5 py-5 active:opacity-70"
                     style={{ borderRadius: R.surface, background: t.surface, willChange: "transform",
                              border: `1px solid ${HAIR(t.ink, 0.12)}`, marginBottom: SPACE.block,
@@ -12368,9 +12406,6 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
     const rained = p.name === "Fionn Breathnach";
     return (
       <button data-tour="family-person" onClick={() => { haptic(8); soft(); onSwitch(p.id); }}
-              onPointerDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-              onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-              onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               className="w-full flex items-center gap-3.5 px-5 text-left active:opacity-70"
               style={{ minHeight: big ? 76 : 62, willChange: "transform",
                        borderRadius: big ? R.surface : 0,
@@ -13043,7 +13078,7 @@ function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBl
   const commit = () => { if (done.current) return; const x = v.trim(); if (x) { done.current = true; onCommit(x); } else if (onEmpty) { done.current = true; onEmpty(); } else onCancel && onCancel(); };
   const keep = (e) => e.preventDefault();   // the mic and the clear button must not blur the field away
   return (
-    <div className="flex items-center gap-2 px-4" style={{ minHeight: height, borderRadius: R.pill, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 3), ...style }}>
+    <div className="flex items-center gap-2 px-4" style={{ minHeight: height, borderRadius: R.pill, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), ...style }}>
       <input value={v} autoFocus={autoFocus} placeholder={ph} aria-label={label || ph} enterKeyHint={hint}
              onChange={(e) => setV(e.target.value)}
              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") onCancel && onCancel(); }}
@@ -13153,14 +13188,14 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
   /* a face is a key of the family as well: the tint on its deeper tint,
      the ink once picked, and it goes right down under the thumb */
   const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-  const p = press3d(lc, LIP_H, LIP_PRESS);
+  const p = press3d(lc, 3, 2);
   return (
     <button data-tour={tour} data-lip="" aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
             {...p.handlers}
             className="relative w-full flex flex-col items-center justify-center gap-2"
             style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : TINT(t), border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`,
-                     boxShadow: p.rest, willChange: "transform",
-                     transition: `background ${MOTION.settle}ms, box-shadow 240ms cubic-bezier(.3,1.6,.5,1), transform 240ms cubic-bezier(.3,1.6,.5,1)` }}>
+                     boxShadow: p.rest,
+                     transition: `background ${MOTION.settle}ms, box-shadow 240ms cubic-bezier(.2,.7,.3,1), transform 240ms cubic-bezier(.2,.7,.3,1)` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
               bg={on ? "rgba(255,255,255,0.18)" : t.surface} fg={on ? "#fff" : t.sub} />
       <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
@@ -16905,7 +16940,7 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
                 <Camera size={18} color={t.ink} strokeWidth={1.8} />
               </button>
             )}
-            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2.5 flex items-center gap-2" style={{ background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 3) }}>
+            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2.5 flex items-center gap-2" style={{ background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
@@ -21422,7 +21457,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">

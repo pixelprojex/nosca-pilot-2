@@ -298,7 +298,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const viewList = page.locator('[aria-label="List"]').first();
       if (await viewList.count()) { await viewList.dispatchEvent("click"); await page.waitForTimeout(700); }
       await page.locator("button", { hasText: "Driving" }).first().click().catch(() => {}); await page.waitForTimeout(1300);
-      const ld = await rowsOf(page, SCREEN, `const s = root.querySelector('[data-tour="lesson-drills"]'); return s ? [...s.querySelectorAll("div, button")].filter((r) => /Gate drill|Towel drill/.test(r.textContent) && r.children.length >= 2 && r.parentElement && !/Gate drill.*Towel drill/.test(r.textContent)) : [];`);
+      const ld = await rowsOf(page, SCREEN, `const s = root.querySelector('[data-tour="lesson-drills"]'); return s ? [...s.querySelectorAll("div, button")].filter((r) => /Gate drill|Towel drill/.test(r.textContent) && r.children.length >= 2 && r.parentElement && !(/Gate drill/.test(r.textContent) && /Towel drill/.test(r.textContent))) : [];`);
       const tick = await page.evaluate(() => {
         const s = document.querySelector('[data-tour="lesson-drills"]'); if (!s) return null;
         const row = [...s.querySelectorAll("div, button")].find((r) => r.children.length >= 2 && /^Gate drill/.test(r.textContent.trim())); const c = row && [...row.querySelectorAll("span")].find((x) => Math.round(x.getBoundingClientRect().width) === 22); return c ? getComputedStyle(c).borderTopColor : null;
