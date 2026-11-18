@@ -60,7 +60,7 @@ const rows = (page, scope) => page.evaluate((scope) => {
 const soft = (r) => r.bg === WASH && r.radius === "8px" && r.edges.every((e) => e.endsWith(NONE) || e.startsWith("0px"));
 const say = (rs) => rs ? `${rs.length}: ` + rs.filter((r) => r.kind === "row" && !soft(r)).slice(0, 3).map((r) => `"${r.text}" ${r.bg} ${r.edges[0]} r${r.radius}`).join(" | ") : "no scope";
 /* a tile's own edge, by its label */
-const tile = (page, label) => page.evaluate((label) => { const b = [...document.querySelectorAll("button")].find((x) => (x.getAttribute("aria-label") || x.textContent.trim()) === label && x.getBoundingClientRect().width > 0); if (!b) return null; const cs = getComputedStyle(b); return { label, bg: cs.backgroundColor, edge: `${cs.borderTopWidth} ${cs.borderTopColor}` }; }, label);
+const tile = (page, label) => page.evaluate((label) => { const b = [...document.querySelectorAll("button")].find((x) => (x.getAttribute("aria-label") || x.textContent.trim()) === label && x.getBoundingClientRect().width > 0); if (!b) return null; const cs = getComputedStyle(b.querySelector("[data-face]") || b); return { label, bg: cs.backgroundColor, edge: `${cs.borderTopWidth} ${cs.borderTopColor}` }; }, label);   // a round key (18 Nov) draws its fill and edge on its face
 const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
   const from = document.querySelector(fromSel); if (!from) return null;
   const to = [...document.querySelectorAll('[data-scroll="screen"] div, [data-scroll="screen"] span')].find((d) => d.children.length === 0 && d.textContent.trim() === toText && d.getBoundingClientRect().top > from.getBoundingClientRect().bottom - 1);
