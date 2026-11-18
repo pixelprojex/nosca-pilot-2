@@ -210,8 +210,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await tap(page, '[data-tour="roster-invite"]', 900);
       const routes = await sheet(page).locator("button").filter({ hasText: /^(WhatsApp|Messages|Email|Copy link)$/ }).evaluateAll((els) => els.map((e) => { const svg = e.querySelector("svg"); const f = e.querySelector("[data-face]"); return { t: e.textContent.trim(), round: !!f && parseFloat(getComputedStyle(f).borderTopLeftRadius) >= 999, r: getComputedStyle(f || e).borderRadius, h: e.getBoundingClientRect().height, stroke: svg ? getComputedStyle(svg).stroke || svg.getAttribute("stroke") : null }; }));
       await shot("f-add-player");
-      /* since 18 November a key with a glyph is round (the founder: "round like the ones in the Lares app") */
-      check("(f) the four routes are the app's keys — round, the word under the face, 90 tall — the glyph in ink, no accent among them", routes.length === 4 && routes.every((x) => x.round && x.h >= 90 && x.stroke !== ACCENT && !/rgb\(47, 107, 58\)/.test(x.stroke || "")), JSON.stringify(routes));
+      /* since 18 November a key with a glyph two to a row is a tile — the glyph over the word, Lares's lists — where a circle floated in the cell */
+      check("(f) the four routes are the app's keys — tiles two to a row, 90 tall — the glyph in ink, no accent among them", routes.length === 4 && routes.every((x) => !x.round && x.h >= 90 && x.stroke !== ACCENT && !/rgb\(47, 107, 58\)/.test(x.stroke || "")), JSON.stringify(routes));
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
       await tap(page, '[data-tour="roster-tab"] [aria-label="Groups"], [data-tour="roster-tab"] button:has-text("Groups")', 700);

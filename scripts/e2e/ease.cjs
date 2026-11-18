@@ -93,11 +93,16 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       await tap(page, '[aria-label="Today"]', 900);
       const home = await rows(page, '[data-scroll="screen"]'); await shot("01-today");
       check("(a) the coach's home: every row — the day's lessons, the folded next day, the Actions rows, All lessons — sits on golf's wash with no edge, 8px corners", !!home && home.filter((r) => r.kind === "row").length >= 5 && home.filter((r) => r.kind === "row").every(soft), say(home));
-      const log = await tile(page, "Log"), add = await tile(page, "Add player");
-      check("(b) …while the board's tiles keep the sport's edge (the one filled in the accent, the rest outlined)", !!add && add.edge.endsWith(EDGE) && parseFloat(add.edge) >= 1 && !!log && log.bg !== NONE, JSON.stringify({ log, add }));
-      const g1 = await gap(page, 'button[aria-label="Add player"]', "Today");
+      /* since 18 November the home carries no board: the six verbs were every one on the plus already, and the founder asked for the duplicate gone */
+      const board = await page.locator('[data-tour="today-board"]').count();
+      await tap(page, '[data-tour="quick"]', 900);
+      const add = await tile(page, "Add player");
+      check("(b) the home has no board of actions — they live on the plus, whose tiles keep the sport's edge", board === 0 && !!add && add.edge.endsWith(EDGE) && parseFloat(add.edge) >= 1, JSON.stringify({ board, add }));
+      await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
+      await tap(page, '[aria-label="Today"]', 900);
+      const g1 = await gap(page, '[data-scroll="screen"] h1', "Today");
       const g2 = await gap(page, '[data-tour="today-nextday"]', "Actions");
-      check("(c) the home breathes: SPACE.section (40) from the board to Today's head and from the folded next day to Actions", g1 !== null && g1 >= 40 && g2 !== null && g2 >= 40, JSON.stringify({ boardToToday: g1, nextDayToActions: g2 }));
+      check("(c) the home breathes: SPACE.section (40) from the date to Today's head and from the folded next day to Actions", g1 !== null && g1 >= 40 && g2 !== null && g2 >= 40, JSON.stringify({ dateToToday: g1, nextDayToActions: g2 }));
       await tap(page, '[aria-label="Roster"]', 900);
       const ros = await rows(page, '[data-scroll="screen"]'); await shot("02-roster");
       const g3 = await page.evaluate(() => { const t = document.querySelector('[data-tour="roster-invite"]'), s = document.querySelector('[data-tour="roster-tab"]'); return t && s ? Math.round(s.getBoundingClientRect().top - t.getBoundingClientRect().bottom) : null; });

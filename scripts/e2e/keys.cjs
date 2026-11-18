@@ -1,15 +1,16 @@
-/* EVERY KEY STANDS ON A LIP (18 November). The founder asked for the
-   buttons, tiles and boxes "Duolingo style … that we have already done
-   with the Lares app", dramatic 3D, a press that looks like pushing a
-   physical button, saturated colour fills rather than white outlined
-   boxes, and less text in the bar. This walks it as the coach: the
-   board's one action on the accent's lip and the rest on the sport's
-   tint; a key going right down under a pointer and springing back; the
-   peek's Log, a row, the segmented thumb and the raised plus on their
-   lips; the tab bar as icons alone with their names kept for VoiceOver
-   and a capsule round the active icon; the log's Video · Photo · Voice
-   as icons alone; a text box ringed, and the ring the accent while
-   typed in.  Usage: node keys.cjs <distDir> <port> <outDir> */
+/* EVERY KEY STANDS ON A LIP, AND EVERY BOX ON A FOOT (18 November). The
+   founder asked for the buttons, tiles and boxes "Duolingo style … that we
+   have already done with the Lares app", a press that looks like pushing a
+   physical button and less text in the bar — then for it consistent: no
+   box left the old way, no small circle in a big page, not everything a
+   circle, and nothing on the home that the plus already holds. This walks
+   it as the coach: no board on the home; the plus's tiles white on the
+   edge and its lip, Call off red, Log a lesson across the top; a row on a
+   three-point foot that sinks under the finger; the peek's keys round,
+   three to a row, going right down and springing back; the tab bar as
+   icons alone with their names kept for VoiceOver; the segmented thumb on
+   its lip; a text box on the rows' foot; the log's Video · Photo · Voice
+   as icons alone.  Usage: node keys.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const M = require("./mock.cjs");
@@ -64,17 +65,41 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
     const shot = (n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
 
-    /* (a) the board: round keys (Lares's nodes) — the one action the accent on its lip, the rest a quiet tint on theirs, the word under the face */
-    const face = (label) => look(page, `button[data-round][aria-label="${label}"] [data-face]`);
-    const logT = await face("Log"), regT = await face("Register");
-    const regWord = await page.locator('button[data-round][aria-label="Register"]').first().innerText().catch(() => "");
-    await shot("a-board");
-    check("(a) the board's Log is a round key: the accent on a five-point lip", !!logT && logT.bg === ACCENT && lipOf(logT.shadow) === 5 && Math.abs(logT.w - logT.h) <= 1, JSON.stringify(logT));
-    check("(a) …and Register is round: white (no colour fill) with the sport's edge as its outline and its five-point lip, its word under it", !!regT && regT.bg === TINT && regT.border === "rgba(47, 107, 58, 0.72)" && lipOf(regT.shadow) === 5 && /rgba\(47, 107, 58, 0\.72\)/.test(regT.shadow) && Math.abs(regT.w - regT.h) <= 1 && regWord.trim() === "Register", JSON.stringify({ regT, regWord }));
+    /* (a) the home carries no board (18 November: every one of its six was on the plus already); the plus is
+       Log a lesson across the top, then the eight as tiles two to a row — white on the sport's edge and its lip,
+       the glyph over the word, Call off red on a deeper red */
+    const board = await page.locator('[data-tour="today-board"], [data-scroll="screen"] button[data-round]').count();
+    check("(a) the home carries no board of actions — they are the plus's", board === 0, String(board));
+    await tap(page, '[data-tour="quick"]', 900);
+    const reg = await look(page, '[data-tour="quick-attend"]'), off = await look(page, '[data-tour="quick-weather"]'), logBlock = await look(page, '[data-tour="quick-log"]');
+    const regTile = await page.locator('[data-tour="quick-attend"]').first().evaluate((el) => el.hasAttribute("data-tile") && !el.hasAttribute("data-round")).catch(() => false);
+    await shot("a-plus");
+    check("(a) Register on the plus is a tile: white (no colour fill), the sport's edge as its outline and its four-point lip", regTile && !!reg && reg.bg === TINT && reg.border === "rgba(47, 107, 58, 0.72)" && lipOf(reg.shadow) === 4 && /rgba\(47, 107, 58, 0\.72\)/.test(reg.shadow) && reg.w > reg.h, JSON.stringify(reg));
+    check("(a) …Call off the one red tile, on a deeper red", !!off && off.bg === "rgb(196, 52, 42)" && lipOf(off.shadow) === 4, JSON.stringify(off));
+    check("(a) …and Log a lesson the accent across the top, the glyph beside the word", !!logBlock && logBlock.bg === ACCENT && lipOf(logBlock.shadow) === 4 && logBlock.h >= 60 && logBlock.h < 70, JSON.stringify(logBlock));
+    await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
 
-    /* (b) the press: the face right down onto the paper at once, and back up on release */
+    /* (c) content stands on a foot: a row of a list on three points of the wash made deeper, and one that is a
+       button sinks onto it under the finger — Lares's tiles, so a list is the same family as its keys */
+    const row = await page.evaluate(() => { const b = [...document.querySelectorAll(".nsc-list > *")].find((x) => /Cian Murphy/.test(x.innerText)); return b ? getComputedStyle(b).boxShadow : null; });
+    check("(c) a row of the day stands on a three-point foot, not the sport's edge", lipOf(row) === 3 && !/47, 107, 58, 0\.72/.test(String(row)), String(row));
+    const arch = page.locator('[data-tour="today-archive"]').first();
+    let sink = null;
+    if (await arch.count()) {
+      await arch.scrollIntoViewIfNeeded(); const bb = await arch.boundingBox();
+      await page.mouse.move(bb.x + 30, bb.y + bb.height / 2); await page.mouse.down(); await page.waitForTimeout(60);
+      sink = await page.evaluate(() => { const el = document.querySelector('[data-tour="today-archive"]'); const cs = getComputedStyle(el); return { transform: cs.transform, shadow: cs.boxShadow }; });
+      await page.mouse.move(5, 5); await page.mouse.up(); await page.waitForTimeout(400);
+    }
+    check("(c) …and a row that is one button sinks two points onto it under the finger", !!sink && ty(sink.transform) === 2 && lipOf(sink.shadow) === 1, JSON.stringify(sink));
+    await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+
+    /* (b) the peek's six are round keys three to a row — the face sinks the whole five-point lip under the finger */
+    await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+    const peekKeys = await page.locator('[data-tour="peek-actions"] > button').evaluateAll((els) => els.map((e) => { const f = e.querySelector("[data-face]"); const r = f ? f.getBoundingClientRect() : null; return { round: e.hasAttribute("data-round"), w: r ? Math.round(r.width) : 0, top: Math.round(e.getBoundingClientRect().top), word: (e.innerText || "").trim() }; }));
+    check("(b) the peek's actions are round keys, 56 across, three to a row", peekKeys.length >= 5 && peekKeys.every((k) => k.round && k.w === 56) && new Set(peekKeys.map((k) => k.top)).size === 2, JSON.stringify(peekKeys));
     const pressed = await page.evaluate(() => {
-      const el = document.querySelector('button[data-round][aria-label="Register"]'); if (!el) return null;
+      const el = document.querySelector('[data-tour="peek-actions"] button[data-round]'); if (!el) return null;
       const f = el.querySelector("[data-face]");
       el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 7, pointerType: "touch" }));
       const cs = getComputedStyle(f); const down = { transform: cs.transform, shadow: cs.boxShadow };
@@ -83,10 +108,10 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     });
     check("(b) a round key goes right down under the finger — the whole five-point lip — with nothing eased in", !!pressed && ty(pressed.down.transform) === 5 && lipOf(pressed.down.shadow) === 0, JSON.stringify(pressed));
     check("(b) …and comes back up on release", !!pressed && pressed.upTransform === "none" && /0px 5px 0px/.test(pressed.upShadow), JSON.stringify(pressed));
-
-    /* (c) content is not a key: a row of a list carries no lip */
-    const row = await page.evaluate(() => { const b = [...document.querySelectorAll(".nsc-list > *")].find((x) => /Cian Murphy/.test(x.innerText)); return b ? getComputedStyle(b).boxShadow : null; });
-    check("(c) a row of the day is flat on the wash — only what is pressed stands on a lip", row === "none", String(row));
+    const peekLog = await look(page, '[data-tour="peek-log"]');
+    await shot("b-peek");
+    check("(e) the peek's Log is the accent on a five-point lip, 50 drawn", !!peekLog && peekLog.bg === ACCENT && lipOf(peekLog.shadow) === 5 && peekLog.h >= 50, JSON.stringify(peekLog));
+    await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
 
     /* (d) the tab bar: the icons alone, their names kept, a capsule round the one you are on, the plus a key */
     const tabs = await page.locator('[data-tour="tabbar"] button[data-tour^="tab-"]').evaluateAll((els) => els.map((e) => ({ text: (e.innerText || "").replace(/\d+/g, "").trim(), label: e.getAttribute("aria-label") })));
@@ -97,30 +122,23 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     check("(d) the highlight is a capsule round the icon (50 × 38), not a lozenge filling the cell", !!pill && pill.w === 50 && pill.h === 38, JSON.stringify(pill));
     check("(d) the raised plus is the big plus on the bar's swell, as it always was — no box of its own", !plus && (await page.locator('[data-tour="quick"] svg').count()) === 1 && (await page.locator('[data-tour="quick"] span').first().evaluate((el) => getComputedStyle(el).backgroundColor)) === "rgba(0, 0, 0, 0)", JSON.stringify(plus));
 
-    /* (e) the peek's Log is the Button on its lip */
-    await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
-    const peekLog = await look(page, '[data-tour="peek-log"]');
-    await shot("e-peek");
-    check("(e) the peek's Log is the accent on a five-point lip, 50 drawn", !!peekLog && peekLog.bg === ACCENT && lipOf(peekLog.shadow) === 5 && peekLog.h >= 50, JSON.stringify(peekLog));
-    await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
-
     /* (f) the segmented thumb stands on a lip */
     await tap(page, '[aria-label="Diary"]', 1000);
     const thumb = await page.locator('[data-tour="cal-view"] span[data-lip]').first().evaluate((el) => getComputedStyle(el).boxShadow).catch(() => null);
     check("(f) the segmented control's thumb stands on a two-point lip", lipOf(thumb) === 2, String(thumb));
 
-    /* (g) a text box: ringed, the ring the accent while typed in */
+    /* (g) a text box: on the soft foot of a row */
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
     await tap(page, '[aria-label="Your profile"]', 900);
     const field = page.locator('input[aria-label="Search settings"]').first();
     const ring0 = (await field.count()) ? await field.evaluate((el) => getComputedStyle(el.parentElement).boxShadow) : null;
     if (await field.count()) { await field.focus(); await page.waitForTimeout(300); }
     const ring1 = (await field.count()) ? await field.evaluate((el) => getComputedStyle(el.parentElement).boxShadow) : null;
-    check("(g) a text box is not a key: no lip, as it was, typed in or not", lipOf(ring0) === 0 && lipOf(ring1) === 0, `${ring0} → ${ring1}`);
+    check("(g) a text box stands on the rows' three-point foot, typed in or not — a box like every other", lipOf(ring0) === 3 && lipOf(ring1) === 3, `${ring0} → ${ring1}`);
 
     /* (h) the log's Video · Photo · Voice: the icon alone, the word their name */
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
-    await tap(page, 'button[data-round][aria-label="Log"]', 1000);
+    await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 1000);
     const who = page.locator("button", { hasText: "Cian" }).first();
     if (await who.count()) { await who.click(); await page.waitForTimeout(1000); }
     const media = await page.locator('button[aria-label="Video"], button[aria-label="Photo"], button[aria-label="Voice note"]').evaluateAll((els) => els.map((e) => ({ label: e.getAttribute("aria-label"), text: (e.innerText || "").replace(/\d+/g, "").trim(), svg: !!e.querySelector("svg") })));
