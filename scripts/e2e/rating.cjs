@@ -65,7 +65,7 @@ const { check, results, summary } = M.checker("rating");
       check("(d) the player is told, by the coach's first name, and the tap lands on the lesson", !!n && n.title === "Niamh asked for a rating" && n.body === "Chipping" && n.data.screen === "lesson" && n.data.id === lesson.id, JSON.stringify(n));
       await page.waitForTimeout(1800);
       const t1 = M.norm(await text());
-      check("(e) once asked, with nothing else to offer, the burst clears itself and the coach is on Today", (await burst(page).count()) === 0 && /Today/.test(t1), t1.slice(0, 120));
+      check("(e) once asked, with nothing else to offer, the burst clears itself and the coach is on Today", (await burst(page).count()) === 0 && (await page.locator('[aria-current="page"][aria-label="Today"]').count()) === 1, t1.slice(0, 120));
       await ctx.close();
     }
     /* ---------- the player is asked ---------- */
