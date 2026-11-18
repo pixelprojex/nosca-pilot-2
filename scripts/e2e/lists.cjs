@@ -208,7 +208,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await shot("s-hours-days");
       check("(s) guard: the hours' seven days are one Card on golf's edge, the days as rows inside on the 1px hairline", !!daysC && daysC.n === 7 && daysC.edge === EDGE.golf && parseFloat(daysC.w) >= 1 && daysC.inner.every((x) => x === `1px ${HAIRLINE.golf}`), JSON.stringify(daysC));
       /* since 18 November an outlined control is a key: the sport's tint on its lip (no outline), still at the Card's corner */
-      check("(s2) Slots and lesson length is a key of the family — golf's tint on a lip, not white — at the Card's corner", !!disc && disc.bg !== "rgb(255, 255, 255)" && /0px 4px 0px/.test(disc.sh) && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
+      check("(s2) Slots and lesson length is a key of the family — on a lip with a fine ring, no outline in the edge — at the Card's corner", !!disc && /0px 4px 0px/.test(disc.sh) && /inset/.test(disc.sh) && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
       await page.locator(`${SCREEN} button`, { hasText: /Slots and lesson length/ }).first().click(); await page.waitForTimeout(500);
       await page.locator('[aria-label="Add a time"]').first().click(); await page.waitForTimeout(500);
       const addR = await page.locator('[data-tour="avail-add"] button').evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).borderRadius)));

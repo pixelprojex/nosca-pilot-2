@@ -26,7 +26,8 @@ const ACCENT = "rgb(47, 107, 58)";   // golf's #2F6B3A
 const hslOf = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; if (!d) return [0, 0, l]; const s = d / (1 - Math.abs(2 * l - 1)); const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, s, l]; };
 const rgbOfHsl = (h, s, l) => { const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2; const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]; return `rgb(${[r, g, b].map((v) => Math.round((v + m) * 255)).join(", ")})`; };
 const tintOf = (hex, l, k = 1) => { const [h, s] = hslOf(hex); return rgbOfHsl(h, Math.min(0.3, s * 0.65 + 0.06) * k, l); };
-const TINT = tintOf("#2F6B3A", 0.915);
+const TINT = "rgb(255, 255, 255)";   // the second kind is the paper's white on a soft grey lip — neutral, never a tint (18 Nov)
+void tintOf;
 
 function freshDb() {
   const db = M.emptyDb();
@@ -69,7 +70,7 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     const regWord = await page.locator('button[data-round][aria-label="Register"]').first().innerText().catch(() => "");
     await shot("a-board");
     check("(a) the board's Log is a round key: the accent on a five-point lip", !!logT && logT.bg === ACCENT && lipOf(logT.shadow) === 5 && Math.abs(logT.w - logT.h) <= 1, JSON.stringify(logT));
-    check("(a) …and Register is round, the sport's quiet tint on its own lip, its word under it (never white with an outline)", !!regT && regT.bg === TINT && lipOf(regT.shadow) === 5 && Math.abs(regT.w - regT.h) <= 1 && regWord.trim() === "Register", JSON.stringify({ regT, regWord }));
+    check("(a) …and Register is round: white on a soft grey lip with a fine ring of it (no colour fill, no outline in the sport's edge), its word under it", !!regT && regT.bg === TINT && lipOf(regT.shadow) === 5 && /inset/.test(regT.shadow) && !/47, 107, 58/.test(regT.shadow) && Math.abs(regT.w - regT.h) <= 1 && regWord.trim() === "Register", JSON.stringify({ regT, regWord }));
 
     /* (b) the press: the face right down onto the paper at once, and back up on release */
     const pressed = await page.evaluate(() => {

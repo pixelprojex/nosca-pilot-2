@@ -196,13 +196,21 @@ seeded data and no account.
     its name for VoiceOver). A key that is a word (a focus area, Drills,
     Tip, a time, `Choice`) stays a rounded rectangle on a four-point lip,
     as Lares's word answers do; `Button` is 50 on a five-point lip.
-  - **The colours**: the one action the accent on `LIP(accent)`, red on
-    `LIP(DANGER)`, a chosen key the ink, and every other key `TINT(t)` —
-    a quiet tint of the sport's hue, Lares's stone in the sport's colour —
-    on `TINT_LIP(t)` with a fine ring of it. The outlined controls carry
-    `n-key` (the tint and its lip where the outline was unconditional;
+  - **The colours are restrained, never a colouring book.** The one
+    action is the accent on `LIP(accent)` (a third deeper); Call off is
+    red on `LIP(DANGER)`; a chosen key is the ink. Every other key is
+    neutral, as Lares's stone and Duolingo's second button are:
+    `TINT(t)` is the paper's white on `TINT_LIP(t)` (the ink at 15% over
+    white, a soft grey) with a fine ring of it, the glyph in the sport's
+    `mark`. A fill of the sport's colour on the second kind — a mint on
+    tennis — was tried for a morning and the founder called it "a
+    children's colouring book — not classy at all"; do not tint them.
+    Red keys (`dangerQuiet`, the peek's Call off · Cancel) are white too,
+    the red in the word and the glyph. The outlined controls carry `n-key`
+    (white on the grey lip where the outline was unconditional;
     `--key-lip` where a chosen face has its own, as the register's
-    Present · Absent). `SportGrid` keys each sport in its own tint.
+    Present · Absent). `SportGrid` keeps each sport on its own wash, on a
+    lip of its mark.
   - **The tab bar is the icon alone** (23px, the word its `aria-label`),
     the highlight a 50 × 38 capsule round it on a faint lip; **the raised
     plus is the big plus on the bar's swell, exactly as it was**, level

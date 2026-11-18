@@ -452,29 +452,16 @@ export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : MIX(
    might look better"). Lares's stone, in each sport's colour: golf's a
    pale grass on a deeper grass, tennis' a pale court teal. The one
    action keeps the sport's full colour; a chosen key is the ink. */
-/* made from the colour's hue, not mixed with white: a muted green mixed
-   with white goes grey, so the tint keeps the sport's hue at a fresher
-   saturation and a high lightness, and its lip the same hue deeper */
-const hslOf = (hex) => {
-  const [r, g, b] = rgbOf(hex).map((v) => v / 255);
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
-  if (!d) return [0, 0, l];
-  const s = d / (1 - Math.abs(2 * l - 1));
-  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
-  return [(h * 60 + 360) % 360, s, l];
-};
-const hexOfHsl = (h, s, l) => {
-  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
-  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-  return "#" + [r, g, b].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");
-};
-/* calm, as Lares's stone is: the saturated colour is kept for the one
-   action, and the second kind is a quiet tint of the sport on a deeper
-   one (the first pass was a mint the founder found busy) */
-export const tintOf = (c, l = 0.915, k = 1) => { const [h, s] = hslOf(c); return hexOfHsl(h, Math.min(0.3, s * 0.65 + 0.06) * k, l); };
-export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.28) : tintOf(t.accent, 0.915));
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : tintOf(t.accent, 0.78, 0.9));
-export const TINT_RED = MIX("#FFFFFF", "#C4342A", 0.12), TINT_RED_LIP = MIX("#FFFFFF", "#C4342A", 0.36);   // DANGER, a pale and a deeper red
+/* NEUTRAL, NEVER A TINT. The first pass filled every second key with a
+   pale of the sport's colour; on tennis it was a mint the founder called
+   "a children's colouring book — not classy at all". Lares's second
+   button is stone, a neutral; Duolingo's is white on a grey ledge. So the
+   second kind is the paper's white on a soft grey lip (the ink at a
+   seventh over white, so it leans to the sport's ink, never to a
+   colour), and the sport's colour is kept for the one action and the
+   glyphs. */
+export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : "#FFFFFF");
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : MIX("#FFFFFF", t.ink, 0.15));
 /* dramatic, at the founder's word ("don't be afraid of dramatic kind
    of 3D effects"): six points of lip under a button or a tile, and the
    press takes five of them, so a key goes right down like a real one */
@@ -3586,12 +3573,12 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           <button key={lbl} data-tour={tour} onClick={() => { haptic(7); soft(); act && act(); }}
                   /* Duolingo's round keys: the disc stands on a lip of its
                      own tone and sinks onto it under the finger */
-                  onPointerDown={(e) => { const d = e.currentTarget.firstChild; if (d) { d.style.transitionDuration = "0ms"; d.style.transform = "translateY(2px)"; d.style.boxShadow = `0 1px 0 ${tone ? TINT_RED_LIP : TINT_LIP(t)}`; } }}
-                  onPointerUp={(e) => { const d = e.currentTarget.firstChild; if (d) { d.style.transitionDuration = "140ms"; d.style.transform = "none"; d.style.boxShadow = `0 3px 0 ${tone ? TINT_RED_LIP : TINT_LIP(t)}`; } }}
-                  onPointerLeave={(e) => { const d = e.currentTarget.firstChild; if (d) { d.style.transitionDuration = "140ms"; d.style.transform = "none"; d.style.boxShadow = `0 3px 0 ${tone ? TINT_RED_LIP : TINT_LIP(t)}`; } }}
+                  onPointerDown={(e) => { const d = e.currentTarget.firstChild; if (d) { d.style.transitionDuration = "0ms"; d.style.transform = "translateY(2px)"; d.style.boxShadow = `0 1px 0 ${TINT_LIP(t)}, inset 0 0 0 1px ${TINT_LIP(t)}`; } }}
+                  onPointerUp={(e) => { const d = e.currentTarget.firstChild; if (d) { d.style.transitionDuration = "140ms"; d.style.transform = "none"; d.style.boxShadow = `0 3px 0 ${TINT_LIP(t)}, inset 0 0 0 1px ${TINT_LIP(t)}`; } }}
+                  onPointerLeave={(e) => { const d = e.currentTarget.firstChild; if (d) { d.style.transitionDuration = "140ms"; d.style.transform = "none"; d.style.boxShadow = `0 3px 0 ${TINT_LIP(t)}, inset 0 0 0 1px ${TINT_LIP(t)}`; } }}
                   className="flex flex-col items-center gap-1.5 py-1">
             <span className="rounded-full flex items-center justify-center" data-lip=""
-                  style={{ width: 40, height: 40, background: tone ? TINT_RED : TINT(t), boxShadow: `0 3px 0 ${tone ? TINT_RED_LIP : TINT_LIP(t)}`,
+                  style={{ width: 40, height: 40, background: TINT(t), boxShadow: `0 3px 0 ${TINT_LIP(t)}, inset 0 0 0 1px ${TINT_LIP(t)}`,
                            transition: "transform 140ms ease-out, box-shadow 140ms ease-out" }}>
               <Ico size={16} color={tone || t.sub} strokeWidth={1.6} />
             </span>
@@ -8449,7 +8436,7 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
     ink:    { background: t.ink, color: "#fff", border: "none", lip: MIX(t.ink, "#000000", 0.55) },
     quiet:  { background: TINT(t), color: t.ink, border: "none", lip: TINT_LIP(t) },
     danger: { background: DANGER, color: "#fff", border: "none", lip: LIP(DANGER) },
-    dangerQuiet: { background: TINT_RED, color: DANGER, border: "none", lip: TINT_RED_LIP },
+    dangerQuiet: { background: TINT(t), color: DANGER, border: "none", lip: TINT_LIP(t) },
   }[tone];
   const { lip, ...face } = looks;
   /* the tinted kinds carry a fine ring of their own lip round the face, as
@@ -8760,13 +8747,13 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
              round and the founder asked why there were two. */
           /* each a key in its own sport's colour: the sport's tint on a
              deeper tint, the sport's full colour once chosen */
-          const lc = on ? LIP(th.mark) : MIX("#FFFFFF", th.mark, 0.46);
+          const lc = on ? LIP(th.mark) : MIX(th.wash, th.mark, 0.22);
           const p = press3d(lc, LIP_H, LIP_PRESS, on ? "" : `inset 0 0 0 1px ${lc}`);
           return (
             <button key={id} data-lip="" aria-label={add ? `${tr("Add")} ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
                     {...p.handlers}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : MIX("#FFFFFF", th.mark, 0.18), boxShadow: p.rest,
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : th.wash, boxShadow: p.rest,
                              border: `${EDGE_W}px solid transparent`, willChange: "transform",
                              transition: `background ${MOTION.settle}ms, transform 240ms cubic-bezier(.3,1.6,.5,1), box-shadow 240ms cubic-bezier(.3,1.6,.5,1)` }}>
               {add
@@ -13890,7 +13877,8 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
     /* "2 players · 0 groups" counted something that is not there. A meta
        line carries values, and nought is not one. */
     <Screen title={L.roster} right={right}
-            meta={[`${all.length} ${nouns}`, groups.length ? `${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}` : null].filter(Boolean).join(" · ")}>
+            /* "1 player", never "1 players" — the one countOf */
+            meta={[countOf(all.length, nouns), groups.length ? `${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}` : null].filter(Boolean).join(" · ")}>
       <div className="px-6" style={{ marginBottom: SPACE.section }}>
         <TileGrid cols={2}>
           <ActTile tour="roster-invite" tone="accent" Icon={UserPlus} label={tr("Add player")} onTap={() => sheet("import")} />
