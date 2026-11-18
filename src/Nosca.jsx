@@ -16,13 +16,8 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
    are there. */
 export const LIST_CSS = `    .nsc-list { border: none !important; }
     .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
-                    margin-bottom: 13px; padding-left: 14px !important; padding-right: 14px !important;
-                    box-shadow: 0 4px 0 var(--lip); transition: transform .24s cubic-bezier(.3,1.6,.5,1), box-shadow .24s cubic-bezier(.3,1.6,.5,1); }
-    .nsc-list > *:last-child { margin-bottom: 4px; }
-    /* every row stands on a three-point lip of the wash made deeper, and a
-       row you can press sinks onto it (18 November: Lares's Duolingo
-       family, in the sport's own colours) */
-    .nsc-list > button:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--lip); transition: none; }
+                    margin-bottom: 10px; padding-left: 14px !important; padding-right: 14px !important; }
+    .nsc-list > *:last-child { margin-bottom: 0; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
     .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
@@ -473,24 +468,22 @@ const hexOfHsl = (h, s, l) => {
   const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
   return "#" + [r, g, b].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");
 };
-export const tintOf = (c, l = 0.89, k = 1) => { const [h, s] = hslOf(c); return hexOfHsl(h, Math.min(0.46, s * 1.1 + 0.06) * k, l); };
-export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.28) : tintOf(t.accent, 0.89));
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : tintOf(t.accent, 0.68, 0.8));
+/* calm, as Lares's stone is: the saturated colour is kept for the one
+   action, and the second kind is a quiet tint of the sport on a deeper
+   one (the first pass was a mint the founder found busy) */
+export const tintOf = (c, l = 0.915, k = 1) => { const [h, s] = hslOf(c); return hexOfHsl(h, Math.min(0.3, s * 0.65 + 0.06) * k, l); };
+export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.28) : tintOf(t.accent, 0.915));
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : tintOf(t.accent, 0.78, 0.9));
 export const TINT_RED = MIX("#FFFFFF", "#C4342A", 0.12), TINT_RED_LIP = MIX("#FFFFFF", "#C4342A", 0.36);   // DANGER, a pale and a deeper red
 /* dramatic, at the founder's word ("don't be afraid of dramatic kind
    of 3D effects"): six points of lip under a button or a tile, and the
    press takes five of them, so a key goes right down like a real one */
-export const LIP_H = 6, LIP_PRESS = 5;
+export const LIP_H = 5, LIP_PRESS = 4;
 export const lipOf = (c, h = LIP_H) => `0 ${h}px 0 ${c}`;
 /* the press, written straight to the node (no React render under the
    thumb): down sinks the face onto its lip at once, with nothing eased;
    up it springs back, a touch past and home, the way a key returns */
 const SPRING = "cubic-bezier(.3,1.6,.5,1)";
-/* A TEXT BOX is not a key: no lip, so it never reads as something to
-   press. Lares's field: a fill with a fine ring of the tint's deeper
-   tone, which thickens to the sport's colour while it is being typed in
-   (red on an error) */
-export const fieldRing = (t, focused, bad) => (bad ? `inset 0 0 0 2px #C4342A` : focused ? `inset 0 0 0 2px ${t.accent}` : `inset 0 0 0 1.5px ${TINT_LIP(t)}`);
 export const press3d = (c, h = LIP_H, by = h - 1, extra = "") => {
   const rest = `${lipOf(c, h)}${extra ? `, ${extra}` : ""}`, down = `${lipOf(c, h - by)}${extra ? `, ${extra}` : ""}`;
   const d = (e) => { const el = e.currentTarget; if (el.disabled) return; el.style.transition = "none"; el.style.transform = `translateY(${by}px)`; el.style.boxShadow = down; };
@@ -2042,7 +2035,7 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; box-shadow: 0 3px 0 var(--edge); }
+${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
@@ -4672,9 +4665,10 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
     <>
       {/* the log first and full width; then the eight, two to a row,
           in the order the coach keeps — Call off among them, in red */}
-      <ActTile tour="quick-log" tone="accent" h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-      <div style={{ marginTop: 12 + LIP_H }}>
-        <TileGrid cols={2}>
+      <ActTile tour="quick-log" tone="accent" block h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
+      {/* the eight as round keys, four across as Lares's row of nodes is */}
+      <div style={{ marginTop: SPACE.block + 4 }}>
+        <TileGrid cols={4}>
           {ids.map((id, i) => {
             const A = COACH_ACTIONS[id];
             return (
@@ -7072,9 +7066,8 @@ const PREF_DEFAULTS = {
 function Tile({ children, onPress, accent, className = "", style = {}, delay = 0, tour }) {
   const t = useT();
   const Comp = onPress ? "button" : "div";
-  /* a card on its foot (Lares's .tile): the sport's edge, deeper under
-     it; a pressable one sinks onto it */
-  const p = press3d(accent ? `${accent}55` : EDGE(t), 3, 2);
+  /* content, not a key: no lip; a pressable one dips a point under the finger */
+  const p = { rest: "none", handlers: { onPointerDown: (e) => { e.currentTarget.style.transform = "translateY(1px)"; }, onPointerUp: (e) => { e.currentTarget.style.transform = "none"; }, onPointerLeave: (e) => { e.currentTarget.style.transform = "none"; } } };
   return (
     <Comp data-tour={tour} onClick={onPress ? () => { haptic(7); soft(); onPress(); } : undefined}
           {...(onPress ? p.handlers : {})}
@@ -7712,7 +7705,9 @@ const BAR_H = 62, BULGE = 13, HALF = BAR_H / 2;
    not a cell-wide lozenge. */
 const TAB_ICON = 23, TAB_ICON_TIGHT = 21;
 const PILL_W = 50, PILL_H = 38;
-const RAISED_OFFSET = 0;   // the icons sit on the bar's centre now, and the plus with them
+/* the icons sit on the bar's centre now, so the plus — the big plus on
+   the bar's swell, as it always was — sits level with them there */
+const RAISED_OFFSET = 0;
 const barPath = (w, raised) => {
   const cx = w / 2, top = BULGE, bot = BULGE + BAR_H;
   if (!raised) {
@@ -7956,19 +7951,13 @@ const TabBar = React.memo(function TabBar({ tabs, activeIdx, theme, dark, solid,
                       onClick={() => { if (S.current.suppress || S.current.vertical || S.current.cancelled) return; haptic(12); soft(); onSelect(tb.id); }}
                       className="flex-1 flex items-center justify-center"
                       style={{ height: BAR_H, position: "relative", zIndex: 2, background: "transparent", touchAction: "none" }}>
-                {/* THE RAISED PLUS, ON ITS LIP. Still raised out of the
-                    bar's swell; now a key of the button family — the
-                    sport's colour on its own colour made deeper, the +
-                    in white — which sinks under the thumb like every
-                    other button. */}
-                <span data-lip="" className="relative flex items-center justify-center"
-                      onPointerDown={(e) => { e.currentTarget.style.transitionDuration = "0ms"; e.currentTarget.style.transform = "translateY(3px)"; e.currentTarget.style.boxShadow = lipOf(LIP(theme.accent), 1); }}
-                      onPointerUp={(e) => { e.currentTarget.style.transitionDuration = "160ms"; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = lipOf(LIP(theme.accent), 4); }}
-                      onPointerLeave={(e) => { e.currentTarget.style.transitionDuration = "160ms"; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = lipOf(LIP(theme.accent), 4); }}
-                      style={{ width: 50, height: 46, marginTop: RAISED_OFFSET - 4, borderRadius: 16, background: theme.accent,
-                               boxShadow: lipOf(LIP(theme.accent), 4),
-                               transition: "transform 160ms ease-out, box-shadow 160ms ease-out", willChange: "transform" }}>
-                  <Plus size={27} color={theme.onAccent || "#fff"} strokeWidth={2.6} />
+                <span className="relative flex items-center justify-center"
+                      style={{ width: 56, height: 56, marginTop: RAISED_OFFSET,
+                               /* level with the other tabs' icons, derived from
+                                  their own metrics rather than hand-tuned */
+                               transition: "transform 220ms cubic-bezier(.34,1.56,.64,1)",
+                               transform: on ? "scale(0.9)" : "scale(1)", willChange: "transform" }}>
+                  <Plus size={32} color={theme.ink} strokeWidth={2.4} />
                 </span>
               </button>
             );
@@ -8285,10 +8274,8 @@ function useDictation(onText, onNotice) {
 function SearchField({ value, onChange, placeholder, tour, onEnter, className = "", mic = true }) {
   const t = useT();
   const ph = placeholder || tr("Search");
-  const [focus, setFocus] = useState(false);
   return (
-    <div data-tour={tour} className={`flex items-center gap-2.5 px-4 ${className}`} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-         style={{ minHeight: 46, borderRadius: R.pill, background: t.wash, boxShadow: fieldRing(t, focus), transition: "box-shadow 160ms" }}>
+    <div data-tour={tour} className={`flex items-center gap-2.5 px-4 ${className}`} style={{ minHeight: 46, borderRadius: R.pill, background: t.wash }}>
       <Search size={15} color={t.trace || t.faint} />
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph} aria-label={ph} enterKeyHint="search"
              onKeyDown={onEnter ? (e) => { if (e.key === "Enter") { e.preventDefault(); onEnter(); } } : undefined}
@@ -8320,10 +8307,8 @@ function MicBtn({ onText, size = 34, tint, onNotice }) {
 /* A single-line input with dictation built in. */
 function VoiceInput({ value, onChange, ph, style, autoFocus }) {
   const t = useT();
-  const [focus, setFocus] = useState(false);
   return (
-    <div className="flex items-center gap-2 rounded-2xl px-4" onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-         style={{ minHeight: 54, background: t.wash, boxShadow: fieldRing(t, focus), transition: "box-shadow 160ms", ...style }}>
+    <div className="flex items-center gap-2 rounded-2xl px-4" style={{ minHeight: 54, background: t.wash, ...style }}>
       <input value={value} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} placeholder={ph}
              className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
       <MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} />
@@ -8338,10 +8323,8 @@ function VoiceArea({ value, onChange, ph, rows = 3, max = 0 }) {
      own slice is a backstop, never the only word: a note cut there would
      reach the coach short while the toast said Asked */
   const cap = (s) => (max ? String(s).slice(0, max) : s);
-  const [focus, setFocus] = useState(false);
   return (
-    <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-         style={{ background: t.wash, boxShadow: fieldRing(t, focus), transition: "box-shadow 160ms" }}>
+    <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, border: `1px solid ${HAIR(t.ink, 0.14)}` }}>
       <textarea value={value} onChange={(e) => onChange(cap(e.target.value))} rows={rows} placeholder={ph} maxLength={max || undefined}
                 className="flex-1 min-w-0 outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
       <div className="pb-2"><MicBtn onText={(txt) => onChange(cap(value ? value + " " + txt : txt))} /></div>
@@ -8441,8 +8424,7 @@ const Rail = ({ children, tone, style = {} }) => {
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
-  /* a card stands on a foot of its own edge, three points deep (Lares's .tile) */
-  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, boxShadow: lipOf(EDGE(t), 3),
+  return (<div data-tour={tour} className={className} style={{ background: t.surface, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`,
                   animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`, ...style }}>{children}</div>);
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
@@ -8534,47 +8516,77 @@ export const sink = (t, restShadow) => {
 };
 
 /* `iconOnly`: where the glyph says it all (the log's Video · Photo ·
-   Voice), the word goes and stays as the tile's name for VoiceOver */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false }) {
+   Voice), the word goes and stays as the tile's name for VoiceOver.
+   `block`: the one full-width key with a glyph (the plus sheet's Log a
+   lesson) keeps its block. */
+/* A KEY WITH A GLYPH IS ROUND (18 November, the founder: "some of the
+   square buttons, can we make them round like the ones in the Lares
+   app, which work really well"). Lares's practice nodes: a round face
+   standing on a five-point lip, the glyph in the middle, one word under
+   it in plain case, and no box round any of it — the board, the plus
+   sheet, the roster's two, the routes, the log's Video · Photo · Voice.
+   A key that is a word (a focus area, Drills, Tip) stays a rounded
+   rectangle, as Lares's word answers do. The one action is the sport's
+   colour, Call off red, a chosen key the ink, the rest a quiet tint of
+   the sport on a deeper tint. */
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false }) {
   const t = useT();
-  const cluster = useContext(ClusterCtx);
-  /* The quiet tile is the SURFACE — white with the sport's edge — so
-     the thing you can touch is the brightest thing on the screen. In a
-     cluster (see TileGrid) it is the wash with no rim instead. */
-  /* the tile is a key of the button family: the one action the sport's
-     full colour, red for Call off, a chosen tile the ink, and every other
-     tile a saturated tint of the sport on a deeper tint — the board, the
-     plus, the log's areas alike (it was white with an outline, and the
-     wash in a cluster) */
   const quietTile = tone !== "accent" && tone !== "danger" && !on;
   const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : TINT(t);
   const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? "#fff" : t.ink;
   const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-  const p = press3d(lipC, LIP_H, LIP_PRESS, quietTile ? `inset 0 0 0 1px ${lipC}` : "");
-  void cluster;   // a cluster no longer changes the face: every quiet tile is the tint
+  const ring = quietTile ? `inset 0 0 0 1px ${lipC}` : "";
+  const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
+  const badge = count > 0 ? (
+    <span className="absolute flex items-center justify-center rounded-full"
+          style={{ top: Icon && !block ? -3 : 9, right: Icon && !block ? -3 : 9, minWidth: 20, height: 20, padding: "0 5px", background: on ? "#fff" : t.ink,
+                   boxShadow: Icon && !block ? `0 0 0 2px ${t.page}` : "none", fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
+  ) : dot ? <span className="absolute rounded-full" style={{ top: Icon && !block ? 2 : 12, right: Icon && !block ? 2 : 12, width: 8, height: 8, background: on ? "#fff" : t.accent, boxShadow: `0 0 0 2px ${t.page}` }} /> : null;
+
+  if (Icon && !block) {
+    /* the face sinks the whole lip onto the paper, as Lares's node does */
+    const f = h >= 90 ? 64 : 58, lip = 5;
+    const rest = `${lipOf(lipC, lip)}${ring ? `, ${ring}` : ""}`, down = `${lipOf(lipC, 0)}${ring ? `, ${ring}` : ""}`;
+    const face = (e) => e.currentTarget.querySelector("[data-face]");
+    const dn = (e) => { const el = face(e); if (!el) return; el.style.transition = "none"; el.style.transform = `translateY(${lip}px)`; el.style.boxShadow = down; };
+    const up = (e) => { const el = face(e); if (!el) return; el.style.transition = "transform 240ms cubic-bezier(.3,1.6,.5,1), box-shadow 240ms cubic-bezier(.3,1.6,.5,1)"; el.style.transform = "none"; el.style.boxShadow = rest; };
+    return (
+      <button data-tour={tour} data-round="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
+              onPointerDown={dn} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}
+              className="relative w-full flex flex-col items-center"
+              style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
+        <span data-face="" data-lip="" className="relative flex items-center justify-center rounded-full"
+              style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest, willChange: "transform",
+                       transition: `background ${MOTION.settle}ms` }}>
+          <Icon size={f >= 64 ? 25 : 23} color={quietTile ? (t.mark || fg) : fg} strokeWidth={quietTile ? 1.9 : 2} />
+          {badge}
+        </span>
+        {!iconOnly && (
+          <span className={wrap ? "px-0.5 text-center" : "max-w-full truncate px-0.5"}
+                style={{ marginTop: lip, fontFamily: ui, fontSize: 12.5, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.005em",
+                         color: tone === "danger" ? DANGER : tone === "accent" ? t.ink : t.sub }}>{label}</span>
+        )}
+      </button>
+    );
+  }
+
+  const p = press3d(lipC, 4, 3, ring);
   return (
     <button data-tour={tour} data-lip="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
             {...p.handlers}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest, willChange: "transform",
-                     border: `${EDGE_W}px solid transparent`,
-                     animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`,
+                     border: `${EDGE_W}px solid transparent`, animation: enter,
                      transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
           icon is a decoration that has to be invented, and invented
           glyphs are exactly what makes an app look generated. Pass no
           Icon and the label centres on its own. */}
-      {Icon && <Icon size={iconOnly ? (h >= 68 ? 28 : 24) : h >= 90 ? 23 : h >= 68 ? 21 : 18} color={quietTile ? (t.mark || fg) : fg} strokeWidth={quietTile ? 1.9 : 1.7} />}
-      {/* four to a row, a word like Competition needs two lines rather than an ellipsis */}
-      {!(iconOnly && Icon) && <span className={Icon && !wrap ? "truncate px-2" : wrap ? "px-1 text-center" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: Icon ? 12.5 : 13.5, fontWeight: 650, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>}
-      {count > 0 && (
-        <span className="absolute flex items-center justify-center rounded-full"
-              style={{ top: 9, right: 9, minWidth: 20, height: 20, padding: "0 5px", background: on ? "#fff" : t.ink,
-                       fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
-      )}
-      {dot && !count && <span className="absolute rounded-full" style={{ top: 12, right: 12, width: 7, height: 7, background: on ? "#fff" : t.accent }} />}
+      {Icon && <Icon size={h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={1.7} />}
+      <span className={Icon && !wrap ? "truncate px-2" : wrap ? "px-1 text-center" : "px-2 text-center"}
+            style={{ fontFamily: ui, fontSize: Icon ? 12.5 : 13.5, fontWeight: 650, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
+      {badge}
     </button>
   );
 }
@@ -9126,12 +9138,8 @@ export function Field({ label, value, onChange, ph, type = "text", Icon, autoFoc
   const [shown, setShown] = useState(false);
   const bad = !!error;
   const inputType = reveal && shown ? "text" : type;
-  const [focus, setFocus] = useState(false);
   return (
-    /* a box with its ring, as every text box is now — it was a line under
-       the words */
-    <div onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-         style={{ borderRadius: 14, background: t.wash, padding: "10px 14px", marginBottom: 10, boxShadow: fieldRing(t, focus, bad), transition: "box-shadow 160ms" }}>
+    <div style={{ borderBottom: `1px solid ${bad ? DANGER : t.hair}`, paddingTop: 16, paddingBottom: 14 }}>
       <div className="flex items-center gap-3.5">
         {Icon && <Icon size={17} color={bad ? DANGER : t.faint} strokeWidth={1.6} />}
         <span className="flex-1">

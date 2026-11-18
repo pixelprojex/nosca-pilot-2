@@ -170,52 +170,48 @@ seeded data and no account.
   change them together. Contrast: paper on it 11:1, white 12:1. The
   `theme-color` meta in index.html and the manifest's `theme_color` are
   NOT the brand: they are the paper (see below).
-- **Every key stands on a lip, and goes right down under the finger
+- **What is pressed stands on a lip; a key with a glyph is round
   (18 November).** The founder: the buttons, tiles and boxes "Duolingo
-  style … that we have already done with the Lares app, where we use our
-  own sophisticated, classy colors, but with that 3D, fun, powerful,
-  unique style", then "don't be afraid of dramatic … 3D effects … when
-  you click it, it actually looks like you're pushing a physical button
-  … the saturated colors … if it's a color fill, it might look better",
-  and the bar: "too much text". Taken from Lares's family (`.btn3d` in
-  pixelprojex/lares-organiser's index.css: a flat face on a darker lip,
-  the press sinking onto it). In Nosca the lip is a box-shadow
-  (`lipOf`, so no layout moves) written by `press3d(colour, h, by,
-  extra)` beside `EDGE`: down sinks the face `by` points at once with
-  nothing eased, up springs it back (`SPRING`). `LIP_H` 6 and
-  `LIP_PRESS` 5 under a `Button`, an `ActTile`, a face tile, a sport
-  tile; 4 and 3 under a time (`TimeGrid`), a sign-up `Choice`, an
-  outlined control (`.n-key`), a row of `.nsc-list` (the wash on
-  `SOFT_LIP`, the CSS `--lip`) and the peek's round keys; 3 under a
-  `Card`, a `Tile` and `.nsc-day` (on the sport's edge). The colours
-  are the sport's own: the one action the accent on `LIP(accent)` (a
-  third deeper); red on `LIP(DANGER)`; a chosen key the ink on the ink
-  made deeper; and **every other key the tint** — `TINT(t)`, the
-  accent's own hue at a fresher saturation and 89% lightness (a mix with
-  white went grey on golf's muted grass), on `TINT_LIP(t)` with a fine
-  ring of it (`fieldRing`'s cousin, Lares's stone), never white with an
-  outline: the board's five, the plus sheet's eight, the log's areas,
-  Who's faces, the times, `Button`'s quiet (and `dangerQuiet` on
-  `TINT_RED`), and the controls that draw their own outline, which carry
-  `n-key` (the tint and the transparent border where the outline was
-  unconditional; `--key-lip` where a chosen face has its own, as the
-  register's Present · Absent). `SportGrid` keys each sport in its own
-  tint and its own deeper tint. A text box is not a key: no lip, a ring
-  of `TINT_LIP` that thickens to the accent while typed in, red on an
-  error (`fieldRing`; `Field` is a box now, not an underline). **The tab
-  bar is the icon alone** (23px, the word kept as the tab's
-  `aria-label`), the highlight a 50 × 38 capsule round it on a faint
-  lip (`PILL_LIP`), and the raised plus a key — the accent on its lip,
-  a white plus — still raised out of the bar's swell. **Icons alone
-  where the glyph says it all**: the log's Video · Photo · Voice
-  (`ActTile iconOnly`, the word their name for VoiceOver). This
-  supersedes, where they say otherwise: "No control on the hairline"
-  (the outline is the tint now), the resting shadow of "The approved
-  look has depth" (the lip is the depth; the raised plus stays raised),
-  "a bordered surface casts no shadow" (it stands on its lip), and the
-  tab bar's labels under "12px is the floor". Not changed: the paper,
-  the sport tints, the splash, the feed, the board's six and the plus's
-  two to a row, the walkthrough's shape, the profile pill.
+  style … that we have already done with the Lares app … our own
+  sophisticated, classy colors … 3D", a press that "looks like you're
+  pushing a physical button", and "too much text" in the bar. The first
+  pass put a lip under everything — rows, cards, text boxes — tinted every
+  key a mint and boxed the raised plus; the founder found it "more
+  complex … way too much going on", and asked for the plus "just the way
+  it was" and the square buttons "round like the ones in the Lares app".
+  So, from Lares (pixelprojex/lares-organiser: `.btn3d`, and the practice
+  nodes `.sm-node`):
+  - **Only what is pressed has a lip** — a box-shadow, so no layout moves,
+    written by `press3d(colour, h, by, extra)` beside `EDGE`: down sinks
+    the face at once, up springs it back. Rows of `.nsc-list`, `Card`,
+    `Tile`, `.nsc-day` and the text boxes are as they were: flat.
+  - **A key with a glyph is round** (`ActTile` with an `Icon`,
+    `data-round`): a round face on a five-point lip that sinks the whole
+    lip under the finger, the glyph in it, one word under it in `t.sub`
+    (the one action's in ink, Call off's red) and no box round any of it —
+    the board, the plus sheet (four across, as Lares's row of nodes; the
+    full-width Log a lesson keeps its block, `block`), the roster's two,
+    the player file's four, the Add player routes, the group's Message,
+    the log's Video · Photo · Voice (`iconOnly`: the glyph alone, the word
+    its name for VoiceOver). A key that is a word (a focus area, Drills,
+    Tip, a time, `Choice`) stays a rounded rectangle on a four-point lip,
+    as Lares's word answers do; `Button` is 50 on a five-point lip.
+  - **The colours**: the one action the accent on `LIP(accent)`, red on
+    `LIP(DANGER)`, a chosen key the ink, and every other key `TINT(t)` —
+    a quiet tint of the sport's hue, Lares's stone in the sport's colour —
+    on `TINT_LIP(t)` with a fine ring of it. The outlined controls carry
+    `n-key` (the tint and its lip where the outline was unconditional;
+    `--key-lip` where a chosen face has its own, as the register's
+    Present · Absent). `SportGrid` keys each sport in its own tint.
+  - **The tab bar is the icon alone** (23px, the word its `aria-label`),
+    the highlight a 50 × 38 capsule round it on a faint lip; **the raised
+    plus is the big plus on the bar's swell, exactly as it was**, level
+    with the icons — never a box.
+  This supersedes, where they say otherwise: "No control on the
+  hairline" (an outlined control is the tint now) and the tab bar's
+  labels under "12px is the floor". Not changed: the paper, the sport
+  tints, the splash, the feed, the board's six, the walkthrough's shape,
+  the profile pill, the text boxes, every row and card.
   `scripts/e2e/keys.cjs`.
 - **There is no loading page; the sport splash is the front door.**
   `BrandLoader` in `brandmark.jsx` is white and empty: the mark appears
