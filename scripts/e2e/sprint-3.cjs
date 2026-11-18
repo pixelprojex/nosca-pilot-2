@@ -64,8 +64,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
   const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const errors = [];
-  const boot = async ({ width = 390 } = {}) => {
-    const db = freshDb();
+  const boot = async ({ width = 390, mod = null } = {}) => {
+    const db = freshDb(); if (mod) mod(db);
     const u = Object.values(db.users).find((x) => x.id === IDS.coach);
     const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
@@ -353,6 +353,65 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       check("(i) Show N more is in ink — the accent is Set's", moreColor === null || moreColor !== ACCENT, String(moreColor));
       const set = sheet(page).locator("button", { hasText: /^(Set drills|Pick or write a drill)$/ }).first();
       check("(i) the asleep button reads the verb, Set drills, never an instruction", (await set.count()) === 1 && (await set.innerText()).trim() === "Set drills" && (await set.isDisabled()), (await set.count()) ? await set.innerText() : "none");
+      await ctx.close();
+    }
+    /* ---------- (j) 18 November: the register (A19, A20), Cancel's copy (A21), the recurring manager and Set up (B8, B20), the Book sheet's head (B21) ---------- */
+    {
+      const { ctx, page, shot } = await boot();
+      /* A20: a fresh register is "N to mark", the figure only with the first mark */
+      await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-attend"]', 900);
+      await shot("j-register-pick");
+      await sheet(page).locator('button', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(800);
+      const tally0 = M.norm(await page.locator('[data-tour="register-tally"]').innerText().catch(() => ""));
+      await shot("j-register-fresh");
+      check("(j) a fresh register reads how many to mark, never a nought of N present", /^\d+ to mark$/.test(tally0), tally0);
+      await sheet(page).locator('[data-tour="register-in"]').first().click(); await page.waitForTimeout(400);
+      const tally1 = M.norm(await page.locator('[data-tour="register-tally"]').innerText().catch(() => ""));
+      check("(j) …and the first mark brings the figure and of N present", /^1\s*of \d+ present/.test(tally1), tally1);
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      /* A21: the coach's Cancel sheet carries no box of copy (the password step says it) */
+      await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+      await page.locator('[data-tour="peek-actions"] button', { hasText: /^Cancel$/ }).first().click(); await page.waitForTimeout(900);
+      const ct = M.norm(await sheet(page).innerText());
+      check("(j) the coach's Cancel sheet has no wash box of promises (We'll tell…, not counted)", /Cancel lesson/.test(ct) && !/We'll tell|not counted/.test(ct) && (await page.locator('[data-tour="cancel-promise"]').count()) === 0, ct.slice(0, 200));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      /* B21: the coach's Book sheet: the day as the title, the time under it */
+      await tap(page, '[aria-label="Diary"]', 1000);
+      const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
+      if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+      await page.locator('[data-tour="agenda-book"]').first().click(); await page.waitForTimeout(900);
+      const bh = await sheet(page).locator("h2").first().innerText().catch(() => "");
+      const bt = await page.locator('[data-tour="book-who-time"]').innerText().catch(() => "");
+      await shot("j-book-who");
+      check("(j) the coach's Book sheet is headed with the day alone, the time on the line under it, as the player's request sheet", /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}$/.test(bh.trim()) && /\d:\d\d/.test(bt) && !bh.includes("·"), `${bh} | ${bt}`);
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      /* B8: the manager's head — two facts, no cadence */
+      await tap(page, '[aria-label="Diary"]', 1000);
+      if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+      await tap(page, '[data-tour="cal-recurring"]', 1000);
+      const line = M.norm(await page.locator('[data-tour="recur-line"]').first().innerText().catch(() => ""));
+      check("(j) a recurring arrangement's grey line is the day and the time, two facts — Tuesdays · 10:30 am", /^[A-Z][a-z]+days · \d{1,2}:\d\d (am|pm)$/.test(line), line);
+      /* B20: the Set up sheet — the Segmented, a 44 stepper, one grey line for the first lesson */
+      await tap(page, '[data-tour="recur-add"]', 1000);
+      const who = page.locator('[data-tour="recur-who"] button').first(); if (await who.count()) { await who.click(); await page.waitForTimeout(700); }
+      const segs = await sheet(page).locator('[data-tour="recur-freq"] button[aria-pressed]').count();
+      const step = await sheet(page).locator('[aria-label="Fewer"], [aria-label="More"]').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), r: getComputedStyle(e).borderRadius }; }));
+      const first = M.norm(await page.locator('[data-tour="recur-first"]').innerText().catch(() => ""));
+      const st = M.norm(await sheet(page).innerText());
+      await shot("j-recur-setup");
+      check("(j) Set up's cadence is the manager's Segmented", segs === 3, String(segs));
+      check("(j) the stepper's two controls are 44 square on the control's corner, not 34px pills", step.length === 2 && step.every((x) => x.w >= 44 && x.h >= 44 && parseFloat(x.r) < 22), JSON.stringify(step));
+      check("(j) the preview is one grey line, First · the day in the one form — no box of sentences", /^First · (Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}$/.test(first) && !/First three/.test(st), first);
+      await ctx.close();
+    }
+    /* ---------- (j0) A19: the register with nothing booked today heads the roster Not in the diary, as person rows ---------- */
+    {
+      const { ctx, page, shot } = await boot({ mod: (db) => { db.bookings = (db.bookings || []).filter((b) => b.booking_date !== TODAY); } });
+      await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-attend"]', 900);
+      const head = await page.locator('[data-tour="register-walkin-head"]').count();
+      const rows = await sheet(page).locator('[data-tour="register-walkin"] [data-person-row]').count();
+      await shot("j0-register-empty");
+      check("(j0) with nothing booked the roster is headed Not in the diary, as the app's person rows", head === 1 && rows >= 9, `${head} ${rows}`);
       await ctx.close();
     }
     /* ---------- (i320) the peek at 320: the whole name, the actions in two rows of three ---------- */

@@ -2665,7 +2665,6 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
   const [note, setNote] = useState("");
   const [offer, setOffer] = useState(null);
   const [stage, setStage] = useState("why");   // why | when | password
-  const other = role === "coach" ? tr("your player") : tr("your coach");
   const finish = () => { hapticWarn(); decline(); onDone({ reason, note, offer }); close(); };
   /* Something else is a reason only once there are words — the sheet
      promises the reason travels, so nothing goes before there is one */
@@ -2725,11 +2724,16 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
         </div>
       )}
 
-      <div className="p-4 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
-        <p style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.sub }}>
-          {tr("We'll tell")} {other} {reasonTravels ? tr("straight away with the reason.") : tr("straight away.")} {!request && tr("A cancelled lesson is not counted.")}
+      {/* the promise once: the coach reads it on the password step, so
+          their sheet carries no box of copy here; a player's sheet ends
+          without a password, so it is one grey line under the reasons —
+          it was a wash box of two sentences, "We'll tell your player…",
+          said again two taps later */}
+      {role !== "coach" && (
+        <p data-tour="cancel-promise" className="mb-5" style={{ ...TYPE.small, color: t.faint }}>
+          {reasonTravels ? tr("The coach is told straight away with the reason") : tr("The coach is told straight away")}
         </p>
-      </div>
+      )}
 
       {role === "coach"
         ? <Button tone="ink" disabled={!ready} onClick={() => { haptic(9); if (slots.length) setStage("when"); else if (verify) setStage("password"); else finish(); }}>{tr("Next")}</Button>
@@ -3754,9 +3758,12 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
               <div className="flex items-center gap-3.5">
                 <Avatar name={x.who} size={40} />
                 <span className="flex-1 min-w-0">
-                  <span className="block truncate" style={{ ...TYPE.subhead, color: t.ink }}>{x.who}</span>
-                  <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>
-                    {DAY_NAMES[x.day]} · {span(x.time, duration)} · {tr(x.every || x.freq || "Weekly")}
+                  {/* the person row's sizes, and two facts — the cadence is the
+                      Segmented's own answer below; three ended the first
+                      line on the dot at 320 ("… am ·" / "Weekly") */}
+                  <span className="block" style={{ ...TYPE.body, color: t.ink, overflowWrap: "break-word" }}>{x.who}</span>
+                  <span data-tour="recur-line" className="block mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>
+                    {DAY_NAMES[x.day]}s · <span style={{ whiteSpace: "nowrap" }}>{x.time}</span>
                   </span>
                 </span>
                 <span className="text-right shrink-0">
@@ -4845,13 +4852,19 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           })}
         </div>
 
-        <div className="flex items-baseline gap-2 mt-4 mb-5">
-          <span style={{ ...TYPE.figure, fontSize: 22, color: t.ink }}>{present}</span>
-          <span style={{ ...TYPE.small, color: t.faint }}>{tr("of")} {who.length} {tr("present")}</span>
-          <span className="flex-1" />
-          {!ready && (
-            <span style={{ ...TYPE.caption, color: t.sub }}>{who.length - done} {tr("unmarked")}</span>
-          )}
+        {/* a fresh register is "3 to mark", never a large nought before
+            anybody has been marked; the figure comes with the first mark */}
+        <div data-tour="register-tally" className="flex items-baseline gap-2 mt-4 mb-5">
+          {done === 0 ? (
+            <span style={{ ...TYPE.small, color: t.faint }}>{who.length} {tr("to mark")}</span>
+          ) : (<>
+            <span style={{ ...TYPE.figure, fontSize: 22, color: t.ink }}>{present}</span>
+            <span style={{ ...TYPE.small, color: t.faint }}>{tr("of")} {who.length} {tr("present")}</span>
+            <span className="flex-1" />
+            {!ready && (
+              <span style={{ ...TYPE.caption, color: t.sub }}>{who.length - done} {tr("unmarked")}</span>
+            )}
+          </>)}
         </div>
 
         <Button disabled={!ready} onClick={() => { hapticSuccess(); chime(); onSubmit(picked, marks); setPicked(null); }}>
@@ -4919,20 +4932,15 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
 
       {(roster || []).length > 0 && (walkIn || (lessons || []).length === 0) && (
         <>
-          {(lessons || []).length > 0 && (
-            <p className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not in the diary")}</p>
-          )}
-          <div className="nsc-list">
-            {(roster || []).map((r, i) => (
-              <button key={r.id || r.name}
-                      onClick={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })}
-                      className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                      style={{ minHeight: 58,
-                               animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                <Avatar name={r.name} size={30} />
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{r.name}</span>
-                <ChevronRight size={14} color={t.trace || t.faint} />
-              </button>
+          {/* headed whether or not anything is booked: with nothing booked
+              the roster read as the day's lessons under "Nothing booked
+              today". The people are the app's one person row (they were
+              30px faces on rows that cut the name) */}
+          <p data-tour="register-walkin-head" className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not in the diary")}</p>
+          <div className="nsc-list" data-tour="register-walkin">
+            {(roster || []).map((r) => (
+              <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} chevron
+                         onTap={() => open({ time: fmtTime(new Date().getHours() * 60 + new Date().getMinutes()), who: r.name, kind: "Private" })} />
             ))}
           </div>
         </>
@@ -14497,34 +14505,35 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       </div>
 
       
-      <div className="flex gap-2 mb-5">
-        {[["weekly", "Weekly"], ["fortnightly", "Fortnightly"], ["monthly", "Monthly"]].map(([id, lbl]) => {
-          const on = freq === id;
-          return (<button key={id} onClick={() => { haptic(5); setFreq(id); }} className="flex-1 active:opacity-60"
-                          style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
-                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{lbl}</button>);
-        })}
+      {/* the manager's own control for the identical choice — it was a
+          row of three tiles here and the Segmented there */}
+      <div className="mb-5" data-tour="recur-freq">
+        <Segmented options={["Weekly", "Fortnightly", "Monthly"].map(tr)}
+                   value={tr(["Weekly", "Fortnightly", "Monthly"].find((f) => f.toLowerCase() === freq) || "Weekly")}
+                   onChange={(lbl) => { haptic(5); setFreq((["Weekly", "Fortnightly", "Monthly"].find((f) => tr(f) === lbl) || "Weekly").toLowerCase()); }} />
       </div>
 
       {/* how many, and the first three, are for a new run only: an
           arrangement already running has its lessons booked, and Update
           changes the arrangement, not them */}
       {!existing && (<>
-      <div className="flex items-center justify-between mb-5">
-        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Lessons")}</span>
+      {/* the stepper is the app's outlined control, 44 square (it was two
+          34px pills); under it one grey line, the first lesson in the one
+          date form — it was a box of sentences restating the controls */}
+      <div className="flex items-center justify-between mb-1">
+        <span style={{ ...TYPE.body, color: t.ink }}>{tr("Lessons")}</span>
         <span className="flex items-center gap-3">
-          <button onClick={() => { haptic(5); setTotal(Math.max(1, total - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
-          <span style={{ fontFamily: display, fontSize: 22, color: t.ink, minWidth: 26, textAlign: "center" }}>{total}</span>
-          <button onClick={() => { haptic(5); setTotal(Math.min(24, total + 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
+          {[[tr("Fewer"), Minus, () => setTotal(Math.max(1, total - 1))], null, [tr("More"), Plus, () => setTotal(Math.min(24, total + 1))]].map((b, k) => b
+            ? <button key={k} onClick={() => { haptic(5); b[2](); }} className="flex items-center justify-center active:opacity-50" aria-label={b[0]}
+                      style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}>{React.createElement(b[1], { size: 15, color: t.ink })}</button>
+            : <span key={k} data-tour="recur-total" style={{ ...TYPE.figureSm, color: t.ink, minWidth: 26, textAlign: "center" }}>{total}</span>)}
         </span>
       </div>
-
-      <div className="p-4 mb-5" style={{ borderRadius: R.surface, background: t.wash }}>
-        <p style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.6, color: t.sub }}>
-          {DAY_NAMES[day]}s at {time}, {freq}. First three:{" "}
-          {preview.map((o) => `${o.d} ${monthName(o.m).slice(0, 3)}`).join(", ")}.
+      {preview[0] && (
+        <p data-tour="recur-first" className="mb-5" style={{ ...TYPE.caption, color: t.sub }}>
+          {tr("First")} · {DAY_NAMES[day].slice(0, 3)} {preview[0].d} {monthName(preview[0].m).slice(0, 3)}
         </p>
-      </div>
+      )}
       </>)}
 
       <Button onClick={() => { onSave({ who: name, day, time, freq, total }); close(); }}>
@@ -15827,10 +15836,14 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
 function AwayLine({ role, name, booked = 0, onEdit }) {
   const t = useT();
   if (role === "coach") return (
-    <div data-tour="cal-away" className="flex items-center gap-3 px-5 mb-4" style={{ minHeight: 54, borderRadius: R.control, background: t.wash }}>
+    /* the column's own box — the wash, 8px, 14 in, as the lesson boxes
+       under it (it was a 10px box padded 20, a fourth shape in the
+       column) — and its line in the label grey: t.faint on the wash
+       read 4.4:1 at 12px */
+    <div data-tour="cal-away" className="flex items-center gap-3 mb-4" style={{ minHeight: 54, padding: "0 14px", borderRadius: 8, background: t.wash }}>
       <span className="flex-1 min-w-0">
         <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
-        <span className="block truncate" style={{ ...TYPE.caption, color: t.faint }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
+        <span className="block truncate" style={{ ...TYPE.caption, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
       </span>
       {onEdit && <TextBtn color={t.ink} onClick={() => { haptic(6); onEdit(); }}>{tr("Edit")}</TextBtn>}
     </div>
@@ -17924,11 +17937,17 @@ function UploadStatus({ uploads, onRetry, onDismiss }) {
           </span>
           {failed.length > 0 && !moving.length && (
             <button onClick={async () => { haptic(8); setBusy(true); await onRetry(); setBusy(false); }} disabled={busy}
-                    className="shrink-0 px-3 active:opacity-60 disabled:opacity-40"
-                    style={{ minHeight: 30, borderRadius: R.pill, background: t.ink, ...TYPE.caption, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Retry")}</button>
+                    data-tour="upload-retry" className="relative shrink-0 active:opacity-60 disabled:opacity-40"
+                    /* the control's corner, not the one pill on the home, and a
+                       finger's 44 past its 36 (it answered 30) */
+                    style={{ minHeight: 36, padding: "0 12px", borderRadius: R.control, background: t.ink, ...TYPE.caption, fontWeight: 600, color: "#fff" }}>
+              <span aria-hidden="true" className="absolute" style={{ top: "calc(50% - 22px)", bottom: "calc(50% - 22px)", left: 0, right: 0 }} />
+              {busy ? "…" : tr("Retry")}</button>
           )}
           {!moving.length && (
-            <button onClick={() => { haptic(5); onDismiss && onDismiss(); }} className="shrink-0 p-1 active:opacity-50" aria-label={tr("Dismiss")}>
+            <button data-tour="upload-dismiss" onClick={() => { haptic(5); onDismiss && onDismiss(); }} className="relative shrink-0 p-1 active:opacity-50" aria-label={tr("Dismiss")}>
+              {/* the cross is 13; the finger's reach is 44 (it answered 21) */}
+              <span aria-hidden="true" className="absolute" style={{ top: "calc(50% - 22px)", bottom: "calc(50% - 22px)", left: "calc(50% - 22px)", right: "calc(50% - 22px)" }} />
               <X size={13} color={t.trace || t.faint} />
             </button>
           )}
@@ -21614,9 +21633,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onWeather={() => { setCallOffFor({ m: editDay.m, d: editDay.d }); setSheet("weather"); }} close={() => setSheet(null)} />
               : sheet === "bookWho" && bookSlot ? (
                   <>
-                    <h2 className="mb-5" style={{ ...TYPE.title, color: theme.ink }}>
-                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)} · {span(bookSlot.time, duration)}
+                    {/* the player's request sheet's head: the day as the title,
+                        the time under it — one head for one moment on both
+                        sides (it was the day and the time on one title line) */}
+                    <h2 className="mb-1" style={{ ...TYPE.title, color: theme.ink }}>
+                      {DAY_NAMES[dowOf(bookSlot.day.m, bookSlot.day.d, calendar)].slice(0, 3)} {bookSlot.day.d} {monthName(bookSlot.day.m).slice(0, 3)}
                     </h2>
+                    <p data-tour="book-who-time" className="mb-5" style={{ ...TYPE.small, color: theme.sub }}>{span(bookSlot.time, duration)}</p>
                     {/* A NAMED BEING IN A LIST IS A ROW. This was a stack
                         of cards, one card a player, which is the tile
                         contract's other half being used for the wrong

@@ -296,6 +296,14 @@ const leaks = [];
       check("(h) Today shows the upload strip naming the refused file and the reason", th1.includes("1 file didn't upload") && th1.includes("1 in") && th1.includes("big-clip.mp4") && /Too big for the storage limit \(50 MB\)/.test(th1), th1);
       const retry = strip.getByRole("button", { name: "Retry", exact: true });
       check("(h) the strip offers Retry", (await retry.count()) === 1);
+      /* 18 November (A18): Retry on the control's corner, 36 drawn and 44 to a finger; the cross 44 to a finger (they answered 30 and 21) */
+      const reach = await page.evaluate(() => {
+        const hit = (el, dy, dx = 0) => { const r = el.getBoundingClientRect(); const x = r.left + r.width / 2 + dx, y = r.top + r.height / 2 + dy; const at = document.elementFromPoint(x, y); return !!at && (at === el || el.contains(at)); };
+        const rt = document.querySelector('[data-tour="upload-retry"]'), dx = document.querySelector('[data-tour="upload-dismiss"]');
+        if (!rt || !dx) return null;
+        return { h: Math.round(rt.getBoundingClientRect().height), radius: getComputedStyle(rt).borderRadius, rUp: hit(rt, -20), rDown: hit(rt, 20), xUp: hit(dx, -20), xDown: hit(dx, 20), xL: hit(dx, 0, -20), xR: hit(dx, 0, 18) };
+      });
+      check("(h) Retry is 36 tall on the control's corner and answers a finger 44 tall; the cross answers 44 square", !!reach && reach.h >= 36 && parseFloat(reach.radius) < 100 && reach.rUp && reach.rDown && reach.xUp && reach.xDown && reach.xL && reach.xR, JSON.stringify(reach));
       const lessonH = db.posts.filter((x) => x.table === "lessons").pop().rows[0];
       check("(h) the lesson itself was written before the uploads, with one media row so far", !!lessonH && lessonH.player_id === IDS.junior && db.media.filter((m) => m.lesson_id === lessonH.id).length === 1, JSON.stringify(db.media.filter((m) => lessonH && m.lesson_id === lessonH.id).map((m) => m.storage_path)));
       if (await retry.count()) { await retry.click(); await page.waitForTimeout(1800); }
