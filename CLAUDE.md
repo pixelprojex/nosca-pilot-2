@@ -1431,7 +1431,25 @@ seeded data and no account.
   boxes in three literal sizes); Set drills' first stage is **Who**
   over `PersonRow`s (`assign-who`; it was "Who's playing" over hairline
   rows), Show N more is in ink, and the asleep button reads Set drills,
-  never "Pick or write a drill". `sprint-3.cjs` (i), (i320).
+  never "Pick or write a drill". `sprint-3.cjs` (i), (i320). On 18
+  November: Today's upload banner's Retry is on the control's corner,
+  36 drawn and 44 to a finger, and its cross reaches 44 (they answered
+  30 and 21; `core-loop.cjs` (h)); the register heads the roster "Not in
+  the diary" whether or not anything is booked, as `PersonRow`s (with
+  nothing booked the roster read as the day's lessons), and a fresh
+  register reads "3 to mark" — the figure and "of N present" come with
+  the first mark, never a large nought; the coach's Cancel sheet
+  carries no box of copy (the password step says the promise) and a
+  player's ends on one grey line, "The coach is told straight away with
+  the reason" — never "We'll tell your coach"; the coach's Away row in
+  the Calendar view is the column's own box (the wash, 8px, 14 in) with
+  its line in `t.sub` (`away.cjs` (c)); a running arrangement's grey line
+  is two facts, "Tuesdays · 10:30 am" (the cadence is the Segmented
+  under it); the Set up sheet's cadence is that Segmented, its stepper
+  44 square on the edge, and its preview one grey line, "First · Tue 24
+  Nov" (it was a box of sentences); the coach's Book sheet is headed
+  with the day and the time under it, as the player's request sheet
+  is. `sprint-3.cjs` (j), (j0).
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red

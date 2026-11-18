@@ -560,12 +560,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
         /* the sheet opens on who: pick the first person, and the day row and the cadence are drawn */
         const who = page.locator('[data-tour="recur-who"] button').first(); if (await who.count()) { await who.click(); await page.waitForTimeout(700); }
         const recDays = await page.evaluate(() => { const s = document.querySelector("[data-sheet]"); if (!s) return null; const h = s.querySelector("h2"); const txt = (b) => b.textContent.trim();
-          const pick = (re) => [...s.querySelectorAll("button")].filter((b) => re.test(txt(b))).map((b) => ({ d: txt(b), bg: getComputedStyle(b).backgroundColor }));
+          const pick = (re) => [...s.querySelectorAll("button")].filter((b) => re.test(txt(b))).map((b) => ({ d: txt(b), bg: getComputedStyle(b).backgroundColor, p: b.getAttribute("aria-pressed") }));
           return { ink: h ? getComputedStyle(h).color : null, days: pick(/^(Mo|Tu|We|Th|Fr|Sa|Su)$/), freq: pick(/^(Weekly|Fortnightly|Monthly)$/) }; });
         await shot("13-recurring-sheet");
         await closeSheet(page);
         check("(s12) one sheet title: New group, Invite players, New message and the recurring Set up sheet carry TYPE.title's 19px (they were 24 and 25 beside the twenty-two at 19)", [sNew, sInv, sMsg, sRec].every((x) => x === "19px"), JSON.stringify({ sNew, sInv, sMsg, sRec }));
-        check("(s13) the recurring sheet's chosen day and cadence are filled with the ink, as a chosen tile is — never the accent, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === recDays.ink).length === 1 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.bg === recDays.ink).length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(47, 107, 58)"), JSON.stringify(recDays).slice(0, 300));
+        /* since 18 November the cadence is the manager's Segmented (B20): one chosen, its thumb, never the accent */
+        check("(s13) the recurring sheet's chosen day is filled with the ink, as a chosen tile is, and the cadence is the Segmented with one chosen — never the accent, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === recDays.ink).length === 1 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.p === "true").length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(47, 107, 58)"), JSON.stringify(recDays).slice(0, 300));
         await ctx.close();
       }
       /* the To log screen: person rows in one boxed list, Log as the row's action */

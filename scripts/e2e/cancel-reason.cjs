@@ -108,7 +108,7 @@ const { check, results, summary } = M.checker("cancel-reason");
       check("(c) the day shows Your lesson with Cancel and Reschedule", /Your lesson/.test(t3) && (await page.locator('[data-tour="day-cancel"]').count()) === 1 && (await page.locator('[data-tour="day-reschedule"]').count()) === 1, t3.slice(0, 240));
       await tap(page, '[data-tour="day-cancel"]', 800);
       const t4 = await text(); await shot("05-player-why");
-      check("(c) Cancel opens the Why sheet naming the day, with the player's reasons and one button asleep", /Cancel lesson/.test(t4) && /(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2} · 10:00 am/.test(t4) && /Work or school/.test(t4) && /your coach straight away with the reason/.test(t4) && (await lastBtn(page, /^Cancel the lesson$/).isDisabled()) && (await lastBtn(page, /^Next$/).count()) === 0, t4.slice(0, 260));
+      check("(c) Cancel opens the Why sheet naming the day, with the player's reasons and one button asleep", /Cancel lesson/.test(t4) && /(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2} · 10:00 am/.test(t4) && /Work or school/.test(t4) && /The coach is told straight away with the reason/.test(t4) && !/your coach|We'll tell/.test(t4) && (await lastBtn(page, /^Cancel the lesson$/).isDisabled()) && (await lastBtn(page, /^Next$/).count()) === 0, t4.slice(0, 260));
       check("(c) …and no password is asked of a player for their own lesson", (await pw(page).count()) === 0);
       /* Something else is a reason only once there are words */
       await page.locator('[data-tour="cancel-why"]', { hasText: "Something else" }).click(); await page.waitForTimeout(400);
@@ -197,7 +197,7 @@ const { check, results, summary } = M.checker("cancel-reason");
       await openDay(page, db3, dayPlus(db3, 3));
       await tap(page, '[data-tour="day-cancel"]', 800);
       const t7 = await text(); await shot("10-no-column-why");
-      check("(f) the sheet still asks why but promises only what it can — no 'with the reason'", /Cancel lesson/.test(t7) && /your coach straight away\./.test(t7) && !/with the reason/.test(t7), t7.slice(0, 240));
+      check("(f) the sheet still asks why but promises only what it can — no 'with the reason'", /Cancel lesson/.test(t7) && /The coach is told straight away/.test(t7) && !/with the reason/.test(t7), t7.slice(0, 240));
       await page.locator('[data-tour="cancel-why"]', { hasText: "Unwell" }).click(); await page.waitForTimeout(300);
       await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(1800);
       const p7 = patches(db3, BK.cian).filter((x) => !x.refused).pop();

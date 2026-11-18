@@ -103,6 +103,9 @@ const { check, results, summary } = M.checker("away");
       const t2 = await text();
       check("(c) the month grid strikes the away days through, and not the day before", (await struck(page, FROM)) && (await struck(page, TO)) && !(await struck(page, OUTSIDE)));
       check("(c) the day picked reads Away with nothing offered and Edit, and no Free times", (await page.locator('[data-tour="cal-away"]').count()) === 1 && /Nothing offered/.test(t2) && !/^Free$/m.test(t2) && /Edit/.test(t2), t2.slice(0, 200));
+      /* 18 November (B4): the Away row is the column's own box — the wash at 8px, 14 in — and its line in the label grey (t.faint on the wash read 4.4:1) */
+      const aw = await page.locator('[data-tour="cal-away"]').first().evaluate((el) => { const cs = getComputedStyle(el); const line = el.querySelector("span span:last-child"); return { r: cs.borderRadius, pl: cs.paddingLeft, c: line ? getComputedStyle(line).color : null }; }).catch(() => null);
+      check("(c) the Away row is the column's box (8px, 14 in) with its line in t.sub", !!aw && aw.r === "8px" && aw.pl === "14px" && aw.c === "rgb(60, 84, 56)", JSON.stringify(aw));
       await tap(page, `[data-day="${dayOf(dayPlus(db, 3))}"]`, 700);
       const t3 = await text();
       check("(c) a booked day inside the span reads Away · 1 lesson still booked, the lesson under it, Call off under that", /1 lesson still booked/.test(t3) && /Cian Murphy/.test(t3) && (await page.locator('[data-tour="cal-weather"]').count()) === 1, t3.slice(0, 220));
