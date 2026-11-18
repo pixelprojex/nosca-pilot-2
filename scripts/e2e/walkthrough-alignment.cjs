@@ -87,12 +87,14 @@ async function main() {
           if (pl && act) {
             const pr = pl.getBoundingClientRect(), ar = act.getBoundingClientRect(), br = bar.getBoundingClientRect();
             const cells = [...bar.querySelectorAll("button")].map((b) => b.getBoundingClientRect().width);
+            /* since 18 November the highlight is a capsule round the icon (Lares's
+               tab-pill), not a lozenge filling the cell: it must sit centred on the
+               active tab, centred in the bar's height, and inside its own cell */
             pill = {
-              dLeft: (pr.left - (ar.left + 4 * k)) / k,
-              dRight: (pr.right - (ar.right - 4 * k)) / k,
-              dTop: (pr.top - (br.top + 5 * k)) / k,
-              dBottom: (pr.bottom - (br.bottom - 5 * k)) / k,
               dCentre: ((pr.left + pr.right) / 2 - (ar.left + ar.right) / 2) / k,
+              dMid: ((pr.top + pr.bottom) / 2 - (br.top + br.bottom) / 2) / k,
+              inLeft: (pr.left - ar.left) / k,
+              inRight: (ar.right - pr.right) / k,
               cellSpread: (Math.max(...cells) - Math.min(...cells)) / k,
             };
           }
@@ -132,7 +134,7 @@ async function main() {
       }
       /* the pill is checked on every step, ring or no ring */
       const P = info.pill;
-      const pillOff = P ? Math.max(Math.abs(P.dLeft), Math.abs(P.dRight), Math.abs(P.dTop), Math.abs(P.dBottom), Math.abs(P.dCentre)) : null;
+      const pillOff = P ? Math.max(Math.abs(P.dCentre), Math.abs(P.dMid), Math.max(0, -P.inLeft), Math.max(0, -P.inRight)) : null;
       const pillOk = P == null ? true : pillOff <= 0.5 && P.cellSpread <= 0.5;
       if (!info.ring) ok = false;               // a step with no ring is a failed step
       rows.push({ step: cur || n, total, title: info.tourText, target: info.id || "(no ring)", dev: dev == null ? null : +dev.toFixed(2),
