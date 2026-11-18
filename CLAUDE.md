@@ -179,23 +179,47 @@ seeded data and no account.
   key a mint and boxed the raised plus; the founder found it "more
   complex … way too much going on", and asked for the plus "just the way
   it was" and the square buttons "round like the ones in the Lares app".
-  So, from Lares (pixelprojex/lares-organiser: `.btn3d`, and the practice
-  nodes `.sm-node`):
-  - **Only what is pressed has a lip** — a box-shadow, so no layout moves,
-    written by `press3d(colour, h, by, extra)` beside `EDGE`: down sinks
-    the face at once, up springs it back. Rows of `.nsc-list`, `Card`,
-    `Tile`, `.nsc-day` and the text boxes are as they were: flat.
-  - **A key with a glyph is round** (`ActTile` with an `Icon`,
-    `data-round`): a round face on a five-point lip that sinks the whole
-    lip under the finger, the glyph in it, one word under it in `t.sub`
-    (the one action's in ink, Call off's red) and no box round any of it —
-    the board, the plus sheet (two to a row, the founder's own choice for
-    it; the full-width Log a lesson keeps its block, `block`), the roster's two,
-    the player file's four, the Add player routes, the group's Message,
-    the log's Video · Photo · Voice (`iconOnly`: the glyph alone, the word
-    its name for VoiceOver). A key that is a word (a focus area, Drills,
-    Tip, a time, `Choice`) stays a rounded rectangle on a four-point lip,
-    as Lares's word answers do; `Button` is 50 on a five-point lip.
+  So, from Lares (pixelprojex/lares-organiser: `.btn3d`, the practice
+  nodes `.sm-node`, the lists' tiles and `.tile`) — and then, the same
+  day, consistent: the founder loved the effect and found it "just not
+  consistent … loads of boxes that just look the old way … tiny, small
+  circle buttons in the middle of a big page, especially on the home
+  page", asked that "not everything has to be a circle", and that the
+  home not repeat what the plus holds ("Duolingo … but more classy").
+  Lares, rendered and studied: every card and row stands on a soft foot,
+  its round keys sit four or five across, two to a row is a tile.
+  - **What is pressed stands on a lip** — a box-shadow, so no layout
+    moves, written by `press3d(colour, h, by, extra)` beside `EDGE`, or
+    the `n-key` class with `--key-lip`: down sinks the face at once, up
+    springs it back. Every filled button drawn by hand carries `n-key`
+    and `--key-lip: LIP(colour)` (Book a lesson, Share, Save, Leave, the
+    walkthrough's Next, Send …), as `Button` does.
+  - **Every box stands on a foot** — three points, never pressed unless
+    it is one button: a row of `.nsc-list` on `--lip` (`SOFT_LIP`, the
+    wash made deeper — its border stays transparent, so the 3:1 outline
+    rule is untouched), and a row that is a `<button>` sinks two onto it
+    under the finger; `.nsc-day` and `Card` on their own edge; the text
+    boxes (`SearchField`, `VoiceInput`, `VoiceArea`, `InlineField`, the
+    thread's composer) on the soft foot of a row. The header's profile
+    pill is a key on the soft lip, as Lares's Brief pill.
+  - **A key with a glyph is round three or more across, a tile two to a
+    row, and one alone is a key across the page.** Round (`ActTile` with
+    an `Icon`, `data-round`): a round face sized to its row through
+    `GridColsCtx` (64 three across, 56 four, 46 more; `face` overrides)
+    on a five-point lip that sinks the whole lip, one word under it in
+    `t.sub` — the player file's four, the peek's six (three to a row at
+    every width, 56: they were 40px discs six across), the log's Video ·
+    Photo · Voice (`iconOnly`). A tile (`data-tile`, a `TileGrid` of two
+    with icons): a rounded rectangle on a four-point lip, the glyph at
+    the top and the word under it at the left, Lares's lists — the plus
+    sheet's eight (two to a row, the founder's own choice), the Add
+    player routes; under 72 tall the glyph and the word share a line
+    (the roster's Add player · New group). One action alone is a
+    `Button` across the page with its glyph (the group's Message); the
+    plus sheet's Log a lesson is the accent across the top, the glyph
+    beside the word (`block`). A key that is a word (a focus area,
+    Drills, Tip, a time, `Choice`) stays a rounded rectangle on a
+    four-point lip; `Button` is 50 on a five-point lip.
   - **The colours are restrained, never a colouring book.** The one
     action is the accent on `LIP(accent)` (a third deeper); Call off is
     red on `LIP(DANGER)`; a chosen key is the ink. Every other key is
@@ -218,10 +242,11 @@ seeded data and no account.
     plus is the big plus on the bar's swell, exactly as it was**, level
     with the icons — never a box.
   This supersedes, where they say otherwise, the tab bar's labels under
-  "12px is the floor". Not changed: the paper, the sport
-  tints, the splash, the feed, the board's six, the walkthrough's shape,
-  the profile pill, the text boxes, every row and card.
-  `scripts/e2e/keys.cjs`.
+  "12px is the floor", the board below, and the flat rows of the
+  visual-ease bullet (the wash and the transparent edge stand; the foot
+  is new). Not changed: the paper, the sport tints, the splash, the
+  feed, the walkthrough's shape. `scripts/e2e/keys.cjs`,
+  `scripts/e2e/shortcuts.cjs`.
 - **There is no loading page; the sport splash is the front door.**
   `BrandLoader` in `brandmark.jsx` is white and empty: the mark appears
   only after three seconds, as a sign that something is taking too
@@ -585,7 +610,7 @@ seeded data and no account.
   `TimeGrid` with more than six times) provides `ClusterCtx`, and a
   quiet tile inside it drops its edge and takes the wash instead —
   eight rimmed boxes on the plus, a dozen on the log's focus grid, read
-  busy and the founder said so. The board's six, a pair, a single tile
+  busy and the founder said so. A pair, a single tile
   keep the sport's edge. `R.pill` stays: the
   tab bar, unread badges, avatars, search fields and the toggle knob
   are legitimately pills.
@@ -633,8 +658,14 @@ seeded data and no account.
   roster's Groups half appears with the first group.
   The Who page is the one exception, at the founder's ask: its search
   and its filter tiles are always there.
-- **The board and the plus are one list of actions, and the coach owns
-  it.** `COACH_ACTIONS` is the nine (Log · Register · Capture · Tip ·
+- **The plus is the one list of actions, and the coach owns it; the
+  home carries no board (18 November).** The home's board of six — Log,
+  Register, Capture, Tip, Drills, Add player — was every one of them on
+  the plus a thumb away, and the founder asked for the duplicate gone:
+  "don't just have the exact same thing as what's in the plus control
+  center". The home is the day (Today, the next day folded, Actions, All
+  lessons); a coach with nobody on the roster reads "No players yet"
+  over one Add player key (`today-add-player`). `COACH_ACTIONS` is the nine (Log · Register · Capture · Tip ·
   Drills · Add player · New group · Call off · Competition), each with
   one name and one glyph — never "Register" on one surface and
   "Attendance" on the other. Call off took Message's place: a coach
@@ -647,25 +678,21 @@ seeded data and no account.
   founder called it messy; it lives in the grid. The eight went four
   to a row for one round and the founder asked for two to a row back
   the same day: the old way looked nicer.
-  `BOARD_ORDER` and `QUICK_ORDER` are the defaults; what a coach keeps
-  rides on `preferences.layout` as `{ board, boardCols, quick }` and is
-  read through `pickLayout`, which drops an id it does not recognise
-  rather than drawing a blank tile. The editor is `LayoutEditor`,
-  reached from the foot of the plus sheet and from Settings — never a
-  permanent link under the board. The last remaining action cannot be
+  `QUICK_ORDER` is the default; what a coach keeps rides on
+  `preferences.layout` as `{ quick }` (a stored `board` is ignored) and
+  is read through `pickLayout`, which drops an id it does not recognise
+  rather than drawing a blank tile. The editor is `LayoutEditor`, the
+  plus's tiles arranged by moving them, reached from the foot of the
+  plus sheet and from Settings › Shortcuts. The last remaining action cannot be
   removed. The save also goes to `localStorage`, so a project whose SQL
   has not been re-run still does what the coach asked.
 - **The one behaviour: a coach picks up the phone mid-lesson, does one
   thing in seconds, puts it down.** Every coach screen is judged
-  against that. Three surfaces reach the same handlers and nothing is
-  ever taken away from one to feed another: the coach home's board (Log
-  · Register · Capture · Tip · Drills · Add player, always on screen,
-  and its verbs act on the lesson that is running when there is one —
-  there used to be a filled block above it carrying Register, Capture
-  and Log for that lesson, which put the word Register on the screen
-  three times); the day's own rows, where the live lesson is marked and
-  carries its register; and the raised plus, which
-  keeps every tile of `QUICK_ORDER` under Log a lesson.
+  against that. Two surfaces reach the same handlers: the day's own
+  rows, where the live lesson is marked and carries its register and a
+  finished one carries Log; and the raised plus, which keeps every tile
+  of `QUICK_ORDER` under Log a lesson. The home's board was a third,
+  until the founder asked for the duplicate gone (above).
   The plus was removed once in favour of "the plus opens the log"
   and the founder wanted every row back the same day. Register and
   capture are also on the lesson itself (the peek sheet), drills and
@@ -1406,7 +1433,7 @@ seeded data and no account.
   and on `.nsc-day` (a container of rows: the Diary's day box, the
   register, the tip prompts keep their rimmed box and their rules
   inside). The home breathes `SPACE.section` where it changes subject
-  (the board → Today, the folded next day → Actions, Actions → All
+  (the date → Today, the folded next day → Actions, Actions → All
   lessons), the roster between its two tiles and the people. This
   supersedes the bullet below where it says every list box carries the
   edge; the rest of that bullet (one list language, no rule inside a
@@ -2573,7 +2600,7 @@ seeded data and no account.
 `supabase/test/run.sh` must pass before it ships; the project itself
 only picks it up when the file is re-run in the SQL editor, so anything
 that writes a new column degrades gracefully until then
-(`preferences.layout` keeps the coach's board on the device).
+(`preferences.layout` keeps the coach's plus on the device).
  It sets up a fresh project
 and upgrades an existing one, and is safe to run again — every
 statement is idempotent, nothing in it deletes an account (the wipe at

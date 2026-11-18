@@ -317,7 +317,8 @@ const metaOf = (page, title) => page.evaluate((title) => {
 
       /* the pick-a-player sheet, its empty line, then the tip sheet's prompts */
       await tap(page, '[aria-label="Today"]', 900);
-      await page.locator('[data-tour="today-board"] button', { hasText: /^Tip$/ }).first().click(); await page.waitForTimeout(900);
+      await tap(page, '[data-tour="quick"]', 900);
+      await page.locator('[data-tour="quick-tip"]').first().click(); await page.waitForTimeout(900);
       const pw = await audit(page, "[data-sheet]", EDGE.golf);
       check("(k) the pick-a-player sheet is boxed rows", fine(pw), said(pw));
       await page.locator("[data-sheet] input").first().fill("zz"); await page.waitForTimeout(400);

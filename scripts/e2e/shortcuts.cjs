@@ -1,8 +1,10 @@
-/* SHORTCUTS. The board on Today and the plus menu are one list of nine
-   actions, and a coach decides what is on each, in what order, and how
-   big the board sits. This proves the choices take effect, that they are
-   written to the coach's preferences, that a coach cannot leave
-   themselves an empty board, and that the default can be had back.
+/* SHORTCUTS. The plus menu is the one list of the coach's actions, and
+   a coach decides what is on it and in what order. The home carried a
+   board of six of them as well until 18 November, every one already on
+   the plus, and the founder asked for the duplicate gone: this proves
+   the home carries no board, that the choices take effect on the plus,
+   that they are written to the coach's preferences, that a coach cannot
+   leave themselves an empty plus, and that the default can be had back.
    Usage: node shortcuts.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -37,42 +39,48 @@ const { check, results, summary } = M.checker("shortcuts");
     return { ctx, page, text: () => M.rootText(page), shot };
   };
   const { tap, byText } = M;
-  /* the labels on the board, in the order they are drawn */
-  const boardLabels = (page) => page.locator('[data-tour="today-board"] button').evaluateAll((els) => els.map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim()));
-  const boardCols = (page) => page.locator('[data-tour="today-board"] > div').first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+  /* the labels on the plus, in the order they are drawn (Log a lesson heads it, outside the list) */
+  const plusLabels = async (page) => {
+    await tap(page, '[data-tour="quick"]', 900);
+    const ls = await page.locator('[data-sheet] button[data-tour^="quick-"]:not([data-tour="quick-log"])').evaluateAll((els) => els.map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim()));
+    await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
+    return ls;
+  };
   const savedLayout = () => (db.prefs[IDS.coach] || {}).layout || null;
+  const EIGHT = "Register|Capture|Tip|Drills|Add player|New group|Call off|Competition";
+  const NAME = { attend: "register", capture: "capture", tip: "tip", drills: "drills", player: "addplayer", group: "newgroup", weather: "calloff", comp: "competition" };
 
   try {
     const { ctx, page, text, shot } = await boot();
-    await shot("01-board-default");
-    const d0 = await boardLabels(page);
-    check("(a) the board starts on the six defaults, three across",
-      d0.join("|") === "Log|Register|Capture|Tip|Drills|Add player" && (await boardCols(page)) === 3, `${d0.join("|")} · cols=${await boardCols(page)}`);
+    await shot("01-home");
+    check("(a) the home carries no board — the actions are the plus's alone", (await page.locator('[data-tour="today-board"]').count()) === 0
+      && (await page.locator('[data-scroll="screen"] button[data-round], [data-scroll="screen"] button[data-tile]').count()) === 0, "board on the home");
+    const d0 = await plusLabels(page);
+    check("(a) the plus starts on the eight defaults under Log a lesson", d0.join("|") === EIGHT, d0.join("|"));
 
-    /* --- into the editor from the home screen --- */
+    /* --- into the editor from the plus --- */
     await tap(page, '[data-tour="quick"]', 900); await page.locator('[data-sheet] button', { hasText: /^Edit$/ }).first().click(); await page.waitForTimeout(1000);
     const t1 = await text(); await shot("02-editor");
-    /* the board is the editor now — the real grid, arranged by moving
-       it, with a size control and the ones not showing underneath */
-    check("(b) Edit opens the board itself, arrangeable, with a size and what is not showing",
-      t1.includes("Shortcuts") && /Drag to arrange/i.test(t1) && /SIZE/i.test(t1) && /Hidden/i.test(t1)
+    check("(b) Edit opens the plus itself, arrangeable — no Home · Plus switch and no size, there being one list",
+      t1.includes("Shortcuts") && /Drag to arrange/i.test(t1) && !/SIZE/i.test(t1) && !/Three across/.test(t1)
       && (await page.locator('[data-arrange="grid"]').count()) === 1, t1.slice(0, 240));
-    check("(b) what is not on the board is offered", /New group/.test(t1) && /Competition/.test(t1), t1.slice(0, 220));
-    check("(b) every tile on the board is a handle, and carries its own way off",
-      (await page.locator('[data-arrange-id]').count()) === 6
+    check("(b) every tile is a handle, and carries its own way off",
+      (await page.locator('[data-arrange-id]').count()) === 8
       && (await page.locator('button[aria-label="Remove Drills"]').count()) === 1, String(await page.locator('[data-arrange-id]').count()));
 
     /* --- take one off --- */
     await page.locator('button[aria-label="Remove Drills"]').first().click(); await page.waitForTimeout(700);
-    check("(c) removing writes it to the coach's preferences", !!savedLayout() && Array.isArray(savedLayout().board) && !savedLayout().board.includes("drills"), JSON.stringify(savedLayout()));
+    check("(c) removing writes it to the coach's preferences", !!savedLayout() && Array.isArray(savedLayout().quick) && !savedLayout().quick.includes("drills"), JSON.stringify(savedLayout()));
+    const t1b = await text();
+    check("(c) …and what is not on the plus is offered under Hidden", /Hidden/i.test(t1b) && (await page.locator('button[aria-label="Add Drills"]').count()) === 1, t1b.slice(0, 260));
 
-    /* --- add one that was not there --- */
-    await page.locator('button[aria-label="Add New group"]').first().click(); await page.waitForTimeout(700);
-    check("(c) adding puts it at the end", savedLayout().board[savedLayout().board.length - 1] === "group", JSON.stringify(savedLayout().board));
+    /* --- put it back: it goes on the end --- */
+    await page.locator('button[aria-label="Add Drills"]').first().click(); await page.waitForTimeout(700);
+    check("(c) adding puts it at the end", savedLayout().quick[savedLayout().quick.length - 1] === "drills", JSON.stringify(savedLayout().quick));
 
     /* --- MOVE IT BY DRAGGING IT. A real pointer drag: press on the
        tile, cross the 9px threshold, travel a whole cell back, let go. --- */
-    const before = savedLayout().board.slice();
+    const before = savedLayout().quick.slice();
     const last = before[before.length - 1];
     const from = await page.locator(`[data-arrange-id="${last}"] button`).first().boundingBox();
     const target = await page.locator(`[data-arrange-id="${before[before.length - 2]}"] button`).first().boundingBox();
@@ -83,58 +91,35 @@ const { check, results, summary } = M.checker("shortcuts");
     await page.waitForTimeout(160);
     await page.mouse.up();
     await page.waitForTimeout(800);
-    const b2 = savedLayout().board;
+    const b2 = savedLayout().quick;
     check("(c) dragging a tile onto another moves it there",
       b2.length === before.length && b2[b2.length - 2] === last && b2.join("|") !== before.join("|"),
       `${before.join("|")}  ->  ${b2.join("|")}`);
     await shot("03-dragged");
 
     /* --- and a keyboard reaches the same place --- */
-    const kbBefore = savedLayout().board.slice();
+    const kbBefore = savedLayout().quick.slice();
     await page.locator(`[data-arrange-id="${kbBefore[0]}"] button`).first().focus();
     await page.keyboard.press("ArrowRight"); await page.waitForTimeout(700);
-    const kb = savedLayout().board;
+    const kb = savedLayout().quick;
     check("(c) an arrow key moves a tile too, for anyone who cannot drag",
       kb[1] === kbBefore[0] && kb[0] === kbBefore[1], `${kbBefore.join("|")}  ->  ${kb.join("|")}`);
-    await page.keyboard.press("ArrowLeft"); await page.waitForTimeout(700);
 
-    /* --- two across --- */
-    await byText(page, "Two across").first().click(); await page.waitForTimeout(700);
-    check("(c) the size is stored", savedLayout().boardCols === 2, JSON.stringify(savedLayout()));
-    await shot("03-editor-changed");
-
-    /* --- and the board itself has changed --- */
+    /* --- and the plus itself has changed, in the editor's order --- */
     await M.back(page); await page.waitForTimeout(1200);
-    const d1 = await boardLabels(page); await shot("04-board-changed");
-    check("(d) the board drops what was removed and keeps what was added",
-      !d1.includes("Drills") && d1.includes("New group"), d1.join("|"));
-    check("(d) …in the order the editor left it in",
-      d1.map((x) => x.toLowerCase().replace(/[^a-z]/g, "")).join("|")
-        === savedLayout().board.map((id) => ({ log: "log", attend: "register", capture: "capture", tip: "tip",
-             drills: "drills", player: "addplayer", group: "newgroup", message: "message", comp: "competition" })[id]).join("|"),
-      `${d1.join("|")} · ${savedLayout().board.join("|")}`);
-    check("(d) and is two across", (await boardCols(page)) === 2, `cols=${await boardCols(page)}`);
-    check("(d) the added action still does its job", (await page.locator('button[aria-label="New group"]').count()) === 1, d1.join("|"));
-
-    /* --- the plus menu is its own list --- */
-    await tap(page, '[data-tour="quick"]', 900);
-    const t2 = await text(); await shot("05-plus");
-    check("(e) the plus menu is untouched by the board's edits", /Drills/.test(t2) && /Log a lesson/.test(t2), t2.slice(-260));
-    await page.locator('[data-sheet] button', { hasText: /^Edit$/ }).first().click(); await page.waitForTimeout(1200);
-    await byText(page, "Plus").first().click(); await page.waitForTimeout(700);
-    await page.locator('button[aria-label="Remove Competition"]').first().click(); await page.waitForTimeout(700);
-    check("(e) editing the plus writes a separate list", Array.isArray(savedLayout().quick) && !savedLayout().quick.includes("comp") && savedLayout().board.includes("log"), JSON.stringify(savedLayout()));
+    const d1 = await plusLabels(page); await shot("04-plus-changed");
+    check("(d) the plus is in the order the editor left it in",
+      d1.map((x) => x.toLowerCase().replace(/[^a-z]/g, "")).join("|") === savedLayout().quick.map((id) => NAME[id]).join("|"),
+      `${d1.join("|")} · ${savedLayout().quick.join("|")}`);
 
     /* --- a coach cannot leave themselves nothing --- */
-    await byText(page, "Home").first().click(); await page.waitForTimeout(700);
-    for (const id of ["Log", "Register", "Capture", "Tip", "Add player", "New group"]) {
+    await tap(page, '[data-tour="quick"]', 900); await page.locator('[data-sheet] button', { hasText: /^Edit$/ }).first().click(); await page.waitForTimeout(1000);
+    for (const id of ["Register", "Capture", "Tip", "Drills", "Add player", "New group", "Call off", "Competition"]) {
       const b = page.locator(`button[aria-label="Remove ${id}"]`).first();
       if (await b.count() && await b.isEnabled()) { await b.click(); await page.waitForTimeout(350); }
     }
-    const left = savedLayout().board;
-    check("(f) the last one on the board cannot be taken off", left.length === 1, JSON.stringify(left));
-    /* and it says so before you try: the last tile's minus is dead, not
-       a button that refuses after the fact */
+    const left = savedLayout().quick;
+    check("(f) the last one on the plus cannot be taken off", left.length === 1, JSON.stringify(left));
     const lastMinus = page.locator("button[aria-label^='Remove ']").first();
     check("(f) …and its minus is disabled rather than refusing after the tap",
       (await lastMinus.count()) === 1 && !(await lastMinus.isEnabled()), String(await lastMinus.count()));
@@ -142,11 +127,10 @@ const { check, results, summary } = M.checker("shortcuts");
 
     /* --- and the default can be had back --- */
     await byText(page, "Reset").first().click(); await page.waitForTimeout(900);
-    check("(g) Reset restores the six and the size",
-      savedLayout().board.join("|") === "log|attend|capture|tip|drills|player" && savedLayout().boardCols === 3, JSON.stringify(savedLayout()));
+    check("(g) Reset restores the eight", savedLayout().quick.join("|") === "attend|capture|tip|drills|player|group|weather|comp", JSON.stringify(savedLayout()));
     await M.back(page); await page.waitForTimeout(1200);
-    const d2 = await boardLabels(page); await shot("07-board-restored");
-    check("(g) …and the board is itself again", d2.join("|") === "Log|Register|Capture|Tip|Drills|Add player", d2.join("|"));
+    const d2 = await plusLabels(page); await shot("07-plus-restored");
+    check("(g) …and the plus is itself again", d2.join("|") === EIGHT, d2.join("|"));
 
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
     await ctx.close();
