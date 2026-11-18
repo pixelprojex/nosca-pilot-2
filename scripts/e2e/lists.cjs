@@ -204,11 +204,10 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
          above it on the same edge and corner */
       const daysC = await page.evaluate(() => { const c = document.querySelector('[data-tour="avail-days"]'); if (!c) return null; const cs = getComputedStyle(c); const rows = [...c.children];
         return { n: rows.length, edge: cs.borderTopColor, w: cs.borderTopWidth, r: cs.borderTopLeftRadius, inner: rows.slice(0, -1).map((x) => `${getComputedStyle(x).borderBottomWidth} ${getComputedStyle(x).borderBottomColor}`) }; });
-      const disc = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => /Slots and lesson length/.test(x.textContent)); if (!b) return null; const cs = getComputedStyle(b); return { c: cs.borderTopColor, w: b.style.borderTopWidth || cs.borderTopWidth, r: cs.borderTopLeftRadius, bg: cs.backgroundColor, sh: cs.boxShadow }; });
+      const disc = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => /Slots and lesson length/.test(x.textContent)); if (!b) return null; const cs = getComputedStyle(b); return { c: cs.borderTopColor, w: b.style.borderTopWidth || cs.borderTopWidth, r: cs.borderTopLeftRadius }; });
       await shot("s-hours-days");
       check("(s) guard: the hours' seven days are one Card on golf's edge, the days as rows inside on the 1px hairline", !!daysC && daysC.n === 7 && daysC.edge === EDGE.golf && parseFloat(daysC.w) >= 1 && daysC.inner.every((x) => x === `1px ${HAIRLINE.golf}`), JSON.stringify(daysC));
-      /* since 18 November an outlined control is a key: the sport's tint on its lip (no outline), still at the Card's corner */
-      check("(s2) Slots and lesson length is a key of the family — on a lip with a fine ring, no outline in the edge — at the Card's corner", !!disc && /0px 4px 0px/.test(disc.sh) && /inset/.test(disc.sh) && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
+      check("(s2) Slots and lesson length is on golf's edge at the edge's width, the Card's corner", !!disc && disc.c === EDGE.golf && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
       await page.locator(`${SCREEN} button`, { hasText: /Slots and lesson length/ }).first().click(); await page.waitForTimeout(500);
       await page.locator('[aria-label="Add a time"]').first().click(); await page.waitForTimeout(500);
       const addR = await page.locator('[data-tour="avail-add"] button').evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).borderRadius)));

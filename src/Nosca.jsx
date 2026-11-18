@@ -461,7 +461,11 @@ export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : MIX(
    colour), and the sport's colour is kept for the one action and the
    glyphs. */
 export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : "#FFFFFF");
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : MIX("#FFFFFF", t.ink, 0.15));
+/* its lip is the sport's own edge — the same EDGE(t) as its outline, so
+   the control's boundary still reads 3:1 and over ("No control on the
+   hairline"), and the key is Duolingo's white button with its border and
+   its ledge, in the sport's dark tone */
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : EDGE(t));
 /* dramatic, at the founder's word ("don't be afraid of dramatic kind
    of 3D effects"): six points of lip under a button or a tile, and the
    press takes five of them, so a key goes right down like a real one */
@@ -2027,8 +2031,8 @@ ${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
        carries a deeper tone where the face is coloured (a chosen mark). */
-    .n-key { box-shadow: 0 4px 0 var(--key-lip, var(--tint-lip)), inset 0 0 0 1px var(--key-lip, var(--tint-lip)); transition: transform .24s cubic-bezier(.3,1.6,.5,1), box-shadow .24s cubic-bezier(.3,1.6,.5,1), background-color .18s, color .18s, border-color .18s; -webkit-tap-highlight-color: transparent; }
-    .n-key:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-lip, var(--tint-lip)), inset 0 0 0 1px var(--key-lip, var(--tint-lip)); transition: none; }
+    .n-key { box-shadow: 0 4px 0 var(--key-lip, var(--edge)); transition: transform .24s cubic-bezier(.3,1.6,.5,1), box-shadow .24s cubic-bezier(.3,1.6,.5,1), background-color .18s, color .18s, border-color .18s; -webkit-tap-highlight-color: transparent; }
+    .n-key:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-lip, var(--edge)); transition: none; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
@@ -2338,7 +2342,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
           {playing ? tr("Pause") : tr("Play both")}
         </button>
         <button onClick={() => { haptic(7); onClose && onClose(); }} className="px-5 n-key"
-                style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.sub }}>
+                style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.sub }}>
           {tr("Close")}
         </button>
       </div>
@@ -3020,7 +3024,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
               {live && removing === e.id && (
                 <div className="flex gap-2.5 mb-4" style={{ animation: "liftIn 300ms cubic-bezier(.22,1,.36,1) both" }}>
                   <button onClick={() => { haptic(6); setRemoving(null); }} className="px-4 n-key"
-                          style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{tr("Keep it")}</button>
+                          style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{tr("Keep it")}</button>
                   <button onClick={async () => { const r = onRemove ? await onRemove(e.id) : null; if (r && r.error) { say(r.error.message); return; } hapticWarn(); setRemoving(null); }}
                           className="flex-1 active:opacity-75"
                           style={{ minHeight: 44, borderRadius: R.control, background: DANGER, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{tr("Remove")}</button>
@@ -3273,7 +3277,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
 
       {isVideo && onTranscribe && !item.transcript && !item.working && (
         <button onClick={onTranscribe} className="w-full mt-3 flex items-center justify-center gap-2 n-key"
-                style={{ background: TINT(t), minHeight: 38, borderRadius: R.field, border: `${EDGE_W}px solid transparent` }}>
+                style={{ background: TINT(t), minHeight: 38, borderRadius: R.field, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
           <FileText size={12} color={t.sub} />
           <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("Turn the talking into notes")}</span>
         </button>
@@ -3761,7 +3765,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
                       onPointerUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       onPointerLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       className="flex flex-col items-start justify-center gap-1.5 px-4 n-key"
-                      style={{ minHeight: 96, borderRadius: R.surface, background: TINT(t), border: `${EDGE_W}px solid transparent`,
+                      style={{ minHeight: 96, borderRadius: R.surface, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`,
                                willChange: "transform", transition: "transform 150ms cubic-bezier(.34,1.56,.64,1)",
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <o.Icon size={20} color={i < 2 ? t.accent : t.sub} strokeWidth={1.6} />
@@ -3868,14 +3872,14 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   <div className="flex items-center justify-end gap-1.5 mt-2">
                     {/* an end date is not kept for a real account yet, so the two are not offered */}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 n-key"
-                            style={{ background: TINT(t), minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                            style={{ background: TINT(t), minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 n-key"
-                            style={{ background: TINT(t), minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                            style={{ background: TINT(t), minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
                     {/* End asks why, lists the lessons it booked and takes the password — the End sheet */}
                     <button data-tour="recur-end" onClick={() => { haptic(9); onEnd(x); }} className="px-3 n-key"
-                            style={{ background: TINT(t), minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                            style={{ background: TINT(t), minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
                   </div>
                 </>
@@ -4401,7 +4405,7 @@ function CheckIns({ role, list, onAnswer, onSend, pop, say }) {
               ) : role === "coach" ? (
                 <div className="flex gap-2.5">
                   <button onClick={() => { haptic(8); say(tr("Opens the mark-up tools")); }} className="px-4 n-key"
-                          style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                          style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                    ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Mark it up")}</button>
                   <button onClick={() => { hapticCommit(); onAnswer(c); }} className="flex-1 active:opacity-75"
                           style={{ minHeight: 46, borderRadius: R.control, background: t.accent,
@@ -4653,9 +4657,10 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
       {/* the log first and full width; then the eight, two to a row,
           in the order the coach keeps — Call off among them, in red */}
       <ActTile tour="quick-log" tone="accent" block h={84} Icon={Plus} label={tr("Log a lesson")} onTap={() => { hapticCommit(); onLog(); }} />
-      {/* the eight as round keys, four across as Lares's row of nodes is */}
+      {/* the eight as round keys, two to a row — the founder's own choice for
+          this sheet, kept when the tiles became round */}
       <div style={{ marginTop: SPACE.block + 4 }}>
-        <TileGrid cols={4}>
+        <TileGrid cols={2}>
           {ids.map((id, i) => {
             const A = COACH_ACTIONS[id];
             return (
@@ -4904,8 +4909,8 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                             /* a key on its lip: the edge's at rest, the mark's own colour made deeper once chosen */
                             className="flex items-center justify-center n-key"
                             style={{ minWidth: 66, minHeight: 44, borderRadius: R.control,
-                                     background: on ? tone : TINT(t), "--key-lip": on ? LIP(tone) : TINT_LIP(t),
-                                     border: `${EDGE_W}px solid ${on ? tone : "transparent"}`,
+                                     background: on ? tone : TINT(t), "--key-lip": on ? LIP(tone) : EDGE(t),
+                                     border: `${EDGE_W}px solid ${on ? tone : EDGE(t)}`,
                                      ...TYPE.caption, fontWeight: 650,
                                      color: on ? "#fff" : t.sub }}>
                       {lbl}
@@ -5457,7 +5462,7 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
     : status === "saving" ? `${tr("Saving")} · ${pct}%`
     : status === "failed" ? tr("Download failed")
     : tr("Not downloaded");
-  const quiet = { minHeight: 48, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink };
+  const quiet = { minHeight: 48, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
   return (
     <div data-tour="download-sheet" data-download-sheet={status || "none"}>
       <h2 style={{ ...TYPE.title, color: t.ink }}>{lesson.focus}</h2>
@@ -6327,7 +6332,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
           {!juvenile && (
             <button data-tour="coach-message" onClick={() => { haptic(8); soft(); onMessage(); }}
                     className="w-full flex items-center justify-center gap-2 mb-8 n-key"
-                    style={{ background: TINT(t), minHeight: 50, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                    style={{ background: TINT(t), minHeight: 50, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                              ...TYPE.subhead, fontSize: 15, color: t.ink }}>
               <MessageCircle size={15} strokeWidth={1.9} />
               {tr("Message")}
@@ -6369,7 +6374,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
                   {leaveErr && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{leaveErr}</p>}
                   <div className="flex gap-2">
                     <button onClick={() => { haptic(6); setLeaving(false); }} className="flex-1 n-key"
-                            style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
+                            style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
                     <button onClick={async () => { hapticWarn(); setLeaveBusy(true); const r = await onLeaveCoach(); setLeaveBusy(false); if (r && r.error) { setLeaveErr(r.error.message); return; } }}
                             className="flex-1 active:opacity-80"
                             style={{ minHeight: 46, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{leaveBusy ? "…" : `${tr("Leave")} ${first}`}</button>
@@ -6781,7 +6786,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
               <span className="block" style={{ fontFamily: display, fontSize: 34, letterSpacing: "0.28em", paddingLeft: "0.28em", color: t.ink }}>{code}</span>
               <div className="mt-5 flex items-center justify-center gap-2.5">
                 <button onClick={copy} className="inline-flex items-center gap-2 px-5 n-key"
-                        style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
+                        style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
                 <button data-tour="family-share" onClick={share} className="inline-flex items-center gap-2 px-5 active:opacity-70"
                         style={{ minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}><Share2 size={14} strokeWidth={2} />{tr("Share")}</button>
               </div>
@@ -6804,7 +6809,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                     <MicBtn onText={(txt) => setNewName(newName ? `${newName} ${txt}` : txt)} size={26} />
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setRenaming(false)} className="flex-1 n-key" style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Cancel")}</button>
+                    <button onClick={() => setRenaming(false)} className="flex-1 n-key" style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Cancel")}</button>
                     <button onClick={async () => { haptic(8); setBusy(true); const r = await onRename(newName); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } setRenaming(false); say && say(tr("Saved")); }}
                             className="flex-1 active:opacity-80" style={{ minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Save")}</button>
                   </div>
@@ -6814,7 +6819,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                 <div className="px-5 py-4" style={{ borderTop: `1px solid ${t.hair}` }}>
                   <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{tr("You'll stop seeing their lessons. Rejoin any time with the code")}</p>
                   <div className="flex gap-2">
-                    <button onClick={() => setLeaving(false)} className="flex-1 n-key" style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
+                    <button onClick={() => setLeaving(false)} className="flex-1 n-key" style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
                     <button onClick={async () => { hapticWarn(); setBusy(true); const r = await onLeave(); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } say && say(tr("You've left the family")); }}
                             className="flex-1 active:opacity-80" style={{ minHeight: 44, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Leave")}</button>
                   </div>
@@ -6981,7 +6986,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               {canBook ? tr("Book a lesson") : kid.coachId ? tr("No hours set") : tr("Book a lesson")}
             </button>
             <button onClick={() => { haptic(8); onMessage && onMessage(kid); }} disabled={!kid.coachId} className="flex-1 disabled:opacity-35 n-key"
-                    style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
+                    style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
           </div>
 
           <div className="mb-7 nsc-list">
@@ -7010,13 +7015,13 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
             </div>
             {mine.length > shown.length && (
               <button onClick={() => { haptic(6); onAllLessons && onAllLessons(); }} className="w-full mb-3 n-key"
-                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("All")} {mine.length} {tr("lessons")}
               </button>
             )}
             {onProgress && (
               <button data-tour="kid-progress" onClick={() => { haptic(6); onProgress(); }} className="w-full mb-7 n-key"
-                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("Progress")}
               </button>
             )}
@@ -7619,7 +7624,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             {f.lastFocus && (
               <button onClick={() => { haptic(7); onOpenLast && onOpenLast(item.who); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left n-key"
-                      style={{ background: TINT(t), borderRadius: R.control, border: `${EDGE_W}px solid transparent` }}>
+                      style={{ background: TINT(t), borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
                 <span className="flex-1">
                   <span className="block mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
@@ -7632,10 +7637,10 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
               {/* the diary passes onCancel (the Why sheet); an older caller onNoShow —
                   the button took only the second, so the diary's Cancel did nothing */}
               <button data-tour="block-cancel" onClick={() => { hapticWarn(); const act = onCancel || onNoShow; act && act(item); }} className="px-4 n-key"
-                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 n-key"
-                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                      style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                                fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
               <button onClick={() => { hapticCommit(); onLog && onLog(item); }} className="flex-1 active:opacity-75"
                       style={{ minHeight: 46, borderRadius: R.control, background: t.accent,
@@ -8434,14 +8439,14 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   const looks = {
     accent: { background: t.accent, color: t.onAccent, border: "none", lip: LIP(t.accent) },
     ink:    { background: t.ink, color: "#fff", border: "none", lip: MIX(t.ink, "#000000", 0.55) },
-    quiet:  { background: TINT(t), color: t.ink, border: "none", lip: TINT_LIP(t) },
+    quiet:  { background: TINT(t), color: t.ink, border: `${EDGE_W}px solid ${EDGE(t)}`, lip: EDGE(t) },
     danger: { background: DANGER, color: "#fff", border: "none", lip: LIP(DANGER) },
-    dangerQuiet: { background: TINT(t), color: DANGER, border: "none", lip: TINT_LIP(t) },
+    dangerQuiet: { background: TINT(t), color: DANGER, border: `${EDGE_W}px solid ${EDGE(t)}`, lip: EDGE(t) },
   }[tone];
   const { lip, ...face } = looks;
   /* the tinted kinds carry a fine ring of their own lip round the face, as
      Lares's stone does, so the key's edge reads on the paper */
-  const p = press3d(lip, LIP_H, LIP_PRESS, tone === "quiet" || tone === "dangerQuiet" ? `inset 0 0 0 1px ${lip}` : "");
+  const p = press3d(lip, LIP_H, LIP_PRESS);
   return (
     <button data-tour={tour} data-lip="" onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
             className="w-full disabled:opacity-30"
@@ -8522,7 +8527,8 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : TINT(t);
   const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? "#fff" : t.ink;
   const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-  const ring = quietTile ? `inset 0 0 0 1px ${lipC}` : "";
+  /* the second kind keeps the sport's edge as its outline, 3:1 and over */
+  const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
   const badge = count > 0 ? (
     <span className="absolute flex items-center justify-center rounded-full"
@@ -8544,8 +8550,10 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
         <span data-face="" data-lip="" className="relative flex items-center justify-center rounded-full"
               style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest, willChange: "transform",
+                       border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
-          <Icon size={f >= 64 ? 25 : 23} color={quietTile ? (t.mark || fg) : fg} strokeWidth={quietTile ? 1.9 : 2} />
+          {/* the glyph in ink on the white key, never the accent (the accent is the one action's) */}
+          <Icon size={f >= 64 ? 25 : 23} color={fg} strokeWidth={quietTile ? 1.8 : 2} />
           {badge}
         </span>
         {!iconOnly && (
@@ -8563,7 +8571,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...p.handlers}
             className="relative w-full flex flex-col items-center justify-center gap-1.5"
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest, willChange: "transform",
-                     border: `${EDGE_W}px solid transparent`, animation: enter,
+                     border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`, animation: enter,
                      transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -8631,13 +8639,13 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         /* a time is a small key on a three-point lip: the chosen one ink
            on a deeper ink, the rest on the sport's edge or the wash's */
         const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-        const p = press3d(lc, 4, 3, on ? "" : `inset 0 0 0 1px ${lc}`);
+        const p = press3d(lc, 4, 3);
         void cluster;
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} data-lip="" aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
                   {...p.handlers}
                   style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : TINT(t),
-                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? t.ink : "transparent"}`, opacity: off ? 0.35 : 1,
+                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, opacity: off ? 0.35 : 1,
                            fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
                            color: on ? "#fff" : t.ink, willChange: "transform",
                            transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>{x}</button>
@@ -8747,14 +8755,14 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
              round and the founder asked why there were two. */
           /* each a key in its own sport's colour: the sport's tint on a
              deeper tint, the sport's full colour once chosen */
-          const lc = on ? LIP(th.mark) : MIX(th.wash, th.mark, 0.22);
-          const p = press3d(lc, LIP_H, LIP_PRESS, on ? "" : `inset 0 0 0 1px ${lc}`);
+          const lc = on ? LIP(th.mark) : `${th.mark}B8`;
+          const p = press3d(lc, LIP_H, LIP_PRESS);
           return (
             <button key={id} data-lip="" aria-label={add ? `${tr("Add")} ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
                     {...p.handlers}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
                     style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : th.wash, boxShadow: p.rest,
-                             border: `${EDGE_W}px solid transparent`, willChange: "transform",
+                             border: `${EDGE_W}px solid ${on ? th.mark : `${th.mark}B8`}`, willChange: "transform",
                              transition: `background ${MOTION.settle}ms, transform 240ms cubic-bezier(.3,1.6,.5,1), box-shadow 240ms cubic-bezier(.3,1.6,.5,1)` }}>
               {add
                 ? <Plus size={18} color={th.mark} strokeWidth={2.2} />
@@ -9422,13 +9430,13 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
      chosen; the entrance fills backwards only, or its last frame would
      hold the transform the press writes */
   const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-  const p = press3d(lc, 4, 3, on ? "" : `inset 0 0 0 1px ${lc}`);
+  const p = press3d(lc, 4, 3);
   return (
     <button onClick={() => { haptic(8); soft(); onSelect(); }} aria-pressed={!!on} data-lip=""
             className="w-full flex items-center gap-4 px-5 text-left"
             {...p.handlers}
             style={{ minHeight: 62, marginBottom: 10, borderRadius: R.surface, background: on ? t.ink : TINT(t),
-                     border: `${EDGE_W}px solid ${on ? t.ink : "transparent"}`, willChange: "transform", boxShadow: p.rest,
+                     border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, willChange: "transform", boxShadow: p.rest,
                      transition: "background 220ms, border-color 220ms, transform 240ms cubic-bezier(.3,1.6,.5,1), box-shadow 240ms cubic-bezier(.3,1.6,.5,1)",
                      animation: `fadeUp 460ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards` }}>
       {Icon && <Icon size={20} color={on ? t.accent : t.sub} strokeWidth={1.6} />}
@@ -10607,7 +10615,7 @@ function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
           are there, so no label is cut. */}
       {item.id && (onAnnotate || onCompare || onStudy) && (() => {
         const three = !!(onAnnotate && onCompare && onStudy);
-        const btn = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink, padding: "0 6px" };
+        const btn = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink, padding: "0 6px" };
         return (
         <div className="flex gap-2 mt-3" data-tour="lesson-ways">
           {onAnnotate && (
@@ -10853,7 +10861,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                     <div className="flex gap-2 mt-2.5">
                       {rest.map((a) => (
                         <button key={a.k} onClick={() => { haptic(8); soft(); a.act(); }} className="flex-1 n-key"
-                                style={{ minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink }}>{a.lbl}</button>
+                                style={{ minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>{a.lbl}</button>
                       ))}
                     </div>
                   )}
@@ -11568,9 +11576,9 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                     {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                   </button>
                   <button onClick={() => stepFrame(-1)} disabled={frozen} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid transparent` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                          style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
                   <button onClick={() => stepFrame(1)} disabled={frozen} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid transparent` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                          style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
                   <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur || rendering}
                          onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
                          className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
@@ -11612,7 +11620,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                 {phase === "draw" && (
                   <div className="flex gap-2">
                     <button onClick={talk} disabled={!dims || broken} className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40 n-key"
-                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
                       <Mic size={16} strokeWidth={2} />{tr("Talk over it")}
                     </button>
                     <div style={{ flex: 1.3 }}><Button onClick={saveNow} disabled={!dims || broken}>{tr("Save")}</Button></div>
@@ -11633,7 +11641,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                 {busy && take && (
                   <div className="flex gap-2">
                     <button onClick={again} disabled={phase === "sending"} className="flex-1 disabled:opacity-40 n-key"
-                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
                       {tr("Again")}
                     </button>
                     <div style={{ flex: 2 }}>
@@ -11940,9 +11948,9 @@ function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
                   {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                 </button>
                 <button onClick={() => stepFrame(-1)} disabled={!ready} data-tour="study-back" aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid transparent` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <button onClick={() => stepFrame(1)} disabled={!ready} data-tour="study-fwd" aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid transparent` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <input type="range" min={0} max={Math.max(span, 0.1)} step={0.02} value={Math.min(time, span || 0)} disabled={!ready} data-tour="study-scrub"
                        onChange={(e) => { const v = vid.current; if (v) v.pause(); seek(Number(e.target.value)); }} aria-label={tr("Scrub")}
                        className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
@@ -11954,7 +11962,7 @@ function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
               <div className="flex gap-2 mt-3" data-tour="study-actions">
                 <button onClick={toggleSound} disabled={!ready} data-tour="study-sound" aria-pressed={sound} aria-label={sound ? tr("Mute") : tr("Sound")}
                         className="flex items-center justify-center shrink-0 disabled:opacity-40 n-key"
-                        style={{ width: 46, height: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent` }}>
+                        style={{ width: 46, height: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}` }}>
                   {sound ? <Volume2 size={17} color={t.ink} strokeWidth={1.9} /> : <VolumeX size={17} color={t.ink} strokeWidth={1.9} />}
                 </button>
                 <button onClick={loopTap} disabled={!ready} data-tour="study-loop" data-loop={!loop ? "off" : loop.b == null ? "from" : "on"} aria-pressed={!!(loop && loop.b != null)}
@@ -12166,7 +12174,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
     return [lessonDay(x.lesson), same.length > 1 ? `${tr("Clip")} ${same.indexOf(x) + 1}` : null].filter(Boolean).join(" · ");
   };
   const others = all ? all.filter((x) => x !== a) : null;
-  const quiet = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink };
+  const quiet = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
 
   return (
     <SwipeBack onBack={pop}>
@@ -12223,9 +12231,9 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
                   {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                 </button>
                 <button onClick={() => stepFrame(-1)} disabled={!ready} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid transparent` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <button onClick={() => stepFrame(1)} disabled={!ready} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid transparent` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ background: TINT(t), width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <input type="range" min={0} max={Math.max(span, 0.1)} step={0.05} value={Math.min(time, span || 0)} disabled={!ready}
                        onChange={(e) => { pauseBoth(); seekBoth(Number(e.target.value)); }} aria-label={tr("Scrub")}
                        className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
@@ -12717,7 +12725,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
 
           <button onClick={() => { haptic(9); soft(); onSave(onBoard ? { board: BOARD_ORDER, boardCols: 3 } : { quick: QUICK_ORDER }); }}
                   className="w-full n-key"
-                  style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                  style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                            ...TYPE.small, fontWeight: 600, color: t.sub }}>
             {tr("Reset")}
           </button>
@@ -13162,12 +13170,12 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
   /* a face is a key of the family as well: the tint on its deeper tint,
      the ink once picked, and it goes right down under the thumb */
   const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
-  const p = press3d(lc, LIP_H, LIP_PRESS, on ? "" : `inset 0 0 0 1px ${lc}`);
+  const p = press3d(lc, LIP_H, LIP_PRESS);
   return (
     <button data-tour={tour} data-lip="" aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
             {...p.handlers}
             className="relative w-full flex flex-col items-center justify-center gap-2"
-            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : TINT(t),
+            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : TINT(t), border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`,
                      boxShadow: p.rest, willChange: "transform",
                      transition: `background ${MOTION.settle}ms, box-shadow 240ms cubic-bezier(.3,1.6,.5,1), transform 240ms cubic-bezier(.3,1.6,.5,1)` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
@@ -13793,7 +13801,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                       {it.kind === "video" && it.file && (
                         <button data-tour="wiz-markup" onClick={() => { haptic(8); soft(); setReviewing(it); setView("review"); }}
                                 className="shrink-0 px-3 n-key"
-                                style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                                style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                           {tr("Mark it up")}
                         </button>
                       )}
@@ -14204,7 +14212,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                 parent is handed at the end of a term */}
             <button data-tour="progress-report" onClick={() => { hapticCommit(); soft(); shareSeasonReport({ name: name || title, coach, cfg, lessons, drills: mineDrills, tips: tips || [], today, say, attendance, practice }); }}
                     className="w-full flex items-center justify-center gap-2 n-key"
-                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
               {tr("Share a report")}
             </button>
           </>)}
@@ -14324,7 +14332,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           {past.length > 0 && (
             <button data-tour="player-all-lessons" onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
                     className="w-full flex items-center justify-center gap-2 mb-7 n-key"
-                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
               {tr("All")} {live ? f.done : past.length} {tr("lessons")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
             </button>
           )}
@@ -14603,7 +14611,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           {shown.length > page.length && (
             <button onClick={() => { haptic(7); setShownCount((n) => n + ARCHIVE_PAGE); }}
                     className="w-full mb-6 n-key"
-                    style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid transparent`,
+                    style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>
               {tr("Show more")}
             </button>
@@ -14670,7 +14678,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         <span className="flex items-center gap-3">
           {[[tr("Fewer"), Minus, () => setTotal(Math.max(1, total - 1))], null, [tr("More"), Plus, () => setTotal(Math.min(24, total + 1))]].map((b, k) => b
             ? <button key={k} onClick={() => { haptic(5); b[2](); }} className="flex items-center justify-center n-key" aria-label={b[0]}
-                      style={{ background: TINT(t), width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent` }}>{React.createElement(b[1], { size: 15, color: t.ink })}</button>
+                      style={{ background: TINT(t), width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}>{React.createElement(b[1], { size: 15, color: t.ink })}</button>
             : <span key={k} data-tour="recur-total" style={{ ...TYPE.figureSm, color: t.ink, minWidth: 26, textAlign: "center" }}>{total}</span>)}
         </span>
       </div>
@@ -15071,7 +15079,7 @@ function VideoAnnotate({ angle, transcript, onSave, pop, say }) {
                                        fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{lbl}</button>);
             })}
             <button onClick={() => { haptic(8); setShapes(shapes.slice(0, -1)); }} disabled={!shapes.length}
-                    className="disabled:opacity-25 n-key" style={{ background: TINT(t), width: 44, minHeight: 42, borderRadius: R.control, border: `${EDGE_W}px solid transparent` }}
+                    className="disabled:opacity-25 n-key" style={{ background: TINT(t), width: 44, minHeight: 42, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}
                     aria-label={tr("Undo")}><ChevronLeft size={15} color={t.sub} /></button>
           </div>
 
@@ -15301,7 +15309,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
       {canPickContacts && (
         <button onClick={() => { haptic(8); pickContacts(); }}
                 className="w-full flex items-center gap-3.5 px-5 n-key"
-                style={{ background: TINT(t), minHeight: 56, borderRadius: R.surface, border: `${EDGE_W}px solid transparent` }}>
+                style={{ background: TINT(t), minHeight: 56, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
           <Users size={17} color={t.sub} strokeWidth={1.6} />
           <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
           <ChevronRight size={15} color={t.trace || t.faint} />
@@ -15533,7 +15541,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
             <div className="px-6 pt-3">
               <button data-tour="drills-all" onClick={() => { hapticCommit(); soft(); onAll(); }}
                       className="w-full flex items-center justify-center gap-2 n-key"
-                      style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                      style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
                 {tr("All")} {items.length} {items.length === 1 ? tr("drill") : tr("drills")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
               </button>
             </div>
@@ -15548,7 +15556,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
         <div className="px-6" style={{ marginTop: SPACE.block }}>
           <button data-tour="drills-log-practice" onClick={() => { hapticCommit(); soft(); onLogPractice(); }}
                   className="w-full flex items-center justify-center gap-2 n-key"
-                  style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid transparent`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                  style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
             <Plus size={16} color={t.ink} strokeWidth={2.2} /> {tr("Log a practice")}
           </button>
         </div>
@@ -15633,7 +15641,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
   return (
     <Screen title={tr("Drills")} right={right}>
       <div className="px-6 mb-6">
-        <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left n-key" style={{ background: TINT(t), borderRadius: R.surface, border: `${EDGE_W}px solid transparent`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
+        <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left n-key" style={{ background: TINT(t), borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
           <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
           <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 20, color: t.ink }}>{tr("Set drills")}</span><span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{tr("Choose who, and what they practise")}</span></span>
           <ChevronRight size={17} color={t.trace || t.faint} />
@@ -15751,7 +15759,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                               drills the coach never chose */}
                           {library.length > 1 && (
                           <button onClick={() => { if (!busy) remove(d.t); }} className="px-4 n-key"
-                                  style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent` }} aria-label={tr("Delete")}>
+                                  style={{ background: TINT(t), minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }} aria-label={tr("Delete")}>
                             <Trash2 size={15} color={DANGER} />
                           </button>
                           )}
@@ -15897,7 +15905,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
     <SwipeBack onBack={pop}>
       <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
-          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 n-key" style={{ background: TINT(t), minHeight: 58, border: `${EDGE_W}px solid transparent` }}>
+          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 n-key" style={{ background: TINT(t), minHeight: 58, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min</span></span>
             <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
@@ -15923,7 +15931,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                 {slots.map((sl) => (
                   <button key={sl} onClick={() => { if (removing) dropTime(sl); }} aria-label={removing ? `${tr("Remove")} ${sl}` : sl}
                           className="relative flex items-center justify-center n-key"
-                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, background: TINT(t), ...TYPE.small, fontWeight: 600, color: t.ink,
+                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: TINT(t), ...TYPE.small, fontWeight: 600, color: t.ink,
                                    animation: removing ? "wiggle 420ms ease-in-out infinite" : "none" }}>
                     {sl}
                     {removing && (
@@ -17010,7 +17018,7 @@ function LessonLogs({ role, lessons, onDownload, onOpen, pop, liveMedia, onNeedM
           )}
           {left > 0 && (
             <button onClick={() => { haptic(6); setShownCount((n) => n + ARCHIVE_PAGE); }} className="w-full mt-4 n-key"
-                    style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                    style={{ background: TINT(t), minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
               {tr("Show")} {Math.min(ARCHIVE_PAGE, left)} {tr("more")} · {left} {tr("left")}
             </button>
           )}
@@ -18218,7 +18226,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
                onChange={(e) => { const f = Array.from(e.target.files || []); e.target.value = ""; if (f.length) { onAddFiles(f); close(); } }} />
         <button onClick={() => { haptic(8); fileRef.current && fileRef.current.click(); }}
                 className="w-full flex items-center justify-center gap-2 mb-4 n-key"
-                style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid transparent`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                style={{ background: TINT(t), minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
           <Plus size={15} color={t.sub} strokeWidth={2.2} />{tr("Add a clip, photo or voice note")}
         </button>
       </>)}

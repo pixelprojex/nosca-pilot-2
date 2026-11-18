@@ -189,8 +189,8 @@ seeded data and no account.
     `data-round`): a round face on a five-point lip that sinks the whole
     lip under the finger, the glyph in it, one word under it in `t.sub`
     (the one action's in ink, Call off's red) and no box round any of it —
-    the board, the plus sheet (four across, as Lares's row of nodes; the
-    full-width Log a lesson keeps its block, `block`), the roster's two,
+    the board, the plus sheet (two to a row, the founder's own choice for
+    it; the full-width Log a lesson keeps its block, `block`), the roster's two,
     the player file's four, the Add player routes, the group's Message,
     the log's Video · Photo · Voice (`iconOnly`: the glyph alone, the word
     its name for VoiceOver). A key that is a word (a focus area, Drills,
@@ -199,25 +199,26 @@ seeded data and no account.
   - **The colours are restrained, never a colouring book.** The one
     action is the accent on `LIP(accent)` (a third deeper); Call off is
     red on `LIP(DANGER)`; a chosen key is the ink. Every other key is
-    neutral, as Lares's stone and Duolingo's second button are:
-    `TINT(t)` is the paper's white on `TINT_LIP(t)` (the ink at 15% over
-    white, a soft grey) with a fine ring of it, the glyph in the sport's
-    `mark`. A fill of the sport's colour on the second kind — a mint on
-    tennis — was tried for a morning and the founder called it "a
-    children's colouring book — not classy at all"; do not tint them.
-    Red keys (`dangerQuiet`, the peek's Call off · Cancel) are white too,
-    the red in the word and the glyph. The outlined controls carry `n-key`
-    (white on the grey lip where the outline was unconditional;
-    `--key-lip` where a chosen face has its own, as the register's
-    Present · Absent). `SportGrid` keeps each sport on its own wash, on a
-    lip of its mark.
+    Duolingo's white button: `TINT(t)` is the paper's white, its outline
+    the sport's edge at `EDGE_W` as it always was ("No control on the
+    hairline" still holds: 3:1 and over), and `TINT_LIP(t)` — its lip — is
+    that same `EDGE(t)`; the glyph is the ink, never the accent. A fill of
+    the sport's colour on the second kind — a mint on tennis — was tried
+    for a morning and the founder called it "a children's colouring book
+    — not classy at all"; do not tint them. A pale grey ledge with a
+    faint ring was tried next and dropped: it read 1.4:1, under the 3:1
+    the outline rule keeps. Red keys (`dangerQuiet`, the peek's Call off ·
+    Cancel) are white on the edge too, the red in the word and the glyph.
+    The outlined controls carry `n-key` (their outline as before, the
+    edge as their lip; `--key-lip` where a chosen face has its own, as
+    the register's Present · Absent). `SportGrid` keeps each sport on its
+    own wash and its own edge, on a lip of that edge.
   - **The tab bar is the icon alone** (23px, the word its `aria-label`),
     the highlight a 50 × 38 capsule round it on a faint lip; **the raised
     plus is the big plus on the bar's swell, exactly as it was**, level
     with the icons — never a box.
-  This supersedes, where they say otherwise: "No control on the
-  hairline" (an outlined control is the tint now) and the tab bar's
-  labels under "12px is the floor". Not changed: the paper, the sport
+  This supersedes, where they say otherwise, the tab bar's labels under
+  "12px is the floor". Not changed: the paper, the sport
   tints, the splash, the feed, the board's six, the walkthrough's shape,
   the profile pill, the text boxes, every row and card.
   `scripts/e2e/keys.cjs`.
