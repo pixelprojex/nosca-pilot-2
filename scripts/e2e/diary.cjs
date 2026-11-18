@@ -366,7 +366,7 @@ const leaks = [];
          was handed out under, so the profile shows it and offers the
          other five as additions rather than replacements. */
       check("(f) the sport they signed up to coach cannot be swapped, only added to", t11.includes("Sports you coach") && t11.includes("Add another") && (await page.locator('[aria-label="Add Tennis"]').count()) === 1 && !/\+ Tennis/.test(t11), t11.slice(0, 260));
-      /* a sport tile is its sport's colour: the add tile for tennis wears tennis' wash, one plus on it */
+      /* a sport tile is its sport's colour: the add tile for tennis wears tennis' wash (on a lip of its mark since 18 November), one plus on it */
       const tennisTile = page.locator('[aria-label="Add Tennis"]');
       check("(f) the add tile is its sport's colour and carries one plus, not two", (await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor)) === "rgb(237, 244, 241)" && (await tennisTile.locator("svg").count()) === 1 && (await tennisTile.innerText()).trim() === "Tennis", await tennisTile.evaluate((el) => getComputedStyle(el).backgroundColor));
       await tennisTile.first().click(); await page.waitForTimeout(1200);
