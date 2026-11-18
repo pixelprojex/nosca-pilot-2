@@ -27,7 +27,7 @@ const ACCENT = "rgb(47, 107, 58)";   // golf's #2F6B3A
 const hslOf = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; if (!d) return [0, 0, l]; const s = d / (1 - Math.abs(2 * l - 1)); const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, s, l]; };
 const rgbOfHsl = (h, s, l) => { const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2; const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]; return `rgb(${[r, g, b].map((v) => Math.round((v + m) * 255)).join(", ")})`; };
 const tintOf = (hex, l, k = 1) => { const [h, s] = hslOf(hex); return rgbOfHsl(h, Math.min(0.3, s * 0.65 + 0.06) * k, l); };
-const TINT = "rgb(255, 255, 255)";   // the second kind is the paper's white on the sport's edge — never a tint (18 Nov)
+const TINT = "rgb(255, 255, 255)", WASH = "rgb(235, 243, 234)", NONE = "rgba(0, 0, 0, 0)";   // the second kind is the paper's white on the sport's edge — never a tint (18 Nov)
 void tintOf;
 
 function freshDb() {
@@ -66,23 +66,24 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     const shot = (n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
 
     /* (a) the home carries no board (18 November: every one of its six was on the plus already); the plus is
-       Log a lesson across the top, then the eight as tiles two to a row — white on the sport's edge and its lip,
-       the glyph over the word, Call off red on a deeper red */
+       Log a lesson across the top, then the eight as tiles two to a row — eight is a cluster, so a quiet tile
+       drops its outline and stands on the wash on the soft lip of a row (a rim is for the prominent few), the
+       glyph over the word, Call off red on a deeper red */
     const board = await page.locator('[data-tour="today-board"], [data-scroll="screen"] button[data-round]').count();
     check("(a) the home carries no board of actions — they are the plus's", board === 0, String(board));
     await tap(page, '[data-tour="quick"]', 900);
     const reg = await look(page, '[data-tour="quick-attend"]'), off = await look(page, '[data-tour="quick-weather"]'), logBlock = await look(page, '[data-tour="quick-log"]');
     const regTile = await page.locator('[data-tour="quick-attend"]').first().evaluate((el) => el.hasAttribute("data-tile") && !el.hasAttribute("data-round")).catch(() => false);
     await shot("a-plus");
-    check("(a) Register on the plus is a tile: white (no colour fill), the sport's edge as its outline and its four-point lip", regTile && !!reg && reg.bg === TINT && reg.border === "rgba(47, 107, 58, 0.72)" && lipOf(reg.shadow) === 4 && /rgba\(47, 107, 58, 0\.72\)/.test(reg.shadow) && reg.w > reg.h, JSON.stringify(reg));
-    check("(a) …Call off the one red tile, on a deeper red", !!off && off.bg === "rgb(196, 52, 42)" && lipOf(off.shadow) === 4, JSON.stringify(off));
-    check("(a) …and Log a lesson the accent across the top, the glyph beside the word", !!logBlock && logBlock.bg === ACCENT && lipOf(logBlock.shadow) === 4 && logBlock.h >= 60 && logBlock.h < 70, JSON.stringify(logBlock));
+    check("(a) Register on the plus is a calm tile: the wash, no outline, a three-point lip of the soft tone — never the edge's", regTile && !!reg && reg.bg === WASH && reg.border === NONE && lipOf(reg.shadow) === 3 && !/47, 107, 58, 0\.72/.test(reg.shadow) && reg.w > reg.h, JSON.stringify(reg));
+    check("(a) …Call off the one red tile, on a deeper red", !!off && off.bg === "rgb(196, 52, 42)" && lipOf(off.shadow) === 3, JSON.stringify(off));
+    check("(a) …and Log a lesson the accent across the top, the glyph beside the word", !!logBlock && logBlock.bg === ACCENT && lipOf(logBlock.shadow) === 3 && logBlock.h >= 60 && logBlock.h < 70, JSON.stringify(logBlock));
     await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
 
     /* (c) content stands on a foot: a row of a list on three points of the wash made deeper, and one that is a
        button sinks onto it under the finger — Lares's tiles, so a list is the same family as its keys */
     const row = await page.evaluate(() => { const b = [...document.querySelectorAll(".nsc-list > *")].find((x) => /Cian Murphy/.test(x.innerText)); return b ? getComputedStyle(b).boxShadow : null; });
-    check("(c) a row of the day stands on a three-point foot, not the sport's edge", lipOf(row) === 3 && !/47, 107, 58, 0\.72/.test(String(row)), String(row));
+    check("(c) a row of the day stands on a two-point foot, not the sport's edge", lipOf(row) === 2 && !/47, 107, 58, 0\.72/.test(String(row)), String(row));
     const arch = page.locator('[data-tour="today-archive"]').first();
     let sink = null;
     if (await arch.count()) {
@@ -91,26 +92,33 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
       sink = await page.evaluate(() => { const el = document.querySelector('[data-tour="today-archive"]'); const cs = getComputedStyle(el); return { transform: cs.transform, shadow: cs.boxShadow }; });
       await page.mouse.move(5, 5); await page.mouse.up(); await page.waitForTimeout(400);
     }
-    check("(c) …and a row that is one button sinks two points onto it under the finger", !!sink && ty(sink.transform) === 2 && lipOf(sink.shadow) === 1, JSON.stringify(sink));
+    check("(c) …and a row that is one button sinks onto it under the finger", !!sink && ty(sink.transform) === 1 && lipOf(sink.shadow) === 1, JSON.stringify(sink));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
 
-    /* (b) the peek's six are round keys three to a row — the face sinks the whole five-point lip under the finger */
+    /* (b) the peek's six are round keys three to a row — the face sinks its whole three-point lip under a finger
+       that stays, and a finger that moves (a scroll starting on it) presses nothing: the one press */
     await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
     const peekKeys = await page.locator('[data-tour="peek-actions"] > button').evaluateAll((els) => els.map((e) => { const f = e.querySelector("[data-face]"); const r = f ? f.getBoundingClientRect() : null; return { round: e.hasAttribute("data-round"), w: r ? Math.round(r.width) : 0, top: Math.round(e.getBoundingClientRect().top), word: (e.innerText || "").trim() }; }));
     check("(b) the peek's actions are round keys, 56 across, three to a row", peekKeys.length >= 5 && peekKeys.every((k) => k.round && k.w === 56) && new Set(peekKeys.map((k) => k.top)).size === 2, JSON.stringify(peekKeys));
-    const pressed = await page.evaluate(() => {
+    const pressed = await page.evaluate(async () => {
       const el = document.querySelector('[data-tour="peek-actions"] button[data-round]'); if (!el) return null;
-      const f = el.querySelector("[data-face]");
-      el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 7, pointerType: "touch" }));
-      const cs = getComputedStyle(f); const down = { transform: cs.transform, shadow: cs.boxShadow };
-      el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 7, pointerType: "touch" }));
-      return { down, upTransform: f.style.transform, upShadow: f.style.boxShadow };
+      const f = el.querySelector("[data-face]"), r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + 20;
+      const ev = (type, dx = 0, dy = 0) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, pointerType: "touch", clientX: x + dx, clientY: y + dy }));
+      const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+      const read = () => { const cs = getComputedStyle(f); return { transform: cs.transform, shadow: cs.boxShadow }; };
+      /* a scroll that starts on the key: the finger moves before the press begins */
+      ev("pointerdown"); ev("pointermove", 0, -24); await wait(120); const scrolled = read(); ev("pointercancel"); await wait(250);
+      /* a finger that stays */
+      ev("pointerdown"); const first = read(); await wait(140); const down = read();
+      ev("pointerup"); await wait(260);
+      return { scrolled, first, down, upTransform: f.style.transform, upShadow: f.style.boxShadow };
     });
-    check("(b) a round key goes right down under the finger — the whole five-point lip — with nothing eased in", !!pressed && ty(pressed.down.transform) === 5 && lipOf(pressed.down.shadow) === 0, JSON.stringify(pressed));
-    check("(b) …and comes back up on release", !!pressed && pressed.upTransform === "none" && /0px 5px 0px/.test(pressed.upShadow), JSON.stringify(pressed));
+    check("(b) a scroll that starts on a key presses nothing — the face never moves", !!pressed && ty(pressed.scrolled.transform) === 0 && lipOf(pressed.scrolled.shadow) === 3, JSON.stringify(pressed && pressed.scrolled));
+    check("(b) a finger that stays sends the face right down — the whole three-point lip — only once it has stayed", !!pressed && ty(pressed.first.transform) === 0 && ty(pressed.down.transform) === 3 && lipOf(pressed.down.shadow) === 0, JSON.stringify(pressed));
+    check("(b) …and it comes back up on release", !!pressed && pressed.upTransform === "none" && /0px 3px 0px/.test(pressed.upShadow), JSON.stringify(pressed));
     const peekLog = await look(page, '[data-tour="peek-log"]');
     await shot("b-peek");
-    check("(e) the peek's Log is the accent on a five-point lip, 50 drawn", !!peekLog && peekLog.bg === ACCENT && lipOf(peekLog.shadow) === 5 && peekLog.h >= 50, JSON.stringify(peekLog));
+    check("(e) the peek's Log is the accent on a four-point lip, 50 drawn", !!peekLog && peekLog.bg === ACCENT && lipOf(peekLog.shadow) === 4 && peekLog.h >= 50, JSON.stringify(peekLog));
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
 
     /* (d) the tab bar: the icons alone, their names kept, a capsule round the one you are on, the plus a key */
@@ -134,7 +142,7 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     const ring0 = (await field.count()) ? await field.evaluate((el) => getComputedStyle(el.parentElement).boxShadow) : null;
     if (await field.count()) { await field.focus(); await page.waitForTimeout(300); }
     const ring1 = (await field.count()) ? await field.evaluate((el) => getComputedStyle(el.parentElement).boxShadow) : null;
-    check("(g) a text box stands on the rows' three-point foot, typed in or not — a box like every other", lipOf(ring0) === 3 && lipOf(ring1) === 3, `${ring0} → ${ring1}`);
+    check("(g) a text box stands on the rows' two-point foot, typed in or not — a box like every other", lipOf(ring0) === 2 && lipOf(ring1) === 2, `${ring0} → ${ring1}`);
 
     /* (h) the log's Video · Photo · Voice: the icon alone, the word their name */
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);

@@ -1,6 +1,8 @@
 /** Nosca's own tokens, carried over from the prototype rather than
  *  Tailwind's defaults — the warm sandstone canvas, the semantic
  *  red/amber/green, and the radius scale used throughout. */
+import plugin from "tailwindcss/plugin";
+
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
@@ -29,5 +31,9 @@ export default {
       },
     },
   },
-  plugins: [],
+  /* ONE PRESS (18 November): \`active:\` is the app's own press — the
+     data-down the one listener in Nosca.jsx sets once a finger has stayed
+     put PRESS_DELAY, never the browser's :active, which iOS raises at the
+     first touch of a scroll and so flickered every row under the thumb */
+  plugins: [plugin(({ addVariant }) => { addVariant("active", "&[data-down]"); })],
 };

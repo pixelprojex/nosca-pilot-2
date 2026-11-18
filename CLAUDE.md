@@ -187,17 +187,55 @@ seeded data and no account.
   page", asked that "not everything has to be a circle", and that the
   home not repeat what the plus holds ("Duolingo … but more classy").
   Lares, rendered and studied: every card and row stands on a soft foot,
-  its round keys sit four or five across, two to a row is a tile.
+  its round keys sit four or five across, two to a row is a tile. Then,
+  that evening, refined: the founder found it "choppy … not cohesive …
+  doesn't look luxurious" while the walkthrough — the same components
+  drawn at about 0.64 — was "okay". So the depth is the walkthrough's
+  proportions at full size, and the press is the phone's own:
+  - **The weights.** A key's lip is 3 (`ActTile`, tiles, round keys,
+    `TimeGrid`, `Choice`, the Who faces, `SportGrid`, `.n-key`), the
+    `Button` 4 (`LIP_H`), a row's, a box's and a text box's foot 2.
+    Labels 600, never 650. They were 4–5 lips and 3 feet: chunky at a
+    phone's size.
+  - **One press** (`PRESS_SEL`, the listener under `press3d`): every
+    key, row, `n-key` and Tailwind `active:` in the app sinks the same
+    way — a finger that moves more than 10px is a scroll and presses
+    nothing; one that stays sinks after `PRESS_DELAY` (70ms); a quicker
+    tap still shows the press for a beat; letting go eases back in
+    150ms with no overshoot (Lares's ease-out). `press3d` hands the key
+    its two shapes as `data-rest` · `data-dn` · `data-by`; a round key's
+    face carries them. Tailwind's `active` variant is `&[data-down]`
+    (tailwind.config.js): iOS raises `:active` at the first touch of a
+    scroll, so two hundred `active:opacity` rows flickered under the
+    thumb, and every key sank and sprang back with a bounce as a list
+    was scrolled — the choppiness. No key is pinned as a layer at rest
+    (`willChange` is for what moves: the tab bar, a dragged tile).
+  - **A rim is for the prominent few, again.** In a grid of more than
+    six (`ClusterCtx`; `TimeGrid` past six times) a quiet key drops its
+    outline and stands on the wash on the soft lip of a row — the log's
+    areas, the plus's eight, a week's seven days. The 18 November
+    rounds had lost the rule, and a dozen outlined keys read busy, as
+    the founder said before the keys were raised. The peek's six are
+    calm round keys too (Log above them is the one action; six rings of
+    the edge read as a field of green), Call off and Cancel red in the
+    glyph and the word.
+  - **The small things that read as unfinished.** `Avatar`'s own disc
+    is the wash a step deeper (`MIX(wash, mark, 0.12)`) — a wash disc
+    on a wash row vanished and left the initials floating; a list's
+    last foot is never clipped (`.nsc-list` carries 2px under its last
+    row and `Ruled` clips only across, `overflowX: clip`, where
+    `overflow-x: hidden` clipped the last foot too); placeholders are
+    the app's own grey (`--faint`), not the browser's blue-grey.
   - **What is pressed stands on a lip** — a box-shadow, so no layout
     moves, written by `press3d(colour, h, by, extra)` beside `EDGE`, or
-    the `n-key` class with `--key-lip`: down sinks the face at once, up
-    springs it back. Every filled button drawn by hand carries `n-key`
+    the `n-key` class with `--key-lip`, and pressed by the one press
+    above. Every filled button drawn by hand carries `n-key`
     and `--key-lip: LIP(colour)` (Book a lesson, Share, Save, Leave, the
     walkthrough's Next, Send …), as `Button` does.
-  - **Every box stands on a foot** — three points, never pressed unless
+  - **Every box stands on a foot** — two points, never pressed unless
     it is one button: a row of `.nsc-list` on `--lip` (`SOFT_LIP`, the
     wash made deeper — its border stays transparent, so the 3:1 outline
-    rule is untouched), and a row that is a `<button>` sinks two onto it
+    rule is untouched), and a row that is a `<button>` sinks onto it
     under the finger; `.nsc-day` and `Card` on their own edge; the text
     boxes (`SearchField`, `VoiceInput`, `VoiceArea`, `InlineField`, the
     thread's composer) on the soft foot of a row. The header's profile
@@ -206,11 +244,11 @@ seeded data and no account.
     row, and one alone is a key across the page.** Round (`ActTile` with
     an `Icon`, `data-round`): a round face sized to its row through
     `GridColsCtx` (64 three across, 56 four, 46 more; `face` overrides)
-    on a five-point lip that sinks the whole lip, one word under it in
+    on a three-point lip that sinks whole, one word under it in
     `t.sub` — the player file's four, the peek's six (three to a row at
     every width, 56: they were 40px discs six across), the log's Video ·
     Photo · Voice (`iconOnly`). A tile (`data-tile`, a `TileGrid` of two
-    with icons): a rounded rectangle on a four-point lip, the glyph at
+    with icons): a rounded rectangle on a three-point lip, the glyph at
     the top and the word under it at the left, Lares's lists — the plus
     sheet's eight (two to a row, the founder's own choice), the Add
     player routes; under 72 tall the glyph and the word share a line
@@ -219,7 +257,7 @@ seeded data and no account.
     plus sheet's Log a lesson is the accent across the top, the glyph
     beside the word (`block`). A key that is a word (a focus area,
     Drills, Tip, a time, `Choice`) stays a rounded rectangle on a
-    four-point lip; `Button` is 50 on a five-point lip.
+    three-point lip; `Button` is 50 on a four-point lip.
   - **The colours are restrained, never a colouring book.** The one
     action is the accent on `LIP(accent)` (a third deeper); Call off is
     red on `LIP(DANGER)`; a chosen key is the ink. Every other key is

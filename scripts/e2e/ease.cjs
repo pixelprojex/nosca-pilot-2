@@ -97,7 +97,8 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const board = await page.locator('[data-tour="today-board"]').count();
       await tap(page, '[data-tour="quick"]', 900);
       const add = await tile(page, "Add player");
-      check("(b) the home has no board of actions — they live on the plus, whose tiles keep the sport's edge", board === 0 && !!add && add.edge.endsWith(EDGE) && parseFloat(add.edge) >= 1, JSON.stringify({ board, add }));
+      /* the plus's eight are a cluster: a rim is for the prominent few, so they stand on the wash with no edge */
+      check("(b) the home has no board of actions — they live on the plus, whose eight stand calm on the wash, no edge", board === 0 && !!add && add.bg === WASH && add.edge.endsWith(NONE), JSON.stringify({ board, add }));
       await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
       await tap(page, '[aria-label="Today"]', 900);
       const g1 = await gap(page, '[data-scroll="screen"] h1', "Today");
