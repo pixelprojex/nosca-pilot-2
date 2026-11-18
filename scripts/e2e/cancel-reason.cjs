@@ -78,12 +78,15 @@ const { check, results, summary } = M.checker("cancel-reason");
       await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       await page.locator('[data-sheet] button', { hasText: /^Cancel$/ }).first().click(); await page.waitForTimeout(800);
       const t1 = await text(); await shot("01-coach-why");
-      check("(a) the peek's Cancel asks why, promising the reason travels", /Cancel lesson/.test(t1) && /with the reason/.test(t1) && (await page.locator('[data-tour="cancel-why"]').count()) === 5, t1.slice(0, 240));
+      /* since 18 November (A21) the coach's Why step carries no box of copy: the promise is said once, on the password step, below */
+      check("(a) the peek's Cancel asks why", /Cancel lesson/.test(t1) && !/We'll tell/.test(t1) && (await page.locator('[data-tour="cancel-why"]').count()) === 5, t1.slice(0, 240));
       await page.locator('[data-tour="cancel-why"]', { hasText: "Something else" }).click(); await page.waitForTimeout(400);
       check("(a) Something else opens a line to say it in", (await page.locator('[data-tour="cancel-note"] textarea').count()) === 1);
       await page.locator('[data-tour="cancel-note"] textarea').fill("Course flooded"); await page.waitForTimeout(200);
       await lastBtn(page, /^Next$/).click(); await page.waitForTimeout(700);
       await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(800);
+      const tPw = await text();
+      check("(a) the password step promises the reason travels", /told straight away with the reason/.test(tPw), tPw.slice(0, 240));
       await pw(page).fill("secret12"); await lastBtn(page, /^Cancel the lesson$/).click(); await page.waitForTimeout(1800);
       const p1 = patches(db, BK.today1).pop(); await shot("02-coach-cancelled");
       check("(a) the words typed are the reason on the row", !!p1 && p1.body.status === "cancelled" && p1.body.cancel_reason === "Course flooded" && p1.n === 1, JSON.stringify(p1));
