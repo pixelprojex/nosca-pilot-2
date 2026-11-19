@@ -13186,19 +13186,28 @@ const ageBandOf = (p, today) => {
 function FaceTile({ person, group, caption, on, onTap, tour }) {
   const t = useT();
   /* a face is a key of the family as well: the tint on its deeper tint,
-     the ink once picked, and it goes right down under the thumb */
-  const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
+     the ink once picked, and it goes right down under the thumb — and in
+     a grid of more than six (Everyone) it stands calm on the wash with no
+     outline, as every other key does: a rim is for the prominent few */
+  const calm = useContext(ClusterCtx) && !on;
+  const lc = on ? MIX(t.ink, "#000000", 0.55) : calm ? SOFT_LIP(t) : TINT_LIP(t);
   const p = press3d(lc, 3, 2);
   return (
     <button data-tour={tour} data-lip="" aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
             {...p.handlers}
             className="relative w-full flex flex-col items-center justify-center gap-2"
-            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : TINT(t), border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`,
+            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : calm ? t.wash : TINT(t), border: `${EDGE_W}px solid ${on ? t.ink : calm ? "transparent" : EDGE(t)}`,
                      boxShadow: p.rest,
                      transition: `background ${MOTION.settle}ms, box-shadow 240ms cubic-bezier(.2,.7,.3,1), transform 240ms cubic-bezier(.2,.7,.3,1)` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
               bg={on ? "rgba(255,255,255,0.18)" : t.surface} fg={on ? "#fff" : t.sub} />
-      <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>
+      {/* a person by the first name (the surname is the caption under it); a
+          group by its whole name, on two lines before an ellipsis — the
+          first word alone read "Saturday" for Saturday clinic (C1) */}
+      {group
+        ? <span data-name="" className="px-2 text-center" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, lineHeight: 1.25, color: on ? "#fff" : t.ink,
+                         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "normal", wordBreak: "normal" }}>{person.name}</span>
+        : <span data-name="" className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>}
       {/* the caption's line is always there, so two tiles in one row share a
           baseline whether or not one of them carries a time */}
       <span className="truncate px-2" style={{ ...TYPE.caption, minHeight: 16, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption || ""}</span>
@@ -13265,6 +13274,20 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
   const [nextTip, setNextTip] = useState("");
   const [drillsOpen, setDrillsOpen] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
+  /* C9: Drills and Tip open in place, just over the footer, so what
+     opened lay out of sight below it — bring the two tiles and their
+     panel into view the moment one opens (the whole block where it
+     fits, the tiles at the top where it does not) */
+  const nextBlock = useRef(null);
+  useEffect(() => {
+    if (!drillsOpen && !tipOpen) return undefined;
+    const id = requestAnimationFrame(() => {
+      const el = nextBlock.current;
+      const still = typeof document !== "undefined" && !!document.querySelector(".calm");
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [drillsOpen, tipOpen]);
   const [ownDrill, setOwnDrill] = useState("");
   const [extraDrills, setExtraDrills] = useState([]);
   const [wantRating, setWantRating] = useState(false);
@@ -13834,7 +13857,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           </div>
 
           {/* what they do until next time */}
-          <div className="px-6" style={{ marginTop: SPACE.block }}>
+          <div ref={nextBlock} data-tour="wiz-next-block" className="px-6" style={{ marginTop: SPACE.block, scrollMarginBottom: 12 }}>
             <TileGrid cols={2}>
               <ActTile tour="wiz-drills" h={52} label={tr("Drills")} count={nextDrills.length} on={drillsOpen} onTap={() => { setDrillsOpen(!drillsOpen); setTipOpen(false); }} />
               <ActTile tour="wiz-tip" h={52} label={tr("Tip")} dot={!!nextTip} on={tipOpen} onTap={() => { setTipOpen(!tipOpen); setDrillsOpen(false); }} />
@@ -15386,11 +15409,13 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <span style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{tr("Weeks")}</span>
+        <span style={{ ...TYPE.body, color: t.ink }}>{tr("Weeks")}</span>
+        {/* C14: the Set up sheet's stepper — the app's outlined key, 44
+            square on its lip (it was two 34px wash circles) */}
         <span className="flex items-center gap-3">
-          <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
-          <span style={{ fontFamily: display, fontSize: 22, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
-          <button onClick={() => { haptic(5); setWeeks(Math.min(20, weeks + 1)); }} className="rounded-full flex items-center justify-center active:opacity-50" style={{ width: 34, height: 34, background: t.wash }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
+          <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="flex items-center justify-center n-key" style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: TINT(t) }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
+          <span data-tour="group-weeks" style={{ ...TYPE.figureSm, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
+          <button onClick={() => { haptic(5); setWeeks(Math.min(20, weeks + 1)); }} className="flex items-center justify-center n-key" style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: TINT(t) }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
         </span>
       </div>
 

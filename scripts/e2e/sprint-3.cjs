@@ -427,6 +427,37 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await ctx.close();
     }
 
+    /* ---------- (k) 19 November: a group's face tile (C1), the log's Drills and Tip in view (C9), New group's stepper (C14) ---------- */
+    {
+      const { ctx, page, shot } = await boot();
+      await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 1000);
+      /* the face tile, not the filter key of the same name above it */
+      const gt = await page.evaluate(() => { const b = [...document.querySelectorAll('button[aria-label="Saturday clinic"]')].find((x) => x.querySelector("[data-name]")); const n = b && b.querySelector("[data-name]"); return n ? { t: n.textContent, whole: n.scrollHeight <= n.clientHeight + 1 && n.scrollWidth <= n.clientWidth + 1 } : null; });
+      await shot("k-who-group");
+      check("(k) C1: a group's face tile carries the group's whole name, never its first word", !!gt && gt.t === "Saturday clinic" && gt.whole, JSON.stringify(gt));
+      await page.locator("button", { hasText: "Cian" }).first().click(); await page.waitForTimeout(1000);
+      await tap(page, '[data-tour="wiz-drills"]', 900);
+      const seen = await page.evaluate(() => {
+        const blk = document.querySelector('[data-tour="wiz-next-block"]'); const nx = document.querySelector('[data-tour="wiz-next"]');
+        const row = blk && [...blk.querySelectorAll("button[aria-pressed]")].find((b) => b.getAttribute("data-tour") !== "wiz-drills" && b.getAttribute("data-tour") !== "wiz-tip");
+        if (!row || !nx) return null;
+        const r = row.getBoundingClientRect(), foot = nx.parentElement.getBoundingClientRect().top;
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), foot: Math.round(foot) };
+      });
+      await shot("k-log-drills");
+      check("(k) C9: Drills opens where it is seen — its first row sits above the footer, not below it", !!seen && seen.top >= 0 && seen.bottom <= seen.foot, JSON.stringify(seen));
+      await ctx.close();
+    }
+    {
+      const { ctx, page, shot } = await boot();
+      await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-group"]', 1000);
+      const st = await page.locator('[data-sheet] button[aria-label="Fewer"], [data-sheet] button[aria-label="More"]').evaluateAll((bs) => bs.map((b) => { const cs = getComputedStyle(b), r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), edge: `${b.style.borderTopWidth} ${cs.borderTopColor}`, key: b.classList.contains("n-key") }; }));
+      await shot("k-new-group");
+      /* the width off the element's own style: Chrome reads EDGE_W's 1.5px back as 1px at a scale of one, as boxes.cjs notes */
+      check("(k) C14: New group's weeks stepper is the app's outlined key, 44 square on the sport's edge", st.length === 2 && st.every((b) => b.w === 44 && b.h === 44 && b.edge === "1.5px rgba(47, 107, 58, 0.72)" && b.key), JSON.stringify(st));
+      await ctx.close();
+    }
+
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
   } catch (e) {
     check("(x) the suite ran to the end", false, String(e && e.stack || e).slice(0, 500));

@@ -213,7 +213,8 @@ seeded data and no account.
   - **A rim is for the prominent few, again.** In a grid of more than
     six (`ClusterCtx`; `TimeGrid` past six times) a quiet key drops its
     outline and stands on the wash on the soft lip of a row — the log's
-    areas, the plus's eight, a week's seven days. The 18 November
+    areas, the plus's eight, a week's seven days, the Who page's
+    Everyone faces (`FaceTile` reads `ClusterCtx` too). The 18 November
     rounds had lost the rule, and a dozen outlined keys read busy, as
     the founder said before the keys were raised. The peek's six are
     calm round keys too (Log above them is the one action; six rings of
@@ -1566,7 +1567,14 @@ seeded data and no account.
   44 square on the edge, and its preview one grey line, "First · Tue 24
   Nov" (it was a box of sentences); the coach's Book sheet is headed
   with the day and the time under it, as the player's request sheet
-  is. `sprint-3.cjs` (j), (j0).
+  is. `sprint-3.cjs` (j), (j0). On 19 November: a group's face tile
+  on Who carries its whole name, two lines before an ellipsis (it ran
+  every name through `wizFirst` and read "Saturday" for Saturday
+  clinic); the log's Drills and Tip bring their tiles and the panel
+  into view the moment one opens (`wiz-next-block`, `nearest`, still
+  under Reduce Motion) — they unfolded below the footer, out of sight;
+  New group's Weeks stepper is the Set up sheet's, 44 square on the
+  edge (two 34px wash circles). `sprint-3.cjs` (k).
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red
