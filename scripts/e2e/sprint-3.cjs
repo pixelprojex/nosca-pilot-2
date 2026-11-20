@@ -458,6 +458,74 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await ctx.close();
     }
 
+    /* ---------- (l) 20 November: one empty line (C19), the group page's (C16), the player file on the scale (C17), the lesson page's type (C20), the library's Area row (C22), the log's tiles (C23) ---------- */
+    {
+      const TUES = { id: "g2", name: "Tuesday juniors", members: ["Aoife Doyle"], memberIds: ["00000000-0000-4000-8000-0000000a0000"], day: 1, time: "4:00 pm", weeks: 6, sport: "golf" };
+      const { ctx, page, shot } = await boot({ mod: (db) => M.setPrefs(db, IDS.coach, { groups: [...db.prefs[IDS.coach].groups, TUES] }) });
+      const lineOf = (re) => page.evaluate((src) => { const r = new RegExp(src); const p = [...document.querySelectorAll("p")].find((x) => r.test(x.textContent) && x.offsetParent); if (!p) return null; const cs = getComputedStyle(p); return { size: cs.fontSize, pt: cs.paddingTop, align: cs.textAlign, left: Math.round(p.getBoundingClientRect().left + parseFloat(cs.paddingLeft)) }; }, re.source);
+      /* C19: two screens' empty lines, once drawn at 12.5 with py-12 and py-10, are one shape */
+      await tap(page, '[data-tour="saved"]', 1000);
+      const starred = await lineOf(/^Nothing starred$/);
+      await shot("l-saved-empty");
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
+      await page.locator('input[placeholder="Search"]').first().fill("zzz"); await page.waitForTimeout(500);
+      const nobody = await lineOf(/^No one called/);
+      check("(l) C19: every screen's empty line is one shape — centred, 14.5px, 40px of air (Saved, the roster's search)",
+        [starred, nobody].every((x) => x && x.size === "14.5px" && x.pt === "40px" && x.align === "center"), JSON.stringify({ starred, nobody }));
+      /* C16: a group with no sessions says so where the count line sits, left and small */
+      await page.locator('input[placeholder="Search"]').first().fill(""); await page.waitForTimeout(300);
+      await tap(page, '[data-tour="roster-tab"] [aria-label="Groups"], [data-tour="roster-tab"] button:has-text("Groups")', 700);
+      await page.locator('[data-tour="roster-group"]', { hasText: "Tuesday juniors" }).first().click(); await page.waitForTimeout(900);
+      const none = await lineOf(/^No sessions yet$/);
+      await shot("l-group-empty");
+      check("(l) C16: a group with no sessions says so on the left where the count line sits, in the small size", !!none && none.align !== "center" && none.size === "12.5px" && none.left === 24 && none.pt === "0px", JSON.stringify(none));
+      await ctx.close();
+    }
+    {
+      const { ctx, page, shot } = await boot();
+      await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
+      await page.locator('[data-tour="roster-row"]').filter({ hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(1000);
+      /* C17: the file's rhythm on the SPACE scale — 30 · 10 · 14 · 30 */
+      const gaps = await page.evaluate(() => {
+        const q = (s) => document.querySelector(s); const b = (el) => el && el.getBoundingClientRect();
+        const acts = b(q('[data-tour="player-actions"]')), sw = b(q('[data-tour="player-view"]')), list = b(q('[data-tour="player-lessons"]')), allEl = q('[data-tour="player-all-lessons"]'), all = b(allEl);
+        let next = allEl && allEl.nextElementSibling; while (next && !next.getBoundingClientRect().height) next = next.nextElementSibling;
+        const nx = b(next);
+        return acts && sw && list && all && nx ? { a: Math.round(sw.top - acts.bottom), b: Math.round(list.top - sw.bottom), c: Math.round(all.top - list.bottom), d: Math.round(nx.top - all.bottom) } : null;
+      });
+      await shot("l-player-file");
+      check("(l) C17: the player file is on the scale — tiles to switch 30, switch to list 10, list to All lessons 14, All lessons to what follows 30",
+        !!gaps && gaps.a === 30 && gaps.b === 10 && gaps.c === 14 && gaps.d === 30, JSON.stringify(gaps));
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
+      await page.locator("button", { hasText: "Aoife Doyle" }).first().click(); await page.waitForTimeout(1000);
+      const nol = await page.evaluate(() => { const p = document.querySelector('[data-tour="player-no-lessons"]'); if (!p) return null; const cs = getComputedStyle(p); return { size: cs.fontSize, align: cs.textAlign, left: Math.round(p.getBoundingClientRect().left) }; });
+      check("(l) C17: a player with no lessons reads it on the left under the keys, in the small size", !!nol && nol.align !== "center" && nol.size === "12.5px" && nol.left === 24, JSON.stringify(nol));
+      /* C20: the lesson page's note on the ladder's title, not a private 17 */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
+      await tap(page, '[data-tour="roster-tab"] [aria-label="Groups"], [data-tour="roster-tab"] button:has-text("Groups")', 700);
+      await page.locator('[data-tour="roster-group"]', { hasText: "Saturday clinic" }).first().click(); await page.waitForTimeout(900);
+      await page.locator('[data-tour="group-sessions"] > *').first().click(); await page.waitForTimeout(1200);
+      const note = await page.evaluate(() => { const p = [...document.querySelectorAll("p")].find((x) => x.textContent === "Splash, not dig."); return p ? getComputedStyle(p).fontSize : null; });
+      await shot("l-lesson-note");
+      check("(l) C20: the lesson page's note is the ladder's title size, 19", note === "19px", String(note));
+      /* C22: the library's Area row sits on its rule */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await openSettings(page); await tap(page, '[data-tour="settings-library"]', 1000);
+      const area = await page.evaluate(() => { const s = [...document.querySelectorAll("button span")].find((x) => x.textContent === "Area"); const b = s && s.closest("button"); return b ? b.style.borderTop : null; });
+      await shot("l-library");
+      check("(l) C22: the drill library's Area row carries its top rule, as the archive's Filter row does", !!area && area !== "none" && /solid/.test(area), String(area));
+      /* C23: every wordless tile on the log is one height */
+      await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
+      await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 1000);
+      await page.locator("button", { hasText: "Cian" }).first().click(); await page.waitForTimeout(1000);
+      const hs = await page.evaluate(() => { const f = document.querySelector('[data-tour="wiz-focus"] button'); const d = document.querySelector('[data-tour="wiz-drills"]'); return f && d ? { focus: Math.round(f.getBoundingClientRect().height), drills: Math.round(d.getBoundingClientRect().height) } : null; });
+      check("(l) C23: the log's focus tiles and the Drills · Tip pair are one height", !!hs && hs.focus === hs.drills, JSON.stringify(hs));
+      await ctx.close();
+    }
+
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
   } catch (e) {
     check("(x) the suite ran to the end", false, String(e && e.stack || e).slice(0, 500));

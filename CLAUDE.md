@@ -1574,7 +1574,19 @@ seeded data and no account.
   into view the moment one opens (`wiz-next-block`, `nearest`, still
   under Reduce Motion) — they unfolded below the footer, out of sight;
   New group's Weeks stepper is the Set up sheet's, 44 square on the
-  edge (two 34px wash circles). `sprint-3.cjs` (k).
+  edge (two 34px wash circles). `sprint-3.cjs` (k). On 20 November:
+  one empty line — `EmptyLine`, centred, `TYPE.body` in `t.faint`, 40 of
+  air — on every screen whose list is empty (it was py-8 to py-16 at 12.5
+  or 14.5, so "Nothing starred" sat lower and smaller than "Nothing
+  waiting"); a section inside a page with nothing in it says so where its
+  rows would sit, on the left in `TYPE.small` (the group page's "No
+  sessions yet" under the Message key, the player file's "No lessons
+  yet" under the keys); the player file on the scale (the keys to the
+  switch `SPACE.block`, the switch to the list `tight`, the list to All
+  lessons `row`, then `block`); the lesson page's note, reply and tip on
+  `TYPE.title` (they were private 17, 17 and 21); the drill library's
+  Area row on its rule; the log's focus tiles 52, as Drills · Tip are.
+  `sprint-3.cjs` (l).
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red
