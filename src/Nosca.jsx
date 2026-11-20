@@ -2062,6 +2062,17 @@ function Bone({ w = "100%", h = 14, r = 8, mb = 0 }) {
                   backgroundSize: "220% 100%", animation: "shim 1.3s ease-in-out infinite" }} />
   );
 }
+/* AN EMPTY STATE IS A LINE, AND ONE LINE (C19). A screen whose list is
+   empty says so centred, at the body size, in the faint grey, with the same
+   air on every screen — it was drawn five ways, py-8 to py-16 at 12.5 here
+   and 14.5 there, so "Nothing starred" sat lower and smaller than "Nothing
+   waiting" on the next screen. A section inside a page that has nothing
+   says so where its rows would sit instead, on the left in the small size
+   (the group page's sessions, the player file's lessons). */
+function EmptyLine({ children, className = "", tour }) {
+  const t = useT();
+  return <p className={`py-10 text-center ${className}`.trim()} data-tour={tour} style={{ ...TYPE.body, color: t.faint }}>{children}</p>;
+}
 const ShimmerCSS = () => (
   <style>{`
     /* A list closes once. Its last row's own hairline would otherwise sit
@@ -3862,7 +3873,7 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
               action={<HeaderAdd tour="recur-add" label={tr("Add")} onTap={() => { hapticCommit(); soft(); onNew(); }} />}>
         <div className="px-6 pb-2">
           {live.length === 0 && (
-            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No recurring lessons yet")}</p>
+            <EmptyLine>{tr("No recurring lessons yet")}</EmptyLine>
           )}
 
           {live.map((x, i) => (
@@ -4308,7 +4319,7 @@ function AtRisk({ list, onMessage, pop, nouns = "players" }) {
         <div className="px-6 pb-2">
           {list.length === 0 ? (
             /* an empty state is a line, never a box — it was a breathing disc with a success-green tick */
-            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nobody drifting")}</p>
+            <EmptyLine>{tr("Nobody drifting")}</EmptyLine>
           ) : (
             /* rows, one action: the number says it, the sentence is spare */
             <div className="nsc-list">
@@ -4375,7 +4386,7 @@ function ParentDigest({ profiles, cfg, pop, stats }) {
             );
           })}
           {kids.length === 0 && (
-            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No children yet")}</p>
+            <EmptyLine>{tr("No children yet")}</EmptyLine>
           )}
         </div>
       </Screen>
@@ -4408,7 +4419,7 @@ function CheckIns({ role, list, onAnswer, onSend, pop, say }) {
               ) : null}>
         <div className="px-6 pb-2">
           {list.length === 0 && (
-            <p className="py-14 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Empty for now")}</p>
+            <EmptyLine>{tr("Empty for now")}</EmptyLine>
           )}
 
           {list.map((c, i) => (
@@ -4738,7 +4749,7 @@ function PickPerson({ roster, title, sub, onPick, close }) {
       <SearchField value={q} onChange={setQ} className="mb-4" />
 
       {list.length === 0 ? (
-        <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nobody by that name")}</p>
+        <EmptyLine>{tr("Nobody by that name")}</EmptyLine>
       ) : (
         <div className="nsc-list" style={{ maxHeight: 320, overflowY: "auto" }}>
           {list.map((r, i) => (
@@ -6260,13 +6271,11 @@ function AttendanceScreen({ role, cfg, records, rule, pop }) {
         <div className="px-6 pb-2">
 
           {rule === "off" ? (
-            <p className="py-14 text-center" style={{ ...TYPE.body, color: t.faint }}>
-              {role === "coach" ? tr("You've turned registers off.") : tr("Your coach doesn't take a register.")}
-            </p>
+            <EmptyLine>{role === "coach" ? tr("You've turned registers off.") : tr("Your coach doesn't take a register.")}</EmptyLine>
           ) : total === 0 ? (
             /* a green 100% for a register nobody has taken is a score
                nobody earned */
-            <p className="py-14 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No register taken yet")}</p>
+            <EmptyLine>{tr("No register taken yet")}</EmptyLine>
           ) : (
             <>
               {/* one number, said plainly */}
@@ -7279,7 +7288,7 @@ function NewThread({ role, roster, conns, people: given, groups = [], nouns = "p
       <h2 className="mb-4" style={{ ...TYPE.title, color: t.ink }}>{tr("New message")}</h2>
       <SearchField value={q} onChange={setQ} className="mb-4" />
       {shown.length === 0 ? (
-        <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</p>
+        <EmptyLine>{people.length === 0 ? tr("Nobody to message yet") : `${tr("No one called")} “${q}”`}</EmptyLine>
       ) : (
         <div className="nsc-list">
           {shown.map((p) => (
@@ -10076,7 +10085,7 @@ function TipsHistory({ cfg, tips, pop }) {
     <SwipeBack onBack={pop}>
       <Screen title={tr("What you've worked on")} onBack={pop} meta={`${tips.length} from your coach`}>
         {tips.length === 0 ? (
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing yet")}</p>
+          <EmptyLine className="px-6">{tr("Nothing yet")}</EmptyLine>
         ) : (
           <>
             {anyFocus && (
@@ -10084,7 +10093,7 @@ function TipsHistory({ cfg, tips, pop }) {
             )}
             <div className="px-6 pb-4">
               {shown.length === 0 ? (
-                <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>Nothing under {f}</p>
+                <EmptyLine>Nothing under {f}</EmptyLine>
               ) : shown.map((tip, i) => (
                 <Card key={tip.id} className="p-5 mb-3">
                   <div className="flex items-center justify-between mb-2">
@@ -10362,7 +10371,7 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
       ) : lessons.length === 0 ? (
-        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No lessons yet")}</p>
+        <EmptyLine className="px-6">{tr("No lessons yet")}</EmptyLine>
       ) : (
         <>
           {/* the starred ones, as a section of their own — a row that is
@@ -10831,7 +10840,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               nothing. */}
           {lesson.note && (
             <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
-              <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{lesson.note}</p>
+              <p style={{ ...TYPE.title, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{lesson.note}</p>
             </div>
           )}
 
@@ -10844,7 +10853,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               {replies.map((r, i) => (
                 <div key={r.id || i} className={i ? "mt-4" : ""}>
                   <Label>{[role === "coach" ? tr("Replied") : (first(coachName) || tr("Coach")), r.iso ? fmtWeekDay(new Date(r.iso)) : null].filter(Boolean).join(" · ")}</Label>
-                  <p style={{ fontFamily: display, fontSize: 17, lineHeight: 1.6, color: t.ink }}>{r.text}</p>
+                  <p style={{ ...TYPE.title, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{r.text}</p>
                 </div>
               ))}
             </div>
@@ -10853,7 +10862,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           {tipHere && (
             <div className="py-5" data-tour="lesson-tip" style={{ borderTop: hair }}>
               <Label>{tr("Tip")}</Label>
-              <p style={{ fontFamily: display, fontSize: 21, letterSpacing: "-0.02em", lineHeight: 1.3, color: t.ink }}>{tipHere.title}</p>
+              <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
               {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
             </div>
           )}
@@ -10980,7 +10989,7 @@ function PlayerLesson({ cfg, conn, lessons, go, push, pop, fresh, saved, toggleS
     return (
       <SwipeBack onBack={pop}>
         <Screen bare onBack={pop}>
-          <p className="px-6 py-16 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That lesson isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That lesson isn't available")}</EmptyLine>
         </Screen>
       </SwipeBack>
     );
@@ -11583,7 +11592,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
     <SwipeBack onBack={pop}>
       <Screen title={[tr("Mark it up"), first].filter(Boolean).join(" · ")} onBack={pop} large={false} right={topRight} fill>
         {missing ? (
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That clip isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That clip isn't available")}</EmptyLine>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col">
             {/* the stage */}
@@ -11976,7 +11985,7 @@ function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
     <SwipeBack onBack={pop}>
       <Screen title={[tr("Study"), first].filter(Boolean).join(" · ")} onBack={pop} large={false} fill>
         {missing ? (
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That clip isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That clip isn't available")}</EmptyLine>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col" data-tour="study">
             {/* the stage: the clip at its own shape on the dark */}
@@ -12239,7 +12248,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
     <SwipeBack onBack={pop}>
       <Screen title={[tr("Compare"), first].filter(Boolean).join(" · ")} onBack={pop} large={false} fill={view === "stages"}>
         {missing ? (
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("That clip isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That clip isn't available")}</EmptyLine>
         ) : view === "pick" || !b ? (
           /* THE PICKER: this clip, then every other clip of theirs, newest first */
           <div className="px-6" data-tour="compare-pick">
@@ -12269,7 +12278,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
                 </button>
               ))}
             </div>
-            {others && others.length === 0 && <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No other clips yet")}</p>}
+            {others && others.length === 0 && <EmptyLine>{tr("No other clips yet")}</EmptyLine>}
             <div style={{ height: SPACE.section }} />
           </div>
         ) : (
@@ -12799,7 +12808,7 @@ function ClipsToReview({ lessons, pop, onOpen, liveMedia, onNeedMedia, sport }) 
       <Screen title={tr("To review")} onBack={pop} meta={lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("clip") : tr("clips")}` : ""}>
         <div className="px-6">
           {lessons.length === 0
-            ? <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing to review")}</p>
+            ? <EmptyLine>{tr("Nothing to review")}</EmptyLine>
             : <div className="nsc-list" data-tour="clips-list">
                 {lessons.map((l, i) => (
                   <div key={l.id} data-clip-row="">
@@ -13794,13 +13803,13 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               <TileGrid cols={2}>
                 {cfg.focus.map((f) => {
                   const on = focus.includes(f.id);
-                  return <ActTile key={f.id} h={50} label={f.label} on={on}
+                  return <ActTile key={f.id} h={52} label={f.label} on={on}
                                   onTap={() => setFocus(on ? focus.filter((x) => x !== f.id) : [...focus, f.id])} />;
                 })}
                 {custom.map((c) => (
-                  <ActTile key={c} h={50} label={c} on onTap={() => setCustom([])} aria={`${tr("Remove")} ${c}`} />
+                  <ActTile key={c} h={52} label={c} on onTap={() => setCustom([])} aria={`${tr("Remove")} ${c}`} />
                 ))}
-                {!otherOpen && custom.length === 0 && <ActTile h={50} label={tr("Other")} onTap={() => setOtherOpen(true)} />}
+                {!otherOpen && custom.length === 0 && <ActTile h={52} label={tr("Other")} onTap={() => setOtherOpen(true)} />}
               </TileGrid>
               {otherOpen && (
                 <div style={{ marginTop: SPACE.tight }}>
@@ -13948,7 +13957,7 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
           )}
           <div className="nsc-list">
             {list.length === 0 ? (
-              <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{q ? `${tr("No one called")} “${q}”` : tr("No players yet")}</p>
+              <EmptyLine>{q ? `${tr("No one called")} “${q}”` : tr("No players yet")}</EmptyLine>
             ) : list.map((r, i) => {
               /* WHERE EACH PLAYER STANDS. The grey line is the next lesson
                  booked, or the last one taught, or Drifting in the caution
@@ -14120,7 +14129,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
       <Screen title={title} onBack={pop} meta={meta}>
         <div className="px-6 pb-8" data-tour="progress">
           {n === 0 ? (
-            <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
+            <EmptyLine>{tr("No lessons yet")}</EmptyLine>
           ) : (<>
             {/* the level, where the lessons carry one */}
             {p.points.length > 0 && (
@@ -14321,7 +14330,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* the four things a coach opened this file to do, before
               anything they have to read */}
-          <div className="mb-6" data-tour="player-actions">
+          <div data-tour="player-actions" style={{ marginBottom: SPACE.block }}>
             <TileGrid cols={4}>
               <ActTile h={82} Icon={MessageCircle} label={tr("Message")} onTap={() => push("thread:" + (r.id || name))} />
               <ActTile h={82} Icon={Lightbulb} label={tr("Tip")} onTap={() => assignTip(r.id ? r : name, null)} />
@@ -14333,7 +14342,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           {/* who looks after a junior — the adult the coach writes to */}
           {live && r.junior && (
             /* the adult a coach speaks to — one grey line, no box */
-            <p className="mb-6" style={{ ...TYPE.small, color: t.sub }}>
+            <p style={{ ...TYPE.small, color: t.sub, marginBottom: SPACE.block }}>
               {r.guardians && r.guardians.length ? `${tr("Parent")} · ${r.guardians.join(", ")}` : tr("No parent linked yet")}
             </p>
           )}
@@ -14341,7 +14350,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           {/* your own note, first, because it is the thing you wrote to
               remember and it is useless anywhere else */}
           {f.note && (
-            <div className="mb-7 pl-4" style={{ borderLeft: `2px solid ${t.accent}` }}>
+            <div className="pl-4" style={{ borderLeft: `2px solid ${t.accent}`, marginBottom: SPACE.block }}>
               <p style={{ ...TYPE.subhead, color: t.ink }}>{f.note}</p>
             </div>
           )}
@@ -14354,15 +14363,15 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               beside a heading was missed; this is the one control on the
               way to the list */}
           {past.length > 0 && (
-            <div className="mb-3">
+            <div style={{ marginBottom: SPACE.tight }}>
               <Segmented tour="player-view" options={[tr("List"), tr("Feed")]} value={view === "feed" ? tr("Feed") : tr("List")}
                          onChange={(o) => setView(o === tr("Feed") ? "feed" : "list")} />
             </div>
           )}
           {live && past.length === 0 && (
-            <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No lessons yet")}</p>
+            <p data-tour="player-no-lessons" style={{ ...TYPE.small, color: t.faint, marginBottom: SPACE.block }}>{tr("No lessons yet")}</p>
           )}
-          <div className="mb-4 nsc-list" data-tour="player-lessons">
+          <div className="nsc-list" data-tour="player-lessons" style={{ marginBottom: shown.length ? SPACE.row : 0 }}>
             {shown.map((l, i) => (
               <LessonRow key={l.id || i} lesson={l} index={i} first={false} poster={posterFor(l)} need={needFor(l)} sport={sport}
                          saved={false} showWho={false} onOpen={openLesson} onDownload={live ? onDownload : null} />
@@ -14372,8 +14381,8 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               block at the top says how many; this is the door */}
           {past.length > 0 && (
             <button data-tour="player-all-lessons" onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
-                    className="w-full flex items-center justify-center gap-2 mb-7 n-key"
-                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                    className="w-full flex items-center justify-center gap-2 n-key"
+                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink, marginBottom: SPACE.block }}>
               {tr("All")} {live ? f.done : past.length} {tr("lessons")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
             </button>
           )}
@@ -14381,7 +14390,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
 
           {/* what is live right now — three lines, no cards */}
           {f.tip && (
-            <div className="mb-7 nsc-list">
+            <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
               <div className="flex items-center gap-3 py-3" style={{ minHeight: 56 }}>
                 <span style={{ ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Tip")}</span>
                 <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink }}>{f.tip}</span>
@@ -14627,9 +14636,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
 
         <div className="px-6 pb-2 mt-2">
           {shown.length === 0 ? (
-            <p className="py-12 text-center" style={{ ...TYPE.small, color: t.faint }}>
-              {lessons.length === 0 ? (empty || tr("No lessons yet")) : tr("No matches")}
-            </p>
+            <EmptyLine>{lessons.length === 0 ? (empty || tr("No lessons yet")) : tr("No matches")}</EmptyLine>
           ) : (
             /* one boxed list, newest first, the same rows as a player's
                file — no month headings; the Filter row narrows */
@@ -14896,10 +14903,13 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
             {weeks.length} {weeks.length === 1 ? tr("session") : tr("sessions")}{group.weeks ? ` · ${Math.max(0, group.weeks - weeks.length)} ${tr("weeks left")}` : ""}
           </p>
         )}
+        {/* nothing yet is said where the count line sits, left and small —
+            centred in 120px of air it floated between the Message key and
+            the members (C16) */}
+        {weeks.length === 0 && (
+          <p className="px-6" data-tour="group-no-sessions" style={{ ...TYPE.small, color: t.faint, marginBottom: SPACE.block }}>{tr("No sessions yet")}</p>
+        )}
         <div className="px-6 mb-6">
-          {weeks.length === 0 && (
-            <p className="py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("No sessions yet")}</p>
-          )}
           {weeks.length > 0 && real && onLesson && <div className="nsc-list" data-tour="group-sessions">{weeks.map((w, i) => (
             <LessonRow key={w.lesson.id || i} lesson={w.lesson} index={i} first={false} poster={posterFor(w.lesson)} need={needFor(w.lesson)} sport={sport}
                        facts={[lessonDay(w.lesson), w.present != null ? `${w.present} ${tr("of")} ${group.members.length}` : null]}
@@ -14954,7 +14964,7 @@ function JoinRequests({ requests, onAccept, onDecline, pop }) {
         <div className="px-6 pb-2">
           {requests.length === 0 ? (
             /* an empty state is a line, never a box */
-            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing waiting")}</p>
+            <EmptyLine>{tr("Nothing waiting")}</EmptyLine>
           ) : (
             /* ONE PERSON ROW, as Today's booking requests and the bell's: the
                face, the name, one grey line of facts, Accept · Decline as the
@@ -14992,7 +15002,7 @@ function UnloggedLessons({ items, onLog, onDismiss, pop }) {
         <div className="px-6 pb-2">
           {items.length === 0 ? (
             /* an empty state is a line, never a box */
-            <p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing outstanding")}</p>
+            <EmptyLine>{tr("Nothing outstanding")}</EmptyLine>
           ) : (
             /* ONE PERSON ROW: the face, the name, the day and the time, Log as
                the row's action — each was a card with a date tile, an outlined
@@ -15244,9 +15254,7 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
         {tab === tr("Lessons") && (
           <div className="px-6 pb-2">
             {list.length === 0 ? (
-              <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-                {tr("No lessons yet")}
-              </p>
+              <EmptyLine>{tr("No lessons yet")}</EmptyLine>
             ) : (
               <Card>
                 {list.map((l, i) => (
@@ -15266,9 +15274,7 @@ function PlayerHistory({ name, cfg, attendance, pop, push, say, lessons }) {
         {tab === tr("Attendance") && (
           <div className="px-6 pb-2">
             {!att ? (
-              <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>
-                {tr("No register taken yet")}
-              </p>
+              <EmptyLine>{tr("No register taken yet")}</EmptyLine>
             ) : (
               /* a register holds two marks, so the record is one line */
               <p className="py-4" style={{ ...TYPE.body, color: t.ink, borderTop: RULE.section(t.ink), borderBottom: RULE.hair(t.ink) }}>
@@ -15559,7 +15565,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
   return (
     <Screen title={tr("Drills")} meta={items.length ? (todo > 0 ? `${todo} ${tr("to do")}` : tr("All done")) : ""} right={right}>
       {items.length === 0 ? (
-        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No drills yet")}</p>
+        <EmptyLine className="px-6">{tr("No drills yet")}</EmptyLine>
       ) : (
         <>
           {/* THE LIST IS THE SCREEN. There was a card above it: a figure
@@ -15646,9 +15652,9 @@ function PlayerDrillLibrary({ items, toggle, pop }) {
         </div>
       )}
       {items.length === 0 ? (
-        <p className="px-6 py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No drills yet")}</p>
+        <EmptyLine className="px-6">{tr("No drills yet")}</EmptyLine>
       ) : days.length === 0 ? (
-        <p className="px-6 py-8 text-center" style={{ ...TYPE.body, color: t.faint }}>{`${tr("Nothing called")} “${needle}”`}</p>
+        <EmptyLine className="px-6">{`${tr("Nothing called")} “${needle}”`}</EmptyLine>
       ) : days.map(([d, rows], gi) => (
         <div key={d || "earlier"} className="px-6" data-tour={gi === 0 ? "drills-day" : undefined} style={{ marginBottom: SPACE.block }}>
           <RowHead>{dayLabel(d)}</RowHead>
@@ -15694,7 +15700,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
       </div>
       <div className="px-6 mb-6"><Card><Row label={tr("Drill library")} sub={tr("Your reusable drills")} chevron last icon={<ListChecks size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => push("library")} /></Card></div>
       <Eyebrow>{tr("This week")}</Eyebrow>
-      <div className="px-6 pb-2">{live && rows.length === 0 ? (<p className="py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No one on your roster yet")}</p>) : <Card>{rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
+      <div className="px-6 pb-2">{live && rows.length === 0 ? (<EmptyLine>{tr("No one on your roster yet")}</EmptyLine>) : <Card>{rows.map((r, i) => { const none = r.total === 0; const isOpen = live && open === r.id; return (
         <div key={r.id}>
         <Row label={r.name} sub={none ? "Nothing set" : `${r.done} of ${r.total} done`} icon={<Avatar name={r.name} size={38} />}
              right={none ? <span style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>—</span> : (<span className="flex gap-1 shrink-0">{Array.from({ length: Math.min(r.total, 12) }).map((_, k) => (<span key={k} className="rounded-full" style={{ width: 7, height: 7, background: k < r.done ? t.accent : t.hair }} />))}</span>)}
@@ -15774,12 +15780,12 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
         )}
 
         {library.length > 8 && (
-          <FilterRow plain label={tr("Area")} options={chips} value={filter} onChange={setFilter} />
+          <FilterRow label={tr("Area")} options={chips} value={filter} onChange={setFilter} />
         )}
 
         <div className="px-6 pb-2">
           {shown.length === 0 ? (
-            <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{library.length ? tr("None in this area") : tr("No drills yet")}</p>
+            <EmptyLine>{library.length ? tr("None in this area") : tr("No drills yet")}</EmptyLine>
           ) : (
             <div className="nsc-list">
               {shown.map((d, i) => {
@@ -16626,7 +16632,7 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
               <HeaderAdd tour="chat-new" label={tr("New message")} onTap={() => { hapticCommit(); soft(); onNew && onNew(); }} />) : null}>
       <div className="px-6 pb-2">
         {list.length === 0 ? (
-          <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No conversations yet")}</p>
+          <EmptyLine>{tr("No conversations yet")}</EmptyLine>
         ) : (<>
           {split && <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Yours")}</div>}
           <div className="nsc-list">
@@ -17052,7 +17058,7 @@ function LessonLogs({ role, lessons, onDownload, onOpen, pop, liveMedia, onNeedM
               meta={all.length ? `${all.length} ${all.length === 1 ? tr("lesson") : tr("lessons")}` : ""}>
         <div className="px-6 pb-2">
           {all.length === 0 ? (
-            <p className="py-12 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No lessons yet")}</p>
+            <EmptyLine>{tr("No lessons yet")}</EmptyLine>
           ) : (
             <div className="nsc-list">
               {list.map((l, i) => (
@@ -17402,7 +17408,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
           <SearchField value={q} onChange={setQ} placeholder={tr("Search settings")} />
         </div>
         {needle && shown.length === 0 && (
-          <p className="px-6 py-8 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing called")} “{q}”</p>
+          <EmptyLine className="px-6">{tr("Nothing called")} “{q}”</EmptyLine>
         )}
 
         {shown.map((g, gi) => (
@@ -17866,7 +17872,7 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
         </div>
         <div className="flex-1 overflow-y-auto pt-5">
           {/* nothing until there is a term: the field is the whole screen */}
-          {!term ? null : total === 0 ? (<p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: t.faint }}>Nothing matching “{q}”</p>
+          {!term ? null : total === 0 ? (<EmptyLine className="px-6">Nothing matching “{q}”</EmptyLine>
           ) : (<>
             {lessons.length > 0 && (<><Eyebrow>{tr("Lessons")}</Eyebrow><div className="px-6 mb-6"><Card>{lessons.map((l, i) => (<Row key={l.id} label={l.focus} sub={[`${l.d} ${l.m}`, (l.subs || []).join(", ")].filter(Boolean).join(" · ")} chevron icon={<FileText size={17} color={t.sub} strokeWidth={1.6} />} last={i === lessons.length - 1} onToggle={() => push(role === "coach" ? `clesson:${l.id}:${l.who}` : `lesson:${l.id}`)} />))}</Card></div></>)}
             {tipHits.length > 0 && (<><Eyebrow>{tr("Tips")}</Eyebrow><div className="px-6 mb-6"><Card>{tipHits.map((x, i) => (<Row key={x.id} label={x.title} sub={x.body} chevron icon={<Lightbulb size={17} color={t.sub} strokeWidth={1.6} />} last={i === tipHits.length - 1} onToggle={() => push("tips")} />))}</Card></div></>)}
@@ -18075,7 +18081,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
               </div>
             )}
             {shownList.length === 0 && waiting.length === 0 && (
-              <p className="py-10 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing here")}</p>
+              <EmptyLine>{tr("Nothing here")}</EmptyLine>
             )}
             {[[tr("Today"), today], [tr("Earlier"), [...yesterday, ...earlier]]].map(([label, group]) =>
               group.length === 0 ? null : (
@@ -21059,7 +21065,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                     }}
                     onStill={(file) => { data.addLessonMedia(les.id, [file]).catch(() => {}); return {}; }} />
       : <SwipeBack onBack={pop}><Screen title={tr("Mark it up")} onBack={pop}>
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That lesson isn't available")}</EmptyLine>
         </Screen></SwipeBack>;
   } else if (screen.startsWith("study:") && data) {
     /* study:<lessonId>:<mediaId> — one clip, slow, a frame at a time, a
@@ -21075,7 +21081,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     body = les
       ? <ClipStudy lesson={les} mediaId={mid} mediaFor={mediaFor} who={named} pop={pop} />
       : <SwipeBack onBack={pop}><Screen title={tr("Study")} onBack={pop}>
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That lesson isn't available")}</EmptyLine>
         </Screen></SwipeBack>;
   } else if (screen.startsWith("compare:") && data) {
     /* compare:<lessonId>:<mediaId> — this clip beside another of the same
@@ -21094,7 +21100,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       ? <ClipCompare lesson={les} mediaId={mid} lessons={pool} mediaFor={mediaFor} who={named} pop={pop} say={say}
                      onSave={role === "coach" ? (spec) => queueCompare({ ...spec, lessonId: les.id, who: named }) : null} />
       : <SwipeBack onBack={pop}><Screen title={tr("Compare")} onBack={pop}>
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That lesson isn't available")}</EmptyLine>
         </Screen></SwipeBack>;
   } else if (screen.startsWith("clesson:")) {
     /* THE ID COMES FIRST and the name is whatever is left, taken with
@@ -21130,7 +21136,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
                          onDownload={(l) => downloadLesson(l)} />
       : <SwipeBack onBack={pop}><Screen title={tr("Lesson")} onBack={pop}>
-          <p className="px-6 py-10 text-center" style={{ ...TYPE.body, color: theme.faint }}>{tr("That lesson isn't available")}</p>
+          <EmptyLine className="px-6">{tr("That lesson isn't available")}</EmptyLine>
         </Screen></SwipeBack>;
   } else if (screen.startsWith("capture:")) {
     const who = screen.slice(8);
