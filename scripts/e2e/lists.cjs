@@ -207,7 +207,8 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const disc = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => /Slots and lesson length/.test(x.textContent)); if (!b) return null; const cs = getComputedStyle(b); return { c: cs.borderTopColor, w: b.style.borderTopWidth || cs.borderTopWidth, r: cs.borderTopLeftRadius }; });
       await shot("s-hours-days");
       check("(s) guard: the hours' seven days are one Card on golf's edge, the days as rows inside on the 1px hairline", !!daysC && daysC.n === 7 && daysC.edge === EDGE.golf && parseFloat(daysC.w) >= 1 && daysC.inner.every((x) => x === `1px ${HAIRLINE.golf}`), JSON.stringify(daysC));
-      check("(s2) Slots and lesson length is on golf's edge at the edge's width, the Card's corner", !!disc && disc.c === EDGE.golf && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
+      /* a control, so since 21 November the stone key: its fine ring at the edge's width, the Card's corner */
+      check("(s2) Slots and lesson length is the stone key — its fine ring at the edge's width, the Card's corner", !!disc && disc.c === "rgb(224, 226, 224)" && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
       await page.locator(`${SCREEN} button`, { hasText: /Slots and lesson length/ }).first().click(); await page.waitForTimeout(500);
       await page.locator('[aria-label="Add a time"]').first().click(); await page.waitForTimeout(500);
       const addR = await page.locator('[data-tour="avail-add"] button').evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).borderRadius)));

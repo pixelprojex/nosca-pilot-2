@@ -63,7 +63,8 @@ const say = (rs) => rs ? `${rs.length}: ` + rs.filter((r) => r.kind === "row" &&
 const tile = (page, label) => page.evaluate((label) => { const b = [...document.querySelectorAll("button")].find((x) => (x.getAttribute("aria-label") || x.textContent.trim()) === label && x.getBoundingClientRect().width > 0); if (!b) return null; const cs = getComputedStyle(b.querySelector("[data-face]") || b); return { label, bg: cs.backgroundColor, edge: `${cs.borderTopWidth} ${cs.borderTopColor}` }; }, label);   // a round key (18 Nov) draws its fill and edge on its face
 const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
   const from = document.querySelector(fromSel); if (!from) return null;
-  const to = [...document.querySelectorAll('[data-scroll="screen"] div, [data-scroll="screen"] span')].find((d) => d.children.length === 0 && d.textContent.trim() === toText && d.getBoundingClientRect().top > from.getBoundingClientRect().bottom - 1);
+  /* a section's head is an h2 since 21 November (the display face in ink, Lares's "Later") */
+  const to = [...document.querySelectorAll('[data-scroll="screen"] div, [data-scroll="screen"] span, [data-scroll="screen"] h2')].find((d) => d.children.length === 0 && d.textContent.trim() === toText && d.getBoundingClientRect().top > from.getBoundingClientRect().bottom - 1);
   if (!to) return null; return Math.round(to.getBoundingClientRect().top - from.getBoundingClientRect().bottom);
 }, [fromSel, toText]);
 
@@ -97,8 +98,9 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const board = await page.locator('[data-tour="today-board"]').count();
       await tap(page, '[data-tour="quick"]', 900);
       const add = await tile(page, "Add player");
-      /* the plus's eight are a cluster: a rim is for the prominent few, so they stand on the wash with no edge */
-      check("(b) the home has no board of actions — they live on the plus, whose eight stand calm on the wash, no edge", board === 0 && !!add && add.bg === WASH && add.edge.endsWith(NONE), JSON.stringify({ board, add }));
+      /* the plus's eight are stone keys since 21 November: a filled face of golf's ink at a sixteenth over
+         white with a fine ring a step deeper — no green rim, and no longer the wash a content row stands on */
+      check("(b) the home has no board of actions — they live on the plus, whose eight are calm stone keys, no green rim", board === 0 && !!add && add.bg === "rgb(241, 242, 241)" && /rgb\(224, 226, 224\)/.test(add.edge) && !/47, 107, 58/.test(add.edge), JSON.stringify({ board, add }));
       await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
       await tap(page, '[aria-label="Today"]', 900);
       const g1 = await gap(page, '[data-scroll="screen"] h1', "Today");

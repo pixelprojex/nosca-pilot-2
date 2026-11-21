@@ -259,23 +259,55 @@ seeded data and no account.
     beside the word (`block`). A key that is a word (a focus area,
     Drills, Tip, a time, `Choice`) stays a rounded rectangle on a
     three-point lip; `Button` is 50 on a four-point lip.
-  - **The colours are restrained, never a colouring book.** The one
-    action is the accent on `LIP(accent)` (a third deeper); Call off is
-    red on `LIP(DANGER)`; a chosen key is the ink. Every other key is
-    Duolingo's white button: `TINT(t)` is the paper's white, its outline
-    the sport's edge at `EDGE_W` as it always was ("No control on the
-    hairline" still holds: 3:1 and over), and `TINT_LIP(t)` — its lip — is
-    that same `EDGE(t)`; the glyph is the ink, never the accent. A fill of
-    the sport's colour on the second kind — a mint on tennis — was tried
-    for a morning and the founder called it "a children's colouring book
-    — not classy at all"; do not tint them. A pale grey ledge with a
-    faint ring was tried next and dropped: it read 1.4:1, under the 3:1
-    the outline rule keeps. Red keys (`dangerQuiet`, the peek's Call off ·
-    Cancel) are white on the edge too, the red in the word and the glyph.
-    The outlined controls carry `n-key` (their outline as before, the
-    edge as their lip; `--key-lip` where a chosen face has its own, as
-    the register's Present · Absent). `SportGrid` keeps each sport on its
-    own wash and its own edge, on a lip of that edge.
+  - **The colours are restrained, never a colouring book — and the
+    second key is stone (21 November).** The one action is the accent on
+    `LIP(accent)` (a third deeper); Call off is red on `LIP(DANGER)`; a
+    chosen key is the ink. Every other key is **stone**, Lares's own
+    `.btn3d.secondary`: `TINT(t)` is a filled face of the sport's ink at
+    a sixteenth over white, `KEY_RING(t)` a fine ring a step deeper at
+    `EDGE_W`, `TINT_LIP(t)` its ledge a fifth of the ink deep; the word
+    and the glyph in the ink, never the accent. The founder on 18
+    November: "a lot of the buttons on the Nosca app are like white
+    buttons with just an outline around it. So if it's a color fill, it
+    might look better"; a fill of the sport's colour — a mint on tennis
+    — was "a children's colouring book — not classy at all", so the fill
+    is the ink's tone, never a colour; and for three days the answer was
+    a white key with the sport's green rule round it and a green ledge
+    under it, the very thing the founder had asked to have filled. On 21
+    November: "Huge visual upgrade required! Continue to work on buttons
+    and better more professional more streamlined visual experience!" A
+    filled key is told by its face and its ledge, and its word reads
+    4.5:1 and over on the face, so the 3:1 outline of "No control on the
+    hairline" is for a control with no fill — a tick box, a box, the
+    layout editor's minus — whose outline is the only thing that says
+    where it is. Red keys (`dangerQuiet`, the peek's Call off · Cancel)
+    are stone with the red in the word and the glyph. Every quiet key is
+    the one stone, in a grid of two or of twelve: the cluster rule's
+    calm wash is for content rows now, never a key (`ClusterCtx` no
+    longer changes a key). The hand-drawn keys carry `n-key`, whose
+    face is `var(--tint)` and ledge `var(--tint-lip)` unless the key
+    says otherwise (`--key-lip` where a chosen face has its own, as the
+    register's Present · Absent). **A button not yet live is a flat
+    stone** — the face, the ring, the word in `t.faint`, sunk onto where
+    its ledge was — never the accent at a third, which read as a faded,
+    broken button. `SportGrid` keeps each sport on its own wash and its
+    own edge, on a lip of that edge. Containers keep the sport's edge:
+    `.nsc-day`, `Card`, the tick boxes.
+  - **A section is a heading.** `RowHead` — the screen's subjects,
+    Today, Actions, Coming up, Children, In the family, Members — is an
+    `h2` in `TYPE.section` (the display face, 17, 600) in the ink, as
+    Lares heads "Later" and "Countdowns"; it was the small grey label a
+    form field carries, which made every screen read like a settings
+    page. `Eyebrow` stays the label for a field and a Settings group.
+  - **A door is a row, never a button.** "All lessons" on the player
+    file and "All drills" on the Drills tab are `HomeRow`s in a box of
+    their own — the word, the count as a value, the chevron — as All
+    lessons is on the home and the roster; they were full-width outlined
+    keys with an arrow, so a screen read as a form of buttons. The
+    Drills tab's Reminder is a row of the list too, as Settings' own
+    (`FilterRow inset` in `.nsc-flush`), where it was the one rimmed card
+    on a screen of stone and wash. `scripts/e2e/keys.cjs`,
+    `boxes.cjs` (n2), (r1), (r2), (s2)–(s10).
   - **The tab bar is the icon alone** (23px, the word its `aria-label`),
     the highlight a 50 × 38 capsule round it on a faint lip; **the raised
     plus is the big plus on the bar's swell, exactly as it was**, level
@@ -1735,8 +1767,8 @@ seeded data and no account.
   Feed above the list (the same control as the Diary's List · Calendar;
   the small pill beside a heading was missed, and the founder asked
   twice for the switch to be easier to find; the feed is `LessonFeed`
-  over that player's lessons, with Back on its header pill) and an
-  "All N lessons" button under them. No hero count
+  over that player's lessons, with Back on its header pill) and
+  All lessons as a row in a box of its own under them (it was a button). No hero count
   above the tiles. Settings › Lesson logs (`LessonLogs`) is the same
   boxed poster rows with a Download disc on each. `CoachArchive` (the roster's
   foot, the coach home's To do row, the file's All lessons) always

@@ -238,7 +238,7 @@ const { check, results, summary } = M.checker("review");
     await shot("07-player-file-feed");
     await tap(page, 'button[aria-label="List"]', 900);
     check("(i) List brings the rows back", (await page.locator('[data-tour="player-lessons"]').count()) === 1);
-    await page.locator("button", { hasText: /All \d+ lessons/ }).first().click(); await page.waitForTimeout(900);
+    await page.locator('[data-tour="player-all-lessons"]').first().click(); await page.waitForTimeout(900);
     const t5 = await text();
     check("(i) the archive opens on List · Feed then search, Filter and the rows", (await page.locator('[data-tour="archive-view"]').count()) === 1 && /Filter/.test(t5) && /Putting/.test(t5) && /Short game/.test(t5), t5.slice(0, 160));
     await shot("08-archive");

@@ -454,7 +454,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const st = await page.locator('[data-sheet] button[aria-label="Fewer"], [data-sheet] button[aria-label="More"]').evaluateAll((bs) => bs.map((b) => { const cs = getComputedStyle(b), r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), edge: `${b.style.borderTopWidth} ${cs.borderTopColor}`, key: b.classList.contains("n-key") }; }));
       await shot("k-new-group");
       /* the width off the element's own style: Chrome reads EDGE_W's 1.5px back as 1px at a scale of one, as boxes.cjs notes */
-      check("(k) C14: New group's weeks stepper is the app's outlined key, 44 square on the sport's edge", st.length === 2 && st.every((b) => b.w === 44 && b.h === 44 && b.edge === "1.5px rgba(47, 107, 58, 0.72)" && b.key), JSON.stringify(st));
+      /* the app's quiet key, since 21 November the stone key: its fine ring, a step deeper than its face */
+      check("(k) C14: New group's weeks stepper is the app's quiet key, 44 square, the stone's fine ring", st.length === 2 && st.every((b) => b.w === 44 && b.h === 44 && b.edge === "1.5px rgb(224, 226, 224)" && b.key), JSON.stringify(st));
       await ctx.close();
     }
 
@@ -489,8 +490,9 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       /* C17: the file's rhythm on the SPACE scale — 30 · 10 · 14 · 30 */
       const gaps = await page.evaluate(() => {
         const q = (s) => document.querySelector(s); const b = (el) => el && el.getBoundingClientRect();
-        const acts = b(q('[data-tour="player-actions"]')), sw = b(q('[data-tour="player-view"]')), list = b(q('[data-tour="player-lessons"]')), allEl = q('[data-tour="player-all-lessons"]'), all = b(allEl);
-        let next = allEl && allEl.nextElementSibling; while (next && !next.getBoundingClientRect().height) next = next.nextElementSibling;
+        /* All lessons is a row in a box of its own since 21 November — the box is what is spaced */
+        const acts = b(q('[data-tour="player-actions"]')), sw = b(q('[data-tour="player-view"]')), list = b(q('[data-tour="player-lessons"]')), allEl = q('[data-tour="player-all-lessons"]'), allBox = allEl && allEl.closest(".nsc-list"), all = b(allBox);
+        let next = allBox && allBox.nextElementSibling; while (next && !next.getBoundingClientRect().height) next = next.nextElementSibling;
         const nx = b(next);
         return acts && sw && list && all && nx ? { a: Math.round(sw.top - acts.bottom), b: Math.round(list.top - sw.bottom), c: Math.round(all.top - list.bottom), d: Math.round(nx.top - all.bottom) } : null;
       });

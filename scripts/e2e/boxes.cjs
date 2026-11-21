@@ -140,6 +140,26 @@ const metaOf = (page, title) => page.evaluate((title) => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const db = freshDb();
   const errors = [];
+    /* STONE (21 November): the second kind of key is a filled face of the sport's ink at a sixteenth over
+       white, a fine ring a step deeper and its ledge deeper again (Lares's .btn3d.secondary) — the founder
+       asked for colour-filled keys in place of "white buttons with just an outline around it". A filled
+       key is told by its face and its ledge; its word reads 4.5:1 and over on the face. */
+    const INK = { golf: "#10200F", equestrian: "#241A1D" };
+    const hexMix = (a, b, k) => { const x = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16)), y = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16)); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(", ")})`; };
+    const STONE = (sport) => ({ face: hexMix("#FFFFFF", INK[sport], 0.06), ring: hexMix("#FFFFFF", INK[sport], 0.13), lip: hexMix("#FFFFFF", INK[sport], 0.2) });
+    const keysIn = (page, scope, re) => page.evaluate(([scope, src]) => {
+      const root = scope ? document.querySelector(scope) : document; if (!root) return []; const r = new RegExp(src);
+      return [...root.querySelectorAll("button")].filter((b) => { const x = b.getBoundingClientRect(); return x.width > 0 && x.height > 0 && r.test((b.getAttribute("aria-label") || b.textContent).replace(/\s+/g, " ").trim()); })
+        .map((b) => { const cs = getComputedStyle(b), x = b.getBoundingClientRect();
+          return { label: (b.getAttribute("aria-label") || b.textContent).replace(/\s+/g, " ").trim().slice(0, 24), bg: cs.backgroundColor, ring: cs.borderTopColor, inline: b.style.borderTopWidth,
+                   shadow: cs.boxShadow, fg: cs.color, h: Math.round(x.height), radius: cs.borderTopLeftRadius }; });
+    }, [scope, re.source]).catch(() => []);
+    const sLum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+    const sRgb = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/); return m ? m[1].split(",").slice(0, 3).map((x) => +x) : [255, 255, 255]; };
+    const sRatio = (a, b) => { const [x, y] = [sLum(a), sLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const isStone = (os, sport) => os.length > 0 && os.every((o) => { const st = STONE(sport);
+      return o.bg === st.face && o.ring === st.ring && o.inline === "1.5px" && o.shadow.includes(st.lip) && sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5; });
+    const toldK = (os) => os.map((o) => `${o.label}: ${o.bg} ring ${o.ring} ${o.inline} · ${o.shadow.slice(0, 40)}`).join(" | ");
   const boot = async (role, d = db, at = "08:00") => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
@@ -387,7 +407,8 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const days = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > button > span:first-child')].map((s) => s.textContent.trim()));
       const t = await text(); await shot("11-family-kid");
       check("(n) the child's Next and Drills and lessons are boxed rows on the edge", fine(kid) && kid.lists >= 2 && /Next/.test(t) && /Ladder drill|1 drill/.test(t), said(kid));
-      check("(n2) Message coach and Progress are both outlined on the edge, not the old hairline", outlines.length === 2 && outlines.every((o) => / 1(\.5)?px rgba\(47, 107, 58, 0\.72\)$/.test(o)), JSON.stringify(outlines));
+      const kidKeys = await keysIn(page, '[data-scroll="screen"]', /^(Message coach|Progress)$/);
+      check("(n2) Message coach and Progress are both the stone key — the filled face on its ledge, never the old hairline or a white box with a rule round it", kidKeys.length === 2 && isStone(kidKeys, "golf"), `${JSON.stringify(outlines)} · ${toldK(kidKeys)}`);
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
       const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > * > span:first-child')]
@@ -434,10 +455,11 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await tap(page, '[data-tour="peek-register"]', 1000);
         const marks = await outlinesOf(page, "[data-sheet] .nsc-day button", MARK);
         await shot(`12-register-edges-${sport}`);
-        check(`(r1 ${sport}) every unchosen Present and Absent is outlined on ${sport}'s edge, at least 1px on all four sides`,
-          marks.length >= 2 * minRows && marks.every((o) => edgeOk(o, EDGE[sport], "solid")), `${marks.length} · ${told(marks).slice(0, 400)}`);
-        check(`(r2 ${sport}) their outline reads at least 3:1 against the register's box (WCAG 1.4.11), their words 4.5:1`,
-          marks.length >= 2 && marks.every((o) => edgeRatio(o) >= 3 && reContrast(flat(o.fg, o.ground), o.ground) >= 4.5), told(marks).slice(0, 400));
+        const markKeys = await keysIn(page, "[data-sheet] .nsc-day", MARK);
+        check(`(r1 ${sport}) every unchosen Present and Absent is the stone key in ${sport}'s ink — the filled face, the fine ring, its ledge`,
+          markKeys.length >= 2 * minRows && isStone(markKeys, sport), `${markKeys.length} · ${toldK(markKeys).slice(0, 400)}`);
+        check(`(r2 ${sport}) their words read 4.5:1 and over on the stone face, every one filled — none a bare outline`,
+          markKeys.length >= 2 && markKeys.every((o) => sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5 && o.bg !== "rgba(0, 0, 0, 0)"), toldK(markKeys).slice(0, 300));
         await page.locator("[data-sheet] .nsc-day button", { hasText: /^Present$/ }).first().click(); await page.waitForTimeout(400);
         const on = (await outlinesOf(page, "[data-sheet] .nsc-day button", MARK))[0];
         check(`(r3 ${sport}) guard: a chosen Present is still filled, its edge the fill's own colour`,
@@ -508,29 +530,32 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(900);
         const dec = await meet(page, "[data-sheet]", "decline sheet");
         await shot("13-decline-sheet");
-        check("(s2) Just decline, the quiet Button, is outlined on the edge at 1.5px, at least 3:1, its red word 4.5:1",
-          onEdge(only(dec, /^Just decline$/), EDGE.golf) && only(dec, /^Just decline$/).every((o) => reContrast(flat(o.fg, o.ground), o.ground) >= 4.5), told(dec).slice(0, 300));
+        const decK = await keysIn(page, "[data-sheet]", /^Just decline$/);
+        check("(s2) Just decline, the quiet Button, is the stone key — the filled face on its ledge, its red word 4.5:1",
+          decK.length === 1 && isStone(decK, "golf"), toldK(decK));
         await closeSheet(page);
         await tap(page, '[aria-label="Diary"]', 1000); await toList(page);
         await tap(page, '[data-tour="cal-recurring"]', 1000);
         const man = await meet(page, '[data-scroll="screen"]', "recurring manager");
         await shot("13-manager-end");
-        const end = only(man, /^End$/);
-        check("(s3) the manager's End is the app's control — the edge at 1.5px, at least 3:1, the control's corner, 40 tall — not a hairline pill",
-          onEdge(end, EDGE.golf) && end.every((o) => o.radius === "10px" && o.h >= 40), told(end) + ` ${JSON.stringify(end.map((o) => [o.radius, o.h]))}`);
+        const end = await keysIn(page, '[data-scroll="screen"]', /^End$/);
+        check("(s3) the manager's End is the stone key on the control's corner, 40 tall — not a hairline pill",
+          isStone(end, "golf") && end.every((o) => o.radius === "10px" && o.h >= 40), toldK(end) + ` ${JSON.stringify(end.map((o) => [o.radius, o.h]))}`);
         await tap(page, '[aria-label="Today"]', 900); await toSettings(page);
         await tap(page, '[data-tour="settings-library"]', 1000);
         /* the bin sits inside a drill's unfolded row */
         await page.locator('[data-scroll="screen"] button[aria-expanded]').first().click().catch(() => {}); await page.waitForTimeout(600);
         const lib = await meet(page, '[data-scroll="screen"]', "drill library");
         await shot("13-library-bin");
-        check("(s4) the bin on an unfolded drill is outlined on the edge, at least 3:1", onEdge(only(lib, /^Delete$/), EDGE.golf) && only(lib, /^Delete$/).length >= 1, told(lib).slice(0, 300));
+        const binK = await keysIn(page, '[data-scroll="screen"]', /^Delete$/);
+        check("(s4) the bin on an unfolded drill is the stone key", binK.length >= 1 && isStone(binK, "golf"), toldK(binK).slice(0, 300));
         /* the review's finds: the layout editor's Reset, and New group's chips */
         await tap(page, '[aria-label="Today"]', 900); await toSettings(page);
         await tap(page, '[data-tour="settings-shortcuts"]', 1000);
         const lay = await meet(page, '[data-scroll="screen"]', "shortcuts");
         await shot("13-shortcuts-reset");
-        check("(s10) the layout editor's Reset is outlined on the edge, at least 3:1 (it was the ink at 18%, 0.5px)", onEdge(only(lay, /^Reset$/), EDGE.golf), told(lay).slice(0, 300));
+        const resetK = await keysIn(page, '[data-scroll="screen"]', /^Reset$/);
+        check("(s10) the layout editor's Reset is the stone key (it was the ink at 18%, 0.5px)", resetK.length === 1 && isStone(resetK, "golf"), toldK(resetK).slice(0, 300));
         await tap(page, '[aria-label="Roster"]', 900);
         await tap(page, '[data-tour="roster-tab"] button:has-text("Groups")', 700);
         await tap(page, '[data-tour="roster-newgroup"]', 900);
@@ -589,11 +614,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await toSettings(page);
         await tap(page, '[data-tour="settings-family"]', 1000);
         const prof = await meet(page, '[data-scroll="screen"]', "coach profile");
-        check("(s5) Message on the coach's profile is outlined on the edge, at least 3:1 (it was the ink at 18%)", onEdge(only(prof, /^Message$/), EDGE.golf), told(prof).slice(0, 300));
+        const msgK = await keysIn(page, '[data-scroll="screen"]', /^Message$/);
+        check("(s5) Message on the coach's profile is the stone key (it was the ink at 18%)", msgK.length >= 1 && isStone(msgK, "golf"), toldK(msgK).slice(0, 300));
         await tap(page, '[data-tour="coach-leave"]', 700);
         const lv = await meet(page, '[data-scroll="screen"]', "leave coach");
         await shot("13-coach-leave-stay");
-        check("(s6) Stay beside the red Leave is outlined on the edge, at least 3:1", onEdge(only(lv, /^Stay$/), EDGE.golf) && only(lv, /^Stay$/).length === 1, told(lv).slice(0, 300));
+        const stayK = await keysIn(page, '[data-scroll="screen"]', /^Stay$/);
+        check("(s6) Stay beside the red Leave is the stone key", stayK.length === 1 && isStone(stayK, "golf"), toldK(stayK).slice(0, 300));
         await ctx.close();
       }
       /* a parent: the family screen — Copy, the rename's Cancel, Stay under Leave */
@@ -603,22 +630,27 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await tap(page, '[data-tour="family-settings"]', 1000);
         const fam = await meet(page, '[data-scroll="screen"]', "family screen");
         await shot("13-family-copy");
-        check("(s7) Copy on the family code card is outlined on the edge, at least 3:1, on the control's corner, and Share beside it carries the same corner",
-          onEdge(only(fam, /^Copy$/), EDGE.golf) && only(fam, /^Copy$/).every((o) => o.radius === "10px")
+        const copyK = await keysIn(page, '[data-scroll="screen"]', /^Copy$/);
+        check("(s7) Copy on the family code card is the stone key on the control's corner, and Share beside it carries the same corner",
+          copyK.length >= 1 && isStone(copyK, "golf") && copyK.every((o) => o.radius === "10px")
             && (await page.evaluate(() => { const b = document.querySelector('[data-tour="family-share"]'); return b ? getComputedStyle(b).borderTopLeftRadius : null; })) === "10px", told(fam).slice(0, 300));
         await page.locator('[data-scroll="screen"]').getByText("Name", { exact: true }).first().click().catch(() => {}); await page.waitForTimeout(600);
         const ren = await meet(page, '[data-scroll="screen"]', "rename");
-        check("(s8) the rename's Cancel is outlined on the edge, at least 3:1", onEdge(only(ren, /^Cancel$/), EDGE.golf) && only(ren, /^Cancel$/).length === 1, told(ren).slice(0, 300));
+        const cancelK = await keysIn(page, '[data-scroll="screen"]', /^Cancel$/);
+        check("(s8) the rename's Cancel is the stone key", cancelK.length === 1 && isStone(cancelK, "golf"), toldK(cancelK).slice(0, 300));
         await page.locator("button", { hasText: /^Cancel$/ }).first().click().catch(() => {}); await page.waitForTimeout(400);
         await page.locator('[data-scroll="screen"]').getByText("Leave", { exact: true }).first().click().catch(() => {}); await page.waitForTimeout(600);
         const lf = await meet(page, '[data-scroll="screen"]', "leave family");
         await shot("13-family-leave-stay");
-        check("(s8b) Stay beside Leave on the family screen is outlined on the edge, at least 3:1", onEdge(only(lf, /^Stay$/), EDGE.golf) && only(lf, /^Stay$/).length === 1, told(lf).slice(0, 300));
+        const stay2K = await keysIn(page, '[data-scroll="screen"]', /^Stay$/);
+        check("(s8b) Stay beside Leave on the family screen is the stone key", stay2K.length === 1 && isStone(stay2K, "golf"), toldK(stay2K).slice(0, 300));
         await ctx.close();
       }
       const weakSeen = weak(seen);
-      check("(s9) no outlined control met on the way reads under 3:1 — nothing is left on the hairline",
-        seen.length >= 12 && weakSeen.length === 0, `${seen.length} met · weak ${weakSeen.map((o) => `${o.at}: ${o.label} ${edgeRatio(o).toFixed(2)}:1`).join(" | ").slice(0, 300)}`);
+      /* since 21 November the quiet keys are stone — filled, told by their face and ledge — so the bare
+         outlined controls left to meet are fewer (the layout editor's minus, a box's own controls) */
+      check("(s9) no bare outlined control met on the way reads under 3:1 — nothing is left on the hairline",
+        seen.length >= 4 && weakSeen.length === 0, `${seen.length} met · weak ${weakSeen.map((o) => `${o.at}: ${o.label} ${edgeRatio(o).toFixed(2)}:1`).join(" | ").slice(0, 300)}`);
     }
 
     check("(o) no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));

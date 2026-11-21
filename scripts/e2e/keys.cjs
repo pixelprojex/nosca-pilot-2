@@ -75,7 +75,9 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     const reg = await look(page, '[data-tour="quick-attend"]'), off = await look(page, '[data-tour="quick-weather"]'), logBlock = await look(page, '[data-tour="quick-log"]');
     const regTile = await page.locator('[data-tour="quick-attend"]').first().evaluate((el) => el.hasAttribute("data-tile") && !el.hasAttribute("data-round")).catch(() => false);
     await shot("a-plus");
-    check("(a) Register on the plus is a calm tile: the wash, no outline, a three-point lip of the soft tone — never the edge's", regTile && !!reg && reg.bg === WASH && reg.border === NONE && lipOf(reg.shadow) === 3 && !/47, 107, 58, 0\.72/.test(reg.shadow) && reg.w > reg.h, JSON.stringify(reg));
+    /* STONE (21 November): the quiet key is a filled face of golf's ink at a sixteenth over white, a fine
+       ring a step deeper, a three-point ledge deeper again — never the edge's green, never the wash */
+    check("(a) Register on the plus is the stone tile: the filled face, the fine ring, a three-point ledge of stone — never the edge's", regTile && !!reg && reg.bg === "rgb(241, 242, 241)" && reg.border === "rgb(224, 226, 224)" && lipOf(reg.shadow) === 3 && /rgb\(207, 210, 207\)/.test(reg.shadow) && !/47, 107, 58, 0\.72/.test(reg.shadow) && reg.w > reg.h, JSON.stringify(reg));
     check("(a) …Call off the one red tile, on a deeper red", !!off && off.bg === "rgb(196, 52, 42)" && lipOf(off.shadow) === 3, JSON.stringify(off));
     check("(a) …and Log a lesson the accent across the top, the glyph beside the word", !!logBlock && logBlock.bg === ACCENT && lipOf(logBlock.shadow) === 3 && logBlock.h >= 60 && logBlock.h < 70, JSON.stringify(logBlock));
     await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
