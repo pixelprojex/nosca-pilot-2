@@ -148,7 +148,9 @@ const { check, results, summary } = M.checker("narrow");
         check("(c1) at 320 the live row gives the name its room — at least 85px, nothing cut — and Register takes a line of its own under it",
           !!o && o.nameW >= 85 && !o.nameCut && o.regTop >= o.nameBottom - 2 && o.regLabel === "Register", JSON.stringify(o));
       } else {
-        check("(c2) at 375 Register stays beside the name, and the name is whole on three lines at most", !!o && !o.nameCut && o.nameW >= 84 && o.regTop < o.nameBottom - 8 && o.regLabel === "Register", JSON.stringify(o));
+        /* the names are 16px at 600 since 21 November: "Súilleabháin" no longer fits beside Register at 375, so the row
+           does what it does at 360 (c5) — Register takes a line of its own, the name whole; a short name keeps it beside (c4) */
+        check("(c2) at 375 the long name's longest word does not fit beside Register, so Register takes a line of its own under it, the name whole", !!o && !o.nameCut && o.nameW >= 85 && o.regTop >= o.nameBottom - 2 && o.regLabel === "Register", JSON.stringify(o));
       }
       await ctx.close();
     }

@@ -455,8 +455,8 @@ export const LINE_STRONG = "#8E8E93";
    places to make it look more realistic. Take reference from iOS". iOS's
    fixed colours, each deep enough that a white glyph on it reads 3:1 and
    over — Settings' rounded squares, the actions' glyphs, never a tint. */
-export const IOS = { blue: "#007AFF", green: "#2DA44E", orange: "#E67E00", red: "#FF3B30", purple: "#AF52DE",
-  pink: "#FF2D55", teal: "#1F9BB3", indigo: "#5856D6", grey: "#8E8E93", mint: "#00A89E", cyan: "#1C9BD8", brown: "#A2845E" };
+export const IOS = { blue: "#007AFF", green: "#2DA44E", orange: "#DC7400", red: "#FF3B30", purple: "#AF52DE",
+  pink: "#FF2D55", teal: "#1F9BB3", indigo: "#5856D6", grey: "#8E8E93", mint: "#009E94", cyan: "#1C9BD8", brown: "#A2845E" };
 export const EDGE_W = 1.5;
 /* THE LIP (18 November). The founder: the buttons, tiles and boxes
    "Duolingo style … that we have already done with the Lares app, where
@@ -522,6 +522,15 @@ export const KEY_RING = (t) => (darkPage(t) ? "transparent" : "#E2E2E7");
    on the face, its ring and its ledge, the word in the sport's colour —
    where a chosen key was the ink, black among white keys */
 export const SEL = (t) => ({ face: MIX("#FFFFFF", t.accent, 0.1), ring: MIX("#FFFFFF", t.accent, 0.55), lip: MIX("#FFFFFF", t.accent, 0.55), fg: MIX(t.accent, "#000000", 0.08) });
+/* a row of a list chosen from (a reason on Cancel, Call off, End or
+   Decline): the list's white card at rest, Duolingo's chosen answer once
+   picked — the sport's colour faint on the face, its ring and ledge (the
+   card's --edge), the word in the sport's colour, a tick */
+export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring } : null);
+/* a small key chosen from a set (a day of the week): Duolingo's white
+   key on its grey ledge at rest (an n-key), the chosen answer once picked */
+export const keyPick = (t, on) => ({ background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
+                                     "--key-lip": on ? SEL(t).lip : TINT_LIP(t), color: on ? SEL(t).fg : t.ink });
 /* dramatic, at the founder's word ("don't be afraid of dramatic kind
    of 3D effects"): six points of lip under a button or a tile, and the
    press takes five of them, so a key goes right down like a real one */
@@ -1343,43 +1352,21 @@ export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
    more than size: large display text needs negative tracking to stop
    looking loose, small caps need positive tracking to stay legible.
 ------------------------------------------------------------------ */
-/* opsz is doing real work here: large sizes get the high-contrast,
-   tightly-fitted cut, small sizes get the sturdier one. SOFT rounds the
-   terminals very slightly so it reads warm rather than clinical. */
-/* Gabarito carries a heading through weight and tight tracking rather
-   than size — which is why headings here are smaller than before but
-   read louder. Less shouting, more presence. */
+/* APPLE'S TYPE (21 November). The system face — SF Pro on an iPhone,
+   the platform's own elsewhere — and no web font: the founder asked for
+   the app to read like Apple's own, and a loaded display face (Cabinet
+   Grotesk, then Gabarito before it) was the clearest tell that it did
+   not. Headings go heavy and tight, as iOS's large titles do: screen 30
+   and title 22 at 700, section 20 at 700, heading 17 and subhead 15 at
+   600; the text end is body 16, small 14, caption 13, eyebrow 13 at 600.
+   12 IS THE FLOOR, and no literal on a live screen sits under it. Two
+   written exceptions, each the phone's own convention and not a
+   shortage of space: the tab bar's labels (the one surface the founder
+   asked kept as it was; iOS's own are 10pt) and the sign-up wordmark, a
+   logotype drawn, not read. scripts/e2e/type-floor.cjs reads the
+   computed size of every word on every screen as every role and fails
+   on anything under 12 outside those two. */
 export const TYPE = {
-  /* Large sizes go LIGHTER, not heavier — that is the whole trick. A
-     32px heading at weight 300 with tight tracking reads considered;
-     the same heading at 700 reads like a warning sign.
-
-     Cabinet Grotesk is loaded as STATIC cuts — 300, 400, 500, and no
-     variable axis. CSS Fonts 4 matches a weight below 400 by checking
-     lighter cuts in descending order first, so `screen`'s old 350
-     resolved to 300: identical to `hero`. Every H1 in the app shipped
-     at hero's weight, and that is a good part of why the screens read
-     flat. Verified in the browser, not assumed: with a family built
-     from three distinct local cuts, 350 and 399 both render the 300
-     cut and only 400 crosses over. `screen` is 400 now, so the ladder
-     has a weight step as well as a size step.
-
-     The ladder is 32 · 24 · 19 · 15.5 · 14.5 · 13.5 · 12.5 · 12, with
-     no adjacent pair closer than 1.04x. The display end goes larger
-     and lighter, the text end larger and steadier — body is read on a
-     range at arm's length and is the one size that should never have
-     come down. 12 IS THE FLOOR, and the ladder ends on it: caption is
-     12, and no literal anywhere on a live screen sits under it — the
-     bell's times, Chat's times, the roster's standing line, a tile's
-     count, a face's initials (Avatar floors them) all read at twelve.
-     It was 11 for a long time, with fifty literals from 8.5 up beside
-     it, against the rule this file states. Two written exceptions,
-     each the phone's own convention and not a shortage of space: the
-     tab bar's labels (the one surface the founder asked kept as it
-     was; iOS's own are 10pt) and the sign-up wordmark, a logotype
-     drawn, not read. scripts/e2e/type-floor.cjs reads the computed
-     size of every word on every screen as every role and fails on
-     anything under 12 outside those two. */
   hero:     { fontFamily: display, fontSize: 34, lineHeight: 1.08, letterSpacing: "-0.022em", fontWeight: 700 },
   /* every screen's H1, and the app's only one — see PageHead. */
   screen:   { fontFamily: display, fontSize: 30, lineHeight: 1.1, letterSpacing: "-0.02em",  fontWeight: 700 },
@@ -2896,10 +2883,10 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
           return (
             <button key={r} data-tour="cancel-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, ...pickRow(t, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(t).fg : t.ink }}>{tr(r)}</span>
+              {on && <Check size={17} color={t.accent} strokeWidth={2.4} />}
             </button>
           );
         })}
@@ -3624,7 +3611,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
 
       {/* what today is for */}
       {focus && (
-        <div className="px-4 py-3.5 mb-5" style={{ borderRadius: R.control, background: `${t.accent}0F` }}>
+        <div className="px-4 py-3.5 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
           <span className="block" style={{ ...TYPE.caption, color: t.accent }}>{tr("Today")}</span>
           <span className="block mt-1" style={{ ...TYPE.subhead, color: t.ink }}>{focus}</span>
         </div>
@@ -3959,15 +3946,13 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   <div className="flex gap-1.5 mt-4">
                     {DAY_NAMES.map((d, k) => {
                       const on = x.day === k;
-                      /* the chosen day in ink, as a chosen tile is — it was filled
-                         in STEADY, a second filled colour on the screen and the
-                         success green for a plain choice; 44 tall on the
-                         control's corner, as the Set up sheet's seven are */
+                      /* the chosen day is Duolingo's chosen answer and the rest
+                         white keys, as the Set up sheet's seven are (it was the
+                         ink, and before that STEADY); 44 tall on the control's corner */
                       return (<button key={k} aria-label={d} onClick={() => { haptic(5); soft(); onEdit(x, { day: k }); }}
-                                      className="flex-1 active:opacity-60"
-                                      style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
-                                               ...TYPE.small, fontWeight: 600,
-                                               color: on ? "#fff" : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
+                                      className="flex-1 n-key"
+                                      style={{ minHeight: 44, borderRadius: R.control, ...keyPick(t, on),
+                                               ...TYPE.small, fontWeight: 600 }}>
                                 {d.slice(0, 2)}</button>);
                     })}
                   </div>
@@ -4726,7 +4711,7 @@ const COACH_ACTIONS = {
   log:     { Ico: Plus,          label: "Log",        hue: "#2DA44E" },
   attend:  { Ico: Check,         label: "Register",   hue: "#2DA44E" },
   capture: { Ico: Camera,        label: "Capture",    hue: "#007AFF" },
-  tip:     { Ico: Lightbulb,     label: "Tip",        hue: "#E67E00" },
+  tip:     { Ico: Lightbulb,     label: "Tip",        hue: "#DC7400" },
   drills:  { Ico: ListChecks,    label: "Drills",     hue: "#AF52DE" },
   player:  { Ico: UserPlus,      label: "Add player", hue: "#1F9BB3" },
   group:   { Ico: Users,         label: "New group",  hue: "#5856D6" },
@@ -4734,7 +4719,7 @@ const COACH_ACTIONS = {
      is the one thing they need in a hurry, so it took the slot: a
      calendar with an X, in red, one of the eight under Log a lesson. */
   weather: { Ico: CalendarX,     label: "Call off",   hue: "#FF3B30" },
-  comp:    { Ico: Trophy,        label: "Competition", hue: "#E67E00" },
+  comp:    { Ico: Trophy,        label: "Competition", hue: "#DC7400" },
 };
 const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "weather", "comp"];
 
@@ -6522,8 +6507,8 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
         {top}
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
           <span className="rounded-full flex items-center justify-center mb-7"
-                style={{ width: 74, height: 74, background: `${t.accent}14`, animation: "breathe 3.2s ease-in-out infinite" }}>
-            <Clock size={28} color={t.accent} strokeWidth={1.5} />
+                style={{ width: 74, height: 74, background: t.accent, animation: "breathe 3.2s ease-in-out infinite" }}>
+            <Clock size={30} color={t.onAccent} strokeWidth={2} />
           </span>
           <h1 data-tour="nocoach-pending" style={{ ...TYPE.hero, fontSize: 27, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 70ms both" }}>
             {tr("Request sent")}
@@ -6557,9 +6542,9 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
           </p>
         )}
         <span className="rounded-full flex items-center justify-center mb-7"
-              style={{ width: 74, height: 74, background: t.wash,
+              style={{ width: 74, height: 74, background: t.accent,
                        animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) both" }}>
-          <UserPlus size={28} color={t.sub} strokeWidth={1.5} />
+          <UserPlus size={30} color={t.onAccent} strokeWidth={2} />
         </span>
 
         <h1 style={{ ...TYPE.hero, fontSize: 27, color: t.ink,
@@ -7471,10 +7456,10 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
           return (
             <button key={r} data-tour="end-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, ...pickRow(t, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(t).fg : t.ink }}>{tr(r)}</span>
+              {on && <Check size={17} color={t.accent} strokeWidth={2.4} />}
             </button>
           );
         })}
@@ -7599,10 +7584,10 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
           return (
             <button key={r} data-tour="calloff-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, ...pickRow(t, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(t).fg : t.ink }}>{tr(r)}</span>
+              {on && <Check size={17} color={t.accent} strokeWidth={2.4} />}
             </button>
           );
         })}
@@ -7655,28 +7640,29 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
      the diary's length, while the member's block said 60 */
   const len = item.duration || duration;
 
-  /* a box on the sport's edge like every other in the Diary — it was a
-     pale accent card at 16px, a fourth box style on one screen — with a
-     group marked as the List view marks it, the 3px bar */
+  /* the list's white card on its light grey line and ledge, like every
+     other box in the Diary (21 November; it was the sport's wash at 8px,
+     and before that a pale accent card at 16px) — with a group marked as
+     the List view marks it, the 3px bar */
   return (
-    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 8, background: t.wash, border: `${EDGE_W}px solid transparent` }}>
+    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
       <button onClick={() => { haptic(7); soft(); setOpen(!open); }} className="w-full text-left px-5 py-4">
         <div className="flex items-center gap-3.5">
           {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
           {!isGroup ? <Avatar name={item.who} size={42} />
-            : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.surface }}>
+            : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.wash }}>
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
             <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
             {/* two facts, each kept whole: where the line must wrap at 320 it breaks
                 before the dot, which rides with the kind — a line never ends on it */}
-            <span className="block mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>
+            <span className="block mt-1" style={{ ...TYPE.small, color: t.faint }}>
               <span data-block-time className="whitespace-nowrap">{span(item.time, len)}</span> <span data-block-kind className="whitespace-nowrap">· {item.kind}</span>
             </span>
             {/* who said they will not be there, a line of its own: two facts
                 on the grey line, and the count never broken across two */}
             {isGroup && item.outIds && item.outIds.length > 0 && (
-              <span data-tour="block-out-count" className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.sub }}>{item.outIds.length} {tr("not going")}</span>
+              <span data-tour="block-out-count" className="block mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{item.outIds.length} {tr("not going")}</span>
             )}
           </span>
           <span className="text-right shrink-0">
@@ -7694,7 +7680,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           {/* the numbers */}
           {/* A group has no file, and f.done is 0 for every real
               account — the roster is where a real count lives. */}
-          <div className="flex mx-5 mb-4" style={{ background: t.surface, borderRadius: R.control }}>
+          <div className="flex mx-5 mb-4" style={{ background: t.wash, borderRadius: R.control }}>
             {/* on the wash the faint caption reads 4.4:1, under the 4.5:1 a
                 word needs; the sub tone reads over 7 */}
             {!isGroup && (
@@ -7705,13 +7691,13 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
 
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
             {isGroup && item.outNames && item.outNames.length > 0 && (
-              <div data-tour="block-out" className="px-4 py-3" style={{ borderRadius: R.control, background: t.surface }}>
+              <div data-tour="block-out" className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
                 <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not going")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{item.outNames.join(", ")}</div>
               </div>
             )}
             {f.tip && (
-              <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.surface }}>
+              <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
                 <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Working on")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
@@ -7733,13 +7719,13 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
                   the button took only the second, so the diary's Cancel did nothing */}
               <button data-tour="block-cancel" onClick={() => { hapticWarn(); const act = onCancel || onNoShow; act && act(item); }} className="px-4 n-key"
                       style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
+                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 n-key"
                       style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
+                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
               <button onClick={() => { hapticCommit(); onLog && onLog(item); }} className="flex-1 n-key"
                       style={{ "--key-lip": LIP(t.accent), minHeight: 46, borderRadius: R.control, background: t.accent,
-                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.onAccent }}>
+                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.onAccent }}>
                 {tr("Log")}
               </button>
             </div>
@@ -8531,14 +8517,16 @@ const Eyebrow = ({ children }) => {
 };
 export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   const t = useT();
-  /* ONE BUTTON FAMILY, Lares's: a flat face on a deeper lip that sinks
-     right down under the finger. The strong tones lip in their own
-     colour made deeper; the quiet ones are a saturated tint of the
-     sport's colour (red for dangerQuiet) on a deeper tint with a fine
-     ring of it — never white with an outline any more. */
+  /* ONE BUTTON FAMILY, Duolingo's: a flat face on a deeper ledge that
+     sinks right down under the finger. The strong tones ledge in their
+     own colour made deeper; the quiet ones are the white key with a light
+     grey ring on a grey ledge (the word red for dangerQuiet). */
   const looks = {
     accent: { background: t.accent, color: t.onAccent, border: "none", lip: LIP(t.accent) },
-    ink:    { background: t.ink, color: "#fff", border: "none", lip: MIX(t.ink, "#000000", 0.55) },
+    /* a step's Next, Start, Save changes: the sport's colour, as every
+       primary key is in Duolingo and iOS — a black key read heavy beside
+       the white ones (21 November) */
+    ink:    { background: t.accent, color: t.onAccent, border: "none", lip: LIP(t.accent) },
     quiet:  { background: TINT(t), color: t.ink, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
     danger: { background: DANGER, color: "#fff", border: "none", lip: LIP(DANGER) },
     dangerQuiet: { background: TINT(t), color: DANGER, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
@@ -8890,21 +8878,25 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
              it, not a grey tile with a coloured dot. An add tile carries
              one plus: it carried the glyph and a "+ " in the word for a
              round and the founder asked why there were two. */
-          /* each a key in its own sport's colour: the sport's tint on a
-             deeper tint, the sport's full colour once chosen */
-          const lc = on ? LIP(th.mark) : `${th.mark}B8`;
+          /* each a key in its own sport's colour: the sport's colour
+             faint on the face with its ring and ledge (the one grid that
+             keeps a tint, since 21 November the app's wash is Apple's
+             neutral grey and no longer says the sport), the sport's full
+             colour once chosen */
+          const ring = MIX("#FFFFFF", th.mark, 0.55);
+          const lc = on ? LIP(th.mark) : ring;
           const p = press3d(lc, 3, 2);
           return (
             <button key={id} data-lip="" aria-label={add ? `${tr("Add")} ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
                     {...p.handlers}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : th.wash, boxShadow: p.rest,
-                             border: `${EDGE_W}px solid ${on ? th.mark : `${th.mark}B8`}`,
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : MIX("#FFFFFF", th.mark, 0.12), boxShadow: p.rest,
+                             border: `${EDGE_W}px solid ${on ? th.mark : ring}`,
                              transition: `background ${MOTION.settle}ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)` }}>
               {add
                 ? <Plus size={18} color={th.mark} strokeWidth={2.2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: on ? "#fff" : th.mark }} />}
-              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : th.ink }}>{sp.label}</span>
+              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: on ? "#fff" : th.ink }}>{sp.label}</span>
               {isMain && <span style={{ ...TYPE.caption, lineHeight: 1, marginTop: -4, color: on ? "rgba(255,255,255,0.7)" : th.sub }}>· {tr("main")}</span>}
             </button>
           );
@@ -8954,6 +8946,8 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
    a name at 375 and Message beside a name at 320; `textMin` is there
    for a row that needs more). */
 const PERSON_FACE = 44, PERSON_TEXT_MIN = 84;
+/* the width of "· " in the grey line, held so a dot that would lead a wrapped line is clipped whole */
+const SEP_HANG = "0.6em";
 function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
@@ -8973,9 +8967,16 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
      (a typed reason, a tip's title) wrap like words, or they ran off
      the box at 320 */
   const FACT = 28;
-  const subNode = typeof sub === "string" && sub.includes(" · ")
-    ? sub.split(" · ").map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className={part.length <= FACT ? "whitespace-nowrap" : undefined}>{i ? "· " : ""}{part}</span></React.Fragment>)
+  const parts = typeof sub === "string" && sub.includes(" · ") ? sub.split(" · ") : null;
+  /* where every part is a fact, a wrapped line can only start on one,
+     and its dot hangs off the left in a box of its own width, clipped:
+     the line reads "Tue 24 Nov" over "9:00 am", never "· 9:00 am" (a
+     dot leading the second line read as a slip beside Accept · Decline) */
+  const hang = !!parts && parts.every((part) => part.length <= FACT);
+  const subNode = parts
+    ? parts.map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className={part.length <= FACT ? "whitespace-nowrap" : undefined}>{i ? (hang ? <span style={{ display: "inline-block", width: SEP_HANG, whiteSpace: "pre", textIndent: 0 }}>{"· "}</span> : "· ") : ""}{part}</span></React.Fragment>)
     : sub;
+  const hangStyle = hang ? { marginLeft: `-${SEP_HANG}`, textIndent: SEP_HANG, clipPath: `inset(0 0 0 ${SEP_HANG})` } : null;
   /* a row that cannot be picked (the recurring sheet's "Already has one")
      fades its face and its words, never its box: the edge stays the sport's */
   const dim = muted ? { opacity: 0.45 } : undefined;
@@ -8987,7 +8988,12 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
       {/* the face is looked up by the whole name (FaceCtx keys on it, and
           two letters are its initials) even where the label is a first
           name alone, as the family's child row is */}
-      {muted ? <span className="shrink-0 flex" style={dim}>{faceNode}</span> : faceNode}
+      {/* a row whose words run long (a request's note, a notice's title,
+          both unclamped) keeps the face level with the name, as iOS's
+          lists and the phone's own notifications do — centred on a row of
+          six lines it floated half way down beside the words */}
+      {muted ? <span className="shrink-0 flex" style={dim}>{faceNode}</span>
+        : (subLines === 0 || nameLines === 0) ? <span className="shrink-0 flex self-start">{faceNode}</span> : faceNode}
       <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}`, ...dim }}>
         {/* `meta` sits on the name's line, on the right (Chat's time and dot) */}
         {meta
@@ -8996,7 +9002,7 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
               <span className="shrink-0">{meta}</span>
             </span>
           : <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: bold ? 700 : 600, color: t.ink, ...nameClamp }}>{name}</span>}
-        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.small, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...subClamp }}>{subNode}</span>}
+        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.small, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...subClamp, ...hangStyle }}>{subNode}</span>}
       </span>
       {value && <span className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{value}</span>}
       {trailing}
@@ -9090,7 +9096,7 @@ function MiniPlayer({ clip, onClose, onExpand }) {
     </div>
   );
 }
-const FACE_HUES = [["#FF8A7A", "#E5484D"], ["#FFB35C", "#E67E00"], ["#A394FF", "#6E5BEF"], ["#6FD18B", "#2DA44E"],
+const FACE_HUES = [["#FF8A7A", "#E5484D"], ["#FFB35C", "#DC7400"], ["#A394FF", "#6E5BEF"], ["#6FD18B", "#2DA44E"],
                    ["#4FD1C5", "#1A9BA8"], ["#5AB2FF", "#1F7AE0"], ["#F791C6", "#D9488F"]];
 const faceHue = (name) => {
   let h = 0; for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -9102,14 +9108,14 @@ const faceHue = (name) => {
    carried no glyph for a long time, "Settings rows carry no glyph at all") */
 const SETTINGS_GLYPHS = {
   "Default view": [LayoutGrid, "#5856D6"], "Opens on": [LayoutGrid, "#5856D6"], "Reminder": [Bell, "#FF3B30"],
-  "Reviews": [Star, "#E67E00"], "Review prompt": [Star, "#E67E00"], "Paperwork": [FileText, "#8E8E93"],
+  "Reviews": [Star, "#DC7400"], "Review prompt": [Star, "#DC7400"], "Paperwork": [FileText, "#8E8E93"],
   "Requests": [UserPlus, "#007AFF"], "Hours": [Clock, "#2DA44E"], "Away": [Plane, "#1C9BD8"],
   "Roster & groups": [Users, "#5856D6"], "Shortcuts": [Grid3X3, "#1F9BB3"], "Drills": [ListChecks, "#AF52DE"],
   "Lesson logs": [Film, "#FF2D55"], "Downloads": [Download, "#007AFF"], "Calendar": [CalendarDays, "#FF3B30"],
-  "Branding": [Palette, "#AF52DE"], "Invite code": [QrCode, "#00A89E"], "This month": [BarChart3, "#1F9BB3"],
+  "Branding": [Palette, "#AF52DE"], "Invite code": [QrCode, "#009E94"], "This month": [BarChart3, "#1F9BB3"],
   "Family": [Home, "#2DA44E"], "Your coach": [User, "#007AFF"], "Coaches & profiles": [User, "#007AFF"],
   "Notifications": [Bell, "#FF3B30"], "Data & permissions": [ShieldCheck, "#8E8E93"], "Photo": [Camera, "#8E8E93"],
-  "Personal details": [User, "#8E8E93"], "Your sporting record": [Trophy, "#E67E00"], "Connections": [Link2, "#5856D6"],
+  "Personal details": [User, "#8E8E93"], "Your sporting record": [Trophy, "#DC7400"], "Connections": [Link2, "#5856D6"],
   "Walkthrough": [Compass, "#2DA44E"], "Add to Home Screen": [Smartphone, "#007AFF"], "Attendance": [ClipboardCheck, "#2DA44E"],
   "Register": [ClipboardCheck, "#2DA44E"], "Contact us": [Mail, "#007AFF"], "Terms": [FileText, "#8E8E93"],
   "Privacy": [Lock, "#8E8E93"], "Licences": [FileText, "#8E8E93"], "Version": [Info, "#8E8E93"], "Sync": [RefreshCw, "#2DA44E"],
@@ -10944,7 +10950,8 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               nothing. */}
           {lesson.note && (
             <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
-              <p style={{ ...TYPE.title, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{lesson.note}</p>
+              {/* 20 regular, iOS's Title 3: the title size grew to 22 on 21 November, which read as a heading over a paragraph */}
+              <p style={{ ...TYPE.section, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{lesson.note}</p>
             </div>
           )}
 
@@ -10957,7 +10964,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               {replies.map((r, i) => (
                 <div key={r.id || i} className={i ? "mt-4" : ""}>
                   <Label>{[role === "coach" ? tr("Replied") : (first(coachName) || tr("Coach")), r.iso ? fmtWeekDay(new Date(r.iso)) : null].filter(Boolean).join(" · ")}</Label>
-                  <p style={{ ...TYPE.title, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{r.text}</p>
+                  <p style={{ ...TYPE.section, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{r.text}</p>
                 </div>
               ))}
             </div>
@@ -13211,7 +13218,8 @@ function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBl
 const WizCircle = ({ on }) => {
   const t = useT();
   return (
-    <span className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent", transition: "background 160ms, border-color 160ms" }}>
+    /* iOS's tick circle: the strong grey ring at rest (3:1 on white), the sport's colour once ticked */
+    <span className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.accent : LINE_STRONG}`, background: on ? t.accent : "transparent", transition: "background 160ms, border-color 160ms" }}>
       {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
     </span>
   );
@@ -13767,7 +13775,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                                  onChange={(e) => { setStageTouched(true); setStage(st.id); setStageVal(e.target.value); }}
                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); setView("main"); } }}
                                  className="outline-none text-right shrink-0" style={{ width: 96, minHeight: 40, padding: "0 10px", borderRadius: R.field,
-                                          background: on ? `${t.accent}14` : t.wash, border: `1px solid ${on ? `${t.accent}55` : "transparent"}`,
+                                          background: on ? SEL(t).face : t.wash, border: `1px solid ${on ? SEL(t).ring : "transparent"}`,
                                           fontFamily: ui, fontSize: 16, fontWeight: on ? 600 : 400, color: t.ink, fontVariantNumeric: "tabular-nums" }} />
                         ) : (
                           <button onClick={() => pickRung(st)} aria-label={st.label} className="py-2 active:opacity-50"><WizCircle on={on} /></button>
@@ -14602,18 +14610,23 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
   const hair = RULE.hair(t.ink);
   return (
     <div style={{ borderBottom: last && !plain ? hair : "none" }}>
-      <button onClick={() => { haptic(6); setOpen(!open); }} className={`w-full flex items-center gap-3 text-left active:opacity-50 ${inset ? "" : "px-6"}`}
-              style={{ minHeight: 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 14, paddingRight: 14 } : {}) }}>
-        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
-        <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "55%" }}>{value}</span>
+      {/* inset, it is a Settings row standing in a list of its own (the
+          Drills tab's Reminder): its glyph, the label in ink and the value
+          grey, as Settings draws the same row; a filter reads the other way */}
+      <button onClick={() => { haptic(6); setOpen(!open); }} className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
+              style={{ minHeight: inset ? 62 : 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 14, paddingRight: 14 } : {}) }}>
+        {inset && settingsGlyph(label)}
+        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
+        <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: inset ? 400 : 600, color: inset ? t.sub : t.ink, maxWidth: "55%" }}>{value}</span>
         <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
       </button>
       {open && (
         <div style={{ background: t.wash }}>
           {options.map((o) => (
             <button key={o} aria-pressed={value === o} onClick={() => { haptic(5); onChange(o); setOpen(false); }}
-                    className={`w-full flex items-center gap-3 text-left active:opacity-50 ${inset ? "" : "px-6"}`}
-                    style={{ minHeight: 46, borderTop: hair, ...(inset ? { paddingLeft: 14, paddingRight: 14, background: t.surface } : {}) }}>
+                    className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
+                    style={{ minHeight: inset ? 50 : 46, borderTop: hair, ...(inset ? { paddingLeft: 14, paddingRight: 14, background: t.surface } : {}) }}>
+              {inset && settingsGlyph(label) && <span className="shrink-0" style={{ width: 30 }} />}
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink }}>{o}</span>
               {value === o && <Check size={14} color={t.accent} strokeWidth={2.4} />}
             </button>
@@ -14801,10 +14814,10 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       <div className="flex gap-1.5 mb-5">
         {DAY_NAMES.map((n, i) => {
           const on = day === i;
-          return (<button key={n} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
-                          /* the chosen day in ink, as a chosen tile is — the accent is Save's */
-                          style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
-                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{n.slice(0, 2)}</button>);
+          return (<button key={n} onClick={() => { haptic(5); setDay(i); }} className="flex-1 n-key"
+                          /* the chosen day is Duolingo's chosen answer, the rest white keys — the accent's fill is Save's */
+                          style={{ minHeight: 44, borderRadius: R.control, ...keyPick(t, on),
+                                   fontFamily: ui, fontSize: 14, fontWeight: 600 }}>{n.slice(0, 2)}</button>);
         })}
       </div>
 
@@ -15517,12 +15530,11 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       <div className="flex gap-1.5 mb-3">
         {DAY_NAMES.map((d, i) => {
           const on = day === i;
-          return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
-                          /* the chosen day in ink, as a chosen tile is — the accent is
-                             spent on Create group, and it was the success green */
-                          style={{ minHeight: 42, borderRadius: R.control, background: on ? t.ink : t.wash,
-                                   fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? "#fff" : t.sub,
-                                   transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{d.slice(0, 2)}</button>);
+          return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 n-key"
+                          /* the chosen day is Duolingo's chosen answer, the rest white
+                             keys — the accent's fill is Create group's */
+                          style={{ minHeight: 44, borderRadius: R.control, ...keyPick(t, on),
+                                   fontFamily: ui, fontSize: 14, fontWeight: 600 }}>{d.slice(0, 2)}</button>);
         })}
       </div>
       <div className="mb-5">
@@ -16154,16 +16166,18 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
 function AwayLine({ role, name, booked = 0, onEdit }) {
   const t = useT();
   if (role === "coach") return (
-    /* the column's own box — the wash, 8px, 14 in, as the lesson boxes
-       under it (it was a 10px box padded 20, a fourth shape in the
-       column) — and its line in the label grey: t.faint on the wash
-       read 4.4:1 at 12px */
-    <div data-tour="cal-away" className="flex items-center gap-3 mb-4" style={{ minHeight: 54, padding: "0 14px", borderRadius: 8, background: t.wash }}>
-      <span className="flex-1 min-w-0">
-        <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
-        <span className="block truncate" style={{ ...TYPE.caption, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
-      </span>
-      {onEdit && <TextBtn color={t.ink} onClick={() => { haptic(6); onEdit(); }}>{tr("Edit")}</TextBtn>}
+    /* the column's own box — the list's white card on its line and
+       ledge, as the lesson boxes under it (21 November; it was the wash
+       at 8px) — its glyph Settings' Away, its line in the label grey */
+    <div className="nsc-list mb-4">
+      <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
+        <IconSq Icon={Plane} bg={IOS.cyan} />
+        <span className="flex-1 min-w-0">
+          <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
+          <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
+        </span>
+        {onEdit && <TextBtn color={t.accent} onClick={() => { haptic(6); onEdit(); }}>{tr("Edit")}</TextBtn>}
+      </div>
     </div>
   );
   return (
@@ -16601,17 +16615,20 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             )}
 
             {booked.length > 0 && (
+              <div className="nsc-list mb-4">
               <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
-                      className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
-                      style={{ minHeight: 54, borderRadius: 8, background: t.wash, border: `${EDGE_W}px solid transparent` }}>
-                {/* a calendar with an X, as on the plus: a coach calls off for a
-                    closed course as often as for rain */}
-                <CalendarX size={16} color={t.sub} strokeWidth={1.6} />
-                <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>
+                      className="w-full flex items-center gap-3.5"
+                      style={{ minHeight: 58 }}>
+                {/* a calendar with an X on the plus's red square: a coach calls
+                    off for a closed course as often as for rain. The list's white
+                    card, sinking under the finger (21 November; the wash at 8px) */}
+                <IconSq Icon={CalendarX} bg={IOS.red} />
+                <span className="flex-1 text-left" style={{ ...TYPE.body, color: t.ink }}>
                   {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
                 </span>
-                <ChevronRight size={15} color={t.trace || t.faint} />
+                <ChevronRight size={16} color={t.trace || t.faint} />
               </button>
+              </div>
             )}
 
             {open.length > 0 && prefs.showFree && (<>
@@ -16986,7 +17003,7 @@ function ThreadBubble({ m, mine, end, live }) {
   const body = m.id ? ((readMsg(m.id) || {}).text || m.text) : m.text;
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`} style={{ marginBottom: end ? SPACE.tight : SPACE.knit }}>
-      <div className="px-4 py-2" style={{ maxWidth: "78%", borderRadius: 20, background: mine ? t.accent : "#E9E9EB", border: "none", borderBottomRightRadius: mine && end ? 6 : 20, borderBottomLeftRadius: !mine && end ? 8 : 24 }}>
+      <div className="px-4 py-2" style={{ maxWidth: "78%", borderRadius: 20, background: mine ? t.accent : "#E9E9EB", border: "none", borderBottomRightRadius: mine && end ? 8 : 20, borderBottomLeftRadius: !mine && end ? 8 : 20 }}>
         {/* who wrote it, inside the bubble — on every bubble of a
             parent's run, so no line of theirs ever reads as the child's
             or the coach's, however it is cropped */}
@@ -17092,7 +17109,9 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
               </button>
             )}
             <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D1D1D6" }}>
-              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
+              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
+              {/* the field gives way, never the mic or Send: an input's own
+                  width at 17px pushed the mic over Send on a narrow phone */}
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
             <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D1D1D6", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
@@ -22146,10 +22165,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         return (
                           <button key={r} data-tour="decline-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setDeclineWhy(on ? null : r); }}
                                   className="w-full flex items-center gap-3 text-left"
-                                  style={{ minHeight: 52, background: on ? theme.ink : theme.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                                  style={{ minHeight: 52, ...pickRow(theme, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                            <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : theme.ink }}>{tr(r)}</span>
-                            {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+                            <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(theme).fg : theme.ink }}>{tr(r)}</span>
+                            {on && <Check size={17} color={theme.accent} strokeWidth={2.4} />}
                           </button>
                         );
                       })}

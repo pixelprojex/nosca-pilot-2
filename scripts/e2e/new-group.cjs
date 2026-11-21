@@ -1,7 +1,7 @@
 /* ONE NEW GROUP SHEET. New group is one sheet whichever control opens it
    — the roster's tile, the roster's Groups-half row, the plus — headed
    "New group", a "Group name" field, the people as the app's boxed person
-   rows (PersonPicker), the week as a day row with the chosen day in ink,
+   rows (PersonPicker), the week as a day row with the chosen day Duolingo's chosen answer,
    every time, the weeks, Create group. For a long time the roster's foot
    row ("Create a group") opened a second sheet of round chips with
    "e.g. Saturday clinic", four times in a grid and a "Create · 8 Fridays
@@ -100,10 +100,12 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
       const C = await shape(page); await shot("03-from-tile");
       check("(d) the roster's New group tile opens the same sheet", !!C && print(C) === print(A), `${print(C)} vs ${print(A)}`);
 
-      /* the chosen day in ink, as a chosen tile is; the others on the wash; never the success green */
-      const on = C ? C.days.filter((d) => d.bg === C.ink) : [], off = C ? C.days.filter((d) => d.bg !== C.ink) : [];
-      check("(e) the chosen day is filled with the ink and reads white; the six others share one quiet fill; none is the success green",
-        !!C && on.length === 1 && on[0].d === "Sa" && on[0].fg === "rgb(255, 255, 255)" && off.length === 6 && new Set(off.map((d) => d.bg)).size === 1 && !C.days.some((d) => d.bg === STEADY),
+      /* the chosen day is Duolingo's chosen answer since 21 November (it was the ink): golf's colour at a tenth over
+         white with the word in golf's colour; the six others the white key; never the success green */
+      const SEL_FACE = "rgb(233, 242, 234)", SEL_FG = "rgb(29, 112, 44)";   // #207A30 over white at 0.1; #207A30 a step deeper
+      const on = C ? C.days.filter((d) => d.bg === SEL_FACE) : [], off = C ? C.days.filter((d) => d.bg !== SEL_FACE) : [];
+      check("(e) the chosen day is Duolingo's chosen answer, golf's colour faint with the word in it; the six others are the white key; none is the success green",
+        !!C && on.length === 1 && on[0].d === "Sa" && on[0].fg === SEL_FG && off.length === 6 && new Set(off.map((d) => d.bg)).size === 1 && off[0].bg === "rgb(255, 255, 255)" && !C.days.some((d) => d.bg === STEADY),
         C ? JSON.stringify(C.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
       await page.locator("[data-sheet] button", { hasText: /^Th$/ }).first().click(); await page.waitForTimeout(300);
       const C2 = await shape(page);

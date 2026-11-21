@@ -170,6 +170,102 @@ seeded data and no account.
   change them together. Contrast: paper on it 11:1, white 12:1. The
   `theme-color` meta in index.html and the manifest's `theme_color` are
   NOT the brand: they are the paper (see below).
+- **White, one saturated colour a sport, Duolingo's keys, Apple's type
+  (21 November, the afternoon).** The stone keys below lasted a morning.
+  The founder, the same day: "Take so much more from Duolingo … the
+  saturated colors. There's so many color tints throughout this site.
+  But what I want is fixed colors, and also a white background is very
+  important. White background throughout, but then obviously the menu
+  bar and things is tinted in the color of the sport itself"; "The 3D
+  buttons, why are they gone again? … It looks like an AI website …
+  Take reference from the Apple operating systems"; of Chat, "it looks
+  like a page … so much visible text … maybe it's those hairlines …
+  maybe it's all the tinted boxes"; then "Simplify everything, get rid
+  of any text that doesn't need to be there … some of the things are
+  fine with just icons … A bit more color in places … iOS … Duolingo …
+  Apple Messages … WhatsApp". So:
+  - **White throughout, Apple's greys.** `page` and `surface` are
+    `#FFFFFF` in every sport, and so are index.html's body and
+    `theme-color`, the manifest's `theme_color`, `LOADER_PAPER` and the
+    gate's pages. The greys are Apple's and the same in every sport: ink
+    `#1C1C1E`, sub `#5F5F65` (6.3:1), faint `#6E6E73` (5.1:1), trace
+    `#AEAEB2`, hair `#EBEBF0`; `wash` is `#F2F2F7`, Apple's grouped grey,
+    for a field, a search, a track, a segmented control, a glyph's disc
+    and a panel inside a card — never a row, a box or a chosen state, and
+    no sport's colour is mixed into a fill (`MIX(…, accent)`, an alpha
+    wash) anywhere but `SportGrid` and `SEL`.
+  - **One saturated colour a sport,** `mark` and `accent` alike: golf
+    `#207A30`, tennis `#01836E`, rowing `#1B74A1`, squash `#C74B17`,
+    padel `#6536B6`, equestrian `#8C2941`; white on each reads 4.7:1 and
+    over. It is the one action and every primary key (`Button`'s `ink`
+    tone draws it too: a black key read heavy), a text action that acts
+    (Accept, the Away row's Edit), a chosen state, the unread dot and
+    Chat's time, a progress fill, my bubble, the month grid's chosen day,
+    and the tab bar's tint, which is exactly as it was.
+  - **A box is Duolingo's card.** `.nsc-list > *`, `.nsc-day`, `Card`,
+    Settings' `.nsc-group`, the Calendar view's blocks and its Away and
+    call-off rows: white, a 1.5px `#E2E2E7` line (`EDGE(t)` — no longer
+    the sport's tone), a 2px ledge of the same line under it, 14px
+    corners (16 on a day's box and a group); rows inside a box sit on
+    that line or the hairline. A row that is one button sinks onto its
+    ledge.
+  - **Keys are Duolingo's.** The one action is the sport's colour on a
+    ledge a third deeper (`LIP`); every other key is white with a
+    `#E2E2E7` ring on a `#D9D9DE` ledge (`TINT`, `KEY_RING`, `TINT_LIP`,
+    the `n-key` defaults); red is the word and the glyph on the white key
+    (`dangerQuiet`), or `DANGER` filled for the one destructive confirm.
+    **A chosen key, tile, reason or day is `SEL(t)`** — the sport's
+    colour at a tenth over white on the face, its ring and ledge at 55%,
+    the word in the sport's colour, a tick in it: Duolingo's chosen
+    answer (`pickRow` for a row of a list, `keyPick` for a small key) —
+    never the ink. `Button` is 52 tall at 17/600; a disabled one is the
+    flat white key with the faint word. A tick box's empty ring is
+    `LINE_STRONG` `#8E8E93` (3.3:1), the only control whose ring is all
+    that says where it is; a word key is told by its word and its ledge.
+  - **Apple's type.** The system face, `-apple-system` (SF Pro on an
+    iPhone); no web font is loaded. `TYPE`: screen 30/700, title 22/700,
+    section 20/700, heading 17/600, subhead 15/600, body 16, small 14,
+    caption 13, eyebrow 13/600. A row's name is 16/600 (700 on an unread
+    thread), the line under it 14; the lesson page's note and the
+    coach's reply are 20 regular (`TYPE.section`'s size — at the title's
+    22 a paragraph read as a heading), the tip's title `TYPE.title`.
+  - **Colour in its places, as iOS draws it.** A Settings row leads with
+    its glyph in white on a rounded square of a fixed colour (`IconSq`,
+    `SETTINGS_GLYPHS`; the Drills tab's Reminder row is Settings' own
+    shape), and so do the plus sheet's eight (`COACH_ACTIONS[].hue`, Call
+    off's square red), the home's Actions and All lessons, the player
+    file's foot rows and the Calendar view's Away and call-off rows; the
+    player file's round keys, the peek's and the log's Video · Photo ·
+    Voice carry the glyph in a colour of `IOS` (each deep enough for 3:1
+    on white — iOS's own orange and mint were deepened to `#DC7400` and
+    `#009E94`). A face with no picture is a gradient of one of seven hues
+    fixed by the name (`faceHue`), white initials, as Contacts and every
+    messenger draw one. This supersedes "Settings rows carry no glyph at
+    all"; a focus area, a level and an option still carry none.
+  - **Chat is Messages.** The list is plain (`.nsc-plain`): a 54 face,
+    the name 17/600, two lines of the last message in the sub grey, the
+    time and the unread dot in the sport's colour, a separator inset
+    from the face — no box per thread. A thread's bubbles are 20px
+    round, mine the sport's colour with white words, theirs `#E9E9EB`
+    with black, at 17; the composer a white pill on a `#D1D1D6` line, the
+    send disc the sport's colour once there are words.
+  - **Less text.** A subtitle the screen already shows goes (the
+    roster's count, the Drills tab's "2 to do" — its unticked rows say
+    it); a person row's face is 44 (`PERSON_FACE`, Chat's 54); a grey
+    line of facts that wraps starts its second line on the fact, its dot
+    clipped (`SEP_HANG`), never "· 9:00 am"; a row whose words run long
+    (a request's note, a notice's title) keeps the face level with the
+    name, as iOS's lists do, where centred it floated half way down.
+  This supersedes, where they say otherwise: the stone key and "the
+  colours are restrained" below, the wash rows of the visual-ease
+  bullet, "The paper is `#FEFEFE`", the edge as the sport's dark tone,
+  a chosen key in ink, `Avatar`'s wash disc, the person row's 40 face
+  and 14.5 name, and the sizes in the type ladder (12px stays the
+  floor). Not changed: the tab bar and the raised plus, the feed, the
+  splash, the walkthrough's shape, the mark top-left, the sport tiles
+  each in their own colour (`SportGrid`, the one grid that keeps a
+  tint). `keys.cjs`, `boxes.cjs`, `lists.cjs`, `ease.cjs`,
+  `calendar-day.cjs`, `person-row.cjs` read it.
 - **What is pressed stands on a lip; a key with a glyph is round
   (18 November).** The founder: the buttons, tiles and boxes "Duolingo
   style … that we have already done with the Lares app … our own
@@ -260,7 +356,8 @@ seeded data and no account.
     Drills, Tip, a time, `Choice`) stays a rounded rectangle on a
     three-point lip; `Button` is 50 on a four-point lip.
   - **The colours are restrained, never a colouring book — and the
-    second key is stone (21 November).** The one action is the accent on
+    second key is stone (21 November, the morning; superseded that
+    afternoon by the white key, the bullet above).** The one action is the accent on
     `LIP(accent)` (a third deeper); Call off is red on `LIP(DANGER)`; a
     chosen key is the ink. Every other key is **stone**, Lares's own
     `.btn3d.secondary`: `TINT(t)` is a filled face of the sport's ink at
@@ -703,9 +800,10 @@ seeded data and no account.
   were the clearest tell that a machine laid the screen out. The icons
   that stay are the plain ones a phone already uses — plus, tick,
   camera, bell, calendar, chevron. No sparkles, no broadcast mast for
-  weather, no bookshelf for a lesson. Settings rows carry no glyph at
-  all, bar the red bin on Delete account, which is a warning rather
-  than decoration.
+  weather, no bookshelf for a lesson. Settings rows carried no glyph
+  at all, bar the red bin on Delete account, until 21 November: each
+  now leads with its glyph on iOS's coloured square, at the founder's
+  ask for iOS (the bullet on white and Duolingo's keys).
 - **Anything you can type in words, you can say.** Every field a person
   writes words into carries dictation — through `VoiceInput`,
   `VoiceArea` or `InlineField`, or as a `MicBtn` beside the input. The
@@ -849,8 +947,11 @@ seeded data and no account.
   approved look. The accent appears once a screen (the one action).
 - **A sport tile is its sport's colour.** `SportGrid` (sign-up's sport,
   the profile's Sports you coach and Add another, a player's main
-  sport) fills each tile with that sport's wash, edges and dots it with
-  that sport's mark, and fills it with the mark once chosen — the one
+  sport) fills each tile with that sport's colour at an eighth over
+  white (its wash until 21 November, when every wash became Apple's
+  neutral grey and the tiles went grey for a build), rings and ledges
+  it with that colour at 55%, dots it with the mark, and fills it with
+  the mark once chosen — the one
   grid where the palette is the subject, so it says what each sport's
   colour is. An add tile carries one plus, the glyph, and the word
   alone; it carried a "+ " in the word as well for a round.
@@ -1648,10 +1749,12 @@ seeded data and no account.
   its "Tap a time to add it" is gone; EditDay's add grid is three
   across, as Hours' is. `ease.cjs`, `boxes.cjs`, `edit-day.cjs`,
   `hit-areas.cjs`, `narrow.cjs`, `refresh.cjs` and `away.cjs` read it.
-- **A list is a column of boxes, and every edge is the sport's own
-  dark tone, 1.5px, with nothing glowing around it.** `EDGE(t)` is the
-  sport's `mark` at 72% over the paper (the brand green before a sport)
-  — never black or ink — and `EDGE_W` is 1.5. It is the `--edge` of
+- **A list is a column of boxes, and every edge is one line, 1.5px,
+  with nothing glowing around it.** Since 21 November `EDGE(t)` is
+  `#E2E2E7`, Duolingo's card line, in every sport, with a 2px ledge of
+  it under each box; until then it was the sport's `mark` at 72% over
+  the paper (the brand green before a sport) — never black or ink — and
+  `EDGE_W` is 1.5. It is the `--edge` of
   `.nsc-list` boxes, `.nsc-day`, `ActTile`, `Card`, `Tile` and
   `TimeGrid` (so the setup's Days · Length · Times read as the same
   tile as the board), and a bordered surface casts no shadow (the resting shadow under a bordered
@@ -1740,8 +1843,9 @@ seeded data and no account.
   Just decline, End, the bin, Reset, New group's chips, Message, both
   Stays, Copy and Cancel as the coach, a player and a parent, and sweeps every outlined control met on the way for one
   under 3:1.
-- **The paper is `#FEFEFE`, one step off pure white, the same for
-  every sport.** Every theme's `page` is that value; `surface` is
+- **The paper is `#FFFFFF` since 21 November (it was `#FEFEFE`, one
+  step off pure white), the same for every sport.** Every theme's
+  `page` is that value; `surface` is
   white; the sport's colour lives in `wash`, the accent, the mark, the
   edges and the tab bar, which stays as it was. The off-white creams
   read as busy and the founder asked three times for backgrounds
@@ -2426,10 +2530,12 @@ seeded data and no account.
   built in the roster route; `data-standing` on the line carries its
   tone for the suite. `scripts/e2e/roster.cjs`.
 - **One person row.** A face, a name, one grey line and what sits on
-  the right is `PersonRow` — the face 40 (`PERSON_FACE`: the roster's,
-  and Material's 40dp list avatar), a 14px gap, `TYPE.body` for the name
-  (600 only as a state, an unread thread), `TYPE.caption` for the line
-  under it, 64 tall at rest and never a fixed height. The roster's
+  the right is `PersonRow` — the face 44 since 21 November, Chat's 54
+  (it was 40, `PERSON_FACE`: the roster's,
+  and Material's 40dp list avatar), a 14px gap, the name at 16/600 (700
+  on an unread thread; it was `TYPE.body` at 400, 600 only as a state),
+  `TYPE.small` for the line under it (it was `TYPE.caption`), 64 tall at
+  rest and never a fixed height. The roster's
   players and groups, Chat's threads, the family's children, Today's
   requests, the bell's requests and its notices (the badged face in the
   `face` slot; 12px of air above and below, `py-3`, so a wrapped notice
@@ -2572,9 +2678,10 @@ seeded data and no account.
   Register under "Cian Murphy" on every 360px phone, the common Android
   width, and sat 3px from doing so at 375); a name takes a second line,
   and a third, before an ellipsis (the live row's clamp was 2, the
-  Diary's rows were `truncate`). At 375 the marks and Register stay
-  beside the long name, whole on three lines; at 360 a short name keeps
-  Register beside it on a 60px row and the long name drops it under.
+  Diary's rows were `truncate`). At 375 the marks stay beside the
+  long name, whole on three lines; a short name keeps Register beside it
+  on a 60px row at 360 and 375, and the long name drops it under at both
+  (since the 16px names of 21 November; at 14.5 it stayed beside at 375).
   The Diary's rows carry `data-name` for the suites (`rsvp.cjs` read
   them by `.truncate`). The parent's Diary is titled
   "Book for Saoirse", the carried decision since 24 October, and sixteen

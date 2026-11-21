@@ -4,8 +4,8 @@
    the item on the right cut the name or the time on Today's request
    row, the bell's request row, the roster's standing line and the
    family's child row, and Chat cut every long name. Every one of those
-   is PersonRow now: one face (40), one inset, TYPE.body for the name
-   and TYPE.caption for the line under it, the name never cut (a second
+   is PersonRow now: one face (44; Chat's 54, as Messages), one inset,
+   the name at 16/600 and TYPE.small for the line under it, the name never cut (a second
    and a third line before an ellipsis, as the register's), a value kept
    and a pair of actions dropping under the name when a narrow phone
    cannot hold both. This walks the coach and a parent at 375 and 320
@@ -94,10 +94,10 @@ const rows = (page, where) => page.evaluate((where) => {
     }
     const txt = nameEl ? nameEl.textContent : "";
     const breakOk = breakAt == null ? true : /[\s-]/.test(txt[breakAt - 1]) || /\s/.test(txt[breakAt]);
-    const boxed = !!row.closest(".nsc-list"), sheet = !!row.closest("[data-sheet]");
+    const boxed = !!row.closest(".nsc-list"), sheet = !!row.closest("[data-sheet]"), plain = !!row.closest(".nsc-plain");
     /* words that run past the box: a nowrap fact wider than the column */
     const subOver = subEl ? subEl.scrollWidth > subEl.clientWidth + 1 : false;
-    return { where, tour: row.getAttribute("data-tour") || "", name: nameEl ? nameEl.textContent.trim() : "", face: Math.round(fr.width), sheet, subOver,
+    return { where, tour: row.getAttribute("data-tour") || "", name: nameEl ? nameEl.textContent.trim() : "", face: Math.round(fr.width), sheet, plain, subOver,
       air: nr ? Math.round(nr.top - rr.top) : null,
       inset: nr ? Math.round(nr.left - fr.left) : null, fs: cs ? cs.fontSize : null, fw: cs ? cs.fontWeight : null, bold: row.hasAttribute("data-bold"),
       actsH: acts ? Math.round(acts.getBoundingClientRect().height) : null, btnH, faceText,
@@ -191,12 +191,14 @@ const { check, results, summary } = M.checker("person-row");
       found.asks375.length >= 2 && found.roster375.length >= 3 && found.groups375.length >= 2 && found.ask375.length >= 1 && found.kids375.length >= 2 && found.drift375.length >= 1 && chat.at375.length >= 4 && more.picker375.length >= 3 && more.newgroup375.length >= 3 && more.recurwho375.length >= 3 && more.pickwho375.length >= 3 && more.notices375.length >= 3
       && found.asks320.length >= 2 && found.roster320.length >= 3 && found.ask320.length >= 1 && found.kids320.length >= 2 && found.drift320.length >= 1 && chat.at320.length >= 4 && more.picker320.length >= 3 && more.newgroup320.length >= 3 && more.recurwho320.length >= 3 && more.pickwho320.length >= 3 && more.notices320.length >= 3,
       JSON.stringify(Object.fromEntries(Object.entries({ ...found, ...more }).map(([k, v]) => [k, v.length]))));
-    const faces = [...new Set(all.map((r) => r.face))];
-    check("(b) one face: every row's face is 40", all.length > 0 && faces.length === 1 && faces[0] === 40, JSON.stringify(faces) + " " + all.filter((r) => r.face !== 40).slice(0, 3).map(line).join(" | "));
-    const insets = [...new Set(all.map((r) => r.inset))];
-    check("(c) one inset: the name starts 54px from the face's left on every row — the face and the 14px gap", insets.length === 1 && insets[0] === 54, JSON.stringify(insets) + " " + all.filter((r) => r.inset !== 54).slice(0, 3).map(line).join(" | "));
+    /* Chat's list is Messages' (21 November): a 54 face over a plain list; every other row the one 44 */
+    const isChat = (r) => r.plain;   // Chat's list, wherever it is caught (behind the picker's sheet too)
+    const faces = [...new Set(all.filter((r) => !isChat(r)).map((r) => r.face))], chatFaces = [...new Set(all.filter(isChat).map((r) => r.face))];
+    check("(b) one face: every row's face is 44, Chat's threads 54 as Messages draws them", all.length > 0 && faces.length === 1 && faces[0] === 44 && chatFaces.length === 1 && chatFaces[0] === 54, JSON.stringify({ faces, chatFaces }) + " " + all.filter((r) => r.face !== (isChat(r) ? 54 : 44)).slice(0, 3).map(line).join(" | "));
+    const insets = [...new Set(all.filter((r) => !isChat(r)).map((r) => r.inset))], chatInsets = [...new Set(all.filter(isChat).map((r) => r.inset))];
+    check("(c) one inset: the name starts 58px from the face's left on every row — the face and the 14px gap — and 68 on Chat's", insets.length === 1 && insets[0] === 58 && chatInsets.length === 1 && chatInsets[0] === 68, JSON.stringify({ insets, chatInsets }) + " " + all.filter((r) => r.inset !== (isChat(r) ? 68 : 58)).slice(0, 3).map(line).join(" | "));
     const type = [...new Set(all.map((r) => `${r.fs}/${r.fw}${r.bold ? " unread" : ""}`))], subs = [...new Set(all.filter((r) => r.sub).map((r) => r.sub.fs))];
-    check("(d) one type: the name 14.5px at 400 everywhere, 600 only on an unread thread, the grey line 12px", type.every((x) => x === "14.5px/400" || x === "14.5px/600 unread") && type.includes("14.5px/400") && all.some((r) => r.bold && /chat/.test(r.where)) && subs.length === 1 && subs[0] === "12px", JSON.stringify({ type, subs }));
+    check("(d) one type: the name 16px at 600 everywhere, 700 only on an unread thread, the grey line 14px", type.every((x) => x === "16px/600" || x === "16px/700 unread") && type.includes("16px/600") && all.some((r) => r.bold && /chat/.test(r.where)) && subs.length === 1 && subs[0] === "14px", JSON.stringify({ type, subs }));
     /* a notice's body alone may end on an ellipsis after two lines — a preview, as the phone's own
        notification list draws one; the tap opens the thing. It may never run past the box (m) */
     const preview = (r) => /alerts$/.test(r.where) && !r.acts && r.sub && r.sub.cut && !r.subOver;

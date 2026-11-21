@@ -71,7 +71,9 @@ const { check, results, summary } = M.checker("drill-library");
       check("(a) the Drills tab is what is to do plus today's set — the older done ones are not on it",
             names.length === 3 && names.slice(0, 2).sort().join("|") === "Ladder drill|Tee-peg drill" && names[2] === "Headcover drill", JSON.stringify(names));
       const t0 = M.norm(await text());
-      check("(b) the subtitle counts what is to do, and the door under the list counts every drill ever set", /2 to do/.test(t0) && /All drills\s*9/.test(t0), t0.slice(0, 160));
+      /* no subtitle since 21 November — the list is what is to do, its unticked rows the count — and the door counts every drill ever set */
+      const undone0 = await page.locator('.nsc-list button[aria-pressed="false"]').count();
+      check("(b) the unticked rows are what is to do, with no subtitle repeating them, and the door under the list counts every drill ever set", undone0 === 2 && !/\bto do\b/.test(t0) && /All drills\s*9/.test(t0), `${undone0} · ${t0.slice(0, 160)}`);
       check("(c) the Reminder row sits at the foot, reading eight in the morning", (await page.locator('[data-tour="drills-reminder"]').count()) === 1 && /Reminder 8:00 am/.test(M.norm(await page.locator('[data-tour="drills-reminder"]').innerText())), M.norm(await page.locator('[data-tour="drills-reminder"]').innerText().catch(() => "none")));
       await shot("01-drills-tab");
 
@@ -106,7 +108,8 @@ const { check, results, summary } = M.checker("drill-library");
       const t2 = M.norm(await text());
       /* the tab's own door reads "All drills" since 21 November, so the screen is told by its heading */
       const h1 = await page.locator('[data-scroll="screen"] h1').first().textContent().catch(() => null);
-      check("(l) Back lands on the Drills tab, with the unticked drill now to do", /Drills/.test(t2) && /2 to do/.test(t2) && (h1 || "").trim() === "Drills" && (await rowsOn(page)).includes("Step drill"), `${h1} · ${t2.slice(0, 120)}`);
+      const undone2 = await page.locator('.nsc-list button[aria-pressed="false"]').count();
+      check("(l) Back lands on the Drills tab, with the unticked drill now to do", /Drills/.test(t2) && undone2 === 2 && (h1 || "").trim() === "Drills" && (await rowsOn(page)).includes("Step drill"), `${h1} · ${undone2} to do · ${t2.slice(0, 120)}`);
 
       /* ---------- the reminder hour ---------- */
       const rem = page.locator('[data-tour="drills-reminder"]');

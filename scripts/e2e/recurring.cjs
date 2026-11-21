@@ -169,15 +169,15 @@ const { check, results, summary } = M.checker("recurring");
         s1.length > 0 && !/Set up/.test(s1) && !/Book \d+ lessons/.test(s1) && (await sheet(page).locator('[aria-label="Fewer"], [aria-label="More"]').count()) === 0,
         s1.slice(0, 200) || "no sheet open");
 
-      /* (a2) the rows are boxes on golf's edge, nothing ruled inside */
+      /* (a2) the rows are the list's white cards, nothing ruled inside */
       const boxes = await page.evaluate((edge) => [...document.querySelectorAll('[data-tour="cal-series"]')].map((row) => {
         const label = (row.innerText || "").replace(/\s+/g, " ").slice(0, 30);
         const list = row.closest(".nsc-list");
         if (!list) return { label, ok: false, why: "not in a .nsc-list" };
         const box = [...list.children].find((c) => c === row || c.contains(row));
         const cs = getComputedStyle(box);
-        const WASH_OF = { "rgba(47, 107, 58, 0.72)": "rgb(235, 243, 234)" };   // a list row sits on the wash with no edge (14 November)
-        const sides = cs.backgroundColor === WASH_OF[edge] && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === "rgba(0, 0, 0, 0)" || parseFloat(cs[`border${s}Width`]) === 0);
+        /* a list row is Duolingo's card (21 November): white, every side on the one light grey line — the wash with no edge from 14 November */
+        const sides = cs.backgroundColor === "rgb(255, 255, 255)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === edge && parseFloat(cs[`border${s}Width`]) >= 1);
         const bw = box.getBoundingClientRect().width; const rules = [];
         [box, ...box.querySelectorAll("*")].forEach((el) => {
           const wide = el === box || el.getBoundingClientRect().width >= 0.6 * bw;
@@ -186,10 +186,10 @@ const { check, results, summary } = M.checker("recurring");
           const s = getComputedStyle(el);
           for (const side of ["Top", "Bottom"]) if (wide && parseFloat(s[`border${side}Width`]) > 0 && s[`border${side}Style`] !== "none" && !/rgba\(0, 0, 0, 0\)/.test(s[`border${side}Color`])) rules.push(`${side} ${s[`border${side}Width`]}`);
         });
-        const ok = sides && cs.borderTopLeftRadius === "8px" && rules.length === 0;
+        const ok = sides && cs.borderTopLeftRadius === "14px" && rules.length === 0;
         return { label, ok, why: `${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius} rules[${rules.slice(0, 2).join(" | ")}]` };
-      }), "rgba(47, 107, 58, 0.72)");
-      check("(a2) each Recurring row is its own row in a .nsc-list: golf's wash, no edge, 8px corners, no rule inside",
+      }), "rgb(226, 226, 231)");
+      check("(a2) each Recurring row is its own row in a .nsc-list: the white card on the light grey line, 14px corners, no rule inside",
         boxes.length === 3 && boxes.every((b) => b.ok), boxes.length ? boxes.map((b) => `${b.label}: ${b.ok ? "ok" : b.why}`).join(" || ") : "no cal-series rows");
 
       /* (b) Update after another time: the same row, changed in place */
@@ -228,9 +228,10 @@ const { check, results, summary } = M.checker("recurring");
       const tc = chipThere ? await waitToast(page, /^Updated/) : { hit: null, seen: [] };
       await page.waitForTimeout(1200); await shot("05-manager-chip");
       const cp = since(db.patches, m1.patches, "recurring");
-      /* the chosen chip is a chosen tile: filled in the ink with white words, never the success green */
-      const chipLook = chipThere ? await chip.first().evaluate((el) => { const cs = getComputedStyle(el); const m = cs.backgroundColor.match(/\d+/g) || []; const lum = m.length >= 3 ? (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 : 1; return { bg: cs.backgroundColor, fg: cs.color, lum: Math.round(lum * 100) / 100 }; }) : null;
-      check("(c2) the chosen day chip is filled in the ink with white words — never the success green", !!chipLook && chipLook.fg === "rgb(255, 255, 255)" && chipLook.lum < 0.25, JSON.stringify(chipLook));
+      /* the chosen chip is a chosen tile: Duolingo's chosen answer since 21 November (it was the ink) — golf's colour at a
+         tenth over white, the word in golf's colour — never the success green */
+      const chipLook = chipThere ? await chip.first().evaluate((el) => { const cs = getComputedStyle(el); return { bg: cs.backgroundColor, fg: cs.color, ring: cs.borderTopColor }; }) : null;
+      check("(c2) the chosen day chip is Duolingo's chosen answer, golf's colour faint with the word in it — never the success green", !!chipLook && chipLook.bg === "rgb(233, 242, 234)" && chipLook.fg === "rgb(29, 112, 44)" && chipLook.ring === "rgb(132, 182, 141)", JSON.stringify(chipLook));
       check("(c) a day chip on Cian's tile sends one PATCH to recurring id=eq.S with the new weekday, no DELETE, no POST",
         cp.length === 1 && idsOf(cp[0].query).join() === REC.S && cp[0].body.weekday === toDay && cp[0].n === 1
           && since(db.deletes, m1.deletes, "recurring").length === 0 && since(db.posts, m1.posts, "recurring").length === 0 && db.recurring.some((r) => r.id === REC.S && r.weekday === toDay),
