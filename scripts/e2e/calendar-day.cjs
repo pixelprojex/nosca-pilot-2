@@ -13,7 +13,8 @@
    edge with nothing inside on the hairline, the actions 44 tall and clear
    of the time at 320, the clinic 11:00 am–12:00 pm and an hour on both
    sides, the day heading said once in the List view's form, and the
-   reasons boxed with the chosen one in ink — for the coach, a player
+   reasons boxed with the chosen one Duolingo's chosen answer (it was the
+   ink until 21 November) — for the coach, a player
    cancelling their own, and a riding coach on equestrian's edge; one
    private lesson's own length read on both sides; the open block's
    captions at 4.5:1 on the wash; a live group read "Group", no dot.
@@ -28,9 +29,15 @@ fs.mkdirSync(outDir, { recursive: true });
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17", parent: "00000000-0000-4000-8000-000000pa4e07", junior: "00000000-0000-4000-8000-00000000c41d", rider: "00000000-0000-4000-8000-00000000e9c0", tadhg: "00000000-0000-4000-8000-0000000ta0d6" };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const REC = "c0000000-0000-4000-8000-00000000ca01";
-const EDGE = { golf: "rgba(47, 107, 58, 0.72)", equestrian: "rgba(122, 59, 74, 0.72)" };
-const WASH = { golf: "rgb(235, 243, 234)", equestrian: "rgb(246, 239, 242)" };   // the sport's wash: a list row's fill since 14 November
-const HAIRLINE = "rgb(228, 236, 225)";
+/* 21 November: a list row is Duolingo's card — white on one light grey line, #E2E2E7, 14px corners, in every sport (the sport's
+   wash at 8px from 14 November) — a row inside a box sits on the hairline #EBEBF0, and a chosen reason is Duolingo's chosen
+   answer: the sport's colour at a tenth over white, its ring at 55%, the word in the sport's colour a step deeper */
+const EDGE = { golf: "rgb(226, 226, 231)", equestrian: "rgb(226, 226, 231)" };
+const CARD = "rgb(255, 255, 255)";
+const HAIRLINE = "rgb(235, 235, 240)";
+const ACCENT = { golf: "#207A30", equestrian: "#8C2941" };
+const mixRgb = (a, b, k) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(", ")})`; };
+const SEL = (sport) => ({ face: mixRgb("#FFFFFF", ACCENT[sport], 0.1), ring: mixRgb("#FFFFFF", ACCENT[sport], 0.55), fg: mixRgb(ACCENT[sport], "#000000", 0.08) });
 const GROUP = "rgb(110, 90, 147)";
 const WEEK = ["9:00 am", "10:00 am", "11:00 am", "11:30 am", "4:00 pm", "5:00 pm"];
 const TODAY = M.ymd(new Date());
@@ -92,13 +99,14 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
     const s = getComputedStyle(x), w = x.querySelector("span") || x;
     return { t: x.textContent.trim(), border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, bg: s.backgroundColor, fg: getComputedStyle(w).color, inList: !!(x.parentElement && x.parentElement.classList.contains("nsc-list")) };
   }), tour);
-  const reasonChecks = async (page, id, tour, pick, edge) => {
+  const reasonChecks = async (page, id, tour, pick, sport) => {
     const rs = await reasons(page, tour);
-    check(`(${id}) the reasons are rows of one list on the sport's wash, 8px corners — never the hairline`,
-          rs.length >= 3 && rs.every((r) => r.inList && (r.t === pick || r.bg === (edge === EDGE.golf ? WASH.golf : WASH.equestrian)) && r.radius === "8px"), JSON.stringify(rs.slice(0, 3)));
+    check(`(${id}) the reasons are rows of one list, each the white card on the light grey line, 14px corners — never the hairline`,
+          rs.length >= 3 && rs.every((r) => r.inList && (r.t === pick || (r.bg === CARD && r.border === EDGE[sport])) && r.radius === "14px"), JSON.stringify(rs.slice(0, 3)));
     await page.locator(`[data-tour="${tour}"]`, { hasText: new RegExp(`^${pick}$`) }).first().click(); await page.waitForTimeout(500);
     const on = (await reasons(page, tour)).find((r) => r.t === pick);
-    check(`(${id}) …and the chosen one is ink with white words, not a 6% tint`, !!on && lum(on.bg) < 0.03 && lum(on.fg) > 0.8, JSON.stringify(on));
+    const sel = SEL(sport);
+    check(`(${id}) …and the chosen one is Duolingo's chosen answer — the sport's colour faint on the face, on its ring, the word in the sport's colour`, !!on && on.bg === sel.face && on.border === sel.ring && on.fg === sel.fg, JSON.stringify({ on, sel }));
   };
 
   try {
@@ -115,7 +123,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
         const bar = [...b.querySelectorAll("span")].find((x) => getComputedStyle(x).width === "3px");
         return { t: b.innerText.replace(/\s+/g, " ").slice(0, 80), bg: s.backgroundColor, border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, bar: bar ? getComputedStyle(bar).backgroundColor : null };
       }));
-      check("(c5) each of the coach's lessons is a row on the sport's wash at 8px, no edge — not a pale 16px accent card", blocks.length === 3 && blocks.every((b) => b.bg === WASH.golf && b.radius === "8px"), JSON.stringify(blocks));
+      check("(c5) each of the coach's lessons is the list's white card on the light grey line at 14px — not a pale 16px accent card", blocks.length === 3 && blocks.every((b) => b.bg === CARD && b.border === EDGE.golf && b.radius === "14px"), JSON.stringify(blocks));
       const clinic = blocks.find((b) => /Saturday clinic/.test(b.t));
       check("(c5) …a group keeps the List view's 3px bar in its own colour", !!clinic && clinic.bar === GROUP, JSON.stringify(clinic));
       check("(c3) the coach reads the clinic at its own hour, 11:00 am–12:00 pm — not the diary's 45 minutes, not an am stripped across noon", !!clinic && /11:00 am–12:00 pm/.test(clinic.t), JSON.stringify(clinic));
@@ -130,23 +138,23 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       check("(c3) …and opened, its Length reads 60m", !!opened && opened.len === "60", JSON.stringify(opened));
       check("(c5) …with nothing inside it on the hairline", !!opened && opened.onHair === 0, JSON.stringify(opened));
       const weather = await page.evaluate(() => { const b = document.querySelector('[data-tour="cal-weather"]'); if (!b) return null; const s = getComputedStyle(b); const svg = b.querySelector("svg"); return { bg: s.backgroundColor, border: s.borderTopColor, bw: parseFloat(s.borderTopWidth), radius: s.borderTopLeftRadius, cls: svg ? svg.getAttribute("class") : "" }; });
-      check("(c6) the call-off row is on the sport's wash at 8px, with the calendar-and-X glyph — never the rain", !!weather && weather.bg === WASH.golf && weather.radius === "8px" && /calendar-x/.test(weather.cls) && !/cloud-rain/.test(weather.cls), JSON.stringify(weather));
+      check("(c6) the call-off row is the list's white card at 14px, with the calendar-and-X glyph — never the rain", !!weather && weather.bg === CARD && weather.border === EDGE.golf && weather.radius === "14px" && /calendar-x/.test(weather.cls) && !/cloud-rain/.test(weather.cls), JSON.stringify(weather));
       /* (w2) Call off, from that row */
       await tap(page, '[data-tour="cal-weather"]', 1000);
-      await reasonChecks(page, "w2", "calloff-why", "Weather", EDGE.golf); await shot("03-calloff-why");
+      await reasonChecks(page, "w2", "calloff-why", "Weather", "golf"); await shot("03-calloff-why");
       await page.keyboard.press("Escape").catch(() => {}); await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(600);
       /* (w1) Cancel, from the peek on Today */
       await tap(page, '[aria-label="Today"]', 1000);
       await page.locator('[data-scroll="screen"] button', { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       await page.locator("[data-sheet] button", { hasText: /^Cancel$/ }).first().click(); await page.waitForTimeout(900);
-      await reasonChecks(page, "w1", "cancel-why", "Unwell", EDGE.golf); await shot("04-cancel-why");
+      await reasonChecks(page, "w1", "cancel-why", "Unwell", "golf"); await shot("04-cancel-why");
       await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(600);
       /* (w3) End, from the Recurring manager */
       await tap(page, '[aria-label="Diary"]', 1000);
       const list = page.locator('[data-tour="cal-view"] [aria-label="List"]'); if (await list.count()) await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       if (await page.locator('[data-tour="cal-recurring"]').count()) await tap(page, '[data-tour="cal-recurring"]', 1000);
       await page.locator('[data-tour="recur-end"]').first().click(); await page.waitForTimeout(1500);
-      await reasonChecks(page, "w3", "end-why", "Unwell", EDGE.golf); await shot("05-end-why");
+      await reasonChecks(page, "w3", "end-why", "Unwell", "golf"); await shot("05-end-why");
       await ctx.close();
     }
     /* ---------- Cian, a player: his own lessons and the clinic ---------- */
@@ -167,8 +175,8 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
                  clear: cancel ? !hit(r(cancel), r(time)) && !hit(r(resched), r(time)) : null, below: cancel && len ? r(cancel).top >= r(len).bottom - 1 : null, text: b.innerText.replace(/\s+/g, " ") };
       }), HAIRLINE);
       if (w === 390) {
-        check("(c1) every lesson of the player's day is its own row of one list, on the sport's wash with no edge, nothing inside on the hairline",
-              mine.length === 3 && mine.every((m) => m.inList && m.bg === WASH.golf && m.onHair === 0), JSON.stringify(mine.map((m) => ({ t: m.time, inList: m.inList, border: m.border[2], onHair: m.onHair }))));
+        check("(c1) every lesson of the player's day is its own row of one list, the white card on the light grey line, nothing inside on the hairline",
+              mine.length === 3 && mine.every((m) => m.inList && m.bg === CARD && m.border.every((c) => c === EDGE.golf) && m.onHair === 0), JSON.stringify(mine.map((m) => ({ t: m.time, inList: m.inList, border: m.border[2], onHair: m.onHair }))));
         const clinic = mine.find((m) => /Saturday clinic/.test(m.text));
         check("(c3) the member reads the clinic as the coach does: 11:00 am–12:00 pm, an hour", !!clinic && clinic.time === "11:00 am–12:00 pm" && /60 min with/.test(clinic.text), JSON.stringify(clinic));
         const free = await page.evaluate(() => [...document.querySelectorAll("[data-cal-day] .nsc-day button, [data-cal-day] .nsc-day span")].map((x) => x.textContent.trim()).filter((x) => /–/.test(x)));
@@ -184,7 +192,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       if (w === 390) {
         /* (w4) his own Cancel opens the same boxed reasons, the player's own */
         await page.locator('[data-tour="day-mine"]', { hasText: "4:00" }).locator('[data-tour="day-cancel"]').click(); await page.waitForTimeout(900);
-        await reasonChecks(page, "w4", "cancel-why", "Unwell", EDGE.golf); await shot("07-player-cancel-why");
+        await reasonChecks(page, "w4", "cancel-why", "Unwell", "golf"); await shot("07-player-cancel-why");
       }
       await ctx.close();
     }
@@ -226,7 +234,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
       const { ctx, page, shot } = await boot(db, "rider");
       await tap(page, '[data-tour="quick"]', 900);
       await page.locator("[data-sheet] button", { hasText: /Call off/ }).first().click(); await page.waitForTimeout(900);
-      await reasonChecks(page, "w5", "calloff-why", "Weather", EDGE.equestrian); await shot("08-rider-calloff-why");
+      await reasonChecks(page, "w5", "calloff-why", "Weather", "equestrian"); await shot("08-rider-calloff-why");
       await ctx.close();
     }
     check("no page errors", errors.filter((e) => !/vibrate/.test(e)).length === 0, errors.slice(0, 3).join(" | "));

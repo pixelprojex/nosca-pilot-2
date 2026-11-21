@@ -153,7 +153,7 @@ function freshDb({ family = false } = {}) {
             && t.indexOf("Why") < t.indexOf("Offer another time") && (await page.locator('[data-tour="decline-why"][aria-pressed="true"]').count()) === 0,
             `${t.slice(0, 200)} · ${whys.join(",")}`);
       await page.locator('[data-tour="decline-why"]', { hasText: /^Double booked$/ }).click(); await page.waitForTimeout(300);
-      check("(b2) a tap picks a reason, in ink; the times are still offered beside it",
+      check("(b2) a tap picks a reason, Duolingo's chosen answer; the times are still offered beside it",
             (await page.locator('[data-tour="decline-why"][aria-pressed="true"]').innerText()).trim() === "Double booked" && (await page.locator('[data-tour="decline-offer"] button').count()) > 0);
       await page.locator("[data-sheet] button", { hasText: /^Just decline$/ }).first().click(); await page.waitForTimeout(1200);
       const told = toldFor(db, IDS.adult, req.id);

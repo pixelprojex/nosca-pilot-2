@@ -118,7 +118,8 @@ const offenders = (page) => page.evaluate((FLOOR) => {
       await must("Diary · Calendar", '[data-tour="cal-view"] [aria-label="Calendar"]', /Calendar/, 700);
       await clickIf(page, '[data-tour="cal-view"] [aria-label="List"]', 500);
       /* a thread (a junior has none) */
-      if (role !== "junior") { await tabIf(page, "Chat"); if (await must("thread", '.nsc-list button', /Niamh|Cian|Saoirse|Grand|Friday/, 900)) await back(page); }
+      /* Chat's threads are Messages' plain list since 21 November (.nsc-plain), no longer boxed rows */
+      if (role !== "junior") { await tabIf(page, "Chat"); if (await must("thread", '.nsc-plain button', /Niamh|Cian|Saoirse|Grand|Friday/, 900)) await back(page); }
       /* alerts, saved, the profile sheet, settings */
       if (await must("Alerts", '[aria-label="Alerts"]', /Alerts/)) await back(page);
       if (await must("Saved", '[data-tour="saved"]', /Starred|Downloads|Nothing/)) await back(page);

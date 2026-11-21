@@ -30,8 +30,10 @@ const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const L = { two: "10000000-0000-4000-8000-00000000dd01", one: "10000000-0000-4000-8000-00000000dd02", drills: "10000000-0000-4000-8000-00000000dd03", grp: "10000000-0000-4000-8000-00000000dd04" };
 const TODAY = M.ymd(new Date());
 const dayFrom = (n) => { const x = new Date(`${TODAY}T12:00:00`); x.setDate(x.getDate() + n); return x; };
-const EDGE = { golf: "rgba(47, 107, 58, 0.72)" };
-const HAIRLINE = { golf: "rgb(228, 236, 225)" };
+/* 21 November: every card and box stands on one light grey line, #E2E2E7, in every sport — the sport's own dark tone was the edge until then —
+   and a row inside a box sits on the hairline, #EBEBF0 */
+const EDGE = { golf: "rgb(226, 226, 231)" };
+const HAIRLINE = { golf: "rgb(235, 235, 240)" };
 const DAY_FORM = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [1-9]\d? (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/;
 
 function freshDb() {
@@ -84,10 +86,10 @@ const audit = (page, scope, edge) => page.evaluate(([scope, edge]) => {
     [...list.children].forEach((box) => {
       if (!vis(box)) return; out.boxes++;
       const cs = getComputedStyle(box);
-      /* a list row sits on the sport's wash with no edge (14 November): the fill is the wash and every side is transparent or nought */
-      const WASH_OF = { "rgba(47, 107, 58, 0.72)": "rgb(235, 243, 234)", "rgba(122, 59, 74, 0.72)": "rgb(246, 239, 242)" };
-      const sides = cs.backgroundColor === WASH_OF[edge] && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === "rgba(0, 0, 0, 0)" || parseFloat(cs[`border${s}Width`]) === 0);
-      if (!sides || cs.borderTopLeftRadius !== "8px") out.bad.push(`${label(box)} · ${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius}`);
+      /* a list row is Duolingo's card (21 November): white, every side on the one light grey line, 14px corners —
+         it sat on the sport's wash with no edge from 14 November */
+      const sides = cs.backgroundColor === "rgb(255, 255, 255)" && ["Top", "Right", "Bottom", "Left"].every((s) => cs[`border${s}Color`] === edge && parseFloat(cs[`border${s}Width`]) >= 1);
+      if (!sides || cs.borderTopLeftRadius !== "14px") out.bad.push(`${label(box)} · ${cs.backgroundColor} ${cs.borderTopWidth} ${cs.borderTopColor} r${cs.borderTopLeftRadius}`);
       const bw = box.getBoundingClientRect().width;
       [box, ...box.querySelectorAll("*")].forEach((el) => {
         const day = el.closest(".nsc-day"); if (day && box.contains(day) && day !== el) return;
@@ -125,11 +127,11 @@ const dayBox = (page, scope) => page.evaluate((scope) => {
   return { n: rows.length, edge: cs.borderTopColor, w: cs.borderTopWidth, radius: cs.borderTopLeftRadius,
            inner: rows.slice(0, -1).map((r) => `${getComputedStyle(r).borderBottomWidth} ${getComputedStyle(r).borderBottomColor}`), last: rows.length ? getComputedStyle(rows[rows.length - 1]).borderBottomStyle : null };
 }, scope);
-const dayFine = (d, edge, hair) => !!d && d.n >= 2 && d.edge === edge && parseFloat(d.w) >= 1 && d.radius === "8px" && d.inner.every((x) => x === `1px ${hair}`) && d.last === "none";
+const dayFine = (d, edge, hair) => !!d && d.n >= 2 && d.edge === edge && parseFloat(d.w) >= 1 && d.radius === "16px" && d.inner.every((x) => x === `1px ${hair}`) && d.last === "none";
 /* boxed: each row its own box in an .nsc-list on the edge, or a row inside an .nsc-day */
-const WASH = { golf: "rgb(235, 243, 234)", equestrian: "rgb(246, 239, 242)" };   // the sport's wash: a list row's fill since 14 November
-const WASH_FOR = (edge) => ({ "rgba(47, 107, 58, 0.72)": WASH.golf, "rgba(122, 59, 74, 0.72)": WASH.equestrian })[edge];
-const boxedRows = (rows, edge) => !!rows && rows.length > 0 && rows.every((r) => (r.inList && r.bg === WASH_FOR(edge) && r.radius === "8px") || r.inDay);
+/* a list row is Duolingo's card since 21 November: white on the light grey line, 14px corners (it was the sport's wash at 8px from 14 November) */
+const CARD = "rgb(255, 255, 255)";
+const boxedRows = (rows, edge) => !!rows && rows.length > 0 && rows.every((r) => (r.inList && r.bg === CARD && r.radius === "14px") || r.inDay);
 const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map((r) => `"${r.text}" parent[${r.parent}] list=${r.inList} day=${r.inDay} bottom ${r.bottom} left ${r.left}`).join(" | ")}` : "no scope";
 
 (async () => {
@@ -173,7 +175,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
         const cs = getComputedStyle(b); return { w: cs.borderTopWidth, style: cs.borderTopStyle, color: cs.borderTopColor };
       });
       await shot("aa-register-walkin");
-      check("(aa) guard: the register's Someone not in the diary is dashed on the sport's edge, 1px or more — not the 0.5px hairline", !!dash && dash.style === "dashed" && parseFloat(dash.w) >= 1 && dash.color === EDGE.golf, JSON.stringify(dash));
+      check("(aa) guard: the register's Someone not in the diary is dashed on the card's edge, 1px or more — not the 0.5px hairline", !!dash && dash.style === "dashed" && parseFloat(dash.w) >= 1 && dash.color === EDGE.golf, JSON.stringify(dash));
       await closeSheet(page);
 
       /* (p) the group page's sessions */
@@ -184,7 +186,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const ses = await rowsOf(page, SCREEN, `return [...root.querySelectorAll('[data-tour="group-sessions"] > *')].filter((r) => /Putting/.test(r.textContent));`);
       const sesA = await audit(page, SCREEN, EDGE.golf);
       await shot("p-group-sessions");
-      check("(p) the group page's sessions are boxed rows on golf's edge, no rule inside", boxedRows(ses, EDGE.golf) && ses.length === 2 && fine(sesA), `${rowSaid(ses)} · ${said(sesA)}`);
+      check("(p) the group page's sessions are boxed rows on the card's edge, no rule inside", boxedRows(ses, EDGE.golf) && ses.length === 2 && fine(sesA), `${rowSaid(ses)} · ${said(sesA)}`);
       /* the day leads the row's grey line, the archive's form */
       const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); return sp ? sp.textContent.split(" · ")[0].trim() : ""; }) : []; });
       check("(p2) each session reads the app's one day (Thu 15 Oct), never \"15 Oct\"", sesDays.length === 2 && sesDays.every((d) => DAY_FORM.test(d)), JSON.stringify(sesDays));
@@ -193,7 +195,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       /* the grey line under the focus: one line, never cut (the day and the head count fit whole) */
       const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); if (!sp) return null; const r1 = sp.getBoundingClientRect(); return { lines: sp.getClientRects().length, h: Math.round(r1.height), gap: sp.scrollWidth <= sp.clientWidth ? 8 : 0 }; }) : []; });
       await shot("p3-group-sessions-360");
-      check("(p3) at 360 every session's day stays whole on one line, uncut", dayLines.length === 2 && dayLines.every((x) => x && x.lines === 1 && x.h <= 18 && x.gap >= 8), JSON.stringify(dayLines));
+      check("(p3) at 360 every session's day stays whole on one line, uncut", dayLines.length === 2 && dayLines.every((x) => x && x.lines === 1 && x.h <= 22 && x.gap >= 8), JSON.stringify(dayLines));
       await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
 
       /* (s) the hours' days */
@@ -206,8 +208,9 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
         return { n: rows.length, edge: cs.borderTopColor, w: cs.borderTopWidth, r: cs.borderTopLeftRadius, inner: rows.slice(0, -1).map((x) => `${getComputedStyle(x).borderBottomWidth} ${getComputedStyle(x).borderBottomColor}`) }; });
       const disc = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => /Slots and lesson length/.test(x.textContent)); if (!b) return null; const cs = getComputedStyle(b); return { c: cs.borderTopColor, w: b.style.borderTopWidth || cs.borderTopWidth, r: cs.borderTopLeftRadius }; });
       await shot("s-hours-days");
-      check("(s) guard: the hours' seven days are one Card on golf's edge, the days as rows inside on the 1px hairline", !!daysC && daysC.n === 7 && daysC.edge === EDGE.golf && parseFloat(daysC.w) >= 1 && daysC.inner.every((x) => x === `1px ${HAIRLINE.golf}`), JSON.stringify(daysC));
-      check("(s2) Slots and lesson length is on golf's edge at the edge's width, the Card's corner", !!disc && disc.c === EDGE.golf && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
+      check("(s) guard: the hours' seven days are one Card on the card's edge, the days as rows inside on the 1px hairline", !!daysC && daysC.n === 7 && daysC.edge === EDGE.golf && parseFloat(daysC.w) >= 1 && daysC.inner.every((x) => x === `1px ${HAIRLINE.golf}`), JSON.stringify(daysC));
+      /* a control, so the white key (21 November): its light grey ring at the edge's width, the Card's corner */
+      check("(s2) Slots and lesson length is the white key — its light grey ring at the edge's width, the Card's corner", !!disc && disc.c === "rgb(226, 226, 231)" && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
       await page.locator(`${SCREEN} button`, { hasText: /Slots and lesson length/ }).first().click(); await page.waitForTimeout(500);
       await page.locator('[aria-label="Add a time"]').first().click(); await page.waitForTimeout(500);
       const addR = await page.locator('[data-tour="avail-add"] button').evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).borderRadius)));
@@ -233,11 +236,11 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await page.locator("button", { hasText: /^Continue$/ }).first().click(); await page.waitForTimeout(800);
       const sd = await rowsOf(page, "body", `return [...root.querySelectorAll("button[aria-pressed]")].filter((b) => /drill|putting|chipping/i.test(b.textContent));`);
       await shot("z1-setup-drills");
-      check("(z) the setup's Drills are boxed rows on golf's edge", boxedRows(sd, EDGE.golf) && sd.length >= 6, rowSaid(sd));
+      check("(z) the setup's Drills are boxed rows on the card's edge", boxedRows(sd, EDGE.golf) && sd.length >= 6, rowSaid(sd));
       await page.locator("button", { hasText: /^Continue$/ }).first().click(); await page.waitForTimeout(800);
       const st = await rowsOf(page, "body", `return [...root.querySelectorAll("button[aria-pressed]")].filter((b) => b.textContent.trim().length > 12);`);
       await shot("z2-setup-tips");
-      check("(z2) the setup's Tips are boxed rows on golf's edge", boxedRows(st, EDGE.golf) && st.length >= 3, rowSaid(st));
+      check("(z2) the setup's Tips are boxed rows on the card's edge", boxedRows(st, EDGE.golf) && st.length >= 3, rowSaid(st));
       const tipPad = await page.evaluate(() => [...document.querySelectorAll("button[aria-pressed]")].filter((b) => b.textContent.trim().length > 12).map((b) => parseFloat(getComputedStyle(b).paddingTop)));
       check("(z3) a tip's box keeps air above its words, so a tip that wraps never touches the edge", tipPad.length >= 3 && tipPad.every((x) => x >= 8), JSON.stringify(tipPad));
       const addPlus = await page.evaluate(() => { const b = [...document.querySelectorAll('button[aria-label="Add"]')].find((x) => x.offsetParent && x.querySelector("svg")); if (!b) return null;
@@ -253,7 +256,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const pp = await rowsOf(page, "[data-sheet]", `return [...root.querySelectorAll('button[aria-pressed][aria-label]')].filter((b) => ["Cian Murphy", "Aoife Doyle", "Eoin Breathnach", "Saoirse Kelly"].includes(b.getAttribute("aria-label")));`);
       const ppA = await audit(page, "[data-sheet]", EDGE.golf);
       await shot("t-new-group-people");
-      check("(t) New group's people (PersonPicker) are boxed rows on golf's edge, no rule inside", boxedRows(pp, EDGE.golf) && pp.length === 4 && fine(ppA), `${rowSaid(pp)} · ${said(ppA)}`);
+      check("(t) New group's people (PersonPicker) are boxed rows on the card's edge, no rule inside", boxedRows(pp, EDGE.golf) && pp.length === 4 && fine(ppA), `${rowSaid(pp)} · ${said(ppA)}`);
       await closeSheet(page);
 
       /* (y) the push prompt at the head of the alerts */
@@ -263,7 +266,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const pushRow = await rowsOf(page, SCREEN, `const r = root.querySelector('[data-tour="push-prompt"]'); return r ? [r.parentElement.classList.contains("nsc-list") ? r : r] : [];`);
       const pushA = await audit(page, SCREEN, EDGE.golf);
       await shot("y-push-prompt");
-      if (process.env.VAPID) check("(y) the push prompt is a boxed row on golf's edge, like the alert rows under it, no rule inside", boxedRows(pushRow, EDGE.golf) && pushRow.length === 1 && fine(pushA), `${rowSaid(pushRow)} · ${said(pushA)}`);
+      if (process.env.VAPID) check("(y) the push prompt is a boxed row on the card's edge, like the alert rows under it, no rule inside", boxedRows(pushRow, EDGE.golf) && pushRow.length === 1 && fine(pushA), `${rowSaid(pushRow)} · ${said(pushA)}`);
       await M.back(page);
 
       /* (v) the Compare picker */
@@ -276,7 +279,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const cmp = await rowsOf(page, SCREEN, `const p = root.querySelector('[data-tour="compare-pick"]'); return p ? [...p.querySelectorAll("[data-compare-row]")] : [];`);
       const cmpA = await audit(page, SCREEN, EDGE.golf);
       await shot("v-compare-picker");
-      check("(v) the Compare picker's clips are boxed rows on golf's edge, This clip among them", boxedRows(cmp, EDGE.golf) && cmp.length >= 2 && fine(cmpA), `${rowSaid(cmp)} · ${said(cmpA)}`);
+      check("(v) the Compare picker's clips are boxed rows on the card's edge, This clip among them", boxedRows(cmp, EDGE.golf) && cmp.length >= 2 && fine(cmpA), `${rowSaid(cmp)} · ${said(cmpA)}`);
 
       /* (bb) not on the list: the log's drills (DrillPicker) — informational */
       await M.back(page); await M.back(page); await M.back(page);
@@ -304,8 +307,9 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
         const row = [...s.querySelectorAll("div, button")].find((r) => r.children.length >= 2 && /^Gate drill/.test(r.textContent.trim())); const c = row && [...row.querySelectorAll("span")].find((x) => Math.round(x.getBoundingClientRect().width) === 22); return c ? getComputedStyle(c).borderTopColor : null;
       });
       await shot("x-lesson-drills");
-      check("(x) the lesson page's drills are boxed rows on golf's edge, the way the Drills tab draws them", boxedRows(ld, EDGE.golf) && ld.length === 2, rowSaid(ld));
-      check("(x2) an undone drill's tick on the lesson page is on golf's edge, not the hairline", tick === EDGE.golf, String(tick));
+      check("(x) the lesson page's drills are boxed rows on the card's edge, the way the Drills tab draws them", boxedRows(ld, EDGE.golf) && ld.length === 2, rowSaid(ld));
+      /* a tick box is the one control whose ring is all that says where it is: the strong grey, 3.3:1 on white */
+      check("(x2) an undone drill's tick on the lesson page is on the strong grey ring, not the hairline", tick === "rgb(142, 142, 147)", String(tick));
       const drillPad = await page.evaluate(() => { const s = document.querySelector('[data-tour="lesson-drills"] .nsc-list'); return s ? [...s.children].map((r) => parseFloat(getComputedStyle(r).paddingTop)) : []; });
       check("(x3) a drill's box keeps air above its name, so a drill that wraps never touches the edge", drillPad.length === 2 && drillPad.every((x) => x >= 8), JSON.stringify(drillPad));
 
@@ -318,7 +322,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const fr = await rowsOf(page, "[data-cal-day]", `return [...root.querySelectorAll("button")].filter((b) => /^\\d{1,2}:\\d\\d/.test(b.textContent.trim()));`);
       await shot("r-calendar-free");
       const frD = await dayBox(page, "[data-cal-day]");
-      check("(r) the Calendar view's free hours (TimeList) are rows in one box on golf's edge, as the List view's day", boxedRows(fr, EDGE.golf) && fr.length >= 2 && dayFine(frD, EDGE.golf, HAIRLINE.golf), `${rowSaid(fr)} · ${JSON.stringify(frD)}`);
+      check("(r) the Calendar view's free hours (TimeList) are rows in one box on the card's edge, as the List view's day", boxedRows(fr, EDGE.golf) && fr.length >= 2 && dayFine(frD, EDGE.golf, HAIRLINE.golf), `${rowSaid(fr)} · ${JSON.stringify(frD)}`);
 
       /* (u) the attendance record */
       await openSettings(page, '[aria-label="Home"]');
@@ -326,7 +330,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const at = await rowsOf(page, SCREEN, `return [...root.querySelectorAll("span")].filter((s) => /^\\d{2} [A-Z][a-z]{2}$|^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \\d/.test(s.textContent.trim()) && s.parentElement.querySelector("svg")).map((s) => s.parentElement);`);
       const atDays = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] span')].map((s) => s.textContent.trim()).filter((x) => /^\d{2} [A-Z][a-z]{2}$|^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d/.test(x)));
       await shot("u-attendance");
-      check("(u) the attendance record is boxed rows on golf's edge", boxedRows(at, EDGE.golf) && at.length === 3, rowSaid(at));
+      check("(u) the attendance record is boxed rows on the card's edge", boxedRows(at, EDGE.golf) && at.length === 3, rowSaid(at));
       check("(u2) its days read the app's one form (Thu 8 Oct), not '08 Oct'", atDays.length === 3 && atDays.every((d) => /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [1-9]\d? [A-Z][a-z]{2}$/.test(d)), JSON.stringify(atDays));
       await ctx.close();
     }

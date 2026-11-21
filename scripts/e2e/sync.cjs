@@ -68,7 +68,7 @@ const built = (() => { try { return JSON.parse(fs.readFileSync(path.join(distDir
       check("(a) Settings › Version reads the build's day and time", (await version.count()) === 1 && /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) · \d{1,2}:\d{2} (am|pm)$/.test(value), vt);
       const [bv, bs] = await Promise.all([version.boundingBox(), sync.boundingBox()]);
       /* the next box down: the list's own 10px between two boxes, nothing else */
-      check("(a2) Sync sits directly beneath it as the next box, one row, a chevron and no sub", (await sync.count()) === 1 && !!bv && !!bs && near(bs.x, bv.x, 1) && near(bs.width, bv.width, 1) && bs.y - (bv.y + bv.height) >= 0 && bs.y - (bv.y + bv.height) <= 16 && M.norm(await sync.innerText()) === "Sync" && (await sync.locator("svg").count()) === 1, JSON.stringify({ bv, bs, t: (await sync.count()) ? await sync.innerText() : "" }));
+      check("(a2) Sync sits directly beneath it as the next box, one row, its glyph and a chevron and no sub", (await sync.count()) === 1 && !!bv && !!bs && near(bs.x, bv.x, 1) && near(bs.width, bv.width, 1) && bs.y - (bv.y + bv.height) >= 0 && bs.y - (bv.y + bv.height) <= 16 && M.norm(await sync.innerText()) === "Sync" && (await sync.locator("svg").count()) === 2, JSON.stringify({ bv, bs, t: (await sync.count()) ? await sync.innerText() : "" }));
       await shot("01-version-sync");
 
       /* the server has this very build: Up to date, naming it */

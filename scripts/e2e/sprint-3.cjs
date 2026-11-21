@@ -22,7 +22,7 @@ const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-00
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const TODAY = M.ymd(new Date());
 const DANGER = "rgb(196, 52, 42)";          // #C4342A
-const ACCENT = "rgb(47, 107, 58)";          // golf's accent #2F6B3A
+const ACCENT = "rgb(32, 122, 48)";          // golf's accent #207A30 since 21 November (#2F6B3A before)
 const NINE = ["Aoife Doyle", "Brian Nolan", "Clodagh Hayes", "Dara Ryan", "Eimear Walsh", "Fionn Byrne", "Gráinne Tran", "Hugh Okafor", "Iseult Burke"];
 
 function freshDb() {
@@ -99,10 +99,10 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
          always been the eyebrow in t.sub */
       const dayLabel = sheet(page).locator("div", { hasText: /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d/ }).last();
       const sub = sheet(page).locator("p", { hasText: /^Weather$/ }).first();
-      check(`(a${width}) Which days: the reason as the sub in TYPE.small`, (await sub.count()) === 1 && (await styleOf(sub, "fontSize")) === "12.5px", await styleOf(sub, "fontSize").catch(() => "none"));
+      check(`(a${width}) Which days: the reason as the sub in TYPE.small`, (await sub.count()) === 1 && (await styleOf(sub, "fontSize")) === "14px", await styleOf(sub, "fontSize").catch(() => "none"));
       await M.click(page, "Next", 700);
       const dayColor = (await dayLabel.count()) ? await styleOf(dayLabel, "color") : "none";
-      check(`(a${width}) Call off: Why as the eyebrow over the reasons, in the same label grey as the day labels over the lessons`, whyFs === "12.5px" && whyColor === dayColor && dayColor !== "none", `${whyFs} ${whyColor} vs ${dayColor}`);
+      check(`(a${width}) Call off: Why as the eyebrow over the reasons, in the same label grey as the day labels over the lessons`, whyFs === "13px" && whyColor === dayColor && dayColor !== "none", `${whyFs} ${whyColor} vs ${dayColor}`);
       const rows = sheet(page).locator("[data-person-row]");
       const n = await rows.count();
       const names = await rows.locator("[data-name]").evaluateAll((els) => els.map((e) => ({ t: e.textContent, over: e.scrollWidth - e.clientWidth, h: e.getBoundingClientRect().height })));
@@ -218,7 +218,7 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.locator('[data-tour="roster-group"]', { hasText: "Saturday clinic" }).first().click(); await page.waitForTimeout(900);
       const members = await page.locator('[data-tour="group-members"] [data-person-row]').evaluateAll((els) => els.map((e) => ({ h: e.getBoundingClientRect().height, face: (e.querySelector("span, img, div") || {}).getBoundingClientRect ? e.firstElementChild.getBoundingClientRect().width : 0, t: e.textContent.trim() })));
       await shot("f-group-page");
-      check("(f) the group's members are person rows: 64 tall, the face 40", members.length === 2 && members.every((m) => m.h >= 64 && Math.round(m.face) === 40), JSON.stringify(members));
+      check("(f) the group's members are person rows: 64 tall, the face 44", members.length === 2 && members.every((m) => m.h >= 64 && Math.round(m.face) === 44), JSON.stringify(members));
       await ctx.close();
     }
 
@@ -246,8 +246,9 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 900);
       await page.locator('button[aria-label]').filter({ hasText: /Maximiliano/ }).first().click(); await page.waitForTimeout(900);
-      const hero = await page.evaluate(() => { const el = [...document.querySelectorAll("span")].find((x) => /^Maximiliano Ó Súilleabháin$/.test(x.textContent.trim()) && getComputedStyle(x).fontSize === "24px"); return el ? { trunc: el.classList.contains("truncate"), h: el.getBoundingClientRect().height, over: el.scrollWidth - el.clientWidth } : null; });
-      check("(g) the log's title takes a second line for a long name rather than cutting it", !!hero && !hero.trunc && hero.over <= 1 && hero.h > 26 && hero.h <= 60, JSON.stringify(hero));
+      const hero = await page.evaluate(() => { const el = [...document.querySelectorAll("span")].find((x) => /^Maximiliano Ó Súilleabháin$/.test(x.textContent.trim()) && getComputedStyle(x).fontSize === "30px"); return el ? { trunc: el.classList.contains("truncate"), h: el.getBoundingClientRect().height, over: el.scrollWidth - el.clientWidth } : null; });
+      /* TYPE.screen is 30 since 21 November (24 before): two lines of it are 66 */
+      check("(g) the log's title takes a second line for a long name rather than cutting it", !!hero && !hero.trunc && hero.over <= 1 && hero.h > 34 && hero.h <= 70, JSON.stringify(hero));
       await shot("g-log-hero-320");
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       const drift = page.locator("button", { hasText: /Drifting/ }).first();
@@ -279,7 +280,7 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const on = page.locator('[data-tour="cal-view"] button[aria-pressed="true"]');
       if ((await on.count()) && (await on.getAttribute("aria-label")) !== "List") await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
       const foot = await page.locator('[data-tour="cal-recurring"]').first().evaluate((el) => { const r = el.getBoundingClientRect(); const day = document.querySelector(".nsc-day"); const d = day ? day.getBoundingClientRect() : null; return { bg: getComputedStyle(el).backgroundColor, l: Math.round(r.left), w: Math.round(r.width), dl: d ? Math.round(d.left) : null, dw: d ? Math.round(d.width) : null, rule: getComputedStyle(el).borderTopWidth }; });
-      check("(h) the Diary's Recurring lessons is a wash box lined up with the day boxes above it", foot.bg === "rgb(235, 243, 234)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
+      check("(h) the Diary's Recurring lessons is a white card lined up with the day boxes above it", foot.bg === "rgb(255, 255, 255)" && foot.dl != null && Math.abs(foot.l - foot.dl) <= 1 && Math.abs(foot.w - foot.dw) <= 1, JSON.stringify(foot));
       await shot("h-diary-foot");
       /* the Calendar view on a day with hours and nothing booked: a line, no Set hours */
       await tap(page, '[data-tour="cal-view"] [aria-label="Calendar"]', 700);
@@ -292,7 +293,7 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.locator('[data-tour="roster-row"]').filter({ hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
       await M.click(page, "Drills", 900);
       const h2 = page.locator("[data-sheet] h2", { hasText: /^Drills for Cian/ }).first();
-      check("(h) Set drills' title is TYPE.title (19px), not a 23px literal", (await h2.count()) === 1 && (await styleOf(h2, "fontSize")) === "19px", (await h2.count()) ? await styleOf(h2, "fontSize") : "none");
+      check("(h) Set drills' title is TYPE.title (22px since 21 November), not a 23px literal", (await h2.count()) === 1 && (await styleOf(h2, "fontSize")) === "22px", (await h2.count()) ? await styleOf(h2, "fontSize") : "none");
       await ctx.close();
     }
 
@@ -321,10 +322,10 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const other = await page.evaluate((td) => { const b = [...document.querySelectorAll("[data-day]")].map((x) => Number(x.getAttribute("data-day"))); return b.find((d) => d > td) || null; }, today);
       if (other) await tap(page, `[data-day="${other}"]`, 600);
       const mark = await page.locator(`[data-day="${today}"] [data-mark]`).evaluate((el) => ({ m: el.getAttribute("data-mark"), bg: el.firstElementChild ? getComputedStyle(el.firstElementChild).backgroundColor : null, w: el.firstElementChild ? el.firstElementChild.getBoundingClientRect().width : 0 })).catch(() => null);
-      check("(i) the month grid marks a coach's day with lessons with the ink dot, 4px, as the List view's ticker", !!other && !!mark && mark.m === "booked" && mark.w === 4 && mark.bg !== "rgb(228, 236, 225)", JSON.stringify({ other, mark }));
+      check("(i) the month grid marks a coach's day with lessons with the ink dot, 4px, as the List view's ticker", !!other && !!mark && mark.m === "booked" && mark.w === 4 && mark.bg !== "rgb(235, 235, 240)", JSON.stringify({ other, mark }));
       if (today > 1) {
         const pastColor = await styleOf(page.locator('[data-day="1"] span').first(), "color");
-        check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(228, 236, 225)", pastColor);
+        check("(i) a day gone is the trace grey, not the 1.2:1 hairline", pastColor !== "rgb(235, 235, 240)", pastColor);
       }
       await shot("i-month");
       /* the group page: each session is a lesson row that opens the write-up */
@@ -454,7 +455,8 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       const st = await page.locator('[data-sheet] button[aria-label="Fewer"], [data-sheet] button[aria-label="More"]').evaluateAll((bs) => bs.map((b) => { const cs = getComputedStyle(b), r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), edge: `${b.style.borderTopWidth} ${cs.borderTopColor}`, key: b.classList.contains("n-key") }; }));
       await shot("k-new-group");
       /* the width off the element's own style: Chrome reads EDGE_W's 1.5px back as 1px at a scale of one, as boxes.cjs notes */
-      check("(k) C14: New group's weeks stepper is the app's outlined key, 44 square on the sport's edge", st.length === 2 && st.every((b) => b.w === 44 && b.h === 44 && b.edge === "1.5px rgba(47, 107, 58, 0.72)" && b.key), JSON.stringify(st));
+      /* the app's quiet key, since the afternoon of 21 November Duolingo's white key: its light grey ring */
+      check("(k) C14: New group's weeks stepper is the app's quiet key, 44 square, the white key's light grey ring", st.length === 2 && st.every((b) => b.w === 44 && b.h === 44 && b.edge === "1.5px rgb(226, 226, 231)" && b.key), JSON.stringify(st));
       await ctx.close();
     }
 
@@ -471,15 +473,15 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
       await page.locator('input[placeholder="Search"]').first().fill("zzz"); await page.waitForTimeout(500);
       const nobody = await lineOf(/^No one called/);
-      check("(l) C19: every screen's empty line is one shape — centred, 14.5px, 40px of air (Saved, the roster's search)",
-        [starred, nobody].every((x) => x && x.size === "14.5px" && x.pt === "40px" && x.align === "center"), JSON.stringify({ starred, nobody }));
+      check("(l) C19: every screen's empty line is one shape — centred, the body size (16 since 21 November), 40px of air (Saved, the roster's search)",
+        [starred, nobody].every((x) => x && x.size === "16px" && x.pt === "40px" && x.align === "center"), JSON.stringify({ starred, nobody }));
       /* C16: a group with no sessions says so where the count line sits, left and small */
       await page.locator('input[placeholder="Search"]').first().fill(""); await page.waitForTimeout(300);
       await tap(page, '[data-tour="roster-tab"] [aria-label="Groups"], [data-tour="roster-tab"] button:has-text("Groups")', 700);
       await page.locator('[data-tour="roster-group"]', { hasText: "Tuesday juniors" }).first().click(); await page.waitForTimeout(900);
       const none = await lineOf(/^No sessions yet$/);
       await shot("l-group-empty");
-      check("(l) C16: a group with no sessions says so on the left where the count line sits, in the small size", !!none && none.align !== "center" && none.size === "12.5px" && none.left === 24 && none.pt === "0px", JSON.stringify(none));
+      check("(l) C16: a group with no sessions says so on the left where the count line sits, in the small size", !!none && none.align !== "center" && none.size === "14px" && none.left === 24 && none.pt === "0px", JSON.stringify(none));
       await ctx.close();
     }
     {
@@ -489,8 +491,9 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       /* C17: the file's rhythm on the SPACE scale — 30 · 10 · 14 · 30 */
       const gaps = await page.evaluate(() => {
         const q = (s) => document.querySelector(s); const b = (el) => el && el.getBoundingClientRect();
-        const acts = b(q('[data-tour="player-actions"]')), sw = b(q('[data-tour="player-view"]')), list = b(q('[data-tour="player-lessons"]')), allEl = q('[data-tour="player-all-lessons"]'), all = b(allEl);
-        let next = allEl && allEl.nextElementSibling; while (next && !next.getBoundingClientRect().height) next = next.nextElementSibling;
+        /* All lessons is a row in a box of its own since 21 November — the box is what is spaced */
+        const acts = b(q('[data-tour="player-actions"]')), sw = b(q('[data-tour="player-view"]')), list = b(q('[data-tour="player-lessons"]')), allEl = q('[data-tour="player-all-lessons"]'), allBox = allEl && allEl.closest(".nsc-list"), all = b(allBox);
+        let next = allBox && allBox.nextElementSibling; while (next && !next.getBoundingClientRect().height) next = next.nextElementSibling;
         const nx = b(next);
         return acts && sw && list && all && nx ? { a: Math.round(sw.top - acts.bottom), b: Math.round(list.top - sw.bottom), c: Math.round(all.top - list.bottom), d: Math.round(nx.top - all.bottom) } : null;
       });
@@ -501,7 +504,7 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
       await page.locator("button", { hasText: "Aoife Doyle" }).first().click(); await page.waitForTimeout(1000);
       const nol = await page.evaluate(() => { const p = document.querySelector('[data-tour="player-no-lessons"]'); if (!p) return null; const cs = getComputedStyle(p); return { size: cs.fontSize, align: cs.textAlign, left: Math.round(p.getBoundingClientRect().left) }; });
-      check("(l) C17: a player with no lessons reads it on the left under the keys, in the small size", !!nol && nol.align !== "center" && nol.size === "12.5px" && nol.left === 24, JSON.stringify(nol));
+      check("(l) C17: a player with no lessons reads it on the left under the keys, in the small size", !!nol && nol.align !== "center" && nol.size === "14px" && nol.left === 24, JSON.stringify(nol));
       /* C20: the lesson page's note on the ladder's title, not a private 17 */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
@@ -510,7 +513,7 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.locator('[data-tour="group-sessions"] > *').first().click(); await page.waitForTimeout(1200);
       const note = await page.evaluate(() => { const p = [...document.querySelectorAll("p")].find((x) => x.textContent === "Splash, not dig."); return p ? getComputedStyle(p).fontSize : null; });
       await shot("l-lesson-note");
-      check("(l) C20: the lesson page's note is the ladder's title size, 19", note === "19px", String(note));
+      check("(l) C20: the lesson page's note is on the ladder, 20 regular since 21 November (TYPE.section's size; it was the title's 19)", note === "20px", String(note));
       /* C22: the library's Area row sits on its rule */
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await openSettings(page); await tap(page, '[data-tour="settings-library"]', 1000);
@@ -549,7 +552,7 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await openSettings(page); await tap(page, '[data-tour="settings-dashboard"]', 1200);
       const kids = await page.evaluate(() => { const p = document.querySelector('[data-tour="family-no-children"]'); if (!p) return null; const cs = getComputedStyle(p); return { size: cs.fontSize, align: cs.textAlign, left: Math.round(p.getBoundingClientRect().left), mb: cs.marginBottom }; });
       await shot("m-family-empty");
-      check("(m) a family with no children says so on the left where the rows would sit, in the small size", !!kids && kids.align !== "center" && kids.size === "12.5px" && kids.left === 24 && kids.mb === "30px", JSON.stringify(kids));
+      check("(m) a family with no children says so on the left where the rows would sit, in the small size", !!kids && kids.align !== "center" && kids.size === "14px" && kids.left === 24 && kids.mb === "30px", JSON.stringify(kids));
       await ctx.close();
     }
 

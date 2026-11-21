@@ -126,8 +126,14 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       const tiles = await page.locator('[data-tour^="quick-"]:not([data-tour="quick-log"])').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { id: e.getAttribute("data-tour"), y: Math.round(r.y), w: Math.round(r.width) }; }));
       const rows = [...new Set(tiles.map((x) => x.y))];
       check("(b) Log a lesson is the full-width tile at the top and the eight sit two to a row under it", !!log && !!off && log.width > 300 && tiles.length === 8 && rows.length === 4 && rows.every((y) => tiles.filter((x) => x.y === y).length === 2) && off.y > log.y + log.height - 2, JSON.stringify({ log: log && [Math.round(log.y), Math.round(log.width)], rows, n: tiles.length }));
-      const bg = await page.locator('[data-tour="quick-weather"]').evaluate((el) => getComputedStyle(el.querySelector("[data-face]") || el).backgroundColor);   // a round key (18 Nov) is red on its face
-      check("(b) Call off is red", bg === DANGER, bg);
+      /* 21 November: a white key like its seven neighbours, the word in DANGER and the glyph white on the app's own red square
+         (Nosca's palette, HUE.red — never Apple's system red) */
+      const red = await page.locator('[data-tour="quick-weather"]').evaluate((el) => {
+        const word = [...el.querySelectorAll("*")].find((e) => e.children.length === 0 && e.textContent.trim() === "Call off");
+        const sq = el.querySelector('span[aria-hidden="true"]');
+        return { word: word ? getComputedStyle(word).color : null, sq: sq ? getComputedStyle(sq).backgroundColor : null, face: getComputedStyle(el.querySelector("[data-face]") || el).backgroundColor };
+      });
+      check("(b) Call off is red: the word in DANGER and its glyph on a red square, on the white key", red.word === DANGER && red.sq === DANGER && red.face === "rgb(255, 255, 255)", JSON.stringify(red));
 
       /* ---------- (c) Call off: a reason, the days, the lessons, the password ---------- */
       await tap(page, '[data-tour="quick-weather"]', 900);

@@ -85,7 +85,7 @@ const fmt = (iso) => { const d = new Date(Number(iso.slice(0, 4)), Number(iso.sl
       /* ---------- (b) the count stays on the file ---------- */
       await rowOf(page, "Cian Murphy").click(); await page.waitForTimeout(900);
       const t1 = await text();
-      check("(b) the player's file carries the count — All 1 lesson — and the roster row did not", /All 1 lesson/.test(t1), t1.slice(0, 200));
+      check("(b) the player's file carries the count — All 1 lesson — and the roster row did not", /All lessons\s*1\b/.test(t1), t1.slice(0, 200));
       await M.back(page); await page.waitForTimeout(600);
     }
 

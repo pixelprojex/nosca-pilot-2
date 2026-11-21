@@ -15,13 +15,29 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
    cascade inside the app is unchanged; the comments that explain them
    are there. */
 export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 2px; }
-    .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
-                    box-shadow: 0 2px 0 var(--lip, rgba(0,0,0,.08));
-                    transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1);
-                    margin-bottom: 12px; padding-left: 14px !important; padding-right: 14px !important; }
-    /* a row that is one button sinks onto its foot under the finger (the one press, data-down) */
-    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 var(--lip, rgba(0,0,0,.08)); transition: none; opacity: 1; }
+    /* WHITE CARDS (21 November): a row is Duolingo's card — white, a light
+       grey line round it and a ledge of the same under it — never a slab of
+       the sport's tint; the founder: "White background throughout" */
+    .nsc-list > * { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 14px;
+                    box-shadow: 0 2px 0 var(--edge, #E2E2E7);
+                    transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
+                    margin-bottom: 10px; padding-left: 16px !important; padding-right: 16px !important; }
+    /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
+    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge, #E2E2E7); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
+    /* SETTINGS IN GROUPS (21 November): a group of rows is one soft box on
+       its foot, the rows inside on a fine rule — iOS's grouped list, and
+       Lares's own More sheet — where it was twenty slabs down the page */
+    .nsc-group { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7); border-radius: 16px; box-shadow: 0 2px 0 var(--edge, #E2E2E7); overflow: hidden; }
+    .nsc-group > * { background: transparent; padding-left: 16px !important; padding-right: 16px !important;
+                     border-bottom: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 0; }
+    .nsc-group > *:last-child { border-bottom: 0 !important; }
+    .nsc-group > .nsc-flush { padding: 0 !important; }
+    /* THE MESSENGER'S LIST (21 November): Apple Messages and WhatsApp — no
+       card round a row, a fine separator that starts where the words do */
+    .nsc-plain > * { position: relative; }
+    .nsc-plain > *::after { content: ""; position: absolute; left: var(--sep-in, 70px); right: 0; bottom: 0; height: 1px; background: #ECECF0; }
+    .nsc-plain > *:last-child::after { display: none; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
     .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
@@ -29,7 +45,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--wash) !important; padding-left: 14px; padding-right: 14px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--surface, #fff) !important; padding-left: 16px; padding-right: 16px; }
 `;
 
 import {
@@ -39,7 +55,8 @@ import {
   HelpCircle, LogOut, Trash2, ShieldCheck, ExternalLink, Tag, Phone, Paperclip, Clock,
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
   Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat,
-  Share, Ellipsis, EllipsisVertical, Menu, MonitorDown, SquarePlus } from "lucide-react";
+  Share, Ellipsis, EllipsisVertical, Menu, MonitorDown, SquarePlus,
+  Plane, RefreshCw, Info, Smartphone, Link2, Compass, LayoutGrid, Vibrate, Accessibility, ClipboardCheck, BarChart3, Hourglass } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
@@ -426,7 +443,28 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
 /* a box's edge is a dark tone of the sport's own colour, never black:
    the mark (deep green for tennis, the brand green before a sport) at
    half strength over the paper */
-export const EDGE = (t) => HAIR(t.mark || t.accent || t.ink, 0.72);
+/* WHITE CARDS ON WHITE (21 November): a box's edge is Duolingo's light grey
+   line, never a tint of the sport — the founder: "There's so many color
+   tints throughout this site. But what I want is fixed colors, and also a
+   white background … White background throughout". The sport's colour is
+   the tab bar's, the one action's and a chosen key's. */
+export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E2E2E7");
+/* a control whose outline is all it has (a tick box) keeps a line that reads 3:1 */
+export const LINE_STRONG = "#8E8E93";
+/* COLOUR IN ITS PLACES, IN NOSCA'S OWN PALETTE (21 November). The
+   founder: "A bit more color in places to make it look more realistic.
+   Take reference from iOS" — and that evening, "I'm loving this iOS
+   style, but just make sure we're not copying it exactly … our own
+   personal twist on it". So the glyph squares, the actions' glyphs and
+   the faces are coloured as iOS colours them, but never in Apple's
+   system blue, pink and purple: in the app's own fixed colours — the six
+   sports' (golf's green, tennis' teal, rowing's blue, squash's orange,
+   padel's purple, equestrian's wine), the brand's bottle green, a slate
+   with the green in it, a warm gold, and the app's red. Deeper and
+   calmer than Apple's, and every one carries a white glyph at 4.5:1 and
+   over. (DANGER and BRAND are written out: they are declared below.) */
+export const HUE = { green: "#207A30", teal: "#01836E", blue: "#1B74A1", orange: "#C74B17", purple: "#6536B6",
+  wine: "#8C2941", brand: "#123C30", slate: "#5E6B65", gold: "#A66A10", red: "#C4342A" };
 export const EDGE_W = 1.5;
 /* THE LIP (18 November). The founder: the buttons, tiles and boxes
    "Duolingo style … that we have already done with the Lares app, where
@@ -452,7 +490,7 @@ const darkPage = (t) => { const [r, g, b] = rgbOf(t.page || "#FEFEFE"); return (
 /* under a strong face (the accent, the ink, red): the face a third deeper */
 export const LIP = (c) => MIX(c, "#000000", 0.3);
 /* under a soft face (the wash): the wash with a fifth of the sport's mark */
-export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : MIX(t.wash, t.mark || t.accent || t.ink, 0.2));
+export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E2E2E7");
 /* THE TINT: a saturated fill of the sport's own colour for every key that
    is not the one action (the founder, 18 November: "the saturated colors
    for the buttons … a lot of the buttons on the Nosca app are like white
@@ -468,12 +506,39 @@ export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : MIX(
    seventh over white, so it leans to the sport's ink, never to a
    colour), and the sport's colour is kept for the one action and the
    glyphs. */
+/* STONE (21 November). The founder on 18 November: "a lot of the buttons
+   on the Nosca app are like white buttons with just an outline around it.
+   So if it's a color fill, it might look better" — and the mint that
+   answered it was "a children's colouring book". So the second kind is
+   Lares's own answer (.btn3d.secondary): stone, a filled face of the
+   sport's ink at a sixteenth over white, a fine ring a step deeper, and a
+   ledge deeper again; the word and the glyph in ink. Tone on tone, never
+   a colour, never a white box with a green rule round it. The founder,
+   21 November: "Huge visual upgrade required! Continue to work on buttons
+   and better more professional more streamlined visual experience!" */
 export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : "#FFFFFF");
-/* its lip is the sport's own edge — the same EDGE(t) as its outline, so
-   the control's boundary still reads 3:1 and over ("No control on the
-   hairline"), and the key is Duolingo's white button with its border and
-   its ledge, in the sport's dark tone */
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : EDGE(t));
+/* its ledge: the stone a fifth of the ink deep. A filled key is told by
+   its face and its ledge, and its word reads 4.5:1 and over on the face;
+   the 3:1 outline rule ("No control on the hairline") is for a control
+   with no fill, whose outline is the only thing that says where it is.
+   It was the sport's edge for three days — a white key with a green rule
+   round it, the very thing the founder asked to have filled. */
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : "#D9D9DE");
+/* the stone key's fine ring, Lares's inset line of its ledge at 60% */
+export const KEY_RING = (t) => (darkPage(t) ? "transparent" : "#E2E2E7");
+/* CHOSEN (21 November): Duolingo's chosen answer — the sport's colour faint
+   on the face, its ring and its ledge, the word in the sport's colour —
+   where a chosen key was the ink, black among white keys */
+export const SEL = (t) => ({ face: MIX("#FFFFFF", t.accent, 0.1), ring: MIX("#FFFFFF", t.accent, 0.55), lip: MIX("#FFFFFF", t.accent, 0.55), fg: MIX(t.accent, "#000000", 0.08) });
+/* a row of a list chosen from (a reason on Cancel, Call off, End or
+   Decline): the list's white card at rest, Duolingo's chosen answer once
+   picked — the sport's colour faint on the face, its ring and ledge (the
+   card's --edge), the word in the sport's colour, a tick */
+export const pickRow = (t, on) => (on ? { background: SEL(t).face, "--edge": SEL(t).ring } : null);
+/* a small key chosen from a set (a day of the week): Duolingo's white
+   key on its grey ledge at rest (an n-key), the chosen answer once picked */
+export const keyPick = (t, on) => ({ background: on ? SEL(t).face : TINT(t), border: `${EDGE_W}px solid ${on ? SEL(t).ring : KEY_RING(t)}`,
+                                     "--key-lip": on ? SEL(t).lip : TINT_LIP(t), color: on ? SEL(t).fg : t.ink });
 /* dramatic, at the founder's word ("don't be afraid of dramatic kind
    of 3D effects"): six points of lip under a button or a tile, and the
    press takes five of them, so a key goes right down like a real one */
@@ -555,9 +620,9 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    its mark are the brand colour — the one anchor Nosca has before a
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
-  ink: "#1A1815", sub: "#55504C", faint: "#757069", trace: "#A39C93",
-  hair: "#E8E3DA", page: "#FEFEFE", surface: "#FFFFFF",
-  wash: "#F3F1EC", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
+  ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2",
+  hair: "#EBEBF0", page: "#FFFFFF", surface: "#FFFFFF",
+  wash: "#F2F2F7", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
    Anything outside this set is decoration and does not belong. */
@@ -591,8 +656,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#10200F", sub: "#3C5438", faint: "#5F755B", trace: "#9AAD95", hair: "#E4ECE1",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EBF3EA", mark: "#2F6B3A", accent: "#2F6B3A", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#207A30", accent: "#207A30", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -680,8 +745,8 @@ export const SPORTS = {
   tennis: {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
-    theme: { ink: "#0A2222", sub: "#375654", faint: "#5E7573", trace: "#96ADA9", hair: "#E1EDEB",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EDF4F1", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#01836E", accent: "#01836E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -772,8 +837,8 @@ export const SPORTS = {
   rowing: {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
-    theme: { ink: "#10222E", sub: "#3F5463", faint: "#617480", trace: "#93A6B2", hair: "#E2EAEF",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EEF4F7", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#1B74A1", accent: "#1B74A1", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -867,8 +932,8 @@ export const SPORTS = {
   squash: {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
-    theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F6EFEA", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#C74B17", accent: "#C74B17", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -953,8 +1018,8 @@ export const SPORTS = {
   padel: {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
-    theme: { ink: "#1E1830", sub: "#544C6A", faint: "#746C86", trace: "#A199B4", hair: "#E9E5F0",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F2EFF8", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#6536B6", accent: "#6536B6", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1039,8 +1104,8 @@ export const SPORTS = {
   equestrian: {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
-    theme: { ink: "#241A1D", sub: "#5D4C51", faint: "#7A6C71", trace: "#AB9AA0", hair: "#EEE6E8",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F6EFF2", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#8C2941", accent: "#8C2941", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1282,8 +1347,12 @@ function darkify(theme) {
 
 export const ThemeCtx = createContext(NEUTRAL);
 export const useT = () => useContext(ThemeCtx);
-export const display = "'Cabinet Grotesk', ui-sans-serif, -apple-system, sans-serif";
-export const ui = "'Switzer', 'Instrument Sans', ui-sans-serif, -apple-system, sans-serif";
+/* APPLE'S OWN FACE (21 November). The founder: "Take reference from the
+   Apple operating systems … It looks like an AI website." Cabinet Grotesk
+   and Switzer are the faces a generated site reaches for; the phone's own
+   San Francisco is what every app the founder admires is set in. */
+export const display = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
 /* ------------------------------------------------------------------
    TYPE SCALE
@@ -1291,62 +1360,41 @@ export const ui = "'Switzer', 'Instrument Sans', ui-sans-serif, -apple-system, s
    more than size: large display text needs negative tracking to stop
    looking loose, small caps need positive tracking to stay legible.
 ------------------------------------------------------------------ */
-/* opsz is doing real work here: large sizes get the high-contrast,
-   tightly-fitted cut, small sizes get the sturdier one. SOFT rounds the
-   terminals very slightly so it reads warm rather than clinical. */
-/* Gabarito carries a heading through weight and tight tracking rather
-   than size — which is why headings here are smaller than before but
-   read louder. Less shouting, more presence. */
+/* APPLE'S TYPE (21 November). The system face — SF Pro on an iPhone,
+   the platform's own elsewhere — and no web font: the founder asked for
+   the app to read like Apple's own, and a loaded display face (Cabinet
+   Grotesk, then Gabarito before it) was the clearest tell that it did
+   not. Headings go heavy and tight, as iOS's large titles do: screen 30
+   and title 22 at 700, section 20 at 700, heading 17 and subhead 15 at
+   600; the text end is body 16, small 14, caption 13, eyebrow 13 at 600.
+   12 IS THE FLOOR, and no literal on a live screen sits under it. Two
+   written exceptions, each the phone's own convention and not a
+   shortage of space: the tab bar's labels (the one surface the founder
+   asked kept as it was; iOS's own are 10pt) and the sign-up wordmark, a
+   logotype drawn, not read. scripts/e2e/type-floor.cjs reads the
+   computed size of every word on every screen as every role and fails
+   on anything under 12 outside those two. */
 export const TYPE = {
-  /* Large sizes go LIGHTER, not heavier — that is the whole trick. A
-     32px heading at weight 300 with tight tracking reads considered;
-     the same heading at 700 reads like a warning sign.
-
-     Cabinet Grotesk is loaded as STATIC cuts — 300, 400, 500, and no
-     variable axis. CSS Fonts 4 matches a weight below 400 by checking
-     lighter cuts in descending order first, so `screen`'s old 350
-     resolved to 300: identical to `hero`. Every H1 in the app shipped
-     at hero's weight, and that is a good part of why the screens read
-     flat. Verified in the browser, not assumed: with a family built
-     from three distinct local cuts, 350 and 399 both render the 300
-     cut and only 400 crosses over. `screen` is 400 now, so the ladder
-     has a weight step as well as a size step.
-
-     The ladder is 32 · 24 · 19 · 15.5 · 14.5 · 13.5 · 12.5 · 12, with
-     no adjacent pair closer than 1.04x. The display end goes larger
-     and lighter, the text end larger and steadier — body is read on a
-     range at arm's length and is the one size that should never have
-     come down. 12 IS THE FLOOR, and the ladder ends on it: caption is
-     12, and no literal anywhere on a live screen sits under it — the
-     bell's times, Chat's times, the roster's standing line, a tile's
-     count, a face's initials (Avatar floors them) all read at twelve.
-     It was 11 for a long time, with fifty literals from 8.5 up beside
-     it, against the rule this file states. Two written exceptions,
-     each the phone's own convention and not a shortage of space: the
-     tab bar's labels (the one surface the founder asked kept as it
-     was; iOS's own are 10pt) and the sign-up wordmark, a logotype
-     drawn, not read. scripts/e2e/type-floor.cjs reads the computed
-     size of every word on every screen as every role and fails on
-     anything under 12 outside those two. */
-  hero:     { fontFamily: display, fontSize: 32, lineHeight: 1.03, letterSpacing: "-0.035em", fontWeight: 300 },
+  hero:     { fontFamily: display, fontSize: 34, lineHeight: 1.08, letterSpacing: "-0.022em", fontWeight: 700 },
   /* every screen's H1, and the app's only one — see PageHead. */
-  screen:   { fontFamily: display, fontSize: 24, lineHeight: 1.08, letterSpacing: "-0.03em",  fontWeight: 400 },
-  title:    { fontFamily: display, fontSize: 19, lineHeight: 1.16, letterSpacing: "-0.025em", fontWeight: 400 },
+  screen:   { fontFamily: display, fontSize: 30, lineHeight: 1.1, letterSpacing: "-0.02em",  fontWeight: 700 },
+  title:    { fontFamily: display, fontSize: 22, lineHeight: 1.2, letterSpacing: "-0.015em", fontWeight: 700 },
+  section:  { fontFamily: display, fontSize: 20, lineHeight: 1.25, letterSpacing: "-0.012em", fontWeight: 700 },
   /* heading sits 1px above body deliberately: the contrast is family
      plus weight, not size, which is why the two can live 1px apart. */
-  heading:  { fontFamily: display, fontSize: 15.5, lineHeight: 1.28, letterSpacing: "-0.015em", fontWeight: 500 },
-  subhead:  { fontFamily: display, fontSize: 13.5, lineHeight: 1.34, letterSpacing: "-0.008em", fontWeight: 500 },
-  body:     { fontFamily: ui,      fontSize: 14.5, lineHeight: 1.52, letterSpacing: "-0.003em", fontWeight: 400 },
+  heading:  { fontFamily: display, fontSize: 17, lineHeight: 1.3, letterSpacing: "-0.01em", fontWeight: 600 },
+  subhead:  { fontFamily: display, fontSize: 15, lineHeight: 1.33, letterSpacing: "-0.005em", fontWeight: 600 },
+  body:     { fontFamily: ui,      fontSize: 16, lineHeight: 1.45, letterSpacing: "-0.01em", fontWeight: 400 },
   /* the one line under an H1 that says what a page holds. It was set
      in TYPE.small in t.faint — the quietest thing on the screen. It is
      a lede: Switzer, and t.sub. */
   lede:     { fontFamily: ui,      fontSize: 13.5, lineHeight: 1.45, letterSpacing: "-0.004em", fontWeight: 400 },
-  small:    { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.42, letterSpacing: "0",        fontWeight: 400 },
-  caption:  { fontFamily: ui,      fontSize: 12, lineHeight: 1.3, letterSpacing: 0,              fontWeight: 400 },
+  small:    { fontFamily: ui,      fontSize: 14, lineHeight: 1.4, letterSpacing: "-0.005em", fontWeight: 400 },
+  caption:  { fontFamily: ui,      fontSize: 13, lineHeight: 1.3, letterSpacing: 0,              fontWeight: 400 },
   /* a section label: a word, set like a word. It was 10px tracked
      uppercase — the single most repeated tell of a generated interface,
      on every section of every screen. Sentence case, the UI face, 500. */
-  eyebrow:  { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.3, letterSpacing: "-0.003em", fontWeight: 500 },
+  eyebrow:  { fontFamily: ui,      fontSize: 13, lineHeight: 1.3, letterSpacing: "0.01em",  fontWeight: 600 },
 
   /* THE FIGURE LADDER. A number in a document is set large and light.
      figureXL is the one number that owns a block — a player's lesson
@@ -2090,14 +2138,14 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
+${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
        carries a deeper tone where the face is coloured (a chosen mark). */
-    .n-key { box-shadow: 0 3px 0 var(--key-lip, var(--edge)); transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .18s, color .18s, border-color .18s; -webkit-tap-highlight-color: transparent; }
+    .n-key { background-color: var(--tint); box-shadow: 0 3px 0 var(--key-lip, var(--tint-lip)); transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .18s, color .18s, border-color .18s; -webkit-tap-highlight-color: transparent; }
     input::placeholder, textarea::placeholder { color: var(--faint, #8E958F); opacity: 1; }
-    .n-key[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-lip, var(--edge)); transition: none; }
+    .n-key[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-lip, var(--tint-lip)); transition: none; }
     .nsc-day > *:last-child { border-bottom: none !important; }
     @keyframes setIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shim{0%{background-position:120% 0}100%{background-position:-120% 0}}
@@ -2407,7 +2455,7 @@ function VideoCompare({ cfg, lessons, onClose }) {
           {playing ? tr("Pause") : tr("Play both")}
         </button>
         <button onClick={() => { haptic(7); onClose && onClose(); }} className="px-5 n-key"
-                style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.sub }}>
+                style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, fontFamily: ui, fontSize: 14, fontWeight: 600, color: t.sub }}>
           {tr("Close")}
         </button>
       </div>
@@ -2557,11 +2605,13 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     onClick={() => { haptic(7); soft(); setFocus(on ? null : { m: day.m, d: day.d }); }}
                     className="shrink-0 flex flex-col items-center active:opacity-70" style={{ width: 44, paddingTop: 2 }}>
               <span style={{ ...TYPE.caption, color: t.faint }}>{DAY_NAMES[dowOf(day.m, day.d, cx)].slice(0, 3)}</span>
-              <span className="flex items-center justify-center rounded-full mt-0.5"
-                    style={{ width: 28, height: 28, background: on ? t.ink : isToday ? t.wash : "transparent", transition: "background 200ms" }}>
-                <span style={{ ...TYPE.figureSm, color: on ? "#fff" : t.ink }}>{day.d}</span>
+              {/* Apple Calendar's week: the chosen day a solid disc of the sport's
+                  colour, today's figure in the colour, a day with lessons its dot */}
+              <span className="flex items-center justify-center rounded-full mt-1"
+                    style={{ width: 34, height: 34, background: on ? t.accent : "transparent", transition: "background 200ms" }}>
+                <span style={{ ...TYPE.figureSm, fontSize: 17, fontWeight: on || isToday ? 600 : 500, color: on ? "#fff" : isToday ? t.accent : t.ink }}>{day.d}</span>
               </span>
-              <span className="rounded-full mt-1" style={{ width: 3.5, height: 3.5, background: any ? t.ink : "transparent" }} />
+              <span className="rounded-full mt-1" style={{ width: 5, height: 5, background: any ? t.accent : "transparent" }} />
             </button>
           );
         })}
@@ -2841,10 +2891,10 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
           return (
             <button key={r} data-tour="cancel-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, ...pickRow(t, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(t).fg : t.ink }}>{tr(r)}</span>
+              {on && <Check size={17} color={t.accent} strokeWidth={2.4} />}
             </button>
           );
         })}
@@ -3089,7 +3139,7 @@ function EventsScreen({ sport, cfg, role, pop, say, live, comps, onAdd, onRemove
               {live && removing === e.id && (
                 <div className="flex gap-2.5 mb-4" style={{ animation: "liftIn 300ms cubic-bezier(.22,1,.36,1) both" }}>
                   <button onClick={() => { haptic(6); setRemoving(null); }} className="px-4 n-key"
-                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{tr("Keep it")}</button>
+                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, fontFamily: ui, fontSize: 13.5, fontWeight: 500, color: t.sub }}>{tr("Keep it")}</button>
                   <button onClick={async () => { const r = onRemove ? await onRemove(e.id) : null; if (r && r.error) { say(r.error.message); return; } hapticWarn(); setRemoving(null); }}
                           className="flex-1 n-key"
                           style={{ "--key-lip": LIP(DANGER), minHeight: 44, borderRadius: R.control, background: DANGER, fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>{tr("Remove")}</button>
@@ -3342,7 +3392,7 @@ function MediaRow({ item, cfg, sport, onAnnotate, onTranscribe, onRemove, delay 
 
       {isVideo && onTranscribe && !item.transcript && !item.working && (
         <button onClick={onTranscribe} className="w-full mt-3 flex items-center justify-center gap-2 n-key"
-                style={{ minHeight: 38, borderRadius: R.field, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+                style={{ minHeight: 38, borderRadius: R.field, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
           <FileText size={12} color={t.sub} />
           <span style={{ fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("Turn the talking into notes")}</span>
         </button>
@@ -3569,7 +3619,7 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
 
       {/* what today is for */}
       {focus && (
-        <div className="px-4 py-3.5 mb-5" style={{ borderRadius: R.control, background: `${t.accent}0F` }}>
+        <div className="px-4 py-3.5 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
           <span className="block" style={{ ...TYPE.caption, color: t.accent }}>{tr("Today")}</span>
           <span className="block mt-1" style={{ ...TYPE.subhead, color: t.ink }}>{focus}</span>
         </div>
@@ -3625,13 +3675,13 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       </Button>
 
       {/* three to a row, two rows */}
-      {(() => { const acts = [{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null },
-          { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null },
-          onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register" } : null,
+      {(() => { const acts = [{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null, hue: HUE.blue },
+          { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null, hue: HUE.blue },
+          onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register", hue: HUE.green } : null,
           /* a move where the project can move (one write, the player told),
              else the cancel path it always was; a group's lesson has no
              Move at all — it opened the Cancel sheet beside Cancel */
-          (onMove || !isGroup) ? { Ico: CalendarDays, lbl: tr("Move"), act: onMove || onCancel, tone: null, tour: "peek-move" } : null,
+          (onMove || !isGroup) ? { Ico: CalendarDays, lbl: tr("Move"), act: onMove || onCancel, tone: null, tour: "peek-move", hue: HUE.purple } : null,
           { Ico: CalendarX,    lbl: tr("Call off"), act: onWeather, tone: DANGER },
           { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean);
         return (
@@ -3642,8 +3692,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
             it read as a field of green): Call off and Cancel red in the
             glyph and the word — they were 40px discs six across */}
         <ClusterCtx.Provider value={true}>
-          {acts.map(({ Ico, lbl, act, tone, tour }) => (
-            <ActTile key={lbl} tour={tour} Icon={Ico} label={lbl} face={56} round
+          {acts.map(({ Ico, lbl, act, tone, tour, hue }) => (
+            <ActTile key={lbl} tour={tour} Icon={Ico} label={lbl} face={56} round hue={hue}
                      tone={tone ? "dangerQuiet" : "quiet"} onTap={() => { act && act(); }} />
           ))}
         </ClusterCtx.Provider>
@@ -3731,7 +3781,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
       <div className="grid gap-2" data-tour="editday-times" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
         {tiles.map((h) => {
           const bk = bookedAt(h);
-          const face = { minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: t.surface,
+          const face = { minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, background: TINT(t),
                          ...TYPE.small, fontWeight: 600, color: bk ? t.faint : t.ink };
           const inner = (<>
             {/* the start time alone: the length is one value for the day and
@@ -3820,7 +3870,7 @@ function CaptureNow({ booking, sport, cfg, captured, setCaptured, pop, say }) {
             ].map((o, i) => (
               <button key={o.label} onClick={o.act}
                       className="flex flex-col items-start justify-center gap-1.5 px-4 n-key"
-                      style={{ minHeight: 96, borderRadius: R.surface, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`,
+                      style={{ minHeight: 96, borderRadius: R.surface, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                                animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
                 <o.Icon size={20} color={i < 2 ? t.accent : t.sub} strokeWidth={1.6} />
                 <span className="truncate w-full text-left" style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{o.label}</span>
@@ -3904,15 +3954,13 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   <div className="flex gap-1.5 mt-4">
                     {DAY_NAMES.map((d, k) => {
                       const on = x.day === k;
-                      /* the chosen day in ink, as a chosen tile is — it was filled
-                         in STEADY, a second filled colour on the screen and the
-                         success green for a plain choice; 44 tall on the
-                         control's corner, as the Set up sheet's seven are */
+                      /* the chosen day is Duolingo's chosen answer and the rest
+                         white keys, as the Set up sheet's seven are (it was the
+                         ink, and before that STEADY); 44 tall on the control's corner */
                       return (<button key={k} aria-label={d} onClick={() => { haptic(5); soft(); onEdit(x, { day: k }); }}
-                                      className="flex-1 active:opacity-60"
-                                      style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
-                                               ...TYPE.small, fontWeight: 600,
-                                               color: on ? "#fff" : t.faint, transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>
+                                      className="flex-1 n-key"
+                                      style={{ minHeight: 44, borderRadius: R.control, ...keyPick(t, on),
+                                               ...TYPE.small, fontWeight: 600 }}>
                                 {d.slice(0, 2)}</button>);
                     })}
                   </div>
@@ -3926,14 +3974,14 @@ function RecurringManager({ series, roster, duration, onEnd, onExtend, onEdit, o
                   <div className="flex items-center justify-end gap-1.5 mt-2">
                     {/* an end date is not kept for a real account yet, so the two are not offered */}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "month"); }} className="px-3 n-key"
-                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("+1 month")}</button>}
                     {!real && <button onClick={() => { haptic(8); onExtend(x, "open"); }} className="px-3 n-key"
-                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.ink }}>{tr("No end")}</button>}
                     {/* End asks why, lists the lessons it booked and takes the password — the End sheet */}
                     <button data-tour="recur-end" onClick={() => { haptic(9); onEnd(x); }} className="px-3 n-key"
-                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                            style={{ minHeight: 40, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                                      fontFamily: ui, fontSize: 12, fontWeight: 600, color: DANGER }}>{tr("End")}</button>
                   </div>
                 </>
@@ -4455,7 +4503,7 @@ function CheckIns({ role, list, onAnswer, onSend, pop, say }) {
               ) : role === "coach" ? (
                 <div className="flex gap-2.5">
                   <button onClick={() => { haptic(8); say(tr("Opens the mark-up tools")); }} className="px-4 n-key"
-                          style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                          style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                                    ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Mark it up")}</button>
                   <button onClick={() => { hapticCommit(); onAnswer(c); }} className="flex-1 n-key"
                           style={{ "--key-lip": LIP(t.accent), minHeight: 46, borderRadius: R.control, background: t.accent,
@@ -4544,7 +4592,7 @@ function DefaultSport({ name, mine, current, onPick, close }) {
                     className="w-full flex items-center gap-3.5 px-5 text-left n-key"
                     style={{ minHeight: 74, borderRadius: R.surface,
                              background: on ? `${sp.theme.accent}12` : t.surface,
-                             border: on ? `${EDGE_W}px solid ${sp.theme.accent}44` : `${EDGE_W}px solid ${EDGE(t)}`,
+                             border: on ? `${EDGE_W}px solid ${sp.theme.accent}44` : `${EDGE_W}px solid ${KEY_RING(t)}`,
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
               <span className="rounded-full shrink-0" style={{ width: 10, height: 10, background: sp.theme.mark }} />
               <span className="flex-1 min-w-0">
@@ -4668,18 +4716,18 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
    name, one glyph, and both surfaces read this. It is also what the
    edit screen lists, so a coach can take off what they never use. */
 const COACH_ACTIONS = {
-  log:     { Ico: Plus,          label: "Log" },
-  attend:  { Ico: Check,         label: "Register" },
-  capture: { Ico: Camera,        label: "Capture" },
-  tip:     { Ico: Lightbulb,     label: "Tip" },
-  drills:  { Ico: ListChecks,    label: "Drills" },
-  player:  { Ico: UserPlus,      label: "Add player" },
-  group:   { Ico: Users,         label: "New group" },
+  log:     { Ico: Plus,          label: "Log",        hue: HUE.green },
+  attend:  { Ico: Check,         label: "Register",   hue: HUE.green },
+  capture: { Ico: Camera,        label: "Capture",    hue: HUE.blue },
+  tip:     { Ico: Lightbulb,     label: "Tip",        hue: HUE.gold },
+  drills:  { Ico: ListChecks,    label: "Drills",     hue: HUE.purple },
+  player:  { Ico: UserPlus,      label: "Add player", hue: HUE.teal },
+  group:   { Ico: Users,         label: "New group",  hue: HUE.brand },
   /* Message was here; a coach opens Chat for that. Calling lessons off
      is the one thing they need in a hurry, so it took the slot: a
      calendar with an X, in red, one of the eight under Log a lesson. */
-  weather: { Ico: CalendarX,     label: "Call off" },
-  comp:    { Ico: Trophy,        label: "Competition" },
+  weather: { Ico: CalendarX,     label: "Call off",   hue: HUE.red },
+  comp:    { Ico: Trophy,        label: "Competition", hue: HUE.wine },
 };
 const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "weather", "comp"];
 
@@ -4709,8 +4757,8 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
           {ids.map((id, i) => {
             const A = COACH_ACTIONS[id];
             return (
-              <ActTile key={id} tour={`quick-${id}`} h={72} wrap Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
-                       tone={id === "weather" ? "danger" : "quiet"}
+              <ActTile key={id} tour={`quick-${id}`} h={88} wrap Icon={A.Ico} label={tr(A.label)} delay={Math.min(i, 5) * 22}
+                       tone={id === "weather" ? "dangerQuiet" : "quiet"} hue={A.hue}
                        dot={id === "attend" && !!liveLesson}
                        aria={id === "attend" && liveLesson ? `${tr(A.label)} · ${liveLesson.who}` : tr(A.label)}
                        onTap={() => { if (id === "weather") hapticWarn(); onRun(id); }} />
@@ -4950,8 +4998,8 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                             /* a key on its lip: the edge's at rest, the mark's own colour made deeper once chosen */
                             className="flex items-center justify-center n-key"
                             style={{ minWidth: 66, minHeight: 44, borderRadius: R.control,
-                                     background: on ? tone : TINT(t), "--key-lip": on ? LIP(tone) : EDGE(t),
-                                     border: `${EDGE_W}px solid ${on ? tone : EDGE(t)}`,
+                                     background: on ? tone : TINT(t), "--key-lip": on ? LIP(tone) : TINT_LIP(t),
+                                     border: `${EDGE_W}px solid ${on ? tone : KEY_RING(t)}`,
                                      ...TYPE.caption, fontWeight: 650,
                                      color: on ? "#fff" : t.sub }}>
                       {lbl}
@@ -5287,7 +5335,7 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
         <div className="flex items-center justify-between px-2" style={{ marginTop: 14 }}>
           <button onClick={() => { if (list.length) { haptic(6); setRoll(true); } }} aria-label={`${tr("Captured")} · ${list.length}`} disabled={!list.length}
                   className="relative flex items-center justify-center n-key"
-                  style={{ width: 46, height: 46, borderRadius: 10, background: t.wash, border: `${EDGE_W}px solid ${EDGE(t)}`, opacity: list.length ? 1 : 0.4 }}>
+                  style={{ width: 46, height: 46, borderRadius: 10, background: t.wash, border: `${EDGE_W}px solid ${KEY_RING(t)}`, opacity: list.length ? 1 : 0.4 }}>
             <span className="absolute inset-0 overflow-hidden" style={{ borderRadius: 8 }}>
               {thumb && thumb.url && thumb.type === "video" ? <video src={thumb.url} muted playsInline preload="metadata" className="w-full h-full" style={{ objectFit: "cover" }} />
                 : thumb && thumb.url ? <img src={thumb.url} alt="" className="w-full h-full" style={{ objectFit: "cover" }} /> : null}
@@ -5503,7 +5551,7 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
     : status === "saving" ? `${tr("Saving")} · ${pct}%`
     : status === "failed" ? tr("Download failed")
     : tr("Not downloaded");
-  const quiet = { minHeight: 48, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
+  const quiet = { minHeight: 48, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
   return (
     <div data-tour="download-sheet" data-download-sheet={status || "none"}>
       <h2 style={{ ...TYPE.title, color: t.ink }}>{lesson.focus}</h2>
@@ -6372,7 +6420,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
           {!juvenile && (
             <button data-tour="coach-message" onClick={() => { haptic(8); soft(); onMessage(); }}
                     className="w-full flex items-center justify-center gap-2 mb-8 n-key"
-                    style={{ minHeight: 50, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                    style={{ minHeight: 50, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                              ...TYPE.subhead, fontSize: 15, color: t.ink }}>
               <MessageCircle size={15} strokeWidth={1.9} />
               {tr("Message")}
@@ -6414,7 +6462,7 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
                   {leaveErr && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{leaveErr}</p>}
                   <div className="flex gap-2">
                     <button onClick={() => { haptic(6); setLeaving(false); }} className="flex-1 n-key"
-                            style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
+                            style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
                     <button onClick={async () => { hapticWarn(); setLeaveBusy(true); const r = await onLeaveCoach(); setLeaveBusy(false); if (r && r.error) { setLeaveErr(r.error.message); return; } }}
                             className="flex-1 n-key"
                             style={{ "--key-lip": LIP(DANGER), minHeight: 46, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{leaveBusy ? "…" : `${tr("Leave")} ${first}`}</button>
@@ -6467,8 +6515,8 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
         {top}
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
           <span className="rounded-full flex items-center justify-center mb-7"
-                style={{ width: 74, height: 74, background: `${t.accent}14`, animation: "breathe 3.2s ease-in-out infinite" }}>
-            <Clock size={28} color={t.accent} strokeWidth={1.5} />
+                style={{ width: 74, height: 74, background: t.accent, animation: "breathe 3.2s ease-in-out infinite" }}>
+            <Clock size={30} color={t.onAccent} strokeWidth={2} />
           </span>
           <h1 data-tour="nocoach-pending" style={{ ...TYPE.hero, fontSize: 27, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 70ms both" }}>
             {tr("Request sent")}
@@ -6502,9 +6550,9 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
           </p>
         )}
         <span className="rounded-full flex items-center justify-center mb-7"
-              style={{ width: 74, height: 74, background: t.wash,
+              style={{ width: 74, height: 74, background: t.accent,
                        animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) both" }}>
-          <UserPlus size={28} color={t.sub} strokeWidth={1.5} />
+          <UserPlus size={30} color={t.onAccent} strokeWidth={2} />
         </span>
 
         <h1 style={{ ...TYPE.hero, fontSize: 27, color: t.ink,
@@ -6826,7 +6874,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
               <span className="block" style={{ fontFamily: display, fontSize: 34, letterSpacing: "0.28em", paddingLeft: "0.28em", color: t.ink }}>{code}</span>
               <div className="mt-5 flex items-center justify-center gap-2.5">
                 <button onClick={copy} className="inline-flex items-center gap-2 px-5 n-key"
-                        style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
+                        style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
                 <button data-tour="family-share" onClick={share} className="inline-flex items-center gap-2 px-5 n-key"
                         style={{ "--key-lip": MIX(t.ink, "#000000", 0.55), minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}><Share2 size={14} strokeWidth={2} />{tr("Share")}</button>
               </div>
@@ -6849,7 +6897,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                     <MicBtn onText={(txt) => setNewName(newName ? `${newName} ${txt}` : txt)} size={26} />
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setRenaming(false)} className="flex-1 n-key" style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Cancel")}</button>
+                    <button onClick={() => setRenaming(false)} className="flex-1 n-key" style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Cancel")}</button>
                     <button onClick={async () => { haptic(8); setBusy(true); const r = await onRename(newName); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } setRenaming(false); say && say(tr("Saved")); }}
                             className="flex-1 n-key" style={{ "--key-lip": MIX(t.ink, "#000000", 0.55), minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Save")}</button>
                   </div>
@@ -6859,7 +6907,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                 <div className="px-5 py-4" style={{ borderTop: `1px solid ${t.hair}` }}>
                   <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{tr("You'll stop seeing their lessons. Rejoin any time with the code")}</p>
                   <div className="flex gap-2">
-                    <button onClick={() => setLeaving(false)} className="flex-1 n-key" style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
+                    <button onClick={() => setLeaving(false)} className="flex-1 n-key" style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Stay")}</button>
                     <button onClick={async () => { hapticWarn(); setBusy(true); const r = await onLeave(); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } say && say(tr("You've left the family")); }}
                             className="flex-1 n-key" style={{ "--key-lip": LIP(DANGER), minHeight: 44, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Leave")}</button>
                   </div>
@@ -7026,7 +7074,7 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
               {canBook ? tr("Book a lesson") : kid.coachId ? tr("No hours set") : tr("Book a lesson")}
             </button>
             <button onClick={() => { haptic(8); onMessage && onMessage(kid); }} disabled={!kid.coachId} className="flex-1 disabled:opacity-35 n-key"
-                    style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
+                    style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
           </div>
 
           <div className="mb-7 nsc-list">
@@ -7055,13 +7103,13 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
             </div>
             {mine.length > shown.length && (
               <button onClick={() => { haptic(6); onAllLessons && onAllLessons(); }} className="w-full mb-3 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("All")} {mine.length} {tr("lessons")}
               </button>
             )}
             {onProgress && (
               <button data-tour="kid-progress" onClick={() => { haptic(6); onProgress(); }} className="w-full mb-7 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                 {tr("Progress")}
               </button>
             )}
@@ -7416,10 +7464,10 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
           return (
             <button key={r} data-tour="end-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, ...pickRow(t, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(t).fg : t.ink }}>{tr(r)}</span>
+              {on && <Check size={17} color={t.accent} strokeWidth={2.4} />}
             </button>
           );
         })}
@@ -7544,10 +7592,10 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
           return (
             <button key={r} data-tour="calloff-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setReason(r); }}
                     className="w-full flex items-center gap-3 text-left"
-                    style={{ minHeight: 52, background: on ? t.ink : t.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                    style={{ minHeight: 52, ...pickRow(t, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                              animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-              <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : t.ink }}>{tr(r)}</span>
-              {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+              <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(t).fg : t.ink }}>{tr(r)}</span>
+              {on && <Check size={17} color={t.accent} strokeWidth={2.4} />}
             </button>
           );
         })}
@@ -7600,28 +7648,29 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
      the diary's length, while the member's block said 60 */
   const len = item.duration || duration;
 
-  /* a box on the sport's edge like every other in the Diary — it was a
-     pale accent card at 16px, a fourth box style on one screen — with a
-     group marked as the List view marks it, the 3px bar */
+  /* the list's white card on its light grey line and ledge, like every
+     other box in the Diary (21 November; it was the sport's wash at 8px,
+     and before that a pale accent card at 16px) — with a group marked as
+     the List view marks it, the 3px bar */
   return (
-    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 8, background: t.wash, border: `${EDGE_W}px solid transparent` }}>
+    <Tile tour="cal-block" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
       <button onClick={() => { haptic(7); soft(); setOpen(!open); }} className="w-full text-left px-5 py-4">
         <div className="flex items-center gap-3.5">
           {isGroup && <span className="rounded-full shrink-0" style={{ width: 3, height: 26, background: GROUP }} />}
           {!isGroup ? <Avatar name={item.who} size={42} />
-            : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.surface }}>
+            : <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: t.wash }}>
                 <Users size={18} color={GROUP} strokeWidth={1.6} /></span>}
           <span className="flex-1 min-w-0">
             <span className="block truncate" style={{ ...TYPE.heading, color: t.ink }}>{item.who}</span>
             {/* two facts, each kept whole: where the line must wrap at 320 it breaks
                 before the dot, which rides with the kind — a line never ends on it */}
-            <span className="block mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>
+            <span className="block mt-1" style={{ ...TYPE.small, color: t.faint }}>
               <span data-block-time className="whitespace-nowrap">{span(item.time, len)}</span> <span data-block-kind className="whitespace-nowrap">· {item.kind}</span>
             </span>
             {/* who said they will not be there, a line of its own: two facts
                 on the grey line, and the count never broken across two */}
             {isGroup && item.outIds && item.outIds.length > 0 && (
-              <span data-tour="block-out-count" className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.sub }}>{item.outIds.length} {tr("not going")}</span>
+              <span data-tour="block-out-count" className="block mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{item.outIds.length} {tr("not going")}</span>
             )}
           </span>
           <span className="text-right shrink-0">
@@ -7639,7 +7688,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
           {/* the numbers */}
           {/* A group has no file, and f.done is 0 for every real
               account — the roster is where a real count lives. */}
-          <div className="flex mx-5 mb-4" style={{ background: t.surface, borderRadius: R.control }}>
+          <div className="flex mx-5 mb-4" style={{ background: t.wash, borderRadius: R.control }}>
             {/* on the wash the faint caption reads 4.4:1, under the 4.5:1 a
                 word needs; the sub tone reads over 7 */}
             {!isGroup && (
@@ -7650,13 +7699,13 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
 
           <div className="px-5 pt-4 pb-5 flex flex-col gap-2">
             {isGroup && item.outNames && item.outNames.length > 0 && (
-              <div data-tour="block-out" className="px-4 py-3" style={{ borderRadius: R.control, background: t.surface }}>
+              <div data-tour="block-out" className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
                 <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not going")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{item.outNames.join(", ")}</div>
               </div>
             )}
             {f.tip && (
-              <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.surface }}>
+              <div className="px-4 py-3" style={{ borderRadius: R.control, background: t.wash }}>
                 <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Working on")}</div>
                 <div style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.tip}</div>
               </div>
@@ -7664,7 +7713,7 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
             {f.lastFocus && (
               <button onClick={() => { haptic(7); onOpenLast && onOpenLast(item.who); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left n-key"
-                      style={{ borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+                      style={{ borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
                 <span className="flex-1">
                   <span className="block mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Last lesson")}</span>
                   <span className="block" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>{f.lastFocus} · {f.lastOn}</span>
@@ -7677,14 +7726,14 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
               {/* the diary passes onCancel (the Why sheet); an older caller onNoShow —
                   the button took only the second, so the diary's Cancel did nothing */}
               <button data-tour="block-cancel" onClick={() => { hapticWarn(); const act = onCancel || onNoShow; act && act(item); }} className="px-4 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
-                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
+                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
               <button onClick={() => { haptic(8); push("player:" + item.who); }} className="flex-1 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
-                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
+                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
+                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Profile")}</button>
               <button onClick={() => { hapticCommit(); onLog && onLog(item); }} className="flex-1 n-key"
                       style={{ "--key-lip": LIP(t.accent), minHeight: 46, borderRadius: R.control, background: t.accent,
-                               fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: t.onAccent }}>
+                               fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.onAccent }}>
                 {tr("Log")}
               </button>
             </div>
@@ -8462,9 +8511,13 @@ const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
 };
 /* A label over a list of rows. Eyebrow below carries the page's own
    side padding; inside a column that already has it, use this. */
+/* A SECTION IS A HEADING (21 November): the screen's subjects — Today,
+   Actions, Coming up, Children — in the display face in ink, as Lares
+   heads "Later" and "Countdowns", where they were the small grey label a
+   form field carries. The label stays the Eyebrow's, for a field. */
 const RowHead = ({ children }) => {
   const t = useT();
-  return <div className="px-1" style={{ ...TYPE.eyebrow, color: t.sub, marginBottom: 8 }}>{children}</div>;
+  return <h2 className="px-1" style={{ ...TYPE.section, color: t.ink, marginBottom: SPACE.tight }}>{children}</h2>;
 };
 const Eyebrow = ({ children }) => {
   const t = useT();
@@ -8472,30 +8525,34 @@ const Eyebrow = ({ children }) => {
 };
 export function Button({ children, onClick, tone = "accent", disabled, tour }) {
   const t = useT();
-  /* ONE BUTTON FAMILY, Lares's: a flat face on a deeper lip that sinks
-     right down under the finger. The strong tones lip in their own
-     colour made deeper; the quiet ones are a saturated tint of the
-     sport's colour (red for dangerQuiet) on a deeper tint with a fine
-     ring of it — never white with an outline any more. */
+  /* ONE BUTTON FAMILY, Duolingo's: a flat face on a deeper ledge that
+     sinks right down under the finger. The strong tones ledge in their
+     own colour made deeper; the quiet ones are the white key with a light
+     grey ring on a grey ledge (the word red for dangerQuiet). */
   const looks = {
     accent: { background: t.accent, color: t.onAccent, border: "none", lip: LIP(t.accent) },
-    ink:    { background: t.ink, color: "#fff", border: "none", lip: MIX(t.ink, "#000000", 0.55) },
-    quiet:  { background: TINT(t), color: t.ink, border: `${EDGE_W}px solid ${EDGE(t)}`, lip: EDGE(t) },
+    /* a step's Next, Start, Save changes: the sport's colour, as every
+       primary key is in Duolingo and iOS — a black key read heavy beside
+       the white ones (21 November) */
+    ink:    { background: t.accent, color: t.onAccent, border: "none", lip: LIP(t.accent) },
+    quiet:  { background: TINT(t), color: t.ink, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
     danger: { background: DANGER, color: "#fff", border: "none", lip: LIP(DANGER) },
-    dangerQuiet: { background: TINT(t), color: DANGER, border: `${EDGE_W}px solid ${EDGE(t)}`, lip: EDGE(t) },
+    dangerQuiet: { background: TINT(t), color: DANGER, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: TINT_LIP(t) },
   }[tone];
-  const { lip, ...face } = looks;
+  /* not yet live: a flat stone with the word in the faint grey — the
+     accent at a third of its strength read as a faded, broken button */
+  const { lip, ...face } = disabled ? { background: TINT(t), color: t.faint, border: `${EDGE_W}px solid ${KEY_RING(t)}`, lip: null } : looks;
   /* the tinted kinds carry a fine ring of their own lip round the face, as
      Lares's stone does, so the key's edge reads on the paper */
   const p = press3d(lip, LIP_H, LIP_PRESS);
   return (
     <button data-tour={tour} data-lip="" onClick={() => { if (!disabled) { haptic(10); onClick && onClick(); } }} disabled={disabled}
-            className="w-full disabled:opacity-30"
-            {...p.handlers}
+            className="w-full"
+            {...(disabled ? {} : p.handlers)}
             /* 50 drawn and the lip under it: the same 54 it always took */
-            style={{ minHeight: 50, marginBottom: LIP_H, borderRadius: R.surface, fontFamily: ui, fontSize: 15.5, fontWeight: 600, letterSpacing: "0.005em",
-                     boxShadow: p.rest,
-                     transition: `transform 140ms ease-out, box-shadow 140ms ease-out, opacity ${MOTION.instant}ms`,
+            style={{ minHeight: 52, marginBottom: LIP_H, borderRadius: R.surface, fontFamily: ui, fontSize: 17, fontWeight: 600, letterSpacing: "-0.01em",
+                     boxShadow: disabled ? "none" : p.rest, transform: disabled ? `translateY(${LIP_H - 1}px)` : undefined,
+                     transition: `transform 140ms ease-out, box-shadow 140ms ease-out, background 180ms, color 180ms`,
                      ...face }}>{children}</button>
   );
 }
@@ -8562,7 +8619,7 @@ export const sink = (t, restShadow) => {
    rectangle, as Lares's word answers do. The one action is the sport's
    colour, Call off red, a chosen key the ink, the rest a quiet tint of
    the sport on a deeper tint. */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round }) {
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round, hue }) {
   const t = useT();
   const cols = useContext(GridColsCtx);
   /* dangerQuiet: the white key with the red in the glyph and the word
@@ -8572,11 +8629,13 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      areas, the plus's eight) a quiet key drops its outline and stands on
      the sport's wash with the soft lip of a row — a dozen outlined keys
      read busy, and the founder said so before the keys were raised */
-  const calm = useContext(ClusterCtx) && (tone === "quiet" || tone === "dangerQuiet") && !on;
-  const quietTile = tone !== "accent" && tone !== "danger" && !on && !calm;
-  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : calm ? t.wash : TINT(t);
-  const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? "#fff" : redWord ? DANGER : t.ink;
-  const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? MIX(t.ink, "#000000", 0.55) : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  /* stone keys need no rim to be calm: a grid of twelve is twelve stones */
+  const calm = false;
+  const quietTile = tone !== "accent" && tone !== "danger" && !on;
+  const sel = SEL(t);
+  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : TINT(t);
+  const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? sel.fg : redWord ? DANGER : t.ink;
+  const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
   /* the second kind keeps the sport's edge as its outline, 3:1 and over */
   const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
@@ -8599,11 +8658,11 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               {...p.handlers}
               className={`relative w-full flex text-left ${stacked ? "flex-col items-start justify-between" : "items-center"}`}
               style={{ minHeight: h, gap: stacked ? 10 : 12, padding: stacked ? "14px 14px 13px" : "0 16px", borderRadius: R.surface, background: bg,
-                       boxShadow: p.rest, border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`, animation: enter,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
-        <Icon size={22} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} className="shrink-0" />
+        {hue && quietTile ? <IconSq Icon={Icon} bg={hue} size={34} /> : <Icon size={22} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} className="shrink-0" />}
         <span className={wrap ? "min-w-0" : "min-w-0 max-w-full truncate"}
-              style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: 1.2, color: fg }}>{label}</span>
+              style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg }}>{label}</span>
         {badge}
       </button>
     );
@@ -8620,10 +8679,10 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
         <span data-face="" data-lip="" data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
               style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
-                       border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`,
+                       border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
           {/* the glyph in ink on the white key, never the accent (the accent is the one action's) */}
-          <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} />
+          <Icon size={Math.round(f * 0.4)} color={hue && quietTile ? hue : fg} strokeWidth={hue && quietTile ? 2.2 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
         {!iconOnly && (
@@ -8641,7 +8700,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...p.handlers}
             className={`relative w-full flex items-center justify-center ${block && Icon ? "gap-2.5" : "flex-col gap-1.5"}`}
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest,
-                     border: `${EDGE_W}px solid ${quietTile ? EDGE(t) : "transparent"}`, animation: enter,
+                     border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                      transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -8678,12 +8737,13 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
    was five of these stacked down the player's home: a page of labels. */
 /* `boxed`: inside a .nsc-list the box is the edge, so the row draws no
    foot rule of its own (the peek's All lessons) */
-const HomeRow = ({ label, value, tone, onPress, tour, boxed = false }) => {
+const HomeRow = ({ label, value, tone, onPress, tour, boxed = false, icon = null }) => {
   const t = useT();
   return (
     <button data-tour={tour} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
-            className={`w-full flex items-center gap-4 text-left ${boxed ? "" : "active:opacity-50"}`}
+            className={`w-full flex items-center gap-3.5 text-left ${boxed ? "" : "active:opacity-50"}`}
             style={{ minHeight: 60, borderBottom: boxed ? undefined : RULE.hair(t.ink) }}>
+      {icon}
       <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
       <span className="shrink-0 truncate" style={{ ...TYPE.body, color: tone || t.sub, maxWidth: "55%" }}>{value}</span>
       <ChevronRight size={15} color={t.trace || t.faint} />
@@ -8710,16 +8770,17 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         const on = has(x), off = disabled && disabled.includes(x);
         /* a time is a small key on a three-point lip: the chosen one ink
            on a deeper ink, the rest on the sport's edge or the wash's */
-        const calm = cluster && !on;
-        const lc = on ? MIX(t.ink, "#000000", 0.55) : calm ? SOFT_LIP(t) : TINT_LIP(t);
+        const calm = false && cluster && !on;
+        const sel = SEL(t);
+        const lc = on ? sel.lip : TINT_LIP(t);
         const p = press3d(lc, 3, 2);
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} data-lip="" aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
                   {...p.handlers}
-                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : calm ? t.wash : TINT(t),
-                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? t.ink : calm ? "transparent" : EDGE(t)}`, opacity: off ? 0.35 : 1,
+                  style={{ minHeight: 46, borderRadius: R.control, background: on ? sel.face : TINT(t),
+                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? sel.ring : KEY_RING(t)}`, opacity: off ? 0.35 : 1,
                            fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
-                           color: on ? "#fff" : t.ink,
+                           color: on ? sel.fg : t.ink,
                            transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>{x}</button>
         );
       })}
@@ -8825,21 +8886,25 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
              it, not a grey tile with a coloured dot. An add tile carries
              one plus: it carried the glyph and a "+ " in the word for a
              round and the founder asked why there were two. */
-          /* each a key in its own sport's colour: the sport's tint on a
-             deeper tint, the sport's full colour once chosen */
-          const lc = on ? LIP(th.mark) : `${th.mark}B8`;
+          /* each a key in its own sport's colour: the sport's colour
+             faint on the face with its ring and ledge (the one grid that
+             keeps a tint, since 21 November the app's wash is Apple's
+             neutral grey and no longer says the sport), the sport's full
+             colour once chosen */
+          const ring = MIX("#FFFFFF", th.mark, 0.55);
+          const lc = on ? LIP(th.mark) : ring;
           const p = press3d(lc, 3, 2);
           return (
             <button key={id} data-lip="" aria-label={add ? `${tr("Add")} ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
                     {...p.handlers}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : th.wash, boxShadow: p.rest,
-                             border: `${EDGE_W}px solid ${on ? th.mark : `${th.mark}B8`}`,
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : MIX("#FFFFFF", th.mark, 0.12), boxShadow: p.rest,
+                             border: `${EDGE_W}px solid ${on ? th.mark : ring}`,
                              transition: `background ${MOTION.settle}ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)` }}>
               {add
                 ? <Plus size={18} color={th.mark} strokeWidth={2.2} />
                 : <span className="rounded-full" style={{ width: 20, height: 20, background: on ? "#fff" : th.mark }} />}
-              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : th.ink }}>{sp.label}</span>
+              <span className="truncate px-2" style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, color: on ? "#fff" : th.ink }}>{sp.label}</span>
               {isMain && <span style={{ ...TYPE.caption, lineHeight: 1, marginTop: -4, color: on ? "rgba(255,255,255,0.7)" : th.sub }}>· {tr("main")}</span>}
             </button>
           );
@@ -8888,7 +8953,9 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
    right, when the row cannot give it (84 keeps Accept · Decline beside
    a name at 375 and Message beside a name at 320; `textMin` is there
    for a row that needs more). */
-const PERSON_FACE = 40, PERSON_TEXT_MIN = 84;
+const PERSON_FACE = 44, PERSON_TEXT_MIN = 84;
+/* the width of "· " in the grey line, held so a dot that would lead a wrapped line is clipped whole */
+const SEP_HANG = "0.6em";
 function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
@@ -8908,9 +8975,16 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
      (a typed reason, a tip's title) wrap like words, or they ran off
      the box at 320 */
   const FACT = 28;
-  const subNode = typeof sub === "string" && sub.includes(" · ")
-    ? sub.split(" · ").map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className={part.length <= FACT ? "whitespace-nowrap" : undefined}>{i ? "· " : ""}{part}</span></React.Fragment>)
+  const parts = typeof sub === "string" && sub.includes(" · ") ? sub.split(" · ") : null;
+  /* where every part is a fact, a wrapped line can only start on one,
+     and its dot hangs off the left in a box of its own width, clipped:
+     the line reads "Tue 24 Nov" over "9:00 am", never "· 9:00 am" (a
+     dot leading the second line read as a slip beside Accept · Decline) */
+  const hang = !!parts && parts.every((part) => part.length <= FACT);
+  const subNode = parts
+    ? parts.map((part, i) => <React.Fragment key={i}>{i ? " " : ""}<span className={part.length <= FACT ? "whitespace-nowrap" : undefined}>{i ? (hang ? <span style={{ display: "inline-block", width: SEP_HANG, whiteSpace: "pre", textIndent: 0 }}>{"· "}</span> : "· ") : ""}{part}</span></React.Fragment>)
     : sub;
+  const hangStyle = hang ? { marginLeft: `-${SEP_HANG}`, textIndent: SEP_HANG, clipPath: `inset(0 0 0 ${SEP_HANG})` } : null;
   /* a row that cannot be picked (the recurring sheet's "Already has one")
      fades its face and its words, never its box: the edge stays the sport's */
   const dim = muted ? { opacity: 0.45 } : undefined;
@@ -8922,18 +8996,23 @@ function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", s
       {/* the face is looked up by the whole name (FaceCtx keys on it, and
           two letters are its initials) even where the label is a first
           name alone, as the family's child row is */}
-      {muted ? <span className="shrink-0 flex" style={dim}>{faceNode}</span> : faceNode}
+      {/* a row whose words run long (a request's note, a notice's title,
+          both unclamped) keeps the face level with the name, as iOS's
+          lists and the phone's own notifications do — centred on a row of
+          six lines it floated half way down beside the words */}
+      {muted ? <span className="shrink-0 flex" style={dim}>{faceNode}</span>
+        : (subLines === 0 || nameLines === 0) ? <span className="shrink-0 flex self-start">{faceNode}</span> : faceNode}
       <span className="min-w-0" style={{ flex: `1 1 ${actions ? `${textMin}px` : "0%"}`, ...dim }}>
         {/* `meta` sits on the name's line, on the right (Chat's time and dot) */}
         {meta
           ? <span className="flex items-baseline justify-between gap-2">
-              <span data-name="" className="min-w-0" style={{ ...TYPE.body, fontWeight: bold ? 600 : 400, color: t.ink, ...nameClamp }}>{name}</span>
+              <span data-name="" className="min-w-0" style={{ ...TYPE.body, fontWeight: bold ? 700 : 600, color: t.ink, ...nameClamp }}>{name}</span>
               <span className="shrink-0">{meta}</span>
             </span>
-          : <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: bold ? 600 : 400, color: t.ink, ...nameClamp }}>{name}</span>}
-        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.caption, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...subClamp }}>{subNode}</span>}
+          : <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: bold ? 700 : 600, color: t.ink, ...nameClamp }}>{name}</span>}
+        {sub && <span data-sub="" className="block mt-0.5" {...subAttrs} style={{ ...TYPE.small, color: subTone === "caution" ? CAUTION : subTone === "ink" ? t.sub : t.faint, ...subClamp, ...hangStyle }}>{subNode}</span>}
       </span>
-      {value && <span className="shrink-0" style={{ ...TYPE.caption, color: t.faint }}>{value}</span>}
+      {value && <span className="shrink-0" style={{ ...TYPE.small, color: t.sub }}>{value}</span>}
       {trailing}
       {/* the pair of words on the right: a line of its own under the name
           when the row cannot hold both (ml-auto keeps it on the right) */}
@@ -8953,18 +9032,18 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       {icon}
       {onToggle && !chevron && !icon && !right && (
         <span className="flex items-center justify-center shrink-0"
-              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : EDGE(t)}`, background: checked ? t.accent : "transparent" }}>
+              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : LINE_STRONG}`, background: checked ? t.accent : "transparent" }}>
           {checked && <Check size={13} color="#fff" strokeWidth={2.1} />}
         </span>
       )}
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
-          <span className="truncate" style={{ fontFamily: ui, fontSize: 15, letterSpacing: "-0.005em", color: danger ? DANGER : t.ink }}>{label}</span>
+          <span className="truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
           {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.ink }} />}
         </span>
         {sub && <span className="block truncate mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{sub}</span>}
       </span>
-      {value && <span className="shrink-0 truncate" style={{ fontFamily: ui, fontSize: 14.5, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
+      {value && <span className="shrink-0 truncate" style={{ ...TYPE.body, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
       {right}
       {chevron && <ChevronRight size={17} color={t.trace || t.faint} />}
       {checked && icon && <Check size={18} color={STEADY} strokeWidth={2.1} />}
@@ -9025,6 +9104,48 @@ function MiniPlayer({ clip, onClose, onExpand }) {
     </div>
   );
 }
+/* a face with no picture takes one of Nosca's own colours, fixed by the
+   name, lit a little from the top — a messenger's coloured disc in the
+   app's palette, never Apple's or Telegram's pastels */
+const FACE_HUES = [HUE.green, HUE.teal, HUE.blue, HUE.orange, HUE.purple, HUE.wine, HUE.gold];
+const faceHue = (name) => {
+  let h = 0; for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const c = FACE_HUES[h % FACE_HUES.length];
+  return `linear-gradient(180deg, ${MIX(c, "#FFFFFF", 0.14)} 0%, ${c} 100%)`;
+};
+/* SETTINGS AS iOS LAYS IT OUT, IN NOSCA'S COLOURS: every row leads with
+   its own coloured square, so a row is found by colour before it is read
+   (21 November; the rows carried no glyph for a long time, "Settings rows
+   carry no glyph at all") — the squares in the app's own palette (HUE) */
+const SETTINGS_GLYPHS = {
+  "Default view": [LayoutGrid, HUE.purple], "Opens on": [LayoutGrid, HUE.purple], "Reminder": [Bell, HUE.wine],
+  "Reviews": [Star, HUE.gold], "Review prompt": [Star, HUE.gold], "Paperwork": [FileText, HUE.slate],
+  "Requests": [UserPlus, HUE.blue], "Hours": [Clock, HUE.green], "Away": [Plane, HUE.blue],
+  "Roster & groups": [Users, HUE.brand], "Shortcuts": [Grid3X3, HUE.teal], "Drills": [ListChecks, HUE.purple],
+  "Lesson logs": [Film, HUE.brand], "Downloads": [Download, HUE.blue], "Calendar": [CalendarDays, HUE.wine],
+  "Branding": [Palette, HUE.purple], "Invite code": [QrCode, HUE.teal], "This month": [BarChart3, HUE.teal],
+  "Family": [Home, HUE.green], "Your coach": [User, HUE.blue], "Coaches & profiles": [User, HUE.blue],
+  "Notifications": [Bell, HUE.wine], "Data & permissions": [ShieldCheck, HUE.slate], "Photo": [Camera, HUE.slate],
+  "Personal details": [User, HUE.slate], "Your sporting record": [Trophy, HUE.gold], "Connections": [Link2, HUE.brand],
+  "Walkthrough": [Compass, HUE.green], "Add to Home Screen": [Smartphone, HUE.blue], "Attendance": [ClipboardCheck, HUE.green],
+  "Register": [ClipboardCheck, HUE.green], "Contact us": [Mail, HUE.blue], "Terms": [FileText, HUE.slate],
+  "Privacy": [Lock, HUE.slate], "Licences": [FileText, HUE.slate], "Version": [Info, HUE.slate], "Sync": [RefreshCw, HUE.green],
+  "Sound": [Volume2, HUE.wine], "Haptics": [Vibrate, HUE.purple], "Reduce motion": [Accessibility, HUE.blue],
+  "Sign out": [LogOut, HUE.slate], "Delete account": [Trash2, HUE.red], "Password": [Lock, HUE.slate],
+  "Set yourself up": [Compass, HUE.teal], "Setup": [Compass, HUE.teal],
+};
+const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? <IconSq Icon={g[0]} bg={g[1]} size={30} /> : null; };
+/* THE GLYPH TILE, NOSCA'S TWIST ON iOS's SQUARE: one of the app's own
+   colours, the glyph in white, a softer corner than Apple's, and standing
+   on a two-point ledge of its own colour made deeper — the same 3D the
+   keys and the cards stand on, so even the smallest coloured thing in the
+   app is a Nosca object, not a copy of Settings */
+const IconSq = ({ Icon, bg, size = 30 }) => (
+  <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0"
+        style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: bg, boxShadow: `0 2px 0 ${LIP(bg)}` }}>
+    <Icon size={Math.round(size * 0.56)} color="#FFFFFF" strokeWidth={2.2} />
+  </span>
+);
 const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const t = useT();
   const faces = useContext(FaceCtx);
@@ -9039,12 +9160,15 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
      surface underneath decide, so the disc always reads */
   /* its own disc, a step deeper than the wash: on a row of the wash a
      wash disc vanished and the initials floated */
-  const disc = tint || bg || MIX(t.wash, t.mark || t.accent || t.ink, 0.12);
-  const mark = tint ? "#fff" : fg || t.sub;
+  /* a person's own colour, the same every time and everywhere — the
+     founder asked for colour "to make it look more realistic", and every
+     messenger draws an initials disc in a colour of its own */
+  const disc = tint || bg || faceHue(group ? `group:${name || ""}` : name);
+  const mark = tint ? "#fff" : fg || "#FFFFFF";
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
           style={{ width: size, height: size, background: disc,
-                   fontFamily: display, fontSize: Math.max(12, size * 0.36), fontWeight: 500,
+                   fontFamily: display, fontSize: Math.max(12, size * 0.38), fontWeight: 600,
                    letterSpacing: "-0.02em", color: mark }}>
       {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} onError={() => setBroken(pic)} />
         : group ? <Users size={size * 0.42} color={mark} /> : initials}
@@ -9500,14 +9624,15 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
   /* a key of the family: the tint on its deeper tint, the ink once
      chosen; the entrance fills backwards only, or its last frame would
      hold the transform the press writes */
-  const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
+  const sel = SEL(t);
+  const lc = on ? sel.lip : TINT_LIP(t);
   const p = press3d(lc, 3, 2);
   return (
     <button onClick={() => { haptic(8); soft(); onSelect(); }} aria-pressed={!!on} data-lip=""
             className="w-full flex items-center gap-4 px-5 text-left"
             {...p.handlers}
-            style={{ minHeight: 62, marginBottom: 10, borderRadius: R.surface, background: on ? t.ink : TINT(t),
-                     border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, boxShadow: p.rest,
+            style={{ minHeight: 62, marginBottom: 10, borderRadius: R.surface, background: on ? sel.face : TINT(t),
+                     border: `${EDGE_W}px solid ${on ? sel.ring : KEY_RING(t)}`, boxShadow: p.rest,
                      transition: "background 220ms, border-color 220ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)",
                      animation: `fadeUp 460ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards` }}>
       {Icon && <Icon size={20} color={on ? t.accent : t.sub} strokeWidth={1.6} />}
@@ -10683,7 +10808,7 @@ function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
           are there, so no label is cut. */}
       {item.id && (onAnnotate || onCompare || onStudy) && (() => {
         const three = !!(onAnnotate && onCompare && onStudy);
-        const btn = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink, padding: "0 6px" };
+        const btn = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink, padding: "0 6px" };
         return (
         <div className="flex gap-2 mt-3" data-tour="lesson-ways">
           {onAnnotate && (
@@ -10840,7 +10965,8 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               nothing. */}
           {lesson.note && (
             <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
-              <p style={{ ...TYPE.title, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{lesson.note}</p>
+              {/* 20 regular, iOS's Title 3: the title size grew to 22 on 21 November, which read as a heading over a paragraph */}
+              <p style={{ ...TYPE.section, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{lesson.note}</p>
             </div>
           )}
 
@@ -10853,7 +10979,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               {replies.map((r, i) => (
                 <div key={r.id || i} className={i ? "mt-4" : ""}>
                   <Label>{[role === "coach" ? tr("Replied") : (first(coachName) || tr("Coach")), r.iso ? fmtWeekDay(new Date(r.iso)) : null].filter(Boolean).join(" · ")}</Label>
-                  <p style={{ ...TYPE.title, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{r.text}</p>
+                  <p style={{ ...TYPE.section, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{r.text}</p>
                 </div>
               ))}
             </div>
@@ -10877,7 +11003,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                   <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 py-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
                        style={{ minHeight: 48 }}>
                     <span className="rounded-full flex items-center justify-center shrink-0"
-                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : EDGE(t)}`, background: d.done ? STEADY : "transparent" }}>
+                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : LINE_STRONG}`, background: d.done ? STEADY : "transparent" }}>
                       {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
                     </span>
                     <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
@@ -10929,7 +11055,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                     <div className="flex gap-2 mt-2.5">
                       {rest.map((a) => (
                         <button key={a.k} onClick={() => { haptic(8); soft(); a.act(); }} className="flex-1 n-key"
-                                style={{ minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>{a.lbl}</button>
+                                style={{ minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>{a.lbl}</button>
                       ))}
                     </div>
                   )}
@@ -11644,9 +11770,9 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                     {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                   </button>
                   <button onClick={() => stepFrame(-1)} disabled={frozen} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
                   <button onClick={() => stepFrame(1)} disabled={frozen} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                          style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
                   <input type="range" min={0} max={Math.max(dur, 0.1)} step={0.05} value={Math.min(time, dur || 0)} disabled={!dur || rendering}
                          onChange={(e) => seek(Number(e.target.value))} aria-label={tr("Scrub")}
                          className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
@@ -11688,7 +11814,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                 {phase === "draw" && (
                   <div className="flex gap-2">
                     <button onClick={talk} disabled={!dims || broken} className="flex-1 flex items-center justify-center gap-2 disabled:opacity-40 n-key"
-                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
                       <Mic size={16} strokeWidth={2} />{tr("Talk over it")}
                     </button>
                     <div style={{ flex: 1.3 }}><Button onClick={saveNow} disabled={!dims || broken}>{tr("Save")}</Button></div>
@@ -11709,7 +11835,7 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                 {busy && take && (
                   <div className="flex gap-2">
                     <button onClick={again} disabled={phase === "sending"} className="flex-1 disabled:opacity-40 n-key"
-                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                            style={{ minHeight: 52, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
                       {tr("Again")}
                     </button>
                     <div style={{ flex: 2 }}>
@@ -12016,9 +12142,9 @@ function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
                   {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                 </button>
                 <button onClick={() => stepFrame(-1)} disabled={!ready} data-tour="study-back" aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <button onClick={() => stepFrame(1)} disabled={!ready} data-tour="study-fwd" aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <input type="range" min={0} max={Math.max(span, 0.1)} step={0.02} value={Math.min(time, span || 0)} disabled={!ready} data-tour="study-scrub"
                        onChange={(e) => { const v = vid.current; if (v) v.pause(); seek(Number(e.target.value)); }} aria-label={tr("Scrub")}
                        className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
@@ -12030,12 +12156,12 @@ function ClipStudy({ lesson, mediaId, mediaFor, who, pop }) {
               <div className="flex gap-2 mt-3" data-tour="study-actions">
                 <button onClick={toggleSound} disabled={!ready} data-tour="study-sound" aria-pressed={sound} aria-label={sound ? tr("Mute") : tr("Sound")}
                         className="flex items-center justify-center shrink-0 disabled:opacity-40 n-key"
-                        style={{ width: 46, height: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+                        style={{ width: 46, height: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
                   {sound ? <Volume2 size={17} color={t.ink} strokeWidth={1.9} /> : <VolumeX size={17} color={t.ink} strokeWidth={1.9} />}
                 </button>
                 <button onClick={loopTap} disabled={!ready} data-tour="study-loop" data-loop={!loop ? "off" : loop.b == null ? "from" : "on"} aria-pressed={!!(loop && loop.b != null)}
                         className="flex-1 flex items-center justify-center gap-2 active:opacity-60 disabled:opacity-40"
-                        style={{ minHeight: 46, borderRadius: R.control, background: loop && loop.b != null ? t.ink : t.surface, border: `${EDGE_W}px solid ${loop && loop.b != null ? t.ink : EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: loop && loop.b != null ? "#fff" : t.ink }}>
+                        style={{ minHeight: 46, borderRadius: R.control, background: loop && loop.b != null ? t.ink : TINT(t), border: `${EDGE_W}px solid ${loop && loop.b != null ? t.ink : KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: loop && loop.b != null ? "#fff" : t.ink }}>
                   <Repeat size={15} color={loop && loop.b != null ? "#fff" : t.ink} strokeWidth={2} />{loopLabel}
                 </button>
               </div>
@@ -12242,7 +12368,7 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
     return [lessonDay(x.lesson), same.length > 1 ? `${tr("Clip")} ${same.indexOf(x) + 1}` : null].filter(Boolean).join(" · ");
   };
   const others = all ? all.filter((x) => x !== a) : null;
-  const quiet = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
+  const quiet = { minHeight: 46, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink };
 
   return (
     <SwipeBack onBack={pop}>
@@ -12299,9 +12425,9 @@ function ClipCompare({ lesson, mediaId, lessons, mediaFor, who, pop, say, onSave
                   {playing ? <Pause size={16} color="#fff" fill="#fff" /> : <Play size={16} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />}
                 </button>
                 <button onClick={() => stepFrame(-1)} disabled={!ready} aria-label={tr("Back a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronLeft size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <button onClick={() => stepFrame(1)} disabled={!ready} aria-label={tr("On a frame")} className="flex items-center justify-center shrink-0 disabled:opacity-30 n-key"
-                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${EDGE(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
+                        style={{ width: 32, height: 32, borderRadius: 16, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}><ChevronRight size={15} color={t.ink} strokeWidth={2.2} /></button>
                 <input type="range" min={0} max={Math.max(span, 0.1)} step={0.05} value={Math.min(time, span || 0)} disabled={!ready}
                        onChange={(e) => { pauseBoth(); seekBoth(Number(e.target.value)); }} aria-label={tr("Scrub")}
                        className="flex-1 min-w-0" style={{ accentColor: t.ink }} />
@@ -12690,20 +12816,23 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
                     aria-label={`${tr(A.label)} — ${tr("drag to arrange")}`}
                     className="relative w-full flex flex-col items-start justify-between text-left"
                     style={{ minHeight: h, gap: 10, padding: "14px 14px 13px", borderRadius: R.surface, background: bg, touchAction: "none",
-                             border: `${EDGE_W}px solid ${accent ? "transparent" : EDGE(t)}`,
+                             border: `${EDGE_W}px solid ${accent ? "transparent" : KEY_RING(t)}`,
                              boxShadow: lifted ? E.float : lipOf(accent ? LIP(t.accent) : TINT_LIP(t), 4),
                              opacity: lifted ? 0.96 : 1, cursor: "grab" }}>
               <A.Ico size={22} color={fg} strokeWidth={1.8} />
               <span className="truncate max-w-full" style={{ fontFamily: ui, fontSize: 14, fontWeight: 650, color: fg }}>{tr(A.label)}</span>
             </button>
-            {/* taking one off is on the tile, not four rows down a list */}
+            {/* taking one off is on the tile, not four rows down a list —
+                iOS's delete control, the red disc and the white minus Hours'
+                Edit draws; a white disc on the light grey line (21 November)
+                read 1.3:1, a control told by nothing */}
             <button onClick={() => onRemove(id)} disabled={!canRemove}
                     aria-label={`${tr("Remove")} ${tr(A.label)}`}
                     className="absolute flex items-center justify-center disabled:opacity-25 active:opacity-60"
                     style={{ top: -7, left: -7, width: 24, height: 24, borderRadius: 12, zIndex: 6,
-                             background: t.page, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                             background: DANGER, border: `2px solid ${t.page}`,
                              opacity: drag ? 0 : 1, transition: "opacity 160ms" }}>
-              <Minus size={13} color={t.sub} strokeWidth={2.6} />
+              <Minus size={13} color="#FFFFFF" strokeWidth={3} />
             </button>
           </div>
         );
@@ -12775,7 +12904,7 @@ function LayoutEditor({ layout = {}, onSave, pop, say }) {
 
           <button onClick={() => { haptic(9); soft(); onSave({ quick: QUICK_ORDER }); }}
                   className="w-full n-key"
-                  style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                  style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                            ...TYPE.small, fontWeight: 600, color: t.sub }}>
             {tr("Reset")}
           </button>
@@ -12953,15 +13082,15 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { glyph: [VideoIcon, HUE.purple], key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { glyph: [Pencil, HUE.orange], key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { glyph: [UserPlus, HUE.blue], key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
-            unread > 0 && { key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
-            drifting > 0 && { key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            unread > 0 && { glyph: [MessageCircle, HUE.green], key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
+            drifting > 0 && { glyph: [Hourglass, HUE.wine], key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { glyph: [Trophy, HUE.gold], key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here; past two, a row of tiles narrows the list */
@@ -12989,12 +13118,13 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                            textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
                            sub={`${askDay(r, cal)} · ${r.time}${r.note ? ` · ${r.note}` : ""}`}
                            actions={<>
-                             <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
+                             <TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); onAccept && onAccept(r); }}>{tr("Accept")}</TextBtn>
                              <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline && onDecline(r); }}>{tr("Decline")}</TextBtn>
                            </>} />
               ))}
               {shownJobs.map((j) => (
-                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go} />
+                <HomeRow boxed key={j.key} tour={j.tour} label={j.label} value={String(j.n)} onPress={j.go}
+                         icon={j.glyph ? <IconSq Icon={j.glyph[0]} bg={j.glyph[1]} /> : null} />
               ))}
             </Ruled>
           </>);
@@ -13004,7 +13134,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             its own row, on its own */}
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
-            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")} />
+            <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")}
+                     icon={<IconSq Icon={Film} bg={HUE.brand} />} />
           </Ruled>
         )}
 
@@ -13105,7 +13236,8 @@ function InlineField({ ph, initial = "", onCommit, onCancel, onEmpty, commitOnBl
 const WizCircle = ({ on }) => {
   const t = useT();
   return (
-    <span className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.ink : HAIR(t.ink, 0.25)}`, background: on ? t.ink : "transparent", transition: "background 160ms, border-color 160ms" }}>
+    /* iOS's tick circle: the strong grey ring at rest (3:1 on white), the sport's colour once ticked */
+    <span className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22, borderRadius: 11, border: `1.5px solid ${on ? t.accent : LINE_STRONG}`, background: on ? t.accent : "transparent", transition: "background 160ms, border-color 160ms" }}>
       {on && <Check size={12} color="#fff" strokeWidth={2.4} />}
     </span>
   );
@@ -13198,28 +13330,29 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
      the ink once picked, and it goes right down under the thumb — and in
      a grid of more than six (Everyone) it stands calm on the wash with no
      outline, as every other key does: a rim is for the prominent few */
-  const calm = useContext(ClusterCtx) && !on;
-  const lc = on ? MIX(t.ink, "#000000", 0.55) : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  const calm = false;
+  const sel = SEL(t);
+  const lc = on ? sel.lip : TINT_LIP(t);
   const p = press3d(lc, 3, 2);
   return (
     <button data-tour={tour} data-lip="" aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
             {...p.handlers}
             className="relative w-full flex flex-col items-center justify-center gap-2"
-            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : calm ? t.wash : TINT(t), border: `${EDGE_W}px solid ${on ? t.ink : calm ? "transparent" : EDGE(t)}`,
+            style={{ minHeight: 104, borderRadius: R.surface, background: on ? sel.face : TINT(t), border: `${EDGE_W}px solid ${on ? sel.ring : KEY_RING(t)}`,
                      boxShadow: p.rest,
                      transition: `background ${MOTION.settle}ms, box-shadow 240ms cubic-bezier(.2,.7,.3,1), transform 240ms cubic-bezier(.2,.7,.3,1)` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
-              bg={on ? "rgba(255,255,255,0.18)" : t.surface} fg={on ? "#fff" : t.sub} />
+              /* Apple's grey disc either way; chosen, the tile itself carries the colour */ />
       {/* a person by the first name (the surname is the caption under it); a
           group by its whole name, on two lines before an ellipsis — the
           first word alone read "Saturday" for Saturday clinic (C1) */}
       {group
-        ? <span data-name="" className="px-2 text-center" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, lineHeight: 1.25, color: on ? "#fff" : t.ink,
+        ? <span data-name="" className="px-2 text-center" style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, lineHeight: 1.25, color: on ? sel.fg : t.ink,
                          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "normal", wordBreak: "normal" }}>{person.name}</span>
-        : <span data-name="" className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>}
+        : <span data-name="" className="truncate px-2" style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, color: on ? sel.fg : t.ink }}>{wizFirst(person.name)}</span>}
       {/* the caption's line is always there, so two tiles in one row share a
           baseline whether or not one of them carries a time */}
-      <span className="truncate px-2" style={{ ...TYPE.caption, minHeight: 16, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption || ""}</span>
+      <span className="truncate px-2" style={{ ...TYPE.caption, minHeight: 16, color: on ? sel.fg : t.faint }}>{caption || ""}</span>
       {on && <span className="absolute rounded-full flex items-center justify-center" style={{ top: 8, right: 8, width: 18, height: 18, background: "#fff" }}><Check size={11} color={t.ink} strokeWidth={3} /></span>}
     </button>
   );
@@ -13660,7 +13793,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                                  onChange={(e) => { setStageTouched(true); setStage(st.id); setStageVal(e.target.value); }}
                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); setView("main"); } }}
                                  className="outline-none text-right shrink-0" style={{ width: 96, minHeight: 40, padding: "0 10px", borderRadius: R.field,
-                                          background: on ? `${t.accent}14` : t.wash, border: `1px solid ${on ? `${t.accent}55` : "transparent"}`,
+                                          background: on ? SEL(t).face : t.wash, border: `1px solid ${on ? SEL(t).ring : "transparent"}`,
                                           fontFamily: ui, fontSize: 16, fontWeight: on ? 600 : 400, color: t.ink, fontVariantNumeric: "tabular-nums" }} />
                         ) : (
                           <button onClick={() => pickRung(st)} aria-label={st.label} className="py-2 active:opacity-50"><WizCircle on={on} /></button>
@@ -13822,11 +13955,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* what was taken — one tap opens the camera itself */}
           <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid>
-              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} label={tr("Video")} count={videos.length}
+              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} hue={HUE.red} label={tr("Video")} count={videos.length}
                        onTap={() => (live ? pickFiles("video/*") : setCam(true))} />
-              <ActTile h={76} iconOnly Icon={Camera} label={tr("Photo")} count={photos.length}
+              <ActTile h={76} iconOnly Icon={Camera} hue={HUE.blue} label={tr("Photo")} count={photos.length}
                        onTap={() => (live ? pickFiles("image/*") : addPhoto("action"))} />
-              <ActTile h={76} iconOnly={rec !== "recording"} Icon={Mic} on={rec === "recording"} count={voice ? 1 : 0}
+              <ActTile h={76} iconOnly={rec !== "recording"} Icon={Mic} hue={HUE.orange} on={rec === "recording"} count={voice ? 1 : 0}
                        label={rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice")}
                        aria={tr("Voice note")}
                        onTap={() => { if (!live) { addPhoto("voice"); return; } if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }} />
@@ -13851,7 +13984,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
                       {it.kind === "video" && it.file && (
                         <button data-tour="wiz-markup" onClick={() => { haptic(8); soft(); setReviewing(it); setView("review"); }}
                                 className="shrink-0 px-3 n-key"
-                                style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                                style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
                           {tr("Mark it up")}
                         </button>
                       )}
@@ -13934,9 +14067,8 @@ function CoachRoster({ groups, roster, push, sheet, right, nouns, lessonCount = 
        The tile stays, because it says what it does. */
     /* "2 players · 0 groups" counted something that is not there. A meta
        line carries values, and nought is not one. */
-    <Screen title={L.roster} right={right}
-            /* "1 player", never "1 players" — the one countOf */
-            meta={[countOf(all.length, nouns), groups.length ? `${groups.length} ${groups.length === 1 ? tr("group") : tr("groups")}` : null].filter(Boolean).join(" · ")}>
+    <Screen title={L.roster} right={right}>
+      {/* no count under the title: the list says how many (21 November) */}
       <div className="px-6" style={{ marginBottom: SPACE.section }}>
         <TileGrid cols={2}>
           <ActTile tour="roster-invite" tone="accent" h={60} Icon={UserPlus} label={tr("Add player")} onTap={() => sheet("import")} />
@@ -14262,7 +14394,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                 parent is handed at the end of a term */}
             <button data-tour="progress-report" onClick={() => { hapticCommit(); soft(); shareSeasonReport({ name: name || title, coach, cfg, lessons, drills: mineDrills, tips: tips || [], today, say, attendance, practice }); }}
                     className="w-full flex items-center justify-center gap-2 n-key"
-                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
               {tr("Share a report")}
             </button>
           </>)}
@@ -14332,9 +14464,9 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               anything they have to read */}
           <div data-tour="player-actions" style={{ marginBottom: SPACE.block }}>
             <TileGrid cols={4}>
-              <ActTile h={82} Icon={MessageCircle} label={tr("Message")} onTap={() => push("thread:" + (r.id || name))} />
-              <ActTile h={82} Icon={Lightbulb} label={tr("Tip")} onTap={() => assignTip(r.id ? r : name, null)} />
-              <ActTile h={82} Icon={ListChecks} label={tr("Drills")} onTap={() => assignDrills(r.id ? r : name, null)} />
+              <ActTile h={82} Icon={MessageCircle} hue={HUE.green} label={tr("Message")} onTap={() => push("thread:" + (r.id || name))} />
+              <ActTile h={82} Icon={Lightbulb} hue={HUE.gold} label={tr("Tip")} onTap={() => assignTip(r.id ? r : name, null)} />
+              <ActTile h={82} Icon={ListChecks} hue={HUE.purple} label={tr("Drills")} onTap={() => assignDrills(r.id ? r : name, null)} />
               <ActTile h={82} Icon={Plus} label={tr("Log")} tone="accent" onTap={() => onLog && onLog(r.id ? r : { name })} />
             </TileGrid>
           </div>
@@ -14379,12 +14511,13 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
           </div>
           {/* the whole archive, said in words, under the last few — the
               block at the top says how many; this is the door */}
+          {/* the door to the rest is a row in a box of its own, as All
+              lessons is on the home and the roster — it was a button */}
           {past.length > 0 && (
-            <button data-tour="player-all-lessons" onClick={() => { hapticCommit(); soft(); onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }}
-                    className="w-full flex items-center justify-center gap-2 n-key"
-                    style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink, marginBottom: SPACE.block }}>
-              {tr("All")} {live ? f.done : past.length} {tr("lessons")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
-            </button>
+            <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
+              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} icon={<IconSq Icon={Film} bg={HUE.brand} />}
+                       onPress={() => { onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }} />
+            </div>
           )}
 
 
@@ -14409,8 +14542,10 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
-              <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3 text-left active:opacity-50"
-                      style={{ minHeight: 52 }}>
+              <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
+                      style={{ minHeight: 56 }}>
+                {lbl === tr("Progress") ? <IconSq Icon={TrendingUp} bg={HUE.green} /> : lbl === tr("Notes") ? <IconSq Icon={Pencil} bg={HUE.orange} />
+                  : lbl === tr("Recurring lessons") ? <IconSq Icon={Repeat} bg={HUE.blue} /> : <IconSq Icon={Trophy} bg={HUE.gold} />}
                 <span className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
                 {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
                 {!val && <span className="flex-1" />}
@@ -14486,25 +14621,30 @@ const ARCHIVE_PAGE = 40;
 /* A FILTER IS A ROW THAT SAYS WHAT IT IS SET TO. Three rails of pills
    stacked above the archive ran off the right edge and told a coach
    nothing until they scrolled sideways. The value is on the row. */
-function FilterRow({ options, value, onChange, label, last, plain }) {
+function FilterRow({ options, value, onChange, label, last, plain, inset = false }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   if (options.length <= 1) return null;
   const hair = RULE.hair(t.ink);
   return (
     <div style={{ borderBottom: last && !plain ? hair : "none" }}>
-      <button onClick={() => { haptic(6); setOpen(!open); }} className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
-              style={{ minHeight: 52, borderTop: plain ? "none" : hair }}>
-        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.sub }}>{label}</span>
-        <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, maxWidth: "55%" }}>{value}</span>
+      {/* inset, it is a Settings row standing in a list of its own (the
+          Drills tab's Reminder): its glyph, the label in ink and the value
+          grey, as Settings draws the same row; a filter reads the other way */}
+      <button onClick={() => { haptic(6); setOpen(!open); }} className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
+              style={{ minHeight: inset ? 62 : 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 14, paddingRight: 14 } : {}) }}>
+        {inset && settingsGlyph(label)}
+        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
+        <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: inset ? 400 : 600, color: inset ? t.sub : t.ink, maxWidth: "55%" }}>{value}</span>
         <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
       </button>
       {open && (
         <div style={{ background: t.wash }}>
           {options.map((o) => (
             <button key={o} aria-pressed={value === o} onClick={() => { haptic(5); onChange(o); setOpen(false); }}
-                    className="w-full flex items-center gap-3 px-6 text-left active:opacity-50"
-                    style={{ minHeight: 46, borderTop: hair }}>
+                    className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
+                    style={{ minHeight: inset ? 50 : 46, borderTop: hair, ...(inset ? { paddingLeft: 14, paddingRight: 14, background: t.surface } : {}) }}>
+              {inset && settingsGlyph(label) && <span className="shrink-0" style={{ width: 30 }} />}
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink }}>{o}</span>
               {value === o && <Check size={14} color={t.accent} strokeWidth={2.4} />}
             </button>
@@ -14659,7 +14799,7 @@ function CoachArchive({ cfg, lessons, nouns, pop, push, say, forPlayer, forPlaye
           {shown.length > page.length && (
             <button onClick={() => { haptic(7); setShownCount((n) => n + ARCHIVE_PAGE); }}
                     className="w-full mb-6 n-key"
-                    style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                    style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
                              ...TYPE.small, fontWeight: 600, color: t.ink }}>
               {tr("Show more")}
             </button>
@@ -14692,10 +14832,10 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
       <div className="flex gap-1.5 mb-5">
         {DAY_NAMES.map((n, i) => {
           const on = day === i;
-          return (<button key={n} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
-                          /* the chosen day in ink, as a chosen tile is — the accent is Save's */
-                          style={{ minHeight: 44, borderRadius: R.control, background: on ? t.ink : t.wash,
-                                   fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{n.slice(0, 2)}</button>);
+          return (<button key={n} onClick={() => { haptic(5); setDay(i); }} className="flex-1 n-key"
+                          /* the chosen day is Duolingo's chosen answer, the rest white keys — the accent's fill is Save's */
+                          style={{ minHeight: 44, borderRadius: R.control, ...keyPick(t, on),
+                                   fontFamily: ui, fontSize: 14, fontWeight: 600 }}>{n.slice(0, 2)}</button>);
         })}
       </div>
 
@@ -14726,7 +14866,7 @@ function RecurringSetup({ name, existing, slots, duration, onSave, onEnd, close,
         <span className="flex items-center gap-3">
           {[[tr("Fewer"), Minus, () => setTotal(Math.max(1, total - 1))], null, [tr("More"), Plus, () => setTotal(Math.min(24, total + 1))]].map((b, k) => b
             ? <button key={k} onClick={() => { haptic(5); b[2](); }} className="flex items-center justify-center n-key" aria-label={b[0]}
-                      style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}>{React.createElement(b[1], { size: 15, color: t.ink })}</button>
+                      style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>{React.createElement(b[1], { size: 15, color: t.ink })}</button>
             : <span key={k} data-tour="recur-total" style={{ ...TYPE.figureSm, color: t.ink, minWidth: 26, textAlign: "center" }}>{total}</span>)}
         </span>
       </div>
@@ -14984,7 +15124,7 @@ function JoinRequests({ requests, onAccept, onDecline, pop }) {
                            sub={[r.note, r.sport && SPORTS[r.sport] ? SPORTS[r.sport].label : null, r.junior ? tr("Under 18") : null, askedOn(r)].filter(Boolean).join(" · ")}
                            textMin={r.note ? 180 : undefined} subLines={r.note ? 0 : undefined}
                            actions={<>
-                             <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onAccept(r); }}>{tr("Accept")}</TextBtn>
+                             <TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); onAccept(r); }}>{tr("Accept")}</TextBtn>
                              <TextBtn quiet color={t.faint} onClick={() => { haptic(9); onDecline(r); }}>{tr("Decline")}</TextBtn>
                            </>} />
               ))}
@@ -15134,12 +15274,12 @@ function VideoAnnotate({ angle, transcript, onSave, pop, say }) {
             {[["line", tr("Line")], ["angle", tr("Angle")], ["circle", tr("Circle")], ["free", tr("Free")]].map(([id, lbl]) => {
               const on = tool === id;
               return (<button key={id} onClick={() => { haptic(6); soft(); setTool(id); }} className="flex-1 active:opacity-60"
-                              style={{ minHeight: 42, borderRadius: R.control, background: on ? t.ink : t.surface,
-                                       border: `${EDGE_W}px solid ${on ? t.ink : EDGE(t)}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                              style={{ minHeight: 42, borderRadius: R.control, background: on ? t.ink : TINT(t),
+                                       border: `${EDGE_W}px solid ${on ? t.ink : KEY_RING(t)}`, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                                        fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.sub }}>{lbl}</button>);
             })}
             <button onClick={() => { haptic(8); setShapes(shapes.slice(0, -1)); }} disabled={!shapes.length}
-                    className="disabled:opacity-25 n-key" style={{ width: 44, minHeight: 42, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }}
+                    className="disabled:opacity-25 n-key" style={{ width: 44, minHeight: 42, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}
                     aria-label={tr("Undo")}><ChevronLeft size={15} color={t.sub} /></button>
           </div>
 
@@ -15365,7 +15505,7 @@ function ImportRoster({ close, say, noun, nouns, code }) {
       {canPickContacts && (
         <button onClick={() => { haptic(8); pickContacts(); }}
                 className="w-full flex items-center gap-3.5 px-5 n-key"
-                style={{ minHeight: 56, borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+                style={{ minHeight: 56, borderRadius: R.surface, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
           <Users size={17} color={t.sub} strokeWidth={1.6} />
           <span className="flex-1 text-left" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink }}>{tr("Pick from Contacts")}</span>
           <ChevronRight size={15} color={t.trace || t.faint} />
@@ -15408,12 +15548,11 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       <div className="flex gap-1.5 mb-3">
         {DAY_NAMES.map((d, i) => {
           const on = day === i;
-          return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 active:opacity-60"
-                          /* the chosen day in ink, as a chosen tile is — the accent is
-                             spent on Create group, and it was the success green */
-                          style={{ minHeight: 42, borderRadius: R.control, background: on ? t.ink : t.wash,
-                                   fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? "#fff" : t.sub,
-                                   transition: "background 220ms cubic-bezier(.22,1,.36,1)" }}>{d.slice(0, 2)}</button>);
+          return (<button key={i} onClick={() => { haptic(5); setDay(i); }} className="flex-1 n-key"
+                          /* the chosen day is Duolingo's chosen answer, the rest white
+                             keys — the accent's fill is Create group's */
+                          style={{ minHeight: 44, borderRadius: R.control, ...keyPick(t, on),
+                                   fontFamily: ui, fontSize: 14, fontWeight: 600 }}>{d.slice(0, 2)}</button>);
         })}
       </div>
       <div className="mb-5">
@@ -15426,9 +15565,9 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
         {/* C14: the Set up sheet's stepper — the app's outlined key, 44
             square on its lip (it was two 34px wash circles) */}
         <span className="flex items-center gap-3">
-          <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="flex items-center justify-center n-key" style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: TINT(t) }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
+          <button onClick={() => { haptic(5); setWeeks(Math.max(1, weeks - 1)); }} className="flex items-center justify-center n-key" style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, background: TINT(t) }} aria-label={tr("Fewer")}><Minus size={15} color={t.ink} /></button>
           <span data-tour="group-weeks" style={{ ...TYPE.figureSm, color: t.ink, minWidth: 26, textAlign: "center" }}>{weeks}</span>
-          <button onClick={() => { haptic(5); setWeeks(Math.min(20, weeks + 1)); }} className="flex items-center justify-center n-key" style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: TINT(t) }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
+          <button onClick={() => { haptic(5); setWeeks(Math.min(20, weeks + 1)); }} className="flex items-center justify-center n-key" style={{ width: 44, height: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, background: TINT(t) }} aria-label={tr("More")}><Plus size={15} color={t.ink} /></button>
         </span>
       </div>
 
@@ -15535,7 +15674,7 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
             className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
             style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards` }}>
       <span className="flex items-center justify-center shrink-0"
-            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : EDGE(t)}`,
+            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : LINE_STRONG}`,
                      background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
         {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
       </span>
@@ -15570,7 +15709,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
   const allDone = items.length > 0 && todo === 0;
   useEffect(() => { if (allDone) { hapticCommit(); swell(); } }, [allDone]);
   return (
-    <Screen title={tr("Drills")} meta={items.length ? (todo > 0 ? `${todo} ${tr("to do")}` : tr("All done")) : ""} right={right}>
+    <Screen title={tr("Drills")} right={right}>
       {items.length === 0 ? (
         <EmptyLine className="px-6">{tr("No drills yet")}</EmptyLine>
       ) : (
@@ -15596,13 +15735,9 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
           {/* every drill ever set, by the day it was set — the door, in
               words, under the list */}
           {onAll && (
-            <div className="px-6 pt-3">
-              <button data-tour="drills-all" onClick={() => { hapticCommit(); soft(); onAll(); }}
-                      className="w-full flex items-center justify-center gap-2 n-key"
-                      style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
-                {tr("All")} {items.length} {items.length === 1 ? tr("drill") : tr("drills")} <ArrowRight size={16} color={t.ink} strokeWidth={2.2} />
-              </button>
-            </div>
+            <div className="px-6 pt-3"><div className="nsc-list">
+              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} icon={<IconSq Icon={ListChecks} bg={HUE.purple} />} />
+            </div></div>
           )}
         </>
       )}
@@ -15614,7 +15749,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
         <div className="px-6" style={{ marginTop: SPACE.block }}>
           <button data-tour="drills-log-practice" onClick={() => { hapticCommit(); soft(); onLogPractice(); }}
                   className="w-full flex items-center justify-center gap-2 n-key"
-                  style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
+                  style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
             <Plus size={16} color={t.ink} strokeWidth={2.2} /> {tr("Log a practice")}
           </button>
         </div>
@@ -15623,7 +15758,9 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
           drills land, and in Settings; the second Settings shape */}
       {reminder && items.length > 0 && (
         <div className="px-6" style={{ marginTop: SPACE.section }}>
-          <Card tour="drills-reminder"><FilterRow plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></Card>
+          {/* a row of the list, as Settings' own Reminder is — it was a
+              rimmed card, the one green box on a screen of stone and wash */}
+          <div className="nsc-list"><div className="nsc-flush" data-tour="drills-reminder"><FilterRow inset plain label={tr("Reminder")} value={reminder.label} options={reminder.options} onChange={reminder.onPick} /></div></div>
         </div>
       )}
     </Screen>
@@ -15699,7 +15836,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
   return (
     <Screen title={tr("Drills")} right={right}>
       <div className="px-6 mb-6">
-        <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left n-key" style={{ borderRadius: R.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
+        <button onClick={() => { haptic(10); sheet(); }} className="w-full p-5 flex items-center gap-4 text-left n-key" style={{ borderRadius: R.surface, border: `${EDGE_W}px solid ${KEY_RING(t)}`, position: "relative", zIndex: 1, borderLeft: `2px solid ${t.accent}` }}>
           <ListChecks size={19} color={t.accent} strokeWidth={1.6} />
           <span className="flex-1"><span className="block" style={{ fontFamily: display, fontSize: 20, color: t.ink }}>{tr("Set drills")}</span><span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{tr("Choose who, and what they practise")}</span></span>
           <ChevronRight size={17} color={t.trace || t.faint} />
@@ -15817,7 +15954,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
                               drills the coach never chose */}
                           {library.length > 1 && (
                           <button onClick={() => { if (!busy) remove(d.t); }} className="px-4 n-key"
-                                  style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}` }} aria-label={tr("Delete")}>
+                                  style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}` }} aria-label={tr("Delete")}>
                             <Trash2 size={15} color={DANGER} />
                           </button>
                           )}
@@ -15963,7 +16100,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
     <SwipeBack onBack={pop}>
       <Screen title={tr("Hours")} onBack={pop} meta={total ? `${total} ${tr("slots a week")}` : ""} right={<TextBtn color={t.accent} onClick={() => { setAvail(draft); say("Hours saved"); pop(); }}>{tr("Save")}</TextBtn>}>
         <div className="px-6 mb-5">
-          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, border: `${EDGE_W}px solid ${EDGE(t)}` }}>
+          <button onClick={() => { haptic(6); setEditSlots(!editSlots); }} className="w-full rounded-2xl flex items-center gap-3.5 px-5 n-key" style={{ minHeight: 58, border: `${EDGE_W}px solid ${KEY_RING(t)}` }}>
             <span className="flex-1 text-left"><span className="block" style={{ fontFamily: ui, fontSize: 14.5, fontWeight: 600, color: t.ink }}>{tr("Slots and lesson length")}</span>
               <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{slots.length} times · {duration} min</span></span>
             <ChevronDown size={16} color={t.trace || t.faint} style={{ transform: editSlots ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
@@ -15989,7 +16126,7 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
                 {slots.map((sl) => (
                   <button key={sl} onClick={() => { if (removing) dropTime(sl); }} aria-label={removing ? `${tr("Remove")} ${sl}` : sl}
                           className="relative flex items-center justify-center n-key"
-                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, background: TINT(t), ...TYPE.small, fontWeight: 600, color: t.ink,
+                          style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, background: TINT(t), ...TYPE.small, fontWeight: 600, color: t.ink,
                                    animation: removing ? "wiggle 420ms ease-in-out infinite" : "none" }}>
                     {sl}
                     {removing && (
@@ -16047,16 +16184,18 @@ function Availability({ avail, setAvail, slots, setSlots, duration, setDuration,
 function AwayLine({ role, name, booked = 0, onEdit }) {
   const t = useT();
   if (role === "coach") return (
-    /* the column's own box — the wash, 8px, 14 in, as the lesson boxes
-       under it (it was a 10px box padded 20, a fourth shape in the
-       column) — and its line in the label grey: t.faint on the wash
-       read 4.4:1 at 12px */
-    <div data-tour="cal-away" className="flex items-center gap-3 mb-4" style={{ minHeight: 54, padding: "0 14px", borderRadius: 8, background: t.wash }}>
-      <span className="flex-1 min-w-0">
-        <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
-        <span className="block truncate" style={{ ...TYPE.caption, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
-      </span>
-      {onEdit && <TextBtn color={t.ink} onClick={() => { haptic(6); onEdit(); }}>{tr("Edit")}</TextBtn>}
+    /* the column's own box — the list's white card on its line and
+       ledge, as the lesson boxes under it (21 November; it was the wash
+       at 8px) — its glyph Settings' Away, its line in the label grey */
+    <div className="nsc-list mb-4">
+      <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
+        <IconSq Icon={Plane} bg={HUE.blue} />
+        <span className="flex-1 min-w-0">
+          <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
+          <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
+        </span>
+        {onEdit && <TextBtn color={t.accent} onClick={() => { haptic(6); onEdit(); }}>{tr("Edit")}</TextBtn>}
+      </div>
     </div>
   );
   return (
@@ -16392,16 +16531,17 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
               <button key={d} onClick={() => { haptic(6); setSel(d); setPick(null); }} disabled={gone} aria-pressed={on} data-day={d}
                       className="flex flex-col items-center justify-center disabled:opacity-100" style={{ height: 46 }}>
                 <span className="flex items-center justify-center"
-                      style={{ width: 36, height: 36, borderRadius: R.surface,
-                               background: on ? t.ink : mine ? t.wash : "transparent",
-                               border: !on && today ? `1px solid ${t.accent}` : "1px solid transparent",
-                               fontFamily: ui, fontSize: 14.5, fontWeight: on ? 600 : available ? 500 : 400,
+                      style={{ width: 38, height: 38, borderRadius: 999,
+                               /* Apple Calendar: the chosen day a solid disc of the sport's colour, today's figure in it */
+                               background: on ? t.accent : mine ? SEL(t).face : "transparent",
+                               border: "1px solid transparent",
+                               fontFamily: ui, fontSize: 17, fontWeight: on || today ? 600 : available ? 500 : 400,
                                /* a day away is struck through, the way a diary crosses a day out */
                                textDecoration: !gone && awayOn(mo.idx, d) ? "line-through" : "none",
                                /* a day gone is read, not hidden: the trace grey
                                   (it was the hairline, 1.2:1 — ghosts a coach
                                   counting back could not read) */
-                               color: on ? "#fff" : gone ? (t.trace || t.faint) : available ? t.ink : t.faint }}>{d}</span>
+                               color: on ? "#fff" : today ? t.accent : gone ? (t.trace || t.faint) : available ? t.ink : t.faint }}>{d}</span>
                 {/* a coach's day with lessons carries the List view's
                     ticker mark, an ink dot; a day merely open the faint
                     one — both were the one hairline dot, so the grid could
@@ -16493,17 +16633,20 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             )}
 
             {booked.length > 0 && (
+              <div className="nsc-list mb-4">
               <button data-tour="cal-weather" onClick={() => { haptic(9); onWeatherDay && onWeatherDay({ m: mo.idx, d: sel }); }}
-                      className="w-full flex items-center gap-3 px-5 mb-4 active:opacity-60"
-                      style={{ minHeight: 54, borderRadius: 8, background: t.wash, border: `${EDGE_W}px solid transparent` }}>
-                {/* a calendar with an X, as on the plus: a coach calls off for a
-                    closed course as often as for rain */}
-                <CalendarX size={16} color={t.sub} strokeWidth={1.6} />
-                <span className="flex-1 text-left" style={{ fontFamily: ui, fontSize: 14, color: t.ink }}>
+                      className="w-full flex items-center gap-3.5"
+                      style={{ minHeight: 58 }}>
+                {/* a calendar with an X on the plus's red square: a coach calls
+                    off for a closed course as often as for rain. The list's white
+                    card, sinking under the finger (21 November; the wash at 8px) */}
+                <IconSq Icon={CalendarX} bg={HUE.red} />
+                <span className="flex-1 text-left" style={{ ...TYPE.body, color: t.ink }}>
                   {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
                 </span>
-                <ChevronRight size={15} color={t.trace || t.faint} />
+                <ChevronRight size={16} color={t.trace || t.faint} />
               </button>
+              </div>
             )}
 
             {open.length > 0 && prefs.showFree && (<>
@@ -16621,16 +16764,21 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
      then the last line — it was its own shape, a 44 face and a 13.5
      subhead, the one list on the coach's phone that did not match the
      roster's rows */
+  /* APPLE MESSAGES (21 November): a plain list, the face large and in its
+     own colour, the name in semibold with the time beside it, two lines of
+     the last word under it, the unread dot in the sport's colour — the
+     founder found the boxed rows "heavy and tacky … like a page" */
   const Thread = ({ c, tour }) => (
-    <PersonRow key={c.id || c.name} tour={tour} onTap={() => { haptic(6); push("thread:" + (c.id || c.name)); }} style={{ borderBottom: hair }}
-               name={`${c.name}${c.group ? ` · ${c.n}` : ""}`} faceName={c.name} group={c.group} bold={c.unread > 0} subTone="ink"
+    <PersonRow key={c.id || c.name} tour={tour} onTap={() => { haptic(6); push("thread:" + (c.id || c.name)); }} minHeight={76}
+               face={<Avatar name={c.name} size={54} group={c.group} />}
+               name={`${c.name}${c.group ? ` · ${c.n}` : ""}`} faceName={c.name} group={c.group} bold={c.unread > 0} subTone="ink" subLines={2}
                meta={<span className="flex items-center gap-1.5">
-                 {c.unread > 0 && <span className="rounded-full" style={{ width: 8, height: 8, background: t.ink }} />}
-                 <span style={{ ...TYPE.caption, color: t.faint }}>{c.when}</span>
+                 {c.unread > 0 && <span className="rounded-full" style={{ width: 10, height: 10, background: t.accent }} />}
+                 <span style={{ ...TYPE.small, color: c.unread ? t.accent : t.faint, fontWeight: c.unread ? 600 : 400 }}>{c.when}</span>
                </span>}
                sub={<>
                  {c.kind === "child" && c.sub && <span className="block truncate" style={{ color: t.sub }}>{c.sub}</span>}
-                 <span className="block truncate" style={{ color: c.unread ? t.ink : t.sub }}>{c.last || (c.kind === "child" ? "" : c.sub) || preview(c.lastId)}</span>
+                 <span className="block" style={{ color: c.unread ? t.ink : t.faint }}>{c.last || (c.kind === "child" ? "" : c.sub) || preview(c.lastId)}</span>
                </>} />
   );
   return (
@@ -16642,12 +16790,12 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
           <EmptyLine>{tr("No conversations yet")}</EmptyLine>
         ) : (<>
           {split && <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Yours")}</div>}
-          <div className="nsc-list">
+          <div className="nsc-plain" style={{ "--sep-in": "68px" }}>
             {mine.map((c, i) => <Thread key={c.id || c.name} c={c} tour={i === 0 ? "chat-row" : undefined} />)}
           </div>
           {kids.length > 0 && (<>
             {split && <div className="mt-6 mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Children")}</div>}
-            <div className="nsc-list">
+            <div className="nsc-plain" style={{ "--sep-in": "68px" }}>
               {kids.map((c, i) => <Thread key={c.id || c.name} c={c} tour={!split && i === 0 ? "chat-row" : undefined} />)}
             </div>
           </>)}
@@ -16873,12 +17021,18 @@ function ThreadBubble({ m, mine, end, live }) {
   const body = m.id ? ((readMsg(m.id) || {}).text || m.text) : m.text;
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`} style={{ marginBottom: end ? SPACE.tight : SPACE.knit }}>
-      <div className="rounded-3xl px-4 py-2.5" style={{ maxWidth: "78%", background: mine ? t.ink : m.via ? t.wash : t.surface, border: mine || m.via ? "none" : `1px solid ${t.hair}`, borderBottomRightRadius: mine && end ? 8 : 24, borderBottomLeftRadius: !mine && end ? 8 : 24 }}>
+      {/* Messages' shape, Nosca's own: mine the sport's colour, theirs the
+          app's grey, each standing on a two-point ledge of itself made
+          deeper — the 3D every key and card in the app stands on — so a
+          thread is the app's and not a copy of Apple's (the founder, on the
+          iOS look: "our own personal twist on it") */}
+      <div className="px-4 py-2" style={{ maxWidth: "78%", borderRadius: 20, background: mine ? t.accent : t.wash, border: "none", borderBottomRightRadius: mine && end ? 8 : 20, borderBottomLeftRadius: !mine && end ? 8 : 20,
+                                          boxShadow: `0 2px 0 ${mine ? LIP(t.accent) : EDGE(t)}`, marginBottom: 2 }}>
         {/* who wrote it, inside the bubble — on every bubble of a
             parent's run, so no line of theirs ever reads as the child's
             or the coach's, however it is cropped */}
         {m.via && <span className="block mb-0.5" style={{ ...TYPE.caption, color: t.faint }}>{m.via}</span>}
-        <p style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.45, color: mine ? "#fff" : t.ink }}>{body}</p>
+        <p style={{ fontFamily: ui, fontSize: 17, lineHeight: 1.35, letterSpacing: "-0.015em", color: mine ? "#fff" : "#000" }}>{body}</p>
         {/* a line that carries a clip opens it, and looks like one */}
         {m.lessonId && live && live.openLesson && <ClipCard lessonId={m.lessonId} live={live} mine={mine} />}
       </div>
@@ -16974,15 +17128,17 @@ function Thread({ role, name, isGroup, pop, say, live, banner }) {
                 asynchronous loop every video-coaching product is built on */}
             {live && live.sendClip && (
               <button data-tour="thread-clip" onClick={() => { haptic(8); live.sendClip(); }} aria-label={tr("Send a clip")}
-                      className="rounded-full flex items-center justify-center shrink-0 n-key" style={{ "--key-lip": SOFT_LIP(t), width: 40, height: 40, background: t.wash }}>
-                <Camera size={18} color={t.ink} strokeWidth={1.8} />
+                      className="rounded-full flex items-center justify-center shrink-0" style={{ width: 40, height: 40, background: "transparent" }}>
+                <Camera size={24} color={t.faint} strokeWidth={1.8} />
               </button>
             )}
-            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2.5 flex items-center gap-2" style={{ background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
-              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
+            <div className="flex-1 min-w-0 rounded-3xl px-4 py-2 flex items-center gap-2" style={{ background: "#FFFFFF", border: "1px solid #D1D1D6" }}>
+              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Message" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 17, color: t.ink, background: "transparent" }} />
+              {/* the field gives way, never the mic or Send: an input's own
+                  width at 17px pushed the mic over Send on a narrow phone */}
               <MicBtn onText={(txt) => setDraft(draft ? draft + " " + txt : txt)} size={28} />
             </div>
-            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0 n-key disabled:opacity-25" style={{ "--key-lip": LIP(t.accent), width: 40, height: 40, background: t.accent }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
+            <button data-tour="thread-send" onClick={send} disabled={!draft.trim() || sending} className="rounded-full flex items-center justify-center shrink-0" style={{ width: 36, height: 36, marginBottom: 2, background: draft.trim() && !sending ? t.accent : "#D1D1D6", transition: "background 160ms" }} aria-label={tr("Send")}><Send size={17} color={t.onAccent} /></button>
           </div>
         </div>
       </div>
@@ -17076,7 +17232,7 @@ function LessonLogs({ role, lessons, onDownload, onOpen, pop, liveMedia, onNeedM
           )}
           {left > 0 && (
             <button onClick={() => { haptic(6); setShownCount((n) => n + ARCHIVE_PAGE); }} className="w-full mt-4 n-key"
-                    style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                    style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
               {tr("Show")} {Math.min(ARCHIVE_PAGE, left)} {tr("more")} · {left} {tr("left")}
             </button>
           )}
@@ -17264,8 +17420,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       <div>
         <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }}
                 className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62, paddingLeft: 14, paddingRight: 14 }}>
-          {Ico && <I C={Ico} />}
-          <span className="flex-1 min-w-0 truncate" style={{ fontFamily: ui, fontSize: 15, color: t.ink }}>{label}</span>
+          {settingsGlyph(label) || (Ico && <I C={Ico} />)}
+          <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
           <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
           <ChevronRight size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
         </button>
@@ -17275,7 +17431,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
               <button key={o.id} aria-pressed={value === o.id} onClick={() => { haptic(6); onPick(o.id); setOpenPick(null); }}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 50, paddingLeft: 14, paddingRight: 14, borderTop: `1px solid ${t.hair}` }}>
-                {Ico && <span className="shrink-0" style={{ width: 17 }} />}
+                {(settingsGlyph(label) || Ico) && <span className="shrink-0" style={{ width: settingsGlyph(label) ? 30 : 17 }} />}
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
                 {value === o.id && <Check size={15} color={t.accent} strokeWidth={2.4} />}
               </button>
@@ -17421,7 +17577,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         {shown.map((g, gi) => (
           <React.Fragment key={g.title || "end"}>
             {g.title && <Eyebrow>{g.title}</Eyebrow>}
-            <div className="px-6 mb-6" data-tour={g.tour}><Ruled>
+            <div className="px-6 mb-6" data-tour={g.tour}><div className="nsc-group" data-group="">
               {g.rows.map((r, i) => r.custom
                 ? <div key={r.label} className="nsc-flush" data-tour={r.tour}>{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
@@ -17431,9 +17587,9 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                           system; and "Dark mode" needs a picture of nothing. The
                           one exception is the row that deletes the account, where
                           the red bin is a warning, not decoration. */
-                       icon={r.danger ? <Trash2 size={17} color={DANGER} strokeWidth={1.6} /> : undefined}
+                       icon={settingsGlyph(r.label) || (r.danger ? <IconSq Icon={Trash2} bg="#FF3B30" /> : undefined)}
                        onToggle={r.onTap} />)}
-            </Ruled></div>
+            </div></div>
           </React.Fragment>
         ))}
 
@@ -18056,7 +18212,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const Ask = ({ w }) => (
     <PersonRow className="pr-1" name={w.who} src={w.avatar} sub={w.what} textMin={w.note ? 180 : undefined} subLines={w.note ? 0 : undefined}
                actions={<>
-                 <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
+                 <TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); soft(); w.onAccept(); }}>{tr("Accept")}</TextBtn>
                  <TextBtn quiet color={t.faint} onClick={() => { haptic(7); w.onDecline(); }}>{tr("Decline")}</TextBtn>
                </>} />
   );
@@ -18284,7 +18440,7 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
                onChange={(e) => { const f = Array.from(e.target.files || []); e.target.value = ""; if (f.length) { onAddFiles(f); close(); } }} />
         <button onClick={() => { haptic(8); fileRef.current && fileRef.current.click(); }}
                 className="w-full flex items-center justify-center gap-2 mb-4 n-key"
-                style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
+                style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
           <Plus size={15} color={t.sub} strokeWidth={2.2} />{tr("Add a clip, photo or voice note")}
         </button>
       </>)}
@@ -21273,8 +21429,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                          factsFor={kind === "downloads" ? facts : null}
                          onRemove={kind === "downloads" ? (l) => downloads.remove(l.id) : null}
                          foot={kind === "downloads" && nSaved > 1 ? (
-                           <button onClick={() => { hapticWarn(); downloads.removeAll(); }} className="w-full mb-6 active:opacity-60"
-                                   style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${EDGE(theme)}`, ...TYPE.small, fontWeight: 600, color: DANGER }}>{tr("Remove all")}</button>
+                           <button onClick={() => { hapticWarn(); downloads.removeAll(); }} className="w-full mb-6 n-key"
+                                   style={{ minHeight: 46, borderRadius: R.control, background: TINT(theme), border: `${EDGE_W}px solid ${KEY_RING(theme)}`, ...TYPE.small, fontWeight: 600, color: DANGER }}>{tr("Remove all")}</button>
                          ) : null}
                          pop={pop} push={push} say={say} />;
   } else if (screen === "groups") {
@@ -21497,7 +21653,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">
@@ -22033,10 +22189,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                         return (
                           <button key={r} data-tour="decline-why" aria-pressed={on} onClick={() => { haptic(7); soft(); setDeclineWhy(on ? null : r); }}
                                   className="w-full flex items-center gap-3 text-left"
-                                  style={{ minHeight: 52, background: on ? theme.ink : theme.wash, transition: "background 220ms cubic-bezier(.22,1,.36,1)",
+                                  style={{ minHeight: 52, ...pickRow(theme, on), transition: "background 220ms cubic-bezier(.22,1,.36,1)",
                                            animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }}>
-                            <span className="flex-1" style={{ ...TYPE.body, color: on ? "#fff" : theme.ink }}>{tr(r)}</span>
-                            {on && <Check size={16} color={"#fff"} strokeWidth={2.1} />}
+                            <span className="flex-1" style={{ ...TYPE.body, fontWeight: on ? 600 : 400, color: on ? SEL(theme).fg : theme.ink }}>{tr(r)}</span>
+                            {on && <Check size={17} color={theme.accent} strokeWidth={2.4} />}
                           </button>
                         );
                       })}
