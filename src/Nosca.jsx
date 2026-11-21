@@ -12807,14 +12807,17 @@ function ArrangeGrid({ ids, cols, onReorder, onRemove, onNudge, canRemove, accen
               <A.Ico size={22} color={fg} strokeWidth={1.8} />
               <span className="truncate max-w-full" style={{ fontFamily: ui, fontSize: 14, fontWeight: 650, color: fg }}>{tr(A.label)}</span>
             </button>
-            {/* taking one off is on the tile, not four rows down a list */}
+            {/* taking one off is on the tile, not four rows down a list —
+                iOS's delete control, the red disc and the white minus Hours'
+                Edit draws; a white disc on the light grey line (21 November)
+                read 1.3:1, a control told by nothing */}
             <button onClick={() => onRemove(id)} disabled={!canRemove}
                     aria-label={`${tr("Remove")} ${tr(A.label)}`}
                     className="absolute flex items-center justify-center disabled:opacity-25 active:opacity-60"
                     style={{ top: -7, left: -7, width: 24, height: 24, borderRadius: 12, zIndex: 6,
-                             background: t.page, border: `${EDGE_W}px solid ${EDGE(t)}`,
+                             background: DANGER, border: `2px solid ${t.page}`,
                              opacity: drag ? 0 : 1, transition: "opacity 160ms" }}>
-              <Minus size={13} color={t.sub} strokeWidth={2.6} />
+              <Minus size={13} color="#FFFFFF" strokeWidth={3} />
             </button>
           </div>
         );

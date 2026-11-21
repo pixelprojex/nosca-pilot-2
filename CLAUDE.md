@@ -221,7 +221,9 @@ seeded data and no account.
     never the ink. `Button` is 52 tall at 17/600; a disabled one is the
     flat white key with the faint word. A tick box's empty ring is
     `LINE_STRONG` `#8E8E93` (3.3:1), the only control whose ring is all
-    that says where it is; a word key is told by its word and its ledge.
+    that says where it is; a word key is told by its word and its ledge;
+    a remove control is iOS's red delete disc with a white minus (Hours'
+    Edit, the layout editor) — never an outline alone.
   - **Apple's type.** The system face, `-apple-system` (SF Pro on an
     iPhone); no web font is loaded. `TYPE`: screen 30/700, title 22/700,
     section 20/700, heading 17/600, subhead 15/600, body 16, small 14,
@@ -1820,7 +1822,9 @@ seeded data and no account.
   Keep it beside a competition's Remove, Dismiss on a lesson to write
   up, Pick from Contacts, the bin in the drill library, the lesson
   page's second row of actions, Saved's Remove all, the layout editor's
-  Reset and its Remove minus, the lesson edit sheet's Add a clip, the
+  Reset and its Remove minus (since 21 November iOS's red delete disc
+  with a white minus, as Hours' Edit draws it — an outline alone on the
+  light grey line read 1.3:1), the lesson edit sheet's Add a clip, the
   Add player sheet's tiles, the coach's Drills button, sign-up's
   `Choice` tiles, New group's chips, the lessons
   ticked to end or call off, the sporting record's rows and the
