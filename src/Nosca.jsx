@@ -15,19 +15,22 @@ import { Mark, BrandLoader, RING_L, RING_R, RING_LEN, BRAND as BRAND_COLOUR, BRA
    cascade inside the app is unchanged; the comments that explain them
    are there. */
 export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom: 2px; }
-    .nsc-list > * { background: var(--wash); border: 1.5px solid transparent !important; border-radius: 8px;
-                    box-shadow: 0 2px 0 var(--lip, rgba(0,0,0,.08));
-                    transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1);
-                    margin-bottom: 12px; padding-left: 14px !important; padding-right: 14px !important; }
-    /* a row that is one button sinks onto its foot under the finger (the one press, data-down) */
-    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 var(--lip, rgba(0,0,0,.08)); transition: none; opacity: 1; }
+    /* WHITE CARDS (21 November): a row is Duolingo's card — white, a light
+       grey line round it and a ledge of the same under it — never a slab of
+       the sport's tint; the founder: "White background throughout" */
+    .nsc-list > * { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 14px;
+                    box-shadow: 0 2px 0 var(--edge, #E2E2E7);
+                    transition: transform .15s cubic-bezier(.2,.7,.3,1), box-shadow .15s cubic-bezier(.2,.7,.3,1), background-color .15s;
+                    margin-bottom: 10px; padding-left: 16px !important; padding-right: 16px !important; }
+    /* a row that is one button sinks onto its ledge under the finger (the one press, data-down) */
+    .nsc-list > button[data-down]:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge, #E2E2E7); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
     /* SETTINGS IN GROUPS (21 November): a group of rows is one soft box on
        its foot, the rows inside on a fine rule — iOS's grouped list, and
        Lares's own More sheet — where it was twenty slabs down the page */
-    .nsc-group { background: var(--wash); border-radius: 12px; box-shadow: 0 2px 0 var(--lip, rgba(0,0,0,.08)); overflow: hidden; }
-    .nsc-group > * { background: transparent; padding-left: 14px !important; padding-right: 14px !important;
-                     border-bottom: 1px solid var(--group-rule, rgba(0,0,0,.08)) !important; border-radius: 0; }
+    .nsc-group { background: var(--surface, #fff); border: 1.5px solid var(--edge, #E2E2E7); border-radius: 16px; box-shadow: 0 2px 0 var(--edge, #E2E2E7); overflow: hidden; }
+    .nsc-group > * { background: transparent; padding-left: 16px !important; padding-right: 16px !important;
+                     border-bottom: 1.5px solid var(--edge, #E2E2E7) !important; border-radius: 0; }
     .nsc-group > *:last-child { border-bottom: 0 !important; }
     .nsc-group > .nsc-flush { padding: 0 !important; }
     /* a swipeable row pads its sliding surface, not the box, so the
@@ -37,7 +40,7 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
        options so the open list's wash runs to the box's edge and the
        head's label lines up with every other row */
     .nsc-list > .nsc-flush { padding: 0 !important; overflow: hidden; }
-    .nsc-list > .nsc-swipe > div:last-child { background: var(--wash) !important; padding-left: 14px; padding-right: 14px; }
+    .nsc-list > .nsc-swipe > div:last-child { background: var(--surface, #fff) !important; padding-left: 16px; padding-right: 16px; }
 `;
 
 import {
@@ -434,7 +437,14 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
 /* a box's edge is a dark tone of the sport's own colour, never black:
    the mark (deep green for tennis, the brand green before a sport) at
    half strength over the paper */
-export const EDGE = (t) => HAIR(t.mark || t.accent || t.ink, 0.72);
+/* WHITE CARDS ON WHITE (21 November): a box's edge is Duolingo's light grey
+   line, never a tint of the sport — the founder: "There's so many color
+   tints throughout this site. But what I want is fixed colors, and also a
+   white background … White background throughout". The sport's colour is
+   the tab bar's, the one action's and a chosen key's. */
+export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E2E2E7");
+/* a control whose outline is all it has (a tick box) keeps a line that reads 3:1 */
+export const LINE_STRONG = "#8E8E93";
 export const EDGE_W = 1.5;
 /* THE LIP (18 November). The founder: the buttons, tiles and boxes
    "Duolingo style … that we have already done with the Lares app, where
@@ -460,7 +470,7 @@ const darkPage = (t) => { const [r, g, b] = rgbOf(t.page || "#FEFEFE"); return (
 /* under a strong face (the accent, the ink, red): the face a third deeper */
 export const LIP = (c) => MIX(c, "#000000", 0.3);
 /* under a soft face (the wash): the wash with a fifth of the sport's mark */
-export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : MIX(t.wash, t.mark || t.accent || t.ink, 0.2));
+export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E2E2E7");
 /* THE TINT: a saturated fill of the sport's own colour for every key that
    is not the one action (the founder, 18 November: "the saturated colors
    for the buttons … a lot of the buttons on the Nosca app are like white
@@ -486,16 +496,20 @@ export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : MIX(
    a colour, never a white box with a green rule round it. The founder,
    21 November: "Huge visual upgrade required! Continue to work on buttons
    and better more professional more streamlined visual experience!" */
-export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : MIX("#FFFFFF", t.ink, 0.06));
+export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : "#FFFFFF");
 /* its ledge: the stone a fifth of the ink deep. A filled key is told by
    its face and its ledge, and its word reads 4.5:1 and over on the face;
    the 3:1 outline rule ("No control on the hairline") is for a control
    with no fill, whose outline is the only thing that says where it is.
    It was the sport's edge for three days — a white key with a green rule
    round it, the very thing the founder asked to have filled. */
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : MIX("#FFFFFF", t.ink, 0.2));
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : "#D9D9DE");
 /* the stone key's fine ring, Lares's inset line of its ledge at 60% */
-export const KEY_RING = (t) => (darkPage(t) ? "transparent" : MIX("#FFFFFF", t.ink, 0.13));
+export const KEY_RING = (t) => (darkPage(t) ? "transparent" : "#E2E2E7");
+/* CHOSEN (21 November): Duolingo's chosen answer — the sport's colour faint
+   on the face, its ring and its ledge, the word in the sport's colour —
+   where a chosen key was the ink, black among white keys */
+export const SEL = (t) => ({ face: MIX("#FFFFFF", t.accent, 0.1), ring: MIX("#FFFFFF", t.accent, 0.55), lip: MIX("#FFFFFF", t.accent, 0.55), fg: MIX(t.accent, "#000000", 0.08) });
 /* dramatic, at the founder's word ("don't be afraid of dramatic kind
    of 3D effects"): six points of lip under a button or a tile, and the
    press takes five of them, so a key goes right down like a real one */
@@ -577,9 +591,9 @@ const BAND_TO_PLAN = { "Just starting out": "solo", "Under 20": "solo", "20 to 6
    its mark are the brand colour — the one anchor Nosca has before a
    sport tints anything — and its text stays ink. */
 export const NEUTRAL = {
-  ink: "#1A1815", sub: "#55504C", faint: "#757069", trace: "#A39C93",
-  hair: "#E8E3DA", page: "#FEFEFE", surface: "#FFFFFF",
-  wash: "#F3F1EC", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
+  ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2",
+  hair: "#EBEBF0", page: "#FFFFFF", surface: "#FFFFFF",
+  wash: "#F2F2F7", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
    Anything outside this set is decoration and does not belong. */
@@ -613,8 +627,8 @@ export const SPORTS = {
   golf: {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
-    theme: { ink: "#10200F", sub: "#3C5438", faint: "#5F755B", trace: "#9AAD95", hair: "#E4ECE1",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EBF3EA", mark: "#2F6B3A", accent: "#2F6B3A", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#207A30", accent: "#207A30", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -702,8 +716,8 @@ export const SPORTS = {
   tennis: {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
-    theme: { ink: "#0A2222", sub: "#375654", faint: "#5E7573", trace: "#96ADA9", hair: "#E1EDEB",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EDF4F1", mark: "#0F7A69", accent: "#0F7A69", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#01836E", accent: "#01836E", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -794,8 +808,8 @@ export const SPORTS = {
   rowing: {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
-    theme: { ink: "#10222E", sub: "#3F5463", faint: "#617480", trace: "#93A6B2", hair: "#E2EAEF",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#EEF4F7", mark: "#2E6E8E", accent: "#2E6E8E", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#1B74A1", accent: "#1B74A1", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -889,8 +903,8 @@ export const SPORTS = {
   squash: {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
-    theme: { ink: "#241A14", sub: "#5E4C41", faint: "#7B6D63", trace: "#AC9C90", hair: "#EFE7E0",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F6EFEA", mark: "#B1542D", accent: "#B1542D", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#C74B17", accent: "#C74B17", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -975,8 +989,8 @@ export const SPORTS = {
   padel: {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
-    theme: { ink: "#1E1830", sub: "#544C6A", faint: "#746C86", trace: "#A199B4", hair: "#E9E5F0",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F2EFF8", mark: "#6B4E9E", accent: "#6B4E9E", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#6536B6", accent: "#6536B6", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1061,8 +1075,8 @@ export const SPORTS = {
   equestrian: {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
-    theme: { ink: "#241A1D", sub: "#5D4C51", faint: "#7A6C71", trace: "#AB9AA0", hair: "#EEE6E8",
-             page: "#FEFEFE", surface: "#FFFFFF", wash: "#F6EFF2", mark: "#7A3B4A", accent: "#7A3B4A", onAccent: "#FFFFFF" },
+    theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#8C2941", accent: "#8C2941", onAccent: "#FFFFFF" },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1304,8 +1318,12 @@ function darkify(theme) {
 
 export const ThemeCtx = createContext(NEUTRAL);
 export const useT = () => useContext(ThemeCtx);
-export const display = "'Cabinet Grotesk', ui-sans-serif, -apple-system, sans-serif";
-export const ui = "'Switzer', 'Instrument Sans', ui-sans-serif, -apple-system, sans-serif";
+/* APPLE'S OWN FACE (21 November). The founder: "Take reference from the
+   Apple operating systems … It looks like an AI website." Cabinet Grotesk
+   and Switzer are the faces a generated site reaches for; the phone's own
+   San Francisco is what every app the founder admires is set in. */
+export const display = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+export const ui = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
 /* ------------------------------------------------------------------
    TYPE SCALE
@@ -1350,26 +1368,26 @@ export const TYPE = {
      drawn, not read. scripts/e2e/type-floor.cjs reads the computed
      size of every word on every screen as every role and fails on
      anything under 12 outside those two. */
-  hero:     { fontFamily: display, fontSize: 32, lineHeight: 1.03, letterSpacing: "-0.035em", fontWeight: 300 },
+  hero:     { fontFamily: display, fontSize: 34, lineHeight: 1.08, letterSpacing: "-0.022em", fontWeight: 700 },
   /* every screen's H1, and the app's only one — see PageHead. */
-  screen:   { fontFamily: display, fontSize: 24, lineHeight: 1.08, letterSpacing: "-0.03em",  fontWeight: 400 },
-  title:    { fontFamily: display, fontSize: 19, lineHeight: 1.16, letterSpacing: "-0.025em", fontWeight: 400 },
-  section:  { fontFamily: display, fontSize: 17, lineHeight: 1.2, letterSpacing: "-0.02em", fontWeight: 600 },
+  screen:   { fontFamily: display, fontSize: 30, lineHeight: 1.1, letterSpacing: "-0.02em",  fontWeight: 700 },
+  title:    { fontFamily: display, fontSize: 22, lineHeight: 1.2, letterSpacing: "-0.015em", fontWeight: 700 },
+  section:  { fontFamily: display, fontSize: 20, lineHeight: 1.25, letterSpacing: "-0.012em", fontWeight: 700 },
   /* heading sits 1px above body deliberately: the contrast is family
      plus weight, not size, which is why the two can live 1px apart. */
-  heading:  { fontFamily: display, fontSize: 15.5, lineHeight: 1.28, letterSpacing: "-0.015em", fontWeight: 500 },
-  subhead:  { fontFamily: display, fontSize: 13.5, lineHeight: 1.34, letterSpacing: "-0.008em", fontWeight: 500 },
-  body:     { fontFamily: ui,      fontSize: 14.5, lineHeight: 1.52, letterSpacing: "-0.003em", fontWeight: 400 },
+  heading:  { fontFamily: display, fontSize: 17, lineHeight: 1.3, letterSpacing: "-0.01em", fontWeight: 600 },
+  subhead:  { fontFamily: display, fontSize: 15, lineHeight: 1.33, letterSpacing: "-0.005em", fontWeight: 600 },
+  body:     { fontFamily: ui,      fontSize: 16, lineHeight: 1.45, letterSpacing: "-0.01em", fontWeight: 400 },
   /* the one line under an H1 that says what a page holds. It was set
      in TYPE.small in t.faint — the quietest thing on the screen. It is
      a lede: Switzer, and t.sub. */
   lede:     { fontFamily: ui,      fontSize: 13.5, lineHeight: 1.45, letterSpacing: "-0.004em", fontWeight: 400 },
-  small:    { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.42, letterSpacing: "0",        fontWeight: 400 },
-  caption:  { fontFamily: ui,      fontSize: 12, lineHeight: 1.3, letterSpacing: 0,              fontWeight: 400 },
+  small:    { fontFamily: ui,      fontSize: 14, lineHeight: 1.4, letterSpacing: "-0.005em", fontWeight: 400 },
+  caption:  { fontFamily: ui,      fontSize: 13, lineHeight: 1.3, letterSpacing: 0,              fontWeight: 400 },
   /* a section label: a word, set like a word. It was 10px tracked
      uppercase — the single most repeated tell of a generated interface,
      on every section of every screen. Sentence case, the UI face, 500. */
-  eyebrow:  { fontFamily: ui,      fontSize: 12.5, lineHeight: 1.3, letterSpacing: "-0.003em", fontWeight: 500 },
+  eyebrow:  { fontFamily: ui,      fontSize: 13, lineHeight: 1.3, letterSpacing: "0.01em",  fontWeight: 600 },
 
   /* THE FIGURE LADDER. A number in a document is set large and light.
      figureXL is the one number that owns a block — a player's lesson
@@ -2113,7 +2131,7 @@ const ShimmerCSS = () => (
        the one action, cards and the sheet; a row of content sits on the
        wash, so a screen reads as paper with a few objects on it). The
        transparent border keeps the old width, so nothing moves. */
-${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
+${LIST_CSS}    .nsc-day { background: var(--surface); border: 1.5px solid var(--edge); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 0 var(--edge); }
     /* A KEY: an outlined control standing on a lip of its own edge, three
        points deep, that sinks two under the finger — Lares's secondary
        button, for every control that draws its own outline. --key-lip
@@ -8522,7 +8540,7 @@ export function Button({ children, onClick, tone = "accent", disabled, tour }) {
             className="w-full"
             {...(disabled ? {} : p.handlers)}
             /* 50 drawn and the lip under it: the same 54 it always took */
-            style={{ minHeight: 50, marginBottom: LIP_H, borderRadius: R.surface, fontFamily: ui, fontSize: 15.5, fontWeight: 600, letterSpacing: "0.005em",
+            style={{ minHeight: 52, marginBottom: LIP_H, borderRadius: R.surface, fontFamily: ui, fontSize: 17, fontWeight: 600, letterSpacing: "-0.01em",
                      boxShadow: disabled ? "none" : p.rest, transform: disabled ? `translateY(${LIP_H - 1}px)` : undefined,
                      transition: `transform 140ms ease-out, box-shadow 140ms ease-out, background 180ms, color 180ms`,
                      ...face }}>{children}</button>
@@ -8604,9 +8622,10 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   /* stone keys need no rim to be calm: a grid of twelve is twelve stones */
   const calm = false;
   const quietTile = tone !== "accent" && tone !== "danger" && !on;
-  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? t.ink : TINT(t);
-  const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? "#fff" : redWord ? DANGER : t.ink;
-  const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? MIX(t.ink, "#000000", 0.55) : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  const sel = SEL(t);
+  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : TINT(t);
+  const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? sel.fg : redWord ? DANGER : t.ink;
+  const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
   /* the second kind keeps the sport's edge as its outline, 3:1 and over */
   const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
@@ -8629,7 +8648,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               {...p.handlers}
               className={`relative w-full flex text-left ${stacked ? "flex-col items-start justify-between" : "items-center"}`}
               style={{ minHeight: h, gap: stacked ? 10 : 12, padding: stacked ? "14px 14px 13px" : "0 16px", borderRadius: R.surface, background: bg,
-                       boxShadow: p.rest, border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : "transparent"}`, animation: enter,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
         <Icon size={22} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} className="shrink-0" />
         <span className={wrap ? "min-w-0" : "min-w-0 max-w-full truncate"}
@@ -8650,7 +8669,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
         <span data-face="" data-lip="" data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
               style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
-                       border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : "transparent"}`,
+                       border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
           {/* the glyph in ink on the white key, never the accent (the accent is the one action's) */}
           <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} />
@@ -8671,7 +8690,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
             {...p.handlers}
             className={`relative w-full flex items-center justify-center ${block && Icon ? "gap-2.5" : "flex-col gap-1.5"}`}
             style={{ minHeight: h, borderRadius: R.surface, background: bg, boxShadow: p.rest,
-                     border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : "transparent"}`, animation: enter,
+                     border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                      transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
       {/* A tile does not need a glyph to be a tile. Where the word is
           the whole meaning — the focus of a lesson, a sub-area — an
@@ -8741,13 +8760,14 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
         /* a time is a small key on a three-point lip: the chosen one ink
            on a deeper ink, the rest on the sport's edge or the wash's */
         const calm = false && cluster && !on;
-        const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
+        const sel = SEL(t);
+        const lc = on ? sel.lip : TINT_LIP(t);
         const p = press3d(lc, 3, 2);
         return (
           <button key={x} data-tour={i === 0 ? cellTour : undefined} data-lip="" aria-pressed={on} disabled={off} onClick={() => { if (off) return; haptic(7); soft(); onToggle(x); }}
                   {...p.handlers}
-                  style={{ minHeight: 46, borderRadius: R.control, background: on ? t.ink : calm ? t.wash : TINT(t),
-                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? t.ink : KEY_RING(t)}`, opacity: off ? 0.35 : 1,
+                  style={{ minHeight: 46, borderRadius: R.control, background: on ? sel.face : TINT(t),
+                           boxShadow: off ? "none" : p.rest, border: `${EDGE_W}px solid ${on ? sel.ring : KEY_RING(t)}`, opacity: off ? 0.35 : 1,
                            fontFamily: ui, fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", ...FIG,
                            color: on ? "#fff" : t.ink,
                            transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>{x}</button>
@@ -8983,7 +9003,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       {icon}
       {onToggle && !chevron && !icon && !right && (
         <span className="flex items-center justify-center shrink-0"
-              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : EDGE(t)}`, background: checked ? t.accent : "transparent" }}>
+              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : LINE_STRONG}`, background: checked ? t.accent : "transparent" }}>
           {checked && <Check size={13} color="#fff" strokeWidth={2.1} />}
         </span>
       )}
@@ -9069,12 +9089,13 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
      surface underneath decide, so the disc always reads */
   /* its own disc, a step deeper than the wash: on a row of the wash a
      wash disc vanished and the initials floated */
-  const disc = tint || bg || MIX(t.wash, t.mark || t.accent || t.ink, 0.12);
-  const mark = tint ? "#fff" : fg || t.sub;
+  /* Apple's contact disc: a soft grey gradient, the initials in white */
+  const disc = tint || bg || "linear-gradient(180deg, #A8ACB5 0%, #868A94 100%)";
+  const mark = tint ? "#fff" : fg || "#FFFFFF";
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
           style={{ width: size, height: size, background: disc,
-                   fontFamily: display, fontSize: Math.max(12, size * 0.36), fontWeight: 500,
+                   fontFamily: display, fontSize: Math.max(12, size * 0.38), fontWeight: 600,
                    letterSpacing: "-0.02em", color: mark }}>
       {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} onError={() => setBroken(pic)} />
         : group ? <Users size={size * 0.42} color={mark} /> : initials}
@@ -9530,14 +9551,15 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
   /* a key of the family: the tint on its deeper tint, the ink once
      chosen; the entrance fills backwards only, or its last frame would
      hold the transform the press writes */
-  const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
+  const sel = SEL(t);
+  const lc = on ? sel.lip : TINT_LIP(t);
   const p = press3d(lc, 3, 2);
   return (
     <button onClick={() => { haptic(8); soft(); onSelect(); }} aria-pressed={!!on} data-lip=""
             className="w-full flex items-center gap-4 px-5 text-left"
             {...p.handlers}
-            style={{ minHeight: 62, marginBottom: 10, borderRadius: R.surface, background: on ? t.ink : TINT(t),
-                     border: `${EDGE_W}px solid ${on ? t.ink : KEY_RING(t)}`, boxShadow: p.rest,
+            style={{ minHeight: 62, marginBottom: 10, borderRadius: R.surface, background: on ? sel.face : TINT(t),
+                     border: `${EDGE_W}px solid ${on ? sel.ring : KEY_RING(t)}`, boxShadow: p.rest,
                      transition: "background 220ms, border-color 220ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)",
                      animation: `fadeUp 460ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards` }}>
       {Icon && <Icon size={20} color={on ? t.accent : t.sub} strokeWidth={1.6} />}
@@ -10907,7 +10929,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                   <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 py-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
                        style={{ minHeight: 48 }}>
                     <span className="rounded-full flex items-center justify-center shrink-0"
-                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : EDGE(t)}`, background: d.done ? STEADY : "transparent" }}>
+                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : LINE_STRONG}`, background: d.done ? STEADY : "transparent" }}>
                       {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
                     </span>
                     <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
@@ -13229,27 +13251,28 @@ function FaceTile({ person, group, caption, on, onTap, tour }) {
      a grid of more than six (Everyone) it stands calm on the wash with no
      outline, as every other key does: a rim is for the prominent few */
   const calm = false;
-  const lc = on ? MIX(t.ink, "#000000", 0.55) : TINT_LIP(t);
+  const sel = SEL(t);
+  const lc = on ? sel.lip : TINT_LIP(t);
   const p = press3d(lc, 3, 2);
   return (
     <button data-tour={tour} data-lip="" aria-label={person.name} aria-pressed={on} onClick={() => { hapticCommit(); soft(); onTap(); }}
             {...p.handlers}
             className="relative w-full flex flex-col items-center justify-center gap-2"
-            style={{ minHeight: 104, borderRadius: R.surface, background: on ? t.ink : TINT(t), border: `${EDGE_W}px solid ${on ? t.ink : KEY_RING(t)}`,
+            style={{ minHeight: 104, borderRadius: R.surface, background: on ? sel.face : TINT(t), border: `${EDGE_W}px solid ${on ? sel.ring : KEY_RING(t)}`,
                      boxShadow: p.rest,
                      transition: `background ${MOTION.settle}ms, box-shadow 240ms cubic-bezier(.2,.7,.3,1), transform 240ms cubic-bezier(.2,.7,.3,1)` }}>
       <Avatar name={person.name} size={40} group={group} src={person.avatarPath ? avatarUrl(person.avatarPath) : undefined}
-              bg={on ? "rgba(255,255,255,0.18)" : t.surface} fg={on ? "#fff" : t.sub} />
+              /* Apple's grey disc either way; chosen, the tile itself carries the colour */ />
       {/* a person by the first name (the surname is the caption under it); a
           group by its whole name, on two lines before an ellipsis — the
           first word alone read "Saturday" for Saturday clinic (C1) */}
       {group
-        ? <span data-name="" className="px-2 text-center" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, lineHeight: 1.25, color: on ? "#fff" : t.ink,
+        ? <span data-name="" className="px-2 text-center" style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, lineHeight: 1.25, color: on ? sel.fg : t.ink,
                          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "normal", wordBreak: "normal" }}>{person.name}</span>
-        : <span data-name="" className="truncate px-2" style={{ fontFamily: ui, fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : t.ink }}>{wizFirst(person.name)}</span>}
+        : <span data-name="" className="truncate px-2" style={{ fontFamily: ui, fontSize: 14, fontWeight: 600, color: on ? sel.fg : t.ink }}>{wizFirst(person.name)}</span>}
       {/* the caption's line is always there, so two tiles in one row share a
           baseline whether or not one of them carries a time */}
-      <span className="truncate px-2" style={{ ...TYPE.caption, minHeight: 16, color: on ? "rgba(255,255,255,0.7)" : t.faint }}>{caption || ""}</span>
+      <span className="truncate px-2" style={{ ...TYPE.caption, minHeight: 16, color: on ? sel.fg : t.faint }}>{caption || ""}</span>
       {on && <span className="absolute rounded-full flex items-center justify-center" style={{ top: 8, right: 8, width: 18, height: 18, background: "#fff" }}><Check size={11} color={t.ink} strokeWidth={3} /></span>}
     </button>
   );
@@ -15566,7 +15589,7 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
             className="w-full flex items-start gap-3.5 py-4 text-left active:opacity-50"
             style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards` }}>
       <span className="flex items-center justify-center shrink-0"
-            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : EDGE(t)}`,
+            style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : LINE_STRONG}`,
                      background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
         {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
       </span>
