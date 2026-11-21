@@ -499,7 +499,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const ground = (el) => { for (let n = el.parentElement; n; n = n.parentElement) { const b = getComputedStyle(n).backgroundColor; const m = b.match(/rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(",").map((x) => +x); if (p.length < 4 || p[3] === 1) return p.slice(0, 3); } } return [255, 255, 255]; };
         return [...root.querySelectorAll("button")].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
           .map((b) => { const cs = getComputedStyle(b), r = b.getBoundingClientRect();
-            return { label: (b.getAttribute("aria-label") || b.textContent).replace(/\s+/g, " ").trim().slice(0, 24), bg: cs.backgroundColor, ground: ground(b), fg: cs.color, inline: b.style.borderTopWidth,
+            return { label: (b.getAttribute("aria-label") || b.textContent).replace(/\s+/g, " ").trim().slice(0, 24), asleep: b.disabled || b.getAttribute("aria-disabled") === "true", bg: cs.backgroundColor, ground: ground(b), fg: cs.color, inline: b.style.borderTopWidth,
                      h: Math.round(r.height), radius: cs.borderTopLeftRadius, shadow: cs.boxShadow,
                      sides: ["Top", "Right", "Bottom", "Left"].map((x) => `${cs[`border${x}Width`]} ${cs[`border${x}Style`]} ${cs[`border${x}Color`]}`) }; })
           /* filled with nothing: transparent, or a fill the eye cannot tell from the ground (white on the white sheet) */
@@ -652,10 +652,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
       }
       /* since the afternoon of 21 November every quiet key is Duolingo's white key: white on white, a light grey
          ring — told not by its outline but by its word (4.5:1 and over) and the grey ledge it stands on. A control
-         with an outline and nothing else (no word, no ledge) would be lost, so none may be met */
-      const lost = seen.filter((o) => !(o.shadow && o.shadow !== "none" && reContrast(flat(o.fg, o.ground), o.ground) >= 4.5));
+         with an outline and nothing else (no word, no ledge) would be lost, so none may be met. A key not yet live
+         (Create group before a name) is the flat white key with the faint word by design — WCAG 1.4.3 and 1.4.11
+         exempt an inactive control — so it is counted apart and never as lost */
+      const asleep = seen.filter((o) => o.asleep);
+      const lost = seen.filter((o) => !o.asleep && !(o.shadow && o.shadow !== "none" && reContrast(flat(o.fg, o.ground), o.ground) >= 4.5));
       check("(s9) every outlined control met on the way is a key: its word 4.5:1 and over and a ledge under it — nothing is an outline alone",
-        seen.length >= 4 && lost.length === 0, `${seen.length} met · lost ${lost.map((o) => `${o.at}: ${o.label} shadow ${o.shadow} label ${reContrast(flat(o.fg, o.ground), o.ground).toFixed(2)}:1`).join(" | ").slice(0, 300)}`);
+        seen.length - asleep.length >= 4 && lost.length === 0, `${seen.length} met (${asleep.length} not yet live) · lost ${lost.map((o) => `${o.at}: ${o.label} shadow ${o.shadow} label ${reContrast(flat(o.fg, o.ground), o.ground).toFixed(2)}:1`).join(" | ").slice(0, 300)}`);
     }
 
     check("(o) no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));

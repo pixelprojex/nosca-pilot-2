@@ -109,7 +109,7 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
         C ? JSON.stringify(C.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
       await page.locator("[data-sheet] button", { hasText: /^Th$/ }).first().click(); await page.waitForTimeout(300);
       const C2 = await shape(page);
-      check("(e2) tapping Thursday moves the ink to it", !!C2 && C2.days.filter((d) => d.bg === C2.ink).map((d) => d.d).join() === "Th", C2 ? JSON.stringify(C2.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
+      check("(e2) tapping Thursday moves the chosen answer to it", !!C2 && C2.days.filter((d) => d.bg === SEL_FACE).map((d) => d.d).join() === "Th", C2 ? JSON.stringify(C2.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
       /* every time: a junior clinic is after school */
       const late = page.locator("[data-sheet] button", { hasText: /^4:30 pm$/ });
       await late.first().click(); await page.waitForTimeout(300);
