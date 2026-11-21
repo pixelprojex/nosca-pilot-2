@@ -64,9 +64,9 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
   const server = await M.startServer(distDir, PORT);
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const errors = [];
-  const boot = async ({ width = 390, mod = null } = {}) => {
+  const boot = async ({ width = 390, mod = null, as = IDS.coach } = {}) => {
     const db = freshDb(); if (mod) mod(db);
-    const u = Object.values(db.users).find((x) => x.id === IDS.coach);
+    const u = Object.values(db.users).find((x) => x.id === as);
     const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
     await page.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(page, db);
@@ -523,6 +523,33 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.locator("button", { hasText: "Cian" }).first().click(); await page.waitForTimeout(1000);
       const hs = await page.evaluate(() => { const f = document.querySelector('[data-tour="wiz-focus"] button'); const d = document.querySelector('[data-tour="wiz-drills"]'); return f && d ? { focus: Math.round(f.getBoundingClientRect().height), drills: Math.round(d.getBoundingClientRect().height) } : null; });
       check("(l) C23: the log's focus tiles and the Drills · Tip pair are one height", !!hs && hs.focus === hs.drills, JSON.stringify(hs));
+      await ctx.close();
+    }
+
+    /* ---------- (m) 21 November: the group page's members read where they stand, as the roster does (C6); the family's empty section on the left ---------- */
+    {
+      const { ctx, page, shot } = await boot();
+      await tap(page, '[aria-label="Players"], [aria-label="Roster"]', 900);
+      const linesOf = (sel) => page.evaluate((s) => Object.fromEntries([...document.querySelectorAll(s)].map((row) => {
+        const st = row.querySelector("[data-standing]"); const nm = ["Cian Murphy", "Saoirse Kelly"].find((n) => row.textContent.includes(n));
+        return [nm || "?", st ? `${st.textContent}|${st.getAttribute("data-standing")}` : null];
+      }).filter(([n]) => n !== "?")), sel);
+      const roster = await linesOf('[data-scroll="screen"] .nsc-list > *');
+      await tap(page, '[data-tour="roster-tab"] [aria-label="Groups"], [data-tour="roster-tab"] button:has-text("Groups")', 700);
+      await page.locator('[data-tour="roster-group"]', { hasText: "Saturday clinic" }).first().click(); await page.waitForTimeout(900);
+      const members = await linesOf('[data-tour="group-members"] > *');
+      await shot("m-group-members");
+      check("(m) C6: the group page's members carry the roster's own grey line — where each one stands, in its tone",
+        !!roster["Cian Murphy"] && !!roster["Saoirse Kelly"] && members["Cian Murphy"] === roster["Cian Murphy"] && members["Saoirse Kelly"] === roster["Saoirse Kelly"], JSON.stringify({ roster, members }));
+      await ctx.close();
+    }
+    {
+      const FAM2 = "fa000000-0000-4000-8000-00000000fa02";
+      const { ctx, page, shot } = await boot({ as: IDS.adult, mod: (db) => { M.addFamily(db, { id: FAM2, code: "CIA7N2", name: "The Murphys", createdBy: IDS.adult }); db.profiles[IDS.adult].family_id = FAM2; } });
+      await openSettings(page); await tap(page, '[data-tour="settings-dashboard"]', 1200);
+      const kids = await page.evaluate(() => { const p = document.querySelector('[data-tour="family-no-children"]'); if (!p) return null; const cs = getComputedStyle(p); return { size: cs.fontSize, align: cs.textAlign, left: Math.round(p.getBoundingClientRect().left), mb: cs.marginBottom }; });
+      await shot("m-family-empty");
+      check("(m) a family with no children says so on the left where the rows would sit, in the small size", !!kids && kids.align !== "center" && kids.size === "12.5px" && kids.left === 24 && kids.mb === "30px", JSON.stringify(kids));
       await ctx.close();
     }
 

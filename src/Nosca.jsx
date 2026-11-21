@@ -6955,7 +6955,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
             </div>
           </>)}
           {!isJunior && dependants.length === 0 && (
-            <p className="mb-6 py-6 text-center" style={{ ...TYPE.body, color: t.faint }}>{tr("No children yet")}</p>
+            <p data-tour="family-no-children" style={{ ...TYPE.small, color: t.faint, marginBottom: SPACE.block }}>{tr("No children yet")}</p>
           )}
 
           {rest.length > 0 && (<>
@@ -6977,7 +6977,7 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
             </div>
           </>)}
           {!next && rest.length === 0 && (
-            <p className="mb-7 py-6 text-center" style={{ ...TYPE.small, color: t.faint }}>{tr("Nothing booked")}</p>
+            <p data-tour="family-nothing-booked" style={{ ...TYPE.small, color: t.faint, marginBottom: SPACE.block }}>{tr("Nothing booked")}</p>
           )}
 
           {/* who is in it — faces, not a table */}
@@ -14860,7 +14860,7 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    comes from a register — never from who is in the group, which would
    report a full house at every session nobody was marked at. */
 function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null,
-                        onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport }) {
+                        onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport, standingFor = null, stageFor = null }) {
   const t = useT();
   const real = !!sessions;
   const weeks = real ? sessions.map((l) => {
@@ -14939,7 +14939,14 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
           return people.length > 0 && (<>
             <Eyebrow>{tr("Members")}</Eyebrow>
             <div className="px-6 pb-2"><div className="nsc-list" data-tour="group-members">{people.map((r, i) => (
-                <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} chevron onTap={() => onOpen && onOpen(r)} />
+                /* the roster's own row for the same person: where they
+                   stand on the grey line, the level on the right (C6) */
+                (() => {
+                  const st = standingFor && r.id ? standingFor[r.id] : null;
+                  const stage = stageFor && r.id && stageFor[r.id] ? stageFor[r.id].stage : null;
+                  return <PersonRow key={r.id || r.name} name={r.name} src={avatarUrl(r.avatarPath)} chevron onTap={() => onOpen && onOpen(r)}
+                                    sub={st ? st.text : null} subTone={st ? st.tone : "faint"} subAttrs={st ? { "data-standing": st.tone } : undefined} value={st ? stage : null} />;
+                })()
               ))}</div>
             </div>
           </>);
@@ -20711,6 +20718,25 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
 
   const bleed = inApp && (screen === "log" || screen === "home") && homeViewNow === "feed" && role !== "coach";
   let body, bare = !inApp;
+  /* where each player stands, for the grey line under a name — the
+     roster's and the group page's members alike (C6): the next confirmed
+     lesson, else the last one taught (Drifting where the home's own rule
+     says so), else No lessons yet. Asked for only by those two routes. */
+  const rosterStanding = () => data ? (() => {
+      const today = isoOf(todayMD.m, todayMD.d);
+      const risk = new Set(atRisk(roster, mySeriesLive, live, bookedAhead).map((x) => x.id).filter(Boolean));
+      const out = {};
+      for (const r of roster || []) {
+        if (!r.id) continue;
+        const next = (liveBookingRows || [])
+          .filter((b) => b.playerId === r.id && b.status === "confirmed" && b.date >= today)
+          .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
+        if (next) out[r.id] = { text: `${fmtWeekDay(localDate(next.date))} · ${next.time}`, tone: "ink" };
+        else if (r.lastLesson) out[r.id] = { text: `${risk.has(r.id) ? tr("Drifting") : tr("Last lesson")} · ${fmtWeekDay(localDate(r.lastLesson))}`, tone: risk.has(r.id) ? "caution" : "faint" };
+        else out[r.id] = { text: tr("No lessons yet"), tone: risk.has(r.id) ? "caution" : "faint" };
+      }
+      return out;
+    })() : null;
   /* A player with no coach has an account and nothing in it. Rather
      than show empty lessons, an empty diary and a disabled chat, the
      whole screen becomes the one thing worth doing. */
@@ -20971,25 +20997,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                    onCallOff={(day) => { if (!day) return; setCallOffFor({ m: day.m, d: day.d }); setSheet("weather"); }} />;
   } else if (screen === "availability" || screen.startsWith("availability:")) { body = <Availability startDay={screen.includes(":") ? Number(screen.split(":")[1]) : null} avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
   } else if (screen === "roster") {
-    /* where each player stands, for the roster's grey line: the next
-       confirmed lesson, else the last one taught (Drifting where the
-       home's own rule says so), else No lessons yet */
-    const standing = data ? (() => {
-      const today = isoOf(todayMD.m, todayMD.d);
-      const risk = new Set(atRisk(roster, mySeriesLive, live, bookedAhead).map((x) => x.id).filter(Boolean));
-      const out = {};
-      for (const r of roster || []) {
-        if (!r.id) continue;
-        const next = (liveBookingRows || [])
-          .filter((b) => b.playerId === r.id && b.status === "confirmed" && b.date >= today)
-          .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (parseTime(a.time) || 0) - (parseTime(b.time) || 0)))[0];
-        if (next) out[r.id] = { text: `${fmtWeekDay(localDate(next.date))} · ${next.time}`, tone: "ink" };
-        else if (r.lastLesson) out[r.id] = { text: `${risk.has(r.id) ? tr("Drifting") : tr("Last lesson")} · ${fmtWeekDay(localDate(r.lastLesson))}`, tone: risk.has(r.id) ? "caution" : "faint" };
-        else out[r.id] = { text: tr("No lessons yet"), tone: risk.has(r.id) ? "caution" : "faint" };
-      }
-      return out;
-    })() : null;
-    body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} nouns={cfg.nouns} lessonCount={archive.length} stageFor={lastFor} standingFor={standing} />;
+    body = <CoachRoster groups={myGroups} roster={roster} push={push} sheet={setSheet} right={slimRight} nouns={cfg.nouns} lessonCount={archive.length} stageFor={lastFor} standingFor={rosterStanding()} />;
   } else if (screen === "progress" || screen.startsWith("progress:")) {
     /* progress — my own journey; progress:<id> — a player's, for the
        coach from the file and for a parent from the child's screen */
@@ -21287,6 +21295,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     const gname = screen.slice("group:".length);
     const g = myGroups.find((x) => x.name === gname) || null;
     body = g ? <GroupHistory group={g} cfg={cfg} pop={pop} say={say} members={membersOnRoster(g, roster)}
+                             standingFor={data ? rosterStanding() : null} stageFor={lastFor}
                              /* routes carry ids; the harness's player route reads a name */
                              onOpen={(r) => push("player:" + (data ? r.id : r.name))}
                              onMessage={membersOnRoster(g, roster).length ? (grp) => { setMessageGroup(grp); setSheet("broadcast"); } : null}
