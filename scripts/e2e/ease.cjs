@@ -117,11 +117,19 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       await tap(page, '[data-tour="profile-pill"]', 900);
       if (await page.locator('[data-tour="sheet-settings"]').count()) await tap(page, '[data-tour="sheet-settings"]', 900);
       const set = await rows(page, '[data-scroll="screen"]'); await shot("04-settings");
-      check("(f) Settings' rows on the wash, every shape of them", !!set && set.filter((r) => r.kind === "row").length >= 8 && set.filter((r) => r.kind === "row").every(soft), say(set));
+      /* since 21 November Settings' rows sit in groups: one soft box on the wash per group, the rows inside
+         on a fine rule — iOS's grouped list and Lares's More sheet — where it was twenty slabs */
+      const groups = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-group')].filter((g) => g.getBoundingClientRect().height > 0).map((g) => {
+        const cs = getComputedStyle(g), kids = [...g.children].filter((k) => k.getBoundingClientRect().height > 0);
+        return { bg: cs.backgroundColor, radius: cs.borderTopLeftRadius, n: kids.length,
+                 own: kids.filter((k) => getComputedStyle(k).backgroundColor !== "rgba(0, 0, 0, 0)").length,
+                 rules: kids.slice(0, -1).filter((k) => getComputedStyle(k).borderBottomWidth === "1px").length, lastRule: kids.length ? getComputedStyle(kids[kids.length - 1]).borderBottomWidth : null }; }));
+      check("(f) Settings' rows sit in groups: each a soft box on the wash, the rows inside on a fine rule, the last with none",
+        groups.length >= 3 && groups.reduce((n, g) => n + g.n, 0) >= 8 && groups.every((g) => g.bg === WASH && g.radius === "12px" && g.own === 0 && g.rules === g.n - 1 && g.lastRule === "0px"), JSON.stringify(groups).slice(0, 300));
       const view = page.locator('[data-tour="settings-view"]');
       if (await view.count()) {
         await view.first().click(); await page.waitForTimeout(600);
-        const open = await page.evaluate(() => { const r = document.querySelector('[data-tour="settings-view"]'); if (!r) return null; const inner = [...r.querySelectorAll("div")].find((d) => getComputedStyle(d).backgroundColor === "rgb(255, 255, 255)"); return { row: getComputedStyle(r).backgroundColor, options: inner ? "surface" : null }; });
+        const open = await page.evaluate(() => { const r = document.querySelector('[data-tour="settings-view"]'); if (!r) return null; const inner = [...r.querySelectorAll("div")].find((d) => getComputedStyle(d).backgroundColor === "rgb(255, 255, 255)"); const g = r.closest(".nsc-group"); return { row: getComputedStyle(g || r).backgroundColor, options: inner ? "surface" : null }; });
         await shot("05-settings-open");
         check("(g) a Settings row that unfolds keeps the wash and lays its options on the surface, so the open list reads inside the row", !!open && open.row === WASH && open.options === "surface", JSON.stringify(open));
         await view.first().click(); await page.waitForTimeout(400);

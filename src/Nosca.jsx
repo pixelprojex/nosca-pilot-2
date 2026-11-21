@@ -22,6 +22,14 @@ export const LIST_CSS = `    .nsc-list { border: none !important; padding-bottom
     /* a row that is one button sinks onto its foot under the finger (the one press, data-down) */
     .nsc-list > button[data-down]:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 var(--lip, rgba(0,0,0,.08)); transition: none; opacity: 1; }
     .nsc-list > *:last-child { margin-bottom: 0; }
+    /* SETTINGS IN GROUPS (21 November): a group of rows is one soft box on
+       its foot, the rows inside on a fine rule — iOS's grouped list, and
+       Lares's own More sheet — where it was twenty slabs down the page */
+    .nsc-group { background: var(--wash); border-radius: 12px; box-shadow: 0 2px 0 var(--lip, rgba(0,0,0,.08)); overflow: hidden; }
+    .nsc-group > * { background: transparent; padding-left: 14px !important; padding-right: 14px !important;
+                     border-bottom: 1px solid var(--group-rule, rgba(0,0,0,.08)) !important; border-radius: 0; }
+    .nsc-group > *:last-child { border-bottom: 0 !important; }
+    .nsc-group > .nsc-flush { padding: 0 !important; }
     /* a swipeable row pads its sliding surface, not the box, so the
        red action behind it never peeks out at the edges */
     .nsc-list > .nsc-swipe { padding: 0 !important; overflow: hidden; }
@@ -17442,7 +17450,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
         {shown.map((g, gi) => (
           <React.Fragment key={g.title || "end"}>
             {g.title && <Eyebrow>{g.title}</Eyebrow>}
-            <div className="px-6 mb-6" data-tour={g.tour}><Ruled>
+            <div className="px-6 mb-6" data-tour={g.tour}><div className="nsc-group" data-group="">
               {g.rows.map((r, i) => r.custom
                 ? <div key={r.label} className="nsc-flush" data-tour={r.tour}>{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
@@ -17454,7 +17462,7 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                           the red bin is a warning, not decoration. */
                        icon={r.danger ? <Trash2 size={17} color={DANGER} strokeWidth={1.6} /> : undefined}
                        onToggle={r.onTap} />)}
-            </Ruled></div>
+            </div></div>
           </React.Fragment>
         ))}
 
@@ -21518,7 +21526,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           it has throughout design. In the product it simply fills the
           screen. */}
       <div className={demo ? "min-h-screen w-full flex flex-col items-center py-6 px-3" : "w-full"}
-           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
+           style={{ "--rule-hair": HAIR(theme.ink, 0.14), "--rule-section": HAIR(theme.ink, 0.24), "--surface": theme.surface, "--wash": theme.wash, "--edge": EDGE(theme), "--lip": SOFT_LIP(theme), "--group-rule": MIX(theme.wash, theme.mark || theme.accent || theme.ink, 0.12), "--faint": theme.faint, "--tint": TINT(theme), "--tint-lip": TINT_LIP(theme),
                     ...(demo ? { background: "#0B0F0C" } : sc ? { background: theme.page, width: 390, height: 780, overflow: "hidden" } : { background: theme.page }) }}>
         {demo && (
         <div className="flex flex-col items-center mb-4">

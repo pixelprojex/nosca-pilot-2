@@ -308,6 +308,15 @@ seeded data and no account.
     (`FilterRow inset` in `.nsc-flush`), where it was the one rimmed card
     on a screen of stone and wash. `scripts/e2e/keys.cjs`,
     `boxes.cjs` (n2), (r1), (r2), (s2)–(s10).
+  - **Settings sits in groups.** Each group of Settings' rows is one
+    soft box on the wash (`.nsc-group`: 12px corners, the soft foot),
+    the rows inside on a fine rule a step deeper than the wash
+    (`--group-rule`), the last with none — iOS's grouped list and Lares's
+    own More sheet; it was twenty slabs down the page, the least
+    streamlined screen in the app. A row that unfolds still lays its
+    options on the surface inside the group. Only Settings is grouped:
+    the bell, Chat, the roster and the day's rows keep a box per item,
+    the founder's word. `ease.cjs` (f), (g).
   - **The tab bar is the icon alone** (23px, the word its `aria-label`),
     the highlight a 50 × 38 capsule round it on a faint lip; **the raised
     plus is the big plus on the bar's swell, exactly as it was**, level
