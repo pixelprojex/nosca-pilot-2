@@ -1586,7 +1586,15 @@ seeded data and no account.
   lessons `row`, then `block`); the lesson page's note, reply and tip on
   `TYPE.title` (they were private 17, 17 and 21); the drill library's
   Area row on its rule; the log's focus tiles 52, as Drills · Tip are.
-  `sprint-3.cjs` (l).
+  `sprint-3.cjs` (l). On 21 November: the group page's members are the
+  roster's own rows — where each one stands on the grey line in its
+  tone, the level on the right (`rosterStanding()`, one function the
+  roster and the group route both call; it was built inside the
+  roster's branch) — and the family screen's "No children yet" is the
+  same left line in the small size. The recurring manager's End stays a
+  word key (R.control, 40, the key's lip): a key repeated down a list is
+  the list's, where the sheets' End and Call off are the sheet's
+  `Button`. `sprint-3.cjs` (m).
 - **14 November, from the sprint's audit (the second batch of the
   day).** The offline strip's words and glyph are the ink on the
   caution colour (white read 2.86:1); Away's line is `t.sub`, the red
