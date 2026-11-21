@@ -231,26 +231,42 @@ seeded data and no account.
     thread), the line under it 14; the lesson page's note and the
     coach's reply are 20 regular (`TYPE.section`'s size — at the title's
     22 a paragraph read as a heading), the tip's title `TYPE.title`.
-  - **Colour in its places, as iOS draws it.** A Settings row leads with
-    its glyph in white on a rounded square of a fixed colour (`IconSq`,
-    `SETTINGS_GLYPHS`; the Drills tab's Reminder row is Settings' own
-    shape), and so do the plus sheet's eight (`COACH_ACTIONS[].hue`, Call
-    off's square red), the home's Actions and All lessons, the player
-    file's foot rows and the Calendar view's Away and call-off rows; the
-    player file's round keys, the peek's and the log's Video · Photo ·
-    Voice carry the glyph in a colour of `IOS` (each deep enough for 3:1
-    on white — iOS's own orange and mint were deepened to `#DC7400` and
-    `#009E94`). A face with no picture is a gradient of one of seven hues
-    fixed by the name (`faceHue`), white initials, as Contacts and every
-    messenger draw one. This supersedes "Settings rows carry no glyph at
-    all"; a focus area, a level and an option still carry none.
-  - **Chat is Messages.** The list is plain (`.nsc-plain`): a 54 face,
-    the name 17/600, two lines of the last message in the sub grey, the
-    time and the unread dot in the sport's colour, a separator inset
-    from the face — no box per thread. A thread's bubbles are 20px
-    round, mine the sport's colour with white words, theirs `#E9E9EB`
-    with black, at 17; the composer a white pill on a `#D1D1D6` line, the
-    send disc the sport's colour once there are words.
+  - **Colour in its places, as iOS lays it out — in Nosca's own
+    palette, with Nosca's own twist.** A Settings row leads with its
+    glyph in white on a coloured tile (`IconSq`, `SETTINGS_GLYPHS`; the
+    Drills tab's Reminder row is Settings' own shape), and so do the plus
+    sheet's eight (`COACH_ACTIONS[].hue`, Call off's tile red), the
+    home's Actions and All lessons, the player file's foot rows and the
+    Calendar view's Away and call-off rows; the player file's round keys,
+    the peek's and the log's Video · Photo · Voice carry the glyph in a
+    colour of the palette. That evening the founder: "I'm loving this iOS
+    style, but just make sure we're not copying it exactly, that's the
+    only thing. So it's our own personal twist on it." So the colours are
+    never Apple's system blue, pink and purple: `HUE` is the app's own —
+    the six sports' colours (golf's green, tennis' teal, rowing's blue,
+    squash's orange, padel's purple, equestrian's wine), the brand's
+    bottle green, a slate with the green in it (`#5E6B65`), a warm gold
+    (`#A66A10`) for a star, a tip or a trophy, and the app's red for a
+    warning — deeper and calmer than Apple's, a white glyph on each at
+    4.5:1 and over. A tile's corner is softer than Apple's (a third of its
+    side), and it stands on a two-point ledge of its own colour made
+    deeper (`LIP`) — the 3D the keys and the cards stand on, so the
+    smallest coloured thing in the app is a Nosca object. A face with no
+    picture is one of the palette's colours fixed by the name, lit a
+    little from the top (`faceHue`), white initials. This supersedes
+    "Settings rows carry no glyph at all"; a focus area, a level and an
+    option still carry none.
+  - **Chat is Messages' shape, Nosca's own.** The list is plain
+    (`.nsc-plain`): a 54 face, the name 17/600, two lines of the last
+    message in the sub grey, the time and the unread dot in the sport's
+    colour, a separator inset from the face — no box per thread. A
+    thread's bubbles are 20px round with an 8px tail corner, mine the
+    sport's colour with white words, theirs the app's grey (`t.wash`)
+    with black, at 17, each standing on a two-point ledge of itself made
+    deeper — Apple's bubbles stand on nothing; the composer a white pill
+    on a `#D1D1D6` line, the send disc the sport's colour once there are
+    words, and the field gives way on a narrow phone, never the mic or
+    Send.
   - **Less text.** A subtitle the screen already shows goes (the
     roster's count, the Drills tab's "2 to do" — its unticked rows say
     it); a person row's face is 44 (`PERSON_FACE`, Chat's 54); a grey

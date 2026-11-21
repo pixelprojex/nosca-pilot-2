@@ -451,12 +451,20 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
 export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E2E2E7");
 /* a control whose outline is all it has (a tick box) keeps a line that reads 3:1 */
 export const LINE_STRONG = "#8E8E93";
-/* COLOUR IN ITS PLACES (21 November). The founder: "A bit more color in
-   places to make it look more realistic. Take reference from iOS". iOS's
-   fixed colours, each deep enough that a white glyph on it reads 3:1 and
-   over — Settings' rounded squares, the actions' glyphs, never a tint. */
-export const IOS = { blue: "#007AFF", green: "#2DA44E", orange: "#DC7400", red: "#FF3B30", purple: "#AF52DE",
-  pink: "#FF2D55", teal: "#1F9BB3", indigo: "#5856D6", grey: "#8E8E93", mint: "#009E94", cyan: "#1C9BD8", brown: "#A2845E" };
+/* COLOUR IN ITS PLACES, IN NOSCA'S OWN PALETTE (21 November). The
+   founder: "A bit more color in places to make it look more realistic.
+   Take reference from iOS" — and that evening, "I'm loving this iOS
+   style, but just make sure we're not copying it exactly … our own
+   personal twist on it". So the glyph squares, the actions' glyphs and
+   the faces are coloured as iOS colours them, but never in Apple's
+   system blue, pink and purple: in the app's own fixed colours — the six
+   sports' (golf's green, tennis' teal, rowing's blue, squash's orange,
+   padel's purple, equestrian's wine), the brand's bottle green, a slate
+   with the green in it, a warm gold, and the app's red. Deeper and
+   calmer than Apple's, and every one carries a white glyph at 4.5:1 and
+   over. (DANGER and BRAND are written out: they are declared below.) */
+export const HUE = { green: "#207A30", teal: "#01836E", blue: "#1B74A1", orange: "#C74B17", purple: "#6536B6",
+  wine: "#8C2941", brand: "#123C30", slate: "#5E6B65", gold: "#A66A10", red: "#C4342A" };
 export const EDGE_W = 1.5;
 /* THE LIP (18 November). The founder: the buttons, tiles and boxes
    "Duolingo style … that we have already done with the Lares app, where
@@ -3667,13 +3675,13 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       </Button>
 
       {/* three to a row, two rows */}
-      {(() => { const acts = [{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null, hue: IOS.blue },
-          { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null, hue: IOS.cyan },
-          onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register", hue: IOS.green } : null,
+      {(() => { const acts = [{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null, hue: HUE.blue },
+          { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null, hue: HUE.blue },
+          onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register", hue: HUE.green } : null,
           /* a move where the project can move (one write, the player told),
              else the cancel path it always was; a group's lesson has no
              Move at all — it opened the Cancel sheet beside Cancel */
-          (onMove || !isGroup) ? { Ico: CalendarDays, lbl: tr("Move"), act: onMove || onCancel, tone: null, tour: "peek-move", hue: IOS.indigo } : null,
+          (onMove || !isGroup) ? { Ico: CalendarDays, lbl: tr("Move"), act: onMove || onCancel, tone: null, tour: "peek-move", hue: HUE.purple } : null,
           { Ico: CalendarX,    lbl: tr("Call off"), act: onWeather, tone: DANGER },
           { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean);
         return (
@@ -4708,18 +4716,18 @@ function SwipeRow({ children, onDelete, label, deleteLabel }) {
    name, one glyph, and both surfaces read this. It is also what the
    edit screen lists, so a coach can take off what they never use. */
 const COACH_ACTIONS = {
-  log:     { Ico: Plus,          label: "Log",        hue: "#2DA44E" },
-  attend:  { Ico: Check,         label: "Register",   hue: "#2DA44E" },
-  capture: { Ico: Camera,        label: "Capture",    hue: "#007AFF" },
-  tip:     { Ico: Lightbulb,     label: "Tip",        hue: "#DC7400" },
-  drills:  { Ico: ListChecks,    label: "Drills",     hue: "#AF52DE" },
-  player:  { Ico: UserPlus,      label: "Add player", hue: "#1F9BB3" },
-  group:   { Ico: Users,         label: "New group",  hue: "#5856D6" },
+  log:     { Ico: Plus,          label: "Log",        hue: HUE.green },
+  attend:  { Ico: Check,         label: "Register",   hue: HUE.green },
+  capture: { Ico: Camera,        label: "Capture",    hue: HUE.blue },
+  tip:     { Ico: Lightbulb,     label: "Tip",        hue: HUE.gold },
+  drills:  { Ico: ListChecks,    label: "Drills",     hue: HUE.purple },
+  player:  { Ico: UserPlus,      label: "Add player", hue: HUE.teal },
+  group:   { Ico: Users,         label: "New group",  hue: HUE.brand },
   /* Message was here; a coach opens Chat for that. Calling lessons off
      is the one thing they need in a hurry, so it took the slot: a
      calendar with an X, in red, one of the eight under Log a lesson. */
-  weather: { Ico: CalendarX,     label: "Call off",   hue: "#FF3B30" },
-  comp:    { Ico: Trophy,        label: "Competition", hue: "#DC7400" },
+  weather: { Ico: CalendarX,     label: "Call off",   hue: HUE.red },
+  comp:    { Ico: Trophy,        label: "Competition", hue: HUE.wine },
 };
 const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "weather", "comp"];
 
@@ -9096,38 +9104,45 @@ function MiniPlayer({ clip, onClose, onExpand }) {
     </div>
   );
 }
-const FACE_HUES = [["#FF8A7A", "#E5484D"], ["#FFB35C", "#DC7400"], ["#A394FF", "#6E5BEF"], ["#6FD18B", "#2DA44E"],
-                   ["#4FD1C5", "#1A9BA8"], ["#5AB2FF", "#1F7AE0"], ["#F791C6", "#D9488F"]];
+/* a face with no picture takes one of Nosca's own colours, fixed by the
+   name, lit a little from the top — a messenger's coloured disc in the
+   app's palette, never Apple's or Telegram's pastels */
+const FACE_HUES = [HUE.green, HUE.teal, HUE.blue, HUE.orange, HUE.purple, HUE.wine, HUE.gold];
 const faceHue = (name) => {
   let h = 0; for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const [a, b] = FACE_HUES[h % FACE_HUES.length];
-  return `linear-gradient(180deg, ${a} 0%, ${b} 100%)`;
+  const c = FACE_HUES[h % FACE_HUES.length];
+  return `linear-gradient(180deg, ${MIX(c, "#FFFFFF", 0.14)} 0%, ${c} 100%)`;
 };
-/* SETTINGS AS iOS DRAWS IT: every row leads with its own coloured square,
-   so a row is found by colour before it is read (21 November; the rows
-   carried no glyph for a long time, "Settings rows carry no glyph at all") */
+/* SETTINGS AS iOS LAYS IT OUT, IN NOSCA'S COLOURS: every row leads with
+   its own coloured square, so a row is found by colour before it is read
+   (21 November; the rows carried no glyph for a long time, "Settings rows
+   carry no glyph at all") — the squares in the app's own palette (HUE) */
 const SETTINGS_GLYPHS = {
-  "Default view": [LayoutGrid, "#5856D6"], "Opens on": [LayoutGrid, "#5856D6"], "Reminder": [Bell, "#FF3B30"],
-  "Reviews": [Star, "#DC7400"], "Review prompt": [Star, "#DC7400"], "Paperwork": [FileText, "#8E8E93"],
-  "Requests": [UserPlus, "#007AFF"], "Hours": [Clock, "#2DA44E"], "Away": [Plane, "#1C9BD8"],
-  "Roster & groups": [Users, "#5856D6"], "Shortcuts": [Grid3X3, "#1F9BB3"], "Drills": [ListChecks, "#AF52DE"],
-  "Lesson logs": [Film, "#FF2D55"], "Downloads": [Download, "#007AFF"], "Calendar": [CalendarDays, "#FF3B30"],
-  "Branding": [Palette, "#AF52DE"], "Invite code": [QrCode, "#009E94"], "This month": [BarChart3, "#1F9BB3"],
-  "Family": [Home, "#2DA44E"], "Your coach": [User, "#007AFF"], "Coaches & profiles": [User, "#007AFF"],
-  "Notifications": [Bell, "#FF3B30"], "Data & permissions": [ShieldCheck, "#8E8E93"], "Photo": [Camera, "#8E8E93"],
-  "Personal details": [User, "#8E8E93"], "Your sporting record": [Trophy, "#DC7400"], "Connections": [Link2, "#5856D6"],
-  "Walkthrough": [Compass, "#2DA44E"], "Add to Home Screen": [Smartphone, "#007AFF"], "Attendance": [ClipboardCheck, "#2DA44E"],
-  "Register": [ClipboardCheck, "#2DA44E"], "Contact us": [Mail, "#007AFF"], "Terms": [FileText, "#8E8E93"],
-  "Privacy": [Lock, "#8E8E93"], "Licences": [FileText, "#8E8E93"], "Version": [Info, "#8E8E93"], "Sync": [RefreshCw, "#2DA44E"],
-  "Sound": [Volume2, "#FF2D55"], "Haptics": [Vibrate, "#AF52DE"], "Reduce motion": [Accessibility, "#007AFF"],
-  "Sign out": [LogOut, "#8E8E93"], "Delete account": [Trash2, "#FF3B30"], "Password": [Lock, "#8E8E93"],
-  "Set yourself up": [Compass, "#1F9BB3"], "Setup": [Compass, "#1F9BB3"],
+  "Default view": [LayoutGrid, HUE.purple], "Opens on": [LayoutGrid, HUE.purple], "Reminder": [Bell, HUE.wine],
+  "Reviews": [Star, HUE.gold], "Review prompt": [Star, HUE.gold], "Paperwork": [FileText, HUE.slate],
+  "Requests": [UserPlus, HUE.blue], "Hours": [Clock, HUE.green], "Away": [Plane, HUE.blue],
+  "Roster & groups": [Users, HUE.brand], "Shortcuts": [Grid3X3, HUE.teal], "Drills": [ListChecks, HUE.purple],
+  "Lesson logs": [Film, HUE.brand], "Downloads": [Download, HUE.blue], "Calendar": [CalendarDays, HUE.wine],
+  "Branding": [Palette, HUE.purple], "Invite code": [QrCode, HUE.teal], "This month": [BarChart3, HUE.teal],
+  "Family": [Home, HUE.green], "Your coach": [User, HUE.blue], "Coaches & profiles": [User, HUE.blue],
+  "Notifications": [Bell, HUE.wine], "Data & permissions": [ShieldCheck, HUE.slate], "Photo": [Camera, HUE.slate],
+  "Personal details": [User, HUE.slate], "Your sporting record": [Trophy, HUE.gold], "Connections": [Link2, HUE.brand],
+  "Walkthrough": [Compass, HUE.green], "Add to Home Screen": [Smartphone, HUE.blue], "Attendance": [ClipboardCheck, HUE.green],
+  "Register": [ClipboardCheck, HUE.green], "Contact us": [Mail, HUE.blue], "Terms": [FileText, HUE.slate],
+  "Privacy": [Lock, HUE.slate], "Licences": [FileText, HUE.slate], "Version": [Info, HUE.slate], "Sync": [RefreshCw, HUE.green],
+  "Sound": [Volume2, HUE.wine], "Haptics": [Vibrate, HUE.purple], "Reduce motion": [Accessibility, HUE.blue],
+  "Sign out": [LogOut, HUE.slate], "Delete account": [Trash2, HUE.red], "Password": [Lock, HUE.slate],
+  "Set yourself up": [Compass, HUE.teal], "Setup": [Compass, HUE.teal],
 };
 const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? <IconSq Icon={g[0]} bg={g[1]} size={30} /> : null; };
-/* iOS's rounded glyph square: a fixed colour, the glyph in white */
+/* THE GLYPH TILE, NOSCA'S TWIST ON iOS's SQUARE: one of the app's own
+   colours, the glyph in white, a softer corner than Apple's, and standing
+   on a two-point ledge of its own colour made deeper — the same 3D the
+   keys and the cards stand on, so even the smallest coloured thing in the
+   app is a Nosca object, not a copy of Settings */
 const IconSq = ({ Icon, bg, size = 30 }) => (
   <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0"
-        style={{ width: size, height: size, borderRadius: Math.round(size * 0.27), background: bg }}>
+        style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: bg, boxShadow: `0 2px 0 ${LIP(bg)}` }}>
     <Icon size={Math.round(size * 0.56)} color="#FFFFFF" strokeWidth={2.2} />
   </span>
 );
@@ -13067,15 +13082,15 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {(() => {
           const jobs = [
             /* a clip a player sent and the coach has not looked at yet */
-            toReview.length > 0 && { glyph: [VideoIcon, IOS.purple], key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
+            toReview.length > 0 && { glyph: [VideoIcon, HUE.purple], key: "review", tour: "today-review", label: tr("To review"), n: toReview.length,
               go: () => onReview && onReview() },
-            toLog.length > 0 && { glyph: [Pencil, IOS.orange], key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
+            toLog.length > 0 && { glyph: [Pencil, HUE.orange], key: "write", tour: "today-writeup", label: tr("To log"), n: toLog.length,
               go: () => (onWriteUp ? onWriteUp() : push("unlogged")) },
-            (requests || []).length > 0 && { glyph: [UserPlus, IOS.blue], key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
+            (requests || []).length > 0 && { glyph: [UserPlus, HUE.blue], key: "join", tour: "today-requests", label: tr("Join requests"), n: requests.length,
               go: () => push("requests") },
-            unread > 0 && { glyph: [MessageCircle, IOS.green], key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
-            drifting > 0 && { glyph: [Hourglass, IOS.red], key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
-            events.length > 0 && { glyph: [Trophy, IOS.orange], key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
+            unread > 0 && { glyph: [MessageCircle, HUE.green], key: "msg", label: tr("Messages"), n: unread, go: () => go("messages") },
+            drifting > 0 && { glyph: [Hourglass, HUE.wine], key: "drift", label: tr("Drifting"), n: drifting, go: () => push("atrisk") },
+            events.length > 0 && { glyph: [Trophy, HUE.gold], key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
           /* the kinds of thing here; past two, a row of tiles narrows the list */
@@ -13120,7 +13135,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
         {lessonCount > 0 && (
           <Ruled style={{ marginBottom: SPACE.section }}>
             <HomeRow boxed tour="today-archive" label={tr("All lessons")} value={String(lessonCount)} onPress={() => push("archive")}
-                     icon={<IconSq Icon={Film} bg={IOS.indigo} />} />
+                     icon={<IconSq Icon={Film} bg={HUE.brand} />} />
           </Ruled>
         )}
 
@@ -13940,11 +13955,11 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* what was taken — one tap opens the camera itself */}
           <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid>
-              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} hue={IOS.red} label={tr("Video")} count={videos.length}
+              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} hue={HUE.red} label={tr("Video")} count={videos.length}
                        onTap={() => (live ? pickFiles("video/*") : setCam(true))} />
-              <ActTile h={76} iconOnly Icon={Camera} hue={IOS.blue} label={tr("Photo")} count={photos.length}
+              <ActTile h={76} iconOnly Icon={Camera} hue={HUE.blue} label={tr("Photo")} count={photos.length}
                        onTap={() => (live ? pickFiles("image/*") : addPhoto("action"))} />
-              <ActTile h={76} iconOnly={rec !== "recording"} Icon={Mic} hue={IOS.orange} on={rec === "recording"} count={voice ? 1 : 0}
+              <ActTile h={76} iconOnly={rec !== "recording"} Icon={Mic} hue={HUE.orange} on={rec === "recording"} count={voice ? 1 : 0}
                        label={rec === "recording" ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : tr("Voice")}
                        aria={tr("Voice note")}
                        onTap={() => { if (!live) { addPhoto("voice"); return; } if (!cap.supported) { hapticWarn(); return; } if (rec === "recording") stopVoice(); else startVoice(); }} />
@@ -14449,9 +14464,9 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               anything they have to read */}
           <div data-tour="player-actions" style={{ marginBottom: SPACE.block }}>
             <TileGrid cols={4}>
-              <ActTile h={82} Icon={MessageCircle} hue={IOS.green} label={tr("Message")} onTap={() => push("thread:" + (r.id || name))} />
-              <ActTile h={82} Icon={Lightbulb} hue={IOS.orange} label={tr("Tip")} onTap={() => assignTip(r.id ? r : name, null)} />
-              <ActTile h={82} Icon={ListChecks} hue={IOS.purple} label={tr("Drills")} onTap={() => assignDrills(r.id ? r : name, null)} />
+              <ActTile h={82} Icon={MessageCircle} hue={HUE.green} label={tr("Message")} onTap={() => push("thread:" + (r.id || name))} />
+              <ActTile h={82} Icon={Lightbulb} hue={HUE.gold} label={tr("Tip")} onTap={() => assignTip(r.id ? r : name, null)} />
+              <ActTile h={82} Icon={ListChecks} hue={HUE.purple} label={tr("Drills")} onTap={() => assignDrills(r.id ? r : name, null)} />
               <ActTile h={82} Icon={Plus} label={tr("Log")} tone="accent" onTap={() => onLog && onLog(r.id ? r : { name })} />
             </TileGrid>
           </div>
@@ -14500,7 +14515,7 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               lessons is on the home and the roster — it was a button */}
           {past.length > 0 && (
             <div className="nsc-list" style={{ marginBottom: SPACE.block }}>
-              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} icon={<IconSq Icon={Film} bg={IOS.indigo} />}
+              <HomeRow boxed tour="player-all-lessons" label={tr("All lessons")} value={String(live ? f.done : past.length)} icon={<IconSq Icon={Film} bg={HUE.brand} />}
                        onPress={() => { onAllLessons ? onAllLessons() : push("history:" + (r.id || name)); }} />
             </div>
           )}
@@ -14529,8 +14544,8 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
               ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
               <button key={lbl} data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 56 }}>
-                {lbl === tr("Progress") ? <IconSq Icon={TrendingUp} bg={IOS.green} /> : lbl === tr("Notes") ? <IconSq Icon={Pencil} bg={IOS.orange} />
-                  : lbl === tr("Recurring lessons") ? <IconSq Icon={Repeat} bg={IOS.indigo} /> : <IconSq Icon={Trophy} bg={IOS.orange} />}
+                {lbl === tr("Progress") ? <IconSq Icon={TrendingUp} bg={HUE.green} /> : lbl === tr("Notes") ? <IconSq Icon={Pencil} bg={HUE.orange} />
+                  : lbl === tr("Recurring lessons") ? <IconSq Icon={Repeat} bg={HUE.blue} /> : <IconSq Icon={Trophy} bg={HUE.gold} />}
                 <span className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
                 {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
                 {!val && <span className="flex-1" />}
@@ -15721,7 +15736,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
               words, under the list */}
           {onAll && (
             <div className="px-6 pt-3"><div className="nsc-list">
-              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} icon={<IconSq Icon={ListChecks} bg={IOS.purple} />} />
+              <HomeRow boxed tour="drills-all" label={tr("All drills")} value={String(items.length)} onPress={onAll} icon={<IconSq Icon={ListChecks} bg={HUE.purple} />} />
             </div></div>
           )}
         </>
@@ -16174,7 +16189,7 @@ function AwayLine({ role, name, booked = 0, onEdit }) {
        at 8px) — its glyph Settings' Away, its line in the label grey */
     <div className="nsc-list mb-4">
       <div data-tour="cal-away" className="flex items-center gap-3.5" style={{ minHeight: 62 }}>
-        <IconSq Icon={Plane} bg={IOS.cyan} />
+        <IconSq Icon={Plane} bg={HUE.blue} />
         <span className="flex-1 min-w-0">
           <span className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{tr("Away")}</span>
           <span className="block truncate" style={{ ...TYPE.small, color: t.sub }}>{booked ? `${booked} ${booked === 1 ? tr("lesson still booked") : tr("lessons still booked")}` : tr("Nothing offered")}</span>
@@ -16625,7 +16640,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                 {/* a calendar with an X on the plus's red square: a coach calls
                     off for a closed course as often as for rain. The list's white
                     card, sinking under the finger (21 November; the wash at 8px) */}
-                <IconSq Icon={CalendarX} bg={IOS.red} />
+                <IconSq Icon={CalendarX} bg={HUE.red} />
                 <span className="flex-1 text-left" style={{ ...TYPE.body, color: t.ink }}>
                   {mo.idx === T.m && sel === T.d ? tr("Call today off") : `${tr("Call off")} ${DAY_NAMES[dowOf(mo.idx, sel, cx)].slice(0, 3)} ${sel}`}
                 </span>
@@ -17006,7 +17021,13 @@ function ThreadBubble({ m, mine, end, live }) {
   const body = m.id ? ((readMsg(m.id) || {}).text || m.text) : m.text;
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`} style={{ marginBottom: end ? SPACE.tight : SPACE.knit }}>
-      <div className="px-4 py-2" style={{ maxWidth: "78%", borderRadius: 20, background: mine ? t.accent : "#E9E9EB", border: "none", borderBottomRightRadius: mine && end ? 8 : 20, borderBottomLeftRadius: !mine && end ? 8 : 20 }}>
+      {/* Messages' shape, Nosca's own: mine the sport's colour, theirs the
+          app's grey, each standing on a two-point ledge of itself made
+          deeper — the 3D every key and card in the app stands on — so a
+          thread is the app's and not a copy of Apple's (the founder, on the
+          iOS look: "our own personal twist on it") */}
+      <div className="px-4 py-2" style={{ maxWidth: "78%", borderRadius: 20, background: mine ? t.accent : t.wash, border: "none", borderBottomRightRadius: mine && end ? 8 : 20, borderBottomLeftRadius: !mine && end ? 8 : 20,
+                                          boxShadow: `0 2px 0 ${mine ? LIP(t.accent) : EDGE(t)}`, marginBottom: 2 }}>
         {/* who wrote it, inside the bubble — on every bubble of a
             parent's run, so no line of theirs ever reads as the child's
             or the coach's, however it is cropped */}
