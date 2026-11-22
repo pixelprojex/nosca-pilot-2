@@ -3519,7 +3519,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
                 <React.Fragment key={j}>
                   {j > 0 && " "}
                   <span style={{ whiteSpace: part.length <= FACT_MAX ? "nowrap" : "normal" }}>
-                    {j > 0 && <span aria-hidden="true" data-sep="" style={{ marginRight: "0.3em" }}>·</span>}
+                    {j > 0 && <span aria-hidden="true" data-sep="" style={{ whiteSpace: "pre" }}>{"· "}</span>}
                     {part}
                   </span>
                 </React.Fragment>
