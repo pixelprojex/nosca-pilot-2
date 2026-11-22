@@ -401,20 +401,36 @@ const metaOf = (page, title) => page.evaluate((title) => {
     /* ---------- the parent: the child's screen ---------- */
     {
       const { ctx, page, text, shot } = await boot("parent");
+      /* the switcher of a parent with no coach of her own: Add a coach opens the next step */
+      await tap(page, '[data-tour="profile-pill"]', 900);
+      const addCoach = await page.evaluate(() => { const b = [...document.querySelectorAll("[data-sheet] button")].find((x) => x.textContent.trim() === "Add a coach"); return b ? { chevron: !!b.querySelector("svg.lucide-chevron-right"), square: !!b.querySelector("svg.lucide-user-plus") } : null; });
+      check("(n0) the switcher's Add a coach carries the chevron, as Photos, Family, Progress and Settings beside it do — it opens the next step", !!addCoach && addCoach.chevron && addCoach.square, JSON.stringify(addCoach));
+      await closeSheet(page);
       await tap(page, '[aria-label="Family"]', 900);
       await page.locator("button", { hasText: "Saoirse" }).first().click(); await page.waitForTimeout(1000);
       const kid = await audit(page, '[data-scroll="screen"]', EDGE.golf);
       const outlines = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] button')]
         .filter((b) => ["Message coach", "Progress"].includes(b.textContent.trim()))
         .map((b) => `${b.textContent.trim()} ${getComputedStyle(b).borderTopWidth} ${getComputedStyle(b).borderTopColor}`));
-      const days = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > button > span:first-child')].map((s) => s.textContent.trim()));
+      /* the lessons' rows and the Next and Drills rows — not the doors under the lessons, which carry a tour */
+      const days = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > button:not([data-tour]) > span:first-child')].map((s) => s.textContent.trim()));
       const t = await text(); await shot("11-family-kid");
       check("(n) the child's Next and Drills and lessons are boxed rows on the edge", fine(kid) && kid.lists >= 2 && /Next/.test(t) && /Ladder drill|1 drill/.test(t), said(kid));
-      const kidKeys = await keysIn(page, '[data-scroll="screen"]', /^(Message coach|Progress)$/);
-      check("(n2) Message coach and Progress are both the white key — the white face on its grey ledge, never the old hairline", kidKeys.length === 2 && isStone(kidKeys), `${JSON.stringify(outlines)} · ${toldK(kidKeys)}`);
+      const kidKeys = await keysIn(page, '[data-scroll="screen"]', /^Message coach$/);
+      check("(n2) Message coach is the white key — the white face on its grey ledge, never the old hairline", kidKeys.length === 1 && isStone(kidKeys), `${JSON.stringify(outlines)} · ${toldK(kidKeys)}`);
+      /* A DOOR IS A ROW, NEVER A BUTTON (22 November): the child's Progress is a HomeRow in a
+         box of its own — its glyph on golf's green square, the chevron — as Progress is on the
+         player's file; it was a 46-tall white key on the control's corner */
+      const door = await page.evaluate(() => {
+        const b = document.querySelector('[data-scroll="screen"] [data-tour="kid-progress"]'); if (!b) return null;
+        const sq = [...b.querySelectorAll("span")].find((s) => s.querySelector("svg.lucide-trending-up"));
+        return { boxed: !!b.parentElement && b.parentElement.classList.contains("nsc-list"), key: b.classList.contains("n-key"), h: Math.round(b.getBoundingClientRect().height),
+                 square: sq ? getComputedStyle(sq).backgroundColor : null, chevron: !!b.querySelector("svg.lucide-chevron-right"), label: b.textContent.trim() };
+      });
+      check("(n5) the child's Progress is a door — a row in a box of its own with its glyph on the green square and the chevron, never a key", !!door && door.boxed && !door.key && door.h >= 56 && door.square === "rgb(32, 122, 48)" && door.chevron && door.label === "Progress", JSON.stringify(door));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
-      const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > * > span:first-child')]
+      const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > :not([data-tour]) > span:first-child')]
         .map((s) => ({ l: s.textContent.trim(), at: Math.round(s.nextElementSibling.getBoundingClientRect().left) })));
       check("(n4) the child's Next and Drills put their values in the lessons' column, one line down the page",
             vcol.length === 4 && vcol.every((c) => Math.abs(c.at - vcol[0].at) <= 1), JSON.stringify(vcol));
@@ -622,6 +638,11 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const prof = await meet(page, '[data-scroll="screen"]', "coach profile");
         const msgK = await keysIn(page, '[data-scroll="screen"]', /^Message$/);
         check("(s5) Message on the coach's profile is the white key (it was the ink at 18%)", msgK.length >= 1 && isStone(msgK), toldK(msgK).slice(0, 300));
+        /* one key family on the screen: Message is the app's Button, as the group page's Message and
+           Submit review under it are — it was hand-drawn at 50 on the control's 10px corner at 15px */
+        const msgB = await page.evaluate(() => { const b = document.querySelector('[data-scroll="screen"] [data-tour="coach-message"]'); if (!b) return null; const cs = getComputedStyle(b);
+          return { lip: b.hasAttribute("data-lip"), h: Math.round(b.getBoundingClientRect().height), radius: cs.borderTopLeftRadius, size: cs.fontSize, weight: cs.fontWeight, glyph: !!b.querySelector("svg.lucide-message-circle") }; });
+        check("(s5b) Message on the coach's profile is the app's Button — 52 tall on the 16px corner at 17/600 with its glyph, Submit review's own key", !!msgB && msgB.lip && msgB.h >= 52 && msgB.radius === "16px" && msgB.size === "17px" && msgB.weight === "600" && msgB.glyph, JSON.stringify(msgB));
         await tap(page, '[data-tour="coach-leave"]', 700);
         const lv = await meet(page, '[data-scroll="screen"]', "leave coach");
         await shot("13-coach-leave-stay");

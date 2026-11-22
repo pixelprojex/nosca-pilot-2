@@ -6478,10 +6478,11 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
   const [leaving, setLeaving] = useState(false);
   const first = (coachName || "").split(" ")[0] || tr("your coach");
 
-  /* "Saved" only once the row is actually there */
+  /* "Saved" only once the row is actually there. The Button buzzes on the
+     tap; a commit pattern on top of it read as two beats */
   const submit = async () => {
     if (!rating || busy) return;
-    hapticCommit(); soft();
+    soft();
     setBusy(true); setErr("");
     const res = await onSubmitReview(rating, comment.trim());
     setBusy(false);
@@ -6500,14 +6501,16 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
             {sport && <span className="mt-3" style={{ ...TYPE.small, color: t.faint }}>{SPORTS[sport]?.label || sport}</span>}
           </div>
 
+          {/* the group page's own Message: the app's white Button with the
+              glyph and the word, one key family with Submit review under it
+              (it was hand-drawn at 50 on the control's corner over the 52-tall
+              Button); the Button buzzes, so the handler does not */}
           {!juvenile && (
-            <button data-tour="coach-message" onClick={() => { haptic(8); soft(); onMessage(); }}
-                    className="w-full flex items-center justify-center gap-2 mb-8 n-key"
-                    style={{ minHeight: 50, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
-                             ...TYPE.subhead, fontSize: 15, color: t.ink }}>
-              <MessageCircle size={15} strokeWidth={1.9} />
-              {tr("Message")}
-            </button>
+            <div className="mb-8">
+              <Button tone="quiet" tour="coach-message" onClick={() => { soft(); onMessage(); }}>
+                <span className="inline-flex items-center justify-center gap-2"><MessageCircle size={18} color={t.ink} strokeWidth={1.9} />{tr("Message")}</span>
+              </Button>
+            </div>
           )}
 
           {!juvenile && (
@@ -6841,7 +6844,7 @@ function JoinedCoach({ coachName, sport, onDone }) {
    what to do. */
 /* Six boxes, one code, with the live lookup: the same control the
    sign-up uses, so the second time someone meets it they know it. */
-function FamilyCodeEntry({ lookup, onJoin, busy, tour }) {
+function FamilyCodeEntry({ lookup, onJoin, busy, tour, onFound }) {
   const t = useT();
   const [code, setCode] = useState("");
   const [found, setFound] = useState(undefined);
@@ -6857,9 +6860,12 @@ function FamilyCodeEntry({ lookup, onJoin, busy, tour }) {
     }, 300);
     return () => { alive = false; clearTimeout(x); };
   }, [clean]);
+  /* the screen around it learns when a code has found a family: Join is
+     then its one action, and Start steps back to the white key */
+  useEffect(() => { onFound && onFound(!!found); }, [found]);
+  /* the Button buzzes on the tap; a commit pattern on top read as two beats */
   const join = async () => {
     setErr("");
-    hapticCommit();
     const res = await onJoin(clean);
     if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
     soft(); setCode("");
@@ -6897,18 +6903,22 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
   const [leaving, setLeaving] = useState(false);
+  /* a code that has found a family makes Join the screen's one action */
+  const [joinable, setJoinable] = useState(false);
   const code = family ? family.code : null;
   const url = code ? joinLink("family", code) : null;
 
+  /* Start and Join are the app's Button, which buzzes on the tap: a commit
+     pattern on top of it read as two beats (three for Join, whose entry
+     buzzed again); a refusal still warns */
   const create = async () => {
-    hapticCommit();
     setBusy(true); setErr("");
     const res = await onCreate(name);
     setBusy(false);
     if (res && res.error) { hapticWarn(); setErr(res.error.message); return; }
     chime();
   };
-  const join = async (c) => { hapticCommit(); setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
+  const join = async (c) => { setBusy(true); const r = await onJoin(c); setBusy(false); return r; };
   const share = async () => {
     if (!code) return;
     haptic(8); soft();
@@ -6937,11 +6947,13 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                   <MicBtn onText={(txt) => setName(name ? `${name} ${txt}` : txt)} size={26} />
                 </div>
                 {err && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
-                <Button tone="ink" disabled={busy} onClick={create}>{busy ? "…" : tr("Start")}</Button>
+                {/* one accent a screen: once a code below has found a family,
+                    Join is the action and Start the white key */}
+                <Button tone={joinable ? "quiet" : "ink"} disabled={busy} onClick={create}>{busy ? "…" : tr("Start")}</Button>
               </Card>
             </>)}
             <Eyebrow>{tr("Join a family")}</Eyebrow>
-            <Card className="p-5 mb-8"><FamilyCodeEntry tour="family-join" lookup={lookup} onJoin={join} busy={busy} /></Card>
+            <Card className="p-5 mb-8"><FamilyCodeEntry tour="family-join" lookup={lookup} onJoin={join} busy={busy} onFound={setJoinable} /></Card>
             <div style={{ height: 26 }} />
           </div>
         </Screen>
@@ -6967,8 +6979,12 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
               <div className="mt-5 flex items-center justify-center gap-2.5">
                 <button onClick={copy} className="inline-flex items-center gap-2 px-5 n-key"
                         style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
+                {/* one accent a screen: while the name is being changed, Save
+                    below is the action and Share steps back to the white key, as Copy */}
                 <button data-tour="family-share" onClick={share} className="inline-flex items-center gap-2 px-5 n-key"
-                        style={{ "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}><Share2 size={14} strokeWidth={2} />{tr("Share")}</button>
+                        style={renaming
+                          ? { minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }
+                          : { "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}><Share2 size={14} strokeWidth={2} />{tr("Share")}</button>
               </div>
             </Card>
           </>)}
@@ -7177,12 +7193,26 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
           </div>
 
           <div className="mb-7 nsc-list">
-            {[[tr("Next"), next ? `${fmtDay(next.date)} · ${next.time}${next.status === "requested" ? ` · ${tr("Requested")}` : ""}` : tr("Nothing booked"), !next],
+            {[[tr("Next"), next ? [fmtDay(next.date), next.time, ...(next.status === "requested" ? [tr("Requested")] : [])] : tr("Nothing booked"), !next],
               /* "All done" is praise; nothing set is not the same thing */
               [tr("Drills"), mineDrills.length === 0 ? tr("None set") : todo ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : tr("All done"), mineDrills.length === 0]].map(([lbl, val, quiet]) => (
               <div key={lbl} className="flex items-baseline gap-3 py-3">
                 <span className="shrink-0" style={{ width: 76, ...TYPE.caption, color: t.faint }}>{lbl}</span>
-                <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: quiet ? t.faint : t.ink }}>{val}</span>
+                {/* the facts are never cut ("Tue 24 Nov · 10:0…" at 320): each is
+                    kept whole and the line breaks only at a dot, which rides
+                    with the next fact and hangs, clipped, off a wrapped line's
+                    start — PersonRow's grey line, so it reads "10:00 am", never
+                    "· 10:00 am"; the inner line hangs into the gap, so the
+                    value's box stays in the lessons' column */}
+                <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: quiet ? t.faint : t.ink }}>
+                  {Array.isArray(val)
+                    ? <span data-facts="" className="block" style={{ marginLeft: `-${SEP_HANG}`, textIndent: SEP_HANG, clipPath: `inset(0 0 0 ${SEP_HANG})` }}>
+                        {val.map((part, i) => (
+                          <React.Fragment key={i}>{i ? " " : ""}<span className="whitespace-nowrap">{i ? <span style={{ display: "inline-block", width: SEP_HANG, whiteSpace: "pre", textIndent: 0 }}>{"· "}</span> : null}{part}</span></React.Fragment>
+                        ))}
+                      </span>
+                    : val}
+                </span>
               </div>
             ))}
           </div>
@@ -7200,17 +7230,22 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
                 </button>
               ))}
             </div>
-            {mine.length > shown.length && (
-              <button onClick={() => { haptic(6); onAllLessons && onAllLessons(); }} className="w-full mb-3 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
-                {tr("All")} {mine.length} {tr("lessons")}
-              </button>
-            )}
-            {onProgress && (
-              <button data-tour="kid-progress" onClick={() => { haptic(6); onProgress(); }} className="w-full mb-7 n-key"
-                      style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>
-                {tr("Progress")}
-              </button>
+            {/* A DOOR IS A ROW, NEVER A BUTTON: the rest of the lessons and the
+                child's Progress are HomeRows, each a box of its own with its
+                glyph on its square, the count as a value and the chevron — as
+                All lessons and Progress are on the player's file and All
+                drills on the Drills tab. They were two white keys, 46 tall on
+                the control's corner under the 52-tall Book · Message pair */}
+            {(mine.length > shown.length || onProgress) && (
+              <div className="nsc-list mb-7">
+                {mine.length > shown.length && (
+                  <HomeRow boxed tour="kid-all-lessons" label={tr("All lessons")} value={String(mine.length)}
+                           icon={<IconSq Icon={Film} bg={HUE.brand} />} onPress={() => onAllLessons && onAllLessons()} />
+                )}
+                {onProgress && (
+                  <HomeRow boxed tour="kid-progress" label={tr("Progress")} icon={<IconSq Icon={TrendingUp} bg={HUE.green} />} onPress={onProgress} />
+                )}
+              </div>
             )}
           </>)}
           <div style={{ height: 26 }} />
@@ -10295,9 +10330,10 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       <div className="mb-4" style={{ minHeight: 44 }}>
         {joinErr && <p className="text-center pt-3" style={{ ...TYPE.small, color: DANGER }}>{joinErr}</p>}
       </div>
+      {/* the Button buzzes on the tap; a commit pattern on top read as two beats */}
       <Button disabled={code.length !== 6 || joining} onClick={async () => {
         if (!onJoinCode) return;
-        hapticCommit(); setJoining(true);
+        setJoining(true);
         const res = await onJoinCode(code);
         setJoining(false);
         if (res && res.error) { hapticWarn(); setJoinErr(res.error.message || tr("Couldn't join that coach.")); return; }
@@ -10366,7 +10402,8 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
           <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<IconSq Icon={Users} bg={HUE.brand} />}
                onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
         )}
-        {!(live && hasCoach) && <Row label={tr("Add a coach")} icon={<IconSq Icon={UserPlus} bg={HUE.blue} />} onToggle={() => setStage(live ? "code" : "sport")} />}
+        {/* it opens the next step, so it carries the chevron Photos, Family, Progress and Settings do */}
+        {!(live && hasCoach) && <Row label={tr("Add a coach")} chevron icon={<IconSq Icon={UserPlus} bg={HUE.blue} />} onToggle={() => setStage(live ? "code" : "sport")} />}
         <Row label={tr("Photos")}  chevron icon={settingsGlyph("Photo")} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
         <Row label={tr("Family")} chevron last={!onSettings && !onProgress} icon={settingsGlyph("Family")} onToggle={() => { close(); onFamily && onFamily(); }} />
         {/* the journey so far, read off the lessons — the player's own
@@ -14823,7 +14860,9 @@ function JuvenileJoin({ sport, onDone, onBack }) {
 /* What kind of thing happened, as one icon. The bell is the fallback so
    a kind nobody has taught this map still draws something. */
 const NOTIF_ICON = { booking: CalendarDays, request: UserPlus, message: MessageCircle, lesson: FileText,
-                     weather: CloudRain, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Star, clip: VideoIcon, practice: ListChecks };
+                     weather: CloudRain, comp: Trophy, drill: ListChecks, tip: Lightbulb, family: Users, rating: Star, clip: VideoIcon, practice: ListChecks,
+                     /* a request answered ("Niamh Byrne accepted you", "… can't take you on") carries the request's glyph */
+                     accepted: UserPlus, declined: UserPlus };
 
 /* Everything a coach has ever logged, searchable. Fifty players over a
    season is a lot of lessons to scroll, so search and filters carry it. */
@@ -18392,12 +18431,15 @@ function PushPrompt({ userId, say }) {
 /* WHAT KIND, IN THE APP'S OWN COLOURS (21 November, "a bit more color in
    places"): the badge on a face and the disc where nobody is named carry
    the kind's glyph in white on one of HUE's — a message green, a request
-   blue, the diary wine, a call-off red, a tip, a rating or a competition
-   gold, a drill, a practice or a clip purple. A kind not taught here is
-   the slate. They were the grey wash with a grey glyph: a badge that all
-   but vanished on the face, and a disc that read as a missing photo. */
+   blue (and its answer, accepted or declined, in the request's colour and
+   glyph: they fell to the slate and the bell), the diary wine, a call-off
+   red, a tip, a rating or a competition gold, a drill, a practice or a
+   clip purple. A kind not taught here is the slate. They were the grey
+   wash with a grey glyph: a badge that all but vanished on the face, and
+   a disc that read as a missing photo. */
 const KIND_HUE = { message: HUE.green, request: HUE.blue, booking: HUE.wine, weather: HUE.red, lesson: HUE.green, tip: HUE.gold,
-                   drill: HUE.purple, practice: HUE.purple, clip: HUE.purple, rating: HUE.gold, comp: HUE.gold, family: HUE.green };
+                   drill: HUE.purple, practice: HUE.purple, clip: HUE.purple, rating: HUE.gold, comp: HUE.gold, family: HUE.green,
+                   accepted: HUE.blue, declined: HUE.blue };
 function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAll,
                        onMarkAllRead, userId, say, faceFor }) {
   const t = useT();

@@ -88,6 +88,19 @@ const { check, results, summary } = M.checker("rating");
          the coach's profile — not a sheet that thanks and forgets */
       check("(h) the line opens the coach's profile, where the review is left for real", /Niamh Byrne/.test(ts) && /Leave a review/.test(ts) && /Submit review/.test(ts) && (await page.locator('[data-tour="coach-review"] button').count()) >= 6, ts.slice(0, 200));
       await shot("04-leave-review");
+      /* ONE TAP, ONE BEAT (22 November): Submit review is the app's Button, which buzzes on the tap; the
+         handler's commit pattern rode on it. Counted from the window's capture of the click to its bubble */
+      await page.locator('[data-tour="coach-review"] button').nth(4).click(); await page.waitForTimeout(300);
+      await page.evaluate(() => {
+        window.__beats = []; window.__inTap = false;
+        window.addEventListener("click", () => { window.__inTap = true; }, true);
+        window.addEventListener("click", () => { window.__inTap = false; }, false);
+        Object.defineProperty(navigator, "vibrate", { configurable: true, value: (p) => { if (window.__inTap) window.__beats.push(p); return true; } });
+      });
+      await page.getByRole("button", { name: "Submit review", exact: true }).click(); await page.waitForTimeout(1000);
+      const sb = await page.evaluate(() => window.__beats);
+      const rv = (db.reviews || []).find((r) => r.player_id === IDS.adult);
+      check("(h2) Submit review buzzes once, the Button's own, and the review is written", sb.length === 1 && !!rv && rv.rating === 5, JSON.stringify({ beats: sb, review: rv && { rating: rv.rating } }));
       await ctx.close();
     }
     /* ---------- a project whose table cannot take the ask ---------- */
