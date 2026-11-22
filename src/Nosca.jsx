@@ -2681,7 +2681,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                     {/* Not going under the group's name, never beside it: at 320
                         beside it cut "Saturday clinic" to "Saturday…" */}
                     <span className="flex-1 min-w-0">
-                      <span data-name="" className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{mn.groupName || coachName || tr("Your coach")}</span>
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{mn.groupName || coachName || tr("Your coach")}</span>
                       {mn.out && <span data-tour="agenda-out" className="block" style={{ ...TYPE.small, color: t.sub }}>{tr("Not going")}</span>}
                     </span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
@@ -2714,9 +2714,11 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                         under its name where the coach reads the day (beside it,
                         the name went to "Satur…" at 320); the peek names them */}
                     <span className="flex-1 min-w-0">
-                      {/* the whole name on a second line before an ellipsis, as every
-                          row's is: it read "Maximiliano Ó Súil…" beside the time at 320 */}
-                      <span data-name="" className="block" style={{ ...TYPE.body, fontSize: 14.5, color: t.ink, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
+                      {/* the whole name on a second line, and a third, before an
+                          ellipsis, as every row's is: it read "Maximiliano Ó Súil…"
+                          beside the time at 320. A row's name at 16/600, as the
+                          home's day rows draw the same lesson (it was 14.5) */}
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
                       {isGroup && bk.outIds && bk.outIds.length > 0 && <span data-tour="agenda-out-count" className="block" style={{ ...TYPE.small, color: t.sub }}>{bk.outIds.length} {tr("not going")}</span>}
                     </span>
                     <ChevronRight size={14} color={t.trace || t.faint} />
@@ -2751,9 +2753,10 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
                     <Rail>{h}</Rail>
-                    {/* an empty row is empty */}
+                    {/* an empty row is empty; its plus, the hour on offer, in the
+                        sport's colour (it was the trace grey, 2.2:1 on white) */}
                     <span className="flex-1" />
-                    <Plus size={15} color={t.trace || t.faint} strokeWidth={2} />
+                    <Plus size={15} color={t.accent} strokeWidth={2.2} />
                   </button>
                 );
               })}
@@ -2858,7 +2861,7 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
      password like the weather call-off does; a player's own does not */
   if (stage === "password") return (
     <ConfirmPassword title={request ? tr("Withdraw request") : tr("Cancel lesson")}
-                     detail={`${lesson}. ${reasonTravels ? tr("They are told straight away with the reason. Confirm with your password.") : tr("They are told straight away. Confirm with your password.")}`}
+                     detail={`${lesson}. ${reasonTravels ? tr("They are told straight away with the reason.") : tr("They are told straight away.")}`}
                      actionLabel={label} closeLabel={tr("Back")}
                      onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(); return { next: true }; }}
                      close={() => setStage(slots.length ? "when" : "why")} />
@@ -2866,16 +2869,19 @@ function CancelLesson({ role, lesson, slots, duration, onDone, close, verify, re
 
   if (stage === "when") return (
     <>
-      <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Offer another time")}</h2>
-      
+      {/* the title stands clear of the times, as a sheet's title does over
+          its first content (it sat 4px over the tiles) */}
+      <h2 className="mb-5" style={{ ...TYPE.title, color: t.ink }}>{tr("Offer another time")}</h2>
       <div className="mb-6">
         <TimeGrid cols={3} times={slots} picked={offer} onToggle={(sl) => setOffer(offer === sl ? null : sl)} />
       </div>
-      <Button tone="danger" onClick={() => { if (verify) { hapticWarn(); setStage("password"); } else finish(); }}>
+      {/* red is the word on the white key until the step that takes it:
+          the password's own red key carries the same words */}
+      <Button tone={verify ? "dangerQuiet" : "danger"} onClick={() => { if (verify) { hapticWarn(); setStage("password"); } else finish(); }}>
         {label}
       </Button>
-      <button onClick={() => { haptic(6); setStage("why"); }} className="w-full mt-3 py-3 active:opacity-50"
-              style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
+      <button onClick={() => { haptic(6); setStage("why"); }} className="w-full mt-2.5 active:opacity-60"
+              style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Back")}</button>
     </>
   );
 
@@ -6707,12 +6713,16 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close, closeLa
 
         <div className="mt-6">
           <span className="block mb-2" style={{ ...TYPE.caption, color: t.faint }}>{tr("Your password")}</span>
+          {/* a field as every field is: the wash on the soft foot (VoiceInput's),
+              a red ring only on a refusal — it was a white box on a 1.29:1
+              line on the white sheet, the one field not on the wash */}
           <input type="password" value={pass} autoFocus
                  onChange={(e) => { setPass(e.target.value); setErr(""); }}
                  onKeyDown={(e) => { if (e.key === "Enter") go(); }}
                  className="w-full outline-none px-4"
-                 style={{ minHeight: 54, borderRadius: R.surface, background: t.surface,
-                          border: `${EDGE_W}px solid ${err ? DANGER : EDGE(t)}`,
+                 style={{ minHeight: 54, borderRadius: R.surface, background: t.wash,
+                          border: `${EDGE_W}px solid ${err ? DANGER : "transparent"}`,
+                          boxShadow: lipOf(SOFT_LIP(t), 2),
                           fontFamily: ui, fontSize: 16, color: t.ink }} />
           {err && <p className="mt-2.5" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
         </div>
@@ -6720,8 +6730,9 @@ function ConfirmPassword({ title, detail, actionLabel, onConfirm, close, closeLa
         <div className="mt-6">
           <Button tone="danger" disabled={busy || !pass} onClick={go}>{busy ? "…" : actionLabel}</Button>
         </div>
+        {/* the one way back, the same on every sheet of this flow */}
         <button onClick={close} className="w-full mt-2.5 active:opacity-60"
-                style={{ minHeight: 48, ...TYPE.body, fontSize: 14.5, color: t.faint }}>
+                style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>
           {closeLabel || tr("Cancel")}
         </button>
       </div>
@@ -7413,7 +7424,7 @@ function SuggestFocus({ cfg, sport, onSend, close }) {
    reason, then the days, then the lessons on them (all ticked; untick
    any that still go ahead), and the coach's password last, because an
    accidental call-off costs a coach their day and their players their
-   evening. Everyone affected is told and offered a new time. */
+   evening. Everyone affected is told. */
 /* ENDING A RECURRING LESSON CANCELS WHAT IT BOOKED. End deleted the
    arrangement and left every lesson it had booked in both diaries, and
    nobody was told. Why first (the coach's cancel reasons), then the
@@ -7435,8 +7446,8 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
   const what = `${rec.who} · ${DAY_NAMES[rec.day]}s ${rec.time}`;
   const finish = (list) => { hapticWarn(); decline(); onConfirm(list, list.length ? why : null); close(); };
   const back = (to) => (
-    <button onClick={() => { haptic(6); setStage(to); }} className="w-full mt-3 py-3 active:opacity-50"
-            style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
+    <button onClick={() => { haptic(6); setStage(to); }} className="w-full mt-2.5 active:opacity-60"
+            style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Back")}</button>
   );
   const head = (title, line) => (<>
     <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{title}</h2>
@@ -7448,15 +7459,16 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
       {head(tr("End"), what)}
       <p className="mb-6" style={{ ...TYPE.body, color: t.faint }}>{tr("Nothing booked ahead")}</p>
       <Button tone="danger" tour="end-confirm" onClick={() => finish([])}>{tr("End it")}</Button>
-      <button onClick={() => { haptic(6); close(); }} className="w-full mt-3 py-3 active:opacity-50"
-              style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Keep it")}</button>
+      <button onClick={() => { haptic(6); close(); }} className="w-full mt-2.5 active:opacity-60"
+              style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep it")}</button>
     </div>
   );
 
   if (stage === "password") return (
     <div data-tour="end-series">
       <ConfirmPassword title={tr("End")}
-                       detail={`${rec.who}. ${n} ${noun} ${tr("will be cancelled.")} ${group ? "" : reasonTravels ? tr("They are told straight away with the reason.") + " " : tr("They are told straight away.") + " "}${tr("Confirm with your password.")}`}
+                       detail={[`${rec.who}.`, `${n} ${noun} ${tr("will be cancelled.")}`,
+                                group ? null : reasonTravels ? tr("They are told straight away with the reason.") : tr("They are told straight away.")].filter(Boolean).join(" ")}
                        actionLabel={`${tr("Cancel")} ${n} ${noun}`} closeLabel={tr("Back")}
                        onConfirm={async (pw) => { const c = await verify(pw); if (c && c.error) return c; finish(picked); return { next: true }; }}
                        close={() => setStage("which")} />
@@ -7482,7 +7494,9 @@ function EndSeries({ rec, rows, duration, group, reasonTravels = true, verify, o
           );
         })}
       </div>
-      <Button tone="danger" tour="end-confirm"
+      {/* the white key with the red word when the password comes next (its
+          own red key says the same words); red whole when this is the last step */}
+      <Button tone={n > 0 && verify ? "dangerQuiet" : "danger"} tour="end-confirm"
               onClick={() => { if (!n) { finish([]); return; } if (verify) { hapticWarn(); setStage("password"); } else finish(picked); }}>
         {n ? `${tr("Cancel")} ${n} ${noun}` : tr("End")}
       </Button>
@@ -7535,15 +7549,16 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
   const noun = n === 1 ? tr("lesson") : tr("lessons");
   const opened = days.find((d) => startKeys.includes(d.key)) || null;   // the day the sheet was opened from, for the head
   const back = (to) => (
-    <button onClick={() => { haptic(6); setStage(to); }} className="w-full mt-3 py-3 active:opacity-50"
-            style={{ fontFamily: ui, fontSize: 13.5, color: t.sub }}>{tr("Back")}</button>
+    <button onClick={() => { haptic(6); setStage(to); }} className="w-full mt-2.5 active:opacity-60"
+            style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Back")}</button>
   );
 
   /* the last word is the password: a day cannot be called off by a
-     pocket or a child */
+     pocket or a child. It promises only what is done — everyone told;
+     no new time is offered by the call-off itself */
   if (stage === "password") return (
     <ConfirmPassword title={tr("Call off")}
-                     detail={`${n} ${n === 1 ? tr("lesson will be called off") : tr("lessons will be called off")}. ${tr("Everyone affected is told straight away and offered a new time. Confirm with your password.")}`}
+                     detail={`${n} ${n === 1 ? tr("lesson will be called off") : tr("lessons will be called off")}. ${tr("Everyone affected is told straight away.")}`}
                      actionLabel={`${tr("Call off")} ${n} ${noun}`} closeLabel={tr("Back")}
                      onConfirm={async (pw) => {
                        const c = verify ? await verify(pw) : {};
@@ -7572,7 +7587,7 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
                 const isGroup = !!b.groupName || b.kind === "Group" || b.type === "Group";
                 return (
                   <PersonRow key={idOf(b)} name={b.who} group={isGroup} className="px-4" minHeight={56}
-                             sub={`${span(b.time, duration)}${b.status === "requested" ? ` · ${tr("asked")}` : ""}`}
+                             sub={`${span(b.time, b.duration || duration)}${b.status === "requested" ? ` · ${tr("asked")}` : ""}`}
                              subTone={b.status === "requested" ? "caution" : "faint"}
                              trailing={on ? <Check size={17} color={DANGER} strokeWidth={2.1} /> : <span style={{ width: 17 }} />}
                              attrs={{ "aria-pressed": on }}
@@ -7585,7 +7600,8 @@ function CallOff({ days, startKeys = [], duration, onConfirm, close, verify }) {
           </div>
         ))}
       </div>
-      <Button tone="danger" disabled={n === 0} onClick={() => { hapticWarn(); setStage("password"); }}>{tr("Call off")} {n} {noun}</Button>
+      {/* always on to the password, whose own red key says the same words */}
+      <Button tone="dangerQuiet" disabled={n === 0} onClick={() => { hapticWarn(); setStage("password"); }}>{tr("Call off")} {n} {noun}</Button>
       {back("days")}
     </>
   );
@@ -8882,8 +8898,14 @@ const FocusGrid = ({ areas, picked, onToggle, h = 58, cols = 2, tour }) => (
    Times used to be laid three across and wrapped, so eight of them read
    as a block of boxes and you had to reassemble the order in your head.
    One under the next, in order, is how a day actually reads. */
-const TimeList = ({ times, picked, onPick, tour }) => {
+const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
   const t = useT();
+  /* A free time's plus is the sport's colour: it is the one thing the Diary
+     exists to offer (it was the trace grey, 2.2:1). `muted` keeps it grey
+     where a tap offers nothing — a junior's diary is read only. A picked
+     time is Duolingo's chosen answer, the sport's colour faint on the row
+     and the word in it — never black bold text (the box clips the face at
+     its corners). */
   if (!times.length) return null;
   return (
     <div data-tour={tour} className="nsc-day">
@@ -8892,11 +8914,11 @@ const TimeList = ({ times, picked, onPick, tour }) => {
         return (
           <button key={x} onClick={() => { haptic(8); soft(); onPick(x); }}
                   className="w-full flex items-center gap-3 px-3.5 text-left active:opacity-50"
-                  style={{ minHeight: 50, borderBottom: `1px solid ${t.hair}` }}>
-            <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? t.ink : t.sub,
+                  style={{ minHeight: 50, borderBottom: `1px solid ${t.hair}`, background: on ? SEL(t).face : undefined, transition: "background 180ms" }}>
+            <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? SEL(t).fg : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
             {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
-                : <Plus size={15} color={t.trace || t.faint} strokeWidth={2} />}
+                : <Plus size={15} color={muted ? (t.trace || t.faint) : t.accent} strokeWidth={2.2} />}
           </button>
         );
       })}
@@ -14295,8 +14317,10 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
   const mineDrills = drills || [];
   const done = mineDrills.filter((d) => d.done).length;
   const meta = n ? [`${n} ${n === 1 ? tr("lesson") : tr("lessons")}`, p.first ? `${tr("since")} ${fmtWeekDay(p.first)}` : null].filter(Boolean).join(" · ") : "";
-  const section = { ...TYPE.eyebrow, color: t.sub, marginBottom: 10 };
-  const box = { background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 8, padding: "14px 16px" };
+  /* each block is a card as every card is — the light grey line and the ledge
+     of it under it, 14px corners — under its subject as a heading (RowHead):
+     they were flat 8px boxes under grey field labels */
+  const box = { background: t.surface, border: `${EDGE_W}px solid ${EDGE(t)}`, borderRadius: 14, boxShadow: lipOf(EDGE(t), 2), padding: "14px 16px" };
   const firstPoint = p.points[0], lastPoint = p.points[p.points.length - 1];
   return (
     <SwipeBack onBack={pop}>
@@ -14308,9 +14332,11 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {/* the level, where the lessons carry one */}
             {p.points.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="level">
-                <div style={section}>{p.inputStage.label}</div>
+                <RowHead>{p.inputStage.label}</RowHead>
                 <div style={box}>
-                  <div className="flex items-baseline justify-between" style={{ marginBottom: 6 }}>
+                  {/* the level then takes a line of its own under the level now
+                      where the two cannot sit apart (at 320 they touched) */}
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5" style={{ marginBottom: 6 }}>
                     <span style={{ ...TYPE.title, color: t.ink }}>{p.inputStage.tag} {lastPoint.v}</span>
                     {p.points.length > 1 && <span style={{ ...TYPE.small, color: t.sub }}>{tr("from")} {p.inputStage.tag} {firstPoint.v} · {fmtWeekDay(firstPoint.d)}</span>}
                   </div>
@@ -14322,7 +14348,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             )}
             {p.reached.size > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="ladder">
-                <div style={section}>{tr("Level")}</div>
+                <RowHead>{tr("Level")}</RowHead>
                 <div style={{ ...box, padding: "4px 16px" }}>
                   {p.named.map((st, i) => {
                     const on = p.reached.has(st.id), now = p.current && p.current.st.id === st.id;
@@ -14342,7 +14368,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {/* what was worked on */}
             {p.areas.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="areas">
-                <div style={section}>{tr("Worked on")}</div>
+                <RowHead>{tr("Worked on")}</RowHead>
                 <div style={{ ...box, padding: "6px 16px" }}>
                   {p.areas.map(([label, count], i) => (
                     <div key={label} style={{ padding: "9px 0", borderBottom: i === p.areas.length - 1 ? "none" : RULE.hair(t.ink) }}>
@@ -14360,7 +14386,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             )}
             {/* lessons a month */}
             <div style={{ marginBottom: SPACE.block }} data-progress="months">
-              <div style={section}>{tr("Lessons a month")}</div>
+              <RowHead>{tr("Lessons a month")}</RowHead>
               <div style={box}>
                 <MonthBars months={p.months} color={t.accent} ink={t.ink} faint={t.trace || t.faint} />
               </div>
@@ -14374,7 +14400,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
               const dayOfMark = (a) => (a.iso ? fmtWeekDay(localDate(a.iso)) : a.key.split(" ").slice(0, 2).join(" "));
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="attendance">
-                  <div style={section}>{tr("Attendance")}</div>
+                  <RowHead>{tr("Attendance")}</RowHead>
                   <div style={box}>
                     <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
                       <span style={{ ...TYPE.body, color: t.ink }}>{here} {tr("of")} {attendance.length} {attendance.length === 1 ? tr("lesson") : tr("lessons")}</span>
@@ -14406,7 +14432,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
               const top = [...areaCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([a]) => a);
               return (
                 <div style={{ marginBottom: SPACE.block }} data-progress="practice">
-                  <div style={section}>{tr("Practice")}</div>
+                  <RowHead>{tr("Practice")}</RowHead>
                   <div style={box}>
                     <div className="flex items-center justify-between">
                       <span style={{ ...TYPE.body, color: t.ink }}>{sorted.length} {sorted.length === 1 ? tr("session") : tr("sessions")}</span>
@@ -14420,7 +14446,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             {/* drills done */}
             {mineDrills.length > 0 && (
               <div style={{ marginBottom: SPACE.block }} data-progress="drills">
-                <div style={section}>{tr("Drills")}</div>
+                <RowHead>{tr("Drills")}</RowHead>
                 <div style={box}>
                   <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
                     <span style={{ ...TYPE.body, color: t.ink }}>{done} {tr("of")} {mineDrills.length} {tr("done")}</span>
@@ -16090,12 +16116,16 @@ function AssignBody({ cfg, library, preset, focusHint, onAssign, onSaveDrill, cl
         /* in ink: the accent on this sheet is Set's */
         <button data-tour="assign-more" onClick={() => { haptic(8); soft(); setShowAll(true); }} className="w-full text-left mb-4 active:opacity-50" style={{ ...TYPE.small, fontWeight: 600, color: t.ink, minHeight: 44 }}>{tr("Show")} {rest.length} {tr("more")}</button>
       ) : (<>
-        <RowHead>{recommended.length > 0 ? "Everything else" : "Your drills"}</RowHead>
-        <Card className="mb-4">{rest.map((dr, i) => <DrillRow key={dr.t} dr={dr} i={i} arr={rest} />)}</Card>
+        {/* a heading only where there is a second list to tell apart: with
+            nothing recommended the drills sit under the title, which already
+            says whose they are — "Your drills" under "Drills for Cian" was
+            two bold titles saying one thing */}
+        {recommended.length > 0 && <RowHead>{tr("Everything else")}</RowHead>}
+        <Card className={recommended.length > 0 ? "mb-4" : "mt-5 mb-4"}>{rest.map((dr, i) => <DrillRow key={dr.t} dr={dr} i={i} arr={rest} />)}</Card>
       </>))}
 
-      <RowHead>{library.length ? tr("Or write a new one") : tr("Write one")}</RowHead>
-      <div className="mb-2"><VoiceInput value={custom} onChange={setCustom} ph={tr("Drill name")} /></div>
+      {/* the field says what goes in it ("Drill name"); no sentence over it */}
+      <div className="mb-2" style={{ marginTop: SPACE.block }}><VoiceInput value={custom} onChange={setCustom} ph={tr("Drill name")} /></div>
       {custom.trim() && (
         <div className="mb-2"><VoiceInput value={customDesc} onChange={setCustomDesc} ph={tr("How to do it")} /></div>
       )}
@@ -16320,7 +16350,7 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
             <DateRow label={tr("To")} value={to} min={from} tour="away-to" onPick={(v) => { haptic(6); setTo(v < from ? from : v); }} />
             <div className="py-4">
               <Button tour="away-save" onClick={add}>{tr("Add")}</Button>
-              <button onClick={() => { haptic(6); setAdding(false); }} className="w-full mt-3 py-2 active:opacity-50" style={{ ...TYPE.small, color: t.sub }}>{tr("Cancel")}</button>
+              <button onClick={() => { haptic(6); setAdding(false); }} className="w-full mt-2.5 active:opacity-60" style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Cancel")}</button>
             </div>
           </Card>
         ) : (
@@ -16624,31 +16654,40 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
             {myDays.map((myDay) => (
               <div key={myDay.id || myDay.time} data-tour="day-mine" className="py-4">
                 <span className="block mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{myDay.status === "requested" ? tr("Requested") : myDay.out ? tr("Not going") : tr("Your lesson")}</span>
-                <span className="block" style={{ fontFamily: display, fontSize: 24, letterSpacing: "-0.025em", color: t.ink }}>{span(myDay.time, myDay.duration || duration)}</span>
-                <div className="mt-1" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.duration || duration} min with {conn?.coach || "your coach"}</div>
+                <span className="block" style={{ ...TYPE.section, ...FIG, color: t.ink }}>{span(myDay.time, myDay.duration || duration)}</span>
+                <div className="mt-1" style={{ ...TYPE.small, color: t.faint }}>{myDay.duration || duration} min with {conn?.coach || "your coach"}</div>
                 {myDay.group
                   ? <>
-                      <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{myDay.groupName || tr("Group")}</div>
+                      <div className="mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{myDay.groupName || tr("Group")}</div>
                       {/* one session of a group: out, or back in. A member, or the
-                          adult booking for a child; a junior's diary is read only */}
+                          adult booking for a child; a junior's diary is read only.
+                          The white key, as the coach's block ends on keys; Going is
+                          the way back in, a text action that acts, so the accent */}
                       {onGroupOut && myDay.id && myDay.status === "confirmed" && !readOnly && !past && (
-                        <div className="flex items-center gap-5 mt-2">
-                          <button data-tour="day-out" data-out={myDay.out ? "1" : "0"} onClick={() => { haptic(8); onGroupOut(myDay, !myDay.out); }} className="active:opacity-60"
-                                  style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: myDay.out ? 600 : 400, color: myDay.out ? t.accent : t.sub }}>{myDay.out ? tr("Going") : tr("Not going")}</button>
+                        <div className="flex mt-3">
+                          <button data-tour="day-out" data-out={myDay.out ? "1" : "0"} onClick={() => { haptic(8); onGroupOut(myDay, !myDay.out); }} className="flex-1 n-key"
+                                  style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
+                                           fontFamily: ui, fontSize: 15, fontWeight: 600, color: myDay.out ? t.accent : t.ink }}>{myDay.out ? tr("Going") : tr("Not going")}</button>
                         </div>
                       )}
                     </>
                   : readOnly
-                  ? <div className="mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, color: t.faint }}>{tr("Booked by your parent")}</div>
-                  : <div className="flex items-center gap-5 mt-2">
-                      {/* a real account's Cancel asks why, so the coach is told with the
-                          reason; Reschedule says that much on its own. The harness keeps
-                          the one-tap cancel. */}
-                      <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="active:opacity-60" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, color: t.sub }}>{tr("Cancel")}</button>
+                  ? <div className="mt-0.5" style={{ ...TYPE.small, color: t.faint }}>{tr("Booked by your parent")}</div>
+                  : <div className="flex gap-2.5 mt-3">
+                      {/* the box's foot is two keys, as the coach's block for the same
+                          lesson ends on keys (Cancel · Profile · Log) — they were two
+                          bare 13px words. A real account's Cancel asks why, so the
+                          coach is told with the reason; Reschedule says that much on
+                          its own. The harness keeps the one-tap cancel. */}
+                      <button data-tour="day-cancel" onClick={() => { haptic(8); if (live && onCancelWithReason && myDay.id) { onCancelWithReason({ ...myDay, label: [forName, `${myDay.date ? fmtIsoDay(myDay.date) : dayLabel} · ${myDay.time}`].filter(Boolean).join(" · ") }); return; } onCancel(myDay); say("Cancelled"); }} className="flex-1 n-key"
+                              style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
+                                       fontFamily: ui, fontSize: 15, fontWeight: 600, color: DANGER }}>{tr("Cancel")}</button>
                       {/* a real account asks for the lesson to move — one write, a
                           request at the new time; a project without the function, and
                           the harness, keep the cancel and "Pick a new time" */}
-                      <button data-tour="day-reschedule" onClick={() => { hapticCommit(); if (live && onMove && myDay.id) { onMove(myDay); return; } onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="active:opacity-60" style={{ minHeight: 44, fontFamily: ui, fontSize: 13, fontWeight: 600, color: t.accent }}>{tr("Reschedule")}</button>
+                      <button data-tour="day-reschedule" onClick={() => { hapticCommit(); if (live && onMove && myDay.id) { onMove(myDay); return; } onCancel(myDay, "Rescheduling"); say("Pick a new time"); }} className="flex-1 n-key"
+                              style={{ minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
+                                       fontFamily: ui, fontSize: 15, fontWeight: 600, color: t.ink }}>{tr("Reschedule")}</button>
                     </div>}
               </div>
             ))}
@@ -16713,7 +16752,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
           (() => {
             const free = dayHours.filter((tm) => !booked.find((b) => b.time === tm) && !blocked.some((b) => b.m === mo.idx && b.d === sel && b.time === tm));
             return (
-              <TimeList times={free.map((x) => span(x, duration))} picked={pick ? span(pick, duration) : null}
+              <TimeList times={free.map((x) => span(x, duration))} picked={pick ? span(pick, duration) : null} muted={readOnly}
                         onPick={(label) => { if (readOnly) { haptic(6); say(tr("A parent books your lessons")); return; }
                                              const time = free.find((x) => span(x, duration) === label); setPick(pick === time ? null : time); }} />
             );
@@ -18522,8 +18561,8 @@ function LessonDeleteBody({ lesson, mediaCount = 0, onConfirm, say, close }) {
         if (res && res.error) { hapticWarn(); setErr(res.error.message || tr("Couldn't remove it.")); return; }
         hapticWarn(); say(tr("Lesson removed")); close();
       }}>{busy ? "…" : tr("Delete it")}</Button>
-      <button onClick={() => { haptic(6); close(); }} className="w-full mt-3 py-3 active:opacity-50"
-              style={{ ...TYPE.small, color: t.sub }}>{tr("Keep it")}</button>
+      <button onClick={() => { haptic(6); close(); }} className="w-full mt-2.5 active:opacity-60"
+              style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep it")}</button>
     </>
   );
 }
@@ -22166,7 +22205,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onClose={() => setSheet(null)} />
               : sheet === "deleteAccount" ? <ConfirmPassword
                                             title={tr("Delete account")}
-                                            detail={tr("Every lesson, video, message and drill on this account is removed for good. This cannot be undone. Confirm with your password.")}
+                                            detail={tr("Every lesson, video, message and drill on this account is removed for good. This cannot be undone.")}
                                             actionLabel={tr("Delete everything")}
                                             onConfirm={async (pw) => {
                                               if (!data) return {};
@@ -22186,7 +22225,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                  point of it */
               : sheet === "cancelLesson" ? <ConfirmPassword
                                             title={tr("Cancel lesson")}
-                                            detail={peek ? `${peek.who} · ${peek.time}. ${tr("They are told. Confirm with your password.")}` : tr("Confirm with your password.")}
+                                            detail={peek ? `${peek.who} · ${peek.time}. ${tr("They are told.")}` : null}
                                             actionLabel={tr("Cancel the lesson")} closeLabel={tr("Keep it")}
                                             onConfirm={async (pw) => {
                                               if (data) { const c = await data.verifyPassword(pw); if (c.error) return c; }
