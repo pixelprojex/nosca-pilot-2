@@ -1,6 +1,8 @@
 # Nosca — working notes for Claude Code
 
-Nosca (Irish *nasc*, "to link") is a premium multi-sport coaching app:
+Nosca (the anglicised spelling of the Irish word for linking — the
+founder's own account, 22 November; "nasc" alone is not where it came
+from, and the website must never say so) is a premium multi-sport coaching app:
 golf, tennis, rowing, squash, padel, equestrian. A coach side and a
 player side, plus parent and under-18 variants. Ireland-only,
 English-only pilot. Vite + React + Tailwind + Supabase, deployed on
