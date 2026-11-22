@@ -8844,7 +8844,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
                        border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
           {/* the glyph in ink on the white key, never the accent (the accent is the one action's) */}
-          <Icon size={Math.round(f * 0.4)} color={hue && quietTile ? hue : fg} strokeWidth={hue && quietTile ? 2.2 : quietTile || calm ? 1.8 : 2} />
+          <Icon size={Math.round(f * 0.4)} color={hue && quietTile ? oneHue(t, hue) : fg} strokeWidth={hue && quietTile ? 2.2 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
         {!iconOnly && (
@@ -9281,15 +9281,10 @@ function MiniPlayer({ clip, onClose, onExpand }) {
     </div>
   );
 }
-/* a face with no picture takes one of Nosca's own colours, fixed by the
-   name, lit a little from the top — a messenger's coloured disc in the
-   app's palette, never Apple's or Telegram's pastels */
-const FACE_HUES = [HUE.green, HUE.teal, HUE.blue, HUE.orange, HUE.purple, HUE.wine, HUE.gold];
-const faceHue = (name) => {
-  let h = 0; for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const c = FACE_HUES[h % FACE_HUES.length];
-  return `linear-gradient(180deg, ${MIX(c, "#FFFFFF", 0.14)} 0%, ${c} 100%)`;
-};
+/* a face with no picture is the sport's own colour, lit a little from the
+   top, white initials — one colour for everybody (it took one of seven
+   hues by the name for a day, and a roster read as a box of crayons) */
+const faceTone = (t) => `linear-gradient(180deg, ${MIX(t.accent, "#FFFFFF", 0.14)} 0%, ${t.accent} 100%)`;
 /* SETTINGS AS iOS LAYS IT OUT, IN NOSCA'S COLOURS: every row leads with
    its own coloured square, so a row is found by colour before it is read
    (21 November; the rows carried no glyph for a long time, "Settings rows
@@ -9323,12 +9318,23 @@ const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? 
    on a two-point ledge of its own colour made deeper — the same 3D the
    keys and the cards stand on, so even the smallest coloured thing in the
    app is a Nosca object, not a copy of Settings */
-const IconSq = ({ Icon, bg, size = 30 }) => (
-  <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0"
-        style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: bg, boxShadow: `0 2px 0 ${LIP(bg)}` }}>
-    <Icon size={Math.round(size * 0.56)} color="#FFFFFF" strokeWidth={2.2} />
-  </span>
-);
+/* ONE COLOUR A SPORT, HERE TOO (22 November). The tiles took ten hues of
+   the palette for a day and the founder: "way too colourful. Not cohesive
+   or classy." So every glyph tile is the sport's own colour, whatever hue
+   its row names; red alone is kept, for what removes or calls off. The
+   same for a face with no picture, a round key's glyph and the bell's
+   badge: the sport's colour, the greys, red for danger, gold for a star. */
+const oneHue = (t, hue) => (hue === HUE.red ? HUE.red : t.accent);
+const IconSq = ({ Icon, bg, size = 30 }) => {
+  const t = useT();
+  const c = oneHue(t, bg);
+  return (
+    <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0"
+          style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: c, boxShadow: `0 2px 0 ${LIP(c)}` }}>
+      <Icon size={Math.round(size * 0.56)} color="#FFFFFF" strokeWidth={2.2} />
+    </span>
+  );
+};
 const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const t = useT();
   const faces = useContext(FaceCtx);
@@ -9346,7 +9352,7 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   /* a person's own colour, the same every time and everywhere — the
      founder asked for colour "to make it look more realistic", and every
      messenger draws an initials disc in a colour of its own */
-  const disc = tint || bg || faceHue(group ? `group:${name || ""}` : name);
+  const disc = tint || bg || faceTone(t);
   const mark = tint ? "#fff" : fg || "#FFFFFF";
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
@@ -14190,7 +14196,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* what was taken — one tap opens the camera itself */}
           <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid>
-              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} hue={HUE.red} label={tr("Video")} count={videos.length}
+              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} hue={HUE.green} label={tr("Video")} count={videos.length}
                        onTap={() => (live ? pickFiles("video/*") : setCam(true))} />
               <ActTile h={76} iconOnly Icon={Camera} hue={HUE.blue} label={tr("Photo")} count={photos.length}
                        onTap={() => (live ? pickFiles("image/*") : addPhoto("action"))} />
@@ -18428,18 +18434,13 @@ function PushPrompt({ userId, say }) {
    every other screen. A screen that looks like two screens depending on
    who is looking at it cannot be designed, so the harness now hands in
    the same shape the database does and there is one list. */
-/* WHAT KIND, IN THE APP'S OWN COLOURS (21 November, "a bit more color in
-   places"): the badge on a face and the disc where nobody is named carry
-   the kind's glyph in white on one of HUE's — a message green, a request
-   blue (and its answer, accepted or declined, in the request's colour and
-   glyph: they fell to the slate and the bell), the diary wine, a call-off
-   red, a tip, a rating or a competition gold, a drill, a practice or a
-   clip purple. A kind not taught here is the slate. They were the grey
-   wash with a grey glyph: a badge that all but vanished on the face, and
-   a disc that read as a missing photo. */
-const KIND_HUE = { message: HUE.green, request: HUE.blue, booking: HUE.wine, weather: HUE.red, lesson: HUE.green, tip: HUE.gold,
-                   drill: HUE.purple, practice: HUE.purple, clip: HUE.purple, rating: HUE.gold, comp: HUE.gold, family: HUE.green,
-                   accepted: HUE.blue, declined: HUE.blue };
+/* THE BELL'S BADGE IS THE SPORT'S COLOUR (22 November). It took a hue by
+   the notice's kind for a day — green, blue, wine, red, gold, purple — and
+   with the faces and the tiles the app read "way too colourful. Not
+   cohesive or classy" (the founder). The kind is told by the glyph; the
+   colour is the sport's own. Before the hues it was the grey wash with a
+   grey glyph: a badge that all but vanished on the face, and a disc that
+   read as a missing photo. */
 function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAll,
                        onMarkAllRead, userId, say, faceFor }) {
   const t = useT();
@@ -18491,7 +18492,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const Line = ({ n }) => {
     const face = faceFor ? faceFor(n) : null;
     const K = NOTIF_ICON[n.kind] || Bell;
-    const hue = KIND_HUE[n.kind] || HUE.slate;
+    const hue = t.accent;   /* one colour a sport: the kind is the glyph, never a hue */
     return (
       <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
         <PersonRow className="py-3" nameLines={0} onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}

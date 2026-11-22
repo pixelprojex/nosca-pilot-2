@@ -172,6 +172,27 @@ seeded data and no account.
   change them together. Contrast: paper on it 11:1, white 12:1. The
   `theme-color` meta in index.html and the manifest's `theme_color` are
   NOT the brand: they are the paper (see below).
+- **One colour a sport, in the small things too (22 November, the
+  evening).** The glyph tiles, the faces and the bell's badges took ten
+  hues of `HUE` for a day ("Colour in its places", in the bullet below)
+  and the founder, on the preview: "WOW! That's way too colourful. Not
+  cohesive or classy. It's a small fix though!" So every glyph tile
+  (`IconSq`) is the sport's own colour whatever hue its row names
+  (`oneHue(t, hue)`); a face with no picture is the sport's colour lit a
+  little from the top, the same for everybody (`faceTone`; it took one
+  of seven hues by the name); a round key's glyph (`ActTile hue`: the
+  peek's six, the player file's, the log's Video · Photo · Voice) and
+  the bell's badge and nameless disc are the sport's colour. Red alone
+  stays, for what removes or calls off (Delete account, Call off), and
+  gold for a star (starred, a rating). So the palette on any screen is
+  the sport's colour, the greys, red for danger, gold for a star, and
+  the register's own green and red. `HUE` stays as the table of names: a
+  row still says which hue it asked for, and nothing draws it. This
+  supersedes "Colour in its places … the six sports' colours … a face
+  with no picture is one of the palette's colours" below, and
+  `KIND_HUE`, which is gone. `SportGrid` keeps each sport in its own
+  colour: it is the one grid whose subject is the palette.
+  `families-requests.cjs` (c) reads the badge.
 - **White, one saturated colour a sport, Duolingo's keys, Apple's type
   (21 November, the afternoon).** The stone keys below lasted a morning.
   The founder, the same day: "Take so much more from Duolingo … the

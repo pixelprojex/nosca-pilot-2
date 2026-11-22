@@ -216,11 +216,12 @@ const leaks = [];
       await click(page, "Dismiss", 900);
       const t1 = await leak("eoin home"); await shot("12-eoin-home");
       check("(c) …and opens on Home, not the coachless screen", !t1.includes("Add your coach") && !t1.includes("Request sent"), t1.slice(0, 200));
-      /* the answer to a request is the request's kind of thing: its blue and its glyph (22 November) —
-         'accepted' was taught to neither map, so its badge was the slate with a bell on it */
+      /* the answer to a request is the request's kind of thing: its glyph (22 November) — 'accepted' was taught
+         to neither map, so its badge was a bell. The badge's colour is the sport's own since that evening (the
+         founder: "way too colourful"): golf's green here, never a hue by the kind, never the slate */
       await tap(page, '[aria-label="Alerts"]', 1000);
       const ma = await kindMark(page, /accepted you/); await shot("12a-eoin-bell");
-      check("(c) the bell draws '<coach> accepted you' in the request's blue with its glyph — never the slate and a bell", !!ma && ma.bg === "rgb(27, 116, 161)" && /lucide-user-plus/.test(ma.glyph), JSON.stringify(ma));
+      check("(c) the bell draws '<coach> accepted you' in the sport's colour with the request's glyph — never the slate and a bell", !!ma && ma.bg === "rgb(32, 122, 48)" && /lucide-user-plus/.test(ma.glyph), JSON.stringify(ma));
       await M.back(page, 900);
       await tap(page, '[data-tour="profile-pill"]', 900);
       const t1b = await leak("eoin switcher"); await shot("12b-eoin-switcher");
@@ -239,7 +240,7 @@ const leaks = [];
       check("(c) the coachless screen names who couldn't take them on (declinedBy)", t0.includes("Niamh Byrne couldn't take you on"), t0.slice(0, 200));
       await tap(page, '[aria-label="Alerts"]', 1000);
       const md = await kindMark(page, /take you on/); await shot("14a-aoife-bell");
-      check("(c) the bell draws '<coach> can't take you on' in the request's blue with its glyph — never the slate and a bell", !!md && md.bg === "rgb(27, 116, 161)" && /lucide-user-plus/.test(md.glyph), JSON.stringify(md));
+      check("(c) the bell draws '<coach> can't take you on' in the sport's colour with the request's glyph — never the slate and a bell", !!md && md.bg === "rgb(32, 122, 48)" && /lucide-user-plus/.test(md.glyph), JSON.stringify(md));
       await ctx.close();
     }
 
