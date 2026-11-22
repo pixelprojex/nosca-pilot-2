@@ -258,9 +258,10 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
         const sub = (await row.count()) ? await row.locator("[data-sub]").first().innerText() : "";
         const msg = row.locator("button", { hasText: /^Message$/ }).first();
         const msgColor = (await msg.count()) ? await styleOf(msg, "color") : "none";
-        check("(g) Drifting reads the day of the last lesson, never an age, and Message is in ink", /^Last lesson · (Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d/.test(sub.replace(/\s+/g, " ")) && msgColor !== ACCENT, `${sub} · ${msgColor}`);
+        /* a text action that acts is the sport's colour (21 November), as Log and Accept are beside it — it was the ink */
+        check("(g) Drifting reads the day of the last lesson, never an age, and Message is the sport's colour", /^Last lesson · (Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d/.test(sub.replace(/\s+/g, " ")) && msgColor === ACCENT, `${sub} · ${msgColor}`);
         await shot("g-drifting-320");
-      } else check("(g) Drifting reads the day of the last lesson, never an age, and Message is in ink", false, "no Drifting row on Today");
+      } else check("(g) Drifting reads the day of the last lesson, never an age, and Message is the sport's colour", false, "no Drifting row on Today");
       await ctx.close();
     }
 
