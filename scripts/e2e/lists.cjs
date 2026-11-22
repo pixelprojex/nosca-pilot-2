@@ -14,8 +14,8 @@
    drills (an undone tick on the edge), the Calendar view's free times
    (one .nsc-day, as the List view's day) and the attendance record
    (its day Thu 8 Oct, never "08 Oct"). Guards: the register's walk-in
-   stays dashed on the edge, and the log's drill rows stay hairline —
-   the log is the founder's.
+   is the white key (it was dashed on the edge until 22 November), and
+   the log's drill rows stay hairline — the log is the founder's.
 
    Usage: node lists.cjs <distDir> <port> <outDir>   (VAPID=1 for (y)) */
 const path = require("path"), fs = require("fs");
@@ -165,17 +165,24 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
     {
       const { ctx, page, shot } = await boot("coach");
 
-      /* (aa) the register's Someone not in the diary: dashed on the edge */
+      /* (aa) the register's Someone not in the diary: the white key (22 November; it was a dashed outline on the
+         card's light grey line, 1.29:1 with no face and no ledge — the one dashed control in a key-built app) */
       await tap(page, '[aria-label="Today"]', 900);
       await page.locator("button", { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(1000);
       await tap(page, '[data-tour="peek-register"]', 1000);
       await page.locator("[data-sheet]").getByText("All lessons", { exact: true }).first().click().catch(() => {}); await page.waitForTimeout(900);
-      const dash = await page.evaluate(() => {
+      const walk = await page.evaluate(() => {
         const b = [...document.querySelectorAll("[data-sheet] button")].find((x) => /Someone not in the diary/.test(x.textContent)); if (!b) return null;
-        const cs = getComputedStyle(b); return { w: cs.borderTopWidth, style: cs.borderTopStyle, color: cs.borderTopColor };
+        const cs = getComputedStyle(b);
+        return { w: cs.borderTopWidth, inline: b.style.borderTopWidth, style: cs.borderTopStyle, color: cs.borderTopColor, bg: cs.backgroundColor, shadow: cs.boxShadow, fg: cs.color };
       });
       await shot("aa-register-walkin");
-      check("(aa) guard: the register's Someone not in the diary is dashed on the card's edge, 1px or more — not the 0.5px hairline", !!dash && dash.style === "dashed" && parseFloat(dash.w) >= 1 && dash.color === EDGE.golf, JSON.stringify(dash));
+      const wRgb = (c) => String(c).match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
+      const wLum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      const wRatio = (a, b) => { const [x, y] = [wLum(wRgb(a)), wLum(wRgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+      check("(aa) guard: the register's Someone not in the diary is the white key — the white face, a solid 1.5px light grey ring, a four-point grey ledge, its words 4.5:1 and over — never a dashed outline",
+        !!walk && walk.bg === "rgb(255, 255, 255)" && walk.style === "solid" && walk.inline === "1.5px" && walk.color === EDGE.golf && /rgb\(217, 217, 222\) 0px 4px 0px/.test(walk.shadow) && wRatio(walk.fg, walk.bg) >= 4.5,
+        JSON.stringify(walk));
       await closeSheet(page);
 
       /* (p) the group page's sessions */

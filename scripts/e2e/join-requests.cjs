@@ -6,7 +6,8 @@
    actions, Accept in the sport's colour, beside the name where it fits and on a line of
    their own under it where it does not — the shape Today's booking
    requests and the bell's have. With nothing waiting the screen is a
-   line, and the subtitle goes. Each request was a card with a 46px face,
+   line; there is no subtitle (it counted the rows under it until 22
+   November). Each request was a card with a 46px face,
    a filled success-green Accept and an outlined Decline, and the empty
    state a card with a tick in a disc and a sentence.
    Usage: node join-requests.cjs <distDir> <port> <outDir> */
@@ -95,8 +96,9 @@ const line = (r) => `${r.name.slice(0, 14)} face ${r.face} ${r.fs}/${r.fw} sub "
       const { ctx, page, text, shot } = await boot(db, "coach", 375);
       await toRequests(page);
       const t0 = await text(); const R = await rows(page); await shot("01-requests-375");
-      check("(a) Requests opens from Today's strip, its subtitle the count — two waiting — and each request is a person row in one list, the white card at 14px — no card of its own",
-        /Requests/.test(t0) && /2 waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && r.bg === CARD && r.radius === "14px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
+      /* no subtitle (22 November): "2 waiting" over two rows said the count twice */
+      check("(a) Requests opens from Today's strip with no subtitle counting them, and each request is a person row in one list, the white card at 14px — no card of its own",
+        /Requests/.test(t0) && !/\d waiting/.test(t0) && R.length === 2 && R.every((r) => r.person && r.inList && r.bg === CARD && r.radius === "14px") && (await page.locator('[data-scroll="screen"] .nsc-list').count()) === 1,
         `${t0.slice(0, 80)} · ${R.map(line).join(" | ")}`);
       check("(b) the one row: the face 44, the name 58px in at 16px/600, the grey line 14px", R.length === 2 && R.every((r) => r.face === 44 && r.inset === 58 && r.fs === "16px" && r.fw === "600" && r.sub && r.sub.fs === "14px"), R.map(line).join(" | "));
       const eoin = R.find((r) => r.name === "Eoin Walsh"), max = R.find((r) => r.name === LONG);
@@ -118,8 +120,8 @@ const line = (r) => `${r.name.slice(0, 14)} face ${r.face} ${r.fs}/${r.fw} sub "
       await rowOf(page, "Eoin Walsh").locator("button", { hasText: /^Accept$/ }).click(); await page.waitForTimeout(1800);
       const acc = db.rpcs.filter((x) => x.fn === "respond_to_request").pop(); const eoinReq = db.requests.find((r) => r.player_id === IDS.eoin);
       const t1 = await text(); const R1 = await rows(page); await shot("02-after-accept");
-      check("(g) Accept on Eoin's row calls respond_to_request with his request and yes; his row goes and the subtitle reads 1 waiting",
-        !!acc && acc.args.p_id === eoinReq.id && acc.args.p_accept === true && eoinReq.status === "accepted" && R1.length === 1 && R1[0].name === LONG && /1 waiting/.test(t1), `${JSON.stringify(acc && acc.args)} · ${R1.map((r) => r.name).join()} · ${t1.slice(0, 80)}`);
+      check("(g) Accept on Eoin's row calls respond_to_request with his request and yes; his row goes, and still no subtitle counts the one left",
+        !!acc && acc.args.p_id === eoinReq.id && acc.args.p_accept === true && eoinReq.status === "accepted" && R1.length === 1 && R1[0].name === LONG && !/\d waiting/.test(t1), `${JSON.stringify(acc && acc.args)} · ${R1.map((r) => r.name).join()} · ${t1.slice(0, 80)}`);
       await rowOf(page, LONG).locator("button", { hasText: /^Decline$/ }).click(); await page.waitForTimeout(1800);
       const dec = db.rpcs.filter((x) => x.fn === "respond_to_request").pop(); const maxReq = db.requests.find((r) => r.player_id === IDS.junior);
       const t2 = await text(); await shot("03-empty");

@@ -3450,70 +3450,82 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
     lesson.focus,
   ].filter(Boolean);
 
+  /* THE WHITE PAGE (22 November). It was the one black page in a white
+     app — a green disc with a glow and a shockwave on #1C1C1E, off-white
+     words and a pale pill — where Celebration, the other full-screen
+     moment, is already the paper. Now the paper: the disc stands on its
+     own ledge as every key does, the words are the app's type, Log next
+     is the app's Button and Ask for a rating the white key.
+     THREE ROWS, so nothing lies on anything: the stamp and what it amounted
+     to sit in the middle of the page, the day's count and the rating key at
+     its foot, and on a short phone (the first SE, Safari's bars) the middle
+     rises clear of the foot rather than the count running under Log next —
+     it did, laid absolutely at the foot over a centred column. The foot
+     keeps clear of the home indicator (22 where there is none). */
+  const FOOT = "max(22px, env(safe-area-inset-bottom, 0px))";
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center px-9" aria-live="polite"
+    <div className="absolute inset-0 grid px-9" aria-live="polite"
          onClick={() => { if (waits) { haptic(6); onDone && onDone(); } }}
-         style={{ zIndex: 70, background: t.ink, opacity: 1,
+         style={{ zIndex: 70, background: t.page, opacity: 1, gridTemplateRows: "1fr auto 1fr", justifyItems: "center",
                   animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease backwards" }}>
-      {/* shockwave out from the stamp */}
-      <span className="absolute rounded-full" aria-hidden="true"
-            style={{ width: 130, height: 130, border: `1px solid ${t.accent}`,
-                     animation: "shockwave 900ms cubic-bezier(.2,.7,.3,1) 180ms both" }} />
-
-      <span className="rounded-full flex items-center justify-center"
-            style={{ width: 94, height: 94, background: t.accent,
-                     boxShadow: `0 12px 40px ${t.accent}66`,
-                     animation: "stampIn 620ms cubic-bezier(.34,1.56,.64,1) both" }}>
-        <Check size={42} color="#fff" strokeWidth={2.1} />
-      </span>
-
-      <div className="mt-8 text-center" style={{ animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 460ms both" }}>
-        <div style={{ fontFamily: display, fontSize: 32, letterSpacing: "-0.035em", color: "#F4F6F3" }}>{tr("Logged")}</div>
-      </div>
-
-      {/* what it amounted to, counting in */}
-      <div className="mt-6 flex flex-col items-center gap-1.5">
-        {rows.map((r, i) => (
-          <span key={i} style={{ fontFamily: ui, fontSize: 13.5, color: "rgba(244,246,243,0.62)",
-                        animation: `tally 420ms cubic-bezier(.34,1.56,.64,1) ${700 + i * 110}ms both` }}>{r}</span>
-        ))}
-      </div>
-
-      {/* the running count for the day */}
-      <div className="absolute flex items-baseline gap-2" style={{ bottom: 76,
-             animation: "streakUp 560ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
-        <span style={{ fontFamily: display, fontSize: 38, letterSpacing: "-0.04em", color: t.accent }}>{tally}</span>
-        <span style={{ ...TYPE.caption, color: "rgba(244,246,243,0.55)" }}>
-          {tr("logged today")}
+      <div className="w-full flex flex-col items-center" style={{ gridRow: 2 }}>
+        <span className="rounded-full flex items-center justify-center"
+              style={{ width: 94, height: 94, background: t.accent,
+                       boxShadow: lipOf(LIP(t.accent), 4),
+                       animation: "stampIn 620ms cubic-bezier(.34,1.56,.64,1) both" }}>
+          <Check size={42} color={t.onAccent} strokeWidth={2.1} />
         </span>
+
+        <div className="mt-8 text-center" style={{ animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 460ms both" }}>
+          <div style={{ ...TYPE.screen, color: t.ink }}>{tr("Logged")}</div>
+        </div>
+
+        {/* what it amounted to, counting in */}
+        <div className="mt-6 flex flex-col items-center gap-1.5">
+          {rows.map((r, i) => (
+            <span key={i} style={{ ...TYPE.body, color: t.sub,
+                          animation: `tally 420ms cubic-bezier(.34,1.56,.64,1) ${700 + i * 110}ms both` }}>{r}</span>
+          ))}
+        </div>
+
+        {/* the app's Button; it calls its handler without the event and buzzes
+            itself, so the wrapper is what keeps the tap from the page's dismiss */}
+        {onLogNext && (
+          <div className="w-full mt-8" onClick={(e) => e.stopPropagation()}
+               style={{ animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1150ms both" }}>
+            <Button onClick={() => { soft(); onLogNext(); }}>{`${tr("Log next")} · ${remaining} ${tr("left")}`}</Button>
+          </div>
+        )}
       </div>
 
-      {onLogNext && (
-        <button onClick={(e) => { e.stopPropagation(); hapticCommit(); soft(); onLogNext(); }}
-                className="flex items-center gap-2 px-6 mt-8 active:opacity-80"
-                style={{ minHeight: 48, borderRadius: R.pill, background: "rgba(255,255,255,0.14)",
-                         animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1150ms both" }}>
-          <span style={{ fontFamily: ui, fontSize: 13.5, fontWeight: 600, color: "#fff" }}>
-            {tr("Log next")} · {remaining} {tr("left")}
+      {/* the foot: the running count for the day, and the rating key under it */}
+      <div className="w-full flex flex-col items-center" style={{ gridRow: 3, alignSelf: "end", paddingTop: SPACE.row,
+             paddingBottom: onAskRating ? FOOT : `calc(54px + ${FOOT})` }}>
+        <div className="flex items-baseline gap-2" style={{ animation: "streakUp 560ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
+          <span style={{ fontFamily: display, fontSize: 38, letterSpacing: "-0.04em", color: t.accent }}>{tally}</span>
+          <span style={{ ...TYPE.caption, color: t.sub }}>
+            {tr("logged today")}
           </span>
-          <ArrowRight size={14} color="#fff" strokeWidth={2.2} />
-        </button>
-      )}
-
-      {onAskRating && (
-        <div className="absolute flex flex-col items-center gap-2" style={{ bottom: 22, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
-          {ask === "error" && <span data-tour="burst-ask-error" style={{ fontFamily: ui, fontSize: 12.5, color: "#FF8A80" }}>{askErr}</span>}
-          <button onClick={askNow} disabled={ask === "busy" || ask === "done"} data-ask={ask}
-                  className="flex items-center gap-2 px-5 active:opacity-60"
-                  style={{ minHeight: 44, borderRadius: R.pill, border: `1px solid ${ask === "done" ? "transparent" : "rgba(255,255,255,0.5)"}`,
-                           background: ask === "done" ? "rgba(255,255,255,0.14)" : "transparent", opacity: ask === "busy" ? 0.6 : 1,
-                           fontFamily: ui, fontSize: 12.5, fontWeight: ask === "done" ? 600 : 500, color: "rgba(255,255,255,0.92)",
-                           transition: `background ${MOTION.settle}ms, opacity ${MOTION.settle}ms` }}>
-            {ask === "done" ? <Check size={13} color="#fff" strokeWidth={2.4} /> : <Star size={13} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />}
-            {ask === "done" ? tr("Asked") : ask === "busy" ? tr("Asking…") : ask === "error" ? tr("Try again") : tr("Ask for a rating")}
-          </button>
         </div>
-      )}
+
+        {onAskRating && (
+          <div className="w-full flex flex-col items-stretch gap-2" style={{ marginTop: 18, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
+            {ask === "error" && <span data-tour="burst-ask-error" style={{ ...TYPE.caption, color: DANGER, textAlign: "center" }}>{askErr}</span>}
+            {/* the white key; once asked, the chosen answer with its tick */}
+            <button onClick={askNow} disabled={ask === "busy" || ask === "done"} data-ask={ask}
+                    className="w-full flex items-center justify-center gap-2 n-key"
+                    style={{ minHeight: 52, borderRadius: R.surface,
+                             background: ask === "done" ? SEL(t).face : TINT(t),
+                             border: `${EDGE_W}px solid ${ask === "done" ? SEL(t).ring : KEY_RING(t)}`,
+                             "--key-lip": ask === "done" ? SEL(t).lip : TINT_LIP(t),
+                             opacity: ask === "busy" ? 0.6 : 1,
+                             fontFamily: ui, fontSize: 17, fontWeight: 600, color: ask === "done" ? SEL(t).fg : t.ink }}>
+              {ask === "done" ? <Check size={18} color={SEL(t).fg} strokeWidth={2.4} /> : <Star size={18} color={HUE.gold} strokeWidth={2} />}
+              {ask === "done" ? tr("Asked") : ask === "busy" ? tr("Asking…") : ask === "error" ? tr("Try again") : tr("Ask for a rating")}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -3620,7 +3632,8 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       {/* what today is for */}
       {focus && (
         <div className="px-4 py-3.5 mb-5" style={{ borderRadius: R.control, background: t.wash }}>
-          <span className="block" style={{ ...TYPE.caption, color: t.accent }}>{tr("Today")}</span>
+          {/* a label, never a second accent beside Log */}
+          <span className="block" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Today")}</span>
           <span className="block mt-1" style={{ ...TYPE.subhead, color: t.ink }}>{focus}</span>
         </div>
       )}
@@ -3669,9 +3682,10 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       {/* one action, and the ways out */}
       {/* the app's one filled button, as the Cancel and Call off sheets'
           — it was an inline button with its own corner and glow, one of
-          three primary shapes in one flow */}
+          three primary shapes in one flow — led by its Plus, as Log a
+          lesson is on the plus (it read "Log →") */}
       <Button tour="peek-log" onClick={onLog}>
-        <span className="inline-flex items-center justify-center gap-2">{tr("Log")}<ArrowRight size={16} color={t.onAccent} strokeWidth={2.1} /></span>
+        <span className="inline-flex items-center justify-center gap-2"><Plus size={20} color={t.onAccent} strokeWidth={2.2} />{tr("Log")}</span>
       </Button>
 
       {/* three to a row, two rows */}
@@ -3685,8 +3699,9 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
           { Ico: CalendarX,    lbl: tr("Call off"), act: onWeather, tone: DANGER },
           { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean);
         return (
-      <div data-tour="peek-actions" className="grid mt-3" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                                                columnGap: 8, rowGap: 16, borderTop: RULE.section(t.ink), paddingTop: 14 }}>
+      /* the block's air under Log (its lip counted), and no rule across the sheet */
+      <div data-tour="peek-actions" className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                                                columnGap: 8, rowGap: 16, marginTop: SPACE.block - LIP_H }}>
         {/* the app's round key, three to a row at every width, calm on the
             wash (Log above is the one action; six rings of the edge under
             it read as a field of green): Call off and Cancel red in the
@@ -4362,8 +4377,8 @@ function AtRisk({ list, onMessage, pop, nouns = "players" }) {
   const t = useT();
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Drifting")} onBack={pop}
-              meta={list.length ? countOf(list.length, nouns) : null}>
+      {/* no subtitle: the rows under the title are the count */}
+      <Screen title={tr("Drifting")} onBack={pop}>
         <div className="px-6 pb-2">
           {list.length === 0 ? (
             /* an empty state is a line, never a box — it was a breathing disc with a success-green tick */
@@ -4768,8 +4783,9 @@ function QuickMenu({ liveLesson, onLog, onRun, order, onEdit }) {
       </div>
       {onEdit && (
         <div className="flex justify-center" style={{ marginTop: 14 }}>
+          {/* a text action that acts: the sport's colour, in TextBtn's type */}
           <button onClick={() => { haptic(6); soft(); onEdit(); }} className="px-3 active:opacity-50"
-                  style={{ minHeight: 44, ...TYPE.small, color: t.faint }}>{tr("Edit")}</button>
+                  style={{ minHeight: 44, fontFamily: ui, fontSize: 15, fontWeight: 500, color: t.accent }}>{tr("Edit")}</button>
         </div>
       )}
     </>
@@ -4960,8 +4976,9 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
         </button>
 
         <h2 style={{ ...TYPE.title, color: t.ink }}>{picked.who}</h2>
+        {/* a register of one is the time alone: "1 person" under that person's name said nothing */}
         <p className="mt-1 mb-4" style={{ ...TYPE.small, color: t.faint }}>
-          {picked.time} · {who.length} {who.length === 1 ? tr("person") : tr("people")}
+          {who.length === 1 ? picked.time : `${picked.time} · ${who.length} ${tr("people")}`}
         </p>
 
         {who.length > 1 && (
@@ -5000,8 +5017,9 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
                             style={{ minWidth: 66, minHeight: 44, borderRadius: R.control,
                                      background: on ? tone : TINT(t), "--key-lip": on ? LIP(tone) : TINT_LIP(t),
                                      border: `${EDGE_W}px solid ${on ? tone : KEY_RING(t)}`,
-                                     ...TYPE.caption, fontWeight: 650,
-                                     color: on ? "#fff" : t.sub }}>
+                                     /* the white key's word is the ink, at 600 — never 650 in grey */
+                                     ...TYPE.small, fontWeight: 600,
+                                     color: on ? "#fff" : t.ink }}>
                       {lbl}
                     </button>
                   );
@@ -5080,14 +5098,15 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
         })}
       </div>
 
-      {/* whoever else turned up */}
+      {/* whoever else turned up: the white key, as every second key is — it was
+          the one dashed outline in a key-built app, a 1.29:1 line with no face
+          and no ledge */}
       {(roster || []).length > 0 && !walkIn && (lessons || []).length > 0 && (
-        <button onClick={() => { haptic(7); soft(); setWalkIn(true); }}
-                className="w-full flex items-center gap-3 mt-4 px-4 active:opacity-60"
-                style={{ minHeight: 52, borderRadius: R.control, border: `${EDGE_W}px dashed ${EDGE(t)}` }}>
-          <Plus size={15} color={t.accent} strokeWidth={2.2} />
-          <span style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{tr("Someone not in the diary")}</span>
-        </button>
+        <div className="mt-4">
+          <Button tone="quiet" onClick={() => { soft(); setWalkIn(true); }}>
+            <span className="inline-flex items-center justify-center gap-2"><Plus size={18} color={t.ink} strokeWidth={2.2} />{tr("Someone not in the diary")}</span>
+          </Button>
+        </div>
       )}
 
       {(roster || []).length > 0 && (walkIn || (lessons || []).length === 0) && (
@@ -5457,9 +5476,11 @@ function Poster({ item, size = 56, radius = 8, sport }) {
   useEffect(() => { setReady(false); if (!url) return undefined; const tm = setTimeout(() => setReady(true), 900); return () => clearTimeout(tm); }, [url]);
   const fade = { objectFit: "cover", opacity: ready ? 1 : 0, transition: "opacity 260ms ease" };
   if (!item) return (
-    /* no clip: the same box, the sport's glyph in it, so every row lines up */
+    /* no clip: the same box, the sport's glyph in it, so every row lines up —
+       Apple's grey with no ring, where a ring of the sport's tint drew a box
+       inside the row's box */
     <span className="flex items-center justify-center shrink-0" aria-hidden="true"
-          style={{ width: size, height: size, borderRadius: radius, background: t.wash, border: `${EDGE_W}px solid ${HAIR(t.mark || t.ink, 0.22)}` }}>
+          style={{ width: size, height: size, borderRadius: radius, background: t.wash }}>
       <SportGlyph sport={sport} size={Math.round(size * 0.42)} />
     </span>
   );
@@ -5515,18 +5536,30 @@ function DownloadDisc({ lesson, onTap, size = 38, dark = false }) {
     : `${tr("Download")} ${lesson.focus}`;
   const fg = dark ? "#fff" : t.ink;
   const r = size / 2 - 2, c = 2 * Math.PI * r;
+  /* on a white row it is a key (22 November): the white key on its grey
+     ledge at rest — it was an outline alone at 1.29:1 — the ring filling in
+     the sport's colour while it comes down, and the sport's colour on its
+     own ledge once on the phone, where it was a black disc; the feed card's
+     dark branch is as it was */
+  const face = dark
+    ? (status === "saved" ? "#fff" : "rgba(255,255,255,0.14)")
+    : status === "saved" ? t.accent : status === "failed" ? "transparent" : TINT(t);
+  const ring = status === "saved" || status === "saving" ? "none"
+    : `${dark ? 0.5 : EDGE_W}px solid ${status === "failed" ? DANGER : dark ? "rgba(255,255,255,0.18)" : KEY_RING(t)}`;
+  const ledge = dark ? "none" : status === "saved" ? lipOf(LIP(t.accent), 2) : status ? "none" : lipOf(TINT_LIP(t), 2);
   return (
     <button onClick={() => { haptic(8); onTap && onTap(lesson); }} aria-label={label} data-download={status || "none"} title={st && st.error ? st.error : undefined}
             className="relative shrink-0 flex items-center justify-center active:opacity-60"
             style={{ width: size, height: size, borderRadius: size / 2,
-                     background: status === "saved" ? (dark ? "#fff" : t.ink) : dark ? "rgba(255,255,255,0.14)" : "transparent",
-                     border: status === "saved" || status === "saving" ? "none" : `${dark ? 0.5 : EDGE_W}px solid ${status === "failed" ? DANGER : dark ? "rgba(255,255,255,0.18)" : EDGE(t)}`,
+                     background: face, border: ring, boxShadow: ledge,
                      animation: pop ? "tickIn 460ms cubic-bezier(.22,1,.36,1) backwards" : "none",
                      transition: "background 220ms ease" }}>
+      {/* 44 to a finger, and nothing drawn moves: the 38px disc answered 38 */}
+      <span aria-hidden="true" className="absolute" style={{ inset: -Math.max(0, (44 - size) / 2) }} />
       {status === "saving" && (
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0" aria-hidden="true" style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={fg} strokeOpacity={0.18} strokeWidth={2} />
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={fg} strokeWidth={2} strokeLinecap="round"
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={dark ? "#fff" : t.accent} strokeOpacity={0.18} strokeWidth={2} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={dark ? "#fff" : t.accent} strokeWidth={2} strokeLinecap="round"
                   strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, Math.max(0.02, st.progress || 0)))} style={{ transition: "stroke-dashoffset 220ms linear" }} />
         </svg>
       )}
@@ -5561,7 +5594,8 @@ function DownloadSheetBody({ lesson, onOpen, onUpdate, onShare, onRemove, onCanc
         <div className="mt-4">
           {/* the ring at a size that can be watched */}
           <div className="rounded-full overflow-hidden" style={{ height: 6, background: t.wash }}>
-            <div style={{ height: "100%", width: `${Math.max(2, pct)}%`, background: t.ink, borderRadius: 3, transition: "width 220ms linear" }} />
+            {/* a progress fill is the sport's colour */}
+            <div style={{ height: "100%", width: `${Math.max(2, pct)}%`, background: t.accent, borderRadius: 3, transition: "width 220ms linear" }} />
           </div>
           <button onClick={onCancel} className="w-full mt-4 n-key" style={{ ...quiet, color: DANGER }}>{tr("Cancel")}</button>
         </div>
@@ -5614,13 +5648,15 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
           <span className="flex items-center gap-2">
             {/* the mark means "not yet opened" only where opening clears it —
                 the coach's To review; nothing else passes `dot`, so no row
-                a person has already read carries a mark they cannot remove */}
-            {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.ink }} />}
+                a person has already read carries a mark they cannot remove.
+                The sport's colour, as Chat's unread dot is */}
+            {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.accent }} />}
             <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
           </span>
           <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
         </span>
-        {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={t.mark} fill={t.mark} strokeWidth={1.6} /></span>}
+        {/* a star is the palette's gold, wherever it is drawn */}
+        {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={HUE.gold} fill={HUE.gold} strokeWidth={1.6} /></span>}
         {!onDownload && <ChevronRight size={14} color={t.trace || t.faint} />}
       </button>
       {onDownload && <DownloadDisc lesson={l} onTap={onDownload} size={38} />}
@@ -10746,7 +10782,8 @@ function MediaThumb({ item, on, onPick, index }) {
   const label = item.type === "video" ? tr("Clip") : item.type === "audio" ? tr("Voice note") : item.type === "photo" ? tr("Photo") : item.angle || tr("Clip");
   return (
     <button onClick={() => { haptic(6); onPick(index); }} aria-label={label} aria-pressed={on} className="relative shrink-0 active:opacity-70"
-            style={{ borderRadius: 8, boxShadow: on ? `0 0 0 1.5px ${t.ink}` : "none", opacity: on ? 1 : 0.7, transition: "opacity 160ms, box-shadow 160ms" }}>
+            /* the chosen one ringed in the sport's colour, as a chosen state is */
+            style={{ borderRadius: 8, boxShadow: on ? `0 0 0 2px ${t.accent}` : "none", opacity: on ? 1 : 0.7, transition: "opacity 160ms, box-shadow 160ms" }}>
       <Poster item={item} size={56} radius={8} />
     </button>
   );
@@ -12637,7 +12674,10 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
       ) : <Avatar name={l.who} size={30} src={avatar} />}
       <span className={wordMin ? "flex-1" : "flex-1 min-w-0"}>
         {/* the whole name — two players with one first name are two rows — on a second line, and a third, rather than an ellipsis */}
-        <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: emphasis ? 600 : 400, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
+        {/* a row's name is 16/600, the live row's and every other's alike — it was
+            regular here and semibold in the Actions request row under it; the live
+            row is marked by its Now line and its Register key */}
+        <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
         {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: variant === "now" ? t.ink : t.faint }}>{until}</span>}
       </span>
     </>
@@ -12674,8 +12714,9 @@ function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, o
     <button onClick={() => { haptic(7); soft(); variant === "log" ? onLogFor(l) : onPeek(l); }}
             className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={frame}>
       {body(false)}
+      {/* a text action that acts is the sport's colour, in TextBtn's type, as Accept is */}
       {variant === "log"
-        ? <span className="shrink-0" style={{ ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Log")}</span>
+        ? <span className="shrink-0" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: t.accent }}>{tr("Log")}</span>
         : <ChevronRight size={14} color={t.trace || t.faint} />}
     </button>
   );
@@ -12934,7 +12975,8 @@ function ClipsToReview({ lessons, pop, onOpen, liveMedia, onNeedMedia, sport }) 
   const needFor = (l) => (liveMedia && onNeedMedia && !(l.id in liveMedia) && (l.media ?? l.videos ?? 0) > 0) ? () => onNeedMedia(l) : null;
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("To review")} onBack={pop} meta={lessons.length ? `${lessons.length} ${lessons.length === 1 ? tr("clip") : tr("clips")}` : ""}>
+      {/* no subtitle: the rows under the title are the count */}
+      <Screen title={tr("To review")} onBack={pop}>
         <div className="px-6">
           {lessons.length === 0
             ? <EmptyLine>{tr("Nothing to review")}</EmptyLine>
@@ -15107,7 +15149,8 @@ function JoinRequests({ requests, onAccept, onDecline, pop }) {
   const askedOn = (r) => { const d = r.createdAt ? new Date(r.createdAt) : null; return d && !isNaN(d) ? fmtWeekDay(d) : r.when; };
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("Requests")} onBack={pop} meta={requests.length ? `${requests.length} waiting` : null}>
+      {/* no subtitle: the rows under the title are the count */}
+      <Screen title={tr("Requests")} onBack={pop}>
         <div className="px-6 pb-2">
           {requests.length === 0 ? (
             /* an empty state is a line, never a box */
@@ -15145,7 +15188,8 @@ function UnloggedLessons({ items, onLog, onDismiss, pop }) {
   const dayOf = (u) => (u.date ? fmtIsoDay(u.date) : `${u.d} ${monthName(u.m).slice(0, 3)}`);
   return (
     <SwipeBack onBack={pop}>
-      <Screen title={tr("To log")} onBack={pop} meta={items.length ? `${items.length} waiting` : null}>
+      {/* no subtitle: the rows under the title are the count */}
+      <Screen title={tr("To log")} onBack={pop}>
         <div className="px-6 pb-2">
           {items.length === 0 ? (
             /* an empty state is a line, never a box */
@@ -15160,7 +15204,7 @@ function UnloggedLessons({ items, onLog, onDismiss, pop }) {
                            group={/group/i.test(u.kind || "") || (!!u.groupName && !u.playerId)}
                            sub={`${dayOf(u)} · ${u.time}`}
                            actions={<>
-                             <TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onLog(u); }}>{tr("Log")}</TextBtn>
+                             <TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); onLog(u); }}>{tr("Log")}</TextBtn>
                              {onDismiss && <TextBtn quiet color={t.faint} onClick={() => { haptic(8); onDismiss(u); }}>{tr("Dismiss")}</TextBtn>}
                            </>} />
               ))}
