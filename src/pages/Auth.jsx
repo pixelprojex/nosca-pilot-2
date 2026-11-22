@@ -328,7 +328,7 @@ function CodesStep({ junior, parent, initial, busy, err, onBack, onDone, onSkip,
   }, [pending, coachLook.status, famLook.status]);
 
   const label = (text) => (
-    <p className="mb-3 text-center" style={{ ...TYPE.eyebrow, color: t.faint }}>{text}</p>
+    <p className="mb-3 text-center" style={{ ...TYPE.eyebrow, color: t.sub }}>{text}</p>
   );
 
   return (
