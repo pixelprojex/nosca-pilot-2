@@ -326,7 +326,8 @@ const metaOf = (page, title) => page.evaluate((title) => {
       const rows = await page.locator('[data-scroll="screen"] .nsc-list > *').count();
       const dm = await metaOf(page, "Drifting");
       const t1 = await text(); await shot("07-drifting");
-      check("(i) Drifting's people are boxed rows, counted as players, never people", fine(drift) && /Aoife Doyle/.test(t1) && dm === `${rows} ${rows === 1 ? "player" : "players"}`, `${said(drift)} · meta "${dm}" rows ${rows}`);
+      /* 22 November: no subtitle — the rows under the title are the count ("1 player" over one row said it twice) */
+      check("(i) Drifting's people are boxed rows, and the screen carries no subtitle counting them", fine(drift) && /Aoife Doyle/.test(t1) && rows >= 1 && dm === "", `${said(drift)} · meta "${dm}" rows ${rows}`);
       await M.back(page);
       await page.locator("button", { hasText: /^Competitions/ }).last().click(); await page.waitForTimeout(900);
       const aheadAdd = await addCtl(page, 'button[aria-label="Add"]');
@@ -467,10 +468,11 @@ const metaOf = (page, title) => page.evaluate((title) => {
         check(`(r3 ${sport}) guard: a chosen Present is still filled, its edge the fill's own colour`,
           !!on && on.bg !== "rgba(0, 0, 0, 0)" && on.sides.every((x) => x.endsWith(on.bg)), on ? told([on]) + ` bg ${on.bg}` : "none");
         await page.locator("[data-sheet]").getByText("All lessons", { exact: true }).first().click(); await page.waitForTimeout(900);
-        const walk = await outlinesOf(page, "[data-sheet] button", /not in the diary/i);
-        /* a word key: told by its words (4.5:1 and over) and its dashed line on the card's edge, as every key is by its word and ledge */
-        check(`(r4 ${sport}) "Someone not in the diary" is a dashed outline on the card's light grey line, at least 1px, its words 4.5:1 and over`,
-          walk.length === 1 && edgeOk(walk[0], EDGE[sport], "dashed") && reContrast(flat(walk[0].fg, walk[0].ground), walk[0].ground) >= 4.5, told(walk));
+        const walk = await keysIn(page, "[data-sheet]", /not in the diary/i);
+        /* the white key (22 November): it was a dashed outline on the card's light grey line — 1.29:1, no face and no
+           ledge, the one dashed control in a key-built app. Told by its word (4.5:1 and over) and its four-point ledge */
+        check(`(r4 ${sport}) "Someone not in the diary" is the white key — the white face, the 1.5px light grey ring, a four-point grey ledge, its words 4.5:1 and over`,
+          walk.length === 1 && isStone(walk) && /0px 4px 0px/.test(walk[0].shadow) && sRatio(sRgb(walk[0].fg), sRgb(walk[0].bg)) >= 4.5, toldK(walk));
         await ctx.close();
       }
     }

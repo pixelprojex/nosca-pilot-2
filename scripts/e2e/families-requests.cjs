@@ -107,7 +107,8 @@ const leaks = [];
       check("(b) Today says how many asked to join", (await strip.count()) === 1 && /Join requests/i.test(M.norm(await strip.innerText())), t0.slice(0, 200));
       await strip.click(); await page.waitForTimeout(900);
       const t1 = await leak("coach requests"); await shot("05-coach-requests");
-      check("(b) Requests lists the one waiting, with Accept and Decline", t1.includes("Requests") && t1.includes("1 waiting") && t1.includes("Eoin Walsh") && (await byText(page, "Accept").count()) === 1 && (await byText(page, "Decline").count()) === 1, t1.slice(0, 200));
+      /* no subtitle counting them (22 November): the one row is the count */
+      check("(b) Requests lists the one waiting, with Accept and Decline, and no subtitle counting it", t1.includes("Requests") && !/\d waiting/.test(t1) && t1.includes("Eoin Walsh") && (await byText(page, "Accept").count()) === 1 && (await byText(page, "Decline").count()) === 1, t1.slice(0, 200));
       await click(page, "Accept", 1800);
       const acc = rpc("respond_to_request")[0]; const eoinReq = db.requests.find((r) => r.player_id === IDS.eoin);
       check("(b) Accept calls respond_to_request with p_accept true", !!acc && acc.args.p_id === eoinReq.id && acc.args.p_accept === true, JSON.stringify(acc && acc.args));
