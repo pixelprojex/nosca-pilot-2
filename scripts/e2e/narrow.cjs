@@ -35,6 +35,8 @@ function freshDb() {
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "4:00 pm" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(1)), time: "9:00 am" });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-5)), focus: "Short game", unread: false });
+  /* the child's next lesson, read on her own screen by the parent (e) */
+  M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: M.ymd(dayFrom(2)), time: "10:30 am" });
   return db;
 }
 
@@ -179,6 +181,38 @@ const { check, results, summary } = M.checker("narrow");
       }, LONG);
       await shot("04-diary-row");
       check('(d) the Diary\'s List row at 320 reads the whole name on a second line — it read "Maximiliano Ó Súil…" beside the time', !!o && o.text === LONG && !o.cut && o.lines <= 2, JSON.stringify(o));
+      await ctx.close();
+    }
+
+    /* ---------- (e) the child's Next row, whole ---------- */
+    /* the parent's screen for a child: Next reads the day and the time,
+       each fact whole, and breaks only at the dot — which hangs, clipped,
+       off the second line's start (PersonRow's grey line), so the line
+       reads "10:30 am", never "· 10:30 am". It read "Tue 24 Nov · 10:0…"
+       at 320 for a round */
+    for (const width of [320, 375]) {
+      const { ctx, page, shot } = await boot("parent", width);
+      await tap(page, '[aria-label="Family"]', 900);
+      await page.locator("button", { hasText: "Saoirse" }).first().click(); await page.waitForTimeout(1000);
+      const o = await page.evaluate(() => {
+        const lbl = [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > * > span:first-child')].find((s) => s.textContent.trim() === "Next"); if (!lbl) return null;
+        const v = lbl.nextElementSibling, vr = v.getBoundingClientRect(), cs = getComputedStyle(v);
+        const facts = [...v.querySelectorAll(".whitespace-nowrap")].map((f) => {
+          const r = f.getBoundingClientRect(), dot = f.firstElementChild && f.firstElementChild.textContent.includes("·") ? f.firstElementChild.getBoundingClientRect() : null;
+          return { text: f.textContent.replace("·", "").trim(), top: Math.round(r.top), right: Math.round(r.right), boxes: f.getClientRects().length, dotRight: dot ? Math.round(dot.right) : null };
+        });
+        return { text: v.textContent.replace(/\s+/g, " ").trim(), cut: v.scrollWidth > v.clientWidth + 1 || cs.textOverflow === "ellipsis", left: Math.round(vr.left), right: Math.round(vr.right), facts };
+      });
+      await shot("05-kid-next");
+      const tops = o ? [...new Set(o.facts.map((f) => f.top))] : [];
+      /* a fact that starts a line of its own carries its dot left of the value's box, where the clip takes it */
+      const hung = !!o && o.facts.every((f, i) => i === 0 || f.top === o.facts[i - 1].top || (f.dotRight !== null && f.dotRight <= o.left + 1));
+      const whole = !!o && !o.cut && o.facts.length === 2 && /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}$/.test(o.facts[0].text) && o.facts[1].text === "10:30 am"
+        && o.facts.every((f) => f.boxes === 1 && f.right <= o.right + 1);
+      check(width === 320
+        ? '(e) the child\'s Next row at 320 reads the day and the time whole, breaking only at the dot, which never leads the second line — it read "Tue 24 Nov · 10:0…"'
+        : "(e2) at 375 the child's Next row reads on one line, whole", whole && hung && (width === 320 || tops.length === 1), JSON.stringify(o));
+      console.log(`      note  the child's Next at ${width}: "${o ? o.text : "-"}" on ${tops.length} line(s), the value ${o ? o.right - o.left : "-"}px wide`);
       await ctx.close();
     }
 

@@ -81,6 +81,27 @@ const leaks = [];
   };
   const { tap, byText, click } = M;
   const rpc = (fn) => db.rpcs.filter((x) => x.fn === fn);
+  /* the bell's mark on a notice: the kind's colour and glyph, on the badge at the face's corner or on the disc where there is no face */
+  const kindMark = (page, re) => page.evaluate((src) => {
+    const row = [...document.querySelectorAll('[data-tour="alerts-list"] [data-person-row]')].find((r) => new RegExp(src).test(r.textContent)); if (!row) return null;
+    const svg = [...row.firstElementChild.querySelectorAll("svg")].find((s) => { const bg = getComputedStyle(s.parentElement).backgroundColor; return bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent"; });
+    return svg ? { bg: getComputedStyle(svg.parentElement).backgroundColor, glyph: String(svg.getAttribute("class") || "").replace("lucide ", "") } : { bg: null, glyph: null };
+  }, re.source);
+  /* ONE TAP, ONE BEAT: the haptics fired while one click is being dispatched — from the window's
+     capture to its bubble, so a celebration's own beats after the write are not counted */
+  const countBeats = (page) => page.evaluate(() => {
+    window.__beats = []; window.__inTap = false;
+    if (!window.__beatsOn) {
+      window.__beatsOn = true;
+      window.addEventListener("click", () => { window.__inTap = true; }, true);
+      window.addEventListener("click", () => { window.__inTap = false; }, false);
+    }
+    Object.defineProperty(navigator, "vibrate", { configurable: true, value: (p) => { if (window.__inTap) window.__beats.push(p); return true; } });
+  });
+  const beats = (page) => page.evaluate(() => window.__beats || []);
+  const faceOf = (page, sel) => page.evaluate((sel) => { const b = typeof sel === "string" ? document.querySelector(sel) : null; if (!b) return null; const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ring: cs.borderTopColor, fg: cs.color }; }, sel);
+  const keyFace = (page, label) => page.evaluate((label) => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => x.textContent.replace(/\s+/g, " ").trim() === label); if (!b) return null; const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ring: cs.borderTopColor, fg: cs.color }; }, label);
+  const ACCENT = "rgb(32, 122, 48)", WHITE = "rgb(255, 255, 255)", RING = "rgb(226, 226, 231)";
 
   try {
     /* ---------- (a) a player withdraws the request they have out ---------- */
@@ -195,6 +216,12 @@ const leaks = [];
       await click(page, "Dismiss", 900);
       const t1 = await leak("eoin home"); await shot("12-eoin-home");
       check("(c) …and opens on Home, not the coachless screen", !t1.includes("Add your coach") && !t1.includes("Request sent"), t1.slice(0, 200));
+      /* the answer to a request is the request's kind of thing: its blue and its glyph (22 November) —
+         'accepted' was taught to neither map, so its badge was the slate with a bell on it */
+      await tap(page, '[aria-label="Alerts"]', 1000);
+      const ma = await kindMark(page, /accepted you/); await shot("12a-eoin-bell");
+      check("(c) the bell draws '<coach> accepted you' in the request's blue with its glyph — never the slate and a bell", !!ma && ma.bg === "rgb(27, 116, 161)" && /lucide-user-plus/.test(ma.glyph), JSON.stringify(ma));
+      await M.back(page, 900);
       await tap(page, '[data-tour="profile-pill"]', 900);
       const t1b = await leak("eoin switcher"); await shot("12b-eoin-switcher");
       check("(c) …and the switcher names the coach", t1b.includes("Your coaches") && t1b.includes("Niamh Byrne") && !t1b.includes("Add a coach"), t1b.slice(0, 200));
@@ -210,6 +237,9 @@ const leaks = [];
       /* the home screen's own line about the decline reads the coach's row, which the
          profiles policy stops sharing once the request is no longer pending */
       check("(c) the coachless screen names who couldn't take them on (declinedBy)", t0.includes("Niamh Byrne couldn't take you on"), t0.slice(0, 200));
+      await tap(page, '[aria-label="Alerts"]', 1000);
+      const md = await kindMark(page, /take you on/); await shot("14a-aoife-bell");
+      check("(c) the bell draws '<coach> can't take you on' in the request's blue with its glyph — never the slate and a bell", !!md && md.bg === "rgb(27, 116, 161)" && /lucide-user-plus/.test(md.glyph), JSON.stringify(md));
       await ctx.close();
     }
 
@@ -238,6 +268,11 @@ const leaks = [];
       await byText(page, "Copy").click(); await page.waitForTimeout(500);
       const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => null);
       check("(d) Copy puts the family code on the clipboard", clip === famCode, String(clip));
+      /* one accent a screen: while the name is being changed Save is the action, and Share above
+         it steps back to the white key, as Copy — it was the sport's colour beside Save's */
+      await page.locator('[data-scroll="screen"]').getByText("Name", { exact: true }).first().click(); await page.waitForTimeout(600);
+      const shareR = await faceOf(page, '[data-tour="family-share"]'), saveR = await keyFace(page, "Save"); await shot("16b-cian-renaming");
+      check("(d) renaming, Save is the one accent and Share the white key with the ink word", !!shareR && !!saveR && saveR.bg === ACCENT && shareR.bg === WHITE && shareR.ring === RING && shareR.fg === "rgb(28, 28, 30)", JSON.stringify({ share: shareR, save: saveR }));
       await ctx.close();
     }
 
@@ -256,7 +291,13 @@ const leaks = [];
       await page.locator('[data-tour="family-join"] input').first().fill(famCode); await page.waitForTimeout(1000);
       const t0 = await leak("dara code checked"); await shot("17-dara-code-checked");
       check("(e) the code is looked up live and shows the family's name and size", t0.includes("The Murphys · 1 person") && rpc("find_family_by_code").some((x) => x.args.p_code === famCode), t0.slice(0, 200));
+      /* one accent a screen: once the code has found a family, Join is the action and Start steps back to the white key */
+      const startF = await keyFace(page, "Start"), joinF = await keyFace(page, "Join The Murphys");
+      check("(e) with a family found, Join is the one accent and Start the white key — both were the sport's colour", !!startF && !!joinF && joinF.bg === ACCENT && startF.bg === WHITE && startF.ring === RING, JSON.stringify({ start: startF, join: joinF }));
+      await countBeats(page);
       await click(page, "Join The Murphys", 1800);
+      const jb = await beats(page);
+      check("(e) one tap, one beat: Join buzzes once, the Button's own — a commit pattern rode on it twice more", jb.length === 1, JSON.stringify(jb));
       const jf = rpc("join_family")[0];
       check("(e) Join calls join_family with the code and the caller is in", !!jf && jf.args.p_code === famCode && db.profiles[IDS.dara].family_id === db.profiles[IDS.adult].family_id, JSON.stringify(jf && jf.args));
       check("(e) the family trigger told the other member (kind family)", db.notifications.some((n) => n.user_id === IDS.adult && n.kind === "family" && /Dara Kelly joined your family/.test(n.title)), JSON.stringify(db.notifications.filter((n) => n.kind === "family").map((n) => n.title)));

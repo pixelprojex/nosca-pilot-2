@@ -284,6 +284,132 @@ seeded data and no account.
   each in their own colour (`SportGrid`, the one grid that keeps a
   tint). `keys.cjs`, `boxes.cjs`, `lists.cjs`, `ease.cjs`,
   `calendar-day.cjs`, `person-row.cjs` read it.
+- **Every surface on the white look (22 November, the visual audit).**
+  The founder: "ensure that there are engineers or agents working on
+  the visuals and aesthetics - arguably the most lacklustre area!!" and
+  "No mistakes are to be allowed." Six lenses audited every screen
+  against the bullet above; the verified findings merged in four
+  batches (the coach's day; the Diary and its sheets; the shell, the
+  primitives, Settings and the front door; the player's and the
+  parent's side) and two rounds of the reviewers' follow-ups. What a
+  later session keeps:
+  - **The large title stands on air.** `PageHead` draws no rule under
+    the H1 — the `major` under every H1 was the hairline the founder
+    named on 21 November, and `RULE`'s comment says so now — so the
+    home's date to Today is 40 (`ease.cjs` (c)); the compact header's
+    hairline once the screen has scrolled stays. The lesson page's
+    sections stand on air the same way: no page-wide rule between the
+    note, the reply, the tip, the drills, Absent, the rating line and
+    the actions (`LessonDetail`).
+  - **The sheet.** `Sheet` reaches `max(540px, min(100dvh − 140px,
+    704px))` — 540 on a 667, 704 on an 844 and over, under the 760 it
+    parks at — over a neutral black scrim at 30% with a neutral shadow,
+    and its grab handle is the trace grey (on the hairline it read
+    1.2:1).
+  - **The Logged burst is the white page,** as `Celebration` is
+    (`PublishedBurst`): the disc on its own ledge with no glow and no
+    shockwave, the app's type, Log next the app's `Button`, Ask for a
+    rating the white key with a gold star and Asked the chosen answer;
+    three rows, so on a short phone the day's count never runs under
+    Log next and the foot clears the home indicator.
+  - **The download disc is a key.** On a white row `DownloadDisc` is
+    the white key at rest, its ring filling in the sport's colour, the
+    accent once on the phone, the red glyph on the white key when it
+    failed, and 44 to a finger whatever its drawn size; the download
+    sheet's bar, the chosen thumbnail and To review's unread dot are the
+    sport's colour.
+  - **A chosen answer is `SEL`'s.** `Choice`'s chosen answer is the
+    faint face with its word, glyph and tick in the sport's colour at
+    17/600 (white on a pale face, the word a new person had just tapped
+    vanished); a picked free time in the Diary is `SEL` (it was black
+    bold text). Sign-up's Main sport is the `SportGrid`, two across.
+    `CodeBoxes`: an empty box is the field on the wash with its soft
+    foot, a filled one the chosen answer, a wrong code the field with
+    the red line and red characters — a problem is never drawn as a
+    chosen answer — and the six narrow to fit at 320, where the first
+    and last were cut off. Every sign-up title, Arrival's and
+    /install's are `TYPE.screen`.
+  - **Settings.** Every row has a glyph of its own (Default view and
+    Opens on, Reviews and Review prompt, Terms and Licences, Reminder
+    and Notifications, Setup and Walkthrough shared one; Lessons as a
+    player and Lessons you've taken had no square); the unfolding rows
+    and the inset `FilterRow` are 56 tall and 16 in with `Row`'s
+    chevron; `Row`'s sub is `TYPE.caption` and its dot the sport's
+    colour; a red row (the family's Leave) draws no tick box — it read
+    as an option left unticked.
+  - **One text box, at 16.** `VoiceInput` and `VoiceArea` write at
+    16px, the size under which iOS zooms the page, and `VoiceArea`
+    carries no hairline ring; the family name, the rename, the coach
+    code, a drill's rename, the bio, the password sheet and the lesson
+    edit's focus and date are the same box. The password step
+    (`ConfirmPassword`) is a field like every other — the wash on the
+    soft foot, a red ring only on a refusal — with one way back on
+    every sheet of its flow (`TYPE.body` in `t.sub`, 48 tall), and the
+    step before it is the white key with the red word (`dangerQuiet`)
+    wherever the password's own red key carries the same words.
+  - **Keys.** `ActTile`'s word is 15 in a grid of one or two, 13.5
+    three across, a round key's 13; a word key's count sits on its
+    corner as the ink disc in the page's ring — inside, it ran over
+    Call off's "Mon 23 Nov" two across at 320. A player's own lesson
+    in the Calendar view ends on keys as the coach's block for it does:
+    `day-cancel` (the red word) and `day-reschedule` (ink), white keys
+    46 tall, and a group's on one, `day-out` (Going in the accent). A
+    free hour's plus is the sport's colour, grey on a junior's
+    view-only diary. A text action that acts is the sport's colour —
+    Log on Today's finished rows and on To log, the plus sheet's Edit,
+    the bell's Mark all read and Clear all; the peek's Log is led by
+    its Plus, Today on it is a label, and no rule crosses the sheet
+    above its round keys. Present and Absent are ink at 14/600, and
+    Someone not in the diary the white key.
+  - **Less said twice.** No subtitle repeats the list under it
+    (Requests, To log, To review, Drifting); a register of one reads
+    its time alone; the coach's profile names the coach once; Set
+    drills drops "Your drills" under "Drills for Cian". Today's names
+    are 16/600 as every row's are, and the List view's, three lines
+    before an ellipsis. Progress's blocks are cards under `RowHead`
+    headings, the level then wrapping under the level now at 320, its
+    chart's labels on the 12px floor. A lesson with nothing filmed is the grey square with
+    no ring; a starred lesson's star is the palette's gold on its page
+    and on its row; a drill's tick is the Drills tab's, the sport's
+    colour with the name struck in grey.
+  - **The player's and the parent's side.** The switcher
+    (`FamilySheet`) leads every row with its square — Add a coach
+    blue, Photos, Family, Progress green, Settings slate — drops the
+    sentence subtitles and the "No coach yet" card, and every row that
+    opens a next step carries the chevron, Add a coach too. The coach's
+    profile (`CoachProfile`): five stars 44 to a finger, the empty ones
+    on `LINE_STRONG` and the picked ones gold, the placeholder the noun
+    Review, Submit review the app's `Button`, and Message
+    (`coach-message`) the group page's own Message over it — the
+    `Button` in its white tone with its glyph (it was hand-drawn at 50
+    on the control's corner). The family screen (`FamilyScreen`) keeps
+    one accent: Start until a code below has found a family, then Join
+    <family> with Start the white key (`FamilyCodeEntry` says so
+    through `onFound`); Share until the name is being changed, then
+    Share is the white key beside Copy and Save the accent. The child's
+    screen (`FamilyKid`): Book a lesson · Message coach at the
+    `Button`'s size with its not-yet-live look; Next read whole at 320,
+    each fact kept whole and the line breaking only at the dot, which
+    hangs clipped off the second line as `PersonRow`'s grey line does
+    (it read "Tue 24 Nov · 10:0…"); All lessons and Progress are doors
+    (`kid-all-lessons`, `kid-progress`: `HomeRow`s in boxes of their
+    own with their squares), never keys. **One tap, one beat:** a
+    `Button` buzzes on the tap, so its handler adds no commit pattern —
+    Submit review, Start, Join and Ask to join buzzed two or three
+    times; a refusal still warns.
+  - **The bell.** `NotifCentre`'s unread dot is the sport's 10px dot;
+    a badge on a face and a disc with no face carry the kind's glyph in
+    white on its colour of `HUE` (`KIND_HUE`, `NOTIF_ICON`), a request's
+    answer — `accepted`, `declined` — in the request's blue with its
+    person-and-plus, where both fell to the slate and a bell; the push
+    prompt's answers reach 44; Chat's preview stays in the sub grey
+    when unread.
+  Held for the founder, not done: the home's Actions filter (A2), the
+  archive's Filter rows as a group (C1), the transport of Mark it up,
+  Compare and Study (C4). `boxes.cjs` (i), (r4), (n0)–(n5), (s5b);
+  `lists.cjs` (aa), (x2); `families-requests.cjs` (b), (c), (d), (e);
+  `join-requests.cjs` (a), (g); `narrow.cjs` (e), (e2); `rating.cjs`
+  (h2); `ease.cjs` (c); `signup.cjs`.
 - **What is pressed stands on a lip; a key with a glyph is round
   (18 November).** The founder: the buttons, tiles and boxes "Duolingo
   style … that we have already done with the Lares app … our own
@@ -712,7 +838,10 @@ seeded data and no account.
   the sport's edge.** The selected day: every lesson of the person's
   that day is a box of one `.nsc-list` (`day-mine`: the eyebrow, the
   time alone, its length and the coach, the group or who booked it, then
-  Cancel · Reschedule as the box's foot, 44 tall), where they sat
+  Cancel · Reschedule as the box's foot — two white keys 46 tall on the
+  control's corner, Cancel's word red and Reschedule's ink, as the
+  coach's block for the same lesson ends on keys; they were two 13px
+  words 44 tall until 22 November), where they sat
   between hairlines and a 20px Cancel ran into the time at 320; the
   coach's lessons (`ScheduleBlock`, `cal-block`) are the same box at 8px
   — they were pale 16px accent cards, a fourth box style on one screen —
@@ -1075,8 +1204,9 @@ seeded data and no account.
   roster (`group_members`, still revoked from clients). Read by the
   member, their adults and the coach; no other family reads who is
   out. The member's side is **Not going** under the group's name on
-  the Calendar view's block (`day-out`, 44 tall, where a private
-  lesson has Cancel · Reschedule), the box's eyebrow reading Not going
+  the Calendar view's block (`day-out`, one white key across the box,
+  46 tall, where a private lesson has Cancel · Reschedule; **Going** in
+  the accent's word once out), the box's eyebrow reading Not going
   and the button **Going** once out (`data-out`), the List row "Not
   going" under the group's name (`agenda-out`), and `done`'s tick — "Not
   going" · "Saturday clinic · Sun 25 Oct", a parent's leading with the
@@ -1381,7 +1511,12 @@ seeded data and no account.
   `FeedCard`, and the foot of the lesson page in words) has four
   states: the arrow (not on the phone), a ring filling with the
   percentage inside it (coming down), a filled disc with a tick (on
-  the phone), the arrow in red (it failed; a tap retries). One tap
+  the phone), the arrow in red (it failed; a tap retries). Since 22
+  November it is drawn as a key: on a white row the white key at rest
+  (the white face on its grey ledge, never an outline alone), the ring
+  filling in the sport's colour, the accent once on the phone, the red
+  glyph on the white key when it failed, and 44 to a finger whatever
+  its drawn size (the visual audit's bullet). One tap
   saves the lesson whole onto the phone — the record (focus, subs, the
   day, who, the note, the tip and the drills set alongside it, the
   register's mark, the coach's name) and every file as a blob — into
@@ -1794,8 +1929,9 @@ seeded data and no account.
   register's day of lessons and its Not in the diary, Drifting, the
   roster's Groups half, the player file's foot (Progress · Notes ·
   Recurring lessons) and the child's Next · Drills — and, the weekly
-  ones, the lesson page's drills (an undone tick on `EDGE(t)`, as the
-  Drills tab's), the Compare picker ("No other clips yet" a line under
+  ones, the lesson page's drills (an undone tick on the strong grey
+  ring, `LINE_STRONG`, a done one filled in the sport's colour with the
+  name struck in grey, as the Drills tab's), the Compare picker ("No other clips yet" a line under
   it), the Calendar view's free times (`TimeList`, one `.nsc-day`, as
   the List view's day), the group page's sessions (`group-sessions`,
   each on its day, `Thu 15 Oct`, kept whole on one line beside a long
@@ -1822,7 +1958,8 @@ seeded data and no account.
   Settings toggle row) is on `EDGE(t)`: on the hairline it read at
   1.2:1, under the 3:1 a control's edge needs; the edge reads 3.0 to
   4.1:1 across the sports. The register's unchosen Present and Absent
-  and its dashed "Someone not in the diary" are on `EDGE(t)` at
+  and its "Someone not in the diary" (the white key since 22 November,
+  where it was the one dashed outline) are on `EDGE(t)` at
   `EDGE_W` too: on a 0.5px ink hairline they read 1.5:1 and 1.8:1
   (`boxes.cjs` (r1)–(r4), golf and a riding coach). An empty state ("Nobody
   by that name") is a line under the field, never a box.
@@ -2075,7 +2212,7 @@ seeded data and no account.
   OnForm goes to frame by frame. The title names the other person, as
   Compare's does. `scripts/e2e/study.cjs`.
 - **The unread dot sits only where opening clears it.** `LessonRow`
-  draws its 6px mark from a `dot` prop, and only `ClipsToReview` passes
+  draws its 6px mark (the sport's colour since 22 November) from a `dot` prop, and only `ClipsToReview` passes
   one (`l.unread` on a sent clip, cleared by `markLessonSeen` when the
   coach opens it). `lessons.unread` defaults true and nothing on the
   player's side or the coach's own lists flips it, so for a long time
@@ -2618,8 +2755,9 @@ seeded data and no account.
   `PersonRow`s (`request-card`): the face, the whole name, one grey line
   of the facts — the sport, Under 18, the day they asked in the app's
   form (`Thu 12 Nov`, off `createdAt`; the hook's `when` read "8 Nov")
-  — and Accept · Decline as the row's text actions, Accept in ink,
-  Decline in `t.faint`, as Today's booking requests and the bell's;
+  — and Accept · Decline as the row's text actions, Accept in the
+  sport's colour (a text action that acts, since 21 November; it was
+  ink), Decline in `t.faint`, as Today's booking requests and the bell's;
   beside the name where it fits, a line of their own under it at 320.
   With nothing waiting the screen is the line "Nothing waiting" and no
   subtitle. The empty state was a card with a tick in a disc and a
@@ -2663,11 +2801,15 @@ seeded data and no account.
   state is the line "Nobody drifting" with no subtitle (it was a
   breathing disc with a success-green tick over "Everyone's booked
   in"). Contrast: the register's unmarked count is `t.sub`, not CAUTION
-  (2.86:1); the burst's "logged today" is `TYPE.caption` at 55% white,
-  not tracked capitals, and Ask for a rating sits on a 1px 50% line
-  (it was 0.5px at 28%, 2.4:1); a ticked lesson on Call off and End
+  (2.86:1); the burst's "logged today" was `TYPE.caption` at 55% white,
+  not tracked capitals, and Ask for a rating sat on a 1px 50% line
+  (it was 0.5px at 28%, 2.4:1) — since 22 November the burst is the
+  white page and Ask for a rating the white key (the visual audit's
+  bullet); a ticked lesson on Call off and End
   carries DANGER whole on its edge (it was DANGER at 27%, 1.5:1); the
-  password field is on `EDGE(t)` at `EDGE_W`, not the hairline. The
+  password field is a field like every other since 22 November — the
+  wash on the soft foot, a red ring only on a refusal (it was on
+  `EDGE(t)` at `EDGE_W`, and before that the hairline). The
   Diary's day heading is `TYPE.heading` in List and `TYPE.title` in
   Calendar (16 and 21, off the ladder), and the open count reads "N
   free" on both sides (the player's read "available").
