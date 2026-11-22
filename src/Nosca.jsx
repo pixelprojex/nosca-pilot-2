@@ -6409,12 +6409,10 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
       <Screen title={coachName || tr("Your coach")} onBack={pop}
               meta={reviewSummary ? `${reviewSummary.average.toFixed(1)} ★ · ${reviewSummary.count} ${reviewSummary.count === 1 ? tr("review") : tr("reviews")}` : ""}>
         <div className="px-6">
+          {/* the screen's title names the coach; the face and the sport under it say the rest */}
           <div className="flex flex-col items-center py-6 mb-2">
             <Avatar name={coachName || "?"} size={64} />
-            <span className="mt-4" style={{ fontFamily: display, fontSize: 22, letterSpacing: "-0.02em", color: t.ink }}>
-              {coachName || tr("Your coach")}
-            </span>
-            {sport && <span className="mt-1" style={{ ...TYPE.small, color: t.faint }}>{SPORTS[sport]?.label || sport}</span>}
+            {sport && <span className="mt-3" style={{ ...TYPE.small, color: t.faint }}>{SPORTS[sport]?.label || sport}</span>}
           </div>
 
           {!juvenile && (
@@ -6430,23 +6428,25 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
           {!juvenile && (
             <div className="pt-2" data-tour="coach-review" style={{ borderTop: `1px solid ${HAIR(t.ink, 0.14)}` }}>
               <Eyebrow>{myReview ? tr("Your review") : tr("Leave a review")}</Eyebrow>
-              <div className="flex items-center justify-center gap-2 py-5">
+              {/* five stars, each a 44 target edge to edge: an empty one on the
+                  tick box's strong grey ring (3.3:1), a picked one the palette's gold */}
+              <div className="flex items-center justify-center gap-0 py-5">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} onClick={() => { haptic(6); setRating(n); setSent(false); }} className="active:opacity-60">
-                    <Star size={30} strokeWidth={1.6} color={n <= rating ? "#D4A017" : t.hair}
-                          fill={n <= rating ? "#D4A017" : "none"} />
+                  <button key={n} onClick={() => { haptic(6); setRating(n); setSent(false); }} className="flex items-center justify-center active:opacity-60"
+                          style={{ width: 44, height: 44 }}>
+                    <Star size={30} strokeWidth={1.6} color={n <= rating ? HUE.gold : LINE_STRONG}
+                          fill={n <= rating ? HUE.gold : "none"} />
                   </button>
                 ))}
               </div>
               <VoiceInput value={comment} onChange={(v) => { setComment(v); setSent(false); }}
-                          ph={tr("Anything you'd want other players to know (optional)")} rows={3} />
+                          ph={tr("Review")} rows={3} />
               {err && <p className="mt-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
-              <button onClick={submit} disabled={busy || !rating || (sent && comment === (myReview?.comment || "") && rating === myReview?.rating)}
-                      className="w-full mt-4 n-key disabled:opacity-30"
-                      style={{ "--key-lip": MIX(t.ink, "#000000", 0.55), minHeight: 50, borderRadius: R.control, background: t.ink, color: "#fff",
-                               ...TYPE.subhead, fontSize: 15 }}>
-                {busy ? "…" : sent ? tr("Saved") : myReview ? tr("Update review") : tr("Submit review")}
-              </button>
+              <div className="mt-4">
+                <Button disabled={busy || !rating || (sent && comment === (myReview?.comment || "") && rating === myReview?.rating)} onClick={submit}>
+                  {busy ? "…" : sent ? tr("Saved") : myReview ? tr("Update review") : tr("Submit review")}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -6518,10 +6518,10 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
                 style={{ width: 74, height: 74, background: t.accent, animation: "breathe 3.2s ease-in-out infinite" }}>
             <Clock size={30} color={t.onAccent} strokeWidth={2} />
           </span>
-          <h1 data-tour="nocoach-pending" style={{ ...TYPE.hero, fontSize: 27, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 70ms both" }}>
+          <h1 data-tour="nocoach-pending" style={{ ...TYPE.screen, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 70ms both" }}>
             {tr("Request sent")}
           </h1>
-          <p className="mt-3" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.55, color: t.sub, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 130ms both" }}>
+          <p className="mt-3" style={{ ...TYPE.body, lineHeight: 1.55, color: t.sub, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 130ms both" }}>
             {pending.coachName} {tr("will accept you from their app. You'll be told the moment they do.")}
           </p>
           {familyName && (
@@ -6545,7 +6545,7 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
       {top}
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
         {declinedBy && (
-          <p className="mb-6 px-4 py-3" style={{ borderRadius: R.control, background: t.wash, ...TYPE.small, color: t.sub }}>
+          <p className="mb-6" style={{ ...TYPE.small, color: t.sub }}>
             {declinedBy} {tr("couldn't take you on. Another coach's code works the same way.")}
           </p>
         )}
@@ -6555,11 +6555,11 @@ function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedB
           <UserPlus size={30} color={t.onAccent} strokeWidth={2} />
         </span>
 
-        <h1 style={{ ...TYPE.hero, fontSize: 27, color: t.ink,
+        <h1 style={{ ...TYPE.screen, color: t.ink,
                      animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 70ms both" }}>
           {juvenile ? tr("Join your coach") : tr("Add your coach")}
         </h1>
-        <p className="mt-3" style={{ fontFamily: ui, fontSize: 14.5, lineHeight: 1.55, color: t.sub,
+        <p className="mt-3" style={{ ...TYPE.body, lineHeight: 1.55, color: t.sub,
                      animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) 130ms both" }}>
           {juvenile
             ? tr("Ask a parent for the code your coach gave them. The coach accepts you from their app.")
@@ -6783,11 +6783,11 @@ function FamilyCodeEntry({ lookup, onJoin, busy, tour }) {
           : found ? `${found.name} · ${found.members} ${found.members === 1 ? tr("person") : tr("people")}`
           : tr("From someone already in it")}
       </p>
-      <button onClick={join} disabled={busy || clean.length !== 6 || !found}
-              className="w-full mt-3 n-key disabled:opacity-30"
-              style={{ "--key-lip": MIX(t.ink, "#000000", 0.55), minHeight: 50, borderRadius: R.control, background: t.ink, color: "#fff", ...TYPE.subhead, fontSize: 15 }}>
-        {busy ? "…" : found ? `${tr("Join")} ${found.name}` : tr("Join")}
-      </button>
+      <div className="mt-3">
+        <Button disabled={busy || clean.length !== 6 || !found} onClick={join}>
+          {busy ? "…" : found ? `${tr("Join")} ${found.name}` : tr("Join")}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -6839,9 +6839,11 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
             {!isJunior && (<>
               <Eyebrow>{tr("Start a family")}</Eyebrow>
               <Card tour="family-create" className="p-5 mb-8">
-                <div className="flex items-center gap-2 mb-4 px-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash }}>
-                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Family name · optional")} maxLength={40}
-                         className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                <div className="flex items-center gap-2 mb-4 px-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
+                  {/* the noun of what goes in it, as the rename's: at 16px "Family name · optional"
+                      was cut at 320, and Start is live with nothing typed, which says the rest */}
+                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Family name")} maxLength={40}
+                         className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                   <MicBtn onText={(txt) => setName(name ? `${name} ${txt}` : txt)} size={26} />
                 </div>
                 {err && <p className="mb-3" style={{ ...TYPE.caption, color: DANGER }}>{err}</p>}
@@ -6876,7 +6878,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                 <button onClick={copy} className="inline-flex items-center gap-2 px-5 n-key"
                         style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}><Copy size={14} strokeWidth={2} />{tr("Copy")}</button>
                 <button data-tour="family-share" onClick={share} className="inline-flex items-center gap-2 px-5 n-key"
-                        style={{ "--key-lip": MIX(t.ink, "#000000", 0.55), minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 500, color: "#fff" }}><Share2 size={14} strokeWidth={2} />{tr("Share")}</button>
+                        style={{ "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}><Share2 size={14} strokeWidth={2} />{tr("Share")}</button>
               </div>
             </Card>
           </>)}
@@ -6891,18 +6893,21 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
             <Card className="mb-8">
               {renaming ? (
                 <div className="px-5 py-4">
-                  <div className="flex items-center gap-2 mb-3 px-4" style={{ minHeight: 46, borderRadius: R.control, background: t.wash }}>
+                  <div className="flex items-center gap-2 mb-3 px-4" style={{ minHeight: 46, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
                     <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={tr("Family name")} maxLength={40}
-                           className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 15, color: t.ink, background: "transparent" }} />
+                           className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
                     <MicBtn onText={(txt) => setNewName(newName ? `${newName} ${txt}` : txt)} size={26} />
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => setRenaming(false)} className="flex-1 n-key" style={{ minHeight: 44, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.sub }}>{tr("Cancel")}</button>
                     <button onClick={async () => { haptic(8); setBusy(true); const r = await onRename(newName); setBusy(false); if (r && r.error) { say && say(r.error.message); return; } setRenaming(false); say && say(tr("Saved")); }}
-                            className="flex-1 n-key" style={{ "--key-lip": MIX(t.ink, "#000000", 0.55), minHeight: 44, borderRadius: R.control, background: t.ink, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Save")}</button>
+                            className="flex-1 n-key" style={{ "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>{busy ? "…" : tr("Save")}</button>
                   </div>
                 </div>
               ) : <Row label={tr("Name")} value={family.name || ""} chevron onToggle={() => { setNewName(family.name || ""); setRenaming(true); }} />}
+              {/* Leave is a red word, as iOS draws a row that leaves: Row puts a tick
+                  box on a toggle row with nothing on its right, and Leave read as a
+                  box to tick */}
               {leaving ? (
                 <div className="px-5 py-4" style={{ borderTop: `1px solid ${t.hair}` }}>
                   <p className="mb-3" style={{ ...TYPE.small, color: t.sub }}>{tr("You'll stop seeing their lessons. Rejoin any time with the code")}</p>
@@ -6912,7 +6917,7 @@ function FamilyScreen({ family, isJunior, onCreate, onJoin, onLeave, onRename, l
                             className="flex-1 n-key" style={{ "--key-lip": LIP(DANGER), minHeight: 44, borderRadius: R.control, background: DANGER, ...TYPE.small, fontWeight: 600, color: "#fff" }}>{busy ? "…" : tr("Leave")}</button>
                   </div>
                 </div>
-              ) : <Row label={tr("Leave")} danger last onToggle={() => setLeaving(true)} />}
+              ) : <Row label={tr("Leave")} danger last right={<span aria-hidden="true" />} onToggle={() => setLeaving(true)} />}
             </Card>
           )}
           <div style={{ height: 26 }} />
@@ -7062,19 +7067,23 @@ function FamilyKid({ kid, lessons = [], drills = [], bookings = [], canBook, onB
   const next = bookings.filter((b) => b.playerId === kid.id && b.date >= todayIso && b.status !== "cancelled" && b.status !== "weather")
     .sort(byWhen)[0];
   const shown = mine.slice(0, 5);
+  const asleep = { background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, color: t.faint, boxShadow: "none", transform: "translateY(3px)" };
 
   return (
     <SwipeBack onBack={pop}>
       <Screen title={first(kid.name)} onBack={pop}
               meta={kid.coachName ? `${tr("with")} ${kid.coachName}${kid.sport && SPORTS[kid.sport] ? ` · ${SPORTS[kid.sport].label}` : ""}` : tr("No coach yet")}>
         <div className="px-6">
+          {/* the pair at the Button's own size; a key not yet live is the
+              Button's flat white key with the faint word, sunk onto where its
+              ledge was — never the key faded, which read as broken */}
           <div className="flex gap-2 mb-7">
-            <button data-tour="kid-book" onClick={() => { hapticCommit(); onBook && onBook(kid); }} disabled={!canBook} className="flex-1 n-key disabled:opacity-35"
-                    style={{ "--key-lip": LIP(t.accent), minHeight: 48, borderRadius: R.control, background: t.accent, ...TYPE.small, fontWeight: 600, color: t.onAccent }}>
+            <button data-tour="kid-book" onClick={() => { hapticCommit(); onBook && onBook(kid); }} disabled={!canBook} className="flex-1 n-key"
+                    style={{ "--key-lip": LIP(t.accent), minHeight: 52, borderRadius: R.surface, background: t.accent, ...TYPE.subhead, fontWeight: 600, color: t.onAccent, ...(canBook ? null : asleep) }}>
               {canBook ? tr("Book a lesson") : kid.coachId ? tr("No hours set") : tr("Book a lesson")}
             </button>
-            <button onClick={() => { haptic(8); onMessage && onMessage(kid); }} disabled={!kid.coachId} className="flex-1 disabled:opacity-35 n-key"
-                    style={{ minHeight: 48, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.small, fontWeight: 600, color: t.ink }}>{tr("Message coach")}</button>
+            <button onClick={() => { haptic(8); onMessage && onMessage(kid); }} disabled={!kid.coachId} className="flex-1 n-key"
+                    style={{ minHeight: 52, borderRadius: R.surface, border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.subhead, fontWeight: 600, color: t.ink, ...(kid.coachId ? null : asleep) }}>{tr("Message coach")}</button>
           </div>
 
           <div className="mb-7 nsc-list">
@@ -10110,7 +10119,7 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)); setJoinErr(null); }}
              placeholder="ABC123" autoCapitalize="characters" autoCorrect="off" spellCheck={false} autoFocus aria-label={tr("Coach code")}
              className="w-full outline-none text-center mb-2"
-             style={{ minHeight: 54, borderRadius: R.control, background: t.wash, fontFamily: display, fontSize: 24, letterSpacing: "0.18em", color: t.ink, border: "none" }} />
+             style={{ minHeight: 54, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), fontFamily: display, fontSize: 24, letterSpacing: "0.18em", color: t.ink, border: "none" }} />
       <div className="mb-4" style={{ minHeight: 44 }}>
         {joinErr && <p className="text-center pt-3" style={{ ...TYPE.small, color: DANGER }}>{joinErr}</p>}
       </div>
@@ -10149,19 +10158,20 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
         </Card>
       )}
 
-      <Eyebrow>{kids.length ? `${profiles.find((p) => p.id === activeProfileId)?.name.split(" ")[0]}'s coaches` : "Your coaches"}</Eyebrow>
-      <Card className="mb-4">
-        {myConns.length === 0 ? (
-          <div className="p-6 text-center"><p style={{ fontFamily: ui, fontSize: 14, color: t.sub }}>{tr("No coach yet")}</p></div>
-        ) : myConns.map((c, i) => (
-          /* a coach is a person in a list, so the row carries their face
-             like the family rows above it — it carried a 10px sport dot,
-             and the sport is on the grey line */
-          <Row key={c.id} label={c.coach} sub={c.club ? `${SPORTS[c.sport].label} · ${c.club}` : SPORTS[c.sport].label} checked={c.id === activeConnId} last={i === myConns.length - 1}
-               icon={<Avatar name={c.coach} size={38} />}
-               onToggle={live ? undefined : () => { onPickConn(c.id); close(); }} />
-        ))}
-      </Card>
+      {/* with no coach there is no list to head: Add a coach, below, is the first row */}
+      {myConns.length > 0 && (<>
+        <Eyebrow>{kids.length ? `${profiles.find((p) => p.id === activeProfileId)?.name.split(" ")[0]}'s coaches` : "Your coaches"}</Eyebrow>
+        <Card className="mb-4">
+          {myConns.map((c, i) => (
+            /* a coach is a person in a list, so the row carries their face
+               like the family rows above it — it carried a 10px sport dot,
+               and the sport is on the grey line */
+            <Row key={c.id} label={c.coach} sub={c.club ? `${SPORTS[c.sport].label} · ${c.club}` : SPORTS[c.sport].label} checked={c.id === activeConnId} last={i === myConns.length - 1}
+                 icon={<Avatar name={c.coach} size={38} />}
+                 onToggle={live ? undefined : () => { onPickConn(c.id); close(); }} />
+          ))}
+        </Card>
+      </>)}
 
       {mySports.length > 1 && (
         <>
@@ -10173,21 +10183,24 @@ function FamilySheet({ profiles, activeProfileId, onSwitchProfile, onAddChild, c
       )}
 
       <Card tour="family-rows">
+        {/* every row leads with its glyph on the app's own coloured square,
+            as Settings' rows do — they were bare grey glyphs beside a
+            Settings row with none */}
         {/* A coach's groups live on the coach's own preferences, which
             a player cannot read, so this row led somewhere that was
             always empty on a real account. It is the harness's until
             a player's groups are something the database can answer. */}
         {!live && (
-          <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<Users size={18} color={t.sub} strokeWidth={1.6} />}
+          <Row label={tr("Your groups")} sub={tr("Sessions you train with others")} chevron icon={<IconSq Icon={Users} bg={HUE.brand} />}
                onToggle={() => { close(); onViewGroups && onViewGroups(); }} />
         )}
-        {!(live && hasCoach) && <Row label={tr("Add a coach")} sub={live ? tr("Enter their code") : tr("Pick the sport, then enter their code")} icon={<Plus size={18} color={t.sub} strokeWidth={2} />} onToggle={() => setStage(live ? "code" : "sport")} />}
-        <Row label={tr("Photos")}  chevron icon={<Camera size={17} color={t.sub} strokeWidth={1.6} />} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
-        <Row label={tr("Family")} sub={tr("Your code, and who's in it")} last={!onSettings && !onProgress} icon={<Users size={18} color={t.sub} strokeWidth={2} />} onToggle={() => { close(); onFamily && onFamily(); }} />
+        {!(live && hasCoach) && <Row label={tr("Add a coach")} icon={<IconSq Icon={UserPlus} bg={HUE.blue} />} onToggle={() => setStage(live ? "code" : "sport")} />}
+        <Row label={tr("Photos")}  chevron icon={settingsGlyph("Photo")} onToggle={() => { close(); setTimeout(() => onPhoto && onPhoto(), 220); }} />
+        <Row label={tr("Family")} chevron last={!onSettings && !onProgress} icon={settingsGlyph("Family")} onToggle={() => { close(); onFamily && onFamily(); }} />
         {/* the journey so far, read off the lessons — the player's own
             Progress, the same screen the coach has on their file */}
-        {onProgress && <Row label={tr("Progress")} tour="sheet-progress" last={!onSettings} chevron icon={<TrendingUp size={18} color={t.sub} strokeWidth={1.8} />} onToggle={() => { close(); onProgress(); }} />}
-        {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron onToggle={() => { close(); onSettings(); }} />}
+        {onProgress && <Row label={tr("Progress")} tour="sheet-progress" last={!onSettings} chevron icon={<IconSq Icon={TrendingUp} bg={HUE.green} />} onToggle={() => { close(); onProgress(); }} />}
+        {onSettings && <Row label={tr("Settings")} tour="sheet-settings" last chevron icon={<IconSq Icon={Settings2} bg={HUE.slate} />} onToggle={() => { close(); onSettings(); }} />}
       </Card>
     </>
   );
@@ -10912,7 +10925,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
       <Screen bare onBack={pop} right={<>
         {star.toggle && (
           <button data-tour="lesson-star" onClick={() => star.toggle(lesson)} aria-label={isStar ? tr("Starred") : tr("Star")} aria-pressed={isStar} className="p-2 active:opacity-50">
-            <span className="flex" style={{ animation: starPop ? "starPop 380ms cubic-bezier(.22,1,.36,1) backwards" : "none" }}><Star size={21} color={t.ink} fill={isStar ? t.ink : "none"} strokeWidth={1.6} /></span>
+            <span className="flex" style={{ animation: starPop ? "starPop 380ms cubic-bezier(.22,1,.36,1) backwards" : "none" }}><Star size={21} color={isStar ? HUE.gold : t.ink} fill={isStar ? HUE.gold : "none"} strokeWidth={1.6} /></span>
           </button>
         )}
         {extraTitleRight}{more}</>}>
@@ -10963,8 +10976,13 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               either side; and a section whose whole content is "None on
               this one" is a heading and a denial where there could be
               nothing. */}
+          {/* THE PAGE'S SECTIONS ARE SPACE, NOT RULES. A hairline ran across
+              the page between the note, the reply, the tip, the drills and
+              the actions — the founder: "maybe it's those hairlines … the
+              same problem with every section". The air and the eyebrows
+              say where one thing ends. */}
           {lesson.note && (
-            <div className="py-5" data-tour="lesson-notes" style={{ borderTop: hair }}>
+            <div className="py-5" data-tour="lesson-notes">
               {/* 20 regular, iOS's Title 3: the title size grew to 22 on 21 November, which read as a heading over a paragraph */}
               <p style={{ ...TYPE.section, fontWeight: 400, lineHeight: 1.5, color: t.ink }}>{lesson.note}</p>
             </div>
@@ -10975,7 +10993,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
               sits in the thread tied to the clip. Who wrote it and the day
               as the eyebrow; the words in the note's own type. */}
           {replies.length > 0 && (
-            <div className="py-5" data-tour="lesson-reply" style={{ borderTop: hair }}>
+            <div className="py-5" data-tour="lesson-reply">
               {replies.map((r, i) => (
                 <div key={r.id || i} className={i ? "mt-4" : ""}>
                   <Label>{[role === "coach" ? tr("Replied") : (first(coachName) || tr("Coach")), r.iso ? fmtWeekDay(new Date(r.iso)) : null].filter(Boolean).join(" · ")}</Label>
@@ -10986,7 +11004,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           )}
 
           {tipHere && (
-            <div className="py-5" data-tour="lesson-tip" style={{ borderTop: hair }}>
+            <div className="py-5" data-tour="lesson-tip">
               <Label>{tr("Tip")}</Label>
               <p style={{ ...TYPE.title, color: t.ink }}>{tipHere.title}</p>
               {tipHere.body && <p className="mt-1.5" style={{ ...TYPE.small, lineHeight: 1.55, color: t.sub }}>{tipHere.body}</p>}
@@ -10994,7 +11012,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           )}
 
           {drillsHere.length > 0 && (
-            <div className="py-5" data-tour="lesson-drills" style={{ borderTop: hair }}>
+            <div className="py-5" data-tour="lesson-drills">
               <Label>{tr("Drills")}</Label>
               <div className="nsc-list">
               {drillsHere.map((d) => {
@@ -11002,11 +11020,12 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
                 return (
                   <Tag key={d.id} onClick={onGoDrills ? () => { haptic(6); onGoDrills(); } : undefined} className={`w-full flex items-center gap-3 py-3 text-left ${onGoDrills ? "active:opacity-60" : ""}`}
                        style={{ minHeight: 48 }}>
-                    <span className="rounded-full flex items-center justify-center shrink-0"
-                          style={{ width: 22, height: 22, border: `1.5px solid ${d.done ? STEADY : LINE_STRONG}`, background: d.done ? STEADY : "transparent" }}>
-                      {d.done && <Check size={12} color="#fff" strokeWidth={2.6} />}
+                    {/* the Drills tab's own tick: the sport's colour once done, the strong grey ring while to do */}
+                    <span className="flex items-center justify-center shrink-0"
+                          style={{ width: 24, height: 24, borderRadius: R.control, border: `1.5px solid ${d.done ? t.accent : LINE_STRONG}`, background: d.done ? t.accent : "transparent" }}>
+                      {d.done && <Check size={14} color="#fff" strokeWidth={2.1} />}
                     </span>
-                    <span className="flex-1" style={{ ...TYPE.body, color: t.ink, textDecoration: d.done ? "line-through" : "none", opacity: d.done ? 0.6 : 1 }}>{d.t}</span>
+                    <span className="flex-1" style={{ ...TYPE.body, color: d.done ? t.sub : t.ink, textDecoration: d.done ? "line-through" : "none" }}>{d.t}</span>
                     {onGoDrills && <ChevronRight size={14} color={t.trace || t.faint} />}
                   </Tag>
                 );
@@ -11016,14 +11035,14 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           )}
 
           {attendance === "out" && (
-            <div className="py-5 flex items-center gap-2" style={{ borderTop: hair }}>
+            <div className="py-5 flex items-center gap-2">
               <X size={15} color={DANGER} strokeWidth={2.4} />
               <span style={{ ...TYPE.body, color: t.ink }}>{tr("Absent")}</span>
             </div>
           )}
 
           {onRate && lesson.ratingRequested && (
-            <div className="py-5" style={{ borderTop: hair }}>
+            <div className="py-5">
               <button onClick={() => { hapticCommit(); soft(); onRate(); }} className="w-full flex items-center gap-1.5 active:opacity-50" style={{ minHeight: 44, ...TYPE.body, fontWeight: 600, color: t.ink }}>
                 {first(coachName) || tr("Your coach")} {tr("asked for a rating")} <ArrowRight size={13} color={t.ink} strokeWidth={2.2} />
               </button>
@@ -11031,7 +11050,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
           )}
 
           {/* one thing to do, and one more */}
-          <div className="mt-4" data-tour="lesson-next" style={{ borderTop: hair, paddingTop: 20 }}>
+          <div className="mt-4" data-tour="lesson-next" style={{ paddingTop: 20 }}>
             {(() => {
               /* one primary button, then the secondary verbs as a quiet row */
               const acts = (role === "coach"
@@ -13194,7 +13213,8 @@ function areaSubsOf(cfg, lesson) {
 function StagePill({ label, small }) {
   const t = useT();
   if (!label) return null;
-  return <span style={{ ...TYPE.small, fontSize: small ? 12 : 12.5, fontWeight: 500, color: t.sub, whiteSpace: "nowrap" }}>{label}</span>;
+  /* the line's own size, on the ladder: the 500 is what makes the level lead */
+  return <span style={{ ...TYPE.small, fontSize: small ? 13 : 14, fontWeight: 500, color: t.sub, whiteSpace: "nowrap" }}>{label}</span>;
 }
 function LessonTags({ lesson, cfg, className = "" }) {
   const t = useT();
@@ -15675,11 +15695,13 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
             style={{ animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards` }}>
       <span className="flex items-center justify-center shrink-0"
             style={{ width: 24, height: 24, borderRadius: R.control, marginTop: 1, border: `1.5px solid ${x.done ? t.accent : LINE_STRONG}`,
-                     background: x.done ? STEADY : "transparent", transition: "background 160ms" }}>
+                     background: x.done ? t.accent : "transparent", transition: "background 160ms" }}>
         {x.done && <Check size={14} color="#fff" strokeWidth={2.1} style={{ animation: "tickIn 380ms cubic-bezier(.22,1,.36,1)" }} />}
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block" style={{ ...TYPE.body, color: x.done ? STEADY : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
+        {/* done is the sport's tick and the name struck in the grey — the
+            success green inside the sport's ring was two colours on padel */}
+        <span className="block" style={{ ...TYPE.body, color: x.done ? t.sub : t.ink, textDecoration: x.done ? "line-through" : "none" }}>{x.t}</span>
         {/* a drill set by a real coach is a name; only the starter sets
             carry a description */}
         {x.d && <span className="block mt-0.5" style={{ fontFamily: ui, fontSize: 12.5, lineHeight: 1.45, color: t.faint }}>{x.d}</span>}
@@ -15856,7 +15878,7 @@ function CoachPractice({ items, sheet, push, right, live, roster, drills, onRemo
                 <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: d.done ? t.accent : t.hair }} />
                 <input value={draft[d.id] ?? d.t} onChange={(e) => setDraft((x) => ({ ...x, [d.id]: e.target.value }))} onBlur={() => rename(d)}
                        onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} className="flex-1 min-w-0 outline-none"
-                       style={{ fontFamily: ui, fontSize: 14, color: t.ink, background: "transparent" }} aria-label={tr("Drill name")} />
+                       style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} aria-label={tr("Drill name")} />
                 <MicBtn size={26} onText={(txt) => setDraft((x) => { const was = x[d.id] ?? d.t; return { ...x, [d.id]: was ? `${was} ${txt}` : txt }; })} />
                 <button onClick={async () => { const res = onRemoveDrill ? await onRemoveDrill(d.id) : null; if (res && res.error) { say && say(res.error.message); return; } hapticWarn(); }}
                         className="p-2 active:opacity-50" aria-label={tr("Remove")}><Trash2 size={15} color={DANGER} /></button>
@@ -16778,7 +16800,8 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
                </span>}
                sub={<>
                  {c.kind === "child" && c.sub && <span className="block truncate" style={{ color: t.sub }}>{c.sub}</span>}
-                 <span className="block" style={{ color: c.unread ? t.ink : t.faint }}>{c.last || (c.kind === "child" ? "" : c.sub) || preview(c.lastId)}</span>
+                 {/* two lines in the sub grey, read or not: the bold name, the time and the dot say unread */}
+                 <span className="block" style={{ color: t.sub }}>{c.last || (c.kind === "child" ? "" : c.sub) || preview(c.lastId)}</span>
                </>} />
   );
   return (
@@ -17377,7 +17400,7 @@ function ProfileScreen({ account, me, role, avatar, sports, activeSport, onPickS
             <div className="px-5 py-3.5">
               <div style={{ ...TYPE.caption, color: t.faint }}>{role === "coach" ? tr("About you — players see this") : tr("About you — your coach sees this")}</div>
               <textarea value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value.slice(0, 280) })} rows={3} className="w-full outline-none resize-none mt-1"
-                        style={{ fontFamily: ui, fontSize: 15.5, lineHeight: 1.5, color: t.ink, background: "transparent" }} placeholder={tr("A line about you")} />
+                        style={{ fontFamily: ui, fontSize: 16, lineHeight: 1.5, color: t.ink, background: "transparent" }} placeholder={tr("A line about you")} />
               <div className="flex justify-end"><MicBtn size={28} onText={(txt) => setF({ ...f, bio: (f.bio ? `${f.bio} ${txt}` : txt).slice(0, 280) })} /></div>
             </div>
           </Card>
@@ -17956,7 +17979,8 @@ function ChangePasswordBody({ onSubmit, say, close }) {
   const [pw, setPw] = useState(""); const [again, setAgain] = useState("");
   const [err, setErr] = useState(null); const [busy, setBusy] = useState(false);
   const ok = pw.length >= 8 && pw === again;
-  const field = { minHeight: 50, borderRadius: R.field, background: t.wash, boxShadow: (t.elev || ELEV).groove, fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
+  /* the app's one text box: the wash, the soft corner, the soft foot (VoiceInput's) */
+  const field = { minHeight: 54, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), fontFamily: ui, fontSize: 16, color: t.ink, border: "none" };
   return (
     <>
       <h2 className="mb-1" style={{ ...TYPE.title, color: t.ink }}>{tr("Change password")}</h2>
@@ -18100,12 +18124,13 @@ function PushPrompt({ userId, say }) {
       <span className="flex-1 min-w-0" style={{ ...TYPE.small, color: t.ink }}>
         {state === "ios" ? tr("Add to Home Screen for notifications") : tr("Phone notifications")}
       </span>
+      {/* the row is 56 tall: each answer takes 44 of it for a finger */}
       {state === "ask" && (
         <button onClick={() => { haptic(8); turnOn(); }} disabled={busy} className="shrink-0 active:opacity-60 disabled:opacity-40"
-                style={{ ...TYPE.small, fontWeight: 600, color: t.accent }}>{busy ? "…" : tr("Turn on")}</button>
+                style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: t.accent }}>{busy ? "…" : tr("Turn on")}</button>
       )}
       <button onClick={() => { haptic(6); remember(); setState("hidden"); }} className="shrink-0 active:opacity-60"
-              style={{ ...TYPE.small, fontWeight: 600, color: t.faint }}>{state === "ask" ? tr("Not now") : tr("OK")}</button>
+              style={{ minHeight: 44, ...TYPE.small, fontWeight: 600, color: t.faint }}>{state === "ask" ? tr("Not now") : tr("OK")}</button>
     </div></div>
   );
 }
@@ -18125,6 +18150,15 @@ function PushPrompt({ userId, say }) {
    every other screen. A screen that looks like two screens depending on
    who is looking at it cannot be designed, so the harness now hands in
    the same shape the database does and there is one list. */
+/* WHAT KIND, IN THE APP'S OWN COLOURS (21 November, "a bit more color in
+   places"): the badge on a face and the disc where nobody is named carry
+   the kind's glyph in white on one of HUE's — a message green, a request
+   blue, the diary wine, a call-off red, a tip, a rating or a competition
+   gold, a drill, a practice or a clip purple. A kind not taught here is
+   the slate. They were the grey wash with a grey glyph: a badge that all
+   but vanished on the face, and a disc that read as a missing photo. */
+const KIND_HUE = { message: HUE.green, request: HUE.blue, booking: HUE.wine, weather: HUE.red, lesson: HUE.green, tip: HUE.gold,
+                   drill: HUE.purple, practice: HUE.purple, clip: HUE.purple, rating: HUE.gold, comp: HUE.gold, family: HUE.green };
 function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAll,
                        onMarkAllRead, userId, say, faceFor }) {
   const t = useT();
@@ -18176,21 +18210,23 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const Line = ({ n }) => {
     const face = faceFor ? faceFor(n) : null;
     const K = NOTIF_ICON[n.kind] || Bell;
+    const hue = KIND_HUE[n.kind] || HUE.slate;
     return (
       <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
         <PersonRow className="py-3" nameLines={0} onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}
                    name={n.title} bold={!n.readAt} sub={n.body || undefined}
                    meta={<span className="flex items-center gap-2">
                      <span style={{ ...TYPE.caption, color: t.faint }}>{n.when}</span>
-                     {/* one unread signal a surface: the dot here, the number in the bar */}
-                     {!n.readAt && <span className="rounded-full" style={{ width: 6, height: 6, background: t.ink }} />}
+                     {/* one unread signal a surface: the dot here, the number in the bar —
+                         the sport's 10px dot, as Chat's is */}
+                     {!n.readAt && <span className="rounded-full" style={{ width: 10, height: 10, background: t.accent }} />}
                    </span>}
                    face={<span className="relative shrink-0" style={{ width: PERSON_FACE, height: PERSON_FACE }}>
             {face
               ? <Avatar name={face.name} size={PERSON_FACE} src={face.src} />
               : <span className="flex items-center justify-center"
-                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: t.wash }}>
-                  <K size={16} color={t.sub} strokeWidth={1.7} />
+                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: hue }}>
+                  <K size={20} color="#FFFFFF" strokeWidth={2} />
                 </span>}
             {/* WHO, THEN WHAT. The face is read before any word beside it;
                 the badge says which kind of thing it was without the line
@@ -18198,9 +18234,9 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
                 the glyph — that would be the same fact twice. */}
             {face && (
               <span className="absolute flex items-center justify-center"
-                    style={{ right: -3, bottom: -3, width: 16, height: 16, borderRadius: 8,
-                             background: t.wash, boxShadow: `0 0 0 2px ${t.page}` }}>
-                <K size={9} color={t.sub} strokeWidth={2.2} />
+                    style={{ right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9,
+                             background: hue, boxShadow: `0 0 0 2px ${t.page}` }}>
+                <K size={10} color="#FFFFFF" strokeWidth={2.4} />
               </span>
             )}
           </span>} />
@@ -18222,8 +18258,9 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
     <SwipeBack onBack={pop}>
       <Screen title={tr("Alerts")} onBack={pop}
               right={items.length === 0 ? null
-                   : unread > 0 ? <TextBtn onClick={() => { haptic(6); onMarkAllRead && onMarkAllRead(); }}>{tr("Mark all read")}</TextBtn>
-                   : <TextBtn onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn>}>
+                   /* a text action that acts is the sport's colour; the handler buzzes, so the button does not */
+                   : unread > 0 ? <TextBtn quiet color={t.accent} onClick={() => { haptic(6); onMarkAllRead && onMarkAllRead(); }}>{tr("Mark all read")}</TextBtn>
+                   : <TextBtn quiet color={t.accent} onClick={() => { haptic(6); onClearAll && onClearAll(); }}>{tr("Clear all")}</TextBtn>}>
         <div className="px-6 pb-4" data-tour="alerts-list">
           {userId && <PushPrompt userId={userId} say={say} />}
           {nothing ? (
@@ -18420,17 +18457,18 @@ function LessonEditBody({ lesson, cfg, onSave, onAddFiles, say, close }) {
       <div className="mb-4">
         <TimeGrid cols={2} times={options} picked={focus} onToggle={setFocus} />
       </div>
-      <div className="flex items-center gap-2 px-4 mb-4" style={{ minHeight: 48, borderRadius: R.control, background: t.wash }}>
+      {/* the app's one text box, VoiceInput's: the wash, the soft corner, the soft foot, 16px words (iOS zooms under 16) */}
+      <div className="flex items-center gap-2 px-4 mb-4" style={{ minHeight: 48, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
         <input value={focus} onChange={(e) => { setFocus(e.target.value); setErr(""); }} aria-label={tr("Focus")}
                className="flex-1 min-w-0 outline-none" placeholder={tr("Or type it")}
-               style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
+               style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
         <MicBtn onText={(txt) => { setFocus(txt); setErr(""); }} size={26} />
       </div>
 
       <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("The day it happened")}</div>
       <input type="date" value={date || ""} onChange={(e) => setDate(e.target.value)} aria-label={tr("Lesson date")}
              className="w-full outline-none px-4 mb-4"
-             style={{ minHeight: 48, borderRadius: R.control, background: t.wash, fontFamily: ui, fontSize: 15.5, color: t.ink }} />
+             style={{ minHeight: 48, borderRadius: R.surface, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), fontFamily: ui, fontSize: 16, color: t.ink }} />
 
       <div className="mb-2" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Notes")}</div>
       <div className="mb-4"><VoiceArea value={note} onChange={setNote} rows={4} ph={tr("What happened, in your words")} /></div>

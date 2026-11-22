@@ -304,7 +304,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const ld = await rowsOf(page, SCREEN, `const s = root.querySelector('[data-tour="lesson-drills"]'); return s ? [...s.querySelectorAll("div, button")].filter((r) => /Gate drill|Towel drill/.test(r.textContent) && r.children.length >= 2 && r.parentElement && !(/Gate drill/.test(r.textContent) && /Towel drill/.test(r.textContent))) : [];`);
       const tick = await page.evaluate(() => {
         const s = document.querySelector('[data-tour="lesson-drills"]'); if (!s) return null;
-        const row = [...s.querySelectorAll("div, button")].find((r) => r.children.length >= 2 && /^Gate drill/.test(r.textContent.trim())); const c = row && [...row.querySelectorAll("span")].find((x) => Math.round(x.getBoundingClientRect().width) === 22); return c ? getComputedStyle(c).borderTopColor : null;
+        const row = [...s.querySelectorAll("div, button")].find((r) => r.children.length >= 2 && /^Gate drill/.test(r.textContent.trim())); const c = row && [...row.querySelectorAll("span")].find((x) => Math.round(x.getBoundingClientRect().width) === 24); return c ? getComputedStyle(c).borderTopColor : null;
       });
       await shot("x-lesson-drills");
       check("(x) the lesson page's drills are boxed rows on the card's edge, the way the Drills tab draws them", boxedRows(ld, EDGE.golf) && ld.length === 2, rowSaid(ld));
