@@ -56,7 +56,8 @@ import {
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
   Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat,
   Share, Ellipsis, EllipsisVertical, Menu, MonitorDown, SquarePlus,
-  Plane, RefreshCw, Info, Smartphone, Link2, Compass, LayoutGrid, Vibrate, Accessibility, ClipboardCheck, BarChart3, Hourglass } from "lucide-react";
+  Plane, RefreshCw, Info, Smartphone, Link2, Compass, LayoutGrid, Vibrate, Accessibility, ClipboardCheck, BarChart3, Hourglass,
+  GraduationCap, AppWindow, Copyright, AlarmClock } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
@@ -1420,10 +1421,11 @@ export const FIG = { fontVariantNumeric: "tabular-nums lining", fontFeatureSetti
    had no lid and a screen was an undifferentiated run of greys.
 
    THE LAW: a list opens on `section`, its rows separate on `hair`, it
-   closes on `section`, and exactly one `major` appears per screen,
-   under the H1. `hair` is 0.14 because that is already the app's
-   dominant separator, so no row gets lighter in the same change that
-   darkens every second line of text. */
+   closes on `section`. The large title stands on air, as iOS's does —
+   the `major` that stood under every H1 was the hairline the founder
+   named on 21 November. `hair` is 0.14 because that is already the
+   app's dominant separator, so no row gets lighter in the same change
+   that darkens every second line of text. */
 export const RULE = {
   hair:    (ink) => `0.5px solid ${HAIR(ink, 0.14)}`,
   section: (ink) => `1px solid ${HAIR(ink, 0.24)}`,
@@ -8240,15 +8242,24 @@ function Sheet({ open, onClose, children }) {
   const up = () => { if (dy > 88) { haptic(); onClose(); } setDy(0); st.current = null; };
   return (
     <div className="absolute inset-0 z-40" style={{ pointerEvents: open ? "auto" : "none" }}>
-      <div data-sheet-scrim onClick={() => { haptic(7); onClose && onClose(); }} className="absolute inset-0" style={{ background: "rgba(10,16,12,0.30)",
+      {/* the scrim and the shadow are neutral black, as iOS's are — they
+          carried the old green-black the white app has left behind */}
+      <div data-sheet-scrim onClick={() => { haptic(7); onClose && onClose(); }} className="absolute inset-0" style={{ background: "rgba(0,0,0,0.3)",
                        opacity: open ? 1 : 0, transition: "opacity 280ms" }} />
       <div className="absolute left-0 right-0 bottom-0 overflow-hidden"
            style={{ background: t.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, transform: `translateY(${open ? dy : 760}px)`,
-                    transition: st.current != null ? "none" : "transform 340ms cubic-bezier(.32,.72,0,1)", boxShadow: "0 -8px 40px rgba(10,16,12,0.14)" }}>
+                    transition: st.current != null ? "none" : "transform 340ms cubic-bezier(.32,.72,0,1)", boxShadow: "0 -8px 40px rgba(0,0,0,0.12)" }}>
+        {/* the grab handle in the trace grey: on the hairline it read 1.2:1
+            and the sheet's one affordance all but vanished */}
         <div onPointerDown={down} onPointerMove={move} onPointerUp={up} className="flex justify-center py-3.5" style={{ touchAction: "none", cursor: "grab" }}>
-          <span className="rounded-full" style={{ width: 36, height: 5, background: t.hair }} />
+          <span className="rounded-full" style={{ width: 36, height: 5, background: t.trace || t.faint }} />
         </div>
-        <div data-sheet className="px-6 pb-7 overflow-y-auto" style={{ maxHeight: 540 }}>{children}</div>
+        {/* as tall as the phone allows: 540 on a 667 phone, 704 on an 844 and
+            over — a fixed 540 scrolled where it need not and cut the plus
+            sheet's Edit and the peek's second row of keys in half. The
+            tallest (704 and the 33 of the handle) stays under the 760 the
+            closed sheet is parked at and inside the walkthrough's 780 */}
+        <div data-sheet className="px-6 pb-7 overflow-y-auto" style={{ maxHeight: "max(540px, min(calc(100dvh - 140px), 704px))" }}>{children}</div>
       </div>
     </div>
   );
@@ -8437,19 +8448,23 @@ function MicBtn({ onText, size = 34, tint, onNotice }) {
   );
 }
 
-/* A single-line input with dictation built in. */
+/* A single-line input with dictation built in. Its words are 16px, as
+   the search field's are: under 16 iOS Safari zooms the page the moment
+   a finger lands in the box. */
 function VoiceInput({ value, onChange, ph, style, autoFocus }) {
   const t = useT();
   return (
     <div className="flex items-center gap-2 rounded-2xl px-4" style={{ minHeight: 54, background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2), ...style }}>
       <input value={value} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} placeholder={ph}
-             className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 15.5, color: t.ink, background: "transparent" }} />
+             className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
       <MicBtn onText={(txt) => onChange(value ? value + " " + txt : txt)} />
     </div>
   );
 }
 
-/* Multi-line version — the one coaches will actually lean on. */
+/* Multi-line version — the one coaches will actually lean on. 16px for
+   the same reason, and one field drawn one way: the wash on its soft
+   foot, as VoiceInput is, with no hairline ring on top of it. */
 function VoiceArea({ value, onChange, ph, rows = 3, max = 0 }) {
   const t = useT();
   /* the cap is at the field, typed or spoken, as the bio's is — the hook's
@@ -8457,9 +8472,9 @@ function VoiceArea({ value, onChange, ph, rows = 3, max = 0 }) {
      reach the coach short while the toast said Asked */
   const cap = (s) => (max ? String(s).slice(0, max) : s);
   return (
-    <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, border: `1px solid ${HAIR(t.ink, 0.14)}`, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
+    <div className="rounded-2xl pl-4 pr-2 flex items-end gap-2" style={{ background: t.wash, boxShadow: lipOf(SOFT_LIP(t), 2) }}>
       <textarea value={value} onChange={(e) => onChange(cap(e.target.value))} rows={rows} placeholder={ph} maxLength={max || undefined}
-                className="flex-1 min-w-0 outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 15, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
+                className="flex-1 min-w-0 outline-none resize-none py-3" style={{ fontFamily: ui, fontSize: 16, lineHeight: 1.55, color: t.ink, background: "transparent" }} />
       <div className="pb-2"><MicBtn onText={(txt) => onChange(cap(value ? value + " " + txt : txt))} /></div>
     </div>
   );
@@ -8480,14 +8495,14 @@ function VoiceArea({ value, onChange, ph, rows = 3, max = 0 }) {
    page holds — so it is Switzer at 13.5 in t.sub, not the quietest
    thing on the screen.
 
-   Then the mark: a 1.5px rule, full bleed, that draws itself left to
-   right in 420ms and finishes last. It is the same mark under the
-   diary's selected day and on the log between who-and-when and
-   what-happened. Three entrances on three separate elements, never
+   The large title stands on air, as iOS's does. It stood on a 1.5px
+   rule, full bleed, that drew itself left to right under every H1 —
+   the founder, of Chat on 21 November: "it looks like a page … maybe
+   it's those hairlines". Two entrances on two separate elements, never
    one animation on a parent — a fill-mode on the wrapper holds its
    own end state over the inline opacity in the cascade, which is
    exactly the bug `headerSettle` caused for as long as it existed. */
-const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap }) => {
+const PageHead = ({ title, meta, action, tour, pad = true, onTap }) => {
   const t = useT();
   /* Where the head itself is the way into a screen — the player's home
      opens on when they are next on, and tapping it opens the diary —
@@ -8508,9 +8523,6 @@ const PageHead = ({ title, meta, action, tour, rule = true, pad = true, onTap })
         </span>
         {action}
       </span>
-      {rule && <span className="block" style={{ display: "block", marginTop: 16, marginLeft: -24, marginRight: -24,
-                             borderTop: RULE.major(t.ink), transformOrigin: "left",
-                             animation: `ruleDraw ${MOTION.draw}ms ${MOTION.curve} 80ms backwards` }} />}
     </>
   );
   return (
@@ -8691,10 +8703,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   /* the second kind keeps the sport's edge as its outline, 3:1 and over */
   const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
+  /* a word key's count sits on its corner, as a round key's does: inside,
+     at the top right, it ran over the end of a long word (Call off's
+     "Mon 23 Nov" two across at 320); on the corner it is the ink disc in
+     the page's ring whether the key is chosen or not */
+  const wordCount = !Icon;
   const badge = count > 0 ? (
     <span className="absolute flex items-center justify-center rounded-full"
-          style={{ top: Icon && !block ? -3 : 9, right: Icon && !block ? -3 : 9, minWidth: 20, height: 20, padding: "0 5px", background: on ? "#fff" : t.ink,
-                   boxShadow: Icon && !block ? `0 0 0 2px ${t.page}` : "none", fontFamily: ui, fontSize: 12, fontWeight: 600, color: on ? t.ink : t.page }}>{count}</span>
+          style={{ top: (Icon && !block) || wordCount ? -3 : 9, right: (Icon && !block) || wordCount ? -3 : 9, minWidth: 20, height: 20, padding: "0 5px", background: on && !wordCount ? "#fff" : t.ink,
+                   boxShadow: (Icon && !block) || wordCount ? `0 0 0 2px ${t.page}` : "none", fontFamily: ui, fontSize: 12, fontWeight: 600, color: on && !wordCount ? t.ink : t.page }}>{count}</span>
   ) : dot ? <span className="absolute rounded-full" style={{ top: Icon && !block ? 2 : 12, right: Icon && !block ? 2 : 12, width: 8, height: 8, background: on ? "#fff" : t.accent, boxShadow: `0 0 0 2px ${t.page}` }} /> : null;
 
   /* TWO TO A ROW, A KEY IS A TILE: a rounded rectangle on its lip, the
@@ -8739,7 +8756,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
         </span>
         {!iconOnly && (
           <span className={wrap ? "px-0.5 text-center" : "max-w-full truncate px-0.5"}
-                style={{ marginTop: lip, fontFamily: ui, fontSize: 12.5, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.005em",
+                style={{ marginTop: lip, fontFamily: ui, fontSize: 13, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.005em",
                          color: tone === "danger" || redWord ? DANGER : tone === "accent" ? t.ink : t.sub }}>{label}</span>
         )}
       </button>
@@ -8760,8 +8777,11 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           glyphs are exactly what makes an app look generated. Pass no
           Icon and the label centres on its own. */}
       {Icon && <Icon size={block ? 20 : h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={block ? 2.2 : 1.7} />}
+      {/* a word key's word is 15 in a grid of one or two (the log's areas,
+          Drills and Tip, a two-across Who filter), as a tile's is; three
+          across keeps 13.5, where 15 would wrap a day ("Tue 24 Nov") at 320 */}
       <span className={Icon && !wrap ? (block ? "truncate" : "truncate px-2") : wrap ? "px-1 text-center" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: block && Icon ? 15.5 : Icon ? 12.5 : 13.5, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
+            style={{ fontFamily: ui, fontSize: block && Icon ? 15.5 : cols && cols <= 2 ? 15 : 13.5, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
       {badge}
     </button>
   );
@@ -9088,7 +9108,10 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
          style={{ minHeight: 56, borderBottom: last ? "none" : `1px solid ${t.hair}`,
                   transition: "transform 130ms cubic-bezier(.22,1,.36,1)" }}>
       {icon}
-      {onToggle && !chevron && !icon && !right && (
+      {/* a tick box for a row that is a choice; never on a red row (the
+          family's Leave), which read as an option left unticked — it is
+          the red word alone, as iOS's Leave Family is */}
+      {onToggle && !chevron && !icon && !right && !danger && (
         <span className="flex items-center justify-center shrink-0"
               style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : LINE_STRONG}`, background: checked ? t.accent : "transparent" }}>
           {checked && <Check size={13} color="#fff" strokeWidth={2.1} />}
@@ -9097,9 +9120,10 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-2">
           <span className="truncate" style={{ ...TYPE.body, color: danger ? DANGER : t.ink }}>{label}</span>
-          {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.ink }} />}
+          {/* the unread dot in the sport's colour, as everywhere since 21 November */}
+          {dot && <span className="rounded-full shrink-0" style={{ width: 7, height: 7, background: t.accent }} />}
         </span>
-        {sub && <span className="block truncate mt-0.5" style={{ fontFamily: ui, fontSize: 12, color: t.faint }}>{sub}</span>}
+        {sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
       </span>
       {value && <span className="shrink-0 truncate" style={{ ...TYPE.body, color: valueColor || t.faint, maxWidth: "58%" }}>{value}</span>}
       {right}
@@ -9175,9 +9199,14 @@ const faceHue = (name) => {
    its own coloured square, so a row is found by colour before it is read
    (21 November; the rows carried no glyph for a long time, "Settings rows
    carry no glyph at all") — the squares in the app's own palette (HUE) */
+/* a glyph of its own a row: Default view and Opens on, Reviews and Review
+   prompt, Terms and Licences, Reminder and Notifications, Setup and
+   Walkthrough each shared one; and a coach's Lessons as a player (or
+   Lessons you've taken) had no square, its label 44px left of every
+   other */
 const SETTINGS_GLYPHS = {
-  "Default view": [LayoutGrid, HUE.purple], "Opens on": [LayoutGrid, HUE.purple], "Reminder": [Bell, HUE.wine],
-  "Reviews": [Star, HUE.gold], "Review prompt": [Star, HUE.gold], "Paperwork": [FileText, HUE.slate],
+  "Default view": [LayoutGrid, HUE.purple], "Opens on": [AppWindow, HUE.teal], "Reminder": [AlarmClock, HUE.wine],
+  "Reviews": [Star, HUE.gold], "Review prompt": [Send, HUE.gold], "Paperwork": [FileText, HUE.slate],
   "Requests": [UserPlus, HUE.blue], "Hours": [Clock, HUE.green], "Away": [Plane, HUE.blue],
   "Roster & groups": [Users, HUE.brand], "Shortcuts": [Grid3X3, HUE.teal], "Drills": [ListChecks, HUE.purple],
   "Lesson logs": [Film, HUE.brand], "Downloads": [Download, HUE.blue], "Calendar": [CalendarDays, HUE.wine],
@@ -9187,10 +9216,11 @@ const SETTINGS_GLYPHS = {
   "Personal details": [User, HUE.slate], "Your sporting record": [Trophy, HUE.gold], "Connections": [Link2, HUE.brand],
   "Walkthrough": [Compass, HUE.green], "Add to Home Screen": [Smartphone, HUE.blue], "Attendance": [ClipboardCheck, HUE.green],
   "Register": [ClipboardCheck, HUE.green], "Contact us": [Mail, HUE.blue], "Terms": [FileText, HUE.slate],
-  "Privacy": [Lock, HUE.slate], "Licences": [FileText, HUE.slate], "Version": [Info, HUE.slate], "Sync": [RefreshCw, HUE.green],
+  "Privacy": [Lock, HUE.slate], "Licences": [Copyright, HUE.slate], "Version": [Info, HUE.slate], "Sync": [RefreshCw, HUE.green],
   "Sound": [Volume2, HUE.wine], "Haptics": [Vibrate, HUE.purple], "Reduce motion": [Accessibility, HUE.blue],
   "Sign out": [LogOut, HUE.slate], "Delete account": [Trash2, HUE.red], "Password": [Lock, HUE.slate],
-  "Set yourself up": [Compass, HUE.teal], "Setup": [Compass, HUE.teal],
+  "Set yourself up": [Settings2, HUE.teal], "Setup": [Settings2, HUE.teal],
+  "Lessons as a player": [GraduationCap, HUE.orange], "Lessons you've taken": [GraduationCap, HUE.orange],
 };
 const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? <IconSq Icon={g[0]} bg={g[1]} size={30} /> : null; };
 /* THE GLYPH TILE, NOSCA'S TWIST ON iOS's SQUARE: one of the app's own
@@ -9376,7 +9406,9 @@ export function Frame({ step, steps, onBack, children, footer }) {
   );
 }
 
-export const Headline = ({ children }) => { const t = useT(); return <h1 style={{ fontFamily: display, fontSize: 32, lineHeight: 1.04, letterSpacing: "-0.036em", color: t.ink, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{children}</h1>; };
+/* every sign-up title is the app's screen title, 30/700, as every H1 is —
+   one sign-up drew it three ways (34 bold, a thin 32, a thin 28) */
+export const Headline = ({ children }) => { const t = useT(); return <h1 style={{ ...TYPE.screen, color: t.ink, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) both" }}>{children}</h1>; };
 export const Sub = ({ children }) => { const t = useT(); return <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.5, color: t.faint, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 60ms both" }}>{children}</p>; };
 
 /* A field that lives outside the parent's render, so typing never
@@ -9468,10 +9500,19 @@ export function CodeBoxes({ value, onChange, onComplete, bad }) {
     }
   };
 
+  /* an empty box is a field, the wash on its soft foot, as every text box
+     is; a filled one Duolingo's chosen answer, the character in the
+     sport's colour on its faint face (the empty ones were white on a
+     1.2:1 hairline, ghosts, and a filled one stood in a black ring). A
+     code that is wrong is never dressed as a chosen answer: it is the
+     field with the red line and the red characters, as the date of birth
+     and every Field on the sign-up say a problem */
+  const sel = SEL(t);
   return (
     <div className="flex justify-center gap-2">
       {chars.map((c, i) => {
         const filled = c !== " ";
+        const chosen = filled && !bad;
         return (
           <input key={i} ref={refs[i]} value={filled ? c : ""}
                  inputMode="text" autoCapitalize="characters" autoCorrect="off" spellCheck="false"
@@ -9480,11 +9521,15 @@ export function CodeBoxes({ value, onChange, onComplete, bad }) {
                  onKeyDown={(e) => back(i, e)}
                  onFocus={(e) => e.target.select()}
                  className="text-center outline-none"
-                 style={{ width: 46, height: 58, borderRadius: R.surface,
-                          background: t.surface,
-                          border: `1.5px solid ${bad ? DANGER : filled ? t.ink : t.hair}`,
-                          fontFamily: display, fontSize: 22, letterSpacing: 0, color: t.ink,
-                          transition: "border-color 200ms cubic-bezier(.22,1,.36,1)",
+                 /* 46 wide where there is room, narrower where there is not:
+                    six boxes and their gaps are 316, and at 320 the step
+                    leaves 264, so the first and last were cut off */
+                 style={{ width: 46, flex: "0 1 46px", minWidth: 0, height: 58, borderRadius: R.surface,
+                          background: chosen ? sel.face : t.wash,
+                          border: `1.5px solid ${bad ? DANGER : chosen ? sel.ring : "transparent"}`,
+                          boxShadow: lipOf(chosen ? sel.lip : SOFT_LIP(t), 2),
+                          fontFamily: display, fontSize: 22, letterSpacing: 0, color: bad ? DANGER : chosen ? sel.fg : t.ink,
+                          transition: "border-color 200ms cubic-bezier(.22,1,.36,1), background 200ms cubic-bezier(.22,1,.36,1), box-shadow 200ms cubic-bezier(.22,1,.36,1)",
                           animation: `setIn ${MOTION.settle}ms ${MOTION.curve} ${Math.min(i, 5) * 22}ms backwards` }} />
         );
       })}
@@ -9561,16 +9606,23 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
   const head = { hours: tr("Hours"), drills: tr("Drills"), tips: tr("Tips") }[now];
 
   const Label = ({ children }) => <div className="mb-3 mt-7 first:mt-0" style={{ ...TYPE.eyebrow, color: t.sub }}>{children}</div>;
-  const AddOwn = ({ value, onChange, ph, onAdd }) => (
-    <div className="flex gap-2 mt-5">
-      <div className="flex-1 min-w-0"><VoiceInput value={value} onChange={onChange} ph={ph} /></div>
-      <button onClick={() => { const v = value.trim(); if (!v) return; hapticSuccess(); soft(); onAdd(v); onChange(""); }}
-              disabled={!value.trim()} className="shrink-0 flex items-center justify-center n-key disabled:opacity-25"
-              style={{ "--key-lip": MIX(t.ink, "#000000", 0.55), width: 54, minHeight: 54, borderRadius: R.control, background: t.ink }} aria-label={tr("Add")}>
-        <Plus size={18} color="#fff" strokeWidth={2.1} />
-      </button>
-    </div>
-  );
+  /* the add key is the white key on its grey ledge, a black key read heavy
+     beside the field; with nothing typed it is the flat white key with the
+     faint plus, sunk onto where its ledge was — never a faded key */
+  const AddOwn = ({ value, onChange, ph, onAdd }) => {
+    const off = !value.trim();
+    return (
+      <div className="flex gap-2 mt-5">
+        <div className="flex-1 min-w-0"><VoiceInput value={value} onChange={onChange} ph={ph} /></div>
+        <button onClick={() => { const v = value.trim(); if (!v) return; hapticSuccess(); soft(); onAdd(v); onChange(""); }}
+                disabled={off} className="shrink-0 flex items-center justify-center n-key"
+                style={{ width: 54, minHeight: 54, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`,
+                         ...(off ? { boxShadow: "none", transform: "translateY(2px)" } : {}) }} aria-label={tr("Add")}>
+          <Plus size={18} color={off ? t.faint : t.ink} strokeWidth={2.1} />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full" style={{ background: t.page }}>
@@ -9580,7 +9632,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
           ? <button onClick={() => { haptic(6); setStep(step - 1); }} aria-label={tr("Back")} className="p-2 active:opacity-40"><ChevronLeft size={23} color={t.ink} strokeWidth={2} /></button>
           : <span style={{ width: 39 }} />}
         <span className="flex-1 text-center" style={{ ...TYPE.caption, color: t.faint }}>{step + 1} / {order.length}</span>
-        {onSkip ? <span className="pr-4"><TextBtn onClick={() => onSkip()}>{tr("Skip")}</TextBtn></span> : <span style={{ width: 39 }} />}
+        {onSkip ? <span className="pr-4"><TextBtn color={t.accent} onClick={() => onSkip()}>{tr("Skip")}</TextBtn></span> : <span style={{ width: 39 }} />}
       </div>
 
       <div className="flex-1 overflow-y-auto px-7 min-h-0" style={{ paddingBottom: 96 }}>
@@ -9662,7 +9714,7 @@ export function SignupShell({ step, steps, onBack, right, title, sub, above, chi
       </div>
 
       <div className="flex-1 flex flex-col px-7 min-h-0">
-        <h1 style={{ ...TYPE.hero, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
+        <h1 style={{ ...TYPE.screen, color: t.ink, animation: "fadeUp 560ms cubic-bezier(.22,1,.36,1) both" }}>{title}</h1>
         {sub && <p className="mt-2.5" style={{ fontFamily: ui, fontSize: 14, lineHeight: 1.5, color: t.faint,
                      animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 60ms both" }}>{sub}</p>}
         <div className="flex-1 flex flex-col justify-center min-h-0" style={{ paddingTop: 20, paddingBottom: 12 }}>
@@ -9679,9 +9731,11 @@ export function SignupShell({ step, steps, onBack, right, title, sub, above, chi
    has one rhythm rather than five different ones. */
 export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 }) {
   const t = useT();
-  /* a key of the family: the tint on its deeper tint, the ink once
-     chosen; the entrance fills backwards only, or its last frame would
-     hold the transform the press writes */
+  /* a key of the family: the white key on its grey ledge, Duolingo's
+     chosen answer once picked — the word, the glyph and the tick in the
+     sport's colour on its faint face (they were white, and the chosen
+     word vanished into the pale face); the entrance fills backwards
+     only, or its last frame would hold the transform the press writes */
   const sel = SEL(t);
   const lc = on ? sel.lip : TINT_LIP(t);
   const p = press3d(lc, 3, 2);
@@ -9693,13 +9747,13 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
                      border: `${EDGE_W}px solid ${on ? sel.ring : KEY_RING(t)}`, boxShadow: p.rest,
                      transition: "background 220ms, border-color 220ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)",
                      animation: `fadeUp 460ms cubic-bezier(.22,1,.36,1) ${delay}ms backwards` }}>
-      {Icon && <Icon size={20} color={on ? t.accent : t.sub} strokeWidth={1.6} />}
+      {Icon && <Icon size={20} color={on ? sel.fg : t.sub} strokeWidth={1.6} />}
       {dot && <span className="rounded-full shrink-0" style={{ width: 9, height: 9, background: dot }} />}
       <span className="flex-1 min-w-0">
-        <span className="block truncate" style={{ fontFamily: display, fontSize: 18, letterSpacing: "-0.022em", color: on ? "#fff" : t.ink }}>{label}</span>
-        {sub && <span className="block mt-0.5 truncate" style={{ fontFamily: ui, fontSize: 12.5, color: on ? "rgba(255,255,255,0.6)" : t.faint }}>{sub}</span>}
+        <span className="block truncate" style={{ ...TYPE.heading, color: on ? sel.fg : t.ink }}>{label}</span>
+        {sub && <span className="block mt-0.5 truncate" style={{ ...TYPE.small, color: t.faint }}>{sub}</span>}
       </span>
-      {on && <Check size={18} color="#fff" strokeWidth={2.1} />}
+      {on && <Check size={18} color={sel.fg} strokeWidth={2.4} />}
     </button>
   );
 }
@@ -9710,16 +9764,17 @@ export function Choice({ label, sub, icon: Icon, dot, on, onSelect, delay = 0 })
    than buried in settings later. */
 export function PickSport({ path = "player", onPick, onBack }) {
   const L = STRINGS.en;
-  const entries = Object.entries(SPORTS);
   const [sel, setSel] = useState(null);
+  /* the sport grid, each tile its own sport's colour, as the profile's
+     Sports you coach draws the same choice — a white row with a coloured
+     dot said less here than the tiles say there. Two across: at three
+     "Equestrian" is cut at 320, and three rows fit the step's body, which
+     does not scroll, on a 568 phone */
   return (
     <SignupShell step={stepOf(path, "sport")} steps={stepsIn(path)} onBack={onBack} title={tr("Main sport")}
                  sub={tr("You can add others later.")}
                  footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      {entries.map(([id, sp], i) => (
-        <Choice key={id} label={sp.label} dot={sp.theme.accent} on={sel === id} delay={i * 45}
-                onSelect={() => setSel(id)} />
-      ))}
+      <SportGrid ids={Object.keys(SPORTS)} picked={sel} onPick={setSel} cols={2} />
     </SignupShell>
   );
 }
@@ -14700,18 +14755,18 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
           Drills tab's Reminder): its glyph, the label in ink and the value
           grey, as Settings draws the same row; a filter reads the other way */}
       <button onClick={() => { haptic(6); setOpen(!open); }} className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
-              style={{ minHeight: inset ? 62 : 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 14, paddingRight: 14 } : {}) }}>
+              style={{ minHeight: inset ? 56 : 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 16, paddingRight: 16 } : {}) }}>
         {inset && settingsGlyph(label)}
         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
         <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: inset ? 400 : 600, color: inset ? t.sub : t.ink, maxWidth: "55%" }}>{value}</span>
-        <ChevronRight size={15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+        <ChevronRight size={inset ? 17 : 15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
       </button>
       {open && (
         <div style={{ background: t.wash }}>
           {options.map((o) => (
             <button key={o} aria-pressed={value === o} onClick={() => { haptic(5); onChange(o); setOpen(false); }}
                     className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
-                    style={{ minHeight: inset ? 50 : 46, borderTop: hair, ...(inset ? { paddingLeft: 14, paddingRight: 14, background: t.surface } : {}) }}>
+                    style={{ minHeight: inset ? 50 : 46, borderTop: hair, ...(inset ? { paddingLeft: 16, paddingRight: 16, background: t.surface } : {}) }}>
               {inset && settingsGlyph(label) && <span className="shrink-0" style={{ width: 30 }} />}
               <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink }}>{o}</span>
               {value === o && <Check size={14} color={t.accent} strokeWidth={2.4} />}
@@ -15981,7 +16036,7 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
   return (
     <SwipeBack onBack={pop}>
       <Screen title={tr("Drills")} onBack={pop} meta={library.length ? `${library.length} ${library.length === 1 ? tr("drill") : tr("drills")}` : ""}
-              right={<TextBtn tour="library-new" onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
+              right={<TextBtn quiet tour="library-new" color={t.accent} onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? "Cancel" : "New"}</TextBtn>}>
         {adding && (
           <div className="px-6 mb-5"><Card className="p-5">
             <VoiceInput value={f.t} onChange={(v) => setF({ ...f, t: v })} ph={tr("Drill name")} autoFocus />
@@ -17501,19 +17556,22 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
     const isOpen = openPick === id;
     return (
       <div>
+        {/* the head is a row of the group like any other: 56 tall, 16 in
+            and Row's 17px chevron — it stood 6 taller and 2 further left
+            than the rows round it */}
         <button onClick={() => { haptic(6); setOpenPick(isOpen ? null : id); }}
-                className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 62, paddingLeft: 14, paddingRight: 14 }}>
+                className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={{ minHeight: 56, paddingLeft: 16, paddingRight: 16 }}>
           {settingsGlyph(label) || (Ico && <I C={Ico} />)}
           <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: t.ink }}>{label}</span>
           <span className="shrink-0 truncate" style={{ ...TYPE.body, color: t.sub, maxWidth: "50%" }}>{cur && cur.label}</span>
-          <ChevronRight size={16} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
+          <ChevronRight size={17} color={t.trace || t.faint} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
         </button>
         {isOpen && (
           <div style={{ background: t.surface }}>
             {options.map((o) => (
               <button key={o.id} aria-pressed={value === o.id} onClick={() => { haptic(6); onPick(o.id); setOpenPick(null); }}
                       className="w-full flex items-center gap-3.5 text-left active:opacity-50"
-                      style={{ minHeight: 50, paddingLeft: 14, paddingRight: 14, borderTop: `1px solid ${t.hair}` }}>
+                      style={{ minHeight: 50, paddingLeft: 16, paddingRight: 16, borderTop: `1px solid ${t.hair}` }}>
                 {(settingsGlyph(label) || Ico) && <span className="shrink-0" style={{ width: settingsGlyph(label) ? 30 : 17 }} />}
                 <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o.id ? 600 : 400, color: t.ink }}>{o.label}</span>
                 {value === o.id && <Check size={15} color={t.accent} strokeWidth={2.4} />}
