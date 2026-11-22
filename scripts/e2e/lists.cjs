@@ -244,6 +244,14 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const sd = await rowsOf(page, "body", `return [...root.querySelectorAll("button[aria-pressed]")].filter((b) => /drill|putting|chipping/i.test(b.textContent));`);
       await shot("z1-setup-drills");
       check("(z) the setup's Drills are boxed rows on the card's edge", boxedRows(sd, EDGE.golf) && sd.length >= 6, rowSaid(sd));
+      /* (z5) Add your own takes a word typed a key at a time — fill() sets the
+         value in one go and hid that the field was remounted on every key, so
+         a phone's keyboard closed after each letter */
+      const own = page.locator('input[placeholder="Add your own"]').first();
+      await own.click(); await page.keyboard.type("Gate drill", { delay: 30 }); await page.waitForTimeout(300);
+      const typed = await own.evaluate((el) => ({ value: el.value, focused: document.activeElement === el })).catch((e) => ({ err: String(e) }));
+      check("(z5) the setup's Add your own keeps every key typed and the focus with it", typed.value === "Gate drill" && typed.focused === true, JSON.stringify(typed));
+      await own.fill(""); await page.waitForTimeout(200);
       await page.locator("button", { hasText: /^Continue$/ }).first().click(); await page.waitForTimeout(800);
       const st = await rowsOf(page, "body", `return [...root.querySelectorAll("button[aria-pressed]")].filter((b) => b.textContent.trim().length > 12);`);
       await shot("z2-setup-tips");

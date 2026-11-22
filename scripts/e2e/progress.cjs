@@ -93,6 +93,17 @@ const { check, results, summary } = M.checker("progress");
       check("(d) Worked on counts the areas the log joined, most first", areas.length === 4 && /^Short game\s*4/.test(M.norm(areas[0])), JSON.stringify(areas.map(M.norm)));
       const rects = await page.locator('[data-progress="months"] svg rect').count();
       check("(e) Lessons a month draws a bar for each of the last six months with a lesson", rects === monthsWithLessons(), `${rects} vs ${monthsWithLessons()}`);
+      /* (e2) the chart's words at the size they are drawn on the glass, not the
+         size they are written: a 320-wide viewBox stretched to its box drew the
+         month initials and the counts at 11.5 at 390 and 9 at 320 — under the
+         12px floor, where type-floor.cjs reads only the written 12 */
+      const drawn = () => page.evaluate(() => [...document.querySelectorAll('[data-progress="months"] svg text')]
+        .map((el) => Math.round(el.getScreenCTM().a * parseFloat(getComputedStyle(el).fontSize) * 10) / 10));
+      const at390 = await drawn();
+      await page.setViewportSize({ width: 320, height: 640 }); await page.waitForTimeout(500);
+      const at320 = await drawn();
+      await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(500);
+      check("(e2) the months' initials and counts are drawn at 12px or more at 390 and at 320", at390.length >= 6 && at320.length >= 6 && [...at390, ...at320].every((x) => x >= 12), JSON.stringify({ at390, at320 }));
       check("(f) Drills reads done of set", /2 of 3 done/.test(t1), "");
       const marks = page.locator('[data-progress="attendance"] [data-mark]');
       await page.locator('[data-progress="attendance"]').scrollIntoViewIfNeeded().catch(() => {}); await page.waitForTimeout(400); await shot("01b-coach-attendance");
@@ -154,6 +165,9 @@ const { check, results, summary } = M.checker("progress");
       const t5 = await text();
       const ticks = await page.locator('[data-progress="ladder"] svg').count();
       check("(m) a named stage is the ladder: the steps reached ticked, the current one with its date, no line", (await page.locator('[data-progress="level"]').count()) === 0 && (await page.locator('[data-progress="ladder"]').count()) === 1 && ticks === 2 && /Orange ball · U9\s*since Sun 9 Aug/.test(t5) && /Green ball/.test(t5), `${ticks} ticks · ${t5.slice(0, 200)}`);
+      /* a step not yet reached is an empty ring, so its ring is all that says where it is: LINE_STRONG, 3.3:1 (on the hairline it was 1.2:1) */
+      const rings = await page.locator('[data-progress="ladder"] span').evaluateAll((els) => els.filter((el) => el.getBoundingClientRect().width === 20 && !el.querySelector("svg")).map((el) => `${el.style.borderTopWidth} ${getComputedStyle(el).borderTopColor}`));   /* the written width: at a device pixel ratio of 1 the computed 1.5 snaps to 1 */
+      check("(m3) the ladder's steps not yet reached are rings of the strong line, 1.5px", rings.length >= 1 && rings.every((x) => x === "1.5px rgb(142, 142, 147)"), JSON.stringify(rings));
       await shot("04-tennis-ladder");
       await ctx.close();
     }

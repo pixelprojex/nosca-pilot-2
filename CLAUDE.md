@@ -1680,7 +1680,8 @@ seeded data and no account.
   the adult (`me`, the account by name, so FaceCtx gives the photo) where
   it read "You" with a Y in the disc; Drifting's grey line is the day of
   the last lesson ("Last lesson · Tue 13 Oct", the roster's form) and
-  its Message is a quiet `TextBtn` in ink — it read "31 days" with three
+  its Message is a quiet `TextBtn` (in ink until 22 November, the sport's
+  colour since: a text action that acts, as Log and Accept are) — it read "31 days" with three
   accents down the screen; the log's title takes a second line for a
   long name rather than "Maximiliano Ó S…"; the lesson page's second
   row of outlined controls is the stage's size (46, `TYPE.body`), not a

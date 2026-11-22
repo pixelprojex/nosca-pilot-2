@@ -3453,10 +3453,16 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
     return () => { clearTimeout(a); if (b) clearTimeout(b); };
   }, []);
 
+  /* who, then what it amounted to — each a line of facts drawn as the
+     feed card draws its areas: split on " · ", each kept whole in a nowrap
+     span with the dot riding inside the next one's, so a line breaks only
+     between two of them and never ends on a dot (a fact past FACT_MAX is
+     words, and wraps like words) */
+  const FACT_MAX = 28;
   const rows = [
     lesson.groupName ? `${lesson.groupName} · ${lesson.who.length}` : first,
     lesson.focus,
-  ].filter(Boolean);
+  ].filter(Boolean).map((line) => String(line).split(" · ").map((a) => a.trim()).filter(Boolean));
 
   /* THE WHITE PAGE (22 November). It was the one black page in a white
      app — a green disc with a glow and a shockwave on #1C1C1E, off-white
@@ -3471,36 +3477,62 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
      it did, laid absolutely at the foot over a centred column. The foot
      keeps clear of the home indicator (22 where there is none). */
   const FOOT = "max(22px, env(safe-area-inset-bottom, 0px))";
+  /* the foot's two measures: the rating key stands ASK_GAP under the day's
+     count, and with no key under it the count keeps ASK_H — the key's 52
+     and two of its ledge — clear of the foot, rather than sitting on the
+     home indicator's edge */
+  const ASK_GAP = 18, ASK_H = 54;
+  /* the middle's air gives on a short phone (4vh is 18 at 460 tall), and
+     past that the page scrolls, so the foot is always reachable */
+  const AIR = "min(32px, 4vh)", AIR_ROWS = "min(24px, 3vh)";
+  /* Ask for a rating is the Button's own recipe on the white key: its
+     ledge in every state, the press while it can be pressed. A tap
+     quicker than the press's delay leaves the face sunk for a beat, and
+     the key is disabled before it rises — so the key is a fresh one the
+     moment it stops taking taps, never one left sunk on a missing rest */
+  const askOff = ask === "busy" || ask === "done";
+  const askP = press3d(ask === "done" ? SEL(t).lip : TINT_LIP(t), LIP_H, LIP_PRESS);
   return (
     <div className="absolute inset-0 grid px-9" aria-live="polite"
          onClick={() => { if (waits) { haptic(6); onDone && onDone(); } }}
-         style={{ zIndex: 70, background: t.page, opacity: 1, gridTemplateRows: "1fr auto 1fr", justifyItems: "center",
+         style={{ zIndex: 70, background: t.page, opacity: 1, gridTemplateRows: "1fr auto 1fr", justifyItems: "center", overflowY: "auto",
                   animation: waits ? "fadeIn 320ms ease both" : "celebFade 1900ms ease backwards" }}>
       <div className="w-full flex flex-col items-center" style={{ gridRow: 2 }}>
-        <span className="rounded-full flex items-center justify-center"
+        <span className="rounded-full flex items-center justify-center shrink-0"
               style={{ width: 94, height: 94, background: t.accent,
                        boxShadow: lipOf(LIP(t.accent), 4),
                        animation: "stampIn 620ms cubic-bezier(.34,1.56,.64,1) both" }}>
           <Check size={42} color={t.onAccent} strokeWidth={2.1} />
         </span>
 
-        <div className="mt-8 text-center" style={{ animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 460ms both" }}>
+        <div className="text-center" style={{ marginTop: AIR, animation: "streakUp 520ms cubic-bezier(.22,1,.36,1) 460ms both" }}>
           <div style={{ ...TYPE.screen, color: t.ink }}>{tr("Logged")}</div>
         </div>
 
-        {/* what it amounted to, counting in */}
-        <div className="mt-6 flex flex-col items-center gap-1.5">
-          {rows.map((r, i) => (
-            <span key={i} style={{ ...TYPE.body, color: t.sub,
-                          animation: `tally 420ms cubic-bezier(.34,1.56,.64,1) ${700 + i * 110}ms both` }}>{r}</span>
+        {/* what it amounted to, counting in, centred under Logged */}
+        <div className="w-full flex flex-col items-center text-center gap-1.5" style={{ marginTop: AIR_ROWS }}>
+          {rows.map((parts, i) => (
+            <span key={i} data-burst-row={i ? "focus" : "who"}
+                  style={{ ...TYPE.body, color: t.sub, textWrap: "balance", maxWidth: "100%",
+                           animation: `tally 420ms cubic-bezier(.34,1.56,.64,1) ${700 + i * 110}ms both` }}>
+              {parts.map((part, j) => (
+                <React.Fragment key={j}>
+                  {j > 0 && " "}
+                  <span style={{ whiteSpace: part.length <= FACT_MAX ? "nowrap" : "normal" }}>
+                    {j > 0 && <span aria-hidden="true" data-sep="" style={{ marginRight: "0.3em" }}>·</span>}
+                    {part}
+                  </span>
+                </React.Fragment>
+              ))}
+            </span>
           ))}
         </div>
 
         {/* the app's Button; it calls its handler without the event and buzzes
             itself, so the wrapper is what keeps the tap from the page's dismiss */}
         {onLogNext && (
-          <div className="w-full mt-8" onClick={(e) => e.stopPropagation()}
-               style={{ animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1150ms both" }}>
+          <div className="w-full" onClick={(e) => e.stopPropagation()}
+               style={{ marginTop: AIR, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1150ms both" }}>
             <Button onClick={() => { soft(); onLogNext(); }}>{`${tr("Log next")} · ${remaining} ${tr("left")}`}</Button>
           </div>
         )}
@@ -3508,7 +3540,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
 
       {/* the foot: the running count for the day, and the rating key under it */}
       <div className="w-full flex flex-col items-center" style={{ gridRow: 3, alignSelf: "end", paddingTop: SPACE.row,
-             paddingBottom: onAskRating ? FOOT : `calc(54px + ${FOOT})` }}>
+             paddingBottom: onAskRating ? FOOT : `calc(${ASK_H}px + ${FOOT})` }}>
         <div className="flex items-baseline gap-2" style={{ animation: "streakUp 560ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
           <span style={{ fontFamily: display, fontSize: 38, letterSpacing: "-0.04em", color: t.accent }}>{tally}</span>
           <span style={{ ...TYPE.caption, color: t.sub }}>
@@ -3517,16 +3549,18 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
         </div>
 
         {onAskRating && (
-          <div className="w-full flex flex-col items-stretch gap-2" style={{ marginTop: 18, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
+          <div className="w-full flex flex-col items-stretch gap-2" style={{ marginTop: ASK_GAP, animation: "fadeUp 520ms cubic-bezier(.22,1,.36,1) 1250ms both" }}>
             {ask === "error" && <span data-tour="burst-ask-error" style={{ ...TYPE.caption, color: DANGER, textAlign: "center" }}>{askErr}</span>}
-            {/* the white key; once asked, the chosen answer with its tick */}
-            <button onClick={askNow} disabled={ask === "busy" || ask === "done"} data-ask={ask}
-                    className="w-full flex items-center justify-center gap-2 n-key"
-                    style={{ minHeight: 52, borderRadius: R.surface,
+            {/* the white key on its grey ledge; once asked, the chosen answer with its tick */}
+            <button key={askOff ? "off" : "on"} onClick={askNow} disabled={askOff} data-ask={ask}
+                    {...(askOff ? {} : askP.handlers)}
+                    className="w-full flex items-center justify-center gap-2"
+                    style={{ minHeight: 52, marginBottom: LIP_H, borderRadius: R.surface,
                              background: ask === "done" ? SEL(t).face : TINT(t),
                              border: `${EDGE_W}px solid ${ask === "done" ? SEL(t).ring : KEY_RING(t)}`,
-                             "--key-lip": ask === "done" ? SEL(t).lip : TINT_LIP(t),
+                             boxShadow: askP.rest,
                              opacity: ask === "busy" ? 0.6 : 1,
+                             transition: "transform 140ms ease-out, box-shadow 140ms ease-out, background 180ms, color 180ms",
                              fontFamily: ui, fontSize: 17, fontWeight: 600, color: ask === "done" ? SEL(t).fg : t.ink }}>
               {ask === "done" ? <Check size={18} color={SEL(t).fg} strokeWidth={2.4} /> : <Star size={18} color={HUE.gold} strokeWidth={2} />}
               {ask === "done" ? tr("Asked") : ask === "busy" ? tr("Asking…") : ask === "error" ? tr("Try again") : tr("Ask for a rating")}
@@ -4381,7 +4415,7 @@ function atRisk(roster, series, live, bookedIds) {
   }).filter(Boolean).sort((a, b) => b.weight - a.weight);
 }
 
-function AtRisk({ list, onMessage, pop, nouns = "players" }) {
+function AtRisk({ list, onMessage, pop }) {
   const t = useT();
   return (
     <SwipeBack onBack={pop}>
@@ -4399,7 +4433,8 @@ function AtRisk({ list, onMessage, pop, nouns = "players" }) {
                            /* the day of the last lesson, as the roster's row reads it — never
                               "31 days"; the harness, with days alone, counts back from today */
                            sub={(() => { const d = x.last ? localDate(x.last) : x.gap != null ? new Date(Date.now() - x.gap * 86400000) : null; return d ? `${tr("Last lesson")} · ${fmtWeekDay(d)}` : tr(x.why); })()}
-                           actions={<TextBtn quiet color={t.ink} onClick={() => { hapticCommit(); onMessage(x.id || x.name); }}>{tr("Message")}</TextBtn>} />
+                           /* a text action that acts is the sport's colour, as Log and Accept are on the Actions screens beside it */
+                           actions={<TextBtn quiet color={t.accent} onClick={() => { hapticCommit(); onMessage(x.id || x.name); }}>{tr("Message")}</TextBtn>} />
               ))}
             </div>
           )}
@@ -4984,9 +5019,10 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
         </button>
 
         <h2 style={{ ...TYPE.title, color: t.ink }}>{picked.who}</h2>
-        {/* a register of one is the time alone: "1 person" under that person's name said nothing */}
+        {/* a register of one is the time alone: "1 person" under that person's name said nothing,
+            and a roll with nobody on it is never "0 people" — a subtitle carries a value or is not there */}
         <p className="mt-1 mb-4" style={{ ...TYPE.small, color: t.faint }}>
-          {who.length === 1 ? picked.time : `${picked.time} · ${who.length} ${tr("people")}`}
+          {who.length > 1 ? `${picked.time} · ${who.length} ${tr("people")}` : picked.time}
         </p>
 
         {who.length > 1 && (
@@ -5549,17 +5585,22 @@ function DownloadDisc({ lesson, onTap, size = 38, dark = false }) {
      the sport's colour while it comes down, and the sport's colour on its
      own ledge once on the phone, where it was a black disc; the feed card's
      dark branch is as it was */
+  /* a failure is the same white key with the arrow in red (a red ring on
+     nothing read as a hole in the row), and the key presses as every key
+     does: a three-point ledge sinking two, the grey one under the white
+     key and the sport's own made deeper once it is on the phone */
   const face = dark
     ? (status === "saved" ? "#fff" : "rgba(255,255,255,0.14)")
-    : status === "saved" ? t.accent : status === "failed" ? "transparent" : TINT(t);
+    : status === "saved" ? t.accent : TINT(t);
   const ring = status === "saved" || status === "saving" ? "none"
-    : `${dark ? 0.5 : EDGE_W}px solid ${status === "failed" ? DANGER : dark ? "rgba(255,255,255,0.18)" : KEY_RING(t)}`;
-  const ledge = dark ? "none" : status === "saved" ? lipOf(LIP(t.accent), 2) : status ? "none" : lipOf(TINT_LIP(t), 2);
+    : `${dark ? 0.5 : EDGE_W}px solid ${dark ? (status === "failed" ? DANGER : "rgba(255,255,255,0.18)") : KEY_RING(t)}`;
+  const press = dark ? null : press3d(status === "saved" ? LIP(t.accent) : TINT_LIP(t), 3, 2);
   return (
     <button onClick={() => { haptic(8); onTap && onTap(lesson); }} aria-label={label} data-download={status || "none"} title={st && st.error ? st.error : undefined}
-            className="relative shrink-0 flex items-center justify-center active:opacity-60"
+            {...(press ? press.handlers : {})}
+            className={`relative shrink-0 flex items-center justify-center${dark ? " active:opacity-60" : ""}`}
             style={{ width: size, height: size, borderRadius: size / 2,
-                     background: face, border: ring, boxShadow: ledge,
+                     background: face, border: ring, boxShadow: press ? press.rest : "none",
                      animation: pop ? "tickIn 460ms cubic-bezier(.22,1,.36,1) backwards" : "none",
                      transition: "background 220ms ease" }}>
       {/* 44 to a finger, and nothing drawn moves: the 38px disc answered 38 */}
@@ -8717,11 +8758,19 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
      "Mon 23 Nov" two across at 320); on the corner it is the ink disc in
      the page's ring whether the key is chosen or not */
   const wordCount = !Icon;
+  /* the count is the ink disc and the dot the sport's colour, each in the
+     page's ring, chosen or not: a chosen key is the sport's pale face now,
+     and a white disc or dot read 1.1:1 on it (and was nothing on the page
+     at a round key's corner). A word key's dot sits on the corner its
+     count does */
   const badge = count > 0 ? (
     <span className="absolute flex items-center justify-center rounded-full"
-          style={{ top: (Icon && !block) || wordCount ? -3 : 9, right: (Icon && !block) || wordCount ? -3 : 9, minWidth: 20, height: 20, padding: "0 5px", background: on && !wordCount ? "#fff" : t.ink,
-                   boxShadow: (Icon && !block) || wordCount ? `0 0 0 2px ${t.page}` : "none", fontFamily: ui, fontSize: 12, fontWeight: 600, color: on && !wordCount ? t.ink : t.page }}>{count}</span>
-  ) : dot ? <span className="absolute rounded-full" style={{ top: Icon && !block ? 2 : 12, right: Icon && !block ? 2 : 12, width: 8, height: 8, background: on ? "#fff" : t.accent, boxShadow: `0 0 0 2px ${t.page}` }} /> : null;
+          style={{ top: (Icon && !block) || wordCount ? -3 : 9, right: (Icon && !block) || wordCount ? -3 : 9, minWidth: 20, height: 20, padding: "0 5px", background: t.ink,
+                   boxShadow: (Icon && !block) || wordCount ? `0 0 0 2px ${t.page}` : "none", fontFamily: ui, fontSize: 12, fontWeight: 600, color: t.page }}>{count}</span>
+  ) : dot ? (() => {
+    const at = wordCount ? -1 : Icon && !block ? 2 : 12;
+    return <span data-dot="" className="absolute rounded-full" style={{ top: at, right: at, width: 8, height: 8, background: t.accent, boxShadow: `0 0 0 2px ${t.page}` }} />;
+  })() : null;
 
   /* TWO TO A ROW, A KEY IS A TILE: a rounded rectangle on its lip, the
      glyph at the top and the word under it at the left (Lares's lists,
@@ -8930,8 +8979,8 @@ const FocusGrid = ({ areas, picked, onToggle, h = 58, cols = 2, tour }) => (
 const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
   const t = useT();
   /* A free time's plus is the sport's colour: it is the one thing the Diary
-     exists to offer (it was the trace grey, 2.2:1). `muted` keeps it grey
-     where a tap offers nothing — a junior's diary is read only. A picked
+     exists to offer (it was the trace grey, 2.2:1). `muted` drops it where
+     a tap offers nothing — a junior's diary is read only. A picked
      time is Duolingo's chosen answer, the sport's colour faint on the row
      and the word in it — never black bold text (the box clips the face at
      its corners). */
@@ -8946,8 +8995,10 @@ const TimeList = ({ times, picked, onPick, tour, muted = false }) => {
                   style={{ minHeight: 50, borderBottom: `1px solid ${t.hair}`, background: on ? SEL(t).face : undefined, transition: "background 180ms" }}>
             <span className="flex-1 truncate" style={{ ...TYPE.body, color: on ? SEL(t).fg : t.sub,
                            fontWeight: on ? 600 : 400, fontVariantNumeric: "tabular-nums lining" }}>{x}</span>
+            {/* a read-only row (a junior's diary) offers nothing, so it carries no plus —
+                the row stays, a plain line, as the List view draws it */}
             {on ? <Check size={16} color={t.accent} strokeWidth={2.4} />
-                : <Plus size={15} color={muted ? (t.trace || t.faint) : t.accent} strokeWidth={2.2} />}
+                : muted ? null : <Plus size={15} color={t.accent} strokeWidth={2.2} />}
           </button>
         );
       })}
@@ -9530,10 +9581,11 @@ export function CodeBoxes({ value, onChange, onComplete, bad }) {
                  onKeyDown={(e) => back(i, e)}
                  onFocus={(e) => e.target.select()}
                  className="text-center outline-none"
-                 /* 46 wide where there is room, narrower where there is not:
-                    six boxes and their gaps are 316, and at 320 the step
-                    leaves 264, so the first and last were cut off */
-                 style={{ width: 46, flex: "0 1 46px", minWidth: 0, height: 58, borderRadius: R.surface,
+                 /* 46 wide where there is room, an equal share of the row where
+                    there is not — six boxes and their gaps are 316, and at 320
+                    the step leaves 264 — each keeping its 46 × 58 shape as it
+                    narrows (a fixed 58 tall over a narrowed box read as a slot) */
+                 style={{ flex: "1 1 0%", minWidth: 0, maxWidth: 46, aspectRatio: "46 / 58", borderRadius: R.surface,
                           background: chosen ? sel.face : t.wash,
                           border: `1.5px solid ${bad ? DANGER : chosen ? sel.ring : "transparent"}`,
                           boxShadow: lipOf(chosen ? sel.lip : SOFT_LIP(t), 2),
@@ -9617,7 +9669,10 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
   const Label = ({ children }) => <div className="mb-3 mt-7 first:mt-0" style={{ ...TYPE.eyebrow, color: t.sub }}>{children}</div>;
   /* the add key is the white key on its grey ledge, a black key read heavy
      beside the field; with nothing typed it is the flat white key with the
-     faint plus, sunk onto where its ledge was — never a faded key */
+     faint plus, sunk onto where its ledge was — never a faded key.
+     CALLED, NEVER RENDERED as <AddOwn/>: declared in this render it was a
+     new component type on every one, so each keystroke remounted the field
+     and a phone's keyboard closed after every letter */
   const AddOwn = ({ value, onChange, ph, onAdd }) => {
     const off = !value.trim();
     return (
@@ -9664,7 +9719,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
         {now === "drills" && (<>
           <DrillPicker boxed drills={[...cfg.drills.map((d) => d.t), ...drills.filter((n) => !cfg.drills.some((d) => d.t === n))]}
                        picked={drills} onToggle={(name) => togg(drills, setDrills, name)} />
-          <AddOwn value={newDrill} onChange={setNewDrill} ph={tr("Add your own")} onAdd={(v) => setDrills([...drills, v])} />
+          {AddOwn({ value: newDrill, onChange: setNewDrill, ph: tr("Add your own"), onAdd: (v) => setDrills([...drills, v]) })}
         </>)}
 
         {now === "tips" && (<>
@@ -9681,7 +9736,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
               );
             })}
           </div>
-          <AddOwn value={newTip} onChange={setNewTip} ph={tr("Your own")} onAdd={(v) => setTips([...tips, v])} />
+          {AddOwn({ value: newTip, onChange: setNewTip, ph: tr("Your own"), onAdd: (v) => setTips([...tips, v]) })}
         </>)}
       </div>
 
@@ -9783,7 +9838,11 @@ export function PickSport({ path = "player", onPick, onBack }) {
     <SignupShell step={stepOf(path, "sport")} steps={stepsIn(path)} onBack={onBack} title={tr("Main sport")}
                  sub={tr("You can add others later.")}
                  footer={<Button tone="ink" disabled={!sel} onClick={() => { hapticSuccess(); onPick(sel); }}>{L.continue}</Button>}>
-      <SportGrid ids={Object.keys(SPORTS)} picked={sel} onPick={setSel} cols={2} />
+      {/* the grid rises in as the other steps' bodies do; backwards, never
+          both, so the tiles' own press is theirs once it has landed */}
+      <div style={{ animation: "fadeUp 460ms cubic-bezier(.22,1,.36,1) 60ms backwards" }}>
+        <SportGrid ids={Object.keys(SPORTS)} picked={sel} onPick={setSel} cols={2} />
+      </div>
     </SignupShell>
   );
 }
@@ -12754,7 +12813,7 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
    render — React remounts the whole row, and inside a SwipeRow that
    resets the swipe halfway through the gesture. Not called Row: there
    is already a Row in this file, for settings lists. */
-function DayRow({ l, variant, emphasis, last, avatar, until, onLogFor, onPeek, onRegister }) {
+function DayRow({ l, variant, last, avatar, until, onLogFor, onPeek, onRegister }) {
   const t = useT();
   const grp = l.kind && l.kind.startsWith("Group");
   const border = last ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`;
@@ -13176,7 +13235,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             {todayRows.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
               const row = (
-                <DayRow l={l} variant={variant} emphasis={l === liveNow} last
+                <DayRow l={l} variant={variant} last
                         avatar={avatarFor(l)}
                         until={l === liveNow ? tr("Now") : l === nextUp ? untilText(l.hoursUntil ?? 1) : null}
                         onLogFor={(x) => onLogFor && onLogFor(x)}
@@ -13203,7 +13262,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             </button>
             {nextOpen && nextRows.map((l, i) => (
               <div key={l.id || `n${i}`} style={{ borderTop: RULE.hair(t.ink), animation: "fadeUp 200ms cubic-bezier(.22,1,.36,1) both" }}>
-                <DayRow l={l} variant="ahead" emphasis={false} last={i === nextRows.length - 1} avatar={avatarFor(l)} until={null}
+                <DayRow l={l} variant="ahead" last={i === nextRows.length - 1} avatar={avatarFor(l)} until={null}
                         onLogFor={(x) => onLogFor && onLogFor(x)} onPeek={(x) => onPeek && onPeek(x)} onRegister={(x) => onRegister && onRegister(x)} />
               </div>
             ))}
@@ -14355,23 +14414,43 @@ function LevelLine({ points, tag, color, ink, faint }) {
     </svg>
   );
 }
-function MonthBars({ months, color, ink, faint }) {
-  const W = 320, H = 92, TOP = 16, BASE = H - 18, max = Math.max(1, ...months.map((m) => m.n));
+/* THE BARS AT THE PAGE'S OWN SIZE. The chart was a 320-wide viewBox
+   stretched to its box, so its 12px words were drawn at 11.5 on a 390
+   phone and 9 at 320 — under the floor. The viewBox is the box's own
+   measured width (its layout width, which a scaled walkthrough does not
+   change), so 12 is 12 at every width. */
+function MonthBars({ months, color, ink, sub, faint }) {
+  const box = useRef(null);
+  const [W, setW] = useState(320);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return undefined;
+    const fit = () => { const w = el.clientWidth; if (w > 0) setW(w); };
+    fit();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = 92, TOP = 16, BASE = H - 18, max = Math.max(1, ...months.map((m) => m.n));
   const cw = W / months.length, bw = 22;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} aria-label={months.map((m) => `${PROGRESS_MONTHS[m.m]} ${m.n}`).join(", ")} style={{ display: "block" }}>
-      <line x1="0" x2={W} y1={BASE} y2={BASE} stroke={faint} strokeWidth="0.5" />
-      {months.map((m, i) => {
-        const h = m.n ? Math.max(4, ((BASE - TOP) * m.n) / max) : 0; const cx = cw * i + cw / 2;
-        return (
-          <g key={`${m.y}-${m.m}`}>
-            {m.n > 0 && <rect x={cx - bw / 2} y={BASE - h} width={bw} height={h} rx="3" fill={color} />}
-            {m.n > 0 && <text x={cx} y={BASE - h - 5} textAnchor="middle" style={{ font: `500 12px ${ui}`, fill: ink }}>{m.n}</text>}
-            <text x={cx} y={H - 4} textAnchor="middle" style={{ font: `400 12px ${ui}`, fill: faint }}>{PROGRESS_MONTHS[m.m][0]}</text>
-          </g>
-        );
-      })}
-    </svg>
+    <div ref={box}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label={months.map((m) => `${PROGRESS_MONTHS[m.m]} ${m.n}`).join(", ")} style={{ display: "block", maxWidth: "100%" }}>
+        <line x1="0" x2={W} y1={BASE} y2={BASE} stroke={faint} strokeWidth="0.5" />
+        {months.map((m, i) => {
+          const h = m.n ? Math.max(4, ((BASE - TOP) * m.n) / max) : 0; const cx = cw * i + cw / 2;
+          return (
+            <g key={`${m.y}-${m.m}`}>
+              {m.n > 0 && <rect x={cx - bw / 2} y={BASE - h} width={bw} height={h} rx="3" fill={color} />}
+              {m.n > 0 && <text x={cx} y={BASE - h - 5} textAnchor="middle" style={{ font: `500 12px ${ui}`, fill: ink }}>{m.n}</text>}
+              {/* the month's initial is read, so it is the sub grey (the trace grey is the rule's) */}
+              <text x={cx} y={H - 4} textAnchor="middle" style={{ font: `400 12px ${ui}`, fill: sub }}>{PROGRESS_MONTHS[m.m][0]}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 /* the calendar's today is a month and a day (1-based month) with the
@@ -14429,7 +14508,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
                     const on = p.reached.has(st.id), now = p.current && p.current.st.id === st.id;
                     return (
                       <div key={st.id} className="flex items-center gap-3" style={{ minHeight: 44, borderBottom: i === p.named.length - 1 ? "none" : RULE.hair(t.ink) }}>
-                        <span className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20, borderRadius: 10, background: on ? t.accent : "transparent", border: on ? "none" : `1.5px solid ${t.hair}` }}>
+                        <span className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20, borderRadius: 10, background: on ? t.accent : "transparent", border: on ? "none" : `1.5px solid ${LINE_STRONG}` }}>
                           {on && <Check size={12} color="#FFFFFF" strokeWidth={2.6} />}
                         </span>
                         <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: now ? 600 : 400, color: on ? t.ink : t.faint }}>{st.label}</span>
@@ -14463,7 +14542,7 @@ function ProgressScreen({ title, name, cfg, lessons, drills, pop, coach, tips, s
             <div style={{ marginBottom: SPACE.block }} data-progress="months">
               <RowHead>{tr("Lessons a month")}</RowHead>
               <div style={box}>
-                <MonthBars months={p.months} color={t.accent} ink={t.ink} faint={t.trace || t.faint} />
+                <MonthBars months={p.months} color={t.accent} ink={t.ink} sub={t.sub} faint={t.trace || t.faint} />
               </div>
             </div>
             {/* ATTENDANCE, off the coach's registers: there or missed per
@@ -14769,6 +14848,17 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
   const [open, setOpen] = useState(false);
   if (options.length <= 1) return null;
   const hair = RULE.hair(t.ink);
+  /* THE VALUE IS NEVER CUT. It read "Next lesson · Sun 2…" at 390 and
+     "Next lesson · …" at 320 on the Set-drills sheet's By row; it takes a
+     second line where the row cannot hold it beside the label, each fact
+     kept whole, so it breaks only at its dot. Right-aligned, a broken line
+     ends where the dot is — so the dot rides at the end of the fact before
+     it, in a box of SEP_HANG (the grey line's hang, mirrored), the value
+     reaches SEP_HANG past its column and that strip is clipped: on one
+     line the dot reads between the two facts, broken it goes with the
+     line's end, and the last fact carries an empty strip of its own so
+     none of it is clipped */
+  const facts = typeof value === "string" && value.includes(" · ") ? value.split(" · ") : null;
   return (
     <div style={{ borderBottom: last && !plain ? hair : "none" }}>
       {/* inset, it is a Settings row standing in a list of its own (the
@@ -14777,8 +14867,17 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
       <button onClick={() => { haptic(6); setOpen(!open); }} className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
               style={{ minHeight: inset ? 56 : 52, borderTop: plain ? "none" : hair, ...(inset ? { paddingLeft: 16, paddingRight: 16 } : {}) }}>
         {inset && settingsGlyph(label)}
-        <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
-        <span className="shrink-0 truncate" style={{ ...TYPE.body, fontWeight: inset ? 400 : 600, color: inset ? t.sub : t.ink, maxWidth: "55%" }}>{value}</span>
+        <span className="shrink-0" style={{ ...TYPE.body, color: inset ? t.ink : t.sub }}>{label}</span>
+        <span data-filter-value="" className="flex-1 min-w-0 text-right"
+              style={{ ...TYPE.body, fontWeight: inset ? 400 : 600, color: inset ? t.sub : t.ink, overflowWrap: "break-word",
+                       ...(facts ? { marginRight: `-${SEP_HANG}`, clipPath: `inset(0 ${SEP_HANG} 0 0)` } : null) }}>
+          {facts ? facts.map((f, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && " "}
+              <span className="whitespace-nowrap">{f}<span style={{ display: "inline-block", width: SEP_HANG, whiteSpace: "pre" }}>{i < facts.length - 1 ? " ·" : ""}</span></span>
+            </React.Fragment>
+          )) : value}
+        </span>
         <ChevronRight size={inset ? 17 : 15} color={t.trace || t.faint} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 200ms" }} />
       </button>
       {open && (
@@ -14788,8 +14887,8 @@ function FilterRow({ options, value, onChange, label, last, plain, inset = false
                     className={`w-full flex items-center ${inset ? "gap-3.5" : "gap-3"} text-left active:opacity-50 ${inset ? "" : "px-6"}`}
                     style={{ minHeight: inset ? 50 : 46, borderTop: hair, ...(inset ? { paddingLeft: 16, paddingRight: 16, background: t.surface } : {}) }}>
               {inset && settingsGlyph(label) && <span className="shrink-0" style={{ width: 30 }} />}
-              <span className="flex-1 min-w-0 truncate" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink }}>{o}</span>
-              {value === o && <Check size={14} color={t.accent} strokeWidth={2.4} />}
+              <span className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: value === o ? 600 : 400, color: t.ink, overflowWrap: "break-word" }}>{o}</span>
+              {value === o && <Check size={14} color={t.accent} strokeWidth={2.4} className="shrink-0" />}
             </button>
           ))}
         </div>
@@ -17746,12 +17845,11 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
                 ? <div key={r.label} className="nsc-flush" data-tour={r.tour}>{r.custom}</div>
                 : <Row key={r.label} tour={r.tour} label={r.label} sub={r.sub} value={r.value} danger={r.danger} chevron={!!r.onTap && !r.right}
                        last={i === g.rows.length - 1} right={r.right}
-                       /* No glyph on a settings row. Half the rows had one and
-                          half did not, which reads as an oversight rather than a
-                          system; and "Dark mode" needs a picture of nothing. The
-                          one exception is the row that deletes the account, where
-                          the red bin is a warning, not decoration. */
-                       icon={settingsGlyph(r.label) || (r.danger ? <IconSq Icon={Trash2} bg="#FF3B30" /> : undefined)}
+                       /* Every row leads with its glyph on its coloured tile
+                          (SETTINGS_GLYPHS, 21 November). A red row the table
+                          has not named still carries the bin, on the app's own
+                          red — never Apple's system red */
+                       icon={settingsGlyph(r.label) || (r.danger ? <IconSq Icon={Trash2} bg={HUE.red} /> : undefined)}
                        onToggle={r.onTap} />)}
             </div></div>
           </React.Fragment>
@@ -21497,7 +21595,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                setSeries((v) => v.map((y) => (y === x ? { ...y, ...patch } : y))); }}
              onNew={() => setSheet("pickRecurWho")} pop={pop} say={say} />;
   } else if (screen === "atrisk") {
-    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} nouns={cfg.nouns} pop={pop} onMessage={(k) => push("thread:" + k)} />;
+    body = <AtRisk list={atRisk(roster, mySeriesLive, live, bookedAhead)} pop={pop} onMessage={(k) => push("thread:" + k)} />;
   } else if (screen === "digest") {
     body = <ParentDigest profiles={profiles} cfg={cfg} pop={pop}
              stats={data ? Object.fromEntries(profiles.map((pf) => [pf.id, {
@@ -22043,9 +22141,15 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                           ? (burst.wantRating ? null : askForRating)
                           : () => { setAskRating(burst); say(tr("They'll be asked after this lesson")); }}
                         remaining={(todayList || []).filter((l) => l.done).length}
+                        /* Today first, so the log remounts on the next lesson's prefill;
+                           then the log by the setter itself. It was go("log") in the
+                           timeout — this render's go, whose stack was still ["log"],
+                           so it took the already-on-this-tab branch and the coach
+                           landed on Today with the next lesson never opened */
                         onLogNext={(todayList || []).filter((l) => l.done).length > 0
                           ? () => { const nx = (todayList || []).filter((l) => l.done)[0]; setBurst(null); setPublished(null);
-                                    setPrefill(nx); setStack(["today"]); setTimeout(() => go("log"), 40); }
+                                    setPrefill(nx); setStack(["today"]);
+                                    setTimeout(() => { dropDeeperMemory(1); setStack(["log"]); }, 40); }
                           : null}
                         onDone={() => { setBurst(null); setPublished(null); setStack(["today"]); }} />}
           {celeb && <Celebration label={celeb.label} sub={celeb.sub} tone={celeb.tone} onDone={() => setCeleb(null)} />}
