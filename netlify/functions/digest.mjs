@@ -18,11 +18,15 @@
  * inside the app is the record, and this is only a nudge towards it.
  *
  * Environment: the same names as push.mjs. No secret header — Netlify
- * only ever invokes this on its own schedule.
+ * only ever invokes this on its own schedule. It runs on the app's own
+ * site and not on the business cards' signpost, which is built from
+ * the same repository (lib/signpost.mjs) — or everyone on "Once a day"
+ * would be sent two summaries.
  */
 
 import webpush from "web-push";
 import { json, restHeaders, loadSubscriptions, sendTo, tally, withVapid, useVapid, projectUrl, REQUIRED } from "./lib/push-shared.mjs";
+import { isSignpost } from "./lib/signpost.mjs";
 
 export const config = { schedule: "0 6 * * *" };
 
@@ -70,8 +74,11 @@ async function markSent(env, ids, at) {
   return res.ok;
 }
 
-export default async () => {
+export default async (_req, context) => {
   const env = process.env;
+  /* Two sites are built from this repository and Netlify runs this
+     schedule on both; only the app's own sends (lib/signpost.mjs). */
+  if (isSignpost(env, context)) return json({ skipped: "signpost site" }, 200);
   const missing = REQUIRED.filter((name) => !env[name]);
   if (missing.length) return json({ error: `missing environment: ${missing.join(", ")}` }, 500);
 

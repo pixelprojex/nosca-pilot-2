@@ -2516,6 +2516,46 @@ seeded data and no account.
   MOO foils both sides or neither. The README there is the order, and
   `public/card/` serves the files at `/card/` for a phone (copy them
   there after a re-run). `scripts/e2e/install.cjs`.
+- **Two Netlify sites, one repository; the first address is a signpost
+  (23 November).** The business cards are printed, and the code on them
+  opens `nosca-pilot-2.netlify.app/install` for good — so that site is
+  never renamed and never deleted: a rename frees the name for anybody
+  and every card in a pocket dies. The app lives at `nosca.netlify.app`,
+  a second Netlify site built from this repository and the same branch
+  with the same environment. `index.html` carries one inline script
+  ahead of the bundle that sends any page of the old host to the same
+  page of the new, the path, the query and the fragment kept — so a
+  scanned card lands on `/install` at the address the app is then added
+  to a Home Screen from (an installed app lives at the address it was
+  added from, so the guide must never be followed on the old one). Only
+  that exact host hops: a deploy preview, a branch deploy and localhost
+  are other hosts and stay where they are. `netlify/functions/lib/
+  signpost.mjs` names the two, and `digest.mjs` does nothing on the
+  signpost — Netlify runs a scheduled function on both sites, and
+  everyone on "Once a day" would be sent two summaries. The relay is
+  called by address (the database's `push_url`) and answers on whichever
+  site that names. `scripts/business-card.py`'s `--site` default stays
+  the OLD address — it is the printed code; never "correct" it.
+  `website/site.config.json` carries the new one. A real domain, when
+  there is one, is added to the app's own site and the two names in
+  `index.html` and `signpost.mjs` change together.
+  `scripts/e2e/signpost.cjs` plays a scanned card.
+- **The website is `website/`, shipped inside the same deploy at
+  `/about/`.** Home, Product, Story and Partners, static pages built by
+  `website/build.mjs` (plain Node, relative URLs; a page whose name
+  starts with `_` is the kit and is not shipped); `npm run build` is
+  `vite build && node website/build.mjs --out dist/about`, so a deploy
+  that builds the app builds the site. Its pictures of the app are
+  stills of the real app from a mock build (`website/assets`), its
+  colours are the app's own (`website/src/css/palette.css`, written by
+  `scripts/club-palette.py`), and its words say only what this file
+  establishes — the name line is "From the Irish nascadh, linking."
+  `website/BRIEF.md` is the founder's words for it, `API.md` the
+  foundation's contract. It is reached from the app by **About Nosca**:
+  a quiet line under Sign in on the landing page (`auth-about`) and the
+  first row of Settings' Support group (`settings-about`, found by
+  "website", "story", "partners", "name"), both `openAbout()` — `/about/`
+  in a new tab. `install.cjs` (a2), (f2).
 - **Away is a span of days on the coach's hours, and no diary offers a
   time on them.** Settings › Away (`settings-away`, a coach only, found
   by "holiday", "vacation", "off", "closed"; its `sub` the next span

@@ -3,6 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- THE SIGNPOST. The printed business cards carry the site's first
+         address in their code, and ink cannot be changed. That address is
+         a signpost now: whatever page of it is opened, the same page of
+         the app's own address opens instead (the card's /install above
+         all — an app added to a Home Screen lives at the address it was
+         added from). Only that one host hops; a deploy preview, a branch
+         deploy and localhost are other hosts and stay where they are.
+         Change either name here and in netlify/functions/lib/signpost.mjs
+         together; scripts/e2e/signpost.cjs plays a scanned card. -->
+    <script>
+      (function (l) {
+        if (l.hostname === "nosca-pilot-2.netlify.app") l.replace("https://nosca.netlify.app" + l.pathname + l.search + l.hash);
+      })(location);
+    </script>
     <title>Nosca</title>
     <!-- the paper, not the brand: a phone paints the status bar and the browser chrome
          with it, and a green or cream band above a white app read as a blank strip -->
