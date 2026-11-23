@@ -1,0 +1,23 @@
+/* written by scripts/club-palette.py — the app's club colours and their lighter half; never edit by hand */
+:root{
+  --club-fairway:#285937; --club-fairway-tint:#DBEEDF; --club-fairway-lip:#C1DAC6; --club-fairway-mid:#94BD9E; --club-fairway-ink:#285937; --club-fairway-on:#16311E; --club-fairway-mid-lip:#5E8B6B;
+  --club-olive:#4F5B29; --club-olive-tint:#E5EBD7; --club-olive-lip:#CFD7BC; --club-olive-mid:#ABB78D; --club-olive-ink:#4F5B29; --club-olive-on:#2B3217; --club-olive-mid-lip:#7D895B;
+  --club-bottle:#123C30; --club-bottle-tint:#DCECE6; --club-bottle-lip:#C3D8D0; --club-bottle-mid:#98BAAE; --club-bottle-ink:#123C30; --club-bottle-on:#0A211A; --club-bottle-mid-lip:#557B6F;
+  --club-lawn:#44613A; --club-lawn-tint:#E0ECDC; --club-lawn-lip:#C8D8C2; --club-lawn-mid:#A0BA98; --club-lawn-ink:#44613A; --club-lawn-on:#253520; --club-lawn-mid-lip:#728E69;
+  --club-court:#125856; --club-court-tint:#D7EDEC; --club-court-lip:#BBDAD8; --club-court-mid:#8ABCBA; --club-court-ink:#125856; --club-court-on:#0A302F; --club-court-mid-lip:#4E8A88;
+  --club-petrol:#1F525F; --club-petrol-tint:#D9ECF1; --club-petrol-lip:#BED8DF; --club-petrol-mid:#91B9C5; --club-petrol-ink:#1F525F; --club-petrol-on:#112D34; --club-petrol-mid-lip:#588692;
+  --club-river:#264A70; --club-river-tint:#DBEAFA; --club-river-lip:#C1D5EC; --club-river-mid:#95B4D8; --club-river-ink:#264A70; --club-river-on:#15293E; --club-river-mid-lip:#5E7FA4;
+  --club-navy:#213654; --club-navy-tint:#DFE9F7; --club-navy-lip:#C7D4E7; --club-navy-mid:#9EB3D0; --club-navy-ink:#213654; --club-navy-on:#121E2E; --club-navy-mid-lip:#607592;
+  --club-steel:#445E72; --club-steel-tint:#DFE9F2; --club-steel-lip:#C6D5E0; --club-steel-mid:#9EB4C6; --club-steel-ink:#445E72; --club-steel-on:#25343F; --club-steel-mid-lip:#71899C;
+  --club-aubergine:#4D3566; --club-aubergine-tint:#EDE3F9; --club-aubergine-lip:#D9CCEA; --club-aubergine-mid:#BBA7D4; --club-aubergine-ink:#4D3566; --club-aubergine-on:#2A1D38; --club-aubergine-mid-lip:#846E9D;
+  --club-indigo:#363864; --club-indigo-tint:#E4E6FA; --club-indigo-lip:#CDD0EC; --club-indigo-mid:#A9AED7; --club-indigo-ink:#363864; --club-indigo-on:#1E1F37; --club-indigo-mid-lip:#70739E;
+  --club-plum:#5F3954; --club-plum-tint:#F3E2ED; --club-plum-lip:#E2CBDA; --club-plum-mid:#C9A4BD; --club-plum-ink:#5F3954; --club-plum-on:#341F2E; --club-plum-mid-lip:#946F89;
+  --club-claret:#6B2935; --club-claret-tint:#F7E2E4; --club-claret-lip:#E9C9CC; --club-claret-mid:#DA9FA6; --club-claret-ink:#6B2935; --club-claret-on:#3B171D; --club-claret-mid-lip:#A3646E;
+  --club-sienna:#844925; --club-sienna-tint:#F6E4DA; --club-sienna-lip:#E7CCBE; --club-sienna-mid:#D6A589; --club-sienna-ink:#844925; --club-sienna-on:#492814; --club-sienna-mid-lip:#AD7757;
+  --club-rust:#88452A; --club-rust-tint:#F7E3DC; --club-rust-lip:#E8CCC1; --club-rust-mid:#D8A38E; --club-rust-ink:#88452A; --club-rust-on:#4B2617; --club-rust-mid-lip:#B0745C;
+  --club-saddle:#765637; --club-saddle-tint:#F3E5D9; --club-saddle-lip:#E2CFBE; --club-saddle-mid:#C8AB91; --club-saddle-ink:#765637; --club-saddle-on:#412F1E; --club-saddle-mid-lip:#9F8164;
+  --club-chestnut:#613E2B; --club-chestnut-tint:#F4E4DC; --club-chestnut-lip:#E3CEC2; --club-chestnut-mid:#CAA998; --club-chestnut-ink:#613E2B; --club-chestnut-on:#352218; --club-chestnut-mid-lip:#967462;
+  --club-gold:#C2A24C; --club-gold-tint:#F0E7D0; --club-gold-lip:#DED2B2; --club-gold-mid:#C3AF7E; --club-gold-ink:#6E5817; --club-gold-on:#3D300D; --club-gold-mid-lip:#99844B;
+  --club-slate:#48555C; --club-slate-tint:#E3E9EC; --club-slate-lip:#CBD4D9; --club-slate-mid:#9FB5C1; --club-slate-ink:#48555C; --club-slate-on:#282F33; --club-slate-mid-lip:#74858F;
+  --club-brick:#9A322A; --club-brick-tint:#F8E2DF; --club-brick-lip:#EACAC6; --club-brick-mid:#DAA198; --club-brick-ink:#9A322A; --club-brick-on:#551C17; --club-brick-mid-lip:#BA6A61;
+}

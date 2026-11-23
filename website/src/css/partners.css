@@ -1,0 +1,67 @@
+/* Partners. A white page; olive and gold are its only accents. Everything here is the finished page; entrances live under html.motion. */
+
+.pt-olive{color:var(--club-olive-ink)}
+
+/* ───────── 1. the hero ───────── */
+.pt-hero{overflow:hidden;overflow:clip;padding-block:calc(var(--hdr-h) + clamp(52px,9vw,128px)) clamp(44px,6vw,84px)}
+.pt-hero__rings{color:var(--club-olive-tint);--rings-w:min(168vw,1240px);--rings-o:1}
+.pt-drift{position:absolute;inset:0}
+.pt-hero__rings .mark{left:74%;top:58%}
+.pt-hero__in{position:relative;display:grid;justify-items:start}
+.pt-kinds{display:flex;flex-wrap:wrap;row-gap:.5em}
+.pt-kinds>span{white-space:nowrap}
+.pt-kinds>span+span::before{content:"·";margin:0 .7em;color:var(--gold-lo)}
+@media (max-width:419px){.pt-kinds{font-size:12px;letter-spacing:.14em}.pt-kinds>span+span::before{margin:0 .55em}}
+.pt-hero__title{margin-top:clamp(14px,2vw,28px);font-size:clamp(64px,19.5vw,250px)}
+.pt-hero__rule{width:min(240px,44vw);margin-top:clamp(24px,3vw,42px)}
+.pt-hero__lede{margin-top:clamp(18px,2.2vw,30px);max-width:17em}
+/* the gold rule draws once; `backwards` holds the start through the delay and then lets go, so the rule rests on its own style */
+html.motion .pt-hero__rule{animation:pt-rule 1.5s .7s cubic-bezier(.65,0,.35,1) backwards}
+@keyframes pt-rule{from{transform:scaleX(0)}}
+
+/* ───────── 2. the wall ───────── */
+.pt-wall{padding-block:0 clamp(24px,4vw,56px)}
+.pt-wall .wrap{max-width:calc(1320px + var(--gut)*2)}
+.pt-wall__panel{border-radius:clamp(24px,3.4vw,48px);padding:clamp(30px,6vw,88px) clamp(18px,5.6vw,84px) clamp(32px,6.2vw,92px)}
+.pt-head{display:grid;gap:clamp(10px,2vw,24px);align-items:end}
+.pt-head .t-lede{color:var(--sub);max-width:20em}
+.pt-frames{margin-top:clamp(26px,4.6vw,64px)}
+/* on the sage wall a frame stands on the pale's own ledge, and its mark is a little surer than on white */
+.pt-frames .pframe{box-shadow:inset 0 0 0 1.5px var(--club-olive-lip),0 2px 0 var(--club-olive-lip),0 22px 44px -30px rgba(12,16,10,.2)}
+.pt-frames .pframe .mark{opacity:calc(.5 + var(--glint,0)*.5)}
+/* the foil catches the light: partners.js raises --glint on one frame after another. Never a band of light across the white
+   faces: on empty boxes that reads as something still loading. */
+.pt-frames .pframe::before{box-shadow:inset 0 0 0 1px rgba(194,162,76,.76);opacity:calc(.5 + var(--glint,0)*.5)}
+@media (min-width:900px){.pt-head{grid-template-columns:minmax(0,7fr) minmax(0,4fr)}}
+
+/* ───────── 3. why Nosca ───────── */
+.pt-why__title{margin-top:clamp(14px,1.8vw,24px);max-width:9.5em}
+.pt-why__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(30px,4vw,64px);margin-top:clamp(44px,6.4vw,96px)}
+.pt-why__p{position:relative;display:grid;gap:10px;align-content:start;padding-top:26px}
+.pt-why__p::before{content:"";position:absolute;left:0;top:0;width:44px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi) 50%,var(--gold))}
+.pt-why__p .eyebrow{margin-bottom:4px;font-size:12px;letter-spacing:.14em;white-space:nowrap}      /* one line each, so the three headings under them start level */
+.pt-why__p .t-body{max-width:24em}
+@media (max-width:739px){.pt-why__grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ───────── 4. climate ───────── */
+.pt-climate{padding-block:0 clamp(88px,13vw,184px)}
+.pt-climate__in{display:grid;gap:clamp(28px,5vw,80px);padding-top:clamp(44px,6.4vw,96px);border-top:1.5px solid var(--edge)}
+.pt-climate__title{margin-top:clamp(12px,1.6vw,20px);max-width:8em;font-size:clamp(36px,5.6vw,76px)}
+.pt-climate__notes{display:grid;gap:clamp(22px,2.8vw,36px);align-content:start}
+.pt-climate__notes>div{display:grid;gap:8px;padding-top:18px;border-top:1.5px solid var(--club-olive-lip)}
+@media (min-width:900px){.pt-climate__in{grid-template-columns:minmax(0,6fr) minmax(0,5fr);align-items:start}.pt-climate__notes{padding-top:clamp(28px,3vw,40px)}}
+
+/* ───────── 5. in touch ───────── */
+.pt-close{padding-top:0;padding-bottom:clamp(96px,14vw,200px)}
+.pt-close__in{display:grid;gap:clamp(44px,7vw,96px);align-items:center}
+.pt-close__copy{display:grid;gap:clamp(16px,2vw,24px);justify-items:start}
+.pt-close__copy h2{font-size:clamp(42px,7.4vw,104px);max-width:7.5em}
+.pt-close__copy .keys{margin-top:6px}
+/* KEYS.md 4: the second key beside the one action is the world's pale (its face, the deep word, its own ledge), never a white tile */
+.pt-close .key--paper{--key-bg:var(--club-olive-tint);--key-fg:var(--club-olive);--key-lip:var(--club-olive-lip);--key-ring:0 0 0 0 transparent}
+.pt-close__links{display:flex;flex-wrap:wrap;gap:0 28px}
+.pt-mail{color:var(--ink);text-underline-offset:4px;overflow-wrap:anywhere}
+.pt-close__card{display:grid;justify-items:center}
+.pt-bcard{--card-w:min(86vw,500px)}
+@media (min-width:980px){.pt-close__in{grid-template-columns:minmax(0,6fr) minmax(0,5fr)}.pt-close__card{justify-items:end}}
+@media (max-width:419px){.pt-close__copy .key--lg{padding:0 22px;font-size:17px}}

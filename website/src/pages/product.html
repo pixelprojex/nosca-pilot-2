@@ -1,0 +1,547 @@
+<!--
+title: Product · Nosca
+description: Nosca is one app for coach, player and parent across six sports. A tour of everything in it, built around the lesson.
+world: olive
+header: light
+-->
+<script>setTimeout(function(){if(!window.__pdUp)document.documentElement.classList.add('pd-off')},4500)</script>
+<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <symbol id="pd-i-tick" viewBox="0 0 24 24"><path d="M5 12.6l4.4 4.4L19 7.4"/></symbol>
+  <symbol id="pd-i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="pd-i-camera" viewBox="0 0 24 24"><path d="M4 8.5h3l1.5-2.5h7L17 8.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.4"/></symbol>
+  <symbol id="pd-i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="pd-i-calx" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M9.8 13.2l4.4 4.4M14.2 13.2l-4.4 4.4"/></symbol>
+  <symbol id="pd-i-bell" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="pd-i-register" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9.5 3.5h5v2h-5zM8.8 13.2l2.2 2.2 4.2-4.4"/></symbol>
+  <symbol id="pd-i-group" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3"/><path d="M3.5 19c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5"/><circle cx="16.8" cy="8.2" r="2.4"/><path d="M16 14.2c2.6 0 4.2 1.6 4.8 4.3"/></symbol>
+  <symbol id="pd-i-addp" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.2"/><path d="M4 19.5c.7-3.2 3-4.8 6-4.8 1.3 0 2.5.3 3.4.9M18 13v6M15 16h6"/></symbol>
+  <symbol id="pd-i-list" viewBox="0 0 24 24"><path d="M9.5 6.5h10M9.5 12h10M9.5 17.5h10M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01"/></symbol>
+  <symbol id="pd-i-tip" viewBox="0 0 24 24"><path d="M9.5 18h5M10.5 21h3M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2.2h5c.1-1 .5-1.7 1.1-2.2A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="pd-i-cup" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M8.5 20h7"/></symbol>
+  <symbol id="pd-i-down" viewBox="0 0 24 24"><path d="M12 4.5v10.5M7.5 10.8l4.5 4.5 4.5-4.5M5.5 19.5h13"/></symbol>
+  <symbol id="pd-i-chat" viewBox="0 0 24 24"><path d="M4.5 6.5A2.5 2.5 0 0 1 7 4h10a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 17 16h-6l-4.5 3.5V16A2.5 2.5 0 0 1 4.5 13.5z"/></symbol>
+  <symbol id="pd-i-chart" viewBox="0 0 24 24"><path d="M4 19.5h16M6.5 15l4-4.5 3 2.5 4.5-6"/></symbol>
+  <symbol id="pd-i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.8"/><path d="M10.5 18.5h3"/></symbol>
+  <symbol id="pd-i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h9.5a3.5 3.5 0 0 0 .6-6.95A5.5 5.5 0 0 0 6.6 10 4.3 4.3 0 0 0 7 18.5zM4 4l16 16"/></symbol>
+  <symbol id="pd-i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="pd-i-pencil" viewBox="0 0 24 24"><path d="M4.5 19.5l1-4L16 5a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8L8.5 18.5z"/></symbol>
+  <symbol id="pd-i-send" viewBox="0 0 24 24"><path d="M4 12l15.5-7.5L14 20l-2.6-6z"/></symbol>
+  <symbol id="pd-i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.5-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
+  <symbol id="pd-i-house" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5M6.5 9.5v10h11v-10"/></symbol>
+  <symbol id="pd-i-back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></symbol>
+  <symbol id="pd-i-video" viewBox="0 0 24 24"><rect x="3" y="6.5" width="12.5" height="11" rx="2.6"/><path d="M15.5 10.4l5-2.9v9l-5-2.9"/></symbol>
+  <symbol id="pd-i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></symbol>
+</svg>
+
+<!-- ───────────── hero ───────────── -->
+<section class="pd-hero g-paper" id="top" data-header="light">
+  <div class="ringsbg pd-hero__rings"><!-- @include mark --></div>
+  <div class="wrap pd-hero__copy center">
+    <p class="eyebrow" data-reveal="fade">Product</p>
+    <h1 class="t-display" data-reveal="lines" data-delay=".1">Built around the lesson.</h1>
+    <p class="t-lede" data-reveal="rise" data-delay=".45">One app for coach, player and parent. Six sports, each in its own words.</p>
+    <div class="keys" data-reveal="rise" data-delay=".6">
+      <a class="key" href="{{appUrl}}" rel="noopener" data-magnet>Open Nosca</a>
+      <a class="key key--paper" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>
+    </div>
+  </div>
+  <div class="pd-hero__phones depth" role="group" aria-label="Nosca as a coach, a player and a parent see it">
+    <div class="pd-slot pd-slot--l"><div class="pd-pose"><!-- @include phone screens="player-feed" alts="A player's home in Nosca: the lesson feed, a clip filling the screen" eager="1" class="pd-hp" --></div><p class="pd-slot__label">Player</p></div>
+    <div class="pd-slot pd-slot--c"><div class="pd-pose"><!-- @include phone screens="coach-today-golf" alts="A golf coach's Today in Nosca: the day's lessons as rows, the live one with its register" eager="1" class="pd-hp" --></div><p class="pd-slot__label">Coach</p></div>
+    <div class="pd-slot pd-slot--r"><div class="pd-pose"><!-- @include phone screens="parent-family" alts="A parent's home in Nosca: the family, the children and what is coming up" eager="1" class="pd-hp" --></div><p class="pd-slot__label">Parent</p></div>
+  </div>
+</section>
+
+<!-- ───────────── the chapter bar ───────────── -->
+<nav class="pd-bar" aria-label="Chapters">
+  <div class="pd-bar__in">
+    <a href="#coach">Coach</a><a href="#player">Player</a><a href="#family">Family</a><a href="#sports">Sports</a><a href="#everywhere">Everywhere</a>
+    <i class="pd-bar__ind" aria-hidden="true"></i>
+  </div>
+  <i class="pd-bar__prog" aria-hidden="true"></i>
+</nav>
+
+<!-- ═════════════ COACH ═════════════ -->
+<section class="section section--tight g-paper pd-intro" id="coach">
+  <div class="wrap center stack">
+    <p class="eyebrow" data-reveal="fade">Coach</p>
+    <h2 class="t-h1" data-reveal="lines">One thing, in seconds.</h2>
+    <p class="t-lede" data-lit>A coach picks up the phone mid-lesson, does one thing and puts it down. Every coach screen is judged against that.</p>
+  </div>
+</section>
+
+<section class="scene g-paper pd-scene pd-scene--log" id="log" style="--len:3" data-header="paper">
+  <div class="scene__stage"><div class="scene__safe pd-logsafe">
+  <div class="wrap pd-demo" data-step="who" id="log-demo">
+    <div class="pd-demo__copy">
+      <h3 class="t-h2" data-reveal="lines">Log a lesson.</h3>
+      <ol class="pd-steps" data-reveal-group data-stagger=".1">
+        <li class="pd-step" data-for="who"><b>1</b><span>Who</span></li>
+        <li class="pd-step" data-for="log"><b>2</b><span>Tap what you worked on</span></li>
+        <li class="pd-step" data-for="done"><b>3</b><span>Log it</span></li>
+      </ol>
+      <p class="t-small pd-demo__hint" data-reveal="fade">Try it on the phone.</p>
+    </div>
+    <div class="pd-demo__stage depth" data-reveal="scale">
+      <div class="phone pd-demo__phone">
+        <div class="phone__body">
+          <div class="phone__screen pd-demo__screen app" data-fn="fairway">
+            <!-- step one: Who -->
+            <div class="pd-view pd-view--who" aria-label="Step one: who the lesson was with">
+              <p class="pd-view__title">Who</p>
+              <p class="app-eyebrow pd-view__eb">Today</p>
+              <div class="pd-who">
+                <button type="button" class="pd-ft" data-name="Cian Murphy" data-level="HI 15.8" data-fn="fairway"><i class="pd-face">CM</i><b>Cian</b><small>Murphy</small></button>
+                <button type="button" class="pd-ft" data-name="Saoirse Kelly" data-level="HI 28.4" data-fn="olive"><i class="pd-face">SK</i><b>Saoirse</b><small>Kelly</small></button>
+                <button type="button" class="pd-ft" data-name="Róisín Walsh" data-fn="plum"><i class="pd-face">RW</i><b>Róisín</b><small>Walsh</small></button>
+                <button type="button" class="pd-ft" data-name="Aoife Brennan" data-fn="claret"><i class="pd-face">AB</i><b>Aoife</b><small>Brennan</small></button>
+                <button type="button" class="pd-ft" data-name="Darragh O'Neill" data-fn="saddle"><i class="pd-face">DO</i><b>Darragh</b><small>O'Neill</small></button>
+                <button type="button" class="pd-ft" data-name="Ellie Kelly" data-fn="navy"><i class="pd-face">EK</i><b>Ellie</b><small>Kelly</small></button>
+              </div>
+              <p class="app-eyebrow pd-view__eb">Groups</p>
+              <div class="pd-who">
+                <button type="button" class="pd-ft" data-name="Thursday clinic" data-fn="bottle"><i class="pd-face"><svg class="pd-ico" aria-hidden="true"><use href="#pd-i-group"/></svg></i><b>Thursday</b><small>clinic</small></button>
+              </div>
+            </div>
+            <!-- step two: the one page -->
+            <div class="pd-view pd-view--log" aria-label="Step two: what was worked on">
+              <button type="button" class="pd-view__back" aria-label="Back to Who"><svg class="pd-ico"><use href="#pd-i-back"/></svg></button>
+              <p class="pd-view__title" data-demo="name">Cian Murphy</p>
+              <p class="pd-view__sub">Today<span data-demo="level"> · HI 15.8</span></p>
+              <p class="app-eyebrow pd-view__eb">Worked on</p>
+              <div class="pd-areas">
+                <button type="button" class="pd-area" aria-pressed="false">Full swing</button>
+                <button type="button" class="pd-area" aria-pressed="false">Short game</button>
+                <button type="button" class="pd-area is-on" aria-pressed="true">Chipping</button>
+                <button type="button" class="pd-area is-on" aria-pressed="true">Putting</button>
+                <button type="button" class="pd-area" aria-pressed="false">Driving</button>
+                <button type="button" class="pd-area" aria-pressed="false">On course</button>
+              </div>
+              <div class="pd-caps" aria-hidden="true">
+                <span class="pd-rk" data-fn="claret"><i><svg class="pd-ico"><use href="#pd-i-video"/></svg></i>Video</span>
+                <span class="pd-rk" data-fn="navy"><i><svg class="pd-ico"><use href="#pd-i-camera"/></svg></i>Photo</span>
+                <span class="pd-rk" data-fn="saddle"><i><svg class="pd-ico"><use href="#pd-i-mic"/></svg></i>Voice</span>
+              </div>
+              <button type="button" class="pd-key pd-key--wide pd-logit">Log it</button>
+            </div>
+            <!-- step three: Logged -->
+            <div class="pd-view pd-view--done" aria-label="Step three: logged" aria-live="polite">
+              <span class="pd-burst"><svg viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M5 12.6l4.4 4.4L19 7.4"/></svg></span>
+              <p class="pd-view__title">Logged</p>
+              <p class="pd-view__sub" data-demo="summary">Cian Murphy · Chipping · Putting</p>
+              <button type="button" class="pd-key pd-key--pale pd-key--wide pd-lognext">Log next</button>
+            </div>
+          </div>
+          <i class="phone__island" aria-hidden="true"></i>
+        </div>
+        <i class="phone__floor" aria-hidden="true"></i>
+      </div>
+    </div>
+  </div>
+  </div></div>
+</section>
+
+<section class="scene g-paper pd-scene" id="coach-film" style="--len:4" data-header="paper">
+  <div class="scene__stage">
+    <div class="scene__safe pd-film">
+      <div class="pd-film__copy">
+        <div class="pd-rail" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
+        <div class="pd-beats">
+          <article class="pd-beat"><h3 class="t-h2">The day.</h3><p class="t-lede">Today's lessons in order. The live one carries its register.</p></article>
+          <article class="pd-beat"><h3 class="t-h2">The diary.</h3><p class="t-lede">Hours, bookings and days away, in one list.</p></article>
+          <article class="pd-beat"><h3 class="t-h2">Mark it up.</h3><p class="t-lede">Lines, angles and rings, drawn over the clip.</p></article>
+          <article class="pd-beat"><h3 class="t-h2">Compare.</h3><p class="t-lede">Two clips side by side, lined up frame by frame.</p></article>
+        </div>
+      </div>
+      <div class="pd-film__phone depth">
+        <!-- @include phone screens="coach-today-golf,coach-diary-list,coach-markup,coach-compare" alts="The coach's Today, then the diary, a clip marked up with lines and an angle, and two clips compared side by side|||" class="pd-film__ph" -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section g-wash pd-grid-sec hold" id="coach-more">
+  <div class="wrap">
+    <div class="pd-bento">
+      <article class="pd-cell pd-cell--8" id="v-plus" data-fn="fairway" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v pd-plus">
+          <span class="pd-key pd-key--wide" data-fn="fairway"><svg class="pd-ico"><use href="#pd-i-plus"/></svg>Log a lesson</span>
+          <div class="pd-plus__grid">
+            <span class="pd-ptile" data-fn="fairway"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-register"/></svg></i>Register</span>
+            <span class="pd-ptile" data-fn="navy"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-camera"/></svg></i>Capture</span>
+            <span class="pd-ptile" data-fn="gold"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-tip"/></svg></i>Tip</span>
+            <span class="pd-ptile" data-fn="plum"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-list"/></svg></i>Drills</span>
+            <span class="pd-ptile" data-fn="olive"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-addp"/></svg></i>Add player</span>
+            <span class="pd-ptile" data-fn="bottle"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-group"/></svg></i>New group</span>
+            <span class="pd-ptile" data-fn="brick"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-calx"/></svg></i>Call off</span>
+            <span class="pd-ptile" data-fn="saddle"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-cup"/></svg></i>Competition</span>
+          </div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-plus"/></svg></i><div><h3>The plus</h3><p>Every action is a thumb away.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-capture" data-fn="navy" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v pd-cam">
+          <div class="pd-cam__view"><i class="pd-cam__grid"></i><span class="pd-pill">Cian Murphy · 11:00 am</span><span class="pd-cam__time"><i></i><b>0:04</b></span></div>
+          <div class="pd-seg" style="--n:3;--at:1"><i class="pd-seg__thumb"></i><span>Photo</span><span>Video</span><span>Voice</span></div>
+          <div class="pd-cam__row"><i class="pd-cam__roll"></i><i class="pd-cam__shutter"><b></b></i><i class="pd-cam__sp"></i></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-camera"/></svg></i><div><h3>Capture</h3><p>Video, photo and voice, as it happens.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-register" data-fn="fairway" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v">
+          <p class="app-eyebrow">Thursday clinic · 5:00 pm</p>
+          <div class="app-card pd-rows">
+            <div class="pd-row"><i class="pd-face" data-fn="fairway">CM</i><span class="pd-row__t">Cian Murphy</span><span class="app-tick is-on"></span></div>
+            <div class="pd-row"><i class="pd-face" data-fn="olive">SK</i><span class="pd-row__t">Saoirse Kelly</span><span class="app-tick is-on"></span></div>
+            <div class="pd-row"><i class="pd-face" data-fn="navy">EK</i><span class="pd-row__t">Ellie Kelly</span><span class="app-tick is-on"></span></div>
+            <div class="pd-row"><i class="pd-face" data-fn="saddle">DO</i><span class="pd-row__t">Darragh O'Neill</span><span class="app-tick is-on"></span></div>
+          </div>
+          <p class="pd-count"><b data-n>4</b> of 4 present</p>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-register"/></svg></i><div><h3>The register</h3><p>Present or absent, a tap each.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-hours" data-fn="slate" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v">
+          <p class="app-eyebrow">Thursdays</p>
+          <div class="pd-chips pd-chips--3">
+            <span class="pd-chip">9:00 am</span><span class="pd-chip">10:00 am</span><span class="pd-chip">11:00 am</span><span class="pd-chip">2:00 pm</span><span class="pd-chip">4:00 pm</span><span class="pd-chip">5:00 pm</span>
+          </div>
+          <div class="app-card pd-row pd-row--solo pd-away"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-cal"/></svg></i><span class="pd-row__t">Away<small><span class="pd-fact">Mon 21 Dec –</span> <span class="pd-fact">Sun 27 Dec</span></small></span></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-cal"/></svg></i><div><h3>Hours and days away</h3><p>Set the week once. No diary offers a day away.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-groups" data-fn="bottle" data-reveal="rise" data-delay=".16">
+        <div class="pd-stage app"><div class="pd-v pd-group">
+          <div class="pd-faces">
+            <i class="pd-face" data-fn="fairway">CM</i><i class="pd-face" data-fn="olive">SK</i><i class="pd-face" data-fn="navy">EK</i><i class="pd-face" data-fn="saddle">DO</i><i class="pd-face" data-fn="plum">RW</i><i class="pd-face pd-face--more" data-fn="slate">+5</i>
+          </div>
+          <p class="app-title">Thursday clinic</p>
+          <p class="app-sub">10 players</p>
+          <span class="pd-key pd-key--fn" data-fn="fairway"><svg class="pd-ico"><use href="#pd-i-chat"/></svg>Message</span>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-group"/></svg></i><div><h3>Groups</h3><p>A clinic is booked, marked and messaged as one.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--8" id="v-calloff" data-fn="brick" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v pd-calloff">
+          <div class="pd-calloff__from">
+            <p class="app-eyebrow">Why</p>
+            <div class="pd-chips pd-chips--col">
+              <span class="pd-chip is-on" data-fn="fairway">Weather</span><span class="pd-chip">Course closed</span><span class="pd-chip">Unwell</span>
+            </div>
+            <span class="pd-key pd-key--wide pd-calloff__key"><svg class="pd-ico"><use href="#pd-i-calx"/></svg>Call off</span>
+          </div>
+          <div class="pd-calloff__to">
+            <div class="app-card pd-notice"><i class="pd-face" data-fn="fairway">CM</i><span class="pd-row__t"><b>Thursday clinic called off</b><small>Weather <span class="pd-fact">· Thu 26 Nov 5:00 pm</span></small></span></div>
+            <div class="app-card pd-notice"><i class="pd-face" data-fn="claret">OK</i><span class="pd-row__t"><b>Saoirse's Thursday clinic called off</b><small>Weather <span class="pd-fact">· Thu 26 Nov 5:00 pm</span></small></span></div>
+            <div class="app-card pd-notice"><i class="pd-face" data-fn="saddle">DO</i><span class="pd-row__t"><b>Thursday clinic called off</b><small>Weather <span class="pd-fact">· Thu 26 Nov 5:00 pm</span></small></span></div>
+          </div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-calx"/></svg></i><div><h3>Call off</h3><p>For weather, or any reason. Everyone affected is told before they travel.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4 pd-cell--end" id="v-drills" data-fn="plum" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v">
+          <div class="app-card pd-rows">
+            <div class="pd-row"><span class="app-tick is-on"></span><span class="pd-row__t">Gate drill</span></div>
+            <div class="pd-row"><span class="app-tick is-on"></span><span class="pd-row__t">Clock drill</span></div>
+            <div class="pd-row"><span class="pd-row__t pd-row__k">By</span><span class="app-sub pd-by">Fri 27 Nov</span></div>
+          </div>
+          <div class="app-card pd-row pd-row--solo pd-tip" data-fn="gold"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-tip"/></svg></i><span class="pd-row__t">Tip<small>Tempo first, then power</small></span></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-list"/></svg></i><div><h3>Drills and tips</h3><p>A drill carries a day. A tip stays with the lesson.</p></div></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ PLAYER ═════════════ -->
+<section class="section section--tight g-paper sheet sheet--lift pd-intro" id="player">
+  <div class="wrap center stack">
+    <p class="eyebrow" data-reveal="fade">Player</p>
+    <h2 class="t-h1" data-reveal="lines">Every lesson, kept.</h2>
+    <p class="t-lede" data-lit>The clip, the coach's note and what was worked on, on the player's own phone.</p>
+  </div>
+</section>
+
+<section class="scene g-paper pd-scene pd-scene--flip" id="player-film" style="--len:4" data-header="paper">
+  <div class="scene__stage">
+    <div class="scene__safe pd-film">
+      <div class="pd-film__copy">
+        <div class="pd-rail" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
+        <div class="pd-beats">
+          <article class="pd-beat"><h3 class="t-h2">The feed.</h3><p class="t-lede">Each lesson is a clip that fills the screen.</p></article>
+          <article class="pd-beat"><h3 class="t-h2">The lesson page.</h3><p class="t-lede">The clip, the note, the tip and the drills.</p></article>
+          <article class="pd-beat"><h3 class="t-h2">Progress.</h3><p class="t-lede">The level over time, read off the lessons.</p></article>
+          <article class="pd-beat"><h3 class="t-h2">Attendance.</h3><p class="t-lede">Every register, counted.</p></article>
+        </div>
+      </div>
+      <div class="pd-film__phone depth">
+        <!-- @include phone screens="player-feed,player-lesson,player-progress,player-progress-attendance" alts="A player's lesson feed, then a lesson page, the Progress screen with the level falling over time, and attendance|||" class="pd-film__ph" -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section g-wash pd-grid-sec hold" id="player-more">
+  <div class="wrap">
+    <div class="pd-bento">
+      <article class="pd-cell pd-cell--8" id="v-progress" data-fn="fairway" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v pd-prog">
+          <div class="pd-prog__chart app-card">
+            <p class="app-eyebrow">Handicap Index</p>
+            <p class="pd-prog__now"><span class="pd-prog__num">15.8</span> <small>from 20.1</small></p>
+            <div class="pd-line__box"><svg class="pd-line" viewBox="0 0 320 118" aria-hidden="true">
+              <path class="pd-line__g" d="M0 18h320M0 59h320M0 100h320"/>
+              <path class="pd-line__p" pathLength="1" d="M10 18L53 27.5 96 39 139 54.2 182 60 225 77.1 268 88.6 310 100"/>
+            </svg><i class="pd-line__dot pd-line__dot--a"></i><i class="pd-line__dot pd-line__dot--b"></i></div>
+          </div>
+          <div class="pd-prog__att app-card">
+            <p class="app-eyebrow">Attendance</p>
+            <p class="pd-prog__now">7 of 8 <small>lessons</small></p>
+            <div class="pd-discs"><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-miss"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i><i class="is-on"></i></div>
+          </div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-chart"/></svg></i><div><h3>Progress</h3><p>The level over time and every register, the same screen for player, parent and coach.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-pdrills" data-fn="plum" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v">
+          <div class="app-card pd-rows">
+            <div class="pd-row"><span class="app-tick"></span><span class="pd-row__t">Gate drill<small>By Fri 27 Nov</small></span></div>
+            <div class="pd-row"><span class="app-tick"></span><span class="pd-row__t">Clock drill<small>By Mon 30 Nov</small></span></div>
+            <div class="pd-row"><span class="app-tick is-on"></span><span class="pd-row__t is-struck">Towel drill</span></div>
+          </div>
+          <div class="app-card pd-row pd-row--solo"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-clock"/></svg></i><span class="pd-row__t">Reminder</span><span class="app-sub">8:00 am</span></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-list"/></svg></i><div><h3>Drills with a day</h3><p>A reminder arrives at the hour you choose.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-practice" data-fn="olive" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v">
+          <p class="app-title">Practice</p>
+          <p class="app-sub">Today</p>
+          <div class="pd-chips pd-chips--2">
+            <span class="pd-chip is-on" data-fn="fairway">Putting</span><span class="pd-chip">Chipping</span><span class="pd-chip">Full swing</span><span class="pd-chip">On course</span>
+          </div>
+          <span class="pd-key pd-key--wide" data-fn="fairway">Save</span>
+          <div class="app-card pd-notice pd-practised"><i class="pd-face" data-fn="fairway">CM</i><span class="pd-row__t"><b>Cian practised</b><small>Putting</small></span></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-pencil"/></svg></i><div><h3>Log a practice</h3><p>Your own session, in a few taps. Your coach reads it.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-clip" data-fn="navy" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v app-thread">
+          <div class="app-bubble app-bubble--mine pd-clipcard"><i class="pd-poster"><b></b></i><span>Sent a clip</span></div>
+          <p class="pd-standing">Waiting on Niamh</p>
+          <p class="app-bubble pd-reply">Better. Keep the lower body quiet.</p>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-send"/></svg></i><div><h3>Send a clip</h3><p>Film a swing between lessons. Your coach answers on the clip.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-downloads" data-fn="fairway" data-reveal="rise" data-delay=".16">
+        <div class="pd-stage app"><div class="pd-v">
+          <div class="app-card pd-row pd-row--solo"><i class="pd-poster pd-poster--sq"><b></b></i><span class="pd-row__t">Chipping <span class="pd-fact">· Putting</span><small>Thu 19 Nov</small></span>
+            <span class="pd-disc is-done"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="pd-disc__ring" cx="20" cy="20" r="16.5" pathLength="1"/></svg><svg class="pd-ico pd-disc__arrow"><use href="#pd-i-down"/></svg><svg class="pd-ico pd-disc__tick"><use href="#pd-i-tick"/></svg></span>
+          </div>
+          <p class="pd-strip" data-fn="gold"><svg class="pd-ico"><use href="#pd-i-cloud"/></svg>Offline · 1 download</p>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-down"/></svg></i><div><h3>Downloads</h3><p>A lesson saved to the phone plays with no network.</p></div></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ FAMILY ═════════════ -->
+<section class="section section--tight g-paper sheet sheet--lift pd-intro" id="family">
+  <div class="wrap center stack">
+    <p class="eyebrow" data-reveal="fade">Family</p>
+    <h2 class="t-h1" data-reveal="lines">The family, linked.</h2>
+    <p class="t-lede" data-lit>A parent books and answers for a child. An under-18 has an account of their own.</p>
+  </div>
+</section>
+
+<section class="section section--tight g-paper pd-grid-sec hold" id="family-more">
+  <div class="wrap">
+    <div class="pd-bento">
+      <article class="pd-cell pd-cell--5 pd-cell--tall pd-cell--phone" id="v-famphone" data-fn="olive" data-reveal="rise">
+        <div class="pd-stage depth">
+          <!-- @include phone screens="parent-family,junior-home,junior-drills" alts="A parent's home in Nosca, then an under-18's own lesson feed and drills||" mode="slide" autoplay="3.8" settle="settle" class="pd-fam__ph" -->
+        </div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-person"/></svg></i><div><h3>An account of their own</h3><p>An under-18 sees their own lessons and drills. A parent does the booking.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--7" id="v-for" data-fn="olive" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v pd-forv">
+          <p class="app-eyebrow">For</p>
+          <div class="pd-for">
+            <span class="pd-forp" data-fn="claret"><i class="pd-face">OK</i>Orla</span>
+            <span class="pd-forp is-on" data-fn="olive"><i class="pd-face">SK</i>Saoirse</span>
+            <span class="pd-forp" data-fn="navy"><i class="pd-face">EK</i>Ellie</span>
+          </div>
+          <div class="pd-chips pd-chips--3">
+            <span class="pd-chip">10:00 am</span><span class="pd-chip is-on" data-fn="fairway">4:00 pm</span><span class="pd-chip">5:00 pm</span>
+          </div>
+          <span class="pd-key pd-key--wide" data-fn="fairway">Request for Saoirse</span>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-cal"/></svg></i><div><h3>Book for a child</h3><p>Choose who it is for, then the time.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--3" id="v-going" data-fn="fairway" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v">
+          <div class="app-card pd-lesson">
+            <p class="app-eyebrow pd-swap"><span>Saoirse · Thursday clinic</span><span>Not going</span></p>
+            <p class="app-title">5:00 pm</p>
+            <p class="app-sub">Thu 26 Nov</p>
+            <span class="pd-key pd-key--pale pd-key--wide pd-swap"><span>Not going</span><span>Going</span></span>
+          </div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-tick"/></svg></i><div><h3>Answer for a child</h3><p>Going or not going, in one tap.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--4" id="v-labelled" data-fn="claret" data-reveal="rise" data-delay=".16">
+        <div class="pd-stage app"><div class="pd-v app-thread">
+          <p class="app-bubble"><small class="pd-said">Orla · parent</small>Can she come Friday?</p>
+          <p class="app-bubble app-bubble--mine">Friday at 4:00 pm suits.</p>
+          <p class="app-bubble">See you then</p>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-chat"/></svg></i><div><h3>A parent's words</h3><p>Labelled the parent's, in the child's thread.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--7" id="v-groupmsg" data-fn="bottle" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v pd-gm">
+          <div class="pd-gm__from app-card">
+            <p class="app-eyebrow">Message Thursday clinic</p>
+            <p class="app-bubble app-bubble--mine pd-gm__line">Bring a rain jacket on Thursday.</p>
+          </div>
+          <div class="pd-gm__to">
+            <div class="app-card pd-gm__t"><p class="pd-gm__h"><i class="pd-face" data-fn="fairway">CM</i>Cian</p><p class="app-bubble app-bubble--mine">Bring a rain jacket on Thursday.</p></div>
+            <div class="app-card pd-gm__t"><p class="pd-gm__h"><i class="pd-face" data-fn="olive">SK</i>Saoirse</p><p class="app-bubble app-bubble--mine">Bring a rain jacket on Thursday.</p></div>
+            <div class="app-card pd-gm__t"><p class="pd-gm__h"><i class="pd-face" data-fn="saddle">DO</i>Darragh</p><p class="app-bubble app-bubble--mine">Bring a rain jacket on Thursday.</p></div>
+          </div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-group"/></svg></i><div><h3>A message to a group</h3><p>It lands in each family's own thread. No family reads another's.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--5" id="v-evening" data-fn="gold" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v pd-stack">
+          <p class="app-eyebrow">Wed 25 Nov · 6:00 pm</p>
+          <div class="app-card pd-notice"><i class="pd-glyph" data-fn="fairway"><svg class="pd-ico"><use href="#pd-i-bell"/></svg></i><span class="pd-row__t"><b>Lesson tomorrow <span class="pd-fact">· 11:00 am</span></b><small>Niamh Byrne</small></span></div>
+          <div class="app-card pd-notice"><i class="pd-glyph" data-fn="olive"><svg class="pd-ico"><use href="#pd-i-bell"/></svg></i><span class="pd-row__t"><b>Saoirse's lesson tomorrow <span class="pd-fact">· 4:00 pm</span></b><small>Niamh Byrne</small></span></div>
+          <div class="app-card pd-notice"><i class="pd-glyph" data-fn="navy"><svg class="pd-ico"><use href="#pd-i-bell"/></svg></i><span class="pd-row__t"><b>6 lessons tomorrow</b></span></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-bell"/></svg></i><div><h3>The evening before</h3><p>One reminder each for the player, the parent and the coach.</p></div></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ SPORTS ═════════════ -->
+<section class="section section--tight g-paper sheet sheet--lift pd-intro" id="sports">
+  <div class="wrap center stack">
+    <p class="eyebrow" data-reveal="fade">Sports</p>
+    <h2 class="t-h1" data-reveal="lines">Six sports. Each in its own words.</h2>
+    <p class="t-lede" data-lit>Levels and terms are the ones each sport's governing body uses.</p>
+  </div>
+</section>
+
+<section class="scene g-paper pd-scene pd-scene--sports" id="sports-film" style="--len:5.4" data-header="paper">
+  <div class="scene__stage">
+    <div class="scene__safe pd-film">
+      <div class="pd-film__copy">
+        <ul class="pd-sportkeys" aria-hidden="true">
+          <li data-fn="fairway" class="is-on">Golf</li><li data-fn="court">Tennis</li><li data-fn="river">Rowing</li><li data-fn="sienna">Squash</li><li data-fn="aubergine">Padel</li><li data-fn="claret">Equestrian</li>
+        </ul>
+        <div class="pd-beats">
+          <article class="pd-beat pd-sport" data-fn="fairway"><h3 class="t-h1"><i class="pd-swatch"></i>Golf</h3><p class="pd-ladder"><span>Handicap Index</span><span>HI 15.8</span></p><p class="t-lede">Full swing, short game, on course.</p></article>
+          <article class="pd-beat pd-sport" data-fn="court"><h3 class="t-h1"><i class="pd-swatch"></i>Tennis</h3><p class="pd-ladder"><span>Red</span><span>Orange</span><span>Green</span><span>Yellow</span><span>WTN</span></p><p class="t-lede">Serve, return, rally, net.</p></article>
+          <article class="pd-beat pd-sport" data-fn="river"><h3 class="t-h1"><i class="pd-swatch"></i>Rowing</h3><p class="pd-ladder"><span>J13 to J18</span><span>Novice to Senior</span></p><p class="t-lede">Technique, rhythm, racing, erg.</p></article>
+          <article class="pd-beat pd-sport" data-fn="sienna"><h3 class="t-h1"><i class="pd-swatch"></i>Squash</h3><p class="pd-ladder"><span>The ball's dot</span><span>Double yellow</span></p><p class="t-lede">Drives, volleys, front court, movement.</p></article>
+          <article class="pd-beat pd-sport" data-fn="aubergine"><h3 class="t-h1"><i class="pd-swatch"></i>Padel</h3><p class="pd-ladder"><span>Levels 0 to 7</span><span>Level 3.5</span></p><p class="t-lede">Net game, overheads, walls.</p></article>
+          <article class="pd-beat pd-sport" data-fn="claret"><h3 class="t-h1"><i class="pd-swatch"></i>Equestrian</h3><p class="pd-ladder"><span>Pony Club tests</span><span>Riding-school stages</span></p><p class="t-lede">Flatwork, poles, jumping, cross-country.</p></article>
+        </div>
+      </div>
+      <div class="pd-film__phone depth">
+        <!-- @include phone screens="coach-log-golf,coach-log-tennis,coach-log-rowing,coach-log-squash,coach-log-padel,coach-log-equestrian" alts="The log page in each of the six sports, with that sport's own areas as tiles|||||" class="pd-film__ph" -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ EVERYWHERE ═════════════ -->
+<section class="section section--tight g-wash pd-intro pd-intro--wash" id="everywhere">
+  <div class="wrap center stack">
+    <p class="eyebrow" data-reveal="fade">Everywhere</p>
+    <h2 class="t-h1" data-reveal="lines">On the Home Screen.</h2>
+    <p class="t-lede" data-lit>Nosca adds to the Home Screen on iPhone, Android and computer, and opens with no network.</p>
+  </div>
+</section>
+
+<section class="section section--tight g-wash pd-grid-sec pd-grid-sec--flush hold" id="everywhere-more">
+  <div class="wrap">
+    <div class="pd-bento">
+      <article class="pd-cell pd-cell--7" id="v-home" data-fn="bottle" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v pd-hs">
+          <div class="pd-seg" style="--n:3;--at:0"><i class="pd-seg__thumb"></i><span>iPhone</span><span>Android</span><span>Computer</span></div>
+          <div class="pd-hs__grid">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <span class="pd-hs__app"><b><!-- @include mark --></b><small>Nosca</small></span>
+          </div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-phone"/></svg></i><div><h3>Add to Home Screen</h3><p>On iPhone, Android and computer, with a guide for each.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--5" id="v-cal" data-fn="navy" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v pd-calv">
+          <div class="app-card pd-calv__day">
+            <p class="app-eyebrow">Thu 26 Nov</p>
+            <div class="pd-calv__hrs"><span>10</span><span>11</span><span>12</span><span>1</span></div>
+            <div class="pd-calv__ev"><b>Lesson · Niamh Byrne</b><small>11:00 am</small></div>
+          </div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-cal"/></svg></i><div><h3>Into your calendar</h3><p>Booked lessons go into the phone's own calendar.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--6" id="v-offline" data-fn="gold" data-reveal="rise">
+        <div class="pd-stage app"><div class="pd-v pd-stack">
+          <p class="pd-strip pd-strip--wide"><svg class="pd-ico"><use href="#pd-i-cloud"/></svg>Offline · 2 downloads</p>
+          <div class="app-card pd-row pd-row--solo"><i class="pd-poster pd-poster--sq"><b></b></i><span class="pd-row__t">Chipping <span class="pd-fact">· Putting</span><small>Thu 19 Nov</small></span><span class="pd-disc is-done" data-fn="fairway"><svg class="pd-ico pd-disc__tick"><use href="#pd-i-tick"/></svg></span></div>
+          <div class="app-card pd-row pd-row--solo"><i class="pd-poster pd-poster--sq"><b></b></i><span class="pd-row__t">Full swing<small>Thu 29 Oct</small></span><span class="pd-disc is-done" data-fn="fairway"><svg class="pd-ico pd-disc__tick"><use href="#pd-i-tick"/></svg></span></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-cloud"/></svg></i><div><h3>Opens offline</h3><p>On its kept copy, with every download ready to play.</p></div></div>
+      </article>
+
+      <article class="pd-cell pd-cell--6" id="v-notify" data-fn="fairway" data-reveal="rise" data-delay=".08">
+        <div class="pd-stage app"><div class="pd-v pd-stack">
+          <div class="app-card pd-notice"><i class="pd-face" data-fn="bottle">NB</i><span class="pd-row__t"><b>Lesson confirmed</b><small>Thu 3 Dec 11:00 am <span class="pd-fact">· Niamh Byrne</span></small></span></div>
+          <div class="app-card pd-notice"><i class="pd-face" data-fn="bottle">NB</i><span class="pd-row__t"><b>New clip on Chipping</b></span></div>
+          <div class="app-card pd-notice"><i class="pd-face" data-fn="bottle">NB</i><span class="pd-row__t"><b>Gate drill <span class="pd-fact">· by Fri 27 Nov</span></b></span></div>
+        </div></div>
+        <div class="pd-cap"><i class="pd-glyph"><svg class="pd-ico"><use href="#pd-i-bell"/></svg></i><div><h3>Notifications</h3><p>One line each: the fact, then the detail.</p></div></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── close ───────────── -->
+<section class="section g-paper sheet sheet--lift pd-close" id="open">
+  <div class="ringsbg pd-close__rings"><!-- @include mark --></div>
+  <div class="wrap center pd-close__in">
+    <p class="eyebrow" data-reveal="fade">In pilot, in Ireland</p>
+    <h2 class="t-display" data-reveal="lines">Coaching, linked.</h2>
+    <p class="t-lede" data-reveal="rise" data-delay=".2">One app for coach, player and parent.</p>
+    <div class="keys" data-reveal="rise" data-delay=".3">
+      <a class="key key--lg" href="{{appUrl}}" rel="noopener" data-magnet>Open Nosca <!-- @include arrow --></a>
+      <a class="key key--paper key--lg" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>
+    </div>
+    <div class="pd-close__qr" data-reveal="rise" data-delay=".4">
+      <a class="pd-qr" href="{{installUrl}}" rel="noopener" aria-label="Add Nosca to your Home Screen"><!-- @include qr --></a>
+      <p class="t-small">Scan to add Nosca to a phone's Home Screen.</p>
+    </div>
+    <p class="pd-close__links"><a class="link" href="story.html">The story <!-- @include arrow --></a><a class="link" href="partners.html">Partners <!-- @include arrow --></a></p>
+  </div>
+</section>

@@ -1,0 +1,240 @@
+/* Home. The olive card's world. Everything here is the finished page; entrances live under html.motion. */
+
+/* ───────── 1. the card opens the site ───────── */
+.hero{--vs:100vh;--vl:100vh;--rest-w:min(88vw,620px)}
+@supports (height:100svh){.hero{--vs:100svh;--vl:100lvh}}
+.hero{--cover-h:max(calc(100vw*55/84),calc(var(--vl)*2 - var(--vs)));--cover-w:calc(var(--cover-h)*84/55);--cu:calc(var(--cover-w)/100);--lu:min(var(--cu),calc((var(--vs)/2 - 172px)/14.9))}
+.hero__stage{position:relative;min-height:var(--vs);overflow:hidden;overflow:clip}
+/* .bcard.hero__card, never .hero__card alone: the card partial hands its class on to the QR code inside it, and this rule
+   then placed the code off the card (the back turned over with "Scan to start" and no code) */
+.bcard.hero__card{position:absolute;z-index:1;left:50%;top:calc(var(--vs)/2);--card-w:var(--rest-w);margin:calc(var(--rest-w)*55/84/-2) 0 0 calc(var(--rest-w)/-2)}
+/* the front is laid out at the size that covers the screen, so the first frame is drawn sharp; site.js scales it onto the card */
+.hero__card .bcard__front{--u:var(--cu);inset:auto;left:50%;top:50%;width:var(--cover-w);height:var(--cover-h);margin:calc(var(--cover-h)/-2) 0 0 calc(var(--cover-w)/-2)}
+.hero__card .bcard__front .pins{--pin-sw:.2}
+.hero__card .pins__tr{transform-origin:100% 0}
+.hero__card .pins__bl{transform-origin:0 100%}
+.hero__card .bcard__lock{--u:var(--lu);inset:auto;left:50%;top:50%;width:calc(var(--lu)*100);height:calc(var(--lu)*65.476);margin:calc(var(--lu)*-32.738) 0 0 calc(var(--lu)*-50)}
+.hero__card .bcard__mark{color:var(--gold-hi)}
+.hero__card .bcard__word{background:none;-webkit-text-fill-color:currentColor;color:#DCC47E}
+.hero__shadow{position:absolute;left:50%;top:calc(var(--vs)/2);width:var(--rest-w);height:calc(var(--rest-w)*55/84);margin:calc(var(--rest-w)*55/84/-2) 0 0 calc(var(--rest-w)/-2);border-radius:3.6%/5.5%;box-shadow:0 36px 64px -22px rgba(22,26,12,.44),0 12px 24px -12px rgba(22,26,12,.3);opacity:0;pointer-events:none}
+.hero__copy{position:absolute;z-index:2;left:0;right:0;top:calc(var(--vs)/2 + var(--lu)*15);display:grid;justify-items:center;gap:clamp(8px,1.1vw,14px);padding-inline:var(--gut);text-align:center;color:var(--on-dark);pointer-events:none}
+.hero__title{font:600 clamp(30px,min(9.6vw,8.6vh),78px)/1.02 var(--display);letter-spacing:-.035em}
+.hero__sub{font:400 clamp(16px,1.7vw,23px)/1.3 var(--display);color:var(--on-dark-2);max-width:20em}
+.hero__cue{position:absolute;z-index:2;left:50%;top:calc(var(--vs) - 56px);width:2px;height:36px;margin-left:-1px;pointer-events:none;display:none}
+html.motion .hero__cue{display:block}
+.hero__cue::before{content:"";position:absolute;inset:0;border-radius:2px;background:linear-gradient(var(--gold-hi),rgba(233,207,126,0));opacity:0;animation:hero-cue 2.8s 4.2s cubic-bezier(.65,0,.35,1) infinite backwards}
+@keyframes hero-cue{0%{opacity:0;transform:translateY(-12px) scaleY(.4)}40%{opacity:.9;transform:none}80%,100%{opacity:0;transform:translateY(14px) scaleY(.5)}}
+@media (max-height:560px){.hero__cue{display:none!important}}
+html.motion .hero:not(.is-go) .hero__card .weave,html.motion .hero:not(.is-go) .bcard__word{opacity:0}
+html.motion .hero.is-live .bcard__flip{will-change:transform}
+/* without motion the hero is the card's front, full bleed, with its wedges in the screen's own corners */
+html:not(.motion) .hero__card .bcard__front .pins{inset:auto;left:50%;top:50%;width:100vw;height:var(--vs);margin:calc(var(--vs)/-2) 0 0 -50vw;border-radius:0;--pins-w:clamp(230px,46vw,640px);--pin-sw:.22}
+@media (min-width:520px){html:not(.motion) .hero__card .bcard__front .pins{--pin-sw:.15}}
+@media (min-width:1000px){html:not(.motion) .hero__card .bcard__front .pins{--pin-sw:.1}}
+html:not(.motion) .hero__card .bcard__back{display:none}
+
+/* ───────── 2. the product arrives ───────── */
+/* the page begins before the hero has let go: its title rises onto the white the card's back has just become, so no screen
+   is ever empty between the two. Its own ground starts below the overlap; above that only the words come up over the card. */
+html.motion .arrive{margin-top:-28vh;background:linear-gradient(rgba(255,255,255,0) 28vh,#fff 28vh)}
+@supports (height:1lvh){html.motion .arrive{margin-top:-28lvh;background:linear-gradient(rgba(255,255,255,0) 28lvh,#fff 28lvh)}}
+.arrive__in{display:grid;grid-template-rows:auto minmax(0,1fr);justify-items:center;gap:clamp(22px,4.4vh,48px);padding:calc(var(--hdr-h) + clamp(16px,4.6vh,60px)) var(--gut) 0}
+.arrive__copy{display:grid;justify-items:center;gap:clamp(10px,1.6vh,16px);text-align:center}
+.arrive__title{max-width:11em;font-size:clamp(38px,6.4vw,84px)}
+.arrive__copy .t-lede{max-width:24em}
+/* the phone's width is --apw here, never --pw: .phone sets --pw from --phone-w itself, and feeding it back made a cycle that left the phone with no width at all */
+.arrive__visual{position:relative;width:100%;display:grid;justify-items:center;align-items:start;--apw:clamp(200px,min(60vw,45vh),330px)}
+.arrive__phone{--phone-w:var(--apw);z-index:2}
+.arrive__fan{--shot-w:calc(var(--apw)*.84)}
+html.motion .arrive__fan{position:absolute;left:50%;top:5%;width:100vw;margin-left:-50vw}
+/* the hand of screens waits unseen until index.js deals it: left to the script's own start state, one showed above the
+   phone each time ScrollTrigger put the scene back */
+html.motion .arrive__fan>.shot{opacity:0}
+html:not(.motion) .arrive__in{padding-bottom:clamp(64px,9vw,120px)}
+html:not(.motion) .arrive__visual{display:flex;flex-direction:column;align-items:center;gap:44px}
+html:not(.motion) .arrive__phone{order:-1}
+html:not(.motion) .arrive__fan{flex-wrap:wrap;--shot-w:clamp(92px,26vw,190px)}
+
+/* ───────── 3. coach · player · family ───────── */
+.sides{--edge-x:clamp(10px,2.4vw,36px)}
+.sides__in{position:relative}
+.sides__panel{position:absolute;left:var(--edge-x);right:var(--edge-x);top:calc(var(--hdr-h) + 6px);border-radius:clamp(24px,3vw,44px)}
+html.motion .sides__panel{height:calc(100vh - var(--hdr-h) - 6px - var(--edge-x));height:calc(100lvh - var(--hdr-h) - 6px - var(--edge-x))}
+.sides__nav{position:absolute;z-index:3;left:0;right:0;top:calc(var(--hdr-h) + clamp(18px,3.2vh,32px));display:flex;justify-content:center;gap:4px;font:600 13px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--club-olive-ink)}
+.sides__nav span{position:relative;z-index:0;padding:10px 14px;opacity:calc(.5 + var(--on,0)*.5)}
+.sides__nav span::before{content:"";position:absolute;z-index:-1;inset:0;border-radius:999px;background:#fff;box-shadow:0 2px 0 var(--club-olive-lip);opacity:var(--on,0)}
+/* the first chapter is on from the stylesheet: a value set from script was lost each time ScrollTrigger put the scene back */
+html.motion .sides__nav span:first-child{--on:1}
+.side{position:relative;display:grid;gap:clamp(18px,3vw,40px)}
+.side__copy{display:grid;justify-items:start;gap:clamp(8px,1.4vh,16px);align-content:center}
+.side__copy .t-lede{color:var(--sub);max-width:22em}
+.side__visual{position:relative;display:grid;place-items:center}
+.side__phone{--phone-w:clamp(160px,min(50vw,34vh),300px);z-index:1}
+/* the live vignettes: small scenes in the app's own vocabulary */
+.v{position:relative;z-index:2;width:clamp(204px,58vw,258px);padding:14px 14px 16px;border-radius:18px;
+  --c-on:var(--club-fairway-on);--c-mid-lip:var(--club-fairway-mid-lip)}
+.v .app-eyebrow{margin-bottom:10px}
+/* KEYS.md: a face with no picture and the tile that leads a row are the cloth tone with its ink; an area once chosen is
+   the lead's pale with the deep word and a cloth-tone ring; the one action stays the deep lead */
+.v [data-club="fairway"]{--c-on:var(--club-fairway-on);--c-mid-lip:var(--club-fairway-mid-lip)}
+.v [data-club="navy"]{--c-on:var(--club-navy-on);--c-mid-lip:var(--club-navy-mid-lip)}
+.v [data-club="plum"]{--c-on:var(--club-plum-on);--c-mid-lip:var(--club-plum-mid-lip)}
+.v .app-face{color:var(--c-on);background:var(--c-mid)}
+.v .app-glyph{color:var(--c-on);background:var(--c-mid);box-shadow:0 2px 0 var(--c-mid-lip)}
+.v .app-chip.is-on{color:var(--c);background:var(--c-tint);box-shadow:inset 0 0 0 1.5px var(--c-mid),0 3px 0 var(--c-mid)}
+.v-head{display:flex;align-items:center;gap:9px;margin:0 0 10px;--face:28px;--glyph:28px}
+.v-head .app-glyph{border-radius:9px}
+.v-head .app-name{font-size:15px}
+.v .app-key,.v .app-chip,.v .app-tick{transition:transform .14s var(--ease-key),box-shadow .14s var(--ease-key),background-color .25s,color .25s}
+.v-rows{display:grid;gap:8px}
+.v-row{display:flex;align-items:center;gap:10px;min-height:44px;padding:5px 10px 5px 8px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--edge),0 2px 0 var(--edge);--face:30px}
+.v-row__t{flex:1 1 0;min-width:0;display:grid}
+.v-row .app-name{font-size:15px}
+.v-row .app-sub{font-size:13px}
+.v-row .app-key{min-height:30px;padding:0 10px;border-radius:9px;font-size:13px;margin:0 0 3px}
+.v-row .app-tick{margin-left:2px}
+.v-chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.v-chips .app-chip{min-height:40px;padding:0 6px;font-size:14px;white-space:nowrap}
+.v-log{position:relative;margin-top:10px;width:100%}
+.v-log__a,.v-log__b{display:inline-flex;align-items:center;gap:6px}
+.v-log__a{position:absolute;opacity:0}
+.v-big{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.v-big .app-sub,.v-nw{white-space:nowrap}
+.v-num{font:700 30px/1 var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.v-chart{display:block;width:100%;height:auto;margin-top:10px;overflow:visible}
+.v-chart__grid{fill:none;stroke:var(--hair);stroke-width:1}
+.v-chart__line{fill:none;stroke:var(--app);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.v-chart__dot{fill:#fff;stroke:var(--app);stroke-width:2.2}
+.v-chart__dot--end{fill:var(--app)}
+.v-theirs{display:grid;gap:4px;justify-items:start}
+.v .app-bubble{font-size:15px;padding:8px 12px}
+.v.v--note{padding:12px;width:auto;min-width:230px;max-width:min(300px,78vw)}
+.v-note{display:flex;align-items:center;gap:10px;--glyph:38px}
+.v-note .mark{--mark-w:24px;color:var(--c-ink)}
+.v-note .mark path{stroke-width:3.4}
+.v-note__t{display:grid;gap:3px;min-width:0}
+.v-note .app-name{font-size:15px;line-height:1.25}
+/* in motion: the three chapters share one stage */
+html.motion .side{position:absolute;left:var(--edge-x);right:var(--edge-x);top:calc(var(--hdr-h) + 6px);bottom:0;grid-template-rows:auto minmax(0,1fr);padding:clamp(58px,9.4vh,84px) clamp(18px,4vw,40px) 0}
+/* the chapters lie over one another, so only the words of the one showing take a tap */
+html.motion .side{pointer-events:none}
+html.motion .side__copy{pointer-events:auto}
+html.motion .side__eyebrow{display:none}
+html.motion .side__visual{align-items:start}
+/* on a phone the scenes lie over the foot of the phone, one to each side, so the top of its screen is always clear */
+html.motion .v{position:absolute;bottom:clamp(14px,6vh,64px)}
+html.motion .v--a{left:-6px}
+html.motion .v--b{right:-6px}
+@media (max-width:899px){
+  html.motion #v-thread .app-thread>:nth-child(3){display:none}      /* two lines of the thread on a phone: the tile lay over most of the screen behind it */
+  .side__copy{justify-items:center;text-align:center}
+  .side__copy .t-lede{font-size:17px}
+  .side__copy .link{min-height:36px}
+}
+@media (min-width:900px){
+  .side__phone{--phone-w:clamp(230px,min(24vw,37vh),320px)}
+  html.motion .side{grid-template-rows:none;grid-template-columns:minmax(0,4fr) minmax(0,6fr);align-items:center;padding:clamp(56px,8vh,80px) clamp(32px,6vw,104px) clamp(16px,4vh,40px)}
+  html.motion .side__visual{height:100%;align-items:center}
+  html.motion .v--a{left:-10px;top:17%;bottom:auto}
+  html.motion .v--b{right:-10px;bottom:15%}
+  .v{width:clamp(210px,20vw,260px)}
+}
+/* on a desk the phone stands a little to the right and the scenes only touch its frame, so no word on its screen is cut by one */
+@media (min-width:1200px){
+  html.motion .side__phone{margin-left:40px}
+  html.motion .v--a{left:-30px}
+  html.motion .v--b{right:-46px}
+  .v{width:260px}
+}
+/* without motion: three quiet panels, one after another; from a tablet up the two scenes stand beside the phone */
+html:not(.motion) .sides{padding-block:clamp(48px,7vw,96px)}
+html:not(.motion) .sides__panel,html:not(.motion) .sides__nav{display:none}
+html:not(.motion) .sides__in{display:grid;gap:clamp(16px,2.4vw,28px);padding-inline:var(--edge-x)}
+html:not(.motion) .side{padding:clamp(36px,6vw,80px) clamp(20px,5vw,80px);border-radius:clamp(24px,3vw,44px);background:var(--club-olive-tint)}
+html:not(.motion) .side__visual{grid-template-columns:auto;gap:18px}
+@media (min-width:640px){
+  html:not(.motion) .side__visual{grid-template-columns:auto auto;justify-content:center;gap:20px clamp(20px,3.4vw,44px)}
+  html:not(.motion) .side__phone{grid-row:1/span 2}
+  html:not(.motion) .v--a{align-self:end}
+  html:not(.motion) .v--b{align-self:start}
+}
+@media (min-width:900px){html:not(.motion) .side{grid-template-columns:minmax(0,4fr) minmax(0,7fr);align-items:center}}
+
+/* ───────── 4. six sports, one app ───────── */
+.sports__in{display:grid;gap:clamp(18px,3vh,36px);padding:calc(var(--hdr-h) + clamp(18px,4.4vh,56px)) var(--gut) 0;justify-items:center}
+.sports__copy{display:grid;justify-items:center;text-align:center;width:100%}
+.sports__title{color:var(--fg-2)}
+.sports__list{display:grid;width:100%;margin-top:clamp(10px,1.8vh,20px)}
+.sport{display:grid;justify-items:center;gap:clamp(6px,1.2vh,14px);align-content:start}
+.sport__name{display:inline-flex;align-items:baseline;gap:.12em;font:600 clamp(44px,14.4vw,112px)/.96 var(--display);letter-spacing:-.045em;white-space:nowrap}
+.sport .t-lede{max-width:16em}
+.sports__swatches{display:flex;gap:10px;margin-top:clamp(14px,2.4vh,26px);--swatch:14px}
+.sports__note{margin-top:clamp(10px,1.8vh,18px);max-width:24em;color:var(--fg-3)}
+.sports__visual{display:grid;justify-items:center;align-items:start}
+.sports__phone{--phone-w:clamp(190px,min(56vw,40vh),320px)}
+html.motion .sport{grid-area:1/1}
+@media (min-width:900px){
+  .sports__in{grid-template-columns:minmax(0,6fr) minmax(0,5fr);align-items:center;justify-items:stretch;padding:calc(var(--hdr-h) + 12px) clamp(40px,8vw,128px) 24px;max-width:1500px;margin-inline:auto}
+  .sports__copy{justify-items:start;text-align:left}
+  .sport{justify-items:start}
+  .sport__name{font-size:clamp(56px,7.7vw,112px)}
+  .sports__phone{--phone-w:clamp(240px,min(25vw,39vh),340px)}
+  .sports__visual{align-items:center}
+}
+html:not(.motion) .sports{padding-block:clamp(64px,9vw,120px)}
+html:not(.motion) .sports__in{padding-top:0}
+html:not(.motion) .sports__list{gap:clamp(18px,2.6vw,28px)}
+html:not(.motion) .sport__name{font-size:clamp(30px,4.4vw,56px)}
+html:not(.motion) .sport .t-lede{font-size:17px}
+
+/* ───────── 5. the name ───────── */
+.name{overflow:hidden;overflow:clip}
+.name__in{display:grid;justify-items:center;align-content:center;text-align:center;gap:clamp(12px,2.4vh,26px);padding:calc(var(--hdr-h) + 8px) var(--gut) clamp(20px,4vh,40px)}
+.name__word{font-size:clamp(84px,25vw,330px);padding:0 .04em .04em;margin-bottom:-.02em}
+.name__means{font:500 clamp(22px,2.8vw,40px)/1.1 var(--display);letter-spacing:-.02em;color:var(--on-dark)}
+.name__rings{--mark-w:clamp(104px,15vw,210px);margin-top:clamp(10px,3vh,40px);color:var(--gold-hi)}
+.name__line{margin-inline:auto;max-width:17em;color:var(--on-dark)}
+.name__link{margin-top:-4px}
+html:not(.motion) .name__in{padding-block:clamp(120px,16vw,200px) clamp(96px,13vw,170px)}
+
+/* ───────── 6. what we stand for ───────── */
+.stand__words{margin-top:clamp(16px,2vw,26px);max-width:8.6em;font-size:clamp(38px,11.4vw,136px)}
+.stand__rule{width:min(240px,44vw);margin:clamp(26px,3.4vw,44px) 0 0}
+.stand__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(26px,3.6vw,52px) clamp(24px,6vw,96px);margin-top:clamp(44px,6.4vw,96px)}
+.stand__p{display:grid;gap:8px;align-content:start;padding-top:20px;border-top:1.5px solid var(--edge)}
+.stand__p .t-body{max-width:26em}
+.stand__stats{margin-top:clamp(56px,8vw,120px);padding-top:clamp(28px,4vw,48px);border-top:1.5px solid var(--edge)}
+@media (max-width:719px){.stand__grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ───────── 7. climate ───────── */
+.climate{padding-block:0 clamp(40px,6vw,80px)}
+.climate .wrap{max-width:calc(1320px + var(--gut)*2)}
+.climate__panel{position:relative;overflow:hidden;border-radius:clamp(24px,3.4vw,48px);--rings-w:min(170vw,1300px);--rings-o:.5;color:var(--club-olive-lip)}
+.climate__in{position:relative;display:grid;gap:clamp(14px,1.8vw,22px);padding:clamp(44px,8vw,120px) clamp(24px,6vw,96px);color:var(--ink)}
+.climate__in .eyebrow{color:var(--club-olive-ink)}
+.climate__notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(22px,4vw,64px);margin-top:clamp(22px,3.4vw,48px);max-width:860px}
+.climate__notes>div{display:grid;gap:8px;align-content:start;padding-top:18px;border-top:1.5px solid var(--club-olive-lip)}
+.climate__notes .t-body{color:var(--sub)}
+@media (max-width:719px){.climate__notes{grid-template-columns:minmax(0,1fr)}}
+
+/* ───────── 8. partners ───────── */
+.partners__head{display:grid;gap:clamp(14px,2vw,24px);align-items:end}
+.partners__head h2{margin-top:clamp(12px,1.6vw,20px);max-width:10em;font-size:clamp(36px,5.6vw,76px)}
+.partners__frames{margin-top:clamp(32px,5vw,64px)}
+.partners__more{margin-top:clamp(20px,3vw,36px)}
+@media (min-width:720px){.partners__frames{grid-template-columns:repeat(4,minmax(0,1fr))}}      /* four across from a tablet up: three left one frame alone on a row */
+@media (min-width:900px){.partners__head{grid-template-columns:minmax(0,7fr) minmax(0,4fr)}}
+
+/* ───────── 9. close ───────── */
+.close{padding-bottom:clamp(96px,14vw,200px)}
+.close__in{display:grid;gap:clamp(44px,7vw,96px);align-items:center}
+.close__copy{display:grid;gap:clamp(16px,2vw,24px);justify-items:start}
+.close__copy h2{font-size:clamp(44px,8vw,112px);max-width:7em}
+.close__copy .keys{margin-top:6px}
+/* KEYS.md 4: the second key beside the one action is the world's pale (its face, the deep word, its own ledge), never a white tile */
+.close .key--paper{--key-bg:var(--club-olive-tint);--key-fg:var(--club-olive);--key-lip:var(--club-olive-lip);--key-ring:0 0 0 0 transparent}
+.close__contact a{color:var(--ink);text-underline-offset:4px}
+.close__card{display:grid;justify-items:center}
+.close__bcard{--card-w:min(86vw,500px)}
+@media (min-width:980px){.close__in{grid-template-columns:minmax(0,6fr) minmax(0,5fr)}.close__card{justify-items:end}}
+@media (max-width:419px){.close__copy .key--lg{padding:0 22px;font-size:17px}}
