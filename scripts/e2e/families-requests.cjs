@@ -101,7 +101,7 @@ const leaks = [];
   const beats = (page) => page.evaluate(() => window.__beats || []);
   const faceOf = (page, sel) => page.evaluate((sel) => { const b = typeof sel === "string" ? document.querySelector(sel) : null; if (!b) return null; const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ring: cs.borderTopColor, fg: cs.color }; }, sel);
   const keyFace = (page, label) => page.evaluate((label) => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => x.textContent.replace(/\s+/g, " ").trim() === label); if (!b) return null; const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ring: cs.borderTopColor, fg: cs.color }; }, label);
-  const ACCENT = "rgb(32, 122, 48)", WHITE = "rgb(255, 255, 255)", RING = "rgb(226, 226, 231)";
+  const ACCENT = "rgb(40, 89, 55)", WHITE = "rgb(255, 255, 255)", RING = "rgb(226, 226, 231)";
 
   try {
     /* ---------- (a) a player withdraws the request they have out ---------- */

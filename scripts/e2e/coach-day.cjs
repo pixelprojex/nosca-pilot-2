@@ -21,7 +21,7 @@ const TOMORROW = M.ymd(new Date(Date.now() + 864e5));
 /* the app's own day label: Thu 24 Sep */
 const dayLabel = (ymd) => { const [y, m, d] = ymd.split("-").map(Number); const dt = new Date(y, m - 1, d);
   return `${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getDay()]} ${d} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m - 1]}`; };
-const DANGER = "rgb(196, 52, 42)";           // #C4342A
+const DANGER = "rgb(154, 50, 42)";           // #9A322A, the club's brick since 22 November (#C4342A before)
 
 function freshDb() {
   const db = M.emptyDb();

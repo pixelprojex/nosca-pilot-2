@@ -27,7 +27,7 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON = ["Jan", "F
 const nice = (x) => `${DAYS[x.getDay()]} ${x.getDate()} ${MON[x.getMonth()]}`;
 const EDGE_GOLF = "rgba(47, 107, 58, 0.72)";
 const CARD = "rgb(255, 255, 255)";   // a list row is Duolingo's white card on the light grey line (21 November; the wash from 14 November)
-const ACCENT_GOLF = "rgb(32, 122, 48)";   // #207A30: Accept is the text action that acts, in the sport's colour
+const ACCENT_GOLF = "rgb(40, 89, 55)";   // #285937, golf's fairway since the colour study of 22 November (#207A30 before): Accept is the text action that acts, in the sport's colour
 
 function freshDb() {
   const db = M.emptyDb();

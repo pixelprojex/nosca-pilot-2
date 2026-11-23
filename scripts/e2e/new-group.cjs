@@ -102,7 +102,7 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
 
       /* the chosen day is Duolingo's chosen answer since 21 November (it was the ink): golf's colour at a tenth over
          white with the word in golf's colour; the six others the white key; never the success green */
-      const SEL_FACE = "rgb(233, 242, 234)", SEL_FG = "rgb(29, 112, 44)";   // #207A30 over white at 0.1; #207A30 a step deeper
+      const SEL_FACE = "rgb(219, 238, 223)", SEL_FG = "rgb(37, 82, 51)";   // fairway's pale #DBEEDF; fairway #285937 a step deeper
       const on = C ? C.days.filter((d) => d.bg === SEL_FACE) : [], off = C ? C.days.filter((d) => d.bg !== SEL_FACE) : [];
       check("(e) the chosen day is Duolingo's chosen answer, golf's colour faint with the word in it; the six others are the white key; none is the success green",
         !!C && on.length === 1 && on[0].d === "Sa" && on[0].fg === SEL_FG && off.length === 6 && new Set(off.map((d) => d.bg)).size === 1 && off[0].bg === "rgb(255, 255, 255)" && !C.days.some((d) => d.bg === STEADY),

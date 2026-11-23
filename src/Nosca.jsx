@@ -452,20 +452,105 @@ export const HAIR = (ink, a = 0.09) => `${ink}${Math.round(a * 255).toString(16)
 export const EDGE = (t) => (darkPage(t) ? HAIR(t.mark || t.accent || t.ink, 0.72) : "#E2E2E7");
 /* a control whose outline is all it has (a tick box) keeps a line that reads 3:1 */
 export const LINE_STRONG = "#8E8E93";
-/* COLOUR IN ITS PLACES, IN NOSCA'S OWN PALETTE (21 November). The
-   founder: "A bit more color in places to make it look more realistic.
-   Take reference from iOS" — and that evening, "I'm loving this iOS
-   style, but just make sure we're not copying it exactly … our own
-   personal twist on it". So the glyph squares, the actions' glyphs and
-   the faces are coloured as iOS colours them, but never in Apple's
-   system blue, pink and purple: in the app's own fixed colours — the six
-   sports' (golf's green, tennis' teal, rowing's blue, squash's orange,
-   padel's purple, equestrian's wine), the brand's bottle green, a slate
-   with the green in it, a warm gold, and the app's red. Deeper and
-   calmer than Apple's, and every one carries a white glyph at 4.5:1 and
-   over. (DANGER and BRAND are written out: they are declared below.) */
-export const HUE = { green: "#207A30", teal: "#01836E", blue: "#1B74A1", orange: "#C74B17", purple: "#6536B6",
-  wine: "#8C2941", brand: "#123C30", slate: "#5E6B65", gold: "#A66A10", red: "#C4342A" };
+/* THE CLUB COLOURS (22 November, the colour study). The founder, three
+   times in a day: of ten bright hues, "way too colourful. Not cohesive
+   or classy"; of everything in the sport's one green, "I do want
+   variation in colors. I don't want all the same green"; and of that
+   green itself, "so like in your face and modern … it's not classy, it's
+   not traditional". His references: his business card (olive or bottle
+   green, gold foil, white) and Lares, whose eight hues from the land sit
+   together because they share a tone. Measured in OKLCH the card's olive
+   and Lares's hues have a chroma of 0.05 to 0.11; the old sport colours
+   had 0.10 to 0.19, twice the card's — that was the "in your face".
+   So one family of traditional colours at the card's own tone (chroma
+   0.05 to 0.10, lightness 0.32 to 0.48: enamel, blazer cloth, leather,
+   brass), white on every one at 5.5:1 and over, the card's gold the one
+   light one (it carries a dark glyph, as foil sits on the card). Each
+   sport takes its LEAD from the family (its keys, its tab tint, what is
+   chosen) and a set of its own for the functions, tuned to the lead:
+   golf the clubhouse, tennis the lawn, rowing the boathouse, squash the
+   court, padel the glass court, equestrian the yard. */
+export const CLUB = { fairway: "#285937", olive: "#4F5B29", bottle: "#123C30", lawn: "#44613A", court: "#125856",
+  petrol: "#1F525F", river: "#264A70", navy: "#213654", steel: "#445E72", aubergine: "#4D3566", indigo: "#363864",
+  plum: "#5F3954", claret: "#6B2935", sienna: "#844925", rust: "#88452A", saddle: "#765637", chestnut: "#613E2B",
+  gold: "#C2A24C", slate: "#48555C", brick: "#9A322A" };
+/* THE LIGHTER HALF (23 November). The founder, of the club colours:
+   "those colors are beautiful and all, but I also want some more lighter
+   tones throughout so it doesn't feel too dark and heavy, especially if
+   somebody's using it with the black background." A club's colours are
+   pairs — the deep cloth and the pale stripe beside it — so every colour
+   of the family has three lighter relations, made in OKLCH on its own
+   hue: its PALE (lightness 0.93, a third of its chroma: sage, duck egg,
+   stone blue, heather, plaster, straw), the pale's own ledge, and its
+   CLOTH tone (lightness 0.76), which is what the colour becomes on a
+   dark page, where the deep one would sink into the ground. The deep
+   colour is the ink on its pale at 5.4:1 and over (the gold takes a
+   deeper gold). The rule: what acts is deep — the one action, a key, my
+   bubble, a badge; what labels is pale with the deep as its ink — a
+   glyph tile, a face with no picture, what is chosen. */
+const CLUB_PALE = {
+  fairway: ["#DBEEDF", "#C1DAC6", "#94BD9E"], olive: ["#E5EBD7", "#CFD7BC", "#ABB78D"],
+  bottle: ["#DCECE6", "#C3D8D0", "#98BAAE"], lawn: ["#E0ECDC", "#C8D8C2", "#A0BA98"],
+  court: ["#D7EDEC", "#BBDAD8", "#8ABCBA"], petrol: ["#D9ECF1", "#BED8DF", "#91B9C5"],
+  river: ["#DBEAFA", "#C1D5EC", "#95B4D8"], navy: ["#DFE9F7", "#C7D4E7", "#9EB3D0"],
+  steel: ["#DFE9F2", "#C6D5E0", "#9EB4C6"], aubergine: ["#EDE3F9", "#D9CCEA", "#BBA7D4"],
+  indigo: ["#E4E6FA", "#CDD0EC", "#A9AED7"], plum: ["#F3E2ED", "#E2CBDA", "#C9A4BD"],
+  claret: ["#F7E2E4", "#E9C9CC", "#DA9FA6"], sienna: ["#F6E4DA", "#E7CCBE", "#D6A589"],
+  rust: ["#F7E3DC", "#E8CCC1", "#D8A38E"], saddle: ["#F3E5D9", "#E2CFBE", "#C8AB91"],
+  chestnut: ["#F4E4DC", "#E3CEC2", "#CAA998"], gold: ["#F0E7D0", "#DED2B2", "#C3AF7E"],
+  slate: ["#E3E9EC", "#CBD4D9", "#9FB5C1"], brick: ["#F8E2DF", "#EACAC6", "#DAA198"],
+};
+const PALE_BY_HEX = Object.fromEntries(Object.keys(CLUB).map((k) => [CLUB[k].toUpperCase(), CLUB_PALE[k]]));
+/* A FUNCTION HAS A HUE, AND A SPORT SAYS WHICH COLOUR THAT IS. `HUE`
+   names the role a thing plays (it was a table of colours): green is the
+   lesson itself and the sport's lead (Log, Register, Messages), teal its
+   near neighbour (people, setting up), blue what is captured or sent
+   (Capture, a clip, a download), orange the warm one (to log, a voice),
+   purple practice (Drills, to review), wine time (the diary, a reminder,
+   a competition's day), brand the roster and the record, gold a tip, a
+   review, a trophy, slate the system's own rows, red what removes or
+   calls off. The same thing is the same role everywhere; `hueOf(t, role)`
+   reads the sport's own colour for it, so nothing is ever given a hex. */
+export const HUE = { green: "h:green", teal: "h:teal", blue: "h:blue", orange: "h:orange", purple: "h:purple",
+  wine: "h:wine", brand: "h:brand", slate: "h:slate", gold: "h:gold", red: "h:red" };
+const clubSet = (lead, teal, blue, orange, purple, wine, brand) => ({ green: CLUB[lead], teal: CLUB[teal], blue: CLUB[blue],
+  orange: CLUB[orange], purple: CLUB[purple], wine: CLUB[wine], brand: CLUB[brand], slate: CLUB.slate, gold: CLUB.gold, red: CLUB.brick });
+export const CLUB_SETS = {
+  brand:      clubSet("bottle",    "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
+  golf:       clubSet("fairway",   "olive",   "navy",  "saddle", "plum",      "claret",   "bottle"),
+  tennis:     clubSet("court",     "lawn",    "navy",  "rust",   "aubergine", "claret",   "bottle"),
+  rowing:     clubSet("river",     "petrol",  "steel", "saddle", "plum",      "claret",   "navy"),
+  squash:     clubSet("sienna",    "petrol",  "navy",  "saddle", "plum",      "claret",   "bottle"),
+  padel:      clubSet("aubergine", "petrol",  "navy",  "rust",   "indigo",    "claret",   "bottle"),
+  equestrian: clubSet("claret",    "fairway", "navy",  "saddle", "plum",      "chestnut", "bottle"),
+};
+/* the colour a role takes in this sport. The lead is whatever the theme's
+   accent is (a coach's own branding moves it), so a green thing and the
+   one action are always one colour. A hex handed in is itself. */
+export const hueOf = (t, hue) => {
+  if (typeof hue !== "string" || !hue.startsWith("h:")) return hue || t.accent;
+  const k = hue.slice(2);
+  return k === "green" ? t.accent : ((t.club || CLUB_SETS.brand)[k] || t.accent);
+};
+/* what is drawn on a colour: white, or the ink on the card's gold */
+export const onHue = (c) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(c || "")); if (!m) return "#FFFFFF";
+  const [r, g, b] = [0, 2, 4].map((i) => { const v = parseInt(m[1].slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.3 ? "#2B2410" : "#FFFFFF";
+};
+/* a star on the white page: the card's gold a step deeper, 3:1 and over */
+export const STAR = "#9A7B2B";
+/* a colour's lighter relations: [pale, the pale's ledge, the cloth tone].
+   A colour outside the family (a coach's own branding) is mixed toward
+   white, so nothing is ever without them. */
+export const lightsOf = (c) => PALE_BY_HEX[String(c || "").toUpperCase()]
+  || [MIX("#FFFFFF", c, 0.16), MIX("#FFFFFF", c, 0.32), MIX("#FFFFFF", c, 0.52)];
+export const paleOf = (c) => lightsOf(c)[0];
+/* a role's colour as a glyph or a word on the page: the deep colour on
+   white, its cloth tone on a dark page, where the deep one would sink */
+export const inkHue = (t, hue) => { const c = hueOf(t, hue); return darkPage(t) ? lightsOf(c)[2] : c; };
+/* what is drawn on a colour's pale: the colour itself, the gold a deeper gold */
+export const inkOf = (c) => (String(c || "").toUpperCase() === CLUB.gold ? "#6E5817" : c);
 export const EDGE_W = 1.5;
 /* THE LIP (18 November). The founder: the buttons, tiles and boxes
    "Duolingo style … that we have already done with the Lares app, where
@@ -530,7 +615,10 @@ export const KEY_RING = (t) => (darkPage(t) ? "transparent" : "#E2E2E7");
 /* CHOSEN (21 November): Duolingo's chosen answer — the sport's colour faint
    on the face, its ring and its ledge, the word in the sport's colour —
    where a chosen key was the ink, black among white keys */
-export const SEL = (t) => ({ face: MIX("#FFFFFF", t.accent, 0.1), ring: MIX("#FFFFFF", t.accent, 0.55), lip: MIX("#FFFFFF", t.accent, 0.55), fg: MIX(t.accent, "#000000", 0.08) });
+/* THE LIGHTER HALF (23 November): the chosen answer is the lead's own
+   pale on its cloth tone — golf's sage, rowing's stone blue — where a
+   tenth of a deep colour over white was a grey that barely said chosen */
+export const SEL = (t) => { const [pale, , cloth] = lightsOf(t.accent); return { face: pale, ring: cloth, lip: cloth, fg: MIX(t.accent, "#000000", 0.08) }; };
 /* a row of a list chosen from (a reason on Cancel, Call off, End or
    Decline): the list's white card at rest, Duolingo's chosen answer once
    picked — the sport's colour faint on the face, its ring and ledge (the
@@ -624,6 +712,7 @@ export const NEUTRAL = {
   ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2",
   hair: "#EBEBF0", page: "#FFFFFF", surface: "#FFFFFF",
   wash: "#F2F2F7", mark: BRAND_COLOUR, accent: BRAND_COLOUR, onAccent: BRAND_PAPER,
+  club: CLUB_SETS.brand,
 };
 /* Three states, learned once, applied everywhere — the WHOOP model.
    Anything outside this set is decoration and does not belong. */
@@ -634,7 +723,7 @@ export const NEUTRAL = {
    they are identical in every sport. A red badge is red whether you
    coach golf or padel — that is the whole point. Learn them once.
 ------------------------------------------------------------------ */
-export const DANGER  = "#C4342A";   // no · cancelled · missed · destructive
+export const DANGER  = "#9A322A";   // no · cancelled · missed · destructive (the club colours' brick)
 export const CAUTION = "#D08A1E";   // waiting on you · soon · unresolved
 export const STEADY  = "#2E7D4B";   // yes · done · confirmed · on track
 const GROUP   = "#6E5A93";   // a group rather than one person
@@ -658,7 +747,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Golf", tagline: "Full swing, short game, on course",
     theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#207A30", accent: "#207A30", onAccent: "#FFFFFF" },
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#285937", accent: "#285937", onAccent: "#FFFFFF", club: CLUB_SETS.golf },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -747,7 +836,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Tennis", tagline: "Serve, return, rally, net",
     theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#01836E", accent: "#01836E", onAccent: "#FFFFFF" },
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#125856", accent: "#125856", onAccent: "#FFFFFF", club: CLUB_SETS.tennis },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -839,7 +928,7 @@ export const SPORTS = {
     noun: "rower", nouns: "rowers",
     label: "Rowing", tagline: "Technique, rhythm, racing, erg",
     theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#1B74A1", accent: "#1B74A1", onAccent: "#FFFFFF" },
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#264A70", accent: "#264A70", onAccent: "#FFFFFF", club: CLUB_SETS.rowing },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -934,7 +1023,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Squash", tagline: "Drives, volleys, front court, movement",
     theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#C74B17", accent: "#C74B17", onAccent: "#FFFFFF" },
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#844925", accent: "#844925", onAccent: "#FFFFFF", club: CLUB_SETS.squash },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1020,7 +1109,7 @@ export const SPORTS = {
     noun: "player", nouns: "players",
     label: "Padel", tagline: "Net game, overheads, walls",
     theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#6536B6", accent: "#6536B6", onAccent: "#FFFFFF" },
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#4D3566", accent: "#4D3566", onAccent: "#FFFFFF", club: CLUB_SETS.padel },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -1106,7 +1195,7 @@ export const SPORTS = {
     noun: "rider", nouns: "riders",
     label: "Equestrian", tagline: "Flatwork, poles, jumping, cross-country",
     theme: { ink: "#1C1C1E", sub: "#5F5F65", faint: "#6E6E73", trace: "#AEAEB2", hair: "#EBEBF0",
-             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#8C2941", accent: "#8C2941", onAccent: "#FFFFFF" },
+             page: "#FFFFFF", surface: "#FFFFFF", wash: "#F2F2F7", mark: "#6B2935", accent: "#6B2935", onAccent: "#FFFFFF", club: CLUB_SETS.equestrian },
     /* the ladder a coach places a player on before anything else —
        verified against the governing bodies (see CLAUDE.md) */
     stages: [
@@ -3562,7 +3651,7 @@ function PublishedBurst({ lesson, tally, onAskRating, onLogNext, remaining = 0, 
                              opacity: ask === "busy" ? 0.6 : 1,
                              transition: "transform 140ms ease-out, box-shadow 140ms ease-out, background 180ms, color 180ms",
                              fontFamily: ui, fontSize: 17, fontWeight: 600, color: ask === "done" ? SEL(t).fg : t.ink }}>
-              {ask === "done" ? <Check size={18} color={SEL(t).fg} strokeWidth={2.4} /> : <Star size={18} color={HUE.gold} strokeWidth={2} />}
+              {ask === "done" ? <Check size={18} color={SEL(t).fg} strokeWidth={2.4} /> : <Star size={18} color={STAR} strokeWidth={2} />}
               {ask === "done" ? tr("Asked") : ask === "busy" ? tr("Asking…") : ask === "error" ? tr("Try again") : tr("Ask for a rating")}
             </button>
           </div>
@@ -5705,7 +5794,7 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
           <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
         </span>
         {/* a star is the palette's gold, wherever it is drawn */}
-        {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={HUE.gold} fill={HUE.gold} strokeWidth={1.6} /></span>}
+        {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={STAR} fill={STAR} strokeWidth={1.6} /></span>}
         {!onDownload && <ChevronRight size={14} color={t.trace || t.faint} />}
       </button>
       {onDownload && <DownloadDisc lesson={l} onTap={onDownload} size={38} />}
@@ -6522,8 +6611,8 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button key={n} onClick={() => { haptic(6); setRating(n); setSent(false); }} className="flex items-center justify-center active:opacity-60"
                           style={{ width: 44, height: 44 }}>
-                    <Star size={30} strokeWidth={1.6} color={n <= rating ? HUE.gold : LINE_STRONG}
-                          fill={n <= rating ? HUE.gold : "none"} />
+                    <Star size={30} strokeWidth={1.6} color={n <= rating ? STAR : LINE_STRONG}
+                          fill={n <= rating ? STAR : "none"} />
                   </button>
                 ))}
               </div>
@@ -8844,7 +8933,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
                        border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
           {/* the glyph in ink on the white key, never the accent (the accent is the one action's) */}
-          <Icon size={Math.round(f * 0.4)} color={hue && quietTile ? oneHue(t, hue) : fg} strokeWidth={hue && quietTile ? 2.2 : quietTile || calm ? 1.8 : 2} />
+          <Icon size={Math.round(f * 0.4)} color={hue && quietTile ? (hue === HUE.gold ? STAR : inkHue(t, hue)) : fg} strokeWidth={hue && quietTile ? 2.2 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
         {!iconOnly && (
@@ -9064,14 +9153,15 @@ const SportGrid = ({ ids, picked, onPick, cols = 3, tour, add, mainId }) => {
              keeps a tint, since 21 November the app's wash is Apple's
              neutral grey and no longer says the sport), the sport's full
              colour once chosen */
-          const ring = MIX("#FFFFFF", th.mark, 0.55);
+          /* the lighter half (23 November): the sport's own pale on its cloth tone */
+          const [pale, , ring] = lightsOf(th.mark);
           const lc = on ? LIP(th.mark) : ring;
           const p = press3d(lc, 3, 2);
           return (
             <button key={id} data-lip="" aria-label={add ? `${tr("Add")} ${sp.label}` : sp.label} aria-pressed={on} onClick={() => { haptic(9); soft(); onPick(id); }}
                     {...p.handlers}
                     className="relative w-full flex flex-col items-center justify-center gap-2"
-                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : MIX("#FFFFFF", th.mark, 0.12), boxShadow: p.rest,
+                    style={{ minHeight: 82, borderRadius: R.surface, background: on ? th.mark : pale, boxShadow: p.rest,
                              border: `${EDGE_W}px solid ${on ? th.mark : ring}`,
                              transition: `background ${MOTION.settle}ms, transform 240ms cubic-bezier(.2,.7,.3,1), box-shadow 240ms cubic-bezier(.2,.7,.3,1)` }}>
               {add
@@ -9281,10 +9371,25 @@ function MiniPlayer({ clip, onClose, onExpand }) {
     </div>
   );
 }
-/* a face with no picture is the sport's own colour, lit a little from the
-   top, white initials — one colour for everybody (it took one of seven
-   hues by the name for a day, and a roster read as a box of crayons) */
-const faceTone = (t) => `linear-gradient(180deg, ${MIX(t.accent, "#FFFFFF", 0.14)} 0%, ${t.accent} 100%)`;
+/* a face with no picture takes one of the club's colours, fixed by the
+   name (it was seven bright hues, then for an evening the sport's one
+   colour for everybody, then a day of deep discs with white initials) */
+/* seven blazers of one club: the sport's lead and six of the family
+   whose pales stand apart (stone blue, sand, heather, duck egg, rose,
+   olive cream) — taken by the role they were two pinks in three, plum's
+   pale and claret's being neighbours */
+const FACE_CLUB = ["navy", "saddle", "aubergine", "petrol", "claret", "olive"];
+/* THE LIGHTER HALF (23 November): the disc is the colour's pale, ringed
+   in the pale's own ledge, the initials the deep colour — a 54px disc of
+   plum or claret was the heaviest thing on Chat. On a dark page the disc
+   is the deep colour and the initials its cloth tone. */
+const faceTone = (t, name) => {
+  let h = 0; for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const set = [t.accent, ...FACE_CLUB.map((k) => CLUB[k])];
+  const c = set[h % set.length];
+  const [pale, lip, cloth] = lightsOf(c);
+  return darkPage(t) ? { bg: c, ring: LIP(c), fg: cloth } : { bg: pale, ring: lip, fg: inkOf(c) };
+};
 /* SETTINGS AS iOS LAYS IT OUT, IN NOSCA'S COLOURS: every row leads with
    its own coloured square, so a row is found by colour before it is read
    (21 November; the rows carried no glyph for a long time, "Settings rows
@@ -9318,20 +9423,26 @@ const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? 
    on a two-point ledge of its own colour made deeper — the same 3D the
    keys and the cards stand on, so even the smallest coloured thing in the
    app is a Nosca object, not a copy of Settings */
-/* ONE COLOUR A SPORT, HERE TOO (22 November). The tiles took ten hues of
-   the palette for a day and the founder: "way too colourful. Not cohesive
-   or classy." So every glyph tile is the sport's own colour, whatever hue
-   its row names; red alone is kept, for what removes or calls off. The
-   same for a face with no picture, a round key's glyph and the bell's
-   badge: the sport's colour, the greys, red for danger, gold for a star. */
-const oneHue = (t, hue) => (hue === HUE.red ? HUE.red : t.accent);
-const IconSq = ({ Icon, bg, size = 30 }) => {
+/* the tile takes its role's colour in this sport (`hueOf`), the glyph
+   white, or the ink on the card's gold. For an evening every tile was
+   the sport's one colour, and the founder: "I do want variation in
+   colors. I don't want all the same green." */
+/* THE LIGHTER HALF (23 November): a tile labels its row, so it is the
+   colour's PALE on the pale's own ledge with the deep colour as the
+   glyph — twenty deep squares down Settings read "dark and heavy", the
+   founder's words. `deep` keeps the full colour with a white glyph for
+   the one place a tile is itself the signal. On a dark page the tile is
+   the deep colour and the glyph its cloth tone. */
+const IconSq = ({ Icon, bg, size = 30, deep = false }) => {
   const t = useT();
-  const c = oneHue(t, bg);
+  const c = hueOf(t, bg);
+  const [pale, lip, cloth] = lightsOf(c);
+  const dark = darkPage(t);
+  const face = deep || dark ? c : pale;
   return (
-    <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0"
-          style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: c, boxShadow: `0 2px 0 ${LIP(c)}` }}>
-      <Icon size={Math.round(size * 0.56)} color="#FFFFFF" strokeWidth={2.2} />
+    <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0" data-tile-hue={c}
+          style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: face, boxShadow: `0 2px 0 ${deep || dark ? LIP(c) : lip}` }}>
+      <Icon size={Math.round(size * 0.56)} color={dark ? cloth : deep ? onHue(c) : inkOf(c)} strokeWidth={2.2} />
     </span>
   );
 };
@@ -9352,11 +9463,12 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   /* a person's own colour, the same every time and everywhere — the
      founder asked for colour "to make it look more realistic", and every
      messenger draws an initials disc in a colour of its own */
-  const disc = tint || bg || faceTone(t);
-  const mark = tint ? "#fff" : fg || "#FFFFFF";
+  const tone = tint || bg ? null : faceTone(t, group ? `group:${name || ""}` : name);
+  const disc = tint || bg || tone.bg;
+  const mark = tint ? "#fff" : fg || (tone ? tone.fg : "#FFFFFF");
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-          style={{ width: size, height: size, background: disc,
+          style={{ width: size, height: size, background: disc, boxShadow: tone && !pic ? `inset 0 0 0 1px ${tone.ring}` : undefined,
                    fontFamily: display, fontSize: Math.max(12, size * 0.38), fontWeight: 600,
                    letterSpacing: "-0.02em", color: mark }}>
       {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} onError={() => setBroken(pic)} />
@@ -11141,7 +11253,7 @@ function LessonDetail({ lesson, role, live, coachName, playerName, items, loadin
       <Screen bare onBack={pop} right={<>
         {star.toggle && (
           <button data-tour="lesson-star" onClick={() => star.toggle(lesson)} aria-label={isStar ? tr("Starred") : tr("Star")} aria-pressed={isStar} className="p-2 active:opacity-50">
-            <span className="flex" style={{ animation: starPop ? "starPop 380ms cubic-bezier(.22,1,.36,1) backwards" : "none" }}><Star size={21} color={isStar ? HUE.gold : t.ink} fill={isStar ? HUE.gold : "none"} strokeWidth={1.6} /></span>
+            <span className="flex" style={{ animation: starPop ? "starPop 380ms cubic-bezier(.22,1,.36,1) backwards" : "none" }}><Star size={21} color={isStar ? STAR : t.ink} fill={isStar ? STAR : "none"} strokeWidth={1.6} /></span>
           </button>
         )}
         {extraTitleRight}{more}</>}>
@@ -14196,7 +14308,7 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* what was taken — one tap opens the camera itself */}
           <div className="px-6" style={{ marginTop: SPACE.block }}>
             <TileGrid>
-              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} hue={HUE.green} label={tr("Video")} count={videos.length}
+              <ActTile tour="wiz-media" h={76} iconOnly Icon={VideoIcon} hue={HUE.wine} label={tr("Video")} count={videos.length}
                        onTap={() => (live ? pickFiles("video/*") : setCam(true))} />
               <ActTile h={76} iconOnly Icon={Camera} hue={HUE.blue} label={tr("Photo")} count={photos.length}
                        onTap={() => (live ? pickFiles("image/*") : addPhoto("action"))} />
@@ -18434,13 +18546,16 @@ function PushPrompt({ userId, say }) {
    every other screen. A screen that looks like two screens depending on
    who is looking at it cannot be designed, so the harness now hands in
    the same shape the database does and there is one list. */
-/* THE BELL'S BADGE IS THE SPORT'S COLOUR (22 November). It took a hue by
-   the notice's kind for a day — green, blue, wine, red, gold, purple — and
-   with the faces and the tiles the app read "way too colourful. Not
-   cohesive or classy" (the founder). The kind is told by the glyph; the
-   colour is the sport's own. Before the hues it was the grey wash with a
-   grey glyph: a badge that all but vanished on the face, and a disc that
-   read as a missing photo. */
+/* WHAT KIND, IN THE SPORT'S CLUB COLOURS: the badge on a face and the
+   disc where nobody is named carry the kind's glyph on its role's colour
+   — a message or a lesson the lead, a request and its answer the people's
+   hue, the diary's the wine, a call-off the brick, a tip, a rating or a
+   competition the gold, a drill or a practice the purple, a clip the
+   blue. (It was the grey wash with a grey glyph, then ten bright hues,
+   then for an evening the sport's one colour.) */
+const KIND_ROLE = { message: HUE.green, lesson: HUE.green, request: HUE.teal, accepted: HUE.teal, declined: HUE.teal, family: HUE.teal,
+                    booking: HUE.wine, weather: HUE.red, tip: HUE.gold, rating: HUE.gold, comp: HUE.gold,
+                    drill: HUE.purple, practice: HUE.purple, clip: HUE.blue };
 function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAll,
                        onMarkAllRead, userId, say, faceFor }) {
   const t = useT();
@@ -18492,7 +18607,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
   const Line = ({ n }) => {
     const face = faceFor ? faceFor(n) : null;
     const K = NOTIF_ICON[n.kind] || Bell;
-    const hue = t.accent;   /* one colour a sport: the kind is the glyph, never a hue */
+    const hue = hueOf(t, KIND_ROLE[n.kind] || HUE.slate), on = onHue(hue);
     return (
       <SwipeRow deleteLabel={tr("Clear")} onDelete={() => onClear && onClear(n.id)}>
         <PersonRow className="py-3" nameLines={0} onTap={() => { haptic(8); soft(); onOpen && onOpen(n); }}
@@ -18507,8 +18622,9 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {face
               ? <Avatar name={face.name} size={PERSON_FACE} src={face.src} />
               : <span className="flex items-center justify-center"
-                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: hue }}>
-                  <K size={20} color="#FFFFFF" strokeWidth={2} />
+                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: paleOf(hue), boxShadow: `inset 0 0 0 1px ${lightsOf(hue)[1]}` }}>
+                  {/* a disc that stands where a face would is a face's: the kind's pale, its glyph the deep colour */}
+                  <K size={20} color={inkOf(hue)} strokeWidth={2} />
                 </span>}
             {/* WHO, THEN WHAT. The face is read before any word beside it;
                 the badge says which kind of thing it was without the line
@@ -18518,7 +18634,7 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
               <span className="absolute flex items-center justify-center"
                     style={{ right: -3, bottom: -3, width: 18, height: 18, borderRadius: 9,
                              background: hue, boxShadow: `0 0 0 2px ${t.page}` }}>
-                <K size={10} color="#FFFFFF" strokeWidth={2.4} />
+                <K size={10} color={on} strokeWidth={2.4} />
               </span>
             )}
           </span>} />

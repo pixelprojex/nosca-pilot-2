@@ -172,27 +172,86 @@ seeded data and no account.
   change them together. Contrast: paper on it 11:1, white 12:1. The
   `theme-color` meta in index.html and the manifest's `theme_color` are
   NOT the brand: they are the paper (see below).
-- **One colour a sport, in the small things too (22 November, the
-  evening).** The glyph tiles, the faces and the bell's badges took ten
-  hues of `HUE` for a day ("Colour in its places", in the bullet below)
-  and the founder, on the preview: "WOW! That's way too colourful. Not
-  cohesive or classy. It's a small fix though!" So every glyph tile
-  (`IconSq`) is the sport's own colour whatever hue its row names
-  (`oneHue(t, hue)`); a face with no picture is the sport's colour lit a
-  little from the top, the same for everybody (`faceTone`; it took one
-  of seven hues by the name); a round key's glyph (`ActTile hue`: the
-  peek's six, the player file's, the log's Video · Photo · Voice) and
-  the bell's badge and nameless disc are the sport's colour. Red alone
-  stays, for what removes or calls off (Delete account, Call off), and
-  gold for a star (starred, a rating). So the palette on any screen is
-  the sport's colour, the greys, red for danger, gold for a star, and
-  the register's own green and red. `HUE` stays as the table of names: a
-  row still says which hue it asked for, and nothing draws it. This
-  supersedes "Colour in its places … the six sports' colours … a face
-  with no picture is one of the palette's colours" below, and
-  `KIND_HUE`, which is gone. `SportGrid` keeps each sport in its own
-  colour: it is the one grid whose subject is the palette.
-  `families-requests.cjs` (c) reads the badge.
+- **The club colours: deep for what acts, pale for what labels (22–23
+  November, the colour study).** The founder, four times in two days. Of
+  ten bright hues on the tiles and faces: "WOW! That's way too colourful.
+  Not cohesive or classy." Of everything in the sport's one green, the
+  fix for that: "I do want variation in colors. I don't want all the
+  same green … the green is … so like in your face and modern … it's not
+  classy, it's not traditional … do a deep color study, and then
+  obviously a different one for each sport … the business card, that's
+  kind of more of the design I'm going for … different buttons are
+  different colors, different functions", with Lares as the reference
+  ("it works very, very well with the different colors"). And of the
+  deep family that answered it: "those colors are beautiful and all, but
+  I also want some more lighter tones throughout so it doesn't feel too
+  dark and heavy, especially if somebody's using it with the black
+  background." So:
+  - **One family, `CLUB`.** Twenty traditional colours at the business
+    card's own tone: measured in OKLCH the card's olive and Lares's hues
+    have a chroma of 0.05 to 0.11 and the old sport colours had 0.10 to
+    0.19 — that was the "in your face". The family sits at chroma 0.05
+    to 0.10 and lightness 0.32 to 0.48 (enamel, blazer cloth, leather),
+    white on every one at 5.5:1 and over; the card's gold is the one
+    light one and carries a dark glyph (`onHue`).
+  - **A sport takes its lead and a set of its own** (`CLUB_SETS`, on the
+    theme as `club`; `mark` and `accent` are the lead): golf fairway
+    `#285937`, tennis court `#125856`, rowing river `#264A70`, squash
+    sienna `#844925`, padel aubergine `#4D3566`, equestrian claret
+    `#6B2935`; the brand's set before a sport. Never a bright or
+    saturated colour again.
+  - **A function has a hue, and the sport says which colour that is.**
+    `HUE` names roles (`h:green` …), never hexes, and `hueOf(t, role)`
+    reads the sport's colour for it: green the lesson and the lead (Log,
+    Register, Messages), teal people and setting up, blue what is
+    captured or sent, orange the warm one (to log, a voice), purple
+    practice, wine time (the diary, a reminder), brand the roster and
+    the record, gold a tip, a review, a trophy, slate the system's own
+    rows, red what removes or calls off (`DANGER` is the family's brick,
+    `#9A322A`). The same thing is the same role everywhere
+    (`SETTINGS_GLYPHS`, `COACH_ACTIONS[].hue`, `KIND_ROLE` for the bell).
+  - **Every colour has its lighter half** (`CLUB_PALE`; `lightsOf(c)` is
+    [pale, the pale's ledge, cloth]; `paleOf`, `inkOf`, `inkHue`): the
+    PALE at lightness 0.93 and a third of the chroma (sage, duck egg,
+    stone blue, heather, straw; the reds capped lower — plaster, never
+    baby pink), its ledge at 0.865, and the CLOTH tone at 0.76, which is
+    what the colour is on a dark page, where the deep one sinks. A
+    colour outside the family (a coach's branding) is mixed toward
+    white. `scripts/club-palette.py` makes them and writes the website's
+    `palette.css` from the same numbers — change a colour there, run it,
+    paste the table it prints.
+  - **The rule: what acts is deep; what labels is pale, with the deep
+    colour as its ink.** Deep: the one action and every primary key, my
+    bubble, the tab bar's tint, a progress fill, the unread dot, a text
+    action that acts, a round key's glyph on its white key, the bell's
+    18px badge, a sport tile once chosen. Pale: a glyph tile (`IconSq`:
+    the pale face on the pale's own ledge, the glyph the deep colour;
+    `deep` keeps the full colour for an exception), a face with no
+    picture (`faceTone`: a pale disc ringed in its ledge, the initials
+    deep; seven by the name — the lead, navy, saddle, aubergine, petrol,
+    claret, olive, whose pales stand apart), the bell's nameless disc,
+    a chosen answer (`SEL`: the lead's pale on its cloth tone, the word
+    a step deeper than the lead), a sport tile at rest (`SportGrid`).
+    A star on white is `STAR` (`#9A7B2B`); the gold's ink on its pale is
+    a deeper gold.
+  - **A dark page takes the cloth tones** (`inkHue`, `IconSq` and
+    `faceTone` read `darkPage(t)`: the deep colour as the face, its
+    cloth tone as the glyph). The dark appearance itself is still
+    switched off — its hard-coded whites are unaudited — so this is the
+    palette made ready, not a dark mode shipped.
+  This supersedes: the saturated values in the bullet below (`#207A30`
+  and its five), "Colour in its places" there (`HUE` as hexes, the tiles'
+  white glyph on a full colour, `faceHue`), the bullet this replaced
+  ("One colour a sport, in the small things too", an evening of
+  everything in the sport's one colour, `oneHue`), `KIND_HUE`, the 10%
+  and 55% mixes of `SEL` and `SportGrid`, and the golf paragraph under
+  "The sport tints the app" (`#2F6B3A`). Not changed: white throughout,
+  Apple's greys, the keys on their ledges, the cards, the type, red for
+  what removes, the register's own green and red, the tab bar, the
+  splash, the feed. `keys.cjs`, `boxes.cjs`, `ease.cjs`,
+  `calendar-day.cjs`, `families-requests.cjs`, `join-requests.cjs`,
+  `new-group.cjs`, `sprint-3.cjs`, `coach-day.cjs` and `diary.cjs` read
+  the values.
 - **White, one saturated colour a sport, Duolingo's keys, Apple's type
   (21 November, the afternoon).** The stone keys below lasted a morning.
   The founder, the same day: "Take so much more from Duolingo … the

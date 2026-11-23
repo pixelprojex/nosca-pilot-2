@@ -427,7 +427,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         return { boxed: !!b.parentElement && b.parentElement.classList.contains("nsc-list"), key: b.classList.contains("n-key"), h: Math.round(b.getBoundingClientRect().height),
                  square: sq ? getComputedStyle(sq).backgroundColor : null, chevron: !!b.querySelector("svg.lucide-chevron-right"), label: b.textContent.trim() };
       });
-      check("(n5) the child's Progress is a door — a row in a box of its own with its glyph on the green square and the chevron, never a key", !!door && door.boxed && !door.key && door.h >= 56 && door.square === "rgb(32, 122, 48)" && door.chevron && door.label === "Progress", JSON.stringify(door));
+      check("(n5) the child's Progress is a door — a row in a box of its own with its glyph on the sport's pale square and the chevron, never a key", !!door && door.boxed && !door.key && door.h >= 56 && door.square === "rgb(219, 238, 223)" && door.chevron && door.label === "Progress", JSON.stringify(door));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
       const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > :not([data-tour]) > span:first-child')]
@@ -545,7 +545,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const jacts = await page.evaluate(() => [...document.querySelectorAll('[data-tour="request-card"] .ml-auto button')].map((b) => { const cs = getComputedStyle(b); return { label: b.textContent.trim(), bg: cs.backgroundColor, bw: cs.borderTopWidth, bs: cs.borderTopStyle, fg: cs.color, h: Math.round(b.getBoundingClientRect().height) }; }));
         const jink = await page.evaluate(() => { const n = document.querySelector('[data-tour="request-card"] [data-name]'); return n ? getComputedStyle(n).color : null; });
         check("(s1) a join request is the one person row in a box on the card's edge — Accept · Decline its text actions, no outline and no fill, 44 tall, Accept in golf's colour (it was a card with a filled success-green Accept and an outlined Decline)",
-          fine(jr) && only(join, /^(Decline|Accept)$/).length === 0 && jacts.length >= 2 && jacts.every((a) => a.bg === "rgba(0, 0, 0, 0)" && (a.bw === "0px" || a.bs === "none") && a.h >= 44) && jacts.some((a) => a.label === "Accept" && a.fg === "rgb(32, 122, 48)"),
+          fine(jr) && only(join, /^(Decline|Accept)$/).length === 0 && jacts.length >= 2 && jacts.every((a) => a.bg === "rgba(0, 0, 0, 0)" && (a.bw === "0px" || a.bs === "none") && a.h >= 44) && jacts.some((a) => a.label === "Accept" && a.fg === "rgb(40, 89, 55)"),
           `${said(jr)} · ${JSON.stringify(jacts).slice(0, 200)} ink ${jink} · ${told(join).slice(0, 120)}`);
         await tap(page, '[aria-label="Today"]', 900);
         await page.locator("button", { hasText: /^Decline$/ }).first().click(); await page.waitForTimeout(900);
@@ -614,7 +614,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         check("(s12) one sheet title: New group, Invite players, New message and the recurring Set up sheet carry TYPE.title's 22px (19 until 21 November; they were 24 and 25 beside the twenty-two at 19)", [sNew, sInv, sMsg, sRec].every((x) => x === "22px"), JSON.stringify({ sNew, sInv, sMsg, sRec }));
         /* since 18 November the cadence is the manager's Segmented (B20): one chosen, its thumb, never the accent */
         /* the chosen day is Duolingo's chosen answer since 21 November (the ink before): golf's colour faint, the six others white keys */
-        check("(s13) the recurring sheet's chosen day is golf's colour faint, as a chosen tile is, and the cadence is the Segmented with one chosen — never the accent's fill, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === "rgb(233, 242, 234)").length === 1 && recDays.days.filter((d) => d.bg === "rgb(255, 255, 255)").length === 6 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.p === "true").length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(32, 122, 48)"), JSON.stringify(recDays).slice(0, 300));
+        check("(s13) the recurring sheet's chosen day is golf's colour faint, as a chosen tile is, and the cadence is the Segmented with one chosen — never the accent's fill, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === "rgb(219, 238, 223)").length === 1 && recDays.days.filter((d) => d.bg === "rgb(255, 255, 255)").length === 6 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.p === "true").length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(40, 89, 55)"), JSON.stringify(recDays).slice(0, 300));
         await ctx.close();
       }
       /* the To log screen: person rows in one boxed list, Log as the row's action */

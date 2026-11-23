@@ -21,8 +21,8 @@ const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-00
   junior: "00000000-0000-4000-8000-00000000c41d", parent: "00000000-0000-4000-8000-000000pa4e07" };
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const TODAY = M.ymd(new Date());
-const DANGER = "rgb(196, 52, 42)";          // #C4342A
-const ACCENT = "rgb(32, 122, 48)";          // golf's accent #207A30 since 21 November (#2F6B3A before)
+const DANGER = "rgb(154, 50, 42)";          // #9A322A, the club's brick since 22 November (#C4342A before)
+const ACCENT = "rgb(40, 89, 55)";          // golf's fairway #285937 since 22 November (#207A30, #2F6B3A before)
 const NINE = ["Aoife Doyle", "Brian Nolan", "Clodagh Hayes", "Dara Ryan", "Eimear Walsh", "Fionn Byrne", "Gráinne Tran", "Hugh Okafor", "Iseult Burke"];
 
 function freshDb() {

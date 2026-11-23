@@ -20,7 +20,7 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const IDS = { coach: "00000000-0000-4000-8000-00000000c0ac", adult: "00000000-0000-4000-8000-0000000adu17" };
 const TODAY = M.ymd(new Date());
-const ACCENT = "rgb(32, 122, 48)";   // golf's #207A30 since 21 November (#2F6B3A before)
+const ACCENT = "rgb(40, 89, 55)";   // golf's fairway #285937 since the colour study of 22 November (#207A30, #2F6B3A before)
 
 /* the app's TINT for golf, worked out the app's way: the accent's hue at a
    fresher saturation and 89% lightness */
@@ -81,14 +81,14 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
        grey ring (#E2E2E7), a three-point grey ledge (#D9D9DE) — never the sport's colour, never the wash */
     check("(a) Register on the plus is the white tile: the white face, the light grey ring, a three-point grey ledge — never the sport's colour", regTile && !!reg && reg.bg === "rgb(255, 255, 255)" && reg.border === "rgb(226, 226, 231)" && lipOf(reg.shadow) === 3 && /rgb\(217, 217, 222\)/.test(reg.shadow) && !/32, 122, 48/.test(reg.shadow) && reg.w > reg.h, JSON.stringify(reg));
     /* Call off is the white key like its neighbours since 21 November, told by its red word and the red square of its glyph */
-    check("(a) …Call off the white key with its word in red, on the same ledge", !!off && off.bg === "rgb(255, 255, 255)" && off.fg === "rgb(196, 52, 42)" && lipOf(off.shadow) === 3, JSON.stringify(off));
+    check("(a) …Call off the white key with its word in red, on the same ledge", !!off && off.bg === "rgb(255, 255, 255)" && off.fg === "rgb(154, 50, 42)" && lipOf(off.shadow) === 3, JSON.stringify(off));
     check("(a) …and Log a lesson the accent across the top, the glyph beside the word", !!logBlock && logBlock.bg === ACCENT && lipOf(logBlock.shadow) === 3 && logBlock.h >= 60 && logBlock.h < 70, JSON.stringify(logBlock));
     await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
 
     /* (c) content stands on a foot: a row of a list on three points of the wash made deeper, and one that is a
        button sinks onto it under the finger — Lares's tiles, so a list is the same family as its keys */
     const row = await page.evaluate(() => { const b = [...document.querySelectorAll(".nsc-list > *")].find((x) => /Cian Murphy/.test(x.innerText)); return b ? getComputedStyle(b).boxShadow : null; });
-    check("(c) a row of the day stands on a two-point ledge of the light grey line, not the sport's colour", lipOf(row) === 2 && /rgb\(226, 226, 231\)/.test(String(row)) && !/32, 122, 48/.test(String(row)), String(row));
+    check("(c) a row of the day stands on a two-point ledge of the light grey line, not the sport's colour", lipOf(row) === 2 && /rgb\(226, 226, 231\)/.test(String(row)) && !/40, 89, 55/.test(String(row)), String(row));
     const arch = page.locator('[data-tour="today-archive"]').first();
     let sink = null;
     if (await arch.count()) {
