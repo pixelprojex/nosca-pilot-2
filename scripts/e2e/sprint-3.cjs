@@ -93,14 +93,14 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-weather"]', 900);
       const whyEyebrow = sheet(page).locator("div", { hasText: /^Why$/ }).last();
       const whyFs = await styleOf(whyEyebrow, "fontSize"), whyColor = await styleOf(whyEyebrow, "color");
-      await M.click(page, "Weather", 400); await M.click(page, "Next", 700);
+      await M.click(page, "Weather", 400); await M.click(page, /^Next$/, 700);
       /* the label grey is the sport's own (golf's here): Why reads in the
          same grey as the day labels over the Which-lessons rows, which have
          always been the eyebrow in t.sub */
       const dayLabel = sheet(page).locator("div", { hasText: /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d/ }).last();
       const sub = sheet(page).locator("p", { hasText: /^Weather$/ }).first();
       check(`(a${width}) Which days: the reason as the sub in TYPE.small`, (await sub.count()) === 1 && (await styleOf(sub, "fontSize")) === "14px", await styleOf(sub, "fontSize").catch(() => "none"));
-      await M.click(page, "Next", 700);
+      await M.click(page, /^Next$/, 700);
       const dayColor = (await dayLabel.count()) ? await styleOf(dayLabel, "color") : "none";
       check(`(a${width}) Call off: Why as the eyebrow over the reasons, in the same label grey as the day labels over the lessons`, whyFs === "13px" && whyColor === dayColor && dayColor !== "none", `${whyFs} ${whyColor} vs ${dayColor}`);
       const rows = sheet(page).locator("[data-person-row]");
@@ -525,8 +525,22 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-log"]', 1000);
       await page.locator("button", { hasText: "Cian" }).first().click(); await page.waitForTimeout(1000);
-      const hs = await page.evaluate(() => { const f = document.querySelector('[data-tour="wiz-focus"] button'); const d = document.querySelector('[data-tour="wiz-drills"]'); return f && d ? { focus: Math.round(f.getBoundingClientRect().height), drills: Math.round(d.getBoundingClientRect().height) } : null; });
-      check("(l) C23: the log's focus tiles and the Drills · Tip pair are one height", !!hs && hs.focus === hs.drills, JSON.stringify(hs));
+      const hs = await page.evaluate(() => { const f = document.querySelector('[data-tour="wiz-focus"] button'); const d = document.querySelector('[data-tour="wiz-drills"]'); const word = (b) => { const cs = getComputedStyle(b.querySelector("span")); return `${cs.fontSize}/${cs.fontWeight}`; };
+        return f && d ? { focus: Math.round(f.getBoundingClientRect().height), drills: Math.round(d.getBoundingClientRect().height), word: word(f), drillsWord: word(d) } : null; });
+      /* 58 since 22 November (art direction): the areas are the page's answers — the word 17/600 on a 58 key — and Drills · Tip match them (they were 52 at 15) */
+      check("(l) C23: the log's focus tiles and the Drills · Tip pair are one height — 58, the word 17/600 on both", !!hs && hs.focus === hs.drills && hs.focus === 58 && hs.word === "17px/600" && hs.drillsWord === "17px/600", JSON.stringify(hs));
+      /* a chosen area keeps the chosen answer's face and carries the tick disc on its top-right corner; an unchosen
+         one carries none, and Drills · Tip never do, open or not — that corner is the count's and the dot's */
+      await page.locator('[data-tour="wiz-focus"] button').first().dispatchEvent("click"); await page.waitForTimeout(600);
+      await tap(page, '[data-tour="wiz-drills"]', 800);
+      const tk = await page.evaluate(() => {
+        const keys = [...document.querySelectorAll('[data-tour="wiz-focus"] button')], k = keys[0], tick = k.querySelector("[data-tick]"), kr = k.getBoundingClientRect(), r = tick ? tick.getBoundingClientRect() : null;
+        return { tick: r ? { w: Math.round(r.width), h: Math.round(r.height), corner: r.right > kr.right && r.top < kr.top && r.left > kr.left + kr.width / 2, glyph: !!tick.querySelector("svg") } : null,
+                 chosenFace: getComputedStyle(k).backgroundColor !== getComputedStyle(keys[1]).backgroundColor, others: keys.slice(1).filter((b) => b.querySelector("[data-tick]")).length,
+                 next: document.querySelectorAll('[data-tour="wiz-next-block"] [data-tick]').length, all: document.querySelectorAll("[data-tick]").length };
+      });
+      await shot("l-log-tick");
+      check("(l) a chosen area carries the tick disc on its top-right corner (22px), an unchosen one none, and Drills · Tip never", !!tk && !!tk.tick && tk.tick.w === 22 && tk.tick.h === 22 && tk.tick.corner && tk.tick.glyph && tk.chosenFace && tk.others === 0 && tk.next === 0 && tk.all === 1, JSON.stringify(tk));
       await ctx.close();
     }
 

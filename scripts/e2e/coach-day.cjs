@@ -139,13 +139,13 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
       await tap(page, '[data-tour="quick-weather"]', 900);
       const t3 = await text(); await shot("05-calloff-why");
       check("(c) Call off asks why first, and never says weather call-off", t3.includes("Call off") && t3.includes("Weather") && t3.includes("Unwell") && !t3.includes("Weather call-off"), t3.slice(0, 200));
-      await M.click(page, "Weather", 400); await M.click(page, "Next", 700);
+      await M.click(page, "Weather", 400); await M.click(page, /^Next$/, 700);
       const t4 = await text(); await shot("05b-calloff-days");
       const dayTiles = page.getByRole("button", { name: /· \d lessons?$/ });
       check("(c) then which days: every day ahead with lessons, as tiles carrying their count", t4.includes("Which days") && (await dayTiles.count()) === 2 && (await page.getByRole("button", { name: `${dayLabel(TODAY)} · 3 lessons` }).count()) === 1 && (await page.getByRole("button", { name: `${dayLabel(TOMORROW)} · 1 lesson` }).count()) === 1, t4.slice(0, 200));
       /* today is already picked; add tomorrow — as many days as you like */
       await page.getByRole("button", { name: `${dayLabel(TOMORROW)} · 1 lesson` }).click(); await page.waitForTimeout(300);
-      await M.click(page, "Next", 700);
+      await M.click(page, /^Next$/, 700);
       const t5 = await text(); await shot("05c-calloff-which");
       const ticks = page.locator('[data-sheet] button[aria-pressed]');
       check("(c) then which lessons: both days, every lesson ticked", t5.includes("Which lessons") && t5.includes(dayLabel(TODAY)) && t5.includes(dayLabel(TOMORROW)) && (await ticks.count()) === 4 && (await page.locator('[data-sheet] button[aria-pressed="true"]').count()) === 4 && t5.includes("Call off 4 lessons"), t5.slice(0, 240));
@@ -172,7 +172,7 @@ const last = (arr, table) => arr.filter((x) => x.table === table).slice(-1)[0];
     {
       const { db, page, text } = await boot();
       await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-weather"]', 900);
-      await M.click(page, "Unwell", 400); await M.click(page, "Next", 700); await M.click(page, "Next", 700);
+      await M.click(page, "Unwell", 400); await M.click(page, /^Next$/, 700); await M.click(page, /^Next$/, 700);
       await M.click(page, "Call off 3 lessons", 800);
       await pw(page).fill("secret12"); await lastBtn(page, /^Call off 3 lessons$/).click(); await page.waitForTimeout(2000);
       const c2 = last(db.patches, "bookings");

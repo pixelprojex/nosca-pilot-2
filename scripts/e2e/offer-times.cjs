@@ -310,10 +310,10 @@ function freshDb({ hours = true, away = null, family = false, requestFor = "adul
       const { ctx, page, shot } = await boot(db);
       await M.tap(page, '[data-tour="quick"]', 900);
       await M.tap(page, '[data-tour="quick-weather"]', 900);
-      await M.click(page, "Weather", 400); await M.click(page, "Next", 700);
+      await M.click(page, "Weather", 400); await M.click(page, /^Next$/, 700);
       /* today is picked; add tomorrow, where the request is */
       await page.getByRole("button", { name: /· \d lessons?$/ }).nth(1).click(); await page.waitForTimeout(300);
-      await M.click(page, "Next", 700);
+      await M.click(page, /^Next$/, 700);
       const n = await page.locator('[data-sheet] button[aria-pressed="true"]').count();
       await shot("07-calloff-request");
       await page.locator("[data-sheet] button", { hasText: new RegExp(`^Call off ${n} lessons$`) }).first().click(); await page.waitForTimeout(800);

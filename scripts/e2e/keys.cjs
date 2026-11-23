@@ -30,11 +30,16 @@ const tintOf = (hex, l, k = 1) => { const [h, s] = hslOf(hex); return rgbOfHsl(h
 const TINT = "rgb(255, 255, 255)", WASH = "rgb(235, 243, 234)", NONE = "rgba(0, 0, 0, 0)";   // the second kind is the paper's white on the sport's edge — never a tint (18 Nov)
 void tintOf;
 
-function freshDb() {
+function freshDb(sport = "golf") {
   const db = M.emptyDb();
-  const person = (id, email, prof) => { M.addUser(db, { id, email }); return M.addProfile(db, { id, ...prof }); };
+  const person = (id, email, prof) => { M.addUser(db, { id, email }); return M.addProfile(db, { id, sport, ...prof }); };
   person(IDS.coach, "coach@t.ie", { role: "coach", name: "Niamh Byrne", inviteCode: "QW7X2M", club: "Portmarnock" });
   person(IDS.adult, "adult@t.ie", { role: "player", name: "Cian Murphy", type: "adult", coachId: IDS.coach, dob: "1991-04-04" });
+  /* a second player with the day's first lesson: since 22 November (art direction) the lesson next is the home's
+     one coloured card (c0), and Cian's, after it, stays the white row of the day that (c) and the peek read */
+  const AOIFE = "00000000-0000-4000-8000-0000000a01fe";
+  person(AOIFE, "aoife@t.ie", { role: "player", name: "Aoife Doyle", type: "adult", coachId: IDS.coach, dob: "1993-03-03" });
+  M.addBooking(db, { coachId: IDS.coach, playerId: AOIFE, date: TODAY, time: "2:00 pm" });
   M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "4:00 pm"], [0, 1, 2, 3, 4, 5, 6]) });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "4:00 pm" });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(new Date(Date.now() - 7 * 864e5)), focus: "Putting" });
@@ -50,6 +55,17 @@ const look = (page, sel) => page.locator(sel).first().evaluate((el) => {
   return { bg: cs.backgroundColor, shadow: cs.boxShadow, border: cs.borderTopColor, transform: cs.transform, w: Math.round(r.width), h: Math.round(r.height), text: (el.innerText || "").trim(), label: el.getAttribute("aria-label"), fg: getComputedStyle(leaf || el).color };
 }).catch(() => null);
 const lipOf = (shadow) => { const m = String(shadow || "").match(/\b0px (\d+(?:\.\d+)?)px 0px\b/); return m ? Number(m[1]) : 0; };
+/* WCAG's contrast of two computed colours, read off the page — never a constant of the palette */
+const lum = (rgb) => { const [r, g, b] = String(rgb).match(/[\d.]+/g).slice(0, 3).map((v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+const rgbIn = (s) => { const m = String(s || "").match(/rgba?\([^)]+\)/); return m ? m[0] : null; };
+/* the day's coloured card, as the page draws it */
+const cardOf = (page) => page.evaluate(() => {
+  const cs = [...document.querySelectorAll("[data-next-card]")], c = cs[0]; if (!c) return { n: 0 };
+  const s = getComputedStyle(c), nm = c.querySelector("[data-name]");
+  return { n: cs.length, kind: c.dataset.nextCard, bg: s.backgroundColor, shadow: s.boxShadow, radius: s.borderTopLeftRadius, fg: getComputedStyle(nm).color, name: nm.textContent.trim(),
+           inList: !!c.parentElement && c.parentElement.classList.contains("nsc-list"), transform: s.transform };
+});
 const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^)]+)\)/); return m ? Number(m[1].split(",")[5]) : 0; };
 
 (async () => {
@@ -99,6 +115,22 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     }
     /* since 21 November a row sinks the whole of its ledge, as Duolingo's card does — it took half of it before */
     check("(c) …and a row that is one button sinks right onto it under the finger", !!sink && ty(sink.transform) === 2 && lipOf(sink.shadow) === 0, JSON.stringify(sink));
+    /* (c0) THE NEXT LESSON IS THE ONE COLOURED CARD (22 November, art direction): the one action's own colour — read
+       off the plus's Log a lesson, never a constant of the palette — its words 4.5:1 and over on it, 16px corners,
+       a box of the day's list on a four-point ledge of its colour made deeper; exactly one on the screen, and the
+       whole card sinks onto its ledge under a finger */
+    {
+      const card = await cardOf(page), ledge = rgbIn(card.shadow);
+      check("(c0) the next lesson is the day's one coloured card: the one action's colour, its words 4.5:1 and over, 16px corners, a four-point ledge of the colour made deeper",
+        card.n === 1 && card.kind === "next" && card.name === "Aoife Doyle" && card.inList && !!logBlock && card.bg === logBlock.bg && contrast(card.fg, card.bg) >= 4.5
+        && card.radius === "16px" && lipOf(card.shadow) === 4 && !!ledge && ledge !== card.bg && lum(ledge) < lum(card.bg), JSON.stringify(card));
+      const cb = await page.locator("[data-next-card]").first().boundingBox();
+      await page.mouse.move(cb.x + 40, cb.y + 22); await page.mouse.down(); await page.waitForTimeout(60);
+      const down = await cardOf(page);
+      await page.mouse.move(5, 5); await page.mouse.up(); await page.waitForTimeout(400);
+      const up = await cardOf(page);
+      check("(c0) …and the whole card sinks onto its ledge under the finger and comes back", ty(down.transform) === 3 && lipOf(down.shadow) === 1 && ty(up.transform) === 0 && lipOf(up.shadow) === 4, JSON.stringify({ down: [down.transform, down.shadow], up: [up.transform, up.shadow] }));
+    }
     await page.goto(BASE, { waitUntil: "networkidle" }); await M.settle(page);
 
     /* (b) the peek's six are round keys three to a row — the face sinks its whole three-point lip under a finger
@@ -160,6 +192,25 @@ const ty = (transform) => { const m = String(transform || "").match(/matrix\(([^
     check("(h) the log's Video, Photo and Voice are the icon alone, each named for VoiceOver", media.length === 3 && media.every((m) => m.text === "" && m.svg), JSON.stringify(media));
 
     await ctx.close();
+
+    /* (i) the words on the sport's colour, read on the card itself in every sport: 4.5:1 and over, one card a screen */
+    {
+      const read = [];
+      for (const sport of ["golf", "tennis", "rowing", "squash", "padel", "equestrian"]) {
+        const d = freshDb(sport), su = Object.values(d.users).find((x) => x.id === IDS.coach);
+        const c2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+        const p2 = await c2.newPage();
+        await p2.clock.setFixedTime(new Date(`${TODAY}T08:00:00`)); await M.attach(p2, d);
+        p2.on("pageerror", (e) => errors.push(`${sport}: ${String(e.message || e)}`));
+        await M.injectSession(p2, M.session(su, d));
+        await p2.goto(BASE, { waitUntil: "networkidle" }); await M.settle(p2);
+        const c = await cardOf(p2);
+        read.push({ sport, n: c.n, bg: c.bg, fg: c.fg, ratio: c.n ? Math.round(contrast(c.fg, c.bg) * 100) / 100 : 0 });
+        if (sport === "tennis") await p2.screenshot({ path: path.join(outDir, "i-card-tennis.png") });
+        await c2.close();
+      }
+      check("(i) the words on the day's card read 4.5:1 and over in all six sports, one card a screen", read.length === 6 && read.every((r) => r.n === 1 && r.ratio >= 4.5), JSON.stringify(read));
+    }
     check("no page errors", errors.length === 0, errors.join(" | ").slice(0, 300));
   } catch (e) {
     check("(x) the suite ran to the end", false, String(e && e.stack || e).slice(0, 500));

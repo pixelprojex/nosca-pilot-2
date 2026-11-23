@@ -404,12 +404,104 @@ seeded data and no account.
     person-and-plus, where both fell to the slate and a bell; the push
     prompt's answers reach 44; Chat's preview stays in the sub grey
     when unread.
-  Held for the founder, not done: the home's Actions filter (A2), the
-  archive's Filter rows as a group (C1), the transport of Mark it up,
-  Compare and Study (C4). `boxes.cjs` (i), (r4), (n0)–(n5), (s5b);
+  Held for the founder, not done: the archive's Filter rows as a group
+  (C1), the transport of Mark it up, Compare and Study (C4); the home's
+  Actions filter (A2) was settled that day by the art direction round
+  (the next bullet). `boxes.cjs` (i), (r4), (n0)–(n5), (s5b);
   `lists.cjs` (aa), (x2); `families-requests.cjs` (b), (c), (d), (e);
   `join-requests.cjs` (a), (g); `narrow.cjs` (e), (e2); `rating.cjs`
   (h2); `ease.cjs` (c); `signup.cjs`.
+- **The next lesson is the one coloured card; the time leads the row
+  (22 November, art direction).** Three designers prototyped elevations
+  on the white look and the art director kept these and no others; the
+  founder's brief stands over them — Duolingo's saturated colour and 3D
+  keys on white, Apple's calm, "our own personal twist", never "a
+  children's colouring book", and "No mistakes are to be allowed." What
+  a later session keeps:
+  - **One coloured card a screen at most, and it is the next lesson.**
+    The coach's home: the lesson on now, else the next one, is
+    `NextCard` in its place in Today's column (`data-next-card`, now ·
+    next; `today-next` kept) — the sport's accent filled, white words
+    (`OnAccent`: the theme with every grey turned to `onAccent`), 16px
+    corners, on the `Button`'s four-point ledge of its own colour made
+    deeper (`accentCard`, `LIP`): the eyebrow Now · Next · "In 25 min",
+    the time at 28/700, the ringed face (`RingedFace`) and the whole
+    name. A tap opens the peek, as the row did, and the whole card sinks
+    onto its ledge. On now it carries **Register** (`day-register`) as
+    the white key on the colour — beside the name while the whole name
+    fits on its line beside it, a line of its own under the name, on
+    the right, where it does not (the body's basis is its content's
+    width, so the line breaks before the key; on a basis of 0 the name
+    was squeezed to its longest word, "Cian Murphy" on two lines beside
+    the key at 320). `DayRow` is every other row of the day — a lesson
+    to log, one still ahead — and has no live form of its own. The
+    player's Diary List: the person's next confirmed lesson not yet
+    begun is the lit `agenda-mine` row (`data-lit`, `litKey`) — the
+    accent with white words inside the day's box, and a day that is only
+    that lesson the card whole on its ledge; a request, a session they
+    are out of and every later lesson stay white. The parent's Family:
+    with exactly one child who has a confirmed lesson ahead, her row is
+    the card (`family-kid`, `data-lit`); with more than one child the
+    Next up block says it and every row is white. The last box of a
+    list keeps under it only what its four-point ledge needs
+    (`accentCard(t, last)`), so the next section sits where it does
+    under any other list.
+  - **The time leads a row** (`TIME_LEAD`: 17/600 in a 74 column, in
+    the ink) — the home's `DayRow`, the coach's booked `agenda-row`, the
+    player's `agenda-mine`; a free hour and a blocked one keep the quiet
+    figure in the same column, a lesson to log the grey. At 350 and
+    under a `DayRow` gives its face to the name (`useNarrow`): with the
+    face the name had 69 to 80px at 320, "Súilleabháin" broke inside the
+    word and the name ended on an ellipsis beside Log.
+  - **`LessonRow`'s focus is a name's 16/600** (it was 400 beside every
+    person row's 600).
+  - **Log a practice is the Drills tab's one action:** the app's
+    `Button` across the page with its glyph (`drills-log-practice`),
+    under the list and under the empty tab alike — one action alone is
+    the `Button`, never a key drawn by hand, so its face, its ledge and
+    its word are every primary key's and its glyph takes the word's
+    colour. It was the white key, the one thing on the tab that acts
+    drawn like the rows above it.
+  - **The log's areas are answers:** 58 tall, the word 17/600 at
+    −0.015em (`ActTile big`), and Drills · Tip match them; a chosen area
+    keeps `SEL` and carries the tick disc on its top-right corner
+    (`tick`: 22px in `SEL`'s word colour, a white 12px tick, the page's
+    2px ring, popping in). The tick is the areas' alone: a key with a
+    count or a dot keeps that on its corner and never a tick beside it.
+    This supersedes "the log's focus tiles 52" and, for these keys,
+    "`ActTile`'s word is 15 in a grid of one or two".
+  - **A first-run empty ROOT tab is `EmptyHero`** — iOS's
+    ContentUnavailableView in Nosca's own form: the screen's glyph (the
+    sport's on the coach's home and on Lessons, the tab's own on Drills
+    and Chat) in the sport's mark on an 88px disc of the wash, the line
+    under it in `TYPE.section`, and the one next step where there is one
+    (the coach's Add player, `today-add-player`, the app's `Button`).
+    Four tabs only: the coach's home with nobody on the roster, a
+    player's Lessons with no lesson, Drills with none set, Chat with
+    nothing said (a coach's, and a player's with no thread). This
+    supersedes "an empty state is a line" and "one empty line —
+    `EmptyLine`" for those four tabs only: every other empty list, and
+    any list a search or a filter emptied, stays `EmptyLine`.
+  - **The home's Actions filter appears past two kinds and past six
+    rows shown** (it read "past two kinds"): four tiles naming Requests
+    · Messages · Drifting stood over three rows that named themselves,
+    the heaviest thing on the coach's home. Otherwise the rows sit
+    straight under the Actions heading.
+  Not taken from the same round, so not to be read back into it: the
+  28px drill tick, the feed's medallion, the two-size time (`DayTime`)
+  and the grouped Drills card. No colour and no key's face was defined
+  or changed by this round — those are the colour bullets' to say: the
+  card, the lit row and the tick read `t.accent`, `LIP` and `SEL` as
+  they find them, and the one key drawn by hand is the card's own white
+  Register on the colour.
+  `narrow.cjs` (c1)–(c8); `keys.cjs` (c0), (i); `ease.cjs` (a0), (c2),
+  (c3), (m)–(m3); `sprint-3.cjs` (l); `diary.cjs` (a2), (a3);
+  `families-requests.cjs` (f). A suite clicks a sheet's Next by its
+  whole word (`M.click(page, /^Next$/)`): the card on the home under
+  the sheet reads "Next" too, and the first button carrying the word
+  was the card (`sprint-3.cjs` timed out on it; the same click reads
+  the whole word in `coach-day.cjs`, `cancel-reason.cjs`,
+  `group-notify.cjs`, `offer-times.cjs` and `diary.cjs` too).
 - **What is pressed stands on a lip; a key with a glyph is round
   (18 November).** The founder: the buttons, tiles and boxes "Duolingo
   style … that we have already done with the Lares app … our own
@@ -1500,9 +1592,10 @@ seeded data and no account.
   the column as every future lesson in one list. **Actions** (it was
   "To do") is there only when something wants the coach: booking
   requests with Accept · Decline, To write up, Join requests, Messages,
-  Drifting, Competitions; past two kinds of thing a row of tiles (All ·
-  each kind) narrows it, and under two there is no filter to read
-  before the first row.
+  Drifting, Competitions; past two kinds of thing and past six rows
+  shown (22 November, art direction; it read "past two kinds") a row of
+  tiles (All · each kind) narrows it, and otherwise there is no filter
+  to read before the first row.
 - **Downloads are inside the app, the way Netflix keeps them, and a
   download is every part of the log.** The founder asked for this in
   those words: the disc used to hand the lesson out as an HTML file
@@ -1881,7 +1974,8 @@ seeded data and no account.
   switch `SPACE.block`, the switch to the list `tight`, the list to All
   lessons `row`, then `block`); the lesson page's note, reply and tip on
   `TYPE.title` (they were private 17, 17 and 21); the drill library's
-  Area row on its rule; the log's focus tiles 52, as Drills · Tip are.
+  Area row on its rule; the log's focus tiles 52, as Drills · Tip are
+  (58 since 22 November, the art direction bullet).
   `sprint-3.cjs` (l). On 21 November: the group page's members are the
   roster's own rows — where each one stands on the grey line in its
   tone, the level on the right (`rosterStanding()`, one function the
@@ -2823,7 +2917,9 @@ seeded data and no account.
   five hyphenated lines beside two 66px marks; the coach's live row on
   the home gave the name 32 of the 85px it needs beside Register and cut
   it on a two-line clamp; and the Diary's List row read "Maximiliano Ó
-  Súil…" beside the time. Width changes the shape in one place only:
+  Súil…" beside the time. Width changes the shape in one place only
+  (a second since 22 November: a day's row on the coach's home gives
+  its face to the name there — the art direction bullet):
   the header's pill drops its first name at 350 and under (`useNarrow`,
   a `matchMedia` hook; `data-narrow` on the pill) — it was the one thing
   in the row that could give, and with it gone the title has 80px, which
@@ -2852,7 +2948,12 @@ seeded data and no account.
   the pill does — it is cut there until the title is decided. Material's
   app bar guidance: do not truncate a title; SAP Fiori's top app bar:
   avoid truncating or shrinking text. `scripts/e2e/narrow.cjs` measures
-  all of it at 320, 360 and 375.
+  all of it at 320, 360 and 375. Since 22 November the lesson on now is
+  the day's coloured card, not a row, and Register the white key inside
+  it: beside the name while the whole name fits on its line, under it
+  where it does not — a short name keeps it beside at 360 and 375, the
+  long name drops it under at every width (the art direction bullet;
+  `narrow.cjs` (c1)–(c8)).
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: rows with an avatar,
   a name and one grey line, each in its own box on the sport's edge
