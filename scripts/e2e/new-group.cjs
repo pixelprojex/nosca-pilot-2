@@ -100,12 +100,13 @@ const brief = (sh) => sh ? `${sh.title} · "${sh.ph}" · ${sh.people.length} peo
       const C = await shape(page); await shot("03-from-tile");
       check("(d) the roster's New group tile opens the same sheet", !!C && print(C) === print(A), `${print(C)} vs ${print(A)}`);
 
-      /* the chosen day is Duolingo's chosen answer since 21 November (it was the ink): golf's colour at a tenth over
-         white with the word in golf's colour; the six others the white key; never the success green */
-      const SEL_FACE = "rgb(219, 238, 223)", SEL_FG = "rgb(37, 82, 51)";   // fairway's pale #DBEEDF; fairway #285937 a step deeper
+      /* every key is filled since 23 November: the chosen day is golf's cloth tone with the hue's ink, the six others
+         the quiet key in golf's pale (it was the pale face on a white key, and the ink before that); never the success green */
+      const SEL_FACE = "rgb(148, 189, 158)", SEL_FG = "rgb(22, 49, 30)";   // fairway's cloth #94BD9E; its ink
+      const QUIET = "rgb(219, 238, 223)";                                     // fairway's pale #DBEEDF
       const on = C ? C.days.filter((d) => d.bg === SEL_FACE) : [], off = C ? C.days.filter((d) => d.bg !== SEL_FACE) : [];
-      check("(e) the chosen day is Duolingo's chosen answer, golf's colour faint with the word in it; the six others are the white key; none is the success green",
-        !!C && on.length === 1 && on[0].d === "Sa" && on[0].fg === SEL_FG && off.length === 6 && new Set(off.map((d) => d.bg)).size === 1 && off[0].bg === "rgb(255, 255, 255)" && !C.days.some((d) => d.bg === STEADY),
+      check("(e) the chosen day is the chosen answer, golf's light colour filling it with the word in its ink; the six others are the quiet key in golf's pale; none is the success green",
+        !!C && on.length === 1 && on[0].d === "Sa" && on[0].fg === SEL_FG && off.length === 6 && new Set(off.map((d) => d.bg)).size === 1 && off[0].bg === QUIET && !C.days.some((d) => d.bg === STEADY),
         C ? JSON.stringify(C.days.map((d) => `${d.d} ${d.bg}`)) : "no sheet");
       await page.locator("[data-sheet] button", { hasText: /^Th$/ }).first().click(); await page.waitForTimeout(300);
       const C2 = await shape(page);

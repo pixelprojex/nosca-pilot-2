@@ -96,6 +96,17 @@ def clamp(x, a, b):
     return max(a, min(b, x))
 
 
+def mix(a, b, k):
+    """src/Nosca.jsx's MIX: a toward b by k, channel by channel"""
+    x = [int(a.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    y = [int(b.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    return "#%02X%02X%02X" % tuple(int(v + (w - v) * k + 0.5) for v, w in zip(x, y))
+
+
+ON_CLOTH = 0.45    # the word and the glyph on a cloth-filled key: the deep colour this far toward black
+CLOTH_LEDGE = 0.5  # the ledge under a cloth-filled key: the cloth this far toward its ink (the deep colour; the gold's deeper gold)
+
+
 def lighter(name, deep):
     L, C, h = srgb_to_oklch(deep)
     warm = h < 60 or h > 335
@@ -117,8 +128,11 @@ def main():
             rows.append(line.rstrip())
             line = "  "
         line += item
+        on = mix(ink, "#000000", ON_CLOTH)
+        assert contrast(on, cloth) >= 4.5, (name, "the ink on its cloth", contrast(on, cloth))
         css.append(f"  --club-{name}:{deep}; --club-{name}-tint:{pale}; --club-{name}-lip:{ledge}; "
-                   f"--club-{name}-mid:{cloth}; --club-{name}-ink:{ink};")
+                   f"--club-{name}-mid:{cloth}; --club-{name}-ink:{ink}; "
+                   f"--club-{name}-on:{on}; --club-{name}-mid-lip:{mix(cloth, ink, CLOTH_LEDGE)};")
     rows.append(line.rstrip())
     css.append("}")
     print("const CLUB_PALE = {")

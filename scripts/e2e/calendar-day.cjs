@@ -35,12 +35,13 @@ const REC = "c0000000-0000-4000-8000-00000000ca01";
 const EDGE = { golf: "rgb(226, 226, 231)", equestrian: "rgb(226, 226, 231)" };
 const CARD = "rgb(255, 255, 255)";
 const HAIRLINE = "rgb(235, 235, 240)";
-/* the club colours of 22 November: golf's fairway, the yard's claret; a chosen state is the lead's own
-   pale on its cloth tone since the 23rd (it was the lead at a tenth and at 55% over white) */
+/* the club colours of 22 November: golf's fairway, the yard's claret; a chosen answer is the lead's cloth
+   tone with the hue's ink since the 23rd, when every key was filled (it was the lead at a tenth and at 55%
+   over white, then for a morning its pale) */
 const ACCENT = { golf: "#285937", equestrian: "#6B2935" };
-const PALE = { golf: ["#DBEEDF", "#94BD9E"], equestrian: ["#F7E2E4", "#DA9FA6"] };
+const CLOTH = { golf: "#94BD9E", equestrian: "#DA9FA6" };
 const mixRgb = (a, b, k) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(", ")})`; };
-const SEL = (sport) => ({ face: mixRgb(PALE[sport][0], "#000000", 0), ring: mixRgb(PALE[sport][1], "#000000", 0), fg: mixRgb(ACCENT[sport], "#000000", 0.08) });
+const SEL = (sport) => ({ face: mixRgb(CLOTH[sport], "#000000", 0), ring: mixRgb(CLOTH[sport], ACCENT[sport], 0.5), fg: mixRgb(ACCENT[sport], "#000000", 0.45) });
 const GROUP = "rgb(110, 90, 147)";
 const WEEK = ["9:00 am", "10:00 am", "11:00 am", "11:30 am", "4:00 pm", "5:00 pm"];
 const TODAY = M.ymd(new Date());
@@ -109,7 +110,7 @@ const lum = (c) => { const v = String(c).match(/[\d.]+/g); if (!v) return 1; con
     await page.locator(`[data-tour="${tour}"]`, { hasText: new RegExp(`^${pick}$`) }).first().click(); await page.waitForTimeout(500);
     const on = (await reasons(page, tour)).find((r) => r.t === pick);
     const sel = SEL(sport);
-    check(`(${id}) …and the chosen one is Duolingo's chosen answer — the sport's colour faint on the face, on its ring, the word in the sport's colour`, !!on && on.bg === sel.face && on.border === sel.ring && on.fg === sel.fg, JSON.stringify({ on, sel }));
+    check(`(${id}) …and the chosen one is the chosen answer — the sport's light colour filling the face, a ring of the same hue, the word in the hue's ink`, !!on && on.bg === sel.face && on.border === sel.ring && on.fg === sel.fg, JSON.stringify({ on, sel }));
   };
 
   try {

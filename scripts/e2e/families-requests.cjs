@@ -101,7 +101,8 @@ const leaks = [];
   const beats = (page) => page.evaluate(() => window.__beats || []);
   const faceOf = (page, sel) => page.evaluate((sel) => { const b = typeof sel === "string" ? document.querySelector(sel) : null; if (!b) return null; const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ring: cs.borderTopColor, fg: cs.color }; }, sel);
   const keyFace = (page, label) => page.evaluate((label) => { const b = [...document.querySelectorAll('[data-scroll="screen"] button')].find((x) => x.textContent.replace(/\s+/g, " ").trim() === label); if (!b) return null; const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ring: cs.borderTopColor, fg: cs.color }; }, label);
-  const ACCENT = "rgb(40, 89, 55)", WHITE = "rgb(255, 255, 255)", RING = "rgb(226, 226, 231)";
+  /* a quiet key is the sport's pale on the pale's ledge since 23 November (the white key before): fairway's #DBEEDF, ringed #C1DAC6 */
+  const ACCENT = "rgb(40, 89, 55)", WHITE = "rgb(219, 238, 223)", RING = "rgb(193, 218, 198)";
 
   try {
     /* ---------- (a) a player withdraws the request they have out ---------- */
@@ -273,7 +274,7 @@ const leaks = [];
          it steps back to the white key, as Copy — it was the sport's colour beside Save's */
       await page.locator('[data-scroll="screen"]').getByText("Name", { exact: true }).first().click(); await page.waitForTimeout(600);
       const shareR = await faceOf(page, '[data-tour="family-share"]'), saveR = await keyFace(page, "Save"); await shot("16b-cian-renaming");
-      check("(d) renaming, Save is the one accent and Share the white key with the ink word", !!shareR && !!saveR && saveR.bg === ACCENT && shareR.bg === WHITE && shareR.ring === RING && shareR.fg === "rgb(28, 28, 30)", JSON.stringify({ share: shareR, save: saveR }));
+      check("(d) renaming, Save is the one accent and Share the quiet key with the ink word", !!shareR && !!saveR && saveR.bg === ACCENT && shareR.bg === WHITE && shareR.ring === RING && shareR.fg === "rgb(28, 28, 30)", JSON.stringify({ share: shareR, save: saveR }));
       await ctx.close();
     }
 
@@ -294,7 +295,7 @@ const leaks = [];
       check("(e) the code is looked up live and shows the family's name and size", t0.includes("The Murphys · 1 person") && rpc("find_family_by_code").some((x) => x.args.p_code === famCode), t0.slice(0, 200));
       /* one accent a screen: once the code has found a family, Join is the action and Start steps back to the white key */
       const startF = await keyFace(page, "Start"), joinF = await keyFace(page, "Join The Murphys");
-      check("(e) with a family found, Join is the one accent and Start the white key — both were the sport's colour", !!startF && !!joinF && joinF.bg === ACCENT && startF.bg === WHITE && startF.ring === RING, JSON.stringify({ start: startF, join: joinF }));
+      check("(e) with a family found, Join is the one accent and Start the quiet key — both were the sport's colour", !!startF && !!joinF && joinF.bg === ACCENT && startF.bg === WHITE && startF.ring === RING, JSON.stringify({ start: startF, join: joinF }));
       await countBeats(page);
       await click(page, "Join The Murphys", 1800);
       const jb = await beats(page);

@@ -1,8 +1,9 @@
 # Nosca — working notes for Claude Code
 
-Nosca (the anglicised spelling of the Irish word for linking — the
-founder's own account, 22 November; "nasc" alone is not where it came
-from, and the website must never say so) is a premium multi-sport coaching app:
+Nosca (an anglicised spelling of the Irish word *nascadh*, which means
+linking — the founder's own account, 23 November; "nasc" alone is not
+where it came from, and the website says "From the Irish nascadh,
+linking.") is a premium multi-sport coaching app:
 golf, tennis, rowing, squash, padel, equestrian. A coach side and a
 player side, plus parent and under-18 variants. Ireland-only,
 English-only pilot. Vite + React + Tailwind + Supabase, deployed on
@@ -172,8 +173,8 @@ seeded data and no account.
   change them together. Contrast: paper on it 11:1, white 12:1. The
   `theme-color` meta in index.html and the manifest's `theme_color` are
   NOT the brand: they are the paper (see below).
-- **The club colours: deep for what acts, pale for what labels (22–23
-  November, the colour study).** The founder, four times in two days. Of
+- **The club colours, and every key filled with one (22–23 November,
+  the colour study).** The founder, five times in two days. Of
   ten bright hues on the tiles and faces: "WOW! That's way too colourful.
   Not cohesive or classy." Of everything in the sport's one green, the
   fix for that: "I do want variation in colors. I don't want all the
@@ -186,7 +187,12 @@ seeded data and no account.
   deep family that answered it: "those colors are beautiful and all, but
   I also want some more lighter tones throughout so it doesn't feel too
   dark and heavy, especially if somebody's using it with the black
-  background." So:
+  background." And of the pale glyph tiles that answered that, the same
+  afternoon: "the colors must be visually appealing … I do want
+  fulfilled buttons throughout. I don't want just tiny circles and tiny
+  icons. And the colors don't all need to be saturated dark colors. I
+  want light colors too that also match the same color family. And make
+  sure that it is classy and professional." So:
   - **One family, `CLUB`.** Twenty traditional colours at the business
     card's own tone: measured in OKLCH the card's olive and Lares's hues
     have a chroma of 0.05 to 0.11 and the old sport colours had 0.10 to
@@ -220,35 +226,60 @@ seeded data and no account.
     white. `scripts/club-palette.py` makes them and writes the website's
     `palette.css` from the same numbers — change a colour there, run it,
     paste the table it prints.
-  - **The rule: what acts is deep; what labels is pale, with the deep
-    colour as its ink.** Deep: the one action and every primary key, my
-    bubble, the tab bar's tint, a progress fill, the unread dot, a text
-    action that acts, a round key's glyph on its white key, the bell's
-    18px badge, a sport tile once chosen. Pale: a glyph tile (`IconSq`:
-    the pale face on the pale's own ledge, the glyph the deep colour;
-    `deep` keeps the full colour for an exception), a face with no
-    picture (`faceTone`: a pale disc ringed in its ledge, the initials
-    deep; seven by the name — the lead, navy, saddle, aubergine, petrol,
-    claret, olive, whose pales stand apart), the bell's nameless disc,
-    a chosen answer (`SEL`: the lead's pale on its cloth tone, the word
-    a step deeper than the lead), a sport tile at rest (`SportGrid`).
-    A star on white is `STAR` (`#9A7B2B`); the gold's ink on its pale is
-    a deeper gold.
+  - **Every key is filled; the light colour of a hue is its cloth
+    tone.** Four fills and no white key (`KEYS_TINTED`, the one switch
+    back): **the one action** is the sport's deep lead with white words
+    (`Button`, the plus's Log a lesson, a live row's Register, my
+    bubble); **a function key** — the plus sheet's eight tiles, the
+    round keys of a lesson's peek, a player's file and the log's Video ·
+    Photo · Voice — is filled with its function's CLOTH tone, the word
+    and the glyph in the hue's own ink, on a ledge of the same hue
+    (`fillOf(t, hue)`: `clothOf`, `onCloth`, `clothLip`; `ActTile` with
+    an `Icon` and a `hue`, `data-fill`), where it was a white key with a
+    small coloured square or a coloured glyph in it; **a quiet key** — an
+    option chosen from (an area, a time, a day), a second button beside
+    the action (New group, Just decline, Cancel · Reschedule) — is the
+    lead's PALE on the pale's ledge (`TINT`, `KEY_RING`, `TINT_LIP`, so
+    every `n-key` and quiet `Button` follows); and **a chosen answer** is
+    the lead's cloth tone with its ink (`SEL`), a clear step stronger
+    than the pale it was chosen from. What calls off is the brick's
+    cloth with the red word under it. A tile leading a row (`IconSq`), a
+    face with no picture (`faceTone`: seven by the name — the lead,
+    navy, saddle, aubergine, petrol, claret, olive) and the bell's
+    nameless disc are the cloth tone with its ink too: the full deep
+    colour was "dark and heavy" twenty to a page, and the pale at 0.93
+    read as nothing ("tiny icons"). Deep stays for the one action, a
+    text action that acts, the unread dot, a progress fill, the tab
+    bar's tint, the bell's 18px badge and a sport tile once chosen
+    (`SportGrid` rests on the sport's pale). The gold takes its cloth
+    tone on a key (a straw) so a row of keys shares one lightness; a
+    star on white is `STAR` (`#9A7B2B`). On any one screen: one deep
+    key, several light ones in different colours of the family, pale
+    options, and the greys — a heritage paint chart, never a colouring
+    book. The same thing is the same colour everywhere: Register the
+    lead, Capture and Photo blue, Tip gold, Drills purple, Add player
+    and Profile teal, New group brand, Competition, Move and Voice
+    orange, Video wine, Call off and Cancel red.
   - **A dark page takes the cloth tones** (`inkHue`, `IconSq` and
     `faceTone` read `darkPage(t)`: the deep colour as the face, its
     cloth tone as the glyph). The dark appearance itself is still
     switched off — its hard-coded whites are unaudited — so this is the
     palette made ready, not a dark mode shipped.
-  This supersedes: the saturated values in the bullet below (`#207A30`
+  This supersedes: the white key of the bullet below (`TINT` white on a
+  grey ledge, "every other key is white", the chosen answer "at a tenth
+  over white") and of the visual audit's (the download disc, Ask for a
+  rating, Someone not in the diary and Cancel · Reschedule are the pale
+  key now), the saturated values there (`#207A30`
   and its five), "Colour in its places" there (`HUE` as hexes, the tiles'
   white glyph on a full colour, `faceHue`), the bullet this replaced
   ("One colour a sport, in the small things too", an evening of
   everything in the sport's one colour, `oneHue`), `KIND_HUE`, the 10%
   and 55% mixes of `SEL` and `SportGrid`, and the golf paragraph under
-  "The sport tints the app" (`#2F6B3A`). Not changed: white throughout,
-  Apple's greys, the keys on their ledges, the cards, the type, red for
-  what removes, the register's own green and red, the tab bar, the
-  splash, the feed. `keys.cjs`, `boxes.cjs`, `ease.cjs`,
+  "The sport tints the app" (`#2F6B3A`). Not changed: the white page and
+  the white cards and rows on their grey line, Apple's greys, the keys'
+  ledges and their press, the type, the register's own green and red,
+  the tab bar, the splash, the feed, a key on a dark ground (the feed's
+  View lesson stays white). `keys.cjs`, `boxes.cjs`, `ease.cjs`,
   `calendar-day.cjs`, `families-requests.cjs`, `join-requests.cjs`,
   `new-group.cjs`, `sprint-3.cjs`, `coach-day.cjs` and `diary.cjs` read
   the values.

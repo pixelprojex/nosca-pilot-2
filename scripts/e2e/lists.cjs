@@ -180,8 +180,10 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       const wRgb = (c) => String(c).match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
       const wLum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
       const wRatio = (a, b) => { const [x, y] = [wLum(wRgb(a)), wLum(wRgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-      check("(aa) guard: the register's Someone not in the diary is the white key — the white face, a solid 1.5px light grey ring, a four-point grey ledge, its words 4.5:1 and over — never a dashed outline",
-        !!walk && walk.bg === "rgb(255, 255, 255)" && walk.style === "solid" && walk.inline === "1.5px" && walk.color === EDGE.golf && /rgb\(217, 217, 222\) 0px 4px 0px/.test(walk.shadow) && wRatio(walk.fg, walk.bg) >= 4.5,
+      /* a quiet key is filled with the sport's pale since 23 November (it was the white key): fairway's #DBEEDF,
+         ringed in the pale's ledge #C1DAC6, on a ledge a step deeper */
+      check("(aa) guard: the register's Someone not in the diary is the quiet key — the sport's pale face, a solid 1.5px ring of the pale's ledge, a four-point ledge, its words 4.5:1 and over — never a dashed outline",
+        !!walk && walk.bg === "rgb(219, 238, 223)" && walk.style === "solid" && walk.inline === "1.5px" && walk.color === "rgb(193, 218, 198)" && /rgb\(175, 203, 181\) 0px 4px 0px/.test(walk.shadow) && wRatio(walk.fg, walk.bg) >= 4.5,
         JSON.stringify(walk));
       await closeSheet(page);
 
@@ -217,7 +219,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await shot("s-hours-days");
       check("(s) guard: the hours' seven days are one Card on the card's edge, the days as rows inside on the 1px hairline", !!daysC && daysC.n === 7 && daysC.edge === EDGE.golf && parseFloat(daysC.w) >= 1 && daysC.inner.every((x) => x === `1px ${HAIRLINE.golf}`), JSON.stringify(daysC));
       /* a control, so the white key (21 November): its light grey ring at the edge's width, the Card's corner */
-      check("(s2) Slots and lesson length is the white key — its light grey ring at the edge's width, the Card's corner", !!disc && disc.c === "rgb(226, 226, 231)" && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
+      check("(s2) Slots and lesson length is the quiet key — the ring of the sport's pale at the edge's width, the Card's corner", !!disc && disc.c === "rgb(193, 218, 198)" && disc.w === "1.5px" && !!daysC && disc.r === daysC.r, JSON.stringify(disc));
       await page.locator(`${SCREEN} button`, { hasText: /Slots and lesson length/ }).first().click(); await page.waitForTimeout(500);
       await page.locator('[aria-label="Add a time"]').first().click(); await page.waitForTimeout(500);
       const addR = await page.locator('[data-tour="avail-add"] button').evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).borderRadius)));

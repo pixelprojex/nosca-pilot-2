@@ -147,7 +147,9 @@ const metaOf = (page, title) => page.evaluate((title) => {
     /* THE WHITE KEY (21 November, the afternoon; stone that morning): Duolingo's second kind of key — a white
        face, a light grey ring (#E2E2E7) at 1.5px and a grey ledge (#D9D9DE) under it, the same in every sport.
        A key is told by its word, 4.5:1 and over on the face, and by its ledge. */
-    const KEY = { face: "rgb(255, 255, 255)", ring: "rgb(226, 226, 231)", lip: "rgb(217, 217, 222)" };
+    /* EVERY KEY FILLED (23 November): the quiet key is the sport's own pale, ringed in the pale's ledge at 1.5px,
+       on a ledge a step deeper — golf's sage, the yard's plaster — where it was the white key in every sport */
+    const KEYS = { golf: { face: "rgb(219, 238, 223)", ring: "rgb(193, 218, 198)", lip: "rgb(175, 203, 181)" }, equestrian: { face: "rgb(247, 226, 228)", ring: "rgb(233, 201, 204)", lip: "rgb(218, 182, 186)" } };
     const keysIn = (page, scope, re) => page.evaluate(([scope, src]) => {
       const root = scope ? document.querySelector(scope) : document; if (!root) return []; const r = new RegExp(src);
       return [...root.querySelectorAll("button")].filter((b) => { const x = b.getBoundingClientRect(); return x.width > 0 && x.height > 0 && r.test((b.getAttribute("aria-label") || b.textContent).replace(/\s+/g, " ").trim()); })
@@ -158,7 +160,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
     const sLum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
     const sRgb = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/); return m ? m[1].split(",").slice(0, 3).map((x) => +x) : [255, 255, 255]; };
     const sRatio = (a, b) => { const [x, y] = [sLum(a), sLum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-    const isStone = (os) => os.length > 0 && os.every((o) => o.bg === KEY.face && o.ring === KEY.ring && o.inline === "1.5px" && o.shadow.includes(KEY.lip) && sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5);
+    const isStone = (os) => os.length > 0 && Object.values(KEYS).some((KEY) => os.every((o) => o.bg === KEY.face && o.ring === KEY.ring && o.inline === "1.5px" && o.shadow.includes(KEY.lip) && sRatio(sRgb(o.fg), sRgb(o.bg)) >= 4.5));
     const toldK = (os) => os.map((o) => `${o.label}: ${o.bg} ring ${o.ring} ${o.inline} · ${o.shadow.slice(0, 40)}`).join(" | ");
   const boot = async (role, d = db, at = "08:00") => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
@@ -427,7 +429,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         return { boxed: !!b.parentElement && b.parentElement.classList.contains("nsc-list"), key: b.classList.contains("n-key"), h: Math.round(b.getBoundingClientRect().height),
                  square: sq ? getComputedStyle(sq).backgroundColor : null, chevron: !!b.querySelector("svg.lucide-chevron-right"), label: b.textContent.trim() };
       });
-      check("(n5) the child's Progress is a door — a row in a box of its own with its glyph on the sport's pale square and the chevron, never a key", !!door && door.boxed && !door.key && door.h >= 56 && door.square === "rgb(219, 238, 223)" && door.chevron && door.label === "Progress", JSON.stringify(door));
+      check("(n5) the child's Progress is a door — a row in a box of its own with its glyph on the sport's light square and the chevron, never a key", !!door && door.boxed && !door.key && door.h >= 56 && door.square === "rgb(148, 189, 158)" && door.chevron && door.label === "Progress", JSON.stringify(door));
       check("(n3) the child's lessons read the app's one day form", days.length === 2 && days.every((d) => DAY_FORM.test(d)) && days[0] === nice(dayFrom(-9)), JSON.stringify(days));
       /* Next, Drills and the lessons under them: one value column down the page */
       const vcol = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] .nsc-list > :not([data-tour]) > span:first-child')]
@@ -614,7 +616,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         check("(s12) one sheet title: New group, Invite players, New message and the recurring Set up sheet carry TYPE.title's 22px (19 until 21 November; they were 24 and 25 beside the twenty-two at 19)", [sNew, sInv, sMsg, sRec].every((x) => x === "22px"), JSON.stringify({ sNew, sInv, sMsg, sRec }));
         /* since 18 November the cadence is the manager's Segmented (B20): one chosen, its thumb, never the accent */
         /* the chosen day is Duolingo's chosen answer since 21 November (the ink before): golf's colour faint, the six others white keys */
-        check("(s13) the recurring sheet's chosen day is golf's colour faint, as a chosen tile is, and the cadence is the Segmented with one chosen — never the accent's fill, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === "rgb(219, 238, 223)").length === 1 && recDays.days.filter((d) => d.bg === "rgb(255, 255, 255)").length === 6 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.p === "true").length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(40, 89, 55)"), JSON.stringify(recDays).slice(0, 300));
+        check("(s13) the recurring sheet's chosen day is filled with golf's light colour, as a chosen tile is, the six others the quiet key, and the cadence is the Segmented with one chosen — never the accent's fill, which is Save's", !!recDays && recDays.days.length === 7 && recDays.days.filter((d) => d.bg === "rgb(148, 189, 158)").length === 1 && recDays.days.filter((d) => d.bg === "rgb(219, 238, 223)").length === 6 && recDays.freq.length === 3 && recDays.freq.filter((d) => d.p === "true").length === 1 && ![...recDays.days, ...recDays.freq].some((d) => d.bg === "rgb(40, 89, 55)"), JSON.stringify(recDays).slice(0, 300));
         await ctx.close();
       }
       /* the To log screen: person rows in one boxed list, Log as the row's action */

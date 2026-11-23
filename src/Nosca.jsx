@@ -60,7 +60,7 @@ import {
   GraduationCap, AppWindow, Copyright, AlarmClock } from "lucide-react";
 
 /* ==================================================================
-   BRAND · NOSCA (provisional) — from Irish nasc / nascadh, "to link"
+   BRAND · NOSCA — an anglicised spelling of the Irish nascadh, linking
 ================================================================== */
 export const BRAND = "NOSCA";
 /* Where "Email support" goes. Unset in a build, and the help rows are
@@ -546,6 +546,30 @@ export const STAR = "#9A7B2B";
 export const lightsOf = (c) => PALE_BY_HEX[String(c || "").toUpperCase()]
   || [MIX("#FFFFFF", c, 0.16), MIX("#FFFFFF", c, 0.32), MIX("#FFFFFF", c, 0.52)];
 export const paleOf = (c) => lightsOf(c)[0];
+/* FILLED KEYS (23 November, the afternoon). The founder, of the pale
+   tiles: "the colors must be visually appealing … I do want fulfilled
+   buttons throughout. I don't want just tiny circles and tiny icons. And
+   the colors don't all need to be saturated dark colors. I want light
+   colors too that also match the same color family." So a key is FILLED
+   with colour, never a white tile with a small coloured square in it,
+   and the light colour of a hue is its CLOTH tone (lightness 0.76: sage,
+   stone blue, heather, sand, rose) — a real colour, where the pale at
+   0.93 read as nothing. `onCloth` is the word and the glyph on it (the
+   same hue, nearly black, 4.5:1 and over), `clothLip` the ledge under
+   it; the gold takes its cloth tone too (a straw), so a row of keys
+   shares one lightness and the card's full gold stays the foil's. */
+export const clothOf = (c) => lightsOf(c)[2];
+export const onCloth = (c) => MIX(inkOf(c), "#000000", 0.45);
+export const clothLip = (c) => MIX(lightsOf(c)[2], inkOf(c), 0.5);
+/* a function's filled key in this sport: { face, fg, lip } */
+export const fillOf = (t, hue) => {
+  const c = hueOf(t, hue);
+  return { face: clothOf(c), fg: onCloth(c), lip: clothLip(c) };
+};
+/* EVERY KEY FILLED: a quiet key (an option, a second button) is the
+   sport's own pale on its ledge and a chosen one its cloth tone, where
+   both were the white key. One switch, so the two can be compared. */
+const KEYS_TINTED = true;
 /* a role's colour as a glyph or a word on the page: the deep colour on
    white, its cloth tone on a dark page, where the deep one would sink */
 export const inkHue = (t, hue) => { const c = hueOf(t, hue); return darkPage(t) ? lightsOf(c)[2] : c; };
@@ -602,23 +626,27 @@ export const SOFT_LIP = (t) => (darkPage(t) ? MIX(t.wash, "#000000", 0.5) : "#E2
    a colour, never a white box with a green rule round it. The founder,
    21 November: "Huge visual upgrade required! Continue to work on buttons
    and better more professional more streamlined visual experience!" */
-export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : "#FFFFFF");
+export const TINT = (t) => (darkPage(t) ? MIX(t.surface, t.accent, 0.12) : KEYS_TINTED ? paleOf(t.accent) : "#FFFFFF");
 /* its ledge: the stone a fifth of the ink deep. A filled key is told by
    its face and its ledge, and its word reads 4.5:1 and over on the face;
    the 3:1 outline rule ("No control on the hairline") is for a control
    with no fill, whose outline is the only thing that says where it is.
    It was the sport's edge for three days — a white key with a green rule
    round it, the very thing the founder asked to have filled. */
-export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : "#D9D9DE");
+export const TINT_LIP = (t) => (darkPage(t) ? MIX(t.surface, "#000000", 0.45) : KEYS_TINTED ? MIX(lightsOf(t.accent)[1], t.accent, 0.12) : "#D9D9DE");
 /* the stone key's fine ring, Lares's inset line of its ledge at 60% */
-export const KEY_RING = (t) => (darkPage(t) ? "transparent" : "#E2E2E7");
+export const KEY_RING = (t) => (darkPage(t) ? "transparent" : KEYS_TINTED ? lightsOf(t.accent)[1] : "#E2E2E7");
 /* CHOSEN (21 November): Duolingo's chosen answer — the sport's colour faint
    on the face, its ring and its ledge, the word in the sport's colour —
    where a chosen key was the ink, black among white keys */
 /* THE LIGHTER HALF (23 November): the chosen answer is the lead's own
    pale on its cloth tone — golf's sage, rowing's stone blue — where a
    tenth of a deep colour over white was a grey that barely said chosen */
-export const SEL = (t) => { const [pale, , cloth] = lightsOf(t.accent); return { face: pale, ring: cloth, lip: cloth, fg: MIX(t.accent, "#000000", 0.08) }; };
+export const SEL = (t) => {
+  const [pale, , cloth] = lightsOf(t.accent);
+  return KEYS_TINTED ? { face: cloth, ring: clothLip(t.accent), lip: clothLip(t.accent), fg: onCloth(t.accent) }
+    : { face: pale, ring: cloth, lip: cloth, fg: MIX(t.accent, "#000000", 0.08) };
+};
 /* a row of a list chosen from (a reason on Cancel, Call off, End or
    Decline): the list's white card at rest, Duolingo's chosen answer once
    picked — the sport's colour faint on the face, its ring and ledge (the
@@ -3820,13 +3848,13 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
       </Button>
 
       {/* three to a row, two rows */}
-      {(() => { const acts = [{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null, hue: HUE.blue },
+      {(() => { const acts = [{ Ico: User,         lbl: tr("Profile"), act: onProfile,  tone: null, hue: HUE.teal },
           { Ico: Camera,       lbl: tr("Capture"), act: onCapture,  tone: null, hue: HUE.blue },
           onRegister ? { Ico: Check, lbl: tr("Register"), act: onRegister, tone: null, tour: "peek-register", hue: HUE.green } : null,
           /* a move where the project can move (one write, the player told),
              else the cancel path it always was; a group's lesson has no
              Move at all — it opened the Cancel sheet beside Cancel */
-          (onMove || !isGroup) ? { Ico: CalendarDays, lbl: tr("Move"), act: onMove || onCancel, tone: null, tour: "peek-move", hue: HUE.purple } : null,
+          (onMove || !isGroup) ? { Ico: CalendarDays, lbl: tr("Move"), act: onMove || onCancel, tone: null, tour: "peek-move", hue: HUE.orange } : null,
           { Ico: CalendarX,    lbl: tr("Call off"), act: onWeather, tone: DANGER },
           { Ico: X,            lbl: tr("Cancel"),  act: onNoShow,   tone: DANGER }].filter(Boolean);
         return (
@@ -4874,7 +4902,7 @@ const COACH_ACTIONS = {
      is the one thing they need in a hurry, so it took the slot: a
      calendar with an X, in red, one of the eight under Log a lesson. */
   weather: { Ico: CalendarX,     label: "Call off",   hue: HUE.red },
-  comp:    { Ico: Trophy,        label: "Competition", hue: HUE.wine },
+  comp:    { Ico: Trophy,        label: "Competition", hue: HUE.orange },
 };
 const QUICK_ORDER = ["attend", "capture", "tip", "drills", "player", "group", "weather", "comp"];
 
@@ -8871,9 +8899,17 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
   const calm = false;
   const quietTile = tone !== "accent" && tone !== "danger" && !on;
   const sel = SEL(t);
-  const bg = tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : TINT(t);
-  const fg = tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? sel.fg : redWord ? DANGER : t.ink;
-  const lipC = tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
+  /* A FUNCTION KEY IS FILLED WITH ITS FUNCTION'S COLOUR (23 November): the
+     plus sheet's eight, the round keys of a lesson's peek, a player's
+     file and the log — the cloth tone of the role, the word and the
+     glyph its ink, a ledge of the same hue. It was a white key with a
+     small coloured square (or a coloured glyph) in it, and the founder:
+     "I do want fulfilled buttons throughout. I don't want just tiny
+     circles and tiny icons." What calls off is the brick's. */
+  const fill = quietTile && Icon && (hue || redWord) ? fillOf(t, redWord ? HUE.red : hue) : null;
+  const bg = fill ? fill.face : tone === "accent" ? t.accent : tone === "danger" ? DANGER : on ? sel.face : TINT(t);
+  const fg = fill ? fill.fg : tone === "accent" ? t.onAccent : tone === "danger" ? "#fff" : on ? sel.fg : redWord ? DANGER : t.ink;
+  const lipC = fill ? fill.lip : tone === "accent" ? LIP(t.accent) : tone === "danger" ? LIP(DANGER) : on ? sel.lip : calm ? SOFT_LIP(t) : TINT_LIP(t);
   /* the second kind keeps the sport's edge as its outline, 3:1 and over */
   const ring = "";
   const enter = `setIn ${MOTION.settle}ms ${MOTION.curve} ${delay}ms backwards`;
@@ -8908,10 +8944,11 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
       <button data-tour={tour} data-lip="" data-tile="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
               {...p.handlers}
               className={`relative w-full flex text-left ${stacked ? "flex-col items-start justify-between" : "items-center"}`}
+              data-fill={fill ? "" : undefined}
               style={{ minHeight: h, gap: stacked ? 10 : 12, padding: stacked ? "14px 14px 13px" : "0 16px", borderRadius: R.surface, background: bg,
-                       boxShadow: p.rest, border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
+                       boxShadow: p.rest, border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`, animation: enter,
                        transition: `background ${MOTION.settle}ms, box-shadow 140ms ease-out, transform 140ms ease-out` }}>
-        {hue && quietTile ? <IconSq Icon={Icon} bg={hue} size={34} /> : <Icon size={22} color={fg} strokeWidth={quietTile || calm ? 1.8 : 2} className="shrink-0" />}
+        <Icon size={fill ? 24 : 22} color={fg} strokeWidth={fill ? 2 : quietTile || calm ? 1.8 : 2} className="shrink-0" />
         <span className={wrap ? "min-w-0" : "min-w-0 max-w-full truncate"}
               style={{ fontFamily: ui, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2, color: fg }}>{label}</span>
         {badge}
@@ -8928,12 +8965,12 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
       <button data-tour={tour} data-round="" data-press="" aria-label={aria || label} onClick={() => { haptic(9); soft(); onTap(); }}
               className="relative w-full flex flex-col items-center"
               style={{ gap: 7, paddingTop: 2, animation: enter, WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}>
-        <span data-face="" data-lip="" data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
+        <span data-face="" data-lip="" data-fill={fill ? "" : undefined} data-rest={rest} data-dn={down} data-by={lip} className="relative flex items-center justify-center rounded-full"
               style={{ width: `min(${f}px, 100%)`, aspectRatio: "1 / 1", background: bg, boxShadow: rest,
-                       border: `${EDGE_W}px solid ${quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
+                       border: `${EDGE_W}px solid ${fill ? "transparent" : quietTile ? KEY_RING(t) : on && tone !== "accent" && tone !== "danger" ? sel.ring : "transparent"}`,
                        transition: `background ${MOTION.settle}ms` }}>
-          {/* the glyph in ink on the white key, never the accent (the accent is the one action's) */}
-          <Icon size={Math.round(f * 0.4)} color={hue && quietTile ? (hue === HUE.gold ? STAR : inkHue(t, hue)) : fg} strokeWidth={hue && quietTile ? 2.2 : quietTile || calm ? 1.8 : 2} />
+          {/* a function's key carries its glyph in the hue's own ink on its filled face */}
+          <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
         {!iconOnly && (
@@ -9387,8 +9424,7 @@ const faceTone = (t, name) => {
   let h = 0; for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const set = [t.accent, ...FACE_CLUB.map((k) => CLUB[k])];
   const c = set[h % set.length];
-  const [pale, lip, cloth] = lightsOf(c);
-  return darkPage(t) ? { bg: c, ring: LIP(c), fg: cloth } : { bg: pale, ring: lip, fg: inkOf(c) };
+  return darkPage(t) ? { bg: c, ring: LIP(c), fg: clothOf(c) } : { bg: clothOf(c), ring: null, fg: onCloth(c) };
 };
 /* SETTINGS AS iOS LAYS IT OUT, IN NOSCA'S COLOURS: every row leads with
    its own coloured square, so a row is found by colour before it is read
@@ -9427,22 +9463,23 @@ const settingsGlyph = (label) => { const g = SETTINGS_GLYPHS[label]; return g ? 
    white, or the ink on the card's gold. For an evening every tile was
    the sport's one colour, and the founder: "I do want variation in
    colors. I don't want all the same green." */
-/* THE LIGHTER HALF (23 November): a tile labels its row, so it is the
-   colour's PALE on the pale's own ledge with the deep colour as the
-   glyph — twenty deep squares down Settings read "dark and heavy", the
-   founder's words. `deep` keeps the full colour with a white glyph for
-   the one place a tile is itself the signal. On a dark page the tile is
-   the deep colour and the glyph its cloth tone. */
+/* A TILE LEADING A ROW IS ITS ROLE'S LIGHT COLOUR (23 November): the
+   cloth tone as the face, the hue's own ink as the glyph, a ledge of the
+   same hue. It was the full deep colour with a white glyph (twenty of
+   them down Settings read "dark and heavy", the founder's words), then
+   for a morning the pale at lightness 0.93, which read as nothing ("tiny
+   icons"). `deep` keeps the full colour with a white glyph for the one
+   place a tile is itself the signal. On a dark page the tile is the deep
+   colour and the glyph its cloth tone. */
 const IconSq = ({ Icon, bg, size = 30, deep = false }) => {
   const t = useT();
   const c = hueOf(t, bg);
-  const [pale, lip, cloth] = lightsOf(c);
   const dark = darkPage(t);
-  const face = deep || dark ? c : pale;
+  const f = deep || dark ? { face: c, fg: dark ? clothOf(c) : onHue(c), lip: LIP(c) } : fillOf(t, bg);
   return (
     <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0" data-tile-hue={c}
-          style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: face, boxShadow: `0 2px 0 ${deep || dark ? LIP(c) : lip}` }}>
-      <Icon size={Math.round(size * 0.56)} color={dark ? cloth : deep ? onHue(c) : inkOf(c)} strokeWidth={2.2} />
+          style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), background: f.face, boxShadow: `0 2px 0 ${f.lip}` }}>
+      <Icon size={Math.round(size * 0.56)} color={f.fg} strokeWidth={2.2} />
     </span>
   );
 };
@@ -9468,7 +9505,7 @@ const Avatar = ({ name, size = 44, group, tint, src, bg, fg }) => {
   const mark = tint ? "#fff" : fg || (tone ? tone.fg : "#FFFFFF");
   return (
     <span className="rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-          style={{ width: size, height: size, background: disc, boxShadow: tone && !pic ? `inset 0 0 0 1px ${tone.ring}` : undefined,
+          style={{ width: size, height: size, background: disc, boxShadow: tone && tone.ring && !pic ? `inset 0 0 0 1px ${tone.ring}` : undefined,
                    fontFamily: display, fontSize: Math.max(12, size * 0.38), fontWeight: 600,
                    letterSpacing: "-0.02em", color: mark }}>
       {pic ? <img src={pic} alt="" className="w-full h-full" style={{ objectFit: "cover", display: "block" }} onError={() => setBroken(pic)} />
@@ -18622,9 +18659,9 @@ function NotifCentre({ items = [], waiting = [], pop, onOpen, onClear, onClearAl
             {face
               ? <Avatar name={face.name} size={PERSON_FACE} src={face.src} />
               : <span className="flex items-center justify-center"
-                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: paleOf(hue), boxShadow: `inset 0 0 0 1px ${lightsOf(hue)[1]}` }}>
-                  {/* a disc that stands where a face would is a face's: the kind's pale, its glyph the deep colour */}
-                  <K size={20} color={inkOf(hue)} strokeWidth={2} />
+                      style={{ width: PERSON_FACE, height: PERSON_FACE, borderRadius: PERSON_FACE / 2, background: clothOf(hue) }}>
+                  {/* a disc that stands where a face would is a face's: the kind's light colour, its glyph the hue's ink */}
+                  <K size={20} color={onCloth(hue)} strokeWidth={2} />
                 </span>}
             {/* WHO, THEN WHAT. The face is read before any word beside it;
                 the badge says which kind of thing it was without the line

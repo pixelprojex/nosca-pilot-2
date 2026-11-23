@@ -80,7 +80,8 @@ const { check, results, summary } = M.checker("drills-due");
       check("(e) the dated drills come first, soonest first, the undated after", names.length >= 3 && /^Clock drill/.test(names[0]) && /^Gate drill/.test(names[1]) && /^Towel drill/.test(names[2]), JSON.stringify(names));
       check("(f) a drill for a day gone by, not done, reads Was by that day; the next lesson's reads By it", new RegExp(`Was by ${nice(YESTERDAY)}`).test(names[0]) && new RegExp(`By ${nice(NEXT)}`).test(names[1]) && !/By /.test(names[2]), JSON.stringify(names));
       const lateColor = await page.locator('.nsc-list button').first().locator("span", { hasText: /^Was by/ }).first().evaluate((el) => getComputedStyle(el).color);
-      check("(g) the gone-by line is in the warning colour", /rgb\((1[89]\d|2\d\d), ?\d+, ?\d+\)/.test(lateColor), lateColor);
+      /* the warning colour is the club's brick, #9A322A, since the colour study of 22 November (#C4342A before) */
+      check("(g) the gone-by line is in the warning colour", lateColor === "rgb(154, 50, 42)", lateColor);
       check("(h) no hairline inside the boxed rows", (await page.locator('.nsc-list > div > button').evaluateAll((els) => els.filter((el) => parseFloat(getComputedStyle(el).borderBottomWidth) > 0).length)) === 0);
       await shot("02-player-drills");
       await ctx.close();

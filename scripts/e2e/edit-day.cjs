@@ -309,12 +309,9 @@ const { check, summary } = M.checker("edit-day");
       await page.locator("[data-sheet] button", { hasText: /^Weather$/ }).first().dispatchEvent("click"); await page.waitForTimeout(300);
       await page.locator("[data-sheet] button", { hasText: /^Next$/ }).first().dispatchEvent("click"); await page.waitForTimeout(700);
       const callTxt = await sheetText(page);
-      /* a chosen tile is Duolingo's chosen answer since 21 November (the ink before): its face is the sport's colour
-         faint, every other tile the white key — read the fill, white or not */
-      const picked = await page.locator("[data-sheet] button[aria-label]").evaluateAll((els) => els.filter((e) => {
-        const m = getComputedStyle(e).backgroundColor.match(/rgba?\(([^)]+)\)/); if (!m) return false;
-        const [r, g, b, a = 1] = m[1].split(",").map(Number); return a > 0.5 && !(r === 255 && g === 255 && b === 255);
-      }).map((e) => e.getAttribute("aria-label")));
+      /* a chosen tile is filled with the sport's cloth tone since 23 November (golf's #94BD9E), every other tile the
+         quiet key in the sport's pale — read the fill */
+      const picked = await page.locator("[data-sheet] button[aria-label]").evaluateAll((els) => els.filter((e) => getComputedStyle(e).backgroundColor === "rgb(148, 189, 158)").map((e) => e.getAttribute("aria-label")));
       check("(g5) Call off on a booked day opens the call-off, and its days start on that day",
             /Why/.test(whyTxt) && callTxt.includes(label(NEXT)) && picked.length === 1 && picked[0].startsWith(label(NEXT)), JSON.stringify({ picked, txt: callTxt.slice(0, 160) }));
       await closeSheet(page);

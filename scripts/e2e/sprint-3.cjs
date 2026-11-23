@@ -457,7 +457,7 @@ const boxOf = async (loc) => (await loc.first().boundingBox()) || { x: 0, y: 0, 
       await shot("k-new-group");
       /* the width off the element's own style: Chrome reads EDGE_W's 1.5px back as 1px at a scale of one, as boxes.cjs notes */
       /* the app's quiet key, since the afternoon of 21 November Duolingo's white key: its light grey ring */
-      check("(k) C14: New group's weeks stepper is the app's quiet key, 44 square, the white key's light grey ring", st.length === 2 && st.every((b) => b.w === 44 && b.h === 44 && b.edge === "1.5px rgb(226, 226, 231)" && b.key), JSON.stringify(st));
+      check("(k) C14: New group's weeks stepper is the app's quiet key, 44 square, the ring of the sport's pale", st.length === 2 && st.every((b) => b.w === 44 && b.h === 44 && b.edge === "1.5px rgb(193, 218, 198)" && b.key), JSON.stringify(st));
       await ctx.close();
     }
 

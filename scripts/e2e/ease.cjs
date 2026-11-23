@@ -112,9 +112,9 @@ const gap = (page, fromSel, toText) => page.evaluate(([fromSel, toText]) => {
       const board = await page.locator('[data-tour="today-board"]').count();
       await tap(page, '[data-tour="quick"]', 900);
       const add = await tile(page, "Add player");
-      /* the plus's eight are Duolingo's white keys since the afternoon of 21 November (stone that morning): white,
-         a light grey ring, a grey ledge — no green rim */
-      check("(b) the home has no board of actions — they live on the plus, whose eight are calm white keys, no green rim", board === 0 && !!add && add.bg === "rgb(255, 255, 255)" && /rgb\(226, 226, 231\)/.test(add.edge) && !/40, 89, 55/.test(add.edge), JSON.stringify({ board, add }));
+      /* the plus's eight are filled keys since 23 November (white keys with a small coloured square before): each its
+         function's light colour — Add player the olive's cloth, #ABB78D — with no rim at all */
+      check("(b) the home has no board of actions — they live on the plus, whose eight are filled keys in their functions' light colours, no rim", board === 0 && !!add && add.bg === "rgb(171, 183, 141)" && /rgba\(0, 0, 0, 0\)/.test(add.edge) && !/40, 89, 55/.test(add.edge), JSON.stringify({ board, add }));
       await page.keyboard.press("Escape"); await page.mouse.click(20, 120); await page.waitForTimeout(700);
       await tap(page, '[aria-label="Today"]', 900);
       const g1 = await gap(page, '[data-scroll="screen"] h1', "Today");
