@@ -80,6 +80,13 @@ const openSettings = async (page) => {
       await M.tap(page, '[data-tour="install-open"]', 300); await page.waitForLoadState("networkidle"); await page.waitForTimeout(900);
       const t2 = await text();
       check("(a) Open Nosca lands on sign-up", /Create account/.test(t2) && /Sign in/.test(t2) && new URL(page.url()).pathname === "/", `${page.url()} · ${t2.slice(0, 80)}`);
+      /* the front door carries the way to the company's website too, before an account exists */
+      await page.evaluate(() => { window.__opened = []; window.open = (u, target) => { window.__opened.push([u, target]); return null; }; });
+      const doorAbout = page.locator('[data-tour="auth-about"]');
+      const doorBox = (await doorAbout.count()) ? await doorAbout.first().boundingBox() : null;
+      if (await doorAbout.count()) { await doorAbout.first().dispatchEvent("click"); await page.waitForTimeout(400); }
+      const doorOpened = await page.evaluate(() => window.__opened);
+      check("(a2) the sign-in page carries About Nosca under its two keys, 44 to a finger, and it opens /about/ beside the app", !!doorBox && doorBox.height >= 44 && doorOpened.length === 1 && doorOpened[0][0] === "/about/" && /Create account/.test(await M.rootText(page)), JSON.stringify({ doorBox, doorOpened }));
       await ctx.close();
     }
 
@@ -159,6 +166,19 @@ const openSettings = async (page) => {
         check("(f) the search finds it by \"phone\"", (await page.locator('[data-tour="settings-install"]').count()) === 1 && (await page.locator('[data-tour="settings-tour"]').count()) === 0, (await text()).slice(0, 120));
         await search.fill(""); await page.waitForTimeout(400);
       } else check("(f) the search finds it by \"phone\"", false, "no search field found");
+      /* ABOUT NOSCA (23 November): the company's website is a row of Settings, found by "about" or "website", and it
+         opens /about/ beside the app — the founder: "a button that is easily findable … that says about on it" */
+      const about = page.locator('[data-tour="settings-about"]');
+      check("(f2) Settings carries About Nosca, leading Support", (await about.count()) === 1 && /About Nosca/.test(await about.innerText()), await about.count());
+      if (await search.count()) {
+        await search.fill("website"); await page.waitForTimeout(500);
+        check("(f2) the search finds it by \"website\"", (await page.locator('[data-tour="settings-about"]').count()) === 1 && (await page.locator('[data-tour="settings-tour"]').count()) === 0, (await text()).slice(0, 120));
+        await search.fill(""); await page.waitForTimeout(400);
+      }
+      await page.evaluate(() => { window.__opened = []; window.open = (u, target) => { window.__opened.push([u, target]); return null; }; });
+      await page.locator('[data-tour="settings-about"]').first().dispatchEvent("click"); await page.waitForTimeout(500);
+      const opened = await page.evaluate(() => window.__opened);
+      check("(f2) the row opens the website at /about/ beside the app, and the app stays where it was", opened.length === 1 && opened[0][0] === "/about/" && opened[0][1] === "_blank" && (await page.locator('[data-tour="settings-about"]').count()) === 1, JSON.stringify(opened));
       await page.locator('[data-tour="settings-install"]').first().dispatchEvent("click"); await page.waitForTimeout(900);
       const t = await text();
       check("(f) the row opens the guide as a screen titled Add to Home Screen", /^Add to Home Screen/.test(t.replace(/^.*?Add to Home Screen/, "Add to Home Screen")) && (await page.locator('[data-tour="install-platform"]').count()) === 1 && (await page.locator('[aria-label="Back"]').count()) === 1, t.slice(0, 160));

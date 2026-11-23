@@ -56,13 +56,21 @@ import {
   ListChecks, Download, Palette, Eye, Minimize2, Lightbulb, Volume2, VolumeX, UserPlus, Pencil, MoveUpRight, Undo2, Circle, Ruler,
   Edit3, Trophy, Star, CalendarX, CloudRain, Copy, Settings2, BellOff, Columns2, ArrowLeftRight, WifiOff, TrendingUp, Grid3X3, Film, Repeat,
   Share, Ellipsis, EllipsisVertical, Menu, MonitorDown, SquarePlus,
-  Plane, RefreshCw, Info, Smartphone, Link2, Compass, LayoutGrid, Vibrate, Accessibility, ClipboardCheck, BarChart3, Hourglass,
+  Plane, RefreshCw, Info, Globe, Smartphone, Link2, Compass, LayoutGrid, Vibrate, Accessibility, ClipboardCheck, BarChart3, Hourglass,
   GraduationCap, AppWindow, Copyright, AlarmClock } from "lucide-react";
 
 /* ==================================================================
    BRAND · NOSCA — an anglicised spelling of the Irish nascadh, linking
 ================================================================== */
 export const BRAND = "NOSCA";
+/* ABOUT NOSCA: the company's website, built into the same deploy at
+   /about/ (website/ in this repository). The founder: "There should be a
+   button that is easily findable … that says about on it … and it brings
+   you onto this website … I would love people to actually be able to
+   find it." It opens beside the app, never over it: in a browser a new
+   tab, on a Home Screen the phone's own in-app page with its way back. */
+export const ABOUT_URL = "/about/";
+export const openAbout = () => { try { window.open(ABOUT_URL, "_blank", "noopener"); } catch { /* a browser with no window.open has no second tab to give */ } };
 /* Where "Email support" goes. Unset in a build, and the help rows are
    not shown — nothing offers a route that leads nowhere. */
 const SUPPORT_EMAIL = (import.meta.env && import.meta.env.VITE_SUPPORT_EMAIL) || "";
@@ -9527,7 +9535,7 @@ const SETTINGS_GLYPHS = {
   "Personal details": [User, HUE.slate], "Your sporting record": [Trophy, HUE.gold], "Connections": [Link2, HUE.brand],
   "Walkthrough": [Compass, HUE.green], "Add to Home Screen": [Smartphone, HUE.blue], "Attendance": [ClipboardCheck, HUE.green],
   "Register": [ClipboardCheck, HUE.green], "Contact us": [Mail, HUE.blue], "Terms": [FileText, HUE.slate],
-  "Privacy": [Lock, HUE.slate], "Licences": [Copyright, HUE.slate], "Version": [Info, HUE.slate], "Sync": [RefreshCw, HUE.green],
+  "Privacy": [Lock, HUE.slate], "Licences": [Copyright, HUE.slate], "Version": [Info, HUE.slate], "About Nosca": [Globe, HUE.brand], "Sync": [RefreshCw, HUE.green],
   "Sound": [Volume2, HUE.wine], "Haptics": [Vibrate, HUE.purple], "Reduce motion": [Accessibility, HUE.blue],
   "Sign out": [LogOut, HUE.slate], "Delete account": [Trash2, HUE.red], "Password": [Lock, HUE.slate],
   "Set yourself up": [Settings2, HUE.teal], "Setup": [Settings2, HUE.teal],
@@ -18145,6 +18153,8 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Data & permissions"), tour: "settings-data", onTap: () => push("legal:data") },
     ] },
     { title: tr("Support"), tour: "settings-support", rows: [
+      /* the company's website, a tap from anywhere in the app (the search finds it by "about" or "website") */
+      { label: tr("About Nosca"), tour: "settings-about", onTap: openAbout, keys: ["about", "website", "site", "story", "company", "who", "partners", "name", "nosca"] },
       { label: tr("Walkthrough"), tour: "settings-tour", onTap: () => onTour && onTour(), keys: ["tour", "guide", "how", "screens"] },
       /* the way onto the phone for anyone still in a browser tab; the
          business card's second code opens the same guide at /install */
