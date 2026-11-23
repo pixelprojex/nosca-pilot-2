@@ -2240,6 +2240,29 @@ function EmptyLine({ children, className = "", tour }) {
   const t = useT();
   return <p className={`py-10 text-center ${className}`.trim()} data-tour={tour} style={{ ...TYPE.body, color: t.faint }}>{children}</p>;
 }
+/* AN EMPTY ROOT TAB HAS PRESENCE (22 November, art direction). A whole
+   tab with nothing on it yet — the coach's day before a player, a
+   player's Lessons, Drills and Chat before anything is logged, set or
+   said — was one faint line in a page of white, the first thing a new
+   account saw. It is iOS's ContentUnavailableView in Nosca's own form:
+   the screen's glyph large in the sport's mark on Apple's grey disc (the
+   Poster's no-clip box at full size), the line under it as a heading in
+   the ink, and the one next step where there is one. No picture, no
+   sentence of encouragement. These four tabs only: every other empty
+   list, and any list a search or a filter emptied, stays an EmptyLine. */
+function EmptyHero({ Icon, sport, children, tour, action, className = "" }) {
+  const t = useT();
+  return (
+    <div data-tour={tour} data-empty-hero="" className={`flex flex-col items-center text-center ${className}`.trim()} style={{ paddingTop: SPACE.block, paddingBottom: SPACE.row }}>
+      <span aria-hidden="true" data-hero-disc="" className="flex items-center justify-center rounded-full"
+            style={{ width: 88, height: 88, background: t.wash, marginBottom: SPACE.row + 4, animation: `setIn ${MOTION.move}ms ${MOTION.curve} backwards` }}>
+        {Icon ? <Icon size={38} color={t.mark} strokeWidth={1.8} /> : <SportGlyph sport={sport} size={44} color={t.mark} />}
+      </span>
+      <p data-hero-line="" style={{ ...TYPE.section, color: t.ink }}>{children}</p>
+      {action && <div className="w-full" style={{ marginTop: SPACE.block }}>{action}</div>}
+    </div>
+  );
+}
 const ShimmerCSS = () => (
   <style>{`
     /* A list closes once. Its last row's own hairline would otherwise sit
@@ -2703,6 +2726,18 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
     }
     return null;
   })();
+  /* the person's next lesson, over every day and not only the one isolated:
+     the first confirmed lesson of their own not yet begun */
+  const litKey = (() => {
+    if (isCoach) return null;
+    for (const day of days) {
+      const isT = day.m === T.m && day.d === T.d;
+      const hit = day.mine.filter((b) => b.status !== "requested" && !b.out && !(isT && (parseTime(b.time) ?? 0) <= (cx.nowMins ?? 0)))
+        .sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0))[0];
+      if (hit) return `${day.m}-${day.d}-${hit.time}`;
+    }
+    return null;
+  })();
 
   return (
     <div className="pb-2">
@@ -2776,7 +2811,10 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
             </div>
 
             {/* one box a day, its times as rows inside */}
-            <div className="nsc-day" data-away={day.away ? "1" : undefined}>
+            {/* a day that is only the person's next lesson is the coloured card
+                whole, on its own ledge, as the coach's next is on the home */}
+            <div className="nsc-day" data-away={day.away ? "1" : undefined}
+                 style={rows.length === 1 && !day.away && litKey === `${day.m}-${day.d}-${rows[0]}` ? { "--edge": t.accent, boxShadow: `0 ${LIP_H}px 0 ${LIP(t.accent)}` } : undefined}>
               {day.away && (
                 <div className="flex items-center gap-3 px-4" style={{ minHeight: 48, borderBottom: rows.length ? `1px solid ${t.hair}` : "none" }}>
                   <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{isCoach || rows.length ? tr("Away") : `${tr("Away")} · ${tr("no lessons")}`}</span>
@@ -2795,33 +2833,41 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                    plain line — their lesson is booked by a parent. */
                 const mn = !isCoach && day.mine.find((b) => b.time === h);
                 if (mn) {
+                  /* YOUR NEXT LESSON IS THE DIARY'S ONE COLOURED ROW (22 November):
+                     the first confirmed lesson of the person's own still to come
+                     is the sport's colour with white words, as the coach's next
+                     is on their home; a request, a session they are out of and
+                     every later lesson keep the ink row */
+                  const lit = `${day.m}-${day.d}-${h}` === litKey;
+                  const ink = lit ? t.onAccent : t.ink;
                   const inner = (<>
-                    <Rail tone={t.ink}>{h}</Rail>
+                    <Rail tone={ink} style={TIME_LEAD}>{h}</Rail>
                     {/* Not going under the group's name, never beside it: at 320
                         beside it cut "Saturday clinic" to "Saturday…" */}
                     <span className="flex-1 min-w-0">
-                      <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{mn.groupName || coachName || tr("Your coach")}</span>
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{mn.groupName || coachName || tr("Your coach")}</span>
                       {mn.out && <span data-tour="agenda-out" className="block" style={{ ...TYPE.small, color: t.sub }}>{tr("Not going")}</span>}
                     </span>
                     {mn.status === "requested" && <span className="shrink-0" style={{ ...TYPE.small, color: t.faint }}>{tr("Requested")}</span>}
                   </>);
-                  if (juvenile || !onMine) return (
-                    <div key={h} data-tour="agenda-mine" className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>{inner}</div>
-                  );
-                  return (
-                    <button key={h} data-tour="agenda-mine" onClick={() => { haptic(7); soft(); onMine(day); }}
-                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line }}>
+                  const litStyle = lit ? { background: t.accent, borderBottom: last ? "none" : `1px solid ${LIP(t.accent)}` } : null;
+                  const mineRow = (juvenile || !onMine) ? (
+                    <div key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} className="w-full flex items-center gap-3 px-4" style={{ minHeight: 56, ...line, ...litStyle }}>{inner}</div>
+                  ) : (
+                    <button key={h} data-tour="agenda-mine" data-lit={lit ? "1" : undefined} onClick={() => { haptic(7); soft(); onMine(day); }}
+                            className="w-full flex items-center gap-3 px-4 text-left active:opacity-50" style={{ minHeight: 56, ...line, ...litStyle }}>
                       {inner}
-                      <ChevronRight size={14} color={t.trace || t.faint} />
+                      <ChevronRight size={lit ? 16 : 14} color={lit ? t.onAccent : t.trace || t.faint} strokeWidth={lit ? 2.2 : 2} />
                     </button>
                   );
+                  return mineRow;
                 }
 
                 if (bk && isCoach) return (
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
-                    <Rail tone={t.ink}>{h}</Rail>
+                    <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
                     {/* THE ACCENT APPEARS ONCE A SCREEN. This bar spent it
                         on every booked row in the diary, and said nothing
                         the time beside it does not: a booked hour is
@@ -2846,14 +2892,14 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
 
                 if (isBlocked) return (
                   <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>
-                    <Rail>{h}</Rail>
+                    <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
                     <span className="flex-1" style={{ ...TYPE.small, color: t.faint }}>{tr("Blocked")}</span>
                   </div>
                 );
 
                 if (role === "player" && juvenile) return (
                   <div key={h} className="flex items-center gap-3 px-4" style={{ minHeight: 56, ...line }}>
-                    <Rail>{h}</Rail>
+                    <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
                     <span className="flex-1" />
                   </div>
                 );
@@ -2871,7 +2917,7 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                           onClick={() => { haptic(7); soft(); onBookInto(day, h); }}
                           className="w-full flex items-center gap-3 px-4 text-left active:opacity-50"
                           style={{ minHeight: 56, ...line }}>
-                    <Rail>{h}</Rail>
+                    <Rail style={{ width: TIME_LEAD.width }}>{h}</Rail>
                     {/* an empty row is empty; its plus, the hour on offer, in the
                         sport's colour (it was the trace grey, 2.2:1 on white) */}
                     <span className="flex-1" />
@@ -5817,7 +5863,9 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
                 a person has already read carries a mark they cannot remove.
                 The sport's colour, as Chat's unread dot is */}
             {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.accent }} />}
-            <span className="truncate" style={{ ...TYPE.body, color: t.ink }}>{l.focus}</span>
+            {/* what was worked on is the row's name, at a name's 16/600 (it was
+                400 beside every person row's 600, so the date under it read as loud) */}
+            <span className="truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{l.focus}</span>
           </span>
           <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
         </span>
@@ -7192,14 +7240,24 @@ function FamilyHome({ family, isJunior, dependants = [], lessons = [], drills = 
   const KidRow = ({ k, i, last }) => {
     const todo = drills.filter((d) => d.playerId === k.id && !d.done).length;
     const nx = live.find((b) => b.playerId === k.id);
-    return (
+    /* ONE CHILD WITH A LESSON AHEAD IS THE SCREEN'S ONE COLOURED CARD (22
+       November), as the coach's next lesson is on their home: the sport's
+       colour, white words, its own ledge — the household's next lesson is
+       what a parent opens Family to read. With more than one child the
+       Next up block above carries the colour and every child is a white row. */
+    const lit = !!nx && dependants.length === 1 && nx.status !== "requested";
+    const card = lit ? accentCard(t, true) : null;
+    const row = (
       <PersonRow tour={i === 0 ? "family-kid" : undefined} onTap={() => { haptic(7); soft(); onOpenKid && onOpenKid(k); }}
-                 className="py-1" style={{ borderBottom: last ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}
+                 className="py-1" style={lit ? card.style : { borderBottom: last ? "none" : `0.5px solid ${HAIR(t.ink, 0.12)}` }}
+                 attrs={lit ? { ...card.handlers, "data-lit": "1" } : undefined}
+                 face={lit ? <RingedFace><Avatar name={k.name} size={PERSON_FACE} src={avatarUrl(k.avatarPath)} /></RingedFace> : undefined}
                  name={first(k.name)} faceName={k.name} src={avatarUrl(k.avatarPath)} subTone={nx ? "ink" : "faint"}
                  sub={nx ? `${fmtDay(nx.date)} · ${nx.time}` : k.coachId ? tr("Nothing booked") : tr("No coach yet")}
                  /* what is undone, never a total: the lessons live on the child's own screen */
                  value={todo > 0 ? `${todo} ${todo === 1 ? tr("drill") : tr("drills")}` : null} chevron />
     );
+    return lit ? <OnAccent>{row}</OnAccent> : row;
   };
 
   return (
@@ -8768,6 +8826,10 @@ const Rail = ({ children, tone, style = {} }) => {
   const t = useT();
   return <span className="shrink-0 text-right" style={{ width: RAIL, whiteSpace: "nowrap", ...TYPE.figureSm, color: tone || t.sub, ...style }}>{children}</span>;
 };
+/* the time that leads a row of a day (the coach's home, the Diary's List):
+   a heading's size and weight, tabular, in a column wide enough for
+   "10:00 am" at that size; a free hour keeps the quiet figure */
+const TIME_LEAD = { fontSize: 17, fontWeight: 600, letterSpacing: "-0.015em", width: 74 };
 
 const Card = ({ children, className = "", style = {}, delay = 0, tour }) => {
   const t = useT();
@@ -8885,7 +8947,11 @@ export const sink = (t, restShadow) => {
    rectangle, as Lares's word answers do. The one action is the sport's
    colour, Call off red, a chosen key the ink, the rest a quiet tint of
    the sport on a deeper tint. */
-function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round, hue }) {
+/* `big`: an answer's word, 17/600, in a grid of one or two (the log's areas,
+   Drills · Tip). `tick`: a chosen answer carries the sport's tick in a disc
+   on its top-right corner — the log's areas only; a key with a count or a
+   dot keeps that on its corner and never a tick beside it. */
+function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, aria, h = 76, delay = 0, wrap = false, iconOnly = false, block = false, face: faceSize, round, hue, tick = false, big = false }) {
   const t = useT();
   const cols = useContext(GridColsCtx);
   /* dangerQuiet: the white key with the red in the glyph and the word
@@ -8996,11 +9062,25 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           glyphs are exactly what makes an app look generated. Pass no
           Icon and the label centres on its own. */}
       {Icon && <Icon size={block ? 20 : h >= 90 ? 23 : h >= 68 ? 21 : 18} color={fg} strokeWidth={block ? 2.2 : 1.7} />}
-      {/* a word key's word is 15 in a grid of one or two (the log's areas,
-          Drills and Tip, a two-across Who filter), as a tile's is; three
-          across keeps 13.5, where 15 would wrap a day ("Tue 24 Nov") at 320 */}
+      {/* a word key's word is 15 in a grid of one or two (a two-across Who
+          filter), as a tile's is; three across keeps 13.5, where 15 would
+          wrap a day ("Tue 24 Nov") at 320. THE LOG'S ANSWERS ARE BIG (22
+          November, art direction): what was worked on, and Drills · Tip
+          under it, are 17/600 on a 58 key — the page's question, not a
+          row of small options */}
       <span className={Icon && !wrap ? (block ? "truncate" : "truncate px-2") : wrap ? "px-1 text-center" : "px-2 text-center"}
-            style={{ fontFamily: ui, fontSize: block && Icon ? 15.5 : cols && cols <= 2 ? 15 : 13.5, fontWeight: 600, letterSpacing: "-0.005em", lineHeight: wrap ? 1.15 : 1.25, color: fg }}>{label}</span>
+            style={{ fontFamily: ui, fontSize: block && Icon ? 15.5 : big && cols && cols <= 2 ? 17 : cols && cols <= 2 ? 15 : 13.5, fontWeight: 600, letterSpacing: big ? "-0.015em" : "-0.005em", lineHeight: wrap ? 1.15 : big ? 1.2 : 1.25, color: fg }}>{label}</span>
+      {/* CHOSEN, AND SAYS SO: the answer picked keeps SEL and carries the
+          sport's tick in a disc on its corner, as a phone marks a picked
+          photo — it pops in as the key takes the colour. Never beside a
+          count or a dot: that corner is theirs */}
+      {tick && on && !badge && (
+        <span aria-hidden="true" data-tick="" className="absolute flex items-center justify-center rounded-full"
+              style={{ right: -6, top: -6, width: 22, height: 22, background: sel.fg, boxShadow: `0 0 0 2px ${t.page}`,
+                       animation: "tickIn 320ms cubic-bezier(.22,1,.36,1) backwards" }}>
+          <Check size={12} color="#FFFFFF" strokeWidth={3} />
+        </span>
+      )}
       {badge}
     </button>
   );
@@ -10873,7 +10953,7 @@ function PlayerLog({ cfg, lessons, push, right, prefs, setPrefs, sport, ownMedia
       {!ready ? (
         <div className="px-6"><Bone h={220} r={20} /></div>
       ) : lessons.length === 0 ? (
-        <EmptyLine className="px-6">{tr("No lessons yet")}</EmptyLine>
+        <EmptyHero className="px-6" sport={sport} tour="lessons-empty">{tr("No lessons yet")}</EmptyHero>
       ) : (
         <>
           {/* the starred ones, as a section of their own — a row that is
@@ -13005,27 +13085,36 @@ function FamilyDashboard({ profiles, conns, practice, tips, bookings, activeProf
    render — React remounts the whole row, and inside a SwipeRow that
    resets the swipe halfway through the gesture. Not called Row: there
    is already a Row in this file, for settings lists. */
-function DayRow({ l, variant, last, avatar, until, onLogFor, onPeek, onRegister }) {
+/* The lesson on now, or next, is not a DayRow: it is the day's one
+   coloured card (NextCard, below), which carries Register when it is
+   live. A DayRow is a finished lesson to log, or one still ahead. */
+function DayRow({ l, variant, last, avatar, until, onLogFor, onPeek }) {
   const t = useT();
+  /* AT 350 AND UNDER THE ROW IS THE TIME AND THE NAME. The time leads at
+     74 and the 30px face beside it left the name 69 to 80px at 320:
+     "Súilleabháin" broke inside the word and the name ended on an
+     ellipsis beside Log. The face gives way there (`useNarrow`, the
+     width the header's pill gives at), as the Diary's List rows carry
+     none; the day's coloured card keeps its ringed face. */
+  const narrow = useNarrow();
   const grp = l.kind && l.kind.startsWith("Group");
   const border = last ? "none" : `0.5px solid ${HAIR(t.ink, 0.14)}`;
-  /* `wordMin`: the name's column keeps its longest word as its least
-     width (no min-w-0), so the live row below wraps Register under the
-     name only where a word of the name would not fit beside it */
-  const body = (wordMin) => (
+  const body = (
     <>
-      <Rail tone={variant === "now" ? t.ink : undefined}>{l.time}</Rail>
-      {grp ? (
+      {/* THE TIME LEADS THE ROW (22 November): a day is a timetable, so the
+          time is its biggest word — 17/600 in the ink, where it was the
+          grey 15.5 the name beside it outweighed; a lesson to log keeps
+          the grey, it has been and gone */}
+      <Rail tone={variant === "log" ? t.sub : t.ink} style={TIME_LEAD}>{l.time}</Rail>
+      {narrow ? null : grp ? (
         <span className="rounded-full flex items-center justify-center shrink-0"
               style={{ width: 30, height: 30, background: `${GROUP}18` }}><Users size={13} color={GROUP} /></span>
       ) : <Avatar name={l.who} size={30} src={avatar} />}
-      <span className={wordMin ? "flex-1" : "flex-1 min-w-0"}>
+      <span className="flex-1 min-w-0">
         {/* the whole name — two players with one first name are two rows — on a second line, and a third, rather than an ellipsis */}
-        {/* a row's name is 16/600, the live row's and every other's alike — it was
-            regular here and semibold in the Actions request row under it; the live
-            row is marked by its Now line and its Register key */}
+        {/* a row's name is 16/600, here and in the Actions request row under it */}
         <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
-        {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: variant === "now" ? t.ink : t.faint }}>{until}</span>}
+        {until && <span className="block mt-0.5 truncate" style={{ ...TYPE.caption, color: t.faint }}>{until}</span>}
       </span>
     </>
   );
@@ -13037,34 +13126,88 @@ function DayRow({ l, variant, last, avatar, until, onLogFor, onPeek, onRegister 
     borderBottom: border,
   };
 
-  /* the lesson happening now carries its own button, so the row body and
-     the register are two targets rather than a button inside a button */
-  if (variant === "now") {
-    /* Register sits beside the name while every word of the name fits
-       beside it, and takes a line of its own under the name, on the
-       right, where one would not (320 — the name had 32px and was cut).
-       The body's basis is 0 and its least width its content's, so the
-       row breaks its line on the name's longest word — the content, not
-       a width: a fixed basis dropped Register under "Cian Murphy" on
-       every 360px phone, and sat 3px from doing so at 375 */
-    return (
-      <div className="w-full flex flex-wrap items-center gap-x-3.5" style={frame}>
-        <button onClick={() => { haptic(7); soft(); onPeek(l); }}
-                className="flex items-center gap-3.5 text-left active:opacity-50" style={{ flex: "1 1 0%" }}>{body(true)}</button>
-        <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 ml-auto px-3.5 my-2 n-key"
-                style={{ "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: t.accent,
-                         ...TYPE.caption, fontWeight: 600, color: t.onAccent }}>{tr("Register")}</button>
-      </div>
-    );
-  }
   return (
     <button onClick={() => { haptic(7); soft(); variant === "log" ? onLogFor(l) : onPeek(l); }}
             className="w-full flex items-center gap-3.5 text-left active:opacity-50" style={frame}>
-      {body(false)}
+      {body}
       {/* a text action that acts is the sport's colour, in TextBtn's type, as Accept is */}
       {variant === "log"
         ? <span className="shrink-0" style={{ fontFamily: ui, fontSize: 15, fontWeight: 500, color: t.accent }}>{tr("Log")}</span>
         : <ChevronRight size={14} color={t.trace || t.faint} />}
+    </button>
+  );
+}
+
+/* THE ONE COLOURED THING ON THE DAY (22 November). Duolingo's path is
+   white with one node in the unit's colour — the lesson you are on; the
+   coach's day was a column of white boxes with no focal point, the
+   lesson that mattered drawn like every other. The lesson on now, or
+   next, is the sport's colour filled, white words, on a ledge of its own
+   colour made deeper (LIP), in its place in the day: the time at the
+   size of a title, the face and the whole name under it. On now it
+   carries Register as Duolingo's white key on the colour; next, the
+   chevron. Everything else on the page stays white. A tap opens the
+   peek, as the row did; the whole card sinks onto its ledge. */
+/* the theme with every grey turned to the word colour on the accent, so a
+   row drawn by the app's own components reads white on the colour —
+   white on each sport's colour reads 4.7:1 and over; a grey on it would not */
+const ON_ACCENT = (t) => ({ ...t, ink: t.onAccent, sub: t.onAccent, faint: t.onAccent, trace: t.onAccent });
+function OnAccent({ children }) {
+  const t = useT();
+  const v = useMemo(() => ON_ACCENT(t), [t]);
+  return <ThemeCtx.Provider value={v}>{children}</ThemeCtx.Provider>;
+}
+/* the accent card's own face, ring, ledge and press — a box of the list (its
+   border the face's colour, so only the ledge shows), the Button's four points.
+   `last`: the list's last box keeps under it only what its ledge needs past
+   the list's own 2px — a row's margin there (the list zeroes its last
+   child's, an inline one it cannot) pushed the next section 12px further
+   off than under any other list */
+const accentCard = (t, last = false) => {
+  const p = press3d(LIP(t.accent), LIP_H, LIP_PRESS);
+  return { style: { background: t.accent, "--edge": t.accent, borderRadius: 16, boxShadow: p.rest, marginBottom: last ? LIP_H - 2 : 10 + LIP_H }, handlers: p.handlers };
+};
+/* a face on the colour keeps a white ring, so a green disc on golf's green reads */
+const RingedFace = ({ children }) => (
+  <span className="shrink-0 inline-flex rounded-full" style={{ boxShadow: "0 0 0 2px #FFFFFF" }}>{children}</span>
+);
+function NextCard({ l, live, until, avatar, onPeek, onRegister }) {
+  const t = useT();
+  const fg = t.onAccent;
+  const grp = l.kind && l.kind.startsWith("Group");
+  const content = (
+    <span className="block min-w-0">
+      <span className="block" style={{ ...TYPE.eyebrow, color: fg }}>{live ? tr("Now") : until || tr("Next")}</span>
+      <span className="block" style={{ fontFamily: display, fontSize: 28, lineHeight: 1.12, letterSpacing: "-0.02em", fontWeight: 700, color: fg, ...FIG, whiteSpace: "nowrap", marginTop: 2 }}>{l.time}</span>
+      <span className="flex items-center gap-2.5" style={{ marginTop: 10 }}>
+        <RingedFace>{grp
+          ? <span className="rounded-full flex items-center justify-center" style={{ width: 28, height: 28, background: "#FFFFFF" }}><Users size={14} color={t.accent} strokeWidth={2.2} /></span>
+          : <Avatar name={l.who} size={28} src={avatar} />}</RingedFace>
+        {/* the whole name on a second line, and a third, before an ellipsis, as every row's is */}
+        <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: fg, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{l.who}</span>
+      </span>
+    </span>
+  );
+  if (live) return (
+    /* Register beside the name while the whole name fits on its line beside
+       it, a line of its own under the name, on the right, where it does not
+       — the row's rule, by content and never by width. The body's basis is
+       its content's width (the name on one line), so the line breaks before
+       Register rather than the name giving way: on a basis of 0 the name was
+       squeezed to its longest word beside the key, "Cian Murphy" on two
+       lines and a long name on three at 320. Alone on its line the body
+       shrinks to the card and the name wraps at its spaces. */
+    <div className="w-full flex flex-wrap items-center gap-x-3.5 gap-y-3" style={{ paddingTop: 14, paddingBottom: 16 }}>
+      <button data-card-body="" onClick={() => { haptic(7); soft(); onPeek(l); }} className="text-left" style={{ flex: "1 1 auto", minWidth: 0, maxWidth: "100%" }}>{content}</button>
+      <button data-tour="day-register" onClick={() => { hapticCommit(); soft(); onRegister(l); }} className="shrink-0 ml-auto px-4 n-key"
+              style={{ "--key-lip": LIP(t.accent), minHeight: 44, borderRadius: R.control, background: "#FFFFFF",
+                       ...TYPE.subhead, fontWeight: 600, color: t.accent }}>{tr("Register")}</button>
+    </div>
+  );
+  return (
+    <button onClick={() => { haptic(7); soft(); onPeek(l); }} className="w-full flex items-center gap-3.5 text-left" style={{ paddingTop: 14, paddingBottom: 16 }}>
+      <span className="flex-1 min-w-0">{content}</span>
+      <ChevronRight size={18} color={fg} strokeWidth={2.2} />
     </button>
   );
 }
@@ -13346,7 +13489,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
                       onLogFor, onNoShow, onPeek, onRegister, onWriteUp, onMessages,
                       onLog, onCapture, onAttend, onAddPlayer, onTip, onDrills, code,
                       onAccept, onDecline, onInvite, push, go,
-                      layout, onAction, lessonCount = 0 }) {
+                      layout, onAction, lessonCount = 0, sport }) {
   const t = useT();
   const cal = useCalendar();
   const list = today || [];
@@ -13381,7 +13524,8 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
   const nextRows = nextDay ? upcoming.filter((u) => u.dayLabel === nextDay) : [];
   const [nextOpen, setNextOpen] = useKept("nextOpen", false);
   /* ACTIONS: one list of what wants the coach, only when something
-     does, and past two kinds of thing a row of tiles narrows it */
+     does; past two kinds of thing and past six rows a row of tiles
+     narrows it */
   const [actKind, setActKind] = useKept("actKind", "all");
 
 
@@ -13403,10 +13547,11 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
              thing to do, as a key. ---- */}
         {rosterEmpty && (
           <div data-tour="today-empty" style={{ marginBottom: SPACE.section }}>
-            <p style={{ ...TYPE.body, color: t.faint, marginBottom: SPACE.block, paddingLeft: 4 }}>{tr("No players yet")}</p>
-            <Button tour="today-add-player" onClick={() => onAddPlayer && onAddPlayer()}>
-              <span className="inline-flex items-center justify-center gap-2"><UserPlus size={18} color={t.onAccent} strokeWidth={2.1} />{tr("Add player")}</span>
-            </Button>
+            <EmptyHero sport={sport} action={(
+              <Button tour="today-add-player" onClick={() => onAddPlayer && onAddPlayer()}>
+                <span className="inline-flex items-center justify-center gap-2"><UserPlus size={18} color={t.onAccent} strokeWidth={2.1} />{tr("Add player")}</span>
+              </Button>
+            )}>{tr("No players yet")}</EmptyHero>
           </div>
         )}
 
@@ -13426,19 +13571,32 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
           ) : (<Ruled style={{ marginBottom: SPACE.block }}>
             {todayRows.map((l, i) => {
               const variant = l.done ? "log" : l === liveNow ? "now" : "ahead";
+              /* the lesson on now, or next, is the day's one coloured card */
+              if (l === marked) {
+                const card = accentCard(t, i === todayRows.length - 1);
+                return (
+                  <div key={l.id || `t${i}`} data-tour="today-next" data-next-card={variant === "now" ? "now" : "next"} {...card.handlers} style={card.style}>
+                    <OnAccent>
+                      <NextCard l={l} live={l === liveNow} until={l === liveNow ? null : untilText(l.hoursUntil ?? 1) || null} avatar={avatarFor(l)}
+                                onPeek={(x) => onPeek && onPeek(x)} onRegister={(x) => onRegister && onRegister(x)} />
+                    </OnAccent>
+                  </div>
+                );
+              }
+              /* every other row: a finished lesson carries Log; with a lesson
+                 running, the next one after it keeps its "In 25 min" line */
               const row = (
                 <DayRow l={l} variant={variant} last
                         avatar={avatarFor(l)}
-                        until={l === liveNow ? tr("Now") : l === nextUp ? untilText(l.hoursUntil ?? 1) : null}
+                        until={l === nextUp ? untilText(l.hoursUntil ?? 1) : null}
                         onLogFor={(x) => onLogFor && onLogFor(x)}
-                        onPeek={(x) => onPeek && onPeek(x)}
-                        onRegister={(x) => onRegister && onRegister(x)} />
+                        onPeek={(x) => onPeek && onPeek(x)} />
               );
               return variant === "log"
                 ? <SwipeRow key={l.id || `t${i}`} deleteLabel={tr("Don't log")} onDelete={() => onNoShow && onNoShow(l)}>
                     <div data-tour={i === 0 ? "today-justdone" : undefined}>{row}</div>
                   </SwipeRow>
-                : <div key={l.id || `t${i}`} data-tour={l === marked ? "today-next" : undefined}>{row}</div>;
+                : <div key={l.id || `t${i}`}>{row}</div>;
             })}
           </Ruled>)}
         </>)}
@@ -13455,7 +13613,7 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             {nextOpen && nextRows.map((l, i) => (
               <div key={l.id || `n${i}`} style={{ borderTop: RULE.hair(t.ink), animation: "fadeUp 200ms cubic-bezier(.22,1,.36,1) both" }}>
                 <DayRow l={l} variant="ahead" last={i === nextRows.length - 1} avatar={avatarFor(l)} until={null}
-                        onLogFor={(x) => onLogFor && onLogFor(x)} onPeek={(x) => onPeek && onPeek(x)} onRegister={(x) => onRegister && onRegister(x)} />
+                        onLogFor={(x) => onLogFor && onLogFor(x)} onPeek={(x) => onPeek && onPeek(x)} />
               </div>
             ))}
           </Ruled>
@@ -13482,9 +13640,17 @@ function CoachToday({ right, banner, dateLine, nouns, today, requests, asks = []
             events.length > 0 && { glyph: [Trophy, HUE.gold], key: "event", label: tr("Competitions"), n: events.length, go: () => push("events") },
           ].filter(Boolean);
           if (!asks.length && !jobs.length) return null;
-          /* the kinds of thing here; past two, a row of tiles narrows the list */
+          /* the kinds of thing here */
           const kinds = [...(asks.length ? [{ key: "ask", label: tr("Requests") }] : []), ...jobs.map((j) => ({ key: j.key, label: j.label }))];
-          const narrow = kinds.length > 2;
+          /* A FILTER IS FOR A LIST THAT NEEDS ONE (22 November, art
+             direction): past two kinds AND past six rows shown — a
+             screenful, the bell's own rule — where four tiles naming
+             Requests · Messages · Drifting stood over three rows that named
+             themselves, the heaviest thing on the coach's home and a label
+             repeating the rows. Otherwise the rows sit straight under the
+             Actions heading. */
+          const rowsShown = Math.min(asks.length, 3) + jobs.length;
+          const narrow = kinds.length > 2 && rowsShown > 6;
           const kind = narrow && kinds.some((k) => k.key === actKind) ? actKind : "all";
           const showAsks = kind === "all" || kind === "ask";
           const shownJobs = jobs.filter((j) => kind === "all" || j.key === kind);
@@ -14326,13 +14492,15 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
               <TileGrid cols={2}>
                 {cfg.focus.map((f) => {
                   const on = focus.includes(f.id);
-                  return <ActTile key={f.id} h={52} label={f.label} on={on}
+                  /* the answers of the page: 58 tall at 17/600, a chosen one on
+                     SEL with the tick on its corner (22 November, art direction) */
+                  return <ActTile key={f.id} h={58} big tick label={f.label} on={on}
                                   onTap={() => setFocus(on ? focus.filter((x) => x !== f.id) : [...focus, f.id])} />;
                 })}
                 {custom.map((c) => (
-                  <ActTile key={c} h={52} label={c} on onTap={() => setCustom([])} aria={`${tr("Remove")} ${c}`} />
+                  <ActTile key={c} h={58} big tick label={c} on onTap={() => setCustom([])} aria={`${tr("Remove")} ${c}`} />
                 ))}
-                {!otherOpen && custom.length === 0 && <ActTile h={52} label={tr("Other")} onTap={() => setOtherOpen(true)} />}
+                {!otherOpen && custom.length === 0 && <ActTile h={58} big label={tr("Other")} onTap={() => setOtherOpen(true)} />}
               </TileGrid>
               {otherOpen && (
                 <div style={{ marginTop: SPACE.tight }}>
@@ -14391,8 +14559,9 @@ function Wizard({ cfg, sport, prefill, groups, captured, setCaptured, onAnnotate
           {/* what they do until next time */}
           <div ref={nextBlock} data-tour="wiz-next-block" className="px-6" style={{ marginTop: SPACE.block, scrollMarginBottom: 12 }}>
             <TileGrid cols={2}>
-              <ActTile tour="wiz-drills" h={52} label={tr("Drills")} count={nextDrills.length} on={drillsOpen} onTap={() => { setDrillsOpen(!drillsOpen); setTipOpen(false); }} />
-              <ActTile tour="wiz-tip" h={52} label={tr("Tip")} dot={!!nextTip} on={tipOpen} onTap={() => { setTipOpen(!tipOpen); setDrillsOpen(false); }} />
+              {/* the areas' own height and word (58, 17); no tick here — the corner is the count's and the dot's */}
+              <ActTile tour="wiz-drills" h={58} big label={tr("Drills")} count={nextDrills.length} on={drillsOpen} onTap={() => { setDrillsOpen(!drillsOpen); setTipOpen(false); }} />
+              <ActTile tour="wiz-tip" h={58} big label={tr("Tip")} dot={!!nextTip} on={tipOpen} onTap={() => { setTipOpen(!tipOpen); setDrillsOpen(false); }} />
             </TileGrid>
             {drillsOpen && (
               <div className="mt-2.5" style={{ animation: "fadeUp 220ms cubic-bezier(.22,1,.36,1) both" }}>
@@ -16130,7 +16299,6 @@ function DrillRow({ x, todayIso, onToggle, tour, delay = 0 }) {
 }
 
 function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLogPractice }) {
-  const t = useT();
   const calendar = useCalendar();
   const todayIso = isoDay(progressToday(calendar));
   /* THE TAB IS WHAT IS TO DO, AND THE LATEST SET. Everything not yet
@@ -16151,7 +16319,7 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
   return (
     <Screen title={tr("Drills")} right={right}>
       {items.length === 0 ? (
-        <EmptyLine className="px-6">{tr("No drills yet")}</EmptyLine>
+        <EmptyHero className="px-6" Icon={ListChecks} tour="drills-empty">{tr("No drills yet")}</EmptyHero>
       ) : (
         <>
           {/* THE LIST IS THE SCREEN. There was a card above it: a figure
@@ -16187,11 +16355,16 @@ function PlayerPractice({ conn, items, toggle, right, say, onAll, reminder, onLo
           way. Tennispreneur's journal and Ace It's practice log are this. */}
       {onLogPractice && (
         <div className="px-6" style={{ marginTop: SPACE.block }}>
-          <button data-tour="drills-log-practice" onClick={() => { hapticCommit(); soft(); onLogPractice(); }}
-                  className="w-full flex items-center justify-center gap-2 n-key"
-                  style={{ minHeight: 50, borderRadius: R.control, background: TINT(t), border: `${EDGE_W}px solid ${KEY_RING(t)}`, ...TYPE.body, fontWeight: 600, color: t.ink }}>
-            <Plus size={16} color={t.ink} strokeWidth={2.2} /> {tr("Log a practice")}
-          </button>
+          {/* THE TAB'S ONE ACTION (22 November, art direction): a white key
+              under white rows left the screen with nothing to look at first.
+              One action alone is the app's `Button` across the page with its
+              glyph — never a key drawn here by hand: its face, its ledge and
+              its word are every primary key's, and the glyph takes the
+              word's colour. The Button buzzes on the tap, so the handler
+              adds no beat of its own */}
+          <Button tour="drills-log-practice" onClick={() => onLogPractice()}>
+            <span className="inline-flex items-center justify-center gap-2"><Plus size={18} strokeWidth={2.4} />{tr("Log a practice")}</span>
+          </Button>
         </div>
       )}
       {/* WHEN THE DAY'S REMINDER ARRIVES — asked here, where the first
@@ -17241,7 +17414,7 @@ function MessageList({ role, push, right, empty, onNew, threads }) {
               <HeaderAdd tour="chat-new" label={tr("New message")} onTap={() => { hapticCommit(); soft(); onNew && onNew(); }} />) : null}>
       <div className="px-6 pb-2">
         {list.length === 0 ? (
-          <EmptyLine>{tr("No conversations yet")}</EmptyLine>
+          <EmptyHero Icon={MessageCircle} tour="chat-empty">{tr("No conversations yet")}</EmptyHero>
         ) : (<>
           {split && <div className="mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Yours")}</div>}
           <div className="nsc-plain" style={{ "--sep-in": "68px" }}>
@@ -22043,7 +22216,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        map entry and the fallback — byte for byte, so every change had
        to be made in both or the two homes drifted apart. */
     const coachToday = (
-      <CoachToday right={slimRight} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
+      <CoachToday right={slimRight} sport={sport} banner={data && data.uploads ? <UploadStatus uploads={data.uploads} onRetry={data.retryUploads} onDismiss={data.dismissUploads} /> : null}
                   dateLine={`${DAY_NAMES[dowToday]} ${todayMD.d} ${monthName(todayMD.m)}`}
                   nouns={cfg.nouns}
                   today={data ? (todayList || []) : freshAccount ? [] : TODAY_SCHEDULE}

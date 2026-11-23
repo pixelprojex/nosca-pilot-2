@@ -331,6 +331,17 @@ const leaks = [];
       const kid = page.locator('[data-tour="family-kid"]');
       const kt = (await kid.count()) ? M.norm(await kid.innerText()) : "";
       check("(f) the junior's row shows her name and her next lesson from the database", kt.includes("Saoirse") && /10:00 am/.test(kt), kt);
+      /* (22 November, art direction) one child with a confirmed lesson ahead: her row is the Family screen's one
+         coloured card — filled, its words 4.5:1 and over on the fill (read off the page, never a constant), on the
+         Button's four-point ledge; one on the screen */
+      {
+        const lum = (rgb) => { const [r, g, b] = String(rgb).match(/[\d.]+/g).slice(0, 3).map((v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+        const kidLit = await page.evaluate(() => { const all = [...document.querySelectorAll("[data-lit]")], el = all[0]; if (!el) return { n: 0 }; const s = getComputedStyle(el);
+          return { n: all.length, row: el.getAttribute("data-tour"), bg: s.backgroundColor, shadow: s.boxShadow, words: [...el.querySelectorAll("[data-name], [data-sub]")].map((x) => getComputedStyle(x).color) }; });
+        check("(f) …and with one child and a lesson ahead her row is the screen's one coloured card: filled, every word 4.5:1 and over on it, a four-point ledge",
+          kidLit.n === 1 && kidLit.row === "family-kid" && kidLit.bg !== "rgb(255, 255, 255)" && kidLit.bg !== "rgba(0, 0, 0, 0)" && kidLit.words.length === 2 && kidLit.words.every((w) => ratio(w, kidLit.bg) >= 4.5) && /\b0px 4px 0px\b/.test(kidLit.shadow), JSON.stringify(kidLit));
+      }
       await kid.click(); await page.waitForTimeout(900);
       const kidScreen = M.norm(await M.rootText(page));
       /* the last lesson is the first row of the list below, not a row of its own */
