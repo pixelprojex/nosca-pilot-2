@@ -6,8 +6,8 @@
   "dominant is the colour to paint behind a picture while it loads.",
   "use is a suggestion: hero (a full-bleed opening), chapter (a full-width picture inside a page), inline (beside or between text), loop (video).",
   "Nobody shown is a Nosca coach, player or customer, and nothing on the page may say or imply so; no picture shows a face to the camera.",
-  "Legible brand marks were painted out of six pictures (CREDITS.md says which); nothing else in any picture was altered beyond the crop and the grade.",
-  "A loop is muted H.264 with a keyframe every 12 frames, so its currentTime can be scrubbed by the scroll as well as played."
+  "Legible brand marks were painted out of five pictures (CREDITS.md says which); nothing else in any picture was altered beyond the crop and the grade.",
+  "A loop is muted H.264, 1280 wide, with a keyframe every 24 frames (about a second): it plays and loops, and its currentTime can be set by the scroll, though a canvas sequence scrubs more smoothly than any video."
  ],
  "grade": "One grade for all: saturation lowered to about four fifths with a ceiling on the hottest colours, a gentle S-curve with lifted blacks and held whites, a touch of warmth, shadows leaning to the card's bottle green and highlights to cream. The loops take the same grade as a 3D LUT.",
  "sports": [
@@ -88,7 +88,7 @@
      "file": "golf-mist-2-2400.webp",
      "width": 2400,
      "height": 1602,
-     "bytes": 544188
+     "bytes": 489878
     },
     {
      "file": "golf-mist-2-1400.webp",
@@ -408,10 +408,10 @@
    "height": 1600,
    "ratio": 1.5,
    "focal": {
-    "x": 0.67,
-    "y": 0.6
+    "x": 0.6,
+    "y": 0.52
    },
-   "focus": "67% 60%",
+   "focus": "60% 52%",
    "dominant": "#C1BBB3",
    "headline": "upper left, on the water, in ink",
    "use": "chapter",
@@ -651,6 +651,90 @@
    ]
   },
   {
+   "name": "padel-shadows-3",
+   "sport": "padel",
+   "subject": "Balls left on a padel court in low sun, the corner of the net and the long shadows of the cage across the turf",
+   "alt": "Balls on a padel court in low sun, crossed by the long shadows of the cage",
+   "orientation": "landscape",
+   "width": 2400,
+   "height": 1601,
+   "ratio": 1.4991,
+   "focal": {
+    "x": 0.55,
+    "y": 0.6
+   },
+   "focus": "55% 60%",
+   "dominant": "#546F82",
+   "headline": "right half, on the court, in white",
+   "use": "chapter",
+   "author": "Filipp Romanovski",
+   "credit": "Filipp Romanovski / Pexels",
+   "source": "https://www.pexels.com/photo/vibrant-padel-court-with-tennis-balls-40775998/",
+   "licence": "Pexels Licence",
+   "files": [
+    {
+     "file": "padel-shadows-3-2400.webp",
+     "width": 2400,
+     "height": 1601,
+     "bytes": 487530
+    },
+    {
+     "file": "padel-shadows-3-1400.webp",
+     "width": 1400,
+     "height": 934,
+     "bytes": 210992
+    },
+    {
+     "file": "padel-shadows-3-800.webp",
+     "width": 800,
+     "height": 534,
+     "bytes": 86500
+    }
+   ]
+  },
+  {
+   "name": "padel-net-4",
+   "sport": "padel",
+   "subject": "A ball resting under the foot of the net on a padel court",
+   "alt": "A ball resting under the foot of the net on a padel court",
+   "orientation": "landscape",
+   "width": 2400,
+   "height": 1601,
+   "ratio": 1.4991,
+   "focal": {
+    "x": 0.33,
+    "y": 0.7
+   },
+   "focus": "33% 70%",
+   "dominant": "#273341",
+   "headline": "lower right, on the court, in white",
+   "use": "inline",
+   "author": "Filipp Romanovski",
+   "credit": "Filipp Romanovski / Pexels",
+   "source": "https://www.pexels.com/photo/vibrant-blue-padel-court-with-tennis-ball-40776000/",
+   "licence": "Pexels Licence",
+   "files": [
+    {
+     "file": "padel-net-4-2400.webp",
+     "width": 2400,
+     "height": 1601,
+     "bytes": 487592
+    },
+    {
+     "file": "padel-net-4-1400.webp",
+     "width": 1400,
+     "height": 934,
+     "bytes": 210798
+    },
+    {
+     "file": "padel-net-4-800.webp",
+     "width": 800,
+     "height": 534,
+     "bytes": 90482
+    }
+   ]
+  },
+  {
    "name": "equestrian-pasture-1",
    "sport": "equestrian",
    "subject": "Horses grazing behind a rail fence in dawn mist, a large tree above them",
@@ -886,7 +970,7 @@
      "file": "coaching-lesson-2-2400.webp",
      "width": 2400,
      "height": 1504,
-     "bytes": 558574
+     "bytes": 481252
     },
     {
      "file": "coaching-lesson-2-1400.webp",
@@ -958,7 +1042,7 @@
     "y": 0.42
    },
    "focus": "45% 42%",
-   "dominant": "#5F3E34",
+   "dominant": "#594037",
    "headline": "lower right, on the table, in white",
    "use": "inline",
    "author": "Lum3n",
@@ -970,19 +1054,19 @@
      "file": "coaching-notebook-4-2400.webp",
      "width": 2400,
      "height": 1603,
-     "bytes": 59934
+     "bytes": 57492
     },
     {
      "file": "coaching-notebook-4-1400.webp",
      "width": 1400,
      "height": 935,
-     "bytes": 35052
+     "bytes": 33176
     },
     {
      "file": "coaching-notebook-4-800.webp",
      "width": 800,
      "height": 534,
-     "bytes": 16502
+     "bytes": 15834
     }
    ]
   },
@@ -1054,7 +1138,7 @@
      "file": "coaching-megaphone-6-2400.webp",
      "width": 2400,
      "height": 1600,
-     "bytes": 531140
+     "bytes": 495260
     },
     {
      "file": "coaching-megaphone-6-1400.webp",
@@ -1071,7 +1155,152 @@
    ]
   }
  ],
- "loops": [],
+ "loops": [
+  {
+   "name": "loop-golf-green-1",
+   "sport": "golf",
+   "subject": "A green and its bunkers from directly above in low sun, two players and their long shadows small on the grass",
+   "alt": "A golf green and its bunkers seen from directly above, players small on the grass",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 8.0,
+   "fps": 24.0,
+   "frames": 192,
+   "keyframe_every": 24,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last 1 s dissolve into the first frame, so it loops without a cut",
+   "focal": {
+    "x": 0.42,
+    "y": 0.5
+   },
+   "focus": "42% 50%",
+   "dominant": "#9B9368",
+   "headline": "centre, on the green, in white",
+   "use": "loop",
+   "author": "K (@kelly)",
+   "credit": "K (@kelly) / Pexels",
+   "source": "https://www.pexels.com/video/a-top-view-of-a-golf-field-from-a-drone-4198770/",
+   "licence": "Pexels Licence",
+   "file": "loop-golf-green-1.mp4",
+   "bytes": 1405335,
+   "poster": {
+    "file": "loop-golf-green-1-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 66830
+   }
+  },
+  {
+   "name": "loop-tennis-courts-1",
+   "sport": "tennis",
+   "subject": "Tennis courts among trees as the sun goes down behind them, seen from the air, the camera drifting sideways",
+   "alt": "Tennis courts among trees at sunset, seen from the air",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 8.01,
+   "fps": 29.97,
+   "frames": 240,
+   "keyframe_every": 24,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last 1 s dissolve into the first frame, so it loops without a cut",
+   "focal": {
+    "x": 0.62,
+    "y": 0.72
+   },
+   "focus": "62% 72%",
+   "dominant": "#333317",
+   "headline": "upper left, on the sky, in white",
+   "use": "loop",
+   "author": "Ibrahim Bennett",
+   "credit": "Ibrahim Bennett / Pexels",
+   "source": "https://www.pexels.com/video/drone-footage-of-tennis-courts-5015666/",
+   "licence": "Pexels Licence",
+   "file": "loop-tennis-courts-1.mp4",
+   "bytes": 1376651,
+   "poster": {
+    "file": "loop-tennis-courts-1-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 42830
+   }
+  },
+  {
+   "name": "loop-tennis-hands-2",
+   "sport": "tennis",
+   "subject": "Hands, a racket and two tennis balls against a dark ground; the player is seen from chest to knee, no face",
+   "alt": "Hands holding a racket and two tennis balls against a dark ground",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 674,
+   "ratio": 1.8991,
+   "duration": 7.0,
+   "fps": 25.0,
+   "frames": 175,
+   "keyframe_every": 24,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last 0.8 s dissolve into the first frame, so it loops without a cut",
+   "focal": {
+    "x": 0.45,
+    "y": 0.5
+   },
+   "focus": "45% 50%",
+   "dominant": "#151A19",
+   "headline": "left third, on the dark ground, in white",
+   "use": "loop",
+   "author": "cottonbro studio",
+   "credit": "cottonbro studio / Pexels",
+   "source": "https://www.pexels.com/video/a-person-playing-tennis-5730331/",
+   "licence": "Pexels Licence",
+   "file": "loop-tennis-hands-2.mp4",
+   "bytes": 904372,
+   "poster": {
+    "file": "loop-tennis-hands-2-poster.webp",
+    "width": 1280,
+    "height": 674,
+    "bytes": 20368
+   }
+  },
+  {
+   "name": "loop-rowing-lake-1",
+   "sport": "rowing",
+   "subject": "A crew crossing a wide, still lake at dusk, far off under a banded sky",
+   "alt": "A rowing crew far off on a still lake at dusk",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "ratio": 1.7778,
+   "duration": 8.01,
+   "fps": 23.976,
+   "frames": 192,
+   "keyframe_every": 24,
+   "codec": "H.264 (High), yuv420p, faststart, no audio",
+   "seam": "the last 1 s dissolve into the first frame, so it loops without a cut",
+   "focal": {
+    "x": 0.55,
+    "y": 0.26
+   },
+   "focus": "55% 26%",
+   "dominant": "#070C14",
+   "headline": "lower half, on the dark water, in white",
+   "use": "loop",
+   "author": "Danilo Riba",
+   "credit": "Danilo Riba / Pexels",
+   "source": "https://www.pexels.com/video/people-rowing-a-boat-on-a-calm-lake-5378537/",
+   "licence": "Pexels Licence",
+   "file": "loop-rowing-lake-1.mp4",
+   "bytes": 1741799,
+   "poster": {
+    "file": "loop-rowing-lake-1-poster.webp",
+    "width": 1280,
+    "height": 720,
+    "bytes": 54418
+   }
+  }
+ ],
  "files": {
   "golf-fairway-1-2400.webp": {
    "kind": "photo",
@@ -1541,8 +1770,8 @@
    "width": 2400,
    "height": 1600,
    "focal": {
-    "x": 0.67,
-    "y": 0.6
+    "x": 0.6,
+    "y": 0.52
    },
    "dominant": "#C1BBB3",
    "alt": "A single sculler seen from behind on rippled water in low light",
@@ -1558,8 +1787,8 @@
    "width": 1400,
    "height": 933,
    "focal": {
-    "x": 0.67,
-    "y": 0.6
+    "x": 0.6,
+    "y": 0.52
    },
    "dominant": "#C1BBB3",
    "alt": "A single sculler seen from behind on rippled water in low light",
@@ -1575,8 +1804,8 @@
    "width": 800,
    "height": 533,
    "focal": {
-    "x": 0.67,
-    "y": 0.6
+    "x": 0.6,
+    "y": 0.52
    },
    "dominant": "#C1BBB3",
    "alt": "A single sculler seen from behind on rippled water in low light",
@@ -1837,6 +2066,108 @@
    "alt": "A covered padel court with glass walls and trees beyond",
    "headline": "upper third, on the roof panels, in ink; or on the court, in white",
    "use": "chapter"
+  },
+  "padel-shadows-3-2400.webp": {
+   "kind": "photo",
+   "of": "padel-shadows-3",
+   "sport": "padel",
+   "subject": "Balls left on a padel court in low sun, the corner of the net and the long shadows of the cage across the turf",
+   "orientation": "landscape",
+   "width": 2400,
+   "height": 1601,
+   "focal": {
+    "x": 0.55,
+    "y": 0.6
+   },
+   "dominant": "#546F82",
+   "alt": "Balls on a padel court in low sun, crossed by the long shadows of the cage",
+   "headline": "right half, on the court, in white",
+   "use": "chapter"
+  },
+  "padel-shadows-3-1400.webp": {
+   "kind": "photo",
+   "of": "padel-shadows-3",
+   "sport": "padel",
+   "subject": "Balls left on a padel court in low sun, the corner of the net and the long shadows of the cage across the turf",
+   "orientation": "landscape",
+   "width": 1400,
+   "height": 934,
+   "focal": {
+    "x": 0.55,
+    "y": 0.6
+   },
+   "dominant": "#546F82",
+   "alt": "Balls on a padel court in low sun, crossed by the long shadows of the cage",
+   "headline": "right half, on the court, in white",
+   "use": "chapter"
+  },
+  "padel-shadows-3-800.webp": {
+   "kind": "photo",
+   "of": "padel-shadows-3",
+   "sport": "padel",
+   "subject": "Balls left on a padel court in low sun, the corner of the net and the long shadows of the cage across the turf",
+   "orientation": "landscape",
+   "width": 800,
+   "height": 534,
+   "focal": {
+    "x": 0.55,
+    "y": 0.6
+   },
+   "dominant": "#546F82",
+   "alt": "Balls on a padel court in low sun, crossed by the long shadows of the cage",
+   "headline": "right half, on the court, in white",
+   "use": "chapter"
+  },
+  "padel-net-4-2400.webp": {
+   "kind": "photo",
+   "of": "padel-net-4",
+   "sport": "padel",
+   "subject": "A ball resting under the foot of the net on a padel court",
+   "orientation": "landscape",
+   "width": 2400,
+   "height": 1601,
+   "focal": {
+    "x": 0.33,
+    "y": 0.7
+   },
+   "dominant": "#273341",
+   "alt": "A ball resting under the foot of the net on a padel court",
+   "headline": "lower right, on the court, in white",
+   "use": "inline"
+  },
+  "padel-net-4-1400.webp": {
+   "kind": "photo",
+   "of": "padel-net-4",
+   "sport": "padel",
+   "subject": "A ball resting under the foot of the net on a padel court",
+   "orientation": "landscape",
+   "width": 1400,
+   "height": 934,
+   "focal": {
+    "x": 0.33,
+    "y": 0.7
+   },
+   "dominant": "#273341",
+   "alt": "A ball resting under the foot of the net on a padel court",
+   "headline": "lower right, on the court, in white",
+   "use": "inline"
+  },
+  "padel-net-4-800.webp": {
+   "kind": "photo",
+   "of": "padel-net-4",
+   "sport": "padel",
+   "subject": "A ball resting under the foot of the net on a padel court",
+   "orientation": "landscape",
+   "width": 800,
+   "height": 534,
+   "focal": {
+    "x": 0.33,
+    "y": 0.7
+   },
+   "dominant": "#273341",
+   "alt": "A ball resting under the foot of the net on a padel court",
+   "headline": "lower right, on the court, in white",
+   "use": "inline"
   },
   "equestrian-pasture-1-2400.webp": {
    "kind": "photo",
@@ -2207,7 +2538,7 @@
     "x": 0.45,
     "y": 0.42
    },
-   "dominant": "#5F3E34",
+   "dominant": "#594037",
    "alt": "A notebook and a pen on a wooden table",
    "headline": "lower right, on the table, in white",
    "use": "inline"
@@ -2224,7 +2555,7 @@
     "x": 0.45,
     "y": 0.42
    },
-   "dominant": "#5F3E34",
+   "dominant": "#594037",
    "alt": "A notebook and a pen on a wooden table",
    "headline": "lower right, on the table, in white",
    "use": "inline"
@@ -2241,7 +2572,7 @@
     "x": 0.45,
     "y": 0.42
    },
-   "dominant": "#5F3E34",
+   "dominant": "#594037",
    "alt": "A notebook and a pen on a wooden table",
    "headline": "lower right, on the table, in white",
    "use": "inline"
@@ -2347,6 +2678,142 @@
    "alt": "A coach's megaphone beside the blades of oars on a pontoon",
    "headline": "lower left, on the pontoon, in white",
    "use": "inline"
+  },
+  "loop-golf-green-1.mp4": {
+   "kind": "loop",
+   "of": "loop-golf-green-1",
+   "sport": "golf",
+   "subject": "A green and its bunkers from directly above in low sun, two players and their long shadows small on the grass",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "focal": {
+    "x": 0.42,
+    "y": 0.5
+   },
+   "dominant": "#9B9368",
+   "alt": "A golf green and its bunkers seen from directly above, players small on the grass",
+   "headline": "centre, on the green, in white",
+   "use": "loop"
+  },
+  "loop-golf-green-1-poster.webp": {
+   "kind": "poster",
+   "of": "loop-golf-green-1",
+   "sport": "golf",
+   "subject": "A green and its bunkers from directly above in low sun, two players and their long shadows small on the grass",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "focal": {
+    "x": 0.42,
+    "y": 0.5
+   },
+   "dominant": "#9B9368",
+   "alt": "A golf green and its bunkers seen from directly above, players small on the grass",
+   "headline": "centre, on the green, in white",
+   "use": "loop"
+  },
+  "loop-tennis-courts-1.mp4": {
+   "kind": "loop",
+   "of": "loop-tennis-courts-1",
+   "sport": "tennis",
+   "subject": "Tennis courts among trees as the sun goes down behind them, seen from the air, the camera drifting sideways",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "focal": {
+    "x": 0.62,
+    "y": 0.72
+   },
+   "dominant": "#333317",
+   "alt": "Tennis courts among trees at sunset, seen from the air",
+   "headline": "upper left, on the sky, in white",
+   "use": "loop"
+  },
+  "loop-tennis-courts-1-poster.webp": {
+   "kind": "poster",
+   "of": "loop-tennis-courts-1",
+   "sport": "tennis",
+   "subject": "Tennis courts among trees as the sun goes down behind them, seen from the air, the camera drifting sideways",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "focal": {
+    "x": 0.62,
+    "y": 0.72
+   },
+   "dominant": "#333317",
+   "alt": "Tennis courts among trees at sunset, seen from the air",
+   "headline": "upper left, on the sky, in white",
+   "use": "loop"
+  },
+  "loop-tennis-hands-2.mp4": {
+   "kind": "loop",
+   "of": "loop-tennis-hands-2",
+   "sport": "tennis",
+   "subject": "Hands, a racket and two tennis balls against a dark ground; the player is seen from chest to knee, no face",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 674,
+   "focal": {
+    "x": 0.45,
+    "y": 0.5
+   },
+   "dominant": "#151A19",
+   "alt": "Hands holding a racket and two tennis balls against a dark ground",
+   "headline": "left third, on the dark ground, in white",
+   "use": "loop"
+  },
+  "loop-tennis-hands-2-poster.webp": {
+   "kind": "poster",
+   "of": "loop-tennis-hands-2",
+   "sport": "tennis",
+   "subject": "Hands, a racket and two tennis balls against a dark ground; the player is seen from chest to knee, no face",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 674,
+   "focal": {
+    "x": 0.45,
+    "y": 0.5
+   },
+   "dominant": "#151A19",
+   "alt": "Hands holding a racket and two tennis balls against a dark ground",
+   "headline": "left third, on the dark ground, in white",
+   "use": "loop"
+  },
+  "loop-rowing-lake-1.mp4": {
+   "kind": "loop",
+   "of": "loop-rowing-lake-1",
+   "sport": "rowing",
+   "subject": "A crew crossing a wide, still lake at dusk, far off under a banded sky",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "focal": {
+    "x": 0.55,
+    "y": 0.26
+   },
+   "dominant": "#070C14",
+   "alt": "A rowing crew far off on a still lake at dusk",
+   "headline": "lower half, on the dark water, in white",
+   "use": "loop"
+  },
+  "loop-rowing-lake-1-poster.webp": {
+   "kind": "poster",
+   "of": "loop-rowing-lake-1",
+   "sport": "rowing",
+   "subject": "A crew crossing a wide, still lake at dusk, far off under a banded sky",
+   "orientation": "landscape",
+   "width": 1280,
+   "height": 720,
+   "focal": {
+    "x": 0.55,
+    "y": 0.26
+   },
+   "dominant": "#070C14",
+   "alt": "A rowing crew far off on a still lake at dusk",
+   "headline": "lower half, on the dark water, in white",
+   "use": "loop"
   }
  }
 }
