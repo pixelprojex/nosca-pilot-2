@@ -946,6 +946,58 @@ const rowLead = (page, sel, nth = 0) => page.evaluate(([sel, nth]) => {
 /* a row of words and nothing but its chevron (or a tick, or nothing): the label first on the row's inset */
 const plainRow = (o, { glyphs = ["chevron-right"] } = {}) => !!o && o.lead === 0 && o.before === 0 && JSON.stringify(o.glyphs) === JSON.stringify(glyphs);
 
+/* NOTHING IS CUT (24 November). Every Facts line inside `scope` (a lesson
+   row's areas and its grey line, the camera's filing pill): its words; its
+   visible column (the line hangs SEP_HANG to the left, clipped); `over`,
+   a part running past that column or a line wider than its box; `dotLeads`,
+   a line that starts on a dot the clip did not take; `broken`, a part that
+   broke inside itself although its words fit a line of their own — a fact
+   split ("Sun 22" over "Nov"); and `wordBroken`, a word wider than the
+   line, which can only break inside itself ("managemen" over "t"). A part
+   wider than the line (a long name at 320) wraps inside itself at its
+   spaces and hyphens, as words do, and that is neither. */
+const factsFit = (page, scope) => page.evaluate((scope) => {
+  const root = scope ? document.querySelector(scope) : document; if (!root) return null;
+  return [...root.querySelectorAll("[data-facts]")].filter((f) => f.getBoundingClientRect().width > 0).map((f) => {
+    const cs = getComputedStyle(f), fr = f.getBoundingClientRect(), hang = -parseFloat(cs.marginLeft) || 0;
+    const colL = fr.left + hang, colR = fr.right, lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.4;
+    const probe = document.createElement("span");
+    probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${cs.font};letter-spacing:${cs.letterSpacing}`;
+    document.body.appendChild(probe);
+    const parts = [...f.children].filter((p) => p.hasAttribute("data-fact")).map((p) => {
+      const r = p.getBoundingClientRect(), pad = parseFloat(getComputedStyle(p).paddingLeft) || 0, dot = p.querySelector("[data-fact-dot]");
+      const words = p.textContent.replace(/^·\s*/, "").trim(); probe.textContent = words;
+      const natural = probe.getBoundingClientRect().width;
+      /* the widest word, a hyphen being a place a word may break ("Cross-" over "country") */
+      const widest = Math.max(...words.split(/\s+|(?<=-)/).filter(Boolean).map((w) => { probe.textContent = w; return probe.getBoundingClientRect().width; }));
+      return { text: words, top: r.top, left: r.left + pad, right: r.right, lines: Math.round(r.height / lh), natural, widest, dotRight: dot ? dot.getBoundingClientRect().right : null };
+    });
+    probe.remove();
+    const width = colR - colL;
+    return { text: parts.map((p) => p.text).join(" · "), width: Math.round(width), lines: Math.round(fr.height / lh),
+             over: parts.some((p) => p.left < colL - 1 || p.right > colR + 1) || f.scrollWidth > f.clientWidth + 1,
+             dotLeads: parts.some((p, i) => i > 0 && p.top > parts[i - 1].top + 2 && p.dotRight !== null && p.dotRight > colL + 1),
+             broken: parts.filter((p) => p.lines > 1 && p.natural <= width - 1).map((p) => p.text),
+             wordBroken: parts.filter((p) => p.widest > width + 0.5).map((p) => p.text),
+             parts: parts.map((p) => `${p.text} (${p.lines})`) };
+  });
+}, scope);
+/* every line whole: nothing past its column, no line led by a dot, no fact split, no word broken */
+const factsWhole = (list) => !!list && list.length > 0 && list.every((f) => !f.over && !f.dotLeads && f.broken.length === 0 && f.wordBroken.length === 0);
+/* 44 TO A FINGER, read by what a finger lands on: the control under its
+   centre and 21 points out from it every way, the corners 20 in (the
+   corners of a 44 square, a point inside it). Each probe names `sel`'s nth
+   control, or a part of it. */
+const fingerFit = (page, sel, nth = 0) => page.evaluate(([sel, nth]) => {
+  const el = [...document.querySelectorAll(sel)].filter((e) => e.getBoundingClientRect().width > 0)[nth]; if (!el) return null;
+  const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const pts = [[0, 0], [21, 0], [-21, 0], [0, 21], [0, -21], [20, 20], [-20, 20], [20, -20], [-20, -20]];
+  const missed = pts.filter(([dx, dy]) => { const h = document.elementFromPoint(cx + dx, cy + dy); return !h || !(h === el || el.contains(h)); });
+  return { label: el.getAttribute("aria-label") || el.textContent.trim(), drawn: [Math.round(r.width), Math.round(r.height)],
+           left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom), onScreen: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight,
+           missed: missed.map(([dx, dy]) => `${dx},${dy}`) };
+}, [sel, nth]);
+
 /* PASS / FAIL lines and a summary; every script exits 0 so the lines are read, not the code */
 function checker(label) {
   const results = [];
@@ -964,4 +1016,5 @@ module.exports = {
   emptyDb, addUser, addProfile, addFamily, addLesson, addMedia, addAttendee, addRequest, addNotification, addBooking, addRecurring, addDrill, addMessage, setPrefs, weekOf,
   session, signupTrigger, notify, groupMembers, scopeFor, lessonsView, attach, startServer, stopServer,
   norm, rootText, rootEmpty, SPLASH_MS, settle, injectSession, tap, byText, click, back, codeBoxes, fillCode, bellCount, rowLead, plainRow, checker, SEEDED,
+  factsFit, factsWhole, fingerFit,
 };
