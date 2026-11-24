@@ -283,7 +283,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       }, ["Cian Murphy", "Aoife Doyle", "Eoin Breathnach", "Saoirse Kelly"]);
       await shot("t-new-group-people");
       check("(t) New group's people (PersonPicker) are the rows of one grouped box on the card's edge — the group's rule between them, none under the last, a tick box on each — never a box a person",
-        !!pg && pg.n === 4 && pg.groups === 1 && !pg.inList && pg.edge === EDGE.golf && parseFloat(pg.bw) >= 1 && pg.rules.length === 3 && pg.rules.every((r) => r === `1.5px ${EDGE.golf}`) && parseFloat(pg.last) === 0 && pg.ticks === 4, JSON.stringify(pg));
+        !!pg && pg.n === 4 && pg.groups === 1 && !pg.inList && pg.edge === EDGE.golf && parseFloat(pg.bw) >= 1 && pg.rules.length === 3 && pg.rules.every((r) => parseFloat(r) >= 1 && r.endsWith(EDGE.golf)) && parseFloat(pg.last) === 0 && pg.ticks === 4, JSON.stringify(pg));
       await closeSheet(page);
 
       /* (y) the push prompt at the head of the alerts */

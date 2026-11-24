@@ -112,13 +112,16 @@ const { check, results, summary } = M.checker("group-notify");
       await page.locator("[data-sheet] button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(200);
       await page.locator("[data-sheet] button", { hasText: "Saoirse Kelly" }).first().click(); await page.waitForTimeout(200);
       for (let i = 0; i < 3; i++) { await page.locator('[data-sheet] [aria-label="Fewer"]').click(); await page.waitForTimeout(120); }
+      /* the sheet offers the coach's own times since 24 November — 9, 10, 11, 4 and 5 here, no two o'clock, the
+         default it opened on before — so the time is picked, as a coach picks it */
+      await page.locator("[data-sheet] button", { hasText: /^4:00 pm$/ }).first().click(); await page.waitForTimeout(200);
       await lastBtn(page, /^Create group$/).click(); await page.waitForTimeout(2200);
       await shot("01-group-created");
       const post = db.posts.filter((x) => x.table === "bookings").pop();
       check("(a) the group books its three weeks in one insert", !!post && post.rows.length === 3 && post.rows.every((r) => r.group_name === "Sunday juniors" && !r.player_id), JSON.stringify(post && post.rows.map((r) => [r.booking_date, r.group_name])));
       const first = post ? post.rows.slice().sort((x, y) => String(x.booking_date).localeCompare(String(y.booking_date)))[0] : null;
       const ca = told(db, "adult", "Sunday juniors booked"), cs = told(db, "junior", "Sunday juniors booked"), co = told(db, "parent", "Saoirse's Sunday juniors booked");
-      check("(a) each member is told once, with the count and the first day, landing on the Diary", ca.length === 1 && /^3 lessons · from \w{3} \d{1,2} \w{3} 2:00 pm$/.test(ca[0].body) && ca[0].data.screen === "calendar" && !!first && ca[0].data.id === first.id && cs.length === 1, JSON.stringify([ca, cs]));
+      check("(a) each member is told once, with the count and the first day, landing on the Diary", ca.length === 1 && /^3 lessons · from \w{3} \d{1,2} \w{3} 4:00 pm$/.test(ca[0].body) && ca[0].data.screen === "calendar" && !!first && ca[0].data.id === first.id && cs.length === 1, JSON.stringify([ca, cs]));
       check("(a) a junior member's adult is told it is the child's, on Family", co.length === 1 && co[0].data.screen === "family" && /^3 lessons · from /.test(co[0].body), JSON.stringify(co));
       check("(a) nobody outside the group is told — not another player, not the coach", ![IDS.aoife, IDS.eoin, IDS.coach].some((id) => db.notifications.some((n) => n.user_id === id && /Sunday juniors/.test(n.title))), JSON.stringify(db.notifications.map((n) => [n.user_id.slice(-4), n.title])));
       void text;
