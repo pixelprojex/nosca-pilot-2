@@ -178,7 +178,16 @@ sports line with its dots. `.t-gold` is flat gold in the ground's `--gold-text` 
 - **Card** `<!-- @include card world="olive" class="bcard--shadow" -->`.
 - **Photograph** `<!-- @include photo name="…" attrs="data-settle" -->` or by hand `<figure class="photo" style="--ar:3/2;--focus:50% 30%"><img width height alt loading="lazy"></figure>`.
   `.photo--tall` 4/5 · `.photo--wide` 21/9 · `.photo--square` · `.photo--bleed` a full screen · `.photo--veil` lays one even
-  veil of the deep green over it so `--on-green` words hold 4.5:1 (`--veil:.42`; never a gradient). `.credit` is the small line under one.
+  veil of the deep green over it for words (`--veil:.42`; never a gradient). The manifest's `headline` says where on each
+  picture words can sit and in which colour: put them there, in `--on-green`, and raise `--veil` until the lightest part
+  under them holds 4.5:1 (a white sky needs .75; the graded pictures' dark halves hold at .42 to .5). Gold words on a
+  photograph only where the veiled picture is as dark as the card's green. `.credit` / `credit="1"` is the small line under one.
+- **A photograph as a film's ground** `<!-- @include photo name="…" class="photo--bleed photo--veil" attrs="data-settle='none'" -->`
+  as the first child of `.film__stage`: with motion it fills the pinned stage and the words in `.film__safe` lie on
+  it; at rest it is the picture at its own shape with the words under it. (The kit's `#still`.)
+- **Loop** `<!-- @include loop name="loop-rowing-lake-1" credit="1" -->`: a clip from the manifest's `loops`, muted and
+  inline, its poster the still; it plays only while it is on screen. `scrub="1"` makes the scroll its play head instead.
+  `.vid--bleed` and `.vid--veil` as for a photograph.
 - **Partner frame** `<div class="pframe"><!-- @include mark --></div>` in `.pframes`: paper, one gold hairline, the mark faint. No shadow.
 - **Stat** `.stats > .stat > .stat__n[data-count] + .stat__l`. Only the numbers BRIEF §2 gives.
 - **The app's vocabulary** for a vignette (wrap in `.app`, colours per `KEYS.md`): `.app-card .app-list .app-row
@@ -229,6 +238,7 @@ four fifths of `--len`). What the markup says:
 | a `[data-sequence]` (the phone's `seq`) | runs frame for frame with the steps: each step's `data-frame` is the frame the sequence stands on as that step begins |
 | `[data-scrub-video]` | its time runs with the film |
 | `.film__bar > i` | fills |
+| `[data-ink]` `[data-rise]` `[data-settle]` `[data-depth]` `[data-stripes]` `[data-rule]` on the stage | play with the film: inside a `[data-step]` as that step begins, otherwise over the film. `data-at="6" data-len="44"` places one exactly (0 to 100). Anything your script drives itself is left alone |
 | `data-span="16,100"` | where the steps begin and end |
 | `data-unpin="sm"` | on a phone this film does not pin: it is the plain column (`.only-rest` shows, `.only-motion` hides) |
 
@@ -310,7 +320,8 @@ stands (1 moves a whole range against the scroll, −1 with it); the range is `d
 On a section: `<section class="section g-green" data-ground-shift>`. Its ground arrives as the card's diagonal:
 a wedge of it, closed by the gold edge, rises out of the section before and levels as the section reaches the
 top. Nothing is pinned. A plain section before it is given a foot as tall as the wedge (`data-shift-lead="0.5"`
-of a screen), so the wedge crosses air; after a film, a rail or a `.hold` it crosses that scene's last frame.
+of a screen), so the wedge crosses air. After a film, a rail or a `.hold` there is no foot: the edge starts level
+when the scene lets go, tilts over the departing frame, and levels again at the top (it never lies over a scene that is still playing).
 In a film: `<div class="shift-layer g-paper" aria-hidden="true">…</div>` on the stage and
 `Site.groundShift(layer, { tl, at, duration, shape: 'wedge' | 'rise' | 'iris' })` opens it over the stage through a clip-path.
 
@@ -323,7 +334,7 @@ In a film: `<div class="shift-layer g-paper" aria-hidden="true">…</div>` on th
 ```
 At rest the track is a plain column (or your grid). With motion the section is as tall as the track is wide, so
 the thumb's travel down is the track's travel across. Inside it `[data-settle]` photographs open as they come in,
-`[data-rail-z="0.12"]` layers drift at their own rate, `[data-rail-in]` items rise in. `--rail-gap`, `--rail-pad`;
+`[data-rail-z="0.12"]` layers drift at their own rate, `[data-rail-in]` items rise in, and `[data-ink]` / `[data-rise]` play as their item arrives. `--rail-gap`, `--rail-pad`;
 `data-rail="1.4"` slows it. `data-unpin="sm"`: on a phone it is the phone's own sideways swipe, snapping item to
 item. `Site.rail(el, function (tween, r) { … })` hands you `r.containerAnimation` (and `r.items r.track r.stage r.dist()`)
 for anything else that should happen as an item passes.

@@ -375,8 +375,12 @@
       apron.style.height = lead + 'px';
       if (!fixed) { prev.style.paddingBottom = ''; if ((parseFloat(getComputedStyle(prev).paddingBottom) || 0) < lead + 24) prev.style.paddingBottom = (lead + 24) + 'px'; }
     };
+    /* Before a plain section the wedge stands whole in that section's foot and levels as this one rises. After a
+       film, a rail or a held section there is no foot to stand in, and a wedge waiting there would lie over the
+       scene while it still plays: so it starts level, tilts as the scene lets go, and levels again at the top. */
     const render = (p) => {
-      const q = 1 - clamp(p, 0, 1), top = (1 - q) * 100;
+      p = clamp(p, 0, 1);
+      const q = fixed ? Math.sin(Math.PI * Math.pow(p, 0.8)) * 0.85 : 1 - p, top = (1 - q) * 100;
       fill.style.clipPath = 'polygon(0% ' + top.toFixed(2) + '%, 100% 100%, 0% 100%)';
       edge.style.transform = 'rotate(' + (Math.atan2(lead * q, width) * 180 / Math.PI).toFixed(3) + 'deg)';
       edge.style.opacity = q < 0.02 ? '0' : '1';
@@ -714,6 +718,23 @@
       const bar = $('.film__bar > i', el); if (bar) tl.fromTo(bar, { scaleX: 0 }, { scaleX: 1, duration: 100, ease: 'none' }, 0);
     }
     if (build) build(tl, s);
+    /* the scrubbed pieces standing on this stage that the script did not drive itself play with the film: inside a
+       step they play as that step begins; outside, over the film (data-at and data-len place one exactly, 0 to 100) */
+    if (rich) {
+      const lead0 = s.steps.length ? s.steps[0][0] : 0;
+      const place = (p, at, len) => {
+        const st = p.closest('[data-step]'), i = st ? stepEls.indexOf(st) : -1, r = i > -1 ? s.steps[i] : null;
+        const a = r ? r[0] + 1.5 : at, d = r ? Math.min(len, (r[1] - r[0]) * 0.5) : len;
+        return { tl, at: num(p.dataset.at, a), duration: num(p.dataset.len, d) };
+      };
+      const auto = (sel, key, flag, at, len, fn) => $$(sel, el).forEach((p) => { if (p.dataset[key] === 'manual' || p[flag]) return; fn(p, place(p, at, len)); });
+      auto('[data-settle]', 'settle', '_settle', 0, 100, (p, o) => Site.settle(p, o));
+      auto('[data-depth]', 'depth', '_depth', 0, 100, (p, o) => Site.depth(p, o));
+      auto('[data-stripes]', 'stripes', '_stripes', 0, 55, (p, o) => Site.drawStripes(p, o));
+      auto('[data-rule]', 'rule', '_stripes', lead0, 26, (p, o) => Site.drawStripes(p, o));
+      auto('[data-ink]', 'ink', '_ink', lead0 + 2, 30, (p, o) => Site.inkFill(p, o));
+      auto('[data-rise]', 'rise', '_rise', lead0 + 2, 22, (p, o) => Site.rise(p, o));
+    }
     el.classList.add('is-built');
     el._scene = el._film = tl;
     return tl;
@@ -781,6 +802,8 @@
         const z = num(l.dataset.railZ, 0.2);
         gsap.fromTo(l, { x: () => z * stage.clientWidth * 0.5 }, { x: () => -z * stage.clientWidth * 0.5, ease: 'none', scrollTrigger: { containerAnimation: tween, trigger: l.closest('.rail__track > *') || l, start: 'left right', end: 'right left', scrub: true, invalidateOnRefresh: true } });
       });
+      $$('[data-ink]', track).forEach((l) => { if (l.dataset.ink !== 'manual') Site.inkFill(l, { containerAnimation: tween, start: 'left 88%', end: 'right 62%' }); });
+      $$('[data-rise]', track).forEach((l) => { if (l.dataset.rise !== 'manual') Site.rise(l, { containerAnimation: tween, start: 'left 94%', end: 'left 58%' }); });
       $$('[data-rail-in]', track).forEach((l) => {
         gsap.fromTo(l, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, ease: 'power2.out', scrollTrigger: { containerAnimation: tween, trigger: l, start: 'left 92%', end: 'left 62%', scrub: true } });
       });

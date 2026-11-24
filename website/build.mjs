@@ -51,10 +51,10 @@ function seqOf(name) {
   return JSON.parse(read(f));
 }
 /* a photograph's entry in assets/photo/MANIFEST.json (the imagery engineer's file), found by name, id or file */
-function photoOf(name) {
+function photoOf(name, kind) {
   const f = path.join(ROOT, 'assets', 'photo', 'MANIFEST.json');
   if (!exists(f)) return null;
-  const raw = JSON.parse(read(f)); const list = Array.isArray(raw) ? raw : (raw.photos || raw.images || raw.items || Object.entries(raw).map(([k, v]) => ({ name: k, ...v })));
+  const raw = JSON.parse(read(f)); const list = kind === 'loop' ? (raw.loops || []) : Array.isArray(raw) ? raw : (raw.photos || raw.images || raw.items || Object.entries(raw).map(([k, v]) => ({ name: k, ...v })));
   const base = (s) => String(s || '').replace(/^.*\//, '').replace(/\.[a-z0-9]+$/i, '').replace(/-(\d{3,4})w?$/, '');
   return list.find((e) => e && (e.name === name || e.id === name || e.slug === name || e.file === name || base(e.file || e.src) === name)) || null;
 }
@@ -81,10 +81,23 @@ const GEN = {
     const srcset = vars.length > 1 ? ` srcset="${vars.map((v) => `${file(v.file || v.src)} ${v.w || v.width}w`).join(', ')}" sizes="${esc(a.sizes || '100vw')}"` : '';
     const alt = a.alt !== undefined ? a.alt : (e.alt || '');
     const focus = a.focus || e.focus || e.position;
-    const credit = a.credit && (e.credit || e.by || e.author) ? `<figcaption class="photo__credit">${esc(typeof (e.credit || e.by || e.author) === 'string' ? (e.credit || e.by || e.author) : '')}</figcaption>` : '';
+    const credit = a.credit && (e.credit || e.by || e.author) ? `<p class="photo__credit">${esc(typeof (e.credit || e.by || e.author) === 'string' ? (e.credit || e.by || e.author) : '')}</p>` : '';
     const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || e.tone || '') ? (e.dominant || e.tone) : '';
     const fig = `<figure class="photo${a.class ? ' ' + a.class : ''}" style="${w && h ? `--ar:${w}/${h};` : ''}${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
       `<img src="${src}"${srcset}${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''} alt="${esc(alt)}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}></figure>`;
+    return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
+  },
+  /* <!-- @include loop name="loop-golf-green-1" class="…" attrs="…" alt="…" scrub="1" credit="1" -->
+     A clip from assets/photo/MANIFEST.json's loops: muted, inline, its poster the still. It plays only while it is on
+     screen (data-video); with scrub="1" it never plays and the scroll is its play head (data-scrub-video). */
+  loop: (a) => {
+    const e = photoOf(a.name, 'loop') || photoOf('loop-' + a.name, 'loop');
+    if (!e) throw new Error(`no loop called "${a.name}" in assets/photo/MANIFEST.json`);
+    const dir = 'assets/photo/', w = e.width, h = e.height, alt = a.alt !== undefined ? a.alt : (e.alt || '');
+    const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || '') ? e.dominant : '';
+    const credit = a.credit && typeof e.credit === 'string' ? `<p class="photo__credit">${esc(e.credit)}</p>` : '';
+    const fig = `<figure class="vid${a.class ? ' ' + a.class : ''}" style="--ar:${w}/${h};${e.focus ? `--focus:${esc(e.focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
+      `<video ${a.scrub ? 'data-scrub-video' : 'data-video'} muted playsinline${a.scrub ? '' : ' loop'} preload="none" width="${w}" height="${h}" poster="${dir}${e.poster.file}" src="${dir}${e.file}"${alt ? ` aria-label="${esc(alt)}"` : ' aria-hidden="true"'}></video></figure>`;
     return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
   },
   /* <!-- @include mark class="…" --> the woven mark, two paths that can be drawn */

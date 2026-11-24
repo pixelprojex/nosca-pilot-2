@@ -400,8 +400,9 @@ html.motion .rail__track>*{flex:none}
 .phone__screen>.seq.screen{aspect-ratio:auto}
 
 /* a video scrubbed by the scroll, or played while in view. Always muted and inline; never plays off screen. */
-.vid{position:relative;display:block;overflow:hidden;background:var(--ground-rest);aspect-ratio:var(--ar,16/9)}
-.vid>video,.vid>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.vid{position:relative;display:block;margin:0;overflow:hidden;background:var(--tone,var(--ground-rest));aspect-ratio:var(--ar,16/9)}
+.vid>video,.vid>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--focus,50% 50%);display:block}
+.vid--bleed{width:100%;aspect-ratio:auto;height:100vh;height:100svh;min-height:420px}
 
 /* a photograph that settles: the frame opens and the picture comes to rest as the scroll brings it in. Never a pop.
    Set --ar (its shape) and --focus (object-position); width and height on the <img> still, so nothing shifts. */
@@ -412,6 +413,11 @@ html.motion .rail__track>*{flex:none}
 .photo--tall{--ar:4/5} .photo--wide{--ar:21/9} .photo--square{--ar:1/1}
 /* a photograph under words: one even veil of the ground's green so white type holds 4.5:1; never a gradient blob */
 .photo--veil::after{content:"";position:absolute;inset:0;background:var(--ground-green-deep);opacity:var(--veil,.42);pointer-events:none}
+/* a photograph (or a clip) as a film's ground: with motion it fills the pinned stage and the words in .film__safe lie
+   on it; at rest it is the picture at its own shape with the words under it */
+html.motion .film__stage>.photo--bleed,html.motion .film__stage>.vid--bleed,html.motion .scene__stage>.photo--bleed{position:absolute;inset:0;width:auto;height:auto;min-height:0}
+html:not(.motion) .film__stage>.photo--bleed,html:not(.motion) .film__stage>.vid--bleed{height:auto;min-height:0;aspect-ratio:var(--ar,3/2)}
+.vid--veil::after{content:"";position:absolute;inset:0;background:var(--ground-green-deep);opacity:var(--veil,.42);pointer-events:none}
 .photo__credit,.credit{display:block;margin-top:10px;font-size:12px;line-height:1.4;color:var(--fg-3)}
 
 /* a headline that fills with ink line by line as the scroll passes (Site.inkFill) */

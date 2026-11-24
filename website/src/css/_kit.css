@@ -37,8 +37,15 @@ html.motion .kit-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 330
 html:not(.motion) .kit-film{padding-block:96px}
 /* 4. photograph */
 .kit-photo{align-self:center}
+/* 4b. a photograph as a film's ground: the words stand in its lower third, on the grass */
+.kit-still__in{display:grid;align-content:end;justify-items:start;gap:clamp(12px,1.8vh,22px);padding:calc(var(--hdr-h) + 24px) var(--gut) clamp(40px,9vh,110px)}
+.kit-still__h{max-width:9.5em;--fg-dim:rgba(244,246,243,.34)}
+.kit-still__p{max-width:24em;color:var(--on-green)}
+.kit-still .photo{--veil:.5}
+html:not(.motion) .kit-still__in{padding-block:clamp(40px,7vw,96px)}
 /* 5. the green: depth */
 .kit-depth{overflow:hidden;overflow:clip}
+@media (max-width:719px){.kit-depth .pins{--pins-w:38vw}.kit-depth .pins__bl{display:none}}
 .kit-depth__in{display:grid;gap:clamp(22px,3vw,40px);justify-items:start}
 .kit-depth__h{max-width:9em}
 .kit-depth__card{justify-self:end;margin-top:clamp(0px,2vw,24px)}
@@ -60,6 +67,8 @@ html:not(.motion) .kit-rail__lead{grid-column:1/-1}
 .kit-scrub{display:grid;gap:10px;justify-items:start;max-width:300px}
 .kit-scrub video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .kit-scrub .seq{position:absolute;inset:0;aspect-ratio:auto}
+.kit-loop{display:grid;gap:10px}
+.kit-loop__vid{--ar:21/9}
 /* 8. objects */
 .kit-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(20px,4vw,48px);margin-top:36px;justify-items:start}
 .kit-cards .bcard{--card-w:min(86vw,500px)}

@@ -84,9 +84,22 @@ header: green
       <h2 class="t-h2" data-ink>Never a pop.</h2>
       <p class="t-lede" data-rise="lines">The frame opens and the picture comes to rest as the scroll brings it in, then keeps a little drift.</p>
     </div>
-    <figure class="photo kit-photo" style="--at:6;--span:7;--ar:1400/1010" data-settle>
-      <img src="assets/_kit-card-front.webp" width="1400" height="1010" alt="The front of the Nosca business card on a table" loading="lazy" decoding="async">
-    </figure>
+    <div class="kit-photo" style="--at:6;--span:7">
+      <!-- @include photo name="rowing-river-1" attrs="data-settle" sizes="(min-width:900px) 56vw, 100vw" credit="1" -->
+    </div>
+  </div>
+</section>
+
+<!-- 4b. A PHOTOGRAPH AS A FILM'S GROUND, all markup: it fills the pinned stage and comes to rest as the scroll plays,
+     the headline fills with ink on it, the line rises. One even veil of the card's green holds the words. -->
+<section class="film g-green kit-still" id="still" data-film style="--len:2.6;--len-sm:2.1" data-header="none">
+  <div class="film__stage">
+    <!-- @include photo name="golf-mist-2" class="photo--bleed photo--veil" attrs="data-settle='none'" sizes="100vw" -->
+    <div class="film__safe kit-still__in">
+      <p class="eyebrow eyebrow--rule">A photograph as a film's ground</p>
+      <h2 class="t-display kit-still__h" data-ink data-at="6" data-len="44">First light on the&nbsp;fairway.</h2>
+      <p class="t-lede kit-still__p" data-rise="lines" data-at="52" data-len="22">The picture fills the stage and comes to rest while the headline fills with ink.</p>
+    </div>
   </div>
 </section>
 
@@ -138,6 +151,10 @@ header: green
     <div style="--at:10;--span:3" class="kit-scrub">
       <div class="shot" style="--shot-w:100%"><!-- @include seq name="register" poster="last" alt="Taking the register for a clinic in Nosca" --></div>
       <p class="t-caption">Site.sequence</p>
+    </div>
+    <div style="--at:1;--span:12" class="kit-loop">
+      <!-- @include loop name="loop-rowing-lake-1" class="kit-loop__vid" attrs="data-settle" credit="1" -->
+      <p class="t-caption">A loop from the photographs: it plays only while it is on screen.</p>
     </div>
   </div>
 </section>
