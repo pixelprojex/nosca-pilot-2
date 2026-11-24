@@ -13,6 +13,12 @@
    already there said rather than Saved, the Set-drills sheet saying a
    refused write, a drill binned on another phone staying gone, and the
    log taking a typed name it already has as that drill.
+   The coach's tips (24 November): Settings › Tips beside Drills, the
+   search for "tip" finding it, the starter four while nothing is stored,
+   a line written joining them, a line already there said, a swipe taking
+   a starter line off for real, the Tip sheet offering the library as it
+   stands, Setup opened again ticking the library and the tips and writing
+   only the tips changed, a refused write pretending nothing.
    Usage: node drill-library.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");

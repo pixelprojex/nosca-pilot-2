@@ -29,7 +29,13 @@
        itself, Call off opening on that day; a time blocked in the
        Calendar view coming back through the sheet; an entry for last
        year or a day gone by neither read nor moved a year on;
-   (h) the harness's sheet, with no account.
+   (h) the harness's sheet, with no account;
+   (s) Settings › Setup opened again opens on the stored week — the days
+       that hold a time, every time they hold, the length — and Finish
+       writes only what changed: a day off emptied, a time ticked or
+       unticked changing each day by exactly that, the length alone, the
+       dated times and the days away untouched, nothing at all when
+       nothing changed (24 November).
 
    Usage: node edit-day.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -401,7 +407,7 @@ const { check, summary } = M.checker("edit-day");
       const t3 = await finish();
       check("(s5) the length changed alone writes the length alone — 45 minutes, every day as it was", hours(dbS).duration === 45 && week() === wk && /Hours saved/.test(t3), JSON.stringify({ duration: hours(dbS).duration, toast: t3.slice(-60) }));
       /* and the Diary still offers the dated time on its date */
-      await openList(page);
+      await M.back(page); await openList(page);
       const extraDay = await boxText(page, label(dayPlus(dbS, 4)));
       check("(s6) the time added on one date is still offered on it after three setups", /7:00 pm/.test(extraDay), extraDay.slice(0, 120));
       await g.ctx.close();
