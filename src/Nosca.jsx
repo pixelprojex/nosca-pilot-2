@@ -11287,7 +11287,8 @@ function LessonStage({ item, onAnnotate, onCompare, onStudy }) {
   if (item.type === "audio") {
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-6" style={{ borderRadius: 16, height: 150, background: t.wash }}>
-        <span className="flex items-center gap-2" style={{ ...TYPE.eyebrow, color: t.sub }}><Mic size={13} color={t.sub} strokeWidth={2} />{tr("Voice note")}</span>
+        {/* the words alone: a 13px microphone led them, beside a label that says Voice note (23 November) */}
+        <span style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Voice note")}</span>
         <audio key={item.url} src={item.url} controls preload="metadata" className="w-full" style={{ maxWidth: 320 }} />
       </div>
     );
