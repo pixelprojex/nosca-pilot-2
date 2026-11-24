@@ -8589,7 +8589,7 @@ function Segmented({ options, value, onChange, tour, tall = false }) {
           <button key={o} aria-pressed={on} aria-label={o} onClick={() => { haptic(6); onChange(o); }} className="relative flex-1 rounded-lg"
                   /* `tall`: 44 to a finger, where the control is the only way to another answer (the install guide's Change) */
                   style={{ minHeight: tall ? 44 : 34, paddingBottom: 2, background: "transparent", transition: `color ${MOTION.move}ms`,
-                           fontFamily: ui, fontSize: tall ? 14.5 : 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
+                           fontFamily: ui, fontSize: tall ? 14 : 13.5, fontWeight: 600, color: on ? t.ink : t.sub }}>{o}</button>
         );
       })}
     </div>
