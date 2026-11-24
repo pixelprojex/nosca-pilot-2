@@ -14,9 +14,10 @@
    search with its words; on a Home Screen no Add to Home Screen, as
    Settings offers none. As a player nothing of the coach's (away,
    hours, drifting) and their own Progress, Log a practice, Send a clip
-   (the thread's camera) and Your coach by name and by "review"; a
-   parent each child's Progress and Send a clip by name and no practice;
-   a junior nothing a junior cannot do. Every row a row of words — the
+   (the thread's camera), Your coach by name and by "review" and Book a
+   lesson opening the Diary; a parent each child's Progress and Send a
+   clip by name, Book a lesson and no practice; a junior nothing a
+   junior cannot do. Every row a row of words — the
    label on its inset, the value in the sub grey, the chevron, no glyph
    — and nothing cut at 320.
    Usage: node search-goto.cjs <distDir> <port> <outDir> */
@@ -197,7 +198,7 @@ const PARENT_ONLY = /^(progress:|settings-digest$)/;
       /* what was written sits under where to go, in the same box */
       await type(page, "short");
       const sg = await page.evaluate(() => [...document.querySelectorAll(".nsc-group")].map((g) => g.parentElement.previousElementSibling ? g.parentElement.previousElementSibling.textContent.trim() : ""));
-      check("(i3) \"short\" finds the Short game lesson under Lessons, in Settings' box as Go to is", sg.includes("Lessons") && /Short game/.test(await text()), JSON.stringify(sg));
+      check("(i3) \"short\" finds the Short game lesson under Lessons, in Settings' box as Go to is, its day in the app's one form", sg.includes("Lessons") && /Short game Tue 1 Sep/.test(await text()), JSON.stringify(sg) + " " + (await text()).slice(0, 120));
       await shot("05b-coach-lessons-short");
       await type(page, "hom scr");
       check("(j) a prefix on each word, in any order: \"hom scr\" finds Add to Home Screen", (await ids(page))[0] === "settings-install", JSON.stringify(await ids(page)));
@@ -297,6 +298,11 @@ const PARENT_ONLY = /^(progress:|settings-digest$)/;
       check("(q3) \"review\" finds Your coach, where a review is left", (await ids(page)).includes("settings-family"), JSON.stringify(await rows(page)));
       await type(page, "saved");
       check("(q4) a player's Saved and Starred are there too", (await ids(page)).includes("saved") && (await ids(page)).includes("saved:starred"), JSON.stringify(await ids(page)));
+      /* the walkthrough's own step, by the word a person would use; the Diary is a tab, so the tap is the tab's */
+      await type(page, "book");
+      const bk = await ids(page);
+      await tapRow(page, "book", 1100);
+      check("(q5) \"book\" finds Book a lesson first, which opens the Diary", bk[0] === "book" && (await page.locator('[aria-current="page"][aria-label="Diary"]').count()) === 1, `${JSON.stringify(bk)} · ${await title(page)}`);
       await ctx.close();
     }
 
@@ -330,6 +336,8 @@ const PARENT_ONLY = /^(progress:|settings-digest$)/;
       await type(page, "clip");
       const pc = await rows(page);
       check("(s3) a parent's \"clip\" is Send a clip for the child, named on the row — none of their own, having no coach", pc.some((r) => r.id === `send-clip:${IDS.junior}` && /^Send a clip Saoirse$/.test(r.text)) && !pc.some((r) => r.id === "send-clip"), JSON.stringify(pc));
+      await type(page, "book");
+      check("(s4) …and Book a lesson, the Diary booking for the child", (await ids(page))[0] === "book", JSON.stringify(await ids(page)));
       const seen = new Set();
       for (const q of ["practice", "call off", "drifting", "hours", "away", "a", "e"]) { await type(page, q); (await ids(page)).forEach((k) => seen.add(k)); }
       check("(t) a parent is offered no practice of their own and nothing of the coach's", !seen.has("practice-log") && ![...seen].some((k) => COACH_ONLY.test(k)), JSON.stringify([...seen].filter((k) => k === "practice-log" || COACH_ONLY.test(k))));
@@ -342,12 +350,12 @@ const PARENT_ONLY = /^(progress:|settings-digest$)/;
       await openSearch(page);
       check("(u) a junior's fresh search shows no Go to group", !(await hasGroup(page)));
       const seen = new Map();
-      for (const q of ["call off", "new group", "drifting", "hours", "away", "recurring", "register", "log", "requests", "review", "competition", "capture", "tip", "invite", "message", "chat", "clip", "video", "this month", "a", "e", "i", "o", "s", "t"]) {
+      for (const q of ["call off", "new group", "drifting", "hours", "away", "recurring", "register", "log", "requests", "review", "competition", "capture", "tip", "invite", "message", "chat", "clip", "video", "book", "this month", "a", "b", "e", "i", "o", "s", "t"]) {
         await type(page, q); for (const r of await rows(page)) seen.set(r.id, r.text);
       }
-      /* a junior has no thread, so no camera to the coach either */
-      const wrong = [...seen.keys()].filter((k) => COACH_ONLY.test(k) || PARENT_ONLY.test(k) || /^send-clip/.test(k) || /message|chat/i.test(seen.get(k)));
-      check("(u2) a junior is offered nothing a junior cannot do: none of the plus, the coach's places, a child's Progress, This month, a message or a clip to send", seen.size > 5 && wrong.length === 0, JSON.stringify(wrong));
+      /* a junior has no thread, so no camera to the coach either, and a parent books their lessons */
+      const wrong = [...seen.keys()].filter((k) => COACH_ONLY.test(k) || PARENT_ONLY.test(k) || /^send-clip/.test(k) || k === "book" || /message|chat/i.test(seen.get(k)));
+      check("(u2) a junior is offered nothing a junior cannot do: none of the plus, the coach's places, a child's Progress, This month, a message, a clip to send or a lesson to book", seen.size > 5 && wrong.length === 0, JSON.stringify(wrong));
       await type(page, "progress");
       const pr = await ids(page);
       await tapRow(page, "progress", 1100);

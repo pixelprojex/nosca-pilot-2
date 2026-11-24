@@ -19565,7 +19565,7 @@ function DeleteBody({ onCancel, say }) {
    `keys` are the words someone might type that are not in the label;
    `id` is the hook (`data-goto`): a Settings row's own tour, the plus
    tile's, or the route a place opens. */
-function goToRows({ groups = [], role, live, run, onLog, push, openSaved, canReview, onProgressFor, ownProgress, kids = [], onPractice, onSendClip, clipKids = [], onSendClipFor }) {
+function goToRows({ groups = [], role, live, run, onLog, push, openSaved, canReview, onProgressFor, ownProgress, kids = [], onBook, onPractice, onSendClip, clipKids = [], onSendClipFor }) {
   const rows = [];
   const add = (id, label, onTap, keys = [], value = null, danger = false) => rows.push({ id, label, onTap, keys, value, danger });
   if (role === "coach") {
@@ -19585,6 +19585,8 @@ function goToRows({ groups = [], role, live, run, onLog, push, openSaved, canRev
     if (ownProgress) add("progress", tr("Progress"), () => push("progress"), ["journey", "level", "improvement", "report", "season report", "stats", "handicap"]);
     /* an adult's children, each by name: the child's own Progress */
     kids.forEach((k) => add(`progress:${k.id}`, tr("Progress"), () => push(`progress:${k.id}`), ["journey", "level", "report", "child", k.name], String(k.name || "").split(" ")[0]));
+    /* the walkthrough's own step: the Diary, where a lesson is asked for */
+    if (onBook) add("book", tr("Book a lesson"), onBook, ["book", "booking", "request", "diary", "slot", "time", "free"]);
     if (onPractice) add("practice-log", tr("Log a practice"), onPractice, ["practice", "practise", "practised", "session", "journal", "training"]);
     /* the thread's camera, straight to the coach — a parent's for each child, by name */
     const clipKeys = ["clip", "video", "film", "swing", "camera", "record", "coach"];
@@ -22848,6 +22850,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
          parent's children's, each from the family, which knows the child */
       ownProgress: role !== "coach" && (data ? !!data.hasCoach : true),
       kids: role !== "coach" && data ? (data.dependants || []).filter((k) => k && k.id) : [],
+      /* the Diary, for someone who books: a player with a coach, an adult with a
+         child who has one — never a junior, whose diary a parent books */
+      onBook: role !== "coach" && !juvenile && (data ? (!!data.hasCoach || (data.dependants || []).some((k) => k && k.coachId)) : true) ? () => go("calendar") : null,
       /* where the Drills tab offers it: a player with a coach, a junior too, never a parent */
       onPractice: role !== "coach" && data && data.canSendClip && data.hasCoach && !parentAccount ? () => setSheet("practiceLog") : null,
       /* where the thread's camera is: a player's own thread with their coach,

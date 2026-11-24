@@ -1385,22 +1385,22 @@ seeded data and no account.
   Diary and the switcher open — To log, To review, Join requests,
   Drifting, Recurring lessons, Progress (whose, picked as the plus's Tip
   is), All lessons, Saved and Starred for a coach; a player's own
-  Progress, a parent's each child's named on the row, Log a practice
-  where the Drills tab offers it, Send a clip where the thread's camera
-  is (a parent's per child), Saved and Starred — each only for someone
-  who can open it, so a junior is offered nothing a junior cannot do;
-  Your coach is found by "review", the profile being where one is left.
-  A row is a row of words in Settings' own box, `.nsc-group`,
-  which every kind of the search sits in now; the drill and tip
-  libraries carry their count as their value, so the plus's Drills and
-  the library read apart. Matching is Settings' own (`findsIn`): the term
-  anywhere in the label, the value or a key, or every word of it the
-  start of a word in any order ("hom scr"), accents folded both ways,
-  one letter the start of a word only; the best match first
-  (`goToRank`). The query, the pick unfolded and the scroll are kept, so
-  Back from where a row went is the search as it was; the field takes
-  the focus only on a fresh open. An empty field still shows nothing.
-  `scripts/e2e/search-goto.cjs`.
+  Progress, a parent's each child's named on the row, Book a lesson (the
+  Diary) for whoever books, Log a practice where the Drills tab offers
+  it, Send a clip where the thread's camera is (a parent's per child),
+  Saved and Starred — each only for someone who can open it, so a junior
+  is offered nothing a junior cannot do; Your coach is found by
+  "review", the profile being where one is left. A row is a row of words
+  in Settings' own box, `.nsc-group`, which every kind of the search
+  sits in now; the drill and tip libraries carry their count as their
+  value, so the plus's Drills and the library read apart. Matching is
+  Settings' own (`findsIn`): the term anywhere in the label, the value or
+  a key, or every word of it the start of a word in any order ("hom
+  scr"), accents folded both ways, one letter the start of a word only;
+  the best match first (`goToRank`). The query, the pick unfolded and
+  the scroll are kept, so Back from where a row went is the search as it
+  was; the field takes the focus only on a fresh open. An empty field
+  still shows nothing. `scripts/e2e/search-goto.cjs`.
 - **A control for narrowing a list appears when the list needs
   narrowing, and there is only ever one of them.** The roster's search
   above eight people, the drill library's filter above eight drills, the
