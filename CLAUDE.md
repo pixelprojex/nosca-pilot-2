@@ -1637,23 +1637,23 @@ seeded data and no account.
   register every roster name as a group's `members`, and a group opened
   from the Diary's peek took the first six of the roster. The register
   works the roll out itself now (`membersOf` in `Attendance`, from the
-  `groups` it is handed): the saved group whose name the booking carries,
-  matched as `group_members()` matches it (trimmed, any case, the first
-  of the name), and its members still on the roster — `membersOnRoster()`,
-  the people a group message reaches — wherever the register is opened,
-  Today, the card, the peek. Anybody else who turns up is **Someone not
-  in the diary** under the roll (`register-roll-walkin`, the white key,
-  as the pick view's): the rest of the roster as person rows with a
-  plus, a tap putting them on the roll marked present; a register taken
-  comes back with its walk-ins on it (anyone on the roster the marks
-  name). A group whose members cannot be known — no saved group of that
-  name, or none of its members still on the roster — keeps the roster:
-  a roll is never empty (an empty `members` list once emptied every
-  register in the diary, above). A booking row still carries no
-  `members`; `realToday` no longer writes one. The head-count slice is
-  the harness's seeded groups only. `rsvp.cjs` (f6)–(f9); `boxes.cjs`
-  (b), (r1) — its clinic names Eoin among its three, so the register
-  still reads his whole name.
+  `groups` it is handed): the saved group whose name the booking
+  carries, matched as `group_members()` matches it (trimmed, any case,
+  the first of the name), and its members still on the roster —
+  `membersOnRoster()`, the people a group message reaches — wherever the
+  register is opened, Today, the card, the peek. Anybody else who turns
+  up is **Someone not in the diary** under the roll
+  (`register-roll-walkin`, the white key, as the pick view's): the rest
+  of the roster as person rows with a plus, a tap putting them on the
+  roll marked present; a register taken comes back with its walk-ins on
+  it (anyone on the roster the marks name). A group whose members cannot
+  be known — no saved group of that name, or none of its members still
+  on the roster — keeps the roster: a roll is never empty (an empty
+  `members` list once emptied every register in the diary, above). A
+  booking row still carries no `members`; `realToday` no longer writes
+  one. The head-count slice is the harness's seeded groups only.
+  `rsvp.cjs` (f6)–(f9); `boxes.cjs` (b), (r1) — its clinic names Eoin
+  among its three, so the register still reads his whole name.
 - **Call off is a reason, the days, the lessons, the password.**
   `CallOff` (the `weather` sheet, opened from the plus, the peek and the
   diary) has nothing to do with weather in its name or its glyph — a
@@ -1911,8 +1911,8 @@ seeded data and no account.
   somebody else into the very hour being asked for. The coach's Diary
   reads `coachDiaryBooked` now: the confirmed lessons and every request
   made to them (a request a coach made as somebody's player is not
-  theirs to answer and stays out), each in its hour. On the List it is
-  a row of the day's box (`agenda-ask`): the time in the ink, the whole
+  theirs to answer and stays out), each in its hour. On the List it is a
+  row of the day's box (`agenda-ask`): the time in the ink, the whole
   name, "Requested" and the player's note on the grey line (two lines),
   and **Accept · Decline** as Today's request row carries them — text
   actions, Accept in the sport's colour, Decline in `t.faint` — beside
@@ -1930,12 +1930,12 @@ seeded data and no account.
   skip it, the month grid and the ticker mark the day, and the per-day
   sheet carries it as a booked time is carried — a tile with who on it,
   and Requested under (`data-requested`), no minus in Edit: the request
-  is answered before its hour is taken off. On the Calendar view
-  a day with only a request reads no "Nothing booked", and its Call off
-  row stays the lessons' (the call-off itself still takes a request
-  with the day's lessons); a day with no hours but a request is a day.
-  `offer-times.cjs` (q1)–(q8), `diary.cjs` (a4), `edit-day.cjs` (d0b)
-  — whose emptied day (d1) is emptied once the request on it has been
+  is answered before its hour is taken off. On the Calendar view a day
+  with only a request reads no "Nothing booked", and its Call off row
+  stays the lessons' (the call-off itself still takes a request with the
+  day's lessons); a day with no hours but a request is a day.
+  `offer-times.cjs` (q1)–(q8), `diary.cjs` (a4), `edit-day.cjs` (d0b) —
+  whose emptied day (d1) is emptied once the request on it has been
   declined from the Diary.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
