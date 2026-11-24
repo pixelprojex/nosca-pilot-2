@@ -2592,7 +2592,7 @@ seeded data and no account.
   called by address (the database's `push_url`) and answers on whichever
   site that names. `scripts/business-card.py`'s `--site` default stays
   the OLD address — it is the printed code; never "correct" it.
-  `website/site.config.json` carries the new one. A real domain, when
+  `website/site.config.json` names the app and the guide by relative address (`../`, `../install`) — the site lives inside the app's own deploy, so its Open Nosca can never point at an address that is not answering (for an hour it named the new site while that stood behind a login wall). A real domain, when
   there is one, is added to the app's own site and the two names in
   `index.html` and `signpost.mjs` change together.
   `scripts/e2e/signpost.cjs` plays a scanned card.

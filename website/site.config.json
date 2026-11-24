@@ -1,6 +1,6 @@
 {
-  "appUrl": "https://nosca.netlify.app/",
-  "installUrl": "https://nosca.netlify.app/install",
+  "appUrl": "../",
+  "installUrl": "../install",
   "contactEmail": "",
   "year": 2026
 }
