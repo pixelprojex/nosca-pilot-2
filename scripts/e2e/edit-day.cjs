@@ -35,7 +35,14 @@
        writes only what changed: a day off emptied, a time ticked or
        unticked changing each day by exactly that, the length alone, the
        dated times and the days away untouched, nothing at all when
-       nothing changed (24 November).
+       nothing changed (24 November);
+   (t) a name on a booked or a requested tile never breaks inside a word
+       (24 November): at 390 "Maximiliano Ó Súilleabháin" stands whole on
+       two lines; at 320, where it would not, the tile carries the first
+       name and the surname's initial, "Maximiliano Ó S."; a name that fits
+       (Cian Murphy) is never shortened; every rendered line, read off the
+       characters' own boxes, starts and ends on a whole word; and a word
+       wider than the tile ends on an ellipsis, never broken.
 
    Usage: node edit-day.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
@@ -51,7 +58,9 @@ const IDS = {
   adult:  "00000000-0000-4000-8000-0000000adu17",
   parent: "00000000-0000-4000-8000-000000pa4e07",
   junior: "00000000-0000-4000-8000-00000000c41d",
+  long:   "00000000-0000-4000-8000-0000000710n6",
 };
+const LONG = "Maximiliano Ó Súilleabháin";
 const FAM = "fa000000-0000-4000-8000-00000000fa01";
 const WEEK = ["9:00 am", "10:00 am", "11:00 am", "4:00 pm", "5:00 pm"];
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -90,9 +99,9 @@ const { check, summary } = M.checker("edit-day");
   /* every day is counted from the one the page clock is pinned to, so a
      run that crosses midnight still agrees with its fixture */
   const TODAY = dayPlus(db, 0);
-  const boot = async (role, d = db) => {
+  const boot = async (role, d = db, width = 390) => {
     const u = Object.values(d.users).find((x) => x.id === IDS[role]);
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
     await page.clock.setFixedTime(new Date(`${TODAY}T09:00:00`)); await M.attach(page, d);
     page.on("pageerror", (e) => errors.push(`${role}: ${String(e.message || e)}`));
@@ -424,6 +433,68 @@ const { check, summary } = M.checker("edit-day");
       const extraDay = await boxText(page, label(dayPlus(dbS, 4)));
       check("(s6) the time added on one date is still offered on it after three setups", /7:00 pm/.test(extraDay), extraDay.slice(0, 120));
       await g.ctx.close();
+    }
+
+    /* ---------- (t) a name on a tile never breaks inside a word ---------- */
+    {
+      const dbT = freshDb();
+      M.addUser(dbT, { id: IDS.long, email: "long@t.ie" });
+      M.addProfile(dbT, { id: IDS.long, role: "player", name: LONG, type: "adult", coachId: IDS.coach, dob: "1990-01-01" });
+      const LONGDAY = dayPlus(dbT, 9);
+      M.addBooking(dbT, { coachId: IDS.coach, playerId: IDS.long, date: LONGDAY, time: "9:00 am", duration: 45 });
+      M.addBooking(dbT, { coachId: IDS.coach, playerId: IDS.long, date: LONGDAY, time: "10:00 am", duration: 45, status: "requested" });
+      M.addBooking(dbT, { coachId: IDS.coach, playerId: IDS.adult, date: LONGDAY, time: "11:00 am", duration: 45 });
+      /* each held tile's name as it is laid out: the text it shows, and its lines read off every
+         character's own box (a Range a character), so a word split across two lines is two pieces */
+      const tiles = (page) => page.evaluate(() => {
+        const probe = document.createElement("span"); probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap"; document.body.appendChild(probe);
+        const out = [...document.querySelectorAll('[data-tour="editday-times"] [data-time]')].filter((tile) => tile.hasAttribute("data-booked") || tile.hasAttribute("data-requested")).map((tile) => {
+          const el = tile.querySelector("[data-tile-name]"); if (!el) return { time: tile.getAttribute("data-time"), missing: true };
+          const cs = getComputedStyle(el), box = el.getBoundingClientRect();
+          const inL = box.left + parseFloat(cs.paddingLeft), inR = box.right - parseFloat(cs.paddingRight);
+          const chars = []; const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          for (let n = walk.nextNode(); n; n = walk.nextNode()) for (let i = 0; i < n.data.length; i++) {
+            const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1);
+            const rect = [...r.getClientRects()][0]; if (!rect) continue;
+            chars.push({ ch: n.data[i], top: Math.round(rect.top), left: rect.left, right: rect.right, node: n });
+          }
+          const lines = [];
+          chars.forEach((c) => { const L = lines.find((l) => Math.abs(l.top - c.top) <= 3); if (L) L.chars.push(c); else lines.push({ top: c.top, chars: [c] }); });
+          lines.sort((a, b) => a.top - b.top);
+          const shown = el.textContent.replace(/\s+/g, " ").trim(), words = shown.split(" ");
+          probe.style.font = cs.font; probe.style.letterSpacing = cs.letterSpacing;
+          /* a word whose characters run past the tile's inside is clipped: say whether it could have
+             stood on a line of its own, and whether it ends on the ellipsis */
+          const clipped = words.filter((w) => { const cs0 = chars.filter((c) => c.node.data === w); return cs0.length && cs0.some((c) => c.right > inR + 0.5 || c.left < inL - 0.5); })
+            .map((w) => { probe.textContent = w; const node = chars.find((c) => c.node.data === w).node;
+              return { word: w, wider: probe.getBoundingClientRect().width > inR - inL - 0.5, ellipsis: getComputedStyle(node.parentElement).textOverflow === "ellipsis" }; });
+          return { time: tile.getAttribute("data-time"), requested: tile.hasAttribute("data-requested"), shown, words, lines: lines.map((l) => l.chars.sort((a, b) => a.left - b.left).map((c) => c.ch).join("").trim()), clipped,
+                   inside: Math.round(inR - inL), tileText: tile.innerText.replace(/\s+/g, " ").trim() };
+        });
+        probe.remove(); return out;
+      });
+      /* every line is whole words of what is shown, in order, and no word is split between lines */
+      const whole = (t) => !!t && !t.missing && t.lines.length >= 1 && t.lines.length <= 2 && t.lines.every((l) => l.split(" ").every((w) => t.words.includes(w)))
+        && t.lines.join(" ").split(" ").join(" ") === t.words.join(" ") && t.clipped.every((c) => c.wider && c.ellipsis);
+      const firstAndInitial = (shown) => shown === "Maximiliano Ó S.";
+      for (const width of [390, 320]) {
+        const tt = await boot("coach", dbT, width); page = tt.page;
+        await openList(page);
+        await openEdit(page, label(LONGDAY));
+        const T = await tiles(page);
+        await tt.shot(`11-long-name-${width}`);
+        const long9 = T.find((x) => x.time === "9:00 am"), long10 = T.find((x) => x.time === "10:00 am"), cian = T.find((x) => x.time === "11:00 am");
+        const said = JSON.stringify(T.map((x) => ({ t: x.time, shown: x.shown, lines: x.lines, clipped: x.clipped, inside: x.inside })));
+        check(`(t1 ${width}) every held tile's lines start and end on whole words — no word broken — and a word cut is one wider than the tile, on its ellipsis`, T.length === 3 && T.every(whole), said);
+        if (width === 390) {
+          check("(t2 390) at 390 the long name stands whole on two lines, on the booked tile and the requested one", !!long9 && !!long10 && long9.shown === LONG && long10.shown === LONG && long9.lines.length === 2 && long10.lines.length === 2, said);
+        } else {
+          check("(t2 320) at 320, where the whole name would run past two lines, both tiles carry the first name and the surname's initial: Maximiliano Ó S.", !!long9 && !!long10 && firstAndInitial(long9.shown) && firstAndInitial(long10.shown), said);
+        }
+        check(`(t3 ${width}) a name that fits is never shortened: Cian Murphy whole`, !!cian && cian.shown === "Cian Murphy" && cian.clipped.length === 0, said);
+        check(`(t4 ${width}) the requested tile still says Requested under the name, and the time leads both`, !!long10 && long10.requested && /^10:00 am .* Requested$/.test(long10.tileText) && !!long9 && /^9:00 am /.test(long9.tileText), JSON.stringify([long9 && long9.tileText, long10 && long10.tileText]));
+        await tt.ctx.close();
+      }
     }
 
     /* ---------- (h) the harness: the same sheet, no account ---------- */

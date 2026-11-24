@@ -117,6 +117,34 @@ const { check, results, summary } = M.checker("progress");
       check("(f4) …and carries the level then and now, the lessons, the areas, the drills, the tip and every lesson", /HI 16\.4/.test(html) && /from HI 20\.1/.test(html) && /8 lessons/.test(html) && /Short game — 4/.test(html) && /2 of 3 done/.test(html) && /3 of 4 lessons · missed Sat 12 Sep/.test(html) && html.includes("Gate drill") && html.includes("Trust the shallow") && html.includes("Every lesson") && html.includes("Driving notes."), html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 300));
       await tap(page, '[aria-label="Back"]', 900);
       check("(g) Back lands on the player file", /Cian Murphy/.test(await text()) && (await page.locator('[data-tour="player-progress"]').count()) === 1);
+      /* (g2) 24 November: the level under the name is the door to Progress as well —
+         the line in the sub grey with a chevron after it, 44 to a finger */
+      const level = page.locator('[data-tour="player-level"]');
+      const lv = (await level.count()) ? await level.first().evaluate((b) => ({ text: b.textContent.trim(), color: getComputedStyle(b).color, glyphs: [...b.querySelectorAll("svg")].map((s) => String(s.getAttribute("class") || "")),
+        under: (() => { const h = document.querySelector('[data-scroll="screen"] h1'); return !!h && b.getBoundingClientRect().top >= h.getBoundingClientRect().bottom; })() })) : null;
+      const fit = await M.fingerFit(page, '[data-tour="player-level"]');
+      await shot("01c-coach-file-level");
+      check("(g2) the level under the name — HI 16.4 — is a door: the level in the sub grey, a chevron after it, under the name", !!lv && lv.text === "HI 16.4" && lv.color === "rgb(95, 95, 101)" && lv.glyphs.length === 1 && /chevron-right/.test(lv.glyphs[0]) && lv.under, JSON.stringify(lv));
+      check("(g3) …answering a finger 44 tall", !!fit && fit.missed.length === 0, JSON.stringify(fit));
+      await level.first().click(); await page.waitForTimeout(1000);
+      const t1b = await text();
+      check("(g4) …which opens the same Progress the row does", /Cian Murphy/.test(t1b) && /8 lessons/.test(t1b) && /HI 16\.4/.test(t1b) && (await page.locator('[data-progress="level"] svg circle').count()) === 8, t1b.slice(0, 160));
+      await tap(page, '[aria-label="Back"]', 900);
+      check("(g5) …and Back lands on the file again, the four keys and the last lessons as they were", (await page.locator('[data-tour="player-level"]').count()) === 1 && (await page.locator('[data-tour="player-actions"] button').count()) === 4 && (await page.locator('[data-tour="player-lessons"] > *').count()) === 5, "");
+      /* a player with no lesson has no level, so no door */
+      await tap(page, '[aria-label="Back"]', 900);
+      await page.locator("button", { hasText: "Rory Dunne" }).first().click(); await page.waitForTimeout(900);
+      check("(g6) a player with no level carries no level door", /Rory Dunne/.test(await text()) && (await page.locator('[data-tour="player-level"]').count()) === 0, (await text()).slice(0, 120));
+      /* at 320 the door is whole */
+      await tap(page, '[aria-label="Back"]', 900);
+      await page.setViewportSize({ width: 320, height: 640 }); await page.waitForTimeout(400);
+      await page.locator("button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+      /* the words' own box, not the button's: its reach overhangs it on purpose and paints nothing */
+      const lv320 = await level.first().evaluate((b) => { const tx = b.querySelector("span:not([aria-hidden])"), r = b.getBoundingClientRect();
+        return { text: b.textContent.trim(), right: Math.round(r.right), textCut: tx ? tx.scrollWidth > tx.clientWidth + 1 : true }; }).catch(() => null);
+      await shot("01d-coach-file-level-320");
+      check("(g7) at 320 the level door is whole, inside the page's gutter", !!lv320 && lv320.text === "HI 16.4" && !lv320.textCut && lv320.right <= 320 - 16, JSON.stringify(lv320));
+      await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
       await ctx.close();
     }
     /* ---------- the player, from the profile pill ---------- */

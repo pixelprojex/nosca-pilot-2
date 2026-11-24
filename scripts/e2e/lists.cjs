@@ -170,7 +170,7 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await tap(page, '[aria-label="Today"]', 900);
       await page.locator("button", { hasText: "Cian Murphy" }).first().dispatchEvent("click"); await page.waitForTimeout(1000);
       await tap(page, '[data-tour="peek-register"]', 1000);
-      await page.locator("[data-sheet]").getByText("All lessons", { exact: true }).first().click().catch(() => {}); await page.waitForTimeout(900);
+      await page.locator('[data-sheet] [data-tour="register-back"]').first().click().catch(() => {}); await page.waitForTimeout(900);
       const walk = await page.evaluate(() => {
         const b = [...document.querySelectorAll("[data-sheet] button")].find((x) => /Someone not in the diary/.test(x.textContent)); if (!b) return null;
         const cs = getComputedStyle(b);

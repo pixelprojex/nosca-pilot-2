@@ -266,7 +266,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
       check("(b2) at 375 every name is whole — Eoin Breathnach and Saoirse Kelly are not cut", !!reg && reg.names.includes("Eoin Breathnach") && reg.names.includes("Saoirse Kelly") && reg.cut.length === 0, JSON.stringify(reg && { names: reg.names, cut: reg.cut }));
       await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
       /* the day's lessons, then the walk-ins */
-      await page.locator("[data-sheet]").getByText("All lessons", { exact: true }).first().click(); await page.waitForTimeout(900);
+      await page.locator('[data-sheet] [data-tour="register-back"]').first().click(); await page.waitForTimeout(900);
       const attend = await audit(page, "[data-sheet]", EDGE.golf);
       const ar = await holder(page, '[data-sheet] [data-tour="attend-row"]');
       check("(c) the day's lessons are boxed rows", fine(attend) && !!ar && /nsc-list/.test(ar.parent), `${said(attend)} · ${JSON.stringify(ar)}`);
@@ -518,7 +518,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         const on = (await outlinesOf(page, "[data-sheet] .nsc-day button", MARK))[0];
         check(`(r3 ${sport}) guard: a chosen Present is still filled, its edge the fill's own colour`,
           !!on && on.bg !== "rgba(0, 0, 0, 0)" && on.sides.every((x) => x.endsWith(on.bg)), on ? told([on]) + ` bg ${on.bg}` : "none");
-        await page.locator("[data-sheet]").getByText("All lessons", { exact: true }).first().click(); await page.waitForTimeout(900);
+        await page.locator('[data-sheet] [data-tour="register-back"]').first().click(); await page.waitForTimeout(900);
         const walk = await keysIn(page, "[data-sheet]", /not in the diary/i);
         /* the white key (22 November): it was a dashed outline on the card's light grey line — 1.29:1, no face and no
            ledge, the one dashed control in a key-built app. Told by its word (4.5:1 and over) and its four-point ledge */

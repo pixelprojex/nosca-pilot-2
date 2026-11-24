@@ -4099,6 +4099,60 @@ function LessonPeek({ booking, duration, sport, cfg, agreed, past, comps = [], l
    minus on each free time and only then does a tap take one off, as on
    Hours. Group only / Private only lived in this sheet's state and were
    never saved, so they are gone rather than stored. */
+/* A PERSON'S FIRST NAME AND THE SURNAME'S INITIAL — "Maximiliano Ó S.",
+   "Saoirse K." — for a name that will not fit where it is drawn. The
+   particle before the surname stays whole (Ó, Ní, Mac, de …): "Ó S." is
+   how an Irish surname is initialled, never "Ó." or "S." alone. */
+const SURNAME_PARTICLE = /^(Ó|O|Ní|Ni|Nic|Mac|Mc|Uí|Ui|Ua|de|De|Di|Du|Da|Le|La|van|Van|von|Von|der|Der|den)$/;
+const nameShort = (name) => {
+  const w = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (w.length < 2) return w.join(" ");
+  const last = w[w.length - 1], before = w[w.length - 2];
+  return `${w[0]} ${w.length > 2 && SURNAME_PARTICLE.test(before) ? `${before} ` : ""}${Array.from(last)[0].toUpperCase()}.`;
+};
+/* A NAME ON A TILE KEEPS EVERY WORD WHOLE (24 November). The per-day
+   sheet's booked tile drew the name with the browser's break-word, and at
+   320 "Maximiliano Ó Súilleabháin" read "Maximilian" over "o Ó…". Each word
+   is a box of its own, so a line only ever breaks at a space; the whole
+   name stands where it fits in two lines, else the first name and the
+   surname's initial (`nameShort`); and a single word wider than the tile
+   ends on an ellipsis — it is never broken. The choice is measured, not
+   guessed — the words' own lines are counted as laid out, before the
+   first paint — and made again when the tile's width changes. A group's
+   name is not a person's and is never initialled. */
+function TileName({ name, person = true, lines = 2, style }) {
+  const box = useRef(null), at = useRef(null);
+  const full = String(name || "").trim().replace(/\s+/g, " ");
+  const short = person ? nameShort(full) : full;
+  const [rev, setRev] = useState(0);
+  const [fit, setFit] = useState({ key: null, short: false });
+  const key = `${full}|${rev}`;
+  const useShort = fit.key === key && fit.short;
+  /* the whole name is drawn first; its lines counted, the short form is
+     taken only where it would run past `lines` */
+  useLayoutEffect(() => {
+    const el = box.current; if (!el || fit.key === key) return;
+    at.current = el.clientWidth;
+    const tops = new Set([...el.querySelectorAll("[data-word]")].map((w) => w.offsetTop));
+    setFit({ key, short: tops.size > lines && short !== full });
+  });
+  useEffect(() => {
+    const el = box.current; if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => { if (at.current != null && Math.abs(el.clientWidth - at.current) > 0.5) setRev((r) => r + 1); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const words = (useShort ? short : full).split(" ").filter(Boolean);
+  return (
+    <span ref={box} data-tile-name={full} data-short={useShort ? "1" : undefined} className="block w-full px-1.5"
+          style={{ ...TYPE.caption, fontWeight: 400, maxHeight: `${lines * 1.3}em`, overflow: "hidden", ...style }}>
+      {words.map((w, i) => (
+        <React.Fragment key={i}>{i ? " " : ""}<span data-word="" style={{ display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "top" }}>{w}</span></React.Fragment>
+      ))}
+    </span>
+  );
+}
+
 function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onEveryDay, onWeather, away = false }) {
   const t = useT();
   const calendar = useCalendar();
@@ -4165,7 +4219,9 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
             {/* the start time alone: the length is one value for the day and
                 reads in the sheet's sub; "10:00–10:45 am" wrapped at 320 */}
             <span className="block" style={FIG}>{h}</span>
-            {bk && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.faint, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>}
+            {/* who, each word whole: the name where it fits in two lines,
+                else the first name and the surname's initial (TileName) */}
+            {bk && <TileName name={bk.who} person={!(bk.group || bk.groupName || String(bk.kind || "").startsWith("Group"))} style={{ color: t.faint }} />}
             {bk && bk.status === "requested" && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.sub }}>{tr("Requested")}</span>}
           </>);
           if (editing && !bk) return (
@@ -5361,6 +5417,27 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
     soft();
     setMarks((m) => ({ ...m, [id]: v }));
   };
+  /* A PRIVATE LESSON'S REGISTER IS ONE TAP (24 November). A register of one
+     person had the coach mark them and then press Submit, two taps for one
+     fact. Present or Absent is the register now: the mark is written as it
+     is tapped, the toast is Submit's, the row stays marked, and a second tap
+     on the other mark writes it in place of the first (`replace`: one
+     register a lesson a day). The writes go one after another, so a quick
+     change of mind lands in the order it was made; a refused write says
+     why and the mark goes back to what was written. A group's register
+     keeps Submit: it is many marks, and the coach says when it is done. */
+  const writing = useRef(Promise.resolve());
+  const markOne = (id, v) => {
+    if (marks[id] === v) return;
+    v === "in" ? hapticSuccess() : hapticWarn();
+    soft(); chime();
+    const before = marks, next = { [id]: v }, l = picked;
+    setMarks(next);
+    writing.current = writing.current.then(async () => {
+      const res = await onSubmit(l, next, { replace: true });
+      if (res && res.error) setMarks((m) => (m[id] === v ? before : m));
+    }).catch(() => {});
+  };
 
   const all = (v) => { haptic(10); soft(); const m = {}; rollOf(picked, marks, added).forEach((r) => (m[r.id] = v)); setMarks(m); };
 
@@ -5372,14 +5449,19 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
     const done = who.filter((r) => marks[r.id]).length;
     const present = who.filter((r) => marks[r.id] === "in").length;
     const ready = done === who.length;
+    /* one person, not a group: the tap is the register */
+    const one = !isGroup(picked) && who.length === 1;
 
     return (
       <>
-        <button onClick={() => { haptic(6); setPicked(null); }}
+        {/* the way back goes to today's lessons, the sheet's own list headed
+            Register · Today — it read "All lessons", the archive's name, which
+            it never opened. The label grey, never the accent: a way back, not
+            the sheet's one action */}
+        <button data-tour="register-back" onClick={() => { haptic(6); setPicked(null); }}
                 className="flex items-center gap-1.5 mb-4 active:opacity-50"
                 style={{ ...TYPE.small, color: t.sub, minHeight: 44 }}>
-          {/* a way back, not the screen's one action: the label grey, never the accent */}
-          <ChevronLeft size={15} color={t.sub} strokeWidth={2.2} /> {tr("All lessons")}
+          <ChevronLeft size={15} color={t.sub} strokeWidth={2.2} /> {tr("Today")}
         </button>
 
         <h2 style={{ ...TYPE.title, color: t.ink }}>{picked.who}</h2>
@@ -5419,7 +5501,7 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
                 {[["in", tr("Present"), STEADY], ["out", tr("Absent"), DANGER]].map(([v, lbl, tone]) => {
                   const on = m === v;
                   return (
-                    <button key={v} onClick={() => mark(r.id, v)} data-tour={`register-${v}`}
+                    <button key={v} onClick={() => (one ? markOne(r.id, v) : mark(r.id, v))} data-tour={`register-${v}`}
                             /* a key on its lip: the edge's at rest, the mark's own colour made deeper once chosen */
                             className="flex items-center justify-center n-key"
                             style={{ minWidth: 66, minHeight: 44, borderRadius: R.control,
@@ -5461,7 +5543,11 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
         )}
 
         {/* a fresh register is "3 to mark", never a large nought before
-            anybody has been marked; the figure comes with the first mark */}
+            anybody has been marked; the figure comes with the first mark.
+            A register of one has neither: its row is the register, and the
+            toast says it was taken (it read "1 to mark" over no button, and
+            "0 of 1 present", a large nought, once marked absent) */}
+        {!one && (<>
         <div data-tour="register-tally" className="flex items-baseline gap-2 mt-4 mb-5">
           {done === 0 ? (
             <span style={{ ...TYPE.small, color: t.faint }}>{who.length} {tr("to mark")}</span>
@@ -5478,6 +5564,8 @@ function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, clo
         <Button disabled={!ready} onClick={() => { hapticSuccess(); chime(); onSubmit(picked, marks); setPicked(null); }}>
           <span className="inline-flex items-center justify-center gap-2">{tr("Submit register")}{ready && <Check size={17} color={t.onAccent} strokeWidth={2.4} />}</span>
         </Button>
+        </>)}
+        {one && <div style={{ height: SPACE.tight }} />}
       </>
     );
   }
@@ -15429,9 +15517,22 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
   /* The count and the last date belong to the block below, which says
      them in a size you can read walking; repeating them up here was the
      same two facts twice in one screenful. */
-  const meta = live
+  const metaText = live
     ? [stage, r.junior ? tr("Under 18") : null].filter(Boolean).join(" · ")
     : stage || "";
+  /* THE LEVEL IS THE DOOR TO PROGRESS (24 November). The line under the
+     name says where the player stands ("HI 18.4"); a tap on it opens how
+     they got there — the same Progress the file's own row opens. The
+     line in the sub grey with a chevron after it, reaching 44 to a finger
+     without moving a pixel (the reach paints nothing). No level, no door. */
+  const meta = stage ? (
+    <button data-tour="player-level" onClick={() => { haptic(6); soft(); push("progress:" + (r.id || name)); }}
+            className="relative inline-flex items-center gap-1 text-left active:opacity-50" style={{ ...TYPE.lede, color: t.sub }}>
+      <span aria-hidden="true" className="absolute" style={{ top: -12, bottom: -12, left: -8, right: -8 }} />
+      <span>{metaText}</span>
+      <ChevronRight size={13} color={t.trace || t.faint} strokeWidth={2} className="shrink-0" />
+    </button>
+  ) : metaText;
 
   return (
     <SwipeBack onBack={pop}>
@@ -16018,7 +16119,8 @@ function SportTool({ cfg, sport, rows, onAdd, onRemove, pop, say }) {
    comes from a register — never from who is in the group, which would
    report a full house at every session nobody was marked at. */
 function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMessage = null, members = null,
-                        onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport, standingFor = null, stageFor = null }) {
+                        onLesson = null, onDownload = null, liveMedia = null, onNeedMedia = null, sport, standingFor = null, stageFor = null,
+                        onLog = null, onRegister = null, onEdit = null }) {
   const t = useT();
   const real = !!sessions;
   const weeks = real ? sessions.map((l) => {
@@ -16043,16 +16145,46 @@ function GroupHistory({ group, cfg, pop, say, onOpen, sessions, registers, onMes
   return (
     <SwipeBack onBack={pop}>
       <Screen title={group.name} onBack={pop} meta={`${DAY_NAMES[group.day]}s ${group.time}`}>
-        {/* the group's one action, at the top before anything that grows with
-            the data — the player file's tile, a line into each member's own
-            thread */}
-        {onMessage && (
-          <div className="px-6 mb-5">
-            {/* one action is a key across the page, never a lone circle at
-                its left edge */}
-            <Button tone="quiet" tour="group-page-message" onClick={() => onMessage(group)}>
-              <span className="inline-flex items-center justify-center gap-2"><MessageCircle size={18} color={t.ink} strokeWidth={1.9} />{tr("Message")}</span>
-            </Button>
+        {/* THE GROUP'S WORK, AT THE TOP (24 November): Message · Log ·
+            Register, before anything that grows with the data, as a player's
+            file leads with its keys. Message a line into each member's own
+            thread; Log the log with the group already picked, as the Who
+            page's group face picks it; Register the register on the group's
+            lesson today, its own roll — and no Register on a day without
+            one. Message and Log only while somebody of the group is on the
+            roster. The app's key forms, never a key drawn by hand: three are
+            round keys three across, two are tiles two to a row, and one
+            alone is a key across the page. */}
+        {(() => {
+          const keys = [
+            onMessage && { tour: "group-page-message", Icon: MessageCircle, hue: HUE.green, label: tr("Message"), act: () => onMessage(group) },
+            onLog && { tour: "group-page-log", Icon: Plus, tone: "accent", label: tr("Log"), act: () => onLog(group) },
+            onRegister && { tour: "group-page-register", Icon: Check, hue: HUE.green, label: tr("Register"), act: () => onRegister(group) },
+          ].filter(Boolean);
+          if (!keys.length) return null;
+          if (keys.length === 1) {
+            const k = keys[0], accent = k.tone === "accent";
+            return (
+              <div className="px-6" data-tour="group-page-keys" style={{ marginBottom: SPACE.row }}>
+                <Button tone={accent ? "accent" : "quiet"} tour={k.tour} onClick={k.act}>
+                  <span className="inline-flex items-center justify-center gap-2"><k.Icon size={18} color={accent ? t.onAccent : t.ink} strokeWidth={1.9} />{k.label}</span>
+                </Button>
+              </div>
+            );
+          }
+          return (
+            <div className="px-6" data-tour="group-page-keys" style={{ marginBottom: SPACE.row }}>
+              <TileGrid cols={keys.length}>
+                {keys.map((k) => <ActTile key={k.tour} tour={k.tour} h={keys.length === 2 ? 60 : 82} Icon={k.Icon} hue={k.hue} tone={k.tone || "quiet"} label={k.label} onTap={k.act} />)}
+              </TileGrid>
+            </div>
+          );
+        })()}
+        {/* the group itself — who is in it, and its removal — one door under
+            its keys; never its name (a group's bookings carry the name) */}
+        {onEdit && (
+          <div className="px-6" style={{ marginBottom: SPACE.block }}>
+            <div className="nsc-list"><HomeRow boxed tour="group-page-edit" label={tr("Edit")} onPress={onEdit} /></div>
           </div>
         )}
         {/* one grey line, not a dashboard of three stat cells */}
@@ -16605,6 +16737,67 @@ function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
                                onCreate({ name: name.trim(), members: chosen.map((r) => r.name), memberIds: chosen.map((r) => r.id).filter(Boolean), day, time, weeks }); close(); }}>
         {tr("Create group")}
       </Button>
+    </>
+  );
+}
+
+/* A GROUP'S EDIT IS WHO IS IN IT, AND ITS REMOVAL (24 November) — never
+   its name. A group's bookings carry the name and the database's
+   group_members() finds the members by it, so a renamed group would cut
+   every lesson it has booked off from the people in it: nobody told of a
+   call-off, nobody reminded, nobody's Diary holding the clinic. The people
+   are New group's own picker, picked by id, written through the one save
+   the group was made with (preferences.groups). Remove is there only when
+   nothing is booked ahead — otherwise one line says so and offers no
+   removal — and it is the red quiet key, then a plain confirm. */
+function GroupEditBody({ group, roster, nouns, picked: start, ahead = 0, sessions = 0, onSave, onRemove, close, say }) {
+  const t = useT();
+  const [members, setMembers] = useState(start || []);
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const changed = members.length !== (start || []).length || members.some((id) => !(start || []).includes(id));
+  const save = async () => {
+    if (busy || !changed || !members.length) return;
+    setBusy(true);   /* the Button buzzes on the tap: one tap, one beat */
+    const res = await onSave(members);
+    setBusy(false);
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save the group.")); return; }
+    close();
+  };
+  if (confirm) return (
+    <>
+      <h2 className={sessions ? "mb-1" : "mb-5"} data-tour="group-remove-confirm" style={{ ...TYPE.title, color: t.ink }}>{`${tr("Remove")} ${group.name}`}</h2>
+      {/* what stays, in one line: the sessions logged for it are in All lessons still */}
+      {sessions > 0 && (
+        <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>
+          {`${countOf(sessions, "sessions")} ${sessions === 1 ? tr("stays in All lessons") : tr("stay in All lessons")}`}
+        </p>
+      )}
+      <Button tone="danger" tour="group-remove-go" disabled={busy} onClick={async () => { setBusy(true); await onRemove(); }}>{tr("Remove")}</Button>
+      <button onClick={() => { haptic(6); setConfirm(false); }} className="w-full mt-2.5 active:opacity-60"
+              style={{ minHeight: 48, ...TYPE.body, color: t.sub }}>{tr("Keep it")}</button>
+    </>
+  );
+  return (
+    <>
+      <h2 className="mb-1" data-tour="group-edit" style={{ ...TYPE.title, color: t.ink }}>{group.name}</h2>
+      <p className="mb-5" style={{ ...TYPE.small, color: t.sub }}>{`${DAY_NAMES[group.day] || ""}s ${group.time || ""}`.trim()}</p>
+      <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
+        {members.length ? countOf(members.length, nouns) : tr("Members")}
+      </div>
+      <div className="mb-5">
+        <PersonPicker tour="group-edit-people" people={(roster || []).map((r) => ({ id: r.id || r.name, name: r.name, avatarPath: r.avatarPath }))}
+                      picked={members} onToggle={(p) => setMembers((m) => (m.includes(p.id) ? m.filter((x) => x !== p.id) : [...m, p.id]))} />
+      </div>
+      <Button tour="group-edit-save" disabled={busy || !changed || !members.length} onClick={save}>{busy ? tr("Saving…") : tr("Save")}</Button>
+      {ahead > 0 ? (
+        /* nothing is taken from under a booked lesson: the run is ended first */
+        <p data-tour="group-edit-ahead" className="mt-4 text-center" style={{ ...TYPE.small, color: t.sub }}>{`${countOf(ahead, "lessons")} ${tr("ahead")} — ${tr("End them first")}`}</p>
+      ) : (
+        <div className="mt-3">
+          <Button tone="dangerQuiet" tour="group-edit-remove" onClick={() => setConfirm(true)}>{tr("Remove group")}</Button>
+        </div>
+      )}
     </>
   );
 }
@@ -17397,8 +17590,57 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
   );
 }
 
+/* A DOOR IN A SHEET: the word on the box's own inset, its value in the sub
+   grey, the chevron — the player file's foot rows' shape, a box of its own
+   in the sheet's list. The value is never cut: beside the word while both
+   fit, whole on the line under it where they do not (a span of days away
+   at 320). `danger` is the red word (Call off): a red row is told by its
+   word, never by a tile. No glyph stands before the word. */
+function DoorRow({ label, value, danger = false, onPress, tour, attrs }) {
+  const t = useT();
+  return (
+    <button data-tour={tour} data-row-door="" {...(attrs || {})} onClick={() => { haptic(8); soft(); onPress && onPress(); }}
+            className="w-full flex items-center gap-3.5 text-left" style={{ minHeight: 60 }}>
+      <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+        <span data-row-label="" style={{ ...TYPE.body, color: danger ? DANGER : t.ink, maxWidth: "100%" }}>{label}</span>
+        {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: t.sub, maxWidth: "100%", overflowWrap: "break-word" }}>{value}</span>}
+      </span>
+      <ChevronRight size={15} color={t.trace || t.faint} />
+    </button>
+  );
+}
+
+/* THE COACH'S DIARY HAS ONE DOOR TO WHAT RUNS IT (24 November). Recurring
+   lessons sat at the foot of the List view, a fortnight of days down; Hours
+   and Away lived in Settings, Call off on the plus — the founder kept
+   finding that a thing existed and could not be found from the Diary that
+   it runs. Manage, one word in the Diary's head, opens this: each row does
+   exactly what its Settings row or the plus does, its value in the sub
+   grey — the week's days, the next span away, the arrangements running,
+   the confirmed lessons ahead — and nothing where there is nothing (never
+   a nought). Add to phone calendar is not there with nothing to add, as
+   Settings › Calendar is not. */
+function DiaryManage({ hours, away, recurring, calendar, onHours, onAway, onRecurring, onCallOff, onCalendar }) {
+  const t = useT();
+  const rows = [
+    { id: "hours", label: tr("Hours"), value: hours, act: onHours },
+    { id: "away", label: tr("Away"), value: away, act: onAway },
+    { id: "recurring", label: tr("Recurring lessons"), value: recurring, act: onRecurring },
+    { id: "calloff", label: tr("Call off"), act: onCallOff, danger: true },
+    calendar && onCalendar ? { id: "calendar", label: tr("Add to phone calendar"), value: calendar, act: onCalendar } : null,
+  ].filter(Boolean);
+  return (
+    <>
+      <h2 className="mb-5" data-tour="manage-sheet" style={{ ...TYPE.title, color: t.ink }}>{tr("Manage")}</h2>
+      <div className="nsc-list">
+        {rows.map((r) => <DoorRow key={r.id} tour="manage-row" attrs={{ "data-manage": r.id }} label={r.label} value={r.value || null} danger={!!r.danger} onPress={r.act} />)}
+      </div>
+    </>
+  );
+}
+
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove, onAccept = null, onDecline = null }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove, onAccept = null, onDecline = null, onManage = null }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -17467,7 +17709,14 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   })();
 
   return (
-    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}>
+    <Screen title={forName ? `${tr("Book for")} ${forName}` : L_CAL(role, readOnly)} right={right} meta={role === "coach" ? "" : conn ? `with ${conn.coach}` : ""}
+            /* the coach's one door to what runs the Diary: a word beside the
+               title, as the family screen's Manage is — never a glyph, never
+               the accent, which is a lesson's */
+            action={role === "coach" && onManage ? (
+              <button data-tour="diary-manage" onClick={() => { haptic(6); onManage(); }} className="shrink-0 active:opacity-50"
+                      style={{ minHeight: 44, ...TYPE.body, fontWeight: 500, color: t.ink }}>{tr("Manage")}</button>
+            ) : null}>
       {/* Who this is for. An adult in a family books for the children as
           well as themselves, so the person is picked first and the hours
           shown are that person's coach's. The request then carries the
@@ -20307,6 +20556,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const [declineWhy, setDeclineWhy] = useState(null);
   const [declineNote, setDeclineNote] = useState("");
   const [messageGroup, setMessageGroup] = useState(null);   // the saved group a message goes to, or null for Everyone
+  const [editGroup, setEditGroup] = useState(null);         // the group whose Edit sheet is open
   /* Someone who plays two sports shouldn't be asked which one every
      time they open the app. Set once, per person. */
 
@@ -22216,6 +22466,58 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     }
     say(`${g.name} created · ${occ.length} lessons scheduled`); haptic(20);
   };
+  /* A GROUP'S OWN PAGE OPENS ITS WORK (24 November). A group is found by
+     its name the way the database's group_members() finds it, trimmed and
+     in any case; a group's booking is one with no player and a group's
+     name, or the harness's "Group · 9". */
+  const sameGroupName = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+  const sameGroup = (x, g) => (x && g && x.id != null && g.id != null ? String(x.id) === String(g.id) : sameGroupName(x && x.name, g && g.name));
+  const isGroupRow = (b) => !!b && !b.playerId && (!!b.group || !!b.groupName || String(b.kind || "").startsWith("Group"));
+  /* the group's lesson today: the one on now, else the last one begun, else the next */
+  const groupToday = (g) => {
+    const mine = (todayList || []).filter((l) => isGroupRow(l) && sameGroupName(l.groupName || l.who, g.name));
+    return mine.find((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5 && (l.hoursUntil ?? 9) > -((l.duration || 45) / 60))
+      || mine.filter((l) => (l.hoursUntil ?? 9) <= 0).pop() || mine[0] || null;
+  };
+  /* what the group has booked and not yet begun, by the clock as it is —
+     by the booking's own date where it carries one: the diary's key holds
+     no year, and a session last month, outside the calendar's six, read as
+     next year's and kept a finished group from ever being removed */
+  const groupAhead = (g) => {
+    const cal = account ? { ...calendar, nowMins } : calendar;
+    const todayIso = isoOf(todayMD.m, todayMD.d);
+    return Object.entries(coachDiaryBooked || mySeedBooked || {}).reduce((n, [k, rows]) => {
+      const [m, d] = k.split("-").map(Number);
+      return n + (rows || []).filter((b) => {
+        if (!isGroupRow(b) || !sameGroupName(b.groupName || b.who, g.name)) return false;
+        if (b.status && b.status !== "confirmed" && b.status !== "requested") return false;
+        if (b.date) return b.date > todayIso || (b.date === todayIso && !timeGone(m, d, b.time, cal));
+        return !!m && !!d && !isPast(m, d, cal) && !timeGone(m, d, b.time, cal);
+      }).length;
+    }, 0);
+  };
+  /* who is in it, through the save the group was made with; never its
+     name — its bookings carry the name, and group_members() reads it */
+  const saveGroupMembers = async (g, ids) => {
+    const chosen = (roster || []).filter((r) => ids.includes(r.id || r.name));
+    const patch = { members: chosen.map((r) => r.name), memberIds: chosen.map((r) => r.id).filter(Boolean) };
+    if (data) {
+      const cur = (data.prefs && data.prefs.groups) || [];
+      const r = await data.saveGroups(cur.map((x) => (sameGroup(x, g) ? { ...x, ...patch } : x)));
+      if (r && r.error) return { error: { message: tr("Couldn't save the group.") } };
+    } else setGroups((gs) => ({ ...gs, [coachSport]: (gs[coachSport] || []).map((x) => (sameGroup(x, g) ? { ...x, ...patch } : x)) }));
+    done(tr("Saved"), [g.name, countOf(chosen.length, cfg.nouns)].filter(Boolean).join(" · "));
+    return {};
+  };
+  const removeGroup = async (g) => {
+    if (data) {
+      const cur = (data.prefs && data.prefs.groups) || [];
+      const r = await data.saveGroups(cur.filter((x) => !sameGroup(x, g)));
+      if (r && r.error) { hapticWarn(); say(tr("Couldn't remove the group.")); return r; }
+    } else setGroups((gs) => ({ ...gs, [coachSport]: (gs[coachSport] || []).filter((x) => !sameGroup(x, g)) }));
+    done(tr("Removed"), g.name, DANGER);
+    return {};
+  };
 
   const playerLessons = (() => {
     /* Row-level security hands an adult their family's lessons as well
@@ -23047,6 +23349,10 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                              /* routes carry ids; the harness's player route reads a name */
                              onOpen={(r) => push("player:" + (data ? r.id : r.name))}
                              onMessage={membersOnRoster(g, roster).length ? (grp) => { setMessageGroup(grp); setSheet("broadcast"); } : null}
+                             /* the log with the group picked, as the Who page's group face picks it */
+                             onLog={membersOnRoster(g, roster).length ? (grp) => { setPrefill({ who: grp.name, kind: "Group", groupName: grp.name }); go("log"); } : null}
+                             onRegister={(() => { const l = groupToday(g); return l ? () => { setAttendFor(l); setSheet("attend"); } : null; })()}
+                             onEdit={() => { setEditGroup(g); setSheet("groupEdit"); }}
                              sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && l.who === gname) : null}
                              registers={registers} sport={coachSport} onDownload={downloadLesson}
                              liveMedia={data ? liveMedia : null} onNeedMedia={data ? needMedia : null}
@@ -23148,6 +23454,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h) => { setBookSlot({ day, time: h }); setAskNote(""); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
                                                             onRecurring={() => push("recurring")}
+                                                            onManage={role === "coach" ? () => setSheet("manage") : null}
                                                             kids={data ? (data.dependants || []).map((k) => { const h = (data.hoursByPlayer || {})[k.id] || {}; return { ...k, canBook: !!k.coachId && (Object.values(h.days || {}).some((x) => x && x.length) || datedOf(h.extra, calendar).some((x) => !isPast(x.m, x.d, calendar))), ahead: aheadFor(k.id) }; }) : null}
                                                             selfCanBook={data ? !!data.hasCoach : true}
                                                             /* the For strip's own tile is the adult by name — the face
@@ -23516,21 +23823,23 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onEdit={() => { setSheet(null); setTimeout(() => push("layout"), 180); }}
                                             onRun={runQuick} />
             : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} groups={myGroups} taken={registers} chosen={attendFor}
-                                            onSubmit={async (l, marks) => {
+                                            onSubmit={async (l, marks, opts) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
                                                 /* the marks already carry real ids — the sheet
                                                    keys them by row, not by display name, so two
                                                    players called the same thing no longer share
-                                                   one mark */
-                                                const res = await data.takeRegister(l.who, marks);
+                                                   one mark; a private lesson's one tap replaces
+                                                   what it wrote before (`opts.replace`) */
+                                                const res = await data.takeRegister(l.who, marks, opts);
                                                 /* the register is what was written, not what was ticked */
-                                                if (res && res.error) { hapticWarn(); say(res.error.message); return; }
+                                                if (res && res.error) { hapticWarn(); say(res.error.message); return res; }
                                                 done(tr("Register taken"), `${n} ${tr("present")}`);
-                                                return;
+                                                return {};
                                               }
                                               setRegisters((r) => ({ ...r, [registerKey(l.who, new Date())]: marks }));
                                               done(tr("Register taken"), `${n} ${tr("present")}`);
+                                              return {};
                                             }}
                                             close={() => setSheet(null)} say={say} />
             : sheet === "capture" ? null   /* the camera is an overlay of its own, after the Sheet */
@@ -23756,6 +24065,18 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               return {};
                                             }}
                                             close={() => setSheet(null)} />
+              : sheet === "manage" && role === "coach" ? <DiaryManage
+                                            /* each row is what its Settings row or the plus does, its value what that row says */
+                                            hours={(() => { const n = [0, 1, 2, 3, 4, 5, 6].filter((d) => ((myAvail || {})[d] || []).length).length; return n ? `${n} ${n === 1 ? tr("day") : tr("days")}` : null; })()}
+                                            away={awaySub || null}
+                                            recurring={(() => { const n = (data ? mySeries : series).filter((x) => !x.ended).length; return n ? `${n} ${tr("running")}` : null; })()}
+                                            calendar={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()}
+                                            onHours={() => { setSheet(null); push("availability"); }}
+                                            onAway={() => { setSheet(null); push("away"); }}
+                                            onRecurring={() => { setSheet(null); push("recurring"); }}
+                                            onCallOff={() => { setCallOffFor(null); setSheet("weather"); }}
+                                            /* inside the tap, as Settings' row: the share sheet needs the gesture */
+                                            onCalendar={data ? () => { setSheet(null); addToCalendar(); } : null} />
               : sheet === "weather" ? <CallOff days={callOffDays()} duration={duration}
                                             startKeys={[key((callOffFor || todayMD).m, (callOffFor || todayMD).d)]}
                                             verify={data ? data.verifyPassword : async () => ({})}
@@ -23774,6 +24095,14 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
                                               done(tr("Group created"), `${g.name} · ${g.members.length}`); }}
                                             close={() => setSheet(null)} say={say} />
+              : sheet === "groupEdit" && editGroup ? <GroupEditBody key={editGroup.id || editGroup.name} group={editGroup} roster={roster} nouns={cfg.nouns} say={say}
+                                            picked={membersOnRoster(editGroup, roster).map((r) => r.id || r.name)}
+                                            ahead={groupAhead(editGroup)}
+                                            sessions={data ? (data.lessons || []).filter((l) => l.type === "Group" && sameGroupName(l.who, editGroup.name)).length : 0}
+                                            onSave={(ids) => saveGroupMembers(editGroup, ids)}
+                                            /* the page goes with the group: back on the roster, then the write */
+                                            onRemove={() => { const g = editGroup; setSheet(null); setEditGroup(null); pop(); return removeGroup(g); }}
+                                            close={() => { setSheet(null); setEditGroup(null); }} />
               : sheet === "newThread" ? <NewThread role={role} roster={roster} conns={conns.filter((c) => c.profileId === activeProfileId)}
                                             people={data && role !== "coach" ? (liveThreads || []).map((c) => ({ id: c.playerId, name: c.who, sub: c.sub })) : null}
                                             /* a real thread is found by id; the harness's seeded
