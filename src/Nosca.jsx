@@ -2039,6 +2039,38 @@ const datedOf = (xs, c = HARNESS_CALENDAR) => (Array.isArray(xs) ? xs : []).map(
   return { m: mm, d: dd, time, iso, y: yy };
 }).filter((x) => x.m && x.d && x.time && x.y === yearOf(x.m, c));
 
+/* THE WEEK SET UP AGAIN CHANGES ONLY WHAT WAS CHANGED (24 November).
+   Setup's Hours is one row of days and one set of times; a stored week
+   can hold different times on different days. Reopened, the setup opens
+   on the days that hold a time and every time any of them holds
+   (`opened`), and this applies the difference to the week as stored: a
+   day turned off is emptied; a day turned on takes the times ticked; a
+   day that stays on keeps its own times, less any time unticked, plus
+   any time ticked that was not. Nothing changed is null — no write. It
+   rebuilt every day from the tiles, one set of times for the whole week,
+   so finishing a reopened setup flattened a coach's per-day hours. Dated
+   times (`blocked`, `extra`) and the days away are not the week's and
+   are never touched here. */
+function weekAfterSetup(stored, opened, out) {
+  const byTime = (xs) => [...new Set(xs)].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
+  const was = opened || { days: [], times: [] };
+  const days = out.days || [], times = out.times || [];
+  const added = times.filter((x) => !was.times.includes(x));
+  const removed = was.times.filter((x) => !times.includes(x));
+  const sameDays = days.length === was.days.length && days.every((d) => was.days.includes(d));
+  if (sameDays && !added.length && !removed.length) return null;
+  /* a first week, or one with every time unticked, is not a week to write */
+  if (!times.length || (!was.days.length && !days.length)) return null;
+  const week = {};
+  for (let d = 0; d < 7; d++) {
+    const had = (stored && (stored[d] || stored[String(d)])) || [];
+    if (!days.includes(d)) week[d] = [];
+    else if (was.days.includes(d) && had.length) week[d] = byTime([...had.filter((x) => !removed.includes(x)), ...added]);
+    else week[d] = byTime(times);
+  }
+  return week;
+}
+
 function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR, extra = []) {
   if (isPast(m, d, c)) return [];
   /* A slot that started an hour ago is not free, it is over. Only the
@@ -2230,10 +2262,12 @@ const LEGAL = {
     ["Camera", "Needed to record lesson video in the app. Only used while the camera screen is open."],
     ["Microphone", "Needed for voice notes. Recording only starts when you tap the record button."],
     ["Photos", "Needed to pick existing clips from your library. We only read the files you choose."],
-    ["Notifications", "Used for lessons, drills, tips, messages, bookings and payments. Every category can be turned off."],
-    ["Messaging", "See the separate messaging privacy note for who can read what."],
+    /* TRUE, NOT PROMISED (24 November, the class study): there are no payments, no messaging note to open, and no
+       switch per kind of notice — the three lines said all three. A parent reads this page; it says what the app does */
+    ["Notifications", "Used for lessons, bookings, requests, drills, tips and messages. Choose as they happen, once a day or only what is urgent, or turn them off."],
+    ["Messaging", "A player's messages are read by the player and their coach. A junior's are read by the adults in their family too, who can write there for them. A message to a group goes into each member's own thread, so no family reads another's."],
     ["Sound", "A handful of short confirmation tones. Off switches it everywhere."],
-    ["Health notes", "Your coach must ask before recording injury or fitness details. You can withdraw that at any time, and the notes go with it."],
+    ["Notes on a player", "A coach's own notes on a player are the coach's alone: the player and their family never read them. A lesson's write-up is shared with the player, so it keeps injury and medical details to what the coaching needs."],
     ["Your data", "Request an export or deletion of everything tied to your account at any time."],
   ]},
   licences: { title: "Licences", updated: "Open-source software used in this app", body: [
@@ -2750,7 +2784,7 @@ function DrillTimer({ seconds, onDone }) {
    between them, running as far forward as they want to look. */
 function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, monthIdx,
                      onOpen, onEditDay, onBookInto, onRecurring, push, juvenile, now, away = null,
-                     mine = [], coachName = null, onMine = null }) {
+                     mine = [], coachName = null, onMine = null, onAccept = null, onDecline = null }) {
   const t = useT();
   /* the tree's own calendar — the real months for a real account, the
      harness's fixed summer otherwise */
@@ -2954,6 +2988,31 @@ function AgendaList({ role, avail, blocked, extra = [], seedBooked, duration, mo
                   );
                   return mineRow;
                 }
+
+                /* A REQUEST IN ITS HOUR (24 November): the time, the whole name,
+                   Requested and the player's note on the grey line, and Accept ·
+                   Decline as Today's request row carries them — the same
+                   handlers, the decline sheet with them. The hour is held: no
+                   plus, and the day's free hours leave it out. Beside the name
+                   while the name keeps its 120 (a long one wrapped inside its
+                   words in less); a line of their own under it, on the right,
+                   where it cannot, as Accept · Decline do on every person row */
+                if (bk && isCoach && bk.status === "requested") return (
+                  <div key={h} data-tour="agenda-ask" data-ask={bk.id || ""} className="w-full flex flex-wrap items-center gap-x-3 px-4"
+                       style={{ minHeight: 56, paddingTop: 6, paddingBottom: 6, ...line }}>
+                    <Rail tone={t.ink} style={TIME_LEAD}>{h}</Rail>
+                    <span className="min-w-0 py-1.5" style={{ flex: "1 1 120px" }}>
+                      <span data-name="" className="block" style={{ ...TYPE.body, fontWeight: 600, color: t.ink, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>
+                      <span data-tour="agenda-ask-line" className="block" style={{ ...TYPE.small, color: t.sub, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{[tr("Requested"), bk.note].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    {(onAccept || onDecline) && (
+                      <span className="shrink-0 flex items-stretch gap-1 ml-auto" style={{ minHeight: 44 }}>
+                        {onAccept && <TextBtn quiet tour="agenda-accept" color={t.accent} onClick={() => { hapticCommit(); onAccept(bk); }}>{tr("Accept")}</TextBtn>}
+                        {onDecline && <TextBtn quiet tour="agenda-decline" color={t.faint} onClick={() => { haptic(9); onDecline(bk); }}>{tr("Decline")}</TextBtn>}
+                      </span>
+                    )}
+                  </div>
+                );
 
                 if (bk && isCoach) return (
                   <button key={h} data-tour="agenda-row" onClick={() => { haptic(7); soft(); onOpen(day, bk); }}
@@ -4056,7 +4115,11 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
   const gone = (h) => timeGone(day.m, day.d, h, calendar);
   const offered = away ? [] : [...new Set([...weekly, ...added])].filter((h) => !off.includes(h) && !gone(h)).sort(byTime);
   const bookedAt = (h) => (day.booked || []).find((b) => b.time === h);
-  /* a booked time is a tile whatever the hours say, carrying who */
+  /* a booked time is a tile whatever the hours say, carrying who — and a
+     time somebody has asked for is held the same way, carrying who and
+     Requested (24 November: the coach's Diary holds a request in its
+     hour), so no minus takes it off from under the ask: the request is
+     answered first */
   const tiles = [...new Set([...offered, ...(day.booked || []).map((b) => b.time)])].sort(byTime);
   const free = tiles.filter((h) => !bookedAt(h));
   const addable = away ? [] : HALF_HOURS.filter((h) => !tiles.includes(h) && !gone(h));
@@ -4103,6 +4166,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
                 reads in the sheet's sub; "10:00–10:45 am" wrapped at 320 */}
             <span className="block" style={FIG}>{h}</span>
             {bk && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.faint, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>}
+            {bk && bk.status === "requested" && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.sub }}>{tr("Requested")}</span>}
           </>);
           if (editing && !bk) return (
             <button key={h} data-time={h} onClick={() => removeTime(h)} aria-label={`${tr("Remove")} ${h}`}
@@ -4115,7 +4179,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
             </button>
           );
           return (
-            <div key={h} data-time={h} data-booked={bk ? "1" : undefined} className="flex flex-col items-center justify-center text-center" style={face}>{inner}</div>
+            <div key={h} data-time={h} data-booked={bk ? "1" : undefined} data-requested={bk && bk.status === "requested" ? "1" : undefined} className="flex flex-col items-center justify-center text-center" style={{ ...face, ...(bk && bk.status === "requested" ? { paddingTop: 6, paddingBottom: 6 } : null) }}>{inner}</div>
           );
         })}
         {!editing && addable.length > 0 && (
@@ -5196,7 +5260,7 @@ function Announcement({ kind, title, body, action, actionLabel, onDismiss }) {
   );
 }
 
-function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
+function Attendance({ lessons, roster, groups = [], taken, chosen, onSubmit, close, say }) {
   const t = useT();
   const soleLive = (lessons || []).filter((l) => !l.done && (l.hoursUntil ?? 9) <= 0.5);
   /* opened from a row on Today it already knows which lesson; opened
@@ -5222,18 +5286,48 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
      entirely. Every row carries the id the mark is written against; the
      name is only what the coach reads.
 
-     A real group booking names no members, so the whole roster is
-     offered and the coach marks who came. The head-count slice is the
-     design harness's seeded groups only. */
+     A GROUP'S ROLL IS ITS MEMBERS (24 November). A group booking names
+     no players; its members are the saved group's still on the roster —
+     membersOnRoster(), as a group message reaches them, matched to the
+     booking by its name as the database's group_members() matches it —
+     and anybody else who turns up is one tap away under "Someone not in
+     the diary". It was the whole roster: "7 to mark" for a clinic of
+     three, thirty rows for a clinic of six. A group whose members cannot
+     be known (no saved group of that name, or none of them still on the
+     roster) keeps the roster: a roll is never empty — an empty members
+     list once emptied every register in the diary. The head-count slice
+     is the design harness's seeded groups only. */
   const rowFor = (n) => (roster || []).find((r) => r.name === n) || { id: n, name: n };
   /* The harness's roster rows carry no id, so without this every one of
      them marked into marks[undefined] and the register held one answer
      for the whole group. */
   const withId = (r) => (r && r.id ? r : { ...r, id: r.name });
-  const membersOf = (l) => ((l && l.members) ? l.members.map(rowFor)
-    : (l && l.kind && l.kind.startsWith("Group"))
-    ? (roster || []).slice(0, Number((l.kind.match(/\d+/) || [6])[0]))
-    : l ? [l.playerId ? { id: l.playerId, name: l.who } : rowFor(l.who)] : []).map(withId);
+  const isGroup = (l) => !!l && (!!l.group || (!!l.kind && String(l.kind).startsWith("Group")));
+  const groupOf = (l) => {
+    const nm = String((l && (l.groupName || l.who)) || "").trim().toLowerCase();
+    return nm ? (groups || []).find((g) => String((g && g.name) || "").trim().toLowerCase() === nm) || null : null;
+  };
+  const membersOf = (l) => {
+    if (!l) return [];
+    if (l.members) return l.members.map((m) => (typeof m === "string" ? rowFor(m) : m)).map(withId);
+    if (isGroup(l)) {
+      const on = membersOnRoster(groupOf(l), roster || []);
+      if (on.length) return on.map(withId);
+      const n = (String(l.kind || "").match(/\d+/) || [])[0];
+      return (n ? (roster || []).slice(0, Number(n)) : (roster || [])).map(withId);
+    }
+    return [l.playerId ? { id: l.playerId, name: l.who } : rowFor(l.who)].map(withId);
+  };
+  /* the roll shown: the members, then anybody else on the roster already
+     marked on this register (a walk-in, taken before) or added in this
+     sitting — a register taken comes back with its walk-ins on it */
+  const [added, setAdded] = useState([]);
+  const rollOf = (l, m, plus = []) => {
+    const base = membersOf(l);
+    const ids = new Set(base.map((r) => r.id));
+    const more = (roster || []).map(withId).filter((r) => !ids.has(r.id) && ((m && m[r.id]) || plus.includes(r.id)));
+    return [...base, ...more];
+  };
   /* a register already taken comes back as it was; a fresh one for a
      group lesson starts with the members who said they will not be
      there marked absent — only those on the roll it shows, so nobody
@@ -5245,11 +5339,21 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
     return Object.fromEntries(((l && l.outIds) || []).filter((id) => roll.has(id)).map((id) => [id, "out"]));
   };
   const [marks, setMarks] = useState(start ? marksFor(start) : {});
+  /* the group's own "Someone not in the diary": the rest of the roster */
+  const [rollWalkIn, setRollWalkIn] = useState(false);
 
   const open = (l) => {
     haptic(8); soft();
-    setPicked(l);
+    setPicked(l); setAdded([]); setRollWalkIn(false);
     setMarks(marksFor(l));   // reopen a register already taken
+  };
+  /* somebody who turned up for the group and is not one of it: on the
+     roll and marked present — they are there, which is why they were added */
+  const addWalkIn = (r) => {
+    hapticSuccess(); soft();
+    setAdded((a) => (a.includes(r.id) ? a : [...a, r.id]));
+    setMarks((m) => ({ ...m, [r.id]: "in" }));
+    setRollWalkIn(false);
   };
 
   const mark = (id, v) => {
@@ -5258,11 +5362,13 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
     setMarks((m) => ({ ...m, [id]: v }));
   };
 
-  const all = (v) => { haptic(10); soft(); const m = {}; membersOf(picked).forEach((r) => (m[r.id] = v)); setMarks(m); };
+  const all = (v) => { haptic(10); soft(); const m = {}; rollOf(picked, marks, added).forEach((r) => (m[r.id] = v)); setMarks(m); };
 
   /* ---------- the register ---------- */
   if (picked) {
-    const who = membersOf(picked);
+    const who = rollOf(picked, marks, added);
+    const onRoll = new Set(who.map((r) => r.id));
+    const others = isGroup(picked) ? (roster || []).map(withId).filter((r) => !onRoll.has(r.id)) : [];
     const done = who.filter((r) => marks[r.id]).length;
     const present = who.filter((r) => marks[r.id] === "in").length;
     const ready = done === who.length;
@@ -5332,6 +5438,28 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           })}
         </div>
 
+        {/* a group's walk-in: whoever turned up who is not one of the group —
+            the white key under the roll, the rest of the roster under it once
+            tapped, a tap putting them on the roll, present */}
+        {others.length > 0 && !rollWalkIn && (
+          <div className="mt-4">
+            <Button tone="quiet" tour="register-roll-walkin" onClick={() => { soft(); setRollWalkIn(true); }}>
+              <span className="inline-flex items-center justify-center gap-2"><Plus size={18} color={t.ink} strokeWidth={2.2} />{tr("Someone not in the diary")}</span>
+            </Button>
+          </div>
+        )}
+        {others.length > 0 && rollWalkIn && (
+          <>
+            <p data-tour="register-roll-walkin-head" className="mt-5 mb-1" style={{ ...TYPE.eyebrow, color: t.sub }}>{tr("Not in the diary")}</p>
+            <div className="nsc-list" data-tour="register-roll-others">
+              {others.map((r) => (
+                <PersonRow key={r.id} name={r.name} src={avatarUrl(r.avatarPath)} attrs={{ "data-walkin": r.name }}
+                           trailing={<Plus size={17} color={t.accent} strokeWidth={2.2} />} onTap={() => addWalkIn(r)} />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* a fresh register is "3 to mark", never a large nought before
             anybody has been marked; the figure comes with the first mark */}
         <div data-tour="register-tally" className="flex items-baseline gap-2 mt-4 mb-5">
@@ -5371,7 +5499,7 @@ function Attendance({ lessons, roster, taken, chosen, onSubmit, close, say }) {
           const key = keyOf(l);
           const reg = taken[key];
           const n = reg ? Object.values(reg).filter((x) => x === "in").length : 0;
-          const total = membersOf(l).length;
+          const total = rollOf(l, reg).length;
           const live = !l.done && (l.hoursUntil ?? 9) <= 0.5;
           return (
             <button key={key} data-tour={i === 0 ? "attend-row" : undefined} onClick={() => open(l)}
@@ -5585,7 +5713,12 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
   const targets = [...(lessons || []), null];
   const cur = chosen ? targets.findIndex((l) => l && l.who === chosen.who && l.time === chosen.time) : targets.length - 1;
   const cycle = () => { if (live || targets.length < 2) return; haptic(6); onChoose && onChoose(targets[(Math.max(0, cur) + 1) % targets.length]); };
-  const filing = chosen ? `${String(chosen.who || "").split(" ")[0]} · ${chosen.time}` : tr("Nobody yet");
+  /* the first name and the time, each whole (Facts): the pill grows to
+     its words, and where the row up top cannot hold it — a long first
+     name at 320, the timer beside it while a clip records — the time
+     takes a second line in it. It was held to 150 and read "Saoirse ·
+     10:30…" at 390 */
+  const filing = chosen ? [String(chosen.who || "").split(" ")[0], chosen.time] : [tr("Nobody yet")];
   const mmss = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
   /* THE CHROME IS THE APP'S, NOT THE PHONE'S: paper pills over the
      picture with the ink on them, the modes as the app's own Segmented,
@@ -5618,29 +5751,30 @@ function LiveCapture({ lessons, chosen, onChoose, items, onAdd, onDrop, close, s
           </div>
         )}
         {/* top: close, the timer while it records, what it files under */}
-        <div className="absolute inset-x-0 flex items-center justify-between px-3" style={{ top: `calc(${TOP_AIR}px + env(safe-area-inset-top, 0px))` }}>
-          <button onClick={() => { haptic(6); close(); }} aria-label={tr("Close")} className="flex items-center justify-center active:opacity-70"
+        <div className="absolute inset-x-0 flex items-center justify-between gap-2 px-3" style={{ top: `calc(${TOP_AIR}px + env(safe-area-inset-top, 0px))` }}>
+          <button onClick={() => { haptic(6); close(); }} aria-label={tr("Close")} className="shrink-0 flex items-center justify-center active:opacity-70"
                   style={{ width: 40, height: 40, borderRadius: 20, ...glass }}><X size={20} color={t.ink} strokeWidth={2} /></button>
           {live ? (
-            <span className="flex items-center gap-2 px-3 py-1.5" style={{ borderRadius: R.pill, background: DANGER, color: "#fff", fontFamily: ui, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+            <span className="shrink-0 flex items-center gap-2 px-3 py-1.5" style={{ borderRadius: R.pill, background: DANGER, color: "#fff", fontFamily: ui, fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
               <span className="rounded-full" style={{ width: 7, height: 7, background: "#fff", animation: "breathe 1200ms ease-in-out infinite" }} />{mmss(cap.seconds)}
             </span>
           ) : <span />}
-          <span className="flex items-center gap-2">
+          <span className="min-w-0 flex items-center gap-2">
             {/* the framing guide: off · grid · lines, the glyph the phone's
                 camera uses for its own grid, filled while a guide is on */}
             {!noCamera && (
               <button onClick={nextGuide} disabled={live} data-tour="capture-guide" data-guide={guide}
                       aria-label={`${tr("Guide")} · ${tr(GUIDE_LABEL[guide])}`} aria-pressed={guide !== "off"}
-                      className="flex items-center justify-center active:opacity-70 disabled:opacity-60"
+                      className="shrink-0 flex items-center justify-center active:opacity-70 disabled:opacity-60"
                       style={{ width: 40, height: 40, borderRadius: 20, ...glass, ...(guide !== "off" ? { background: t.ink, color: t.page } : {}) }}>
                 <Grid3X3 size={19} color={guide !== "off" ? t.page : t.ink} strokeWidth={1.9} />
               </button>
             )}
             {lessons && lessons.length > 0 ? (
-              <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} className="flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
-                      style={{ minHeight: 36, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, maxWidth: 150 }}>
-                <span className="truncate">{filing}</span><ChevronRight size={14} color={t.ink} strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
+              <button onClick={cycle} disabled={live} aria-label={tr("Filing under")} data-tour="capture-filing" className="min-w-0 flex items-center gap-1.5 px-3 active:opacity-70 disabled:opacity-60"
+                      style={{ minHeight: 36, paddingTop: 4, paddingBottom: 4, borderRadius: R.pill, ...glass, fontFamily: ui, fontSize: 13, fontWeight: 600, lineHeight: 1.25, textAlign: "left" }}>
+                <Facts parts={filing} className="min-w-0" />
+                <ChevronRight size={14} color={t.ink} strokeWidth={2.2} style={{ transform: "rotate(90deg)", flexShrink: 0 }} />
               </button>
             ) : null}
           </span>
@@ -5939,7 +6073,13 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
   const when = l.iso ? fmtWeekDay(localDate(l.iso)) : `${l.d} ${l.m}`;
   /* two facts on the grey line, never three — and the whole name, because
      two players with one first name are two files */
-  const sub = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean).slice(0, 2).join(" · ");
+  const sub = (facts || [showWho && l.who ? l.who : null, when, files > 1 ? `${files} ${tr("files")}` : null]).filter(Boolean).slice(0, 2);
+  /* NOTHING IS CUT, AT 390 OR 320 (24 November): the areas and the grey
+     line are Facts — each part whole, breaking only between parts, a long
+     name or area wrapping inside itself — where both were one truncated
+     line ("Cian Murphy · Sun 22 …" in Saved at 390, "Short game · Pu…"
+     at 320) */
+  const areas = String(l.focus || "").split(" · ");
   return (
     /* the row opens the lesson; the disc at its right corner saves it as
        a file — two controls, so the row is a div and not one button */
@@ -5952,17 +6092,18 @@ function LessonRow({ lesson: l, poster, need, onOpen, onDownload, showWho, first
               style={{ paddingTop: 8, paddingBottom: 8 }}>
         <Poster item={poster} sport={sport} />
         <span className="flex-1 min-w-0">
-          <span className="flex items-center gap-2">
+          <span className="flex items-start gap-2">
             {/* the mark means "not yet opened" only where opening clears it —
                 the coach's To review; nothing else passes `dot`, so no row
                 a person has already read carries a mark they cannot remove.
-                The sport's colour, as Chat's unread dot is */}
-            {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, background: t.accent }} />}
+                The sport's colour, as Chat's unread dot is — level with the
+                first line of the areas, which may take more than one */}
+            {dot && <span role="img" aria-label={tr("Unread")} className="rounded-full shrink-0" style={{ width: 6, height: 6, marginTop: 9, background: t.accent }} />}
             {/* what was worked on is the row's name, at a name's 16/600 (it was
                 400 beside every person row's 600, so the date under it read as loud) */}
-            <span className="truncate" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }}>{l.focus}</span>
+            <Facts parts={areas} attrs={{ "data-focus": "" }} className="flex-1 min-w-0" style={{ ...TYPE.body, fontWeight: 600, color: t.ink }} />
           </span>
-          <span className="block truncate mt-0.5" style={{ ...TYPE.small, color: t.sub }}>{sub}</span>
+          <Facts parts={sub} attrs={{ "data-sub": "" }} className="mt-0.5" style={{ ...TYPE.small, color: t.sub }} />
         </span>
         {/* a star is the palette's gold, wherever it is drawn */}
         {isStar && <span role="img" aria-label={tr("Starred")} className="shrink-0 flex"><Star size={13} color={STAR} fill={STAR} strokeWidth={1.6} /></span>}
@@ -6834,9 +6975,20 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
    the one action, because there is genuinely nothing else to do here
    yet — an empty lesson list and a disabled diary would just be
    furniture around a single button. */
-function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedBy, onOpenFamily, familyName, onYou, onAlerts, alerts = 0 }) {
+function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedBy, onOpenFamily, familyName, onYou, onAlerts, alerts = 0, onBack }) {
   const t = useT();
-  const top = (onYou || onAlerts) ? (
+  /* `onBack`: opened from Settings (a coach's Lessons as a player) it is a
+     pushed screen, and carries the pushed screen's Back where Screen draws
+     it — it opened with six code boxes and nothing else, and a coach who
+     tapped it to look could leave only by closing the app (24 November) */
+  const top = onBack ? (
+    <div className="shrink-0 flex items-center px-1.5" style={{ height: 46, marginTop: TOP_AIR }}>
+      <button data-tour="nocoach-back" onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="relative p-2 active:opacity-40">
+        <span aria-hidden="true" className="absolute" style={{ inset: -1.5 }} />
+        <ChevronLeft size={25} color={t.ink} strokeWidth={2.1} />
+      </button>
+    </div>
+  ) : (onYou || onAlerts) ? (
     <div className="shrink-0 flex items-center justify-end gap-3 px-5" style={{ height: 52 }}>
       {onAlerts && <IconBtn C={Bell} label={tr("Alerts")} count={alerts} onOpen={onAlerts} />}
       {onYou && <button onClick={() => { haptic(6); onYou(); }} className="active:opacity-50" aria-label={tr("You")}><User size={21} color={t.ink} strokeWidth={1.6} /></button>}
@@ -8149,6 +8301,46 @@ function ScheduleBlock({ item, duration, hoursUntil, onOpenLast, onLog, onNoShow
   );
 }
 
+/* A REQUEST IN ITS HOUR, ON THE COACH'S CALENDAR VIEW (24 November). It
+   is drawn among the day's lessons in time order, the list's white card
+   as theirs is: the face and the whole name, the time and Requested on
+   the grey line, the player's note under it in their words — then
+   Decline · Accept as the box's foot, the keys every box of the Calendar
+   view ends on (Today's request row carries the same two as words). Both
+   are the quiet key, Accept's word in the sport's colour: a day can hold
+   several requests, and a screen holds one deep key. Accept is Today's
+   own accept, Decline Today's decline sheet. */
+function AskBlock({ item, duration, delay = 0, onAccept, onDecline }) {
+  const t = useT();
+  const len = item.duration || duration;
+  const key = { minHeight: 46, borderRadius: R.control, border: `${EDGE_W}px solid ${KEY_RING(t)}`, fontFamily: ui, fontSize: 15, fontWeight: 600 };
+  return (
+    <Tile tour="cal-ask" delay={delay} className="mb-3" style={{ overflow: "hidden", borderRadius: 14, boxShadow: `0 2px 0 ${EDGE(t)}` }}>
+      <div data-ask={item.id || ""} className="px-5 py-4">
+        <div className="flex items-center gap-3.5">
+          <Avatar name={item.who} size={42} />
+          <span className="flex-1 min-w-0">
+            <span data-name="" className="block" style={{ ...TYPE.heading, color: t.ink, overflowWrap: "break-word" }}>{item.who}</span>
+            {/* two facts, each kept whole: the dot rides with the second */}
+            <span className="block mt-1" style={{ ...TYPE.small, color: t.faint }}>
+              <span data-block-time className="whitespace-nowrap">{span(item.time, len)}</span> <span data-ask-state className="whitespace-nowrap">· {tr("Requested")}</span>
+            </span>
+          </span>
+        </div>
+        {item.note && <p data-tour="cal-ask-note" className="mt-3" style={{ ...TYPE.small, color: t.sub, overflowWrap: "break-word" }}>{item.note}</p>}
+        {(onAccept || onDecline) && (
+          <div className="flex gap-2.5 mt-4">
+            {/* Decline is the red quiet key, as a player's Cancel is beside Reschedule: the brick's pale,
+                the word in the brick (the class study) — it opens the decline sheet, whose Just decline is the same */}
+            {onDecline && <button data-tour="cal-decline" onClick={() => { haptic(9); onDecline(item); }} className="flex-1 n-key" style={{ ...key, ...redKey(t) }}>{tr("Decline")}</button>}
+            {onAccept && <button data-tour="cal-accept" onClick={() => { hapticCommit(); onAccept(item); }} className="flex-1 n-key" style={{ ...key, color: t.accent }}>{tr("Accept")}</button>}
+          </div>
+        )}
+      </div>
+    </Tile>
+  );
+}
+
 /* Nothing on today. Worth saying warmly rather than leaving a blank. */
 function FreeDay({ onSetHours }) {
   const t = useT();
@@ -8633,7 +8825,7 @@ function Toast({ msg }) {
        strip that swallows taps 98px above the bottom of every screen is
        exactly the kind of "button that does nothing" that gets reported. */
     <div className="absolute left-0 right-0 flex justify-center px-6" style={{ bottom: 98, pointerEvents: "none", zIndex: 90 /* above the burst (70) and the sheet: a toast under a layer is a tap that did nothing */ }}>
-      <div className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-3"
+      <div data-toast="" className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-3"
            style={{ background: t.ink, maxWidth: "100%", opacity: m ? 1 : 0,
                     transform: m ? "translateY(0)" : "translateY(12px)", transition: "opacity 200ms, transform 200ms" }}>
         {m && m.done && (
@@ -9139,9 +9331,15 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
           <Icon size={Math.round(f * 0.4)} color={fg} strokeWidth={fill ? 2.1 : quietTile || calm ? 1.8 : 2} />
           {badge}
         </span>
+        {/* THE WORD IS WHOLE AT 320 (24 November): four across, a column is
+            59 there and "Message" 57 — the 2px it kept either side cut it to
+            "Messag…". In a grid one word under a face may stand in the
+            gutter too, half of it each side, so no two words meet; only
+            past that does it end on an ellipsis */}
         {!iconOnly && (
-          <span className={wrap ? "px-0.5 text-center" : "max-w-full truncate px-0.5"}
+          <span className={wrap ? "px-0.5 text-center" : "truncate"}
                 style={{ marginTop: lip, fontFamily: ui, fontSize: 13, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.005em",
+                         ...(wrap ? null : { maxWidth: cols ? `calc(100% + ${TILE_GAP}px)` : "100%" }),
                          color: tone === "danger" || redWord ? DANGER : tone === "accent" ? t.ink : t.sub }}>{label}</span>
         )}
       </button>
@@ -9187,6 +9385,7 @@ function ActTile({ Icon, label, onTap, tone = "quiet", count, on, dot, tour, ari
 }
 /* and a grid deals its own tiles, 22ms apart and capped at six, so a
    nine-tile sheet finishes settling in 310ms rather than 692 */
+const TILE_GAP = 12;                                         // a grid's gutter; a round key's word may stand in half of it
 const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
   /* more than six tiles is a cluster: they lose their rims and take the
      wash instead, because a grid of rimmed boxes reads busy; the few
@@ -9194,7 +9393,7 @@ const TileGrid = ({ children, cols = 3, stagger = 22 }) => (
   <GridColsCtx.Provider value={cols}>
   <ClusterCtx.Provider value={React.Children.count(children) > 6}>
     {/* a row more of air than across, for the lip standing in it */}
-    <div className="grid" style={{ columnGap: 12, rowGap: 12 + LIP_H, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+    <div className="grid" style={{ columnGap: TILE_GAP, rowGap: TILE_GAP + LIP_H, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {stagger === 0 ? children : React.Children.map(children, (c, i) =>
         (c && c.type === ActTile && c.props.delay == null)
           ? React.cloneElement(c, { delay: Math.min(i, 5) * stagger })
@@ -9267,18 +9466,37 @@ const TimeGrid = ({ times, picked, onToggle, cols = 4, tour, cellTour, disabled 
   );
 };
 
-/* people: a face, a name, a tick. Never a tile, never a pill. */
-const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
+/* ONE TICK BOX: a choice of several in a list — a Settings row's, a drill
+   to set, a member of a group. The strong grey ring at rest (3:1 on
+   white, the only thing that says where it is), the sport's colour filled
+   with a white tick once ticked; square-cornered, because a round ring is
+   a radio's, the one answer of many (24 November) */
+const TickBox = ({ on, radio = false }) => {
   const t = useT();
+  return (
+    <span data-tick-box={on ? "on" : "off"} className="flex items-center justify-center shrink-0"
+          style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${on ? t.accent : LINE_STRONG}`, background: on ? t.accent : "transparent",
+                   transition: "background 160ms, border-color 160ms" }}>
+      {on && <Check size={13} color="#fff" strokeWidth={2.1} />}
+    </span>
+  );
+};
+
+/* PEOPLE PICKED, SEVERAL OF THEM: one grouped box, the people as rows
+   inside it on the group's rule — a face, the name, a tick box on the
+   right (24 November). It was a box a person with a round ring in each,
+   seven boxes and seven radio rings for a choice of many; the register
+   and Settings' groups hold their rows in one box the same way. */
+const PersonPicker = ({ people, picked, onToggle, caption, tour }) => {
   const ids = new Set(picked || []);
   return (
-    <div data-tour={tour} className="nsc-list">
+    <div data-tour={tour} className="nsc-group" data-group="" data-picker="people">
       {people.map((p) => {
         const on = ids.has(p.id);
         const sub = caption && caption(p);
         return (
           <PersonRow key={p.id} attrs={{ "aria-pressed": on, "aria-label": p.name }} name={p.name} group={p.group} src={avatarUrl(p.avatarPath)}
-                     sub={sub || undefined} trailing={<WizCircle on={on} />} onTap={() => { haptic(7); soft(); onToggle(p); }} />
+                     sub={sub || undefined} trailing={<TickBox on={on} />} onTap={() => { haptic(7); soft(); onToggle(p); }} />
         );
       })}
     </div>
@@ -9444,6 +9662,39 @@ const TextBtn = ({ children, onClick, color, tour, quiet }) => {
 const PERSON_FACE = 44, PERSON_TEXT_MIN = 84;
 /* the width of "· " in the grey line, held so a dot that would lead a wrapped line is clipped whole */
 const SEP_HANG = "0.6em";
+/* A LINE OF FACTS WHOSE PARTS MAY BE LONGER THAN THE LINE (24 November).
+   PersonRow's grey line keeps each fact whole and breaks only at its dot,
+   which hangs clipped off the start of a wrapped line; but its facts are
+   nowrap, so a part wider than the line — a whole name beside a lesson's
+   poster and its disc at 320 ("Maximiliano Ó Súilleabháin"), an area
+   like "Custom fitting" — would run out of the box. Here every part
+   is a box of its own that moves whole to the next line when it cannot
+   sit beside the one before, and wraps inside itself, like words, only
+   where it cannot fit even a line of its own: a fact stays whole, a
+   name wraps before an ellipsis, and a line never starts on the dot —
+   it rides at the head of its part, in the strip the clip takes. A
+   lesson row's areas and its grey line, the camera's filing pill. It
+   was "Cian Murphy · Sun 22 …" in Saved and the archive at 390. */
+function Facts({ parts, className = "", style, attrs }) {
+  const list = (parts || []).filter(Boolean);
+  return (
+    <span data-facts="" className={`block ${className}`} {...(attrs || {})}
+          style={{ marginLeft: `-${SEP_HANG}`, textIndent: SEP_HANG, clipPath: `inset(0 0 0 ${SEP_HANG})`, ...style }}>
+      {list.map((part, i) => (
+        <React.Fragment key={i}>
+          {i ? " " : ""}
+          {/* the first part leaves room for the first line's indent; each one
+              after it carries its dot in a strip of its own at its head */}
+          <span data-fact="" style={{ display: "inline-block", textIndent: 0, overflowWrap: "break-word",
+                                      maxWidth: i ? "100%" : `calc(100% - ${SEP_HANG})`, paddingLeft: i ? SEP_HANG : 0 }}>
+            {i ? <span aria-hidden="true" data-fact-dot="" style={{ display: "inline-block", width: SEP_HANG, marginLeft: `-${SEP_HANG}`, whiteSpace: "pre" }}>{"· "}</span> : null}
+            {part}
+          </span>
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
 function PersonRow({ face, faceName, name, src, group, sub, subTone = "faint", subAttrs, meta, value, actions, trailing, chevron, onTap, tour, bold = false, minHeight = 64, textMin = PERSON_TEXT_MIN, nameLines = 3, subLines = 2, muted = false, className = "", style, attrs }) {
   const t = useT();
   const Tag = onTap ? "button" : "div";
@@ -9534,12 +9785,7 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
       {/* a tick box for a row that is a choice; never on a red row (the
           family's Leave), which read as an option left unticked — it is
           the red word alone, as iOS's Leave Family is */}
-      {onToggle && !chevron && !icon && !right && !danger && (
-        <span className="flex items-center justify-center shrink-0"
-              style={{ width: 22, height: 22, borderRadius: radio ? 11 : 7, border: `1.5px solid ${checked ? t.accent : LINE_STRONG}`, background: checked ? t.accent : "transparent" }}>
-          {checked && <Check size={13} color="#fff" strokeWidth={2.1} />}
-        </span>
-      )}
+      {onToggle && !chevron && !icon && !right && !danger && <TickBox on={!!checked} radio={radio} />}
       <span className="flex-1 min-w-0">
         {/* one line while both fit — the label left, the value right — and
             the value on a line of its own under the label where they do not */}
@@ -9551,7 +9797,11 @@ function Row({ label, sub, value, valueColor, checked, onToggle, radio, last, ch
           </span>
           {value && <span data-row-value="" className="min-w-0" style={{ ...TYPE.body, color: valueColor || t.sub, maxWidth: "100%", overflowWrap: "anywhere" }}>{value}</span>}
         </span>
-        {sub && <span className="block truncate mt-0.5" style={{ ...TYPE.caption, color: t.faint }}>{sub}</span>}
+        {/* the caption under the label wraps, two lines at most: a sentence
+            there was cut on one ("Cancellations, bookings, requests and
+            messa…" under Only urgent at 390); a preview past two lines — a
+            tip, a message in the search — ends on the phone's ellipsis */}
+        {sub && <span data-row-sub="" className="mt-0.5" style={{ ...TYPE.caption, color: t.faint, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{sub}</span>}
       </span>
       {right}
       {chevron && <ChevronRight size={17} color={t.trace || t.faint} />}
@@ -9987,7 +10237,7 @@ export const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, le
    asked. What is asked is when they coach, what they set and what they
    say — the last because the thing a coach repeats is the thing they
    were retyping into every player's file. */
-function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompts = [] }) {
+function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompts = [], starterTips = [], saved = null }) {
   const t = useT();
   const L = STRINGS.en;
   /* Three screens, one question each: when you coach, what you set, what
@@ -9995,12 +10245,32 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
      does not scroll — twelve drill cards and an input did not fit, and
      the step ended somewhere under the footer. */
   const [step, setStep] = useState(0);
-  const [drills, setDrills] = useState(live ? [] : cfg.drills.slice(0, 3).map((d) => d.t));
-  const [days, setDays] = useState([]);
+  /* REOPENED, IT OPENS ON WHAT IS STORED (24 November). From Settings it
+     opened blank whatever the coach had: no day lit over a week of Monday
+     to Saturday, none of their drills or tips ticked — and Finish rebuilt
+     every day from the tiles, one set of times for the whole week. Now
+     `saved` is the week as stored (the days with any time lit, every time
+     they hold lit, the length), the drill library and the tips, all
+     ticked; Finish hands back what it opened on beside what is chosen, so
+     finishSetup changes only what was changed (weekAfterSetup). The first
+     offer, after sign-up, opens on nothing, as it always did. */
+  const opened = useMemo(() => {
+    const week = (saved && saved.days) || {};
+    const on = [0, 1, 2, 3, 4, 5, 6].filter((d) => (week[d] || week[String(d)] || []).length);
+    const held = [...new Set(on.flatMap((d) => week[d] || week[String(d)] || []))].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
+    return { days: on, times: held, dur: (saved && Number(saved.duration)) || 45,
+             drills: saved && Array.isArray(saved.drills) ? saved.drills : null, tips: saved && Array.isArray(saved.tips) ? saved.tips : null };
+  }, []);
+  const onWeek = live && opened.days.length > 0;
+  /* the times on offer are the coach's pool and every time a day holds,
+     so a time stored on a day is never a time the grid cannot show */
+  const pool = useMemo(() => [...new Set([...(slots || []), ...opened.times])].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0)), [slots]);
+  const [drills, setDrills] = useState(opened.drills ? opened.drills.slice() : live ? [] : cfg.drills.slice(0, 3).map((d) => d.t));
+  const [days, setDays] = useState(onWeek ? opened.days.slice() : []);
   /* the times start ticked — nine to nine — so Hours is the days and Next */
-  const [times, setTimes] = useState(live ? slots.slice() : []);
-  const [dur, setDur] = useState(45);
-  const [tips, setTips] = useState([]);
+  const [times, setTimes] = useState(onWeek ? opened.times.slice() : live ? slots.slice() : []);
+  const [dur, setDur] = useState(opened.dur);
+  const [tips, setTips] = useState(opened.tips ? opened.tips.slice() : []);
   const [newDrill, setNewDrill] = useState("");
   const [newTip, setNewTip] = useState("");
 
@@ -10040,7 +10310,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ background: t.page }}>
+    <div data-tour="setup" data-step={now} className="flex flex-col h-full" style={{ background: t.page }}>
       <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
       <div className="flex items-center px-1.5 shrink-0" style={{ height: 52 }}>
         {step > 0
@@ -10064,7 +10334,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
           <Label>{tr("Times")}</Label>
           {/* a grid fills its rows: five slots go three and two, not
               four and a widow */}
-          <TimeGrid cols={evenCols(slots.length)} times={slots} picked={times} onToggle={(sl) => togg(times, setTimes, sl)} />
+          <TimeGrid cols={evenCols(pool.length)} times={pool} picked={times} onToggle={(sl) => togg(times, setTimes, sl)} />
         </>)}
 
         {now === "drills" && (<>
@@ -10074,8 +10344,12 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
         </>)}
 
         {now === "tips" && (<>
-          <div className="nsc-list">
-            {[...(tipPrompts || []).slice(0, 8), ...tips.filter((n) => !(tipPrompts || []).includes(n))].map((tp) => {
+          {/* the coach's own tips first (ticked, reopened), then the
+              sport's starter lines not among them, then any written here —
+              each once: a tip picked from the starter set was in the list
+              twice, two rows with one key */}
+          <div className="nsc-list" data-tour="setup-tips">
+            {[...new Set([...(opened.tips || []), ...(tipPrompts || []).slice(0, 8), ...(starterTips || []), ...tips])].map((tp) => {
               const on = tips.includes(tp);
               return (
                 <button key={tp} aria-pressed={on} onClick={() => togg(tips, setTips, tp)}
@@ -10093,7 +10367,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
 
       <div className="px-7 pt-3 shrink-0" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))", borderTop: `1px solid ${HAIR(t.ink, 0.08)}` }}>
         <Button disabled={!ready}
-                onClick={() => { if (last) { hapticSuccess(); swell(); onDone({ drills, days, times, dur, tips }); }
+                onClick={() => { if (last) { hapticSuccess(); swell(); onDone({ drills, days, times, dur, tips, opened }); }
                                  else { haptic(10); soft(); setStep(step + 1); } }}>
           {last ? tr("Finish") : L.continue}
         </Button>
@@ -12329,28 +12603,42 @@ function ClipReview({ lesson, mediaId, mediaFor, file, who, onSend, onStill, onQ
                   <span style={{ ...TYPE.caption, color: t.sub, fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" }}>{secsLabel(time)}</span>
                 </div>
 
-                {/* the tools, as a phone's markup draws them: icons, the one in use filled */}
-                <div className="flex items-center gap-1 mt-2" data-tour="markup-tools">
+                {/* the tools, as a phone's markup draws them: icons, the one in use
+                    filled. EVERY TOOL ON THE SCREEN AND 44 TO A FINGER (24
+                    November): the five, the camera and the three inks were one
+                    row 372 wide, so at 320 the red and the white stood off the
+                    right of the screen and could not be chosen, and at 390 the
+                    white touched its edge. The row wraps by what it holds: the
+                    inks take a line of their own under the camera wherever the
+                    row cannot hold them too (it needs 400, more than any
+                    phone gives it); each round key reaches 44 through the
+                    gutter, and an ink is a 44 key round its 24 disc */}
+                <div className="flex flex-wrap items-center mt-2" data-tour="markup-tools" style={{ columnGap: 4, rowGap: 4 }}>
                   {REVIEW_TOOLS.map(([id, label, Ico]) => {
                     const on = tool === id;
                     return (
                       <button key={id} aria-pressed={on} aria-label={tr(label)} title={tr(label)} onClick={() => { haptic(6); setTool(id); }}
-                              className="flex items-center justify-center shrink-0 active:opacity-70" style={round(on)}>
+                              className="relative flex items-center justify-center shrink-0 active:opacity-70" style={round(on)}>
+                        <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
                         <Ico size={19} color={on ? "#fff" : t.ink} strokeWidth={1.9} />
                       </button>
                     );
                   })}
                   <span className="flex-1" />
                   <button onClick={still} disabled={!dims || broken} aria-label={tr("Photo")} title={tr("Photo")}
-                          className="flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30" style={round(false)}>
+                          className="relative flex items-center justify-center shrink-0 active:opacity-70 disabled:opacity-30" style={round(false)}>
+                    <span aria-hidden="true" className="absolute" style={{ inset: -2 }} />
                     <Camera size={19} color={t.ink} strokeWidth={1.9} />
                   </button>
-                  {REVIEW_INKS.map((c) => (
-                    <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
-                            className="shrink-0 active:opacity-70 ml-2"
-                            style={{ width: 24, height: 24, borderRadius: 12, background: c, border: `2px solid ${HAIR(t.ink, 0.25)}`,
-                                     boxShadow: ink === c ? `0 0 0 2px ${t.page}, 0 0 0 3.5px ${t.ink}` : "none" }} />
-                  ))}
+                  <span data-tour="markup-inks" className="flex items-center ml-auto">
+                    {REVIEW_INKS.map((c) => (
+                      <button key={c} aria-label={tr("Colour")} aria-pressed={ink === c} onClick={() => { haptic(5); setInk(c); }}
+                              className="shrink-0 flex items-center justify-center active:opacity-70" style={{ width: 44, height: 44 }}>
+                        <span className="block" style={{ width: 24, height: 24, borderRadius: 12, background: c, border: `2px solid ${HAIR(t.ink, 0.25)}`,
+                                                          boxShadow: ink === c ? `0 0 0 2px ${t.page}, 0 0 0 3.5px ${t.ink}` : "none" }} />
+                      </button>
+                    ))}
+                  </span>
                 </div>
               </>)}
 
@@ -15238,19 +15526,29 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
                  row's value, the whole of it one tap away; theirs alone */
               ...(onNote ? [[tr("Notes"), onNote, note ? String(note).split("\n")[0] : null]] : []),
               [tr("Recurring lessons"), () => onRecurring(name), seriesFor ? `${DAY_NAMES[seriesFor.day].slice(0, 3)} ${seriesFor.time}` : null],
-              ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => (
+              ...(live ? [] : [[sportTool ? sportTool.label : tr("Sport record"), () => push("tool"), null]])].map(([lbl, act, val]) => {
               /* the word, its value, the chevron — no glyph (23 November) — and
                  the door's own 60, as All lessons above them (they stood 56 with
                  a tile each: a chart, a pencil, a loop, a trophy). The word never
-                 gives way; a long note's first line is cut beside it */
+                 gives way; a long note's first line is cut beside it — a
+                 preview of words, as the phone's own lists cut one */
+              const preview = lbl === tr("Notes");
+              return (
               <button key={lbl} data-row-door="" data-tour={lbl === tr("Progress") ? "player-progress" : lbl === tr("Notes") ? "player-notes" : lbl === tr("Recurring lessons") ? "player-recurring" : undefined} onClick={() => { haptic(6); soft(); act(); }} className="w-full flex items-center gap-3.5 text-left active:opacity-50"
                       style={{ minHeight: 60 }}>
-                <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
-                {val && <span className="flex-1 min-w-0 truncate text-right" style={{ ...TYPE.body, color: t.sub }}>{val}</span>}
-                {!val && <span className="flex-1" />}
+                {/* THE VALUE IS NEVER CUT (24 November), as Settings' Row: on the
+                    label's line at the right while both fit, whole on the line
+                    under the label where they do not — Recurring lessons read
+                    "Tue 10:30…" at 390 and "T…" at 320 */}
+                <span className="flex-1 min-w-0 flex flex-wrap items-baseline justify-between" style={{ columnGap: 14 }}>
+                  <span data-row-label="" className="shrink-0" style={{ ...TYPE.body, color: t.ink }}>{lbl}</span>
+                  {val && <span data-row-value="" className={preview ? "min-w-0 truncate text-right" : "min-w-0"}
+                                style={{ ...TYPE.body, color: t.sub, ...(preview ? { flex: "1 1 0%" } : { maxWidth: "100%", overflowWrap: "break-word" }) }}>{val}</span>}
+                </span>
                 <ChevronRight size={15} color={t.trace || t.faint} />
               </button>
-            ))}
+              );
+            })}
           </div>
           <div style={{ height: 26 }} />
         </div>
@@ -16241,12 +16539,20 @@ function ImportRoster({ close, say, noun, nouns, code }) {
 /* A coach making a group. They run it — adding, removing and setting
    the group's own drills — which is why the group is created
    from their side and never a player's. */
-function CreateGroup({ roster, nouns, onCreate, close, say }) {
+function CreateGroup({ roster, nouns, times: own, onCreate, close, say }) {
   const t = useT();
+  /* THE COACH'S OWN TIMES (24 November). It offered a fixed eight — 8:00 to
+     11:00, then 2:00, 3:30, 4:30 and 5:30 — so a coach whose hours are 9:00,
+     10:30, 12:00, 2:00, 4:00 and 5:00 could pick two of their six and none
+     after half five. `times` is their start times (Hours' pool and every
+     time a day holds); with none set, nine to eight on the hour, the pool a
+     day switched on takes. Saturday at two stays the opening pick where two
+     is one of them, else the first time. */
+  const times = (own && own.length ? own : DEFAULT_SLOTS).slice().sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
   const [name, setName] = useState("");
   const [members, setMembers] = useState([]);
   const [day, setDay] = useState(5);
-  const [time, setTime] = useState("2:00 pm");
+  const [time, setTime] = useState(() => (times.includes("2:00 pm") ? "2:00 pm" : times[0]));
   const [weeks, setWeeks] = useState(6);
   /* picked by id: two players with one name are two members */
   const toggle = (id) => { haptic(6); soft(); setMembers(members.includes(id) ? members.filter((x) => x !== id) : [...members, id]); };
@@ -16257,7 +16563,8 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
       <div className="mb-5"><VoiceInput value={name} onChange={setName} ph={tr("Group name")} autoFocus /></div>
 
       <div className="mb-2.5" style={{ ...TYPE.eyebrow, color: t.sub }}>
-        {members.length ? `${members.length} ${nouns}` : tr("Members")}
+        {/* "1 player", never "1 players" (countOf) */}
+        {members.length ? countOf(members.length, nouns) : tr("Members")}
       </div>
       <div className="mb-5">
         <PersonPicker people={roster.map((r) => ({ id: r.id || r.name, name: r.name }))}
@@ -16277,8 +16584,9 @@ function CreateGroup({ roster, nouns, onCreate, close, say }) {
         })}
       </div>
       <div className="mb-5">
-        {/* every time, not the first six: a junior clinic is after school */}
-        <TimeGrid cols={4} times={ALL_TIMES} picked={time} onToggle={setTime} />
+        {/* every one of the coach's times, not the first six: a junior
+            clinic is after school; a grid fills its rows (evenCols) */}
+        <TimeGrid tour="group-times" cols={evenCols(times.length)} times={times} picked={time} onToggle={setTime} />
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -16698,6 +17006,76 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
   );
 }
 
+/* A COACH'S TIPS, AS THEIR DRILLS ARE A LIBRARY (24 November). The lines
+   a coach says over and over — the Tip sheet's and the log's prompts —
+   could be changed only on Setup's third screen, and searching Settings
+   for "tip" found Setup alone. They are `custom_tips[sport]` on the
+   coach's preferences, read as one list the way the drills are: the
+   stored list, or the sport's starter lines while nothing is stored
+   (myTipPrompts), every change written whole (writeTips) — so the first
+   line written joins the starter four rather than replacing them, and a
+   starter line removed is gone. New and Save as the drill library's; a
+   swipe takes one off, as Away's and Saved's rows go; the last tip keeps
+   no swipe, because an empty list is the starter set again. The toast
+   follows the write; a line already there is said, not saved twice. */
+function TipLibrary({ tips, addTip, removeTip, pop, say }) {
+  const t = useT();
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    const v = text.trim(); if (!v || busy) return;
+    hapticCommit();   /* felt now: iOS gives no haptic once the promise lands */
+    setBusy(true);
+    const r = await addTip(v);
+    setBusy(false);
+    if (r && r.duplicate) { hapticWarn(); say(`${r.duplicate} ${tr("is already in your tips")}`); return; }
+    if (r && r.error) return;
+    setText(""); setAdding(false); chime(); say(tr("Saved"));
+  };
+  /* a refused removal puts the row back: the swiped row hid itself, so
+     the rows are dealt again under a new key */
+  const [gen, setGen] = useState(0);
+  const remove = async (v) => {
+    setBusy(true);
+    const r = await removeTip(v);
+    setBusy(false);
+    if (r && r.error) { setGen((g) => g + 1); return; }
+    say(tr("Removed"));
+  };
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Tips")} onBack={pop} meta={tips.length ? `${tips.length} ${tips.length === 1 ? tr("tip") : tr("tips")}` : ""}
+              right={<TextBtn quiet tour="tips-new" color={t.accent} onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? tr("Cancel") : tr("New")}</TextBtn>}>
+        {adding && (
+          <div className="px-6 mb-5"><Card className="p-5">
+            <VoiceInput value={text} onChange={setText} ph={tr("Tip")} autoFocus />
+            <div className="mt-5"><Button tour="tips-save" disabled={!text.trim() || busy} onClick={save}>{tr("Save")}</Button></div>
+          </Card></div>
+        )}
+        <div className="px-6 pb-2">
+          {tips.length === 0 ? (
+            <EmptyLine>{tr("No tips yet")}</EmptyLine>
+          ) : (
+            <div className="nsc-list" data-tour="tips-list">
+              {tips.map((tp) => {
+                const row = (
+                  <div data-tip-row={tp} className="flex items-center" style={{ minHeight: 56, paddingTop: 10, paddingBottom: 10 }}>
+                    <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink, overflowWrap: "break-word" }}>{tp}</span>
+                  </div>
+                );
+                return tips.length > 1
+                  ? <SwipeRow key={`${gen}|${tp}`} label={tp} deleteLabel={tr("Remove")} onDelete={() => remove(tp)}>{row}</SwipeRow>
+                  : <div key={`${gen}|${tp}`}>{row}</div>;
+              })}
+            </div>
+          )}
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 /* Suggests drills from the library matching the lesson's focus first,
    with a "write your own" option always available underneath. */
 /* the days a drill can be for: nothing, the player's next lesson where
@@ -17020,7 +17398,7 @@ function AwayScreen({ ranges, onChange, booked, isoOf, pop, say, onCallOff }) {
 }
 
 function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seedBooked, onBook, onCancel,
-                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove }) {
+                          say, push, right, family, duration, recurrence, setRecurrence, readOnly, seriesList, onEditSeries, onWeather, prefs, setPrefs, onLogFor, onWeatherDay, onCancelWithReason, extra = [], selfCanBook = true, onPeek, onEditDay, onBookInto, onRecurring, juvenile, now, parent, forName, onClearFor, kids, onBookFor, lessonsFor, away = null, landing = null, onLanded, onGroupOut, me = null, onMove, onAccept = null, onDecline = null }) {
   const t = useT();
   const live = useLive();
   /* the tree's calendar: the real months for a real account, the
@@ -17061,7 +17439,11 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
   /* a day the coach is away offers nothing, whatever the week says */
   const awayOn = (m, d) => !!(away && away.size && away.has(`${yearOf(m, cx)}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`));
   const open = isGone(mo.idx, sel) || awayOn(mo.idx, sel) ? [] : openTimes(mo.idx, sel, avail, blocked, bookings, seedBooked, cx, extra);
-  const booked = seedBooked[key(mo.idx, sel)] || [];
+  /* the coach's day: the lessons booked, and the requests waiting in their
+     hours — held (openTimes counts them taken), drawn apart, counted apart */
+  const dayRows = seedBooked[key(mo.idx, sel)] || [];
+  const booked = role === "coach" ? dayRows.filter((b) => b.status !== "requested") : dayRows;
+  const asks = role === "coach" ? dayRows.filter((b) => b.status === "requested").sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0)) : [];
   /* every lesson of the person's on the day, each its own block, in time
      order — a clinic and their own lesson on one day are two blocks, so
      the clinic (which offers no Cancel) never stands in for the lesson
@@ -17230,6 +17612,7 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
                     onEditDay={(day) => onEditDay && onEditDay(day)}
                     onBookInto={(day, h) => onBookInto && onBookInto(day, h)}
                     onRecurring={() => onRecurring && onRecurring()} push={push} now={T}
+                    onAccept={onAccept} onDecline={onDecline}
                     mine={role === "coach" ? [] : bookings} coachName={conn?.coach || null}
                     onMine={(day) => { const i = months.findIndex((x) => x.idx === day.m); if (i >= 0) setMi(i); setSel(day.d); setPick(null); setView(tr("Calendar")); }} />
       ) : (<>
@@ -17353,13 +17736,19 @@ function CalendarScreen({ role, conn, avail, blocked, setBlocked, bookings, seed
         {past ? (
           <p className="py-10 text-center" style={{ fontFamily: ui, fontSize: 14, color: t.faint }}>{tr("That day has passed")}</p>
         ) : role === "coach" ? (
-          booked.length === 0 && dayHours.length === 0 && !awayOn(mo.idx, sel) ? (
+          booked.length === 0 && asks.length === 0 && dayHours.length === 0 && !awayOn(mo.idx, sel) ? (
             <FreeDay onSetHours={() => push("availability")} />
           ) : (<>
             {awayOn(mo.idx, sel) && <AwayLine role="coach" booked={booked.length} onEdit={() => push("away")} />}
-            {booked.length > 0 ? (
+            {booked.length > 0 || asks.length > 0 ? (
               <>
-                {booked.map((b, i) => (
+                {/* the day in time order: a request stands in its hour among
+                    the lessons, a box of its own on the same card */}
+                {[...booked.map((b) => ({ b, ask: false })), ...asks.map((b) => ({ b, ask: true }))]
+                  .sort((x, y) => (parseTime(x.b.time) ?? 0) - (parseTime(y.b.time) ?? 0))
+                  .map(({ b, ask }, i) => ask ? (
+                    <AskBlock key={b.id || `ask-${b.time}`} item={b} duration={duration} delay={i * 70} onAccept={onAccept} onDecline={onDecline} />
+                  ) : (
                   <ScheduleBlock key={b.time + i} item={b} duration={duration} delay={i * 70} lessonsFor={lessonsFor}
                                  hoursUntil={mo.idx === T.m && sel === T.d ? (parseTime(b.time) - minsNow) / 60 : null}
                                  onOpenLast={(n) => push("history:" + n)} onLog={() => onLogFor && onLogFor({ ...b, m: mo.idx, d: sel })}
@@ -18203,12 +18592,15 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Hours"), tour: "settings-availability", onTap: () => push("availability"), keys: ["availability", "times", "slots", "week", "when"] },
       role === "coach" && { label: tr("Away"), sub: awaySub || "", tour: "settings-away", onTap: () => push("away"), keys: ["holiday", "holidays", "vacation", "off", "closed", "break", "leave", "days away", "tournament"] },
       !live && { label: tr("Roster & groups"), tour: "settings-roster", onTap: () => push("roster") },
-      live && { label: tr("Setup"), onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
+      live && { label: tr("Setup"), tour: "settings-setup", onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
         ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", onTap: () => push("myLessons") }
         : { label: tr("Lessons as a player"), onTap: () => push("takeLessons") }),
       { label: tr("Shortcuts"), tour: "settings-shortcuts", onTap: () => push("layout"), keys: ["home", "board", "plus", "customise", "edit", "layout", "tiles"] },
       { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
+      /* the coach's tips beside their drills, the same kind of library — they
+         could be changed only on Setup's third screen (24 November) */
+      live && { label: tr("Tips"), tour: "settings-tips", onTap: () => push("tipLibrary"), keys: ["tip", "prompts", "say", "advice", "lines", "library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "pdf", "file", "save"] },
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
@@ -18439,7 +18831,11 @@ function Notifications({ role, pop, pushOn, setPushOn, live, notify, setNotify, 
     <SwipeBack onBack={pop}>
       <Screen title={tr("Notifications")} onBack={pop}>
         <div className="px-6 mb-2 mt-2"><Card tour="notif-push">
-          <Row wrap label={tr("Tell me even when Nosca is closed")} sub={subscribed ? tr("On for this device") : why ? null : tr("Push notifications")}
+          {/* PUSH, AND WHAT IT DOES UNDER IT (24 November): the row's label was
+              the sentence, cut at 390 ("Tell me even when Nosca…"); a label
+              is a noun, and the sentence is the caption every row of this
+              screen carries */}
+          <Row label={tr("Push")} sub={tr("Tell me even when Nosca is closed")}
                /* the switch says whether it is on: a bell, struck through when off, said it a second time */
                last right={<Toggle on={subscribed} onChange={(v) => { if (!why || subscribed) flip(v); else { hapticWarn(); say && say(why); } }} />} />
         </Card></div>
@@ -19120,7 +19516,9 @@ function SearchScreen({ role, cfg, library, tips, pop, go, push, lessons: given,
         <div className="shrink-0 flex items-center gap-3 px-4 pb-3" style={{ paddingTop: TOP_AIR + 6, borderBottom: `1px solid ${t.hair}` }}>
           <div className="flex-1 min-w-0 flex items-center gap-2.5 rounded-full pl-4 pr-2" style={{ minHeight: 44, background: t.wash }}>
             <Search size={17} color={t.trace || t.faint} />
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Lessons, drills, tips, people" className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
+            {/* a placeholder is the noun of what goes in it: "Lessons, drills,
+                tips, people" read "…peopl" at 390 (24 November) */}
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search")} className="flex-1 min-w-0 outline-none" style={{ fontFamily: ui, fontSize: 16, color: t.ink, background: "transparent" }} />
             {q
               ? <button onClick={() => { haptic(6); setQ(""); }} aria-label={tr("Clear")} className="shrink-0 flex items-center justify-center" style={{ width: 30, height: 30 }}><X size={16} color={t.trace || t.faint} /></button>
               : <MicBtn onText={(txt) => setQ(txt)} size={30} />}
@@ -19985,6 +20383,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      if they took one, and remembered on their preferences row rather
      than in this browser. Reachable again from Settings. */
   const [setup, setSetup] = useState(false);
+  /* opened again from Settings: it opens on what is stored (CoachSetup's `saved`) */
+  const [setupAgain, setSetupAgain] = useState(false);
   const setupAsked = useRef(false);
   useEffect(() => {
     /* `role` is state and is set from the account by another effect, so
@@ -20354,8 +20754,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const TODAY_SCHEDULE = rawSchedule.map((l) => loggedKeys.has(lessonKey(l)) ? { ...l, done: false } : l);
   /* A real account's day is its confirmed bookings for the real date,
      in the shape the register and live capture already read: `done`
-     once the slot has passed and nothing has been logged for it,
-     `members` for a group so the whole roster can be marked. */
+     once the slot has passed and nothing has been logged for it. A
+     group's roll is not written here: the register reads the group's
+     members itself (Attendance's membersOf), so a group's register
+     opened from the Diary's peek reads the same roll as one opened from
+     Today — this put the whole roster on every group's roll. */
   /* WHAT HAS ALREADY BEEN WRITTEN UP. `loggedKeys` is this session's
      memory and is only added to when the log was started from the
      booking itself — log the same lesson from the plus instead and the
@@ -20372,8 +20775,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
       const over = start != null && start + (b.duration || 45) <= nowMins;
       return { ...b, m: todayMD.m, d: todayMD.d, hoursUntil,
                done: over && !loggedKeys.has(lessonKey(b))
-                     && !loggedToday.has(b.playerId || b.groupName || b.who),
-               members: b.group ? (data.roster || []).map((r) => r.name) : undefined };
+                     && !loggedToday.has(b.playerId || b.groupName || b.who) };
     })
     .sort((a, b) => (parseTime(a.time) ?? 0) - (parseTime(b.time) ?? 0))) : null;
   const todayList = realToday || TODAY_SCHEDULE;
@@ -20945,7 +21347,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     if (!next) return "";
     return next.to && next.to !== next.from ? `${fmtWeekDay(localDate(next.from))} – ${fmtWeekDay(localDate(next.to))}` : fmtWeekDay(localDate(next.from));
   })();
-  /* The diary shows what is confirmed; requests wait in Today's fold. */
+  /* What is confirmed. The coach's Diary reads coachDiaryBooked (below),
+     which holds the requests made to them in their hours as well; a
+     player's reads this with the coach's busy times. */
   const mySeedBooked = data
     ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed")]).filter(([, rows]) => rows.length))
     : seedBooked[coachSport];
@@ -20964,6 +21368,20 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   const playerBooked = data && role === "player"
     ? withBusy(mySeedBooked, bookFor ? ((data.busyByPlayer || {})[bookFor.id] || []) : (data.busySlots || []))
     : mySeedBooked;
+  /* A REQUEST HOLDS ITS HOUR IN THE COACH'S DIARY (24 November). The
+     coach's Diary drew the confirmed lessons alone, so the hour a player
+     had asked for read free — "6 free · Nothing booked", a plus on it —
+     and the coach could book somebody else into the very hour being asked
+     for, while the request sat on Today with nothing in the Diary to say
+     so. The coach's Diary now carries every request made to them in its
+     hour (status "requested"): drawn as Requested with Accept · Decline,
+     Today's own handlers; held, so no plus is on it and no free count
+     counts it. A request a coach made as somebody's player is not theirs
+     to answer and stays out. */
+  const coachDiaryBooked = data && role === "coach"
+    ? Object.fromEntries(Object.entries(data.bookings || {}).map(([k, rows]) => [k, rows.filter((b) => !b.status || b.status === "confirmed"
+        || (b.status === "requested" && b.playerId && (!b.coachId || !account || b.coachId === account.id)))]).filter(([, rows]) => rows.length))
+    : null;
   /* THE OPEN TIMES OF A DAY, FOR A LESSON MOVED THERE — a player's side
      of dayOpenTimes: the coach's hours as the person reads them (a
      child's coach's for a parent moving a child's lesson), the days
@@ -21150,6 +21568,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      writes the list they were looking at with the change in it
      (writeLibrary, below). */
   const myLibrary = (library[coachSport] || []).length ? library[coachSport] : ((SPORTS[coachSport] || {}).drills || []);
+  /* ONE TIP LIST, AS ONE DRILL LIBRARY (24 November): the coach's stored
+     tips for the sport, or its starter lines while nothing is stored — the
+     Tip sheet, the log, Setup's Tips and Settings › Tips all read this. It
+     was the stored tips with the starter four always after them, so a
+     starter line picked in setup stood twice on the Tip sheet, and a line
+     could never be taken off. */
+  const myTipPrompts = (() => {
+    const stored = data ? (((data.prefs || {}).custom_tips || {})[coachSport]) : null;
+    const own = [...new Set((Array.isArray(stored) ? stored : []).map((x) => String(x || "").trim()).filter(Boolean))];
+    return own.length ? own : (TIP_PROMPTS[coachSport] || []);
+  })();
   /* WHAT EACH PERSON WAS LAST LOGGED AT: the stage, the extras and the
      mount from their newest lesson, so the log opens on it and the
      coach changes it only when it has changed. Read from the tags on
@@ -21216,16 +21645,40 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      they skipped is simply not in the patch, so nothing is overwritten
      with a default they never chose. */
   const finishSetup = async (out) => {
-    setSetup(false);
+    setSetup(false); setSetupAgain(false);
     if (!data) return;
     const patch = { setup_done: true };
     if (out) {
-      if (out.days && out.days.length && out.times && out.times.length) {
-        const week = {};
-        for (let d = 0; d < 7; d++) week[d] = out.days.includes(d) ? out.times.slice().sort((a, b) => parseTime(a) - parseTime(b)) : [];
-        patch.availability = { ...((data.prefs && data.prefs.availability) || {}), days: week, duration: out.dur || 45, slots: out.times };
+      /* reopened, only what was changed is written (weekAfterSetup, and
+         the drills and tips below): the setup opened on the stored week,
+         library and tips, and Finish on an untouched screen writes none of
+         them; the first offer writes what was picked, as it always did */
+      const opened = out.opened || { days: [], times: [], dur: 45, drills: null, tips: null };
+      const av = (data.prefs && data.prefs.availability) || {};
+      const byTime = (xs) => [...new Set(xs)].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
+      const week = weekAfterSetup(av.days || {}, opened, out);
+      if (!opened.days.length) {
+        if (week) patch.availability = { ...av, days: week, duration: out.dur || 45, slots: out.times };
+      } else {
+        const added = (out.times || []).filter((x) => !opened.times.includes(x));
+        const durChanged = (out.dur || 45) !== opened.dur;
+        if (week || durChanged) {
+          patch.availability = { ...av, ...(week ? { days: week } : {}), ...(durChanged ? { duration: out.dur || 45 } : {}),
+                                 ...(added.length ? { slots: byTime([...((av.slots && av.slots.length) ? av.slots : slots), ...added]) } : {}) };
+        }
       }
-      if (out.drills && out.drills.length) {
+      const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+      if (opened.drills) {
+        /* the library as stored, less what was unticked, plus what was
+           ticked — written whole, as every change to it is (writeLibrary),
+           and never emptied: an empty library is the starter set again */
+        if (out.drills && out.drills.length && !same(out.drills, opened.drills)) {
+          const known = SPORTS[coachSport] ? SPORTS[coachSport].drills : [];
+          const kept = myLibrary.filter((d) => out.drills.includes(d.t)).map(({ uses, ...x }) => x);
+          const fresh = out.drills.filter((n) => !kept.some((d) => d.t === n)).map((name) => known.find((d) => d.t === name) || { t: name, d: "", focus: null });
+          patch.custom_drills = { ...((data.prefs && data.prefs.custom_drills) || {}), [coachSport]: [...kept, ...fresh] };
+        }
+      } else if (out.drills && out.drills.length) {
         const known = SPORTS[coachSport] ? SPORTS[coachSport].drills : [];
         const rows = out.drills.map((name) => known.find((d) => d.t === name) || { t: name, d: "", focus: null });
         const had = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || [];
@@ -21233,7 +21686,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         patch.custom_drills = { ...((data.prefs && data.prefs.custom_drills) || {}),
                                 [coachSport]: [...rows.filter((d) => !names.has(String(d.t).toLowerCase())), ...had] };
       }
-      if (out.tips && out.tips.length) {
+      if (opened.tips) {
+        if (out.tips && out.tips.length && !same(out.tips, opened.tips)) {
+          patch.custom_tips = { ...((data.prefs && data.prefs.custom_tips) || {}),
+                                [coachSport]: [...opened.tips.filter((x) => out.tips.includes(x)), ...out.tips.filter((x) => !opened.tips.includes(x))] };
+        }
+      } else if (out.tips && out.tips.length) {
         const had = (data.prefs && data.prefs.custom_tips && data.prefs.custom_tips[coachSport]) || [];
         patch.custom_tips = { ...((data.prefs && data.prefs.custom_tips) || {}),
                               [coachSport]: [...out.tips.filter((x) => !had.includes(x)), ...had] };
@@ -21242,7 +21700,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await data.savePrefs(patch);
     if (res && res.error) { hapticWarn(); say(res.error.message); return; }
-    if (out) done(tr("You're set up"), tr("Hours, drills and tips saved"));
+    /* the line says what was written, and nothing it was not: a reopened
+       setup finished untouched saves nothing and says so by saying none */
+    const wrote = [patch.availability && "hours", patch.custom_drills && "drills", patch.custom_tips && "tips"].filter(Boolean);
+    const line = wrote.length ? `${wrote.join(", ").replace(/, ([a-z]+)$/, " and $1")} saved` : null;
+    if (out) done(tr("You're set up"), line ? line[0].toUpperCase() + line.slice(1) : undefined);
   };
 
   const say = (m) => { setToast(m); setTimeout(() => setToast(null), 1900); };
@@ -21634,6 +22096,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return writeLibrary([d, ...myLibrary]);
   };
   const removeDrill = (name) => writeLibrary(myLibrary.filter((x) => x.t !== name));
+  /* the tips are written whole the same way: the list the coach is
+     looking at, with the change in it. The write is optimistic and a
+     refused one is said and read back (savePrefs reloads on an error) */
+  const writeTips = async (next) => {
+    if (!data || !account) return {};
+    const res = await data.savePrefs({ custom_tips: { ...(((data.prefs || {}).custom_tips) || {}), [coachSport]: next } });
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save the tips")); return res; }
+    return {};
+  };
+  const saveTip = (text) => {
+    const had = myTipPrompts.find((x) => x.toLowerCase() === String(text).toLowerCase());
+    if (had) return Promise.resolve({ duplicate: had });
+    return writeTips([text, ...myTipPrompts]);
+  };
+  const removeTip = (text) => (myTipPrompts.length > 1 ? writeTips(myTipPrompts.filter((x) => x !== text)) : Promise.resolve({ error: { message: tr("Keep one tip") } }));
   const bumpUses = (names) => setLibrary((l) => ({
     ...l, [coachSport]: (l[coachSport] || []).map((d) => (names.includes(d.t) ? { ...d, uses: (d.uses || 0) + 1 } : d)),
   }));
@@ -22170,9 +22647,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        same screen a player uses, from the same code — their own lessons
        are then theirs, and are kept out of everything that counts what
        they have taught. */
-    body = <NoCoach juvenile={false} pending={data.myRequest} declinedBy={data.declinedBy}
-                    onWithdraw={data.cancelRequest ? () => data.cancelRequest() : null}
-                    onJoin={async (code) => { const r = await data.joinCoach(code); if (!(r && r.error)) { hapticSuccess(); chime(); done(tr("Request sent"), tr("They accept from their app")); pop(); } return r; }} />;
+    body = (
+      <SwipeBack onBack={pop}>
+        <NoCoach juvenile={false} pending={data.myRequest} declinedBy={data.declinedBy} onBack={pop}
+                 onWithdraw={data.cancelRequest ? () => data.cancelRequest() : null}
+                 onJoin={async (code) => { const r = await data.joinCoach(code); if (!(r && r.error)) { hapticSuccess(); chime(); done(tr("Request sent"), tr("They accept from their app")); pop(); } return r; }} />
+      </SwipeBack>
+    );
     bare = true;
   } else if (screen === "myLessons" && data) {
     body = <LessonLogs role="player" lessons={mineOnly(data.lessons)} pop={pop} sport={sport}
@@ -22259,6 +22740,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} live={!!data}
                                                    onSave={data ? async (club) => { const res = await data.updateProfile({ club }); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null} />;
   } else if (screen === "library") { body = <DrillLibrary cfg={cfg} sport={coachSport} library={myLibrary} addDrill={saveDrill} removeDrill={removeDrill} pop={pop} assign={openAssignDrills} say={say} />;
+  } else if (screen === "tipLibrary") { body = <TipLibrary tips={myTipPrompts} addTip={saveTip} removeTip={removeTip} pop={pop} say={say} />;
   } else if (screen === "away") { body = <AwayScreen ranges={awayRanges} onChange={writeAway} booked={mySeedBooked} isoOf={isoOf} pop={pop} say={say}
                                                    onCallOff={(day) => { if (!day) return; setCallOffFor({ m: day.m, d: day.d }); setSheet("weather"); }} />;
   } else if (screen === "availability" || screen.startsWith("availability:")) { body = <Availability startDay={screen.includes(":") ? Number(screen.split(":")[1]) : null} avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
@@ -22639,7 +23121,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
   } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} onSync={syncBuild} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null}
-                          calendarSub={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()} onCalendar={addToCalendar} awaySub={role === "coach" ? awaySub : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+                          calendarSub={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()} onCalendar={addToCalendar} awaySub={role === "coach" ? awaySub : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => { setSetupAgain(true); setSetup(true); }} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
@@ -22655,10 +23137,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                             setBlocked={(fn) => { if (data) { const next = typeof fn === "function" ? fn(myBlocked) : fn; data.saveAvailability({ ...(liveHours || {}), blocked: next.map((b) => `${isoOf(b.m, b.d)}|${b.time}`) }); return; }
                                                               setBlocked((p) => ({ ...p, [coachSport]: typeof fn === "function" ? fn(p[coachSport]) : fn })); }}
                                                             bookings={role === "player" ? (bookFor ? (liveBookingRows || []).filter((b) => (b.playerId === bookFor.id || (b.forIds || []).includes(bookFor.id)) && (b.status === "requested" || b.status === "confirmed")).map((b) => ({ ...b, connId: 1, out: (b.outIds || []).includes(bookFor.id) })) : myBookings) : []}
-                                                            onGroupOut={data && data.canRsvp ? async (bk, out) => { const pid = bookFor ? bookFor.id : account.id; const r = await data.setGroupAbsence(bk.id, pid, out); if (r && r.error) { say(r.error.message); return; } done(out ? tr("Not going") : tr("Going"), [bookFor ? bookFor.name.split(" ")[0] : null, bk.groupName, bk.date ? fmtIsoDay(bk.date) : null].filter(Boolean).join(" · ")); } : null} seedBooked={playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
+                                                            onGroupOut={data && data.canRsvp ? async (bk, out) => { const pid = bookFor ? bookFor.id : account.id; const r = await data.setGroupAbsence(bk.id, pid, out); if (r && r.error) { say(r.error.message); return; } done(out ? tr("Not going") : tr("Going"), [bookFor ? bookFor.name.split(" ")[0] : null, bk.groupName, bk.date ? fmtIsoDay(bk.date) : null].filter(Boolean).join(" · ")); } : null} seedBooked={coachDiaryBooked || playerBooked} onBook={bookFor ? (b) => bookKid(bookFor, b) : book} onCancel={cancel} say={say} push={push} right={juvenile ? juvRight : role === "player" ? navRight : slimRight} family={data ? null : familyCalendar} duration={duration} recurrence={recurrence} setRecurrence={setRecurrence} readOnly={juvenile && !bookFor}
                                                             seriesList={mySeries} onEditSeries={(r) => { setRecurId(r.id || null); setRecurFor(r.playerId ? personOf(r.playerId) : { name: r.who }); setSheet("recurring"); }} onWeather={weatherCancel}
                                                             prefs={calPrefs} setPrefs={setCalPrefs} onLogFor={(b) => { setPrefill({ m: todayMD.m, d: todayMD.d, ...b }); go("log"); }} onWeatherDay={(day) => { setCallOffFor(day || null); setSheet("weather"); }} onCancelWithReason={(l) => { setCancelling(typeof l === "string" ? l : l.label || `${l.who} · ${l.time}`); setCancelBk(typeof l === "string" ? null : l); setSheet("cancel"); }}
                                                             onPeek={(bk) => { setPeek(bk); setSheet("peek"); }}
+                                                            /* a request in its hour answers as Today's row does: the same Accept, the same decline sheet */
+                                                            onAccept={role === "coach" && data ? acceptAsk : null}
+                                                            onDecline={role === "coach" && data ? (r) => { setDeclining(r); setDeclineWhy(null); setDeclineNote(""); setSheet("decline"); } : null}
                                                             onMove={data && data.canMove ? (bk) => { setMoveBk(bk); setMoveFor(bookFor ? bookFor.id : (account ? account.id : null)); setSheet("move"); } : null}
                                                             onEditDay={(day) => { setEditDay(day); setSheet("editDay"); }}
                                                             onBookInto={(day, h) => { setBookSlot({ day, time: h }); setAskNote(""); setSheet(role === "coach" ? "bookWho" : "bookSelf"); }}
@@ -22713,7 +23198,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard onQueueTake={queueWizardTake} library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
+      log:       <Wizard onQueueTake={queueWizardTake} library={myLibrary} tipPrompts={data ? myTipPrompts : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
                          lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
                          recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
                          onAddPlayer={() => setSheet("invite")}
@@ -22960,7 +23445,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           {setup && !tour && data && (
             <div className="absolute inset-0" style={{ zIndex: 66, background: theme.page }}>
               <CoachSetup live cfg={cfg} sport={coachSport} slots={slots}
-                          tipPrompts={[...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])]}
+                          tipPrompts={myTipPrompts} starterTips={TIP_PROMPTS[coachSport] || []}
+                          /* from Settings it opens on what is stored — the week, the
+                             library, the tips — and Finish changes only what changed;
+                             the first offer after sign-up opens on nothing */
+                          saved={setupAgain ? { days: (liveHours || {}).days || {}, duration: (liveHours || {}).duration || null,
+                                                drills: myLibrary.map((d) => d.t), tips: myTipPrompts } : null}
                           onDone={finishSetup} onSkip={() => finishSetup(null)} />
             </div>
           )}
@@ -23025,7 +23515,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                             onLog={() => { setSheet(null); setPrefill(null); go("log"); }}
                                             onEdit={() => { setSheet(null); setTimeout(() => push("layout"), 180); }}
                                             onRun={runQuick} />
-            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} taken={registers} chosen={attendFor}
+            : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} groups={myGroups} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
                                               if (data) {
@@ -23074,7 +23564,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)}
                                                   dueOn={data ? !!data.drillsDue : true} nextLesson={assignTo ? nextLessonIsoFor(assignTo) : null} />
-              : sheet === "tip" ? <TipBody prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
+              : sheet === "tip" ? <TipBody prompts={myTipPrompts.slice(0, 8)}
                                             onSet={doSetTip} close={() => setSheet(null)} />
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} 
                                                     close={() => setSheet(null)} say={say} />
@@ -23277,6 +23767,9 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                               done(tr("Sent"), tr("Your coach will confirm.")); }}
                                             close={() => setSheet(null)} />
               : sheet === "newGroup" ? <CreateGroup roster={roster} nouns={cfg.nouns}
+                                            /* the coach's own start times: Hours' pool (nine to
+                                               eight until they set one) and every time a day holds */
+                                            times={[...new Set([...(slots || []), ...Object.values(myAvail || {}).flat().filter(Boolean)])]}
                                             onCreate={(g) => { if (data) { createGroup(g); return; }
                                               setGroups((gs) => ({ ...gs, [coachSport]: [...(gs[coachSport] || []), { id: Date.now(), ...g }] }));
                                               done(tr("Group created"), `${g.name} · ${g.members.length}`); }}

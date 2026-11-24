@@ -197,12 +197,12 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await shot("p-group-sessions");
       check("(p) the group page's sessions are boxed rows on the card's edge, no rule inside", boxedRows(ses, EDGE.golf) && ses.length === 2 && fine(sesA), `${rowSaid(ses)} · ${said(sesA)}`);
       /* the day leads the row's grey line, the archive's form */
-      const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); return sp ? sp.textContent.split(" · ")[0].trim() : ""; }) : []; });
+      const sesDays = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("[data-sub]"); return sp ? sp.textContent.split(" · ")[0].trim() : ""; }) : []; });
       check("(p2) each session reads the app's one day (Thu 15 Oct), never \"15 Oct\"", sesDays.length === 2 && sesDays.every((d) => DAY_FORM.test(d)), JSON.stringify(sesDays));
       /* at 360 a three-area session still keeps its day on one line */
       await page.setViewportSize({ width: 360, height: 780 }); await page.waitForTimeout(400);
       /* the grey line under the focus: one line, never cut (the day and the head count fit whole) */
-      const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("span.block.truncate"); if (!sp) return null; const r1 = sp.getBoundingClientRect(); return { lines: sp.getClientRects().length, h: Math.round(r1.height), gap: sp.scrollWidth <= sp.clientWidth ? 8 : 0 }; }) : []; });
+      const dayLines = await page.evaluate(() => { const g = document.querySelector('[data-tour="group-sessions"]'); return g ? [...g.children].map((c) => { const sp = c.querySelector("[data-sub]"); if (!sp) return null; const r1 = sp.getBoundingClientRect(); return { lines: sp.getClientRects().length, h: Math.round(r1.height), gap: sp.scrollWidth <= sp.clientWidth ? 8 : 0 }; }) : []; });
       await shot("p3-group-sessions-360");
       check("(p3) at 360 every session's day stays whole on one line, uncut", dayLines.length === 2 && dayLines.every((x) => x && x.lines === 1 && x.h <= 22 && x.gap >= 8), JSON.stringify(dayLines));
       await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
@@ -270,10 +270,20 @@ const rowSaid = (rows) => rows ? `${rows.length} rows · ${rows.slice(0, 2).map(
       await tap(page, '[aria-label="Today"]', 900);
       await tap(page, '[data-tour="quick"]', 900);
       await page.locator("[data-sheet] button", { hasText: /^New group$/ }).first().click(); await page.waitForTimeout(900);
-      const pp = await rowsOf(page, "[data-sheet]", `return [...root.querySelectorAll('button[aria-pressed][aria-label]')].filter((b) => ["Cian Murphy", "Aoife Doyle", "Eoin Breathnach", "Saoirse Kelly"].includes(b.getAttribute("aria-label")));`);
-      const ppA = await audit(page, "[data-sheet]", EDGE.golf);
+      /* 24 November: several are chosen, so the people are the rows of ONE grouped box — Settings' own
+         group, the card's line round it and the group's rule between the rows — each ending on a tick
+         box; they were a box a person with a round radio ring in each */
+      const pg = await page.evaluate((names) => {
+        const s = document.querySelector("[data-sheet]"); if (!s) return null;
+        const rows = [...s.querySelectorAll("button[aria-pressed][aria-label]")].filter((b) => names.includes(b.getAttribute("aria-label")));
+        const groups = [...new Set(rows.map((b) => b.closest(".nsc-group")).filter(Boolean))], g = groups[0], cs = g ? getComputedStyle(g) : null;
+        return { n: rows.length, groups: groups.length, inList: rows.some((b) => !!b.closest(".nsc-list")), edge: cs && cs.borderTopColor, bw: cs && cs.borderTopWidth, radius: cs && cs.borderTopLeftRadius,
+                 rules: g ? [...g.children].slice(0, -1).map((r) => `${getComputedStyle(r).borderBottomWidth} ${getComputedStyle(r).borderBottomColor}`) : [],
+                 last: g && g.lastElementChild ? getComputedStyle(g.lastElementChild).borderBottomWidth : null, ticks: rows.filter((b) => b.querySelector("[data-tick-box]")).length };
+      }, ["Cian Murphy", "Aoife Doyle", "Eoin Breathnach", "Saoirse Kelly"]);
       await shot("t-new-group-people");
-      check("(t) New group's people (PersonPicker) are boxed rows on the card's edge, no rule inside", boxedRows(pp, EDGE.golf) && pp.length === 4 && fine(ppA), `${rowSaid(pp)} · ${said(ppA)}`);
+      check("(t) New group's people (PersonPicker) are the rows of one grouped box on the card's edge — the group's rule between them, none under the last, a tick box on each — never a box a person",
+        !!pg && pg.n === 4 && pg.groups === 1 && !pg.inList && pg.edge === EDGE.golf && parseFloat(pg.bw) >= 1 && pg.rules.length === 3 && pg.rules.every((r) => parseFloat(r) >= 1 && r.endsWith(EDGE.golf)) && parseFloat(pg.last) === 0 && pg.ticks === 4, JSON.stringify(pg));
       await closeSheet(page);
 
       /* (y) the push prompt at the head of the alerts */

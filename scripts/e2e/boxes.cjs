@@ -48,10 +48,11 @@ function freshDb() {
   person("rider", "rider@t.ie", { role: "coach", name: "Róisín Daly", sport: "equestrian", inviteCode: "RD4K9P" });
   person("tadhg", "tadhg@t.ie", { role: "player", name: "Tadhg Ryan", type: "adult", sport: "equestrian", coachId: IDS.rider, dob: "1988-08-08" });
   M.setPrefs(db, IDS.coach, { availability: M.weekOf(["9:00 am", "10:30 am", "4:00 pm"], [0, 1, 2, 3, 4, 5, 6]),
-    groups: [{ id: "g1", name: "Saturday clinic", members: ["Cian Murphy", "Saoirse Kelly"], memberIds: [IDS.adult, IDS.junior], day: 5, time: "9:00 am", weeks: 8, sport: "golf" }] });
+    /* the clinic's three — Eoin among them, so its register reads his whole name (b2); Aoife is not one of it */
+    groups: [{ id: "g1", name: "Saturday clinic", members: ["Cian Murphy", "Saoirse Kelly", "Eoin Breathnach"], memberIds: [IDS.adult, IDS.junior, IDS.eoin], day: 5, time: "9:00 am", weeks: 8, sport: "golf" }] });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.adult, date: TODAY, time: "9:00 am" });
   M.addBooking(db, { coachId: IDS.coach, playerId: IDS.junior, date: TODAY, time: "10:30 am" });
-  /* a group lesson today: its register holds everyone */
+  /* a group lesson today: its register holds its three members (24 November — it held the whole roster) */
   M.addBooking(db, { coachId: IDS.coach, groupName: "Saturday clinic", date: TODAY, time: "4:00 pm" });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-12)), focus: "Short game", subs: ["HI 16.4"], notes: "Keep it low.", unread: false });
   M.addLesson(db, { coachId: IDS.coach, playerId: IDS.adult, date: M.ymd(dayFrom(-26)), focus: "Putting", unread: false });
@@ -244,7 +245,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
         await mid.ctx.close();
       }
 
-      /* the register on the group lesson: one box, everyone as rows inside it, every whole name read at 375 */
+      /* the register on the group lesson: one box, its members as rows inside it, every whole name read at 375 */
       await page.setViewportSize({ width: 375, height: 812 }); await page.waitForTimeout(300);
       await openPeek(page, "Saturday clinic");
       await tap(page, '[data-tour="peek-register"]', 1000);
@@ -261,7 +262,7 @@ const metaOf = (page, title) => page.evaluate((title) => {
                  names: names.map((x) => x.textContent) };
       });
       await shot("02-register-375");
-      check("(b) the group's register is one box on golf's edge with everyone as rows inside it, a 1px hairline between and none under the last", !!reg && reg.day && reg.n >= 3 && parseFloat(reg.edgeW) >= 1 && reg.edge === EDGE.golf && reg.radius === "16px" && reg.inner.length === reg.n - 1 && reg.inner.every((x) => x === `1px ${HAIRLINE.golf}`) && reg.last === "none", JSON.stringify(reg));
+      check("(b) the group's register is one box on golf's edge with its members as rows inside it — the clinic's three, not the roster's four — a 1px hairline between and none under the last", !!reg && reg.day && reg.n === 3 && !reg.names.includes("Aoife Doyle") && parseFloat(reg.edgeW) >= 1 && reg.edge === EDGE.golf && reg.radius === "16px" && reg.inner.length === reg.n - 1 && reg.inner.every((x) => x === `1px ${HAIRLINE.golf}`) && reg.last === "none", JSON.stringify(reg));
       check("(b2) at 375 every name is whole — Eoin Breathnach and Saoirse Kelly are not cut", !!reg && reg.names.includes("Eoin Breathnach") && reg.names.includes("Saoirse Kelly") && reg.cut.length === 0, JSON.stringify(reg && { names: reg.names, cut: reg.cut }));
       await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(300);
       /* the day's lessons, then the walk-ins */
@@ -623,7 +624,13 @@ const metaOf = (page, title) => page.evaluate((title) => {
         /* the picker's rows: buttons whose edge is the list's own rule, not an inline style, so
            `audit` vouches for the edge and the colour and only the ratio is read off each */
         const people = only(grp, /Cian|Saoirse|Aoife|Eoin/);
-        check("(s11) the roster's New group row opens the one New group sheet: its people rows on the wash under \"Group name\" — no chips, no second sheet", fine(ng) && (await page.locator('[data-sheet] button[aria-pressed][aria-label]').count()) >= 2 && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1, `${said(ng)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
+        /* since 24 November the people are the rows of ONE grouped box, a tick box each — several are chosen —
+           where they were a boxed person row each with a round ring */
+        const ngGroup = await page.evaluate(() => { const sh = document.querySelector("[data-sheet]"); if (!sh) return null; const rows = [...sh.querySelectorAll("button[aria-pressed][aria-label]")];
+          return { groups: sh.querySelectorAll(".nsc-group").length, rows: rows.length, inGroup: rows.filter((b) => b.closest(".nsc-group")).length, ticks: rows.filter((b) => b.querySelector("[data-tick-box]")).length }; });
+        check("(s11) the roster's New group row opens the one New group sheet: its people the rows of one grouped box under \"Group name\", a tick box each — no chips, no second sheet, no box a person",
+          !!ng && ng.bad.length === 0 && ng.rules.length === 0 && !!ngGroup && ngGroup.groups === 1 && ngGroup.rows >= 2 && ngGroup.inGroup === ngGroup.rows && ngGroup.ticks === ngGroup.rows && /New group/.test(ngText) && !/Saturday clinic|Name it and pick|picked/.test(ngText) && (await page.locator('[data-sheet] input[placeholder="Group name"]').count()) === 1,
+          `${said(ng)} · ${JSON.stringify(ngGroup)} · ${told(grp).slice(0, 200)} · ${ngText.slice(0, 80)}`);
         await closeSheet(page);
         /* ONE SHEET TITLE: every sheet's h2 is TYPE.title (19px) — nine were 24 or 25 */
         const h2Size = () => page.evaluate(() => { const h = document.querySelector("[data-sheet] h2"); return h ? getComputedStyle(h).fontSize : null; });

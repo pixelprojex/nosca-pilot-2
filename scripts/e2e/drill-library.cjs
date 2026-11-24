@@ -13,6 +13,12 @@
    already there said rather than Saved, the Set-drills sheet saying a
    refused write, a drill binned on another phone staying gone, and the
    log taking a typed name it already has as that drill.
+   The coach's tips (24 November): Settings › Tips beside Drills, the
+   search for "tip" finding it, the starter four while nothing is stored,
+   a line written joining them, a line already there said, a swipe taking
+   a starter line off for real, the Tip sheet offering the library as it
+   stands, Setup opened again ticking the library and the tips and writing
+   only the tips changed, a refused write pretending nothing.
    Usage: node drill-library.cjs <distDir> <port> <outDir> */
 const path = require("path"), fs = require("fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -386,6 +392,110 @@ const { check, results, summary } = M.checker("drill-library");
         const count = ((await page.locator('[data-tour="wiz-drills"]').first().innerText()) || "").replace(/\D+/g, " ").trim();
         check("(c15) on the log, a drill typed under a name already ticked is that drill — one row, ticked, the tile counting 1, nothing written",
               !!gate && rows.length === 1 && rows[0].on && count === "1" && stored(dbJ) === null, JSON.stringify({ gate, rows, count, stored: stored(dbJ) && stored(dbJ).length }));
+        await ctx.close();
+      }
+    }
+    /* ---------- THE COACH'S TIPS: a library beside the drills (24 November) ----------
+       A coach's tip lines could be changed only on Setup's third screen, and Settings'
+       search for "tip" found Setup alone. Settings › Tips is their library now, read as
+       the drills are: the stored list, or the sport's four starter lines while nothing is
+       stored; every change written whole; Saved and Removed said only once it holds; a
+       line already there said. The Tip sheet and Setup's Tips read the same list, and
+       Setup opened again opens on it, ticked, writing only what was changed. */
+    {
+      const STARTER = ["Tempo over speed", "Commit to the shape", "Same routine every shot", "Take one more club"];
+      const tipsOf = (d) => (((d.prefs[IDS.coach] || {}).custom_tips) || {}).golf || null;
+      const rowsT = (page) => page.evaluate(() => [...document.querySelectorAll("[data-tip-row]")].map((r) => r.getAttribute("data-tip-row")));
+      const openTips = async (page) => { if (!(await page.locator('[data-tour="settings-tips"]').count())) await tap(page, '[aria-label="Your profile"]', 900); await tap(page, '[data-tour="settings-tips"]', 900); };
+      const swipeOff = async (page, tip) => {
+        const row = page.locator(`[data-tip-row="${tip}"]`).first(); const b = await row.boundingBox(); if (!b) return false;
+        await page.mouse.move(b.x + b.width - 20, b.y + b.height / 2); await page.mouse.down();
+        for (let i = 1; i <= 10; i++) await page.mouse.move(b.x + b.width - 20 - (b.width * 0.8 * i) / 10, b.y + b.height / 2);
+        await page.mouse.up(); await page.waitForTimeout(700); return true;
+      };
+      const toast = async (page) => M.norm(await page.locator("[data-toast]").first().innerText().catch(() => ""));
+      const dbT = freshDb();
+      {
+        const { ctx, page, shot } = await boot(dbT, "coach");
+        await tap(page, '[aria-label="Your profile"]', 900);
+        const order = await page.evaluate(() => [...document.querySelectorAll('[data-tour="settings-library"], [data-tour="settings-tips"]')].map((x) => x.getAttribute("data-tour")));
+        const near = await page.evaluate(() => { const a = document.querySelector('[data-tour="settings-library"]'), b = document.querySelector('[data-tour="settings-tips"]'); return !!(a && b && a.parentElement === b.parentElement && a.nextElementSibling === b); });
+        check("(k1) Settings carries Tips, the row straight after Drills in the coach's group", JSON.stringify(order) === JSON.stringify(["settings-library", "settings-tips"]) && near, JSON.stringify({ order, near }));
+        await page.locator('input[placeholder="Search settings"]').first().fill("tip"); await page.waitForTimeout(400);
+        const found = await page.evaluate(() => [...document.querySelectorAll('[data-scroll="screen"] [data-row-label]')].map((x) => x.textContent.trim()));
+        check("(k1) …and the search for \"tip\" finds Tips — it found Setup alone", found.includes("Tips") && found.includes("Setup"), JSON.stringify(found));
+        await page.locator('input[placeholder="Search settings"]').first().fill(""); await page.waitForTimeout(300);
+        await tap(page, '[data-tour="settings-tips"]', 900);
+        const r0 = await rowsT(page), t0 = M.norm(await M.rootText(page));
+        await shot("20-coach-tips");
+        check("(k2) Settings › Tips opens a coach with nothing stored on golf's four starter lines, \"4 tips\", and writes nothing",
+              JSON.stringify(r0) === JSON.stringify(STARTER) && /\b4 tips\b/.test(t0) && tipsOf(dbT) === null, JSON.stringify({ r0, stored: tipsOf(dbT) }));
+        await tap(page, '[data-tour="tips-new"]', 500);
+        await page.locator('input[placeholder="Tip"]').first().fill("Keep the head still"); await page.waitForTimeout(200);
+        await page.locator('[data-tour="tips-save"]').first().click(); await page.waitForTimeout(450);
+        const said1 = await toast(page); await page.waitForTimeout(1200);
+        const r1 = await rowsT(page), s1 = tipsOf(dbT) || [];
+        check("(k3) the first line written joins the four, first — Saved said, the coach's preferences holding all five",
+              /Saved/.test(said1) && JSON.stringify(r1) === JSON.stringify(["Keep the head still", ...STARTER]) && JSON.stringify(s1) === JSON.stringify(["Keep the head still", ...STARTER]), JSON.stringify({ said1, r1, s1 }));
+        await tap(page, '[data-tour="tips-new"]', 500);
+        await page.locator('input[placeholder="Tip"]').first().fill("tempo over speed"); await page.waitForTimeout(200);
+        await page.locator('[data-tour="tips-save"]').first().click(); await page.waitForTimeout(450);
+        const said2 = await toast(page);
+        check("(k4) a line already there is said — \"Tempo over speed is already in your tips\" — never Saved, nothing written", /Tempo over speed is already in your tips/.test(said2) && (tipsOf(dbT) || []).length === 5, JSON.stringify({ said2, n: (tipsOf(dbT) || []).length }));
+        await tap(page, '[data-tour="tips-new"]', 500);   // put the field away
+        await page.waitForTimeout(1500);
+        const swiped = await swipeOff(page, "Take one more club");
+        const said3 = await toast(page); await page.waitForTimeout(1200);
+        const r3 = await rowsT(page), s3 = tipsOf(dbT) || [];
+        check("(k5) a swipe takes a starter line off for real: Removed, four left, Take one more club gone from the screen and the preferences",
+              swiped && /Removed/.test(said3) && r3.length === 4 && !r3.includes("Take one more club") && s3.length === 4 && !s3.includes("Take one more club"), JSON.stringify({ said3, r3, s3 }));
+        /* the Tip sheet offers what the library holds */
+        await tap(page, '[aria-label="Back"]', 700); await tap(page, '[aria-label="Back"]', 700);
+        await tap(page, '[aria-label="Today"]', 800);
+        await tap(page, '[data-tour="quick"]', 900); await tap(page, '[data-tour="quick-tip"]', 900);
+        await page.locator("[data-sheet] button", { hasText: "Cian Murphy" }).first().click(); await page.waitForTimeout(900);
+        const offered = await page.evaluate(() => { const d = document.querySelector("[data-sheet] .nsc-day"); return d ? [...d.querySelectorAll("button")].map((b) => b.textContent.trim()) : []; });
+        await shot("21-tip-sheet");
+        check("(k6) the Tip sheet offers the library as it stands: the coach's own line first, the line taken off gone",
+              JSON.stringify(offered) === JSON.stringify(["Keep the head still", "Tempo over speed", "Commit to the shape", "Same routine every shot"]), JSON.stringify(offered));
+        await page.locator("[data-sheet-scrim]").first().click({ position: { x: 20, y: 20 }, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(600);
+        /* Setup opened again opens its Drills and its Tips on what is stored, ticked */
+        await tap(page, '[aria-label="Your profile"]', 900);
+        await page.locator('[data-tour="settings-setup"]').first().click(); await page.waitForTimeout(900);
+        const S = '[data-tour="setup"]';
+        await page.locator(`${S} button`, { hasText: /^Continue$/ }).first().click(); await page.waitForTimeout(600);
+        const dr = await page.evaluate((S) => [...document.querySelectorAll(`${S} button[aria-pressed]`)].map((b) => [b.textContent.trim(), b.getAttribute("aria-pressed") === "true"]), S);
+        check("(k7) Setup opened again opens its Drills on the library, every one ticked (the starter twelve while nothing is stored)",
+              dr.length === 12 && dr.every((x) => x[1]), JSON.stringify(dr.slice(0, 4)));
+        await page.locator(`${S} button`, { hasText: /^Continue$/ }).first().click(); await page.waitForTimeout(600);
+        const tp = await page.evaluate(() => [...document.querySelectorAll('[data-tour="setup-tips"] button[aria-pressed]')].map((b) => [b.textContent.trim(), b.getAttribute("aria-pressed") === "true"]));
+        await shot("22-setup-tips-reopened");
+        check("(k7) …and its Tips on the coach's four, ticked, then the starter line taken off, unticked — each once",
+              JSON.stringify(tp) === JSON.stringify([["Keep the head still", true], ["Tempo over speed", true], ["Commit to the shape", true], ["Same routine every shot", true], ["Take one more club", false]]), JSON.stringify(tp));
+        await page.locator('[data-tour="setup-tips"] button[aria-pressed]', { hasText: /^Commit to the shape$/ }).first().click(); await page.waitForTimeout(250);
+        const drillsBefore = JSON.stringify(((dbT.prefs[IDS.coach] || {}).custom_drills) || {}), hoursBefore = JSON.stringify(((dbT.prefs[IDS.coach] || {}).availability) || {});
+        await page.locator(`${S} button`, { hasText: /^Finish$/ }).first().click(); await page.waitForTimeout(500);
+        const said4 = await toast(page); await page.waitForTimeout(1200);
+        const s4 = tipsOf(dbT) || [];
+        check("(k8) a tip unticked there and Finish writes the tips without it — and nothing else: the drills and the hours as they were, Tips saved said",
+              JSON.stringify(s4) === JSON.stringify(["Keep the head still", "Tempo over speed", "Same routine every shot"]) && JSON.stringify(((dbT.prefs[IDS.coach] || {}).custom_drills) || {}) === drillsBefore
+              && JSON.stringify(((dbT.prefs[IDS.coach] || {}).availability) || {}) === hoursBefore && /Tips saved/.test(said4), JSON.stringify({ s4, said4 }));
+        await ctx.close();
+      }
+      /* a refused write pretends nothing */
+      {
+        const dbU = freshDb(); dbU.missingColumns = { preferences: ["custom_tips"] };
+        const { ctx, page, text } = await boot(dbU, "coach");
+        await openTips(page);
+        await tap(page, '[data-tour="tips-new"]', 500);
+        await page.locator('input[placeholder="Tip"]').first().fill("Keep the head still"); await page.waitForTimeout(200);
+        await page.locator('[data-tour="tips-save"]').first().click(); await page.waitForTimeout(450);
+        const t1 = M.norm(await text());
+        await page.waitForTimeout(1500);
+        const r1 = await rowsT(page);
+        const kept = await page.locator('input[placeholder="Tip"]').first().inputValue().catch(() => "");
+        check("(k9) a refused write is said and pretends nothing: no Saved, the four as they were, the line still in the field",
+              !/Saved/.test(t1) && /does not exist/.test(t1) && JSON.stringify(r1) === JSON.stringify(STARTER) && kept === "Keep the head still", JSON.stringify({ toast: t1.match(/Saved|column[^.]*exist/), r1, kept }));
         await ctx.close();
       }
     }

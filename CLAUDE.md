@@ -199,7 +199,8 @@ seeded data and no account.
     `Button`'s `dangerQuiet` (Just decline, the step before a password,
     EditDay's Call off, the arrangement's End, Delete permanently), the
     manager's End, a player's Cancel beside Reschedule, the coach's
-    block's Cancel, the download sheet's Cancel and Remove, Saved's
+    block's Cancel, a request's Decline beside Accept in the Calendar
+    view (`cal-decline`), the download sheet's Cancel and Remove, Saved's
     Remove all — is the brick's pale ringed in its ledge on a ledge a step
     toward the brick, the word in the brick (6:1). It was the sport's
     pale with a red word, a mint key saying a red thing. A function key
@@ -1101,12 +1102,37 @@ seeded data and no account.
   — so the line does not move and nothing of the row above is taken
   (`hit-areas.cjs` (h), (i)).
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
-  screens, hours · drills · tips, grids and rows, a body that scrolls
-  — remembered as `preferences.setup_done`, and reachable again from
-  Settings. Nobody is asked which stats they track, in either mode:
-  nothing stores the answer, and a screen that asks and forgets is
-  worse than one that never asked. It does not use `SignupShell`, whose
-  body deliberately does not scroll.
+  screens, hours · drills · tips, grids and rows, a body that scrolls —
+  remembered as `preferences.setup_done`, and reachable again from
+  Settings (`settings-setup`). Nobody is asked which stats they track,
+  in either mode: nothing stores the answer, and a screen that asks and
+  forgets is worse than one that never asked. It does not use
+  `SignupShell`, whose body deliberately does not scroll. **Opened again
+  from Settings it opens on what is stored and changes only what was
+  changed (24 November).** It opened blank whatever the coach had — no
+  day lit over a week of Monday to Saturday, none of their drills or
+  tips ticked — and Finish rebuilt every day from the tiles, one set of
+  times for the whole week, so a coach's per-day hours were flattened by
+  a setup they only meant to look at. Now (`saved`, `setupAgain`): Hours
+  lights the days that hold a time, every time any of them holds (the
+  Times grid is the pool and those times, so none is ever off the grid)
+  and the stored length; Drills ticks the library as it stands
+  (`myLibrary`, the starter twelve while nothing is stored); Tips ticks
+  the coach's tips (`myTipPrompts`), the starter lines not among them
+  after, unticked. Finish hands back what it opened on beside what is
+  chosen, and `finishSetup` writes the difference alone:
+  `weekAfterSetup` — a day turned off is emptied, a day turned on takes
+  the times ticked, a day that stays on keeps its own times less any
+  unticked plus any newly ticked (Saturday's 9 and 10 take a 12 ticked,
+  and keep no 11 they never had); the length only if it changed; a time
+  ticked that was not in the pool joins it; the dated times (`blocked`,
+  `extra`) and the days away never touched; the drills and the tips each
+  written whole only if their set changed, never emptied. An untouched
+  Finish writes nothing, and its line says only "You're set up";
+  otherwise the line says what was written ("Hours saved", "Tips saved",
+  "Hours, drills and tips saved"). The first offer after sign-up opens
+  on nothing, as it always did. `edit-day.cjs` (s1)–(s6),
+  `drill-library.cjs` (k7), (k8).
 - **One drill library, and every change to it is real.** A live
   coach's drills are `custom_drills` in their preferences — what they
   picked in setup plus what they wrote — held in `library[sport]`. The
@@ -1132,6 +1158,29 @@ seeded data and no account.
   starter drill said Removed and nothing changed, and the first drill a
   coach wrote shrank the library to that one. The harness, with no
   account, seeds the starter set in. `drill-library.cjs` (c1)–(c15).
+- **A coach's tips are a library beside the drills (24 November).**
+  The lines a coach says over and over — the Tip sheet's prompts, the
+  log's — could be changed only on Setup's third screen, and Settings'
+  search for "tip" found Setup alone. **Tips** (`settings-tips`, the row
+  straight after Drills, a live coach's; found by "tip", "prompts",
+  "say", "advice") opens `TipLibrary` (route `tipLibrary`), read as the
+  drills are: `custom_tips[sport]` on the coach's preferences, or the
+  sport's four starter lines (`TIP_PROMPTS`) while nothing is stored
+  (`myTipPrompts`) — the one list the Tip sheet (its first eight), the
+  log (its first four), Setup's Tips and the library all read. Every
+  change writes the whole list (`writeTips`), so the first line written
+  joins the four and a starter line taken off is gone; **New** and
+  **Save** as the drill library's (`tips-new`, `tips-save`, the field's
+  placeholder the noun, Tip); a swipe takes a line off, as Away's spans
+  and Saved's rows go, and the last line keeps no swipe — an empty list
+  is the starter set again; Saved and Removed only once the preferences
+  hold it; a refused write said, the line kept in the field; a line
+  already there said ("Tempo over speed is already in your tips"). It
+  was the stored tips with the starter four always after them, so a
+  starter line picked in setup stood twice on the Tip sheet under one
+  key, and no line could ever be taken off; a coach who picked lines in
+  setup reads those as their list now, as the drills they picked are
+  theirs. No SQL: the column was there. `drill-library.cjs` (k1)–(k9).
 - **A coach's sport never changes.** `profiles.sport` is what their
   invite code was handed out under. Another sport goes in
   `preferences.extra_sports`, and `activeSport` is which of them they
@@ -1572,10 +1621,10 @@ seeded data and no account.
   booking's own length; and a register for that lesson not yet taken
   opens with them marked Absent (`marksFor` in `Attendance`, only those
   on the roll it shows; a register already taken comes back as it was,
-  and the roll is still the roster — no `members` on a booking row,
-  `outIds` and `outNames`, and only somebody the reader can name: a
-  member who said Not going and then left the coach keeps a row the
-  coach can read and is counted nowhere).
+  and the roll is the group's members, the next bullet — no `members`
+  on a booking row, `outIds` and `outNames`, and only somebody the
+  reader can name: a member who said Not going and then left the coach
+  keeps a row the coach can read and is counted nowhere).
   A member out is not reminded the evening before, and the session
   leaves their Settings › Calendar and the family's Coming up. No
   reason, no Maybe, no deadline, no nagging: the field offers them
@@ -1585,6 +1634,29 @@ seeded data and no account.
   and every group lesson reads as before. Spond's Attending · Decline,
   Heja's Going · Not going by a parent for a child, CourtReserve's
   withdraw. `scripts/e2e/rsvp.cjs`; behaviour.sql 8h.
+- **A group's register is its members (24 November).** The roll of a
+  group booking was the whole roster — "7 to mark" for a clinic of
+  three, thirty rows for a clinic of six — because Today handed the
+  register every roster name as a group's `members`, and a group opened
+  from the Diary's peek took the first six of the roster. The register
+  works the roll out itself now (`membersOf` in `Attendance`, from the
+  `groups` it is handed): the saved group whose name the booking
+  carries, matched as `group_members()` matches it (trimmed, any case,
+  the first of the name), and its members still on the roster —
+  `membersOnRoster()`, the people a group message reaches — wherever the
+  register is opened, Today, the card, the peek. Anybody else who turns
+  up is **Someone not in the diary** under the roll
+  (`register-roll-walkin`, the white key, as the pick view's): the rest
+  of the roster as person rows with a plus, a tap putting them on the
+  roll marked present; a register taken comes back with its walk-ins on
+  it (anyone on the roster the marks name). A group whose members cannot
+  be known — no saved group of that name, or none of its members still
+  on the roster — keeps the roster: a roll is never empty (an empty
+  `members` list once emptied every register in the diary, above). A
+  booking row still carries no `members`; `realToday` no longer writes
+  one. The head-count slice is the harness's seeded groups only.
+  `rsvp.cjs` (f6)–(f9); `boxes.cjs` (b), (r1) — its clinic names Eoin
+  among its three, so the register still reads his whole name.
 - **Call off is a reason, the days, the lessons, the password.**
   `CallOff` (the `weather` sheet, opened from the plus, the peek and the
   diary) has nothing to do with weather in its name or its glyph — a
@@ -1835,6 +1907,39 @@ seeded data and no account.
   meeting"), Acuity's intake answers shown on the appointment, Square's
   note at booking; Wix's and Calendly's message on a decline.
   `scripts/e2e/request-note.cjs`; behaviour.sql 10f.
+- **A request holds its hour in the coach's Diary (24 November).** The
+  coach's Diary drew confirmed lessons alone (`mySeedBooked`), so a
+  request was on Today and nowhere in the Diary: its hour read free —
+  "6 free · Nothing booked", a plus on it — and the coach could book
+  somebody else into the very hour being asked for. The coach's Diary
+  reads `coachDiaryBooked` now: the confirmed lessons and every request
+  made to them (a request a coach made as somebody's player is not
+  theirs to answer and stays out), each in its hour. On the List it is a
+  row of the day's box (`agenda-ask`): the time in the ink, the whole
+  name, "Requested" and the player's note on the grey line (two lines),
+  and **Accept · Decline** as Today's request row carries them — text
+  actions, Accept in the sport's colour, Decline in `t.faint` — beside
+  the name while the name keeps its 120, a line of their own under it,
+  on the right, where it cannot. On the Calendar view it is a box among
+  the day's lessons in time order (`AskBlock`, `cal-ask`): the face and
+  the whole name, the span and Requested on the grey line, the note in
+  the player's words, then **Decline · Accept** as the box's foot
+  (`cal-decline`, `cal-accept`), the quiet key, Accept's word in the
+  sport's colour — a day can hold several, and a screen holds one deep
+  key. Both are Today's own handlers: Accept is `acceptAsk`, Decline
+  opens the decline sheet (its Why, its Offer another time, Just
+  decline). The hour is held: no plus on it, the free count leaves it
+  out ("1 booked · 3 free", never the request as booked), the Free times
+  skip it, the month grid and the ticker mark the day, and the per-day
+  sheet carries it as a booked time is carried — a tile with who on it,
+  and Requested under (`data-requested`), no minus in Edit: the request
+  is answered before its hour is taken off. On the Calendar view a day
+  with only a request reads no "Nothing booked", and its Call off row
+  stays the lessons' (the call-off itself still takes a request with the
+  day's lessons); a day with no hours but a request is a day.
+  `offer-times.cjs` (q1)–(q9), `diary.cjs` (a4), `edit-day.cjs` (d0b) —
+  whose emptied day (d1) is emptied once the request on it has been
+  declined from the Diary.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.
@@ -3256,30 +3361,43 @@ seeded data and no account.
   is `CreateGroup` (the `newGroup` sheet) from every control that opens
   it — the roster's tile, the roster's Groups-half foot row
   (`roster-newgroup`, which reads New group, not "Create a group") and
-  the plus: "Group name", the people as `PersonPicker`'s boxed rows
-  picked by id, the week as a day row with the chosen day in ink (it was
-  the success green; the accent is spent on Create group), every one of
-  `ALL_TIMES` (it offered the first six, ending at half three, and a
-  junior clinic is after school), the weeks, Create group. The foot row
-  opened a second sheet (`GroupCreate`) of round chips, "e.g. Saturday
-  clinic", four times to a row and "Create · 8 Fridays from now" — one
-  thing drawn two ways under two names, carried as found since
-  9 November; it is gone. `JoinRequests` is one boxed list of
-  `PersonRow`s (`request-card`): the face, the whole name, one grey line
-  of the facts — the sport, Under 18, the day they asked in the app's
-  form (`Thu 12 Nov`, off `createdAt`; the hook's `when` read "8 Nov")
-  — and Accept · Decline as the row's text actions, Accept in the
-  sport's colour (a text action that acts, since 21 November; it was
-  ink), Decline in `t.faint`, as Today's booking requests and the bell's;
-  beside the name where it fits, a line of their own under it at 320.
-  With nothing waiting the screen is the line "Nothing waiting" and no
-  subtitle. The empty state was a card with a tick in a disc and a
-  sentence, and each request a card with a 46px face, a filled STEADY
-  Accept and an outlined Decline — the one person in the app drawn as a
-  card. Instagram's follow requests are rows with Confirm · Delete
-  beside each name; Material 3's list item carries its actions in the
-  trailing slot. `scripts/e2e/new-group.cjs`,
-  `scripts/e2e/join-requests.cjs`; `boxes.cjs` (s1), (s11).
+  the plus: "Group name", the people as the rows of ONE grouped box
+  (`PersonPicker`: Settings' own `.nsc-group`, the card's line round it
+  and the group's rule between the rows), each ending on a square tick
+  box (`TickBox`, the one `Row` draws: the strong grey ring at rest, the
+  sport's colour with a white tick once ticked), picked by id and
+  counted over the box as `countOf` counts ("1 player"; it read
+  "1 players") — several are chosen, so never a box a person with a
+  round radio ring, which it was until 24 November — the week as a day
+  row with the chosen day in ink (it was the success green; the accent
+  is spent on Create group), the coach's own start times — Hours' pool
+  and every time a day holds, in order, `evenCols` across, nine to eight
+  on the hour (`DEFAULT_SLOTS`) for a coach with none set, two o'clock
+  picked where it is one of them and else the first (until 24 November a
+  fixed eight, `ALL_TIMES`, so a coach whose hours are 9:00, 10:30,
+  12:00, 2:00, 4:00 and 5:00 could pick two of their six; before that
+  the first six, ending at half three, and a junior clinic is after
+  school) — the weeks, Create group. The foot row opened a second sheet
+  (`GroupCreate`) of round chips, "e.g. Saturday clinic", four times to
+  a row and "Create · 8 Fridays from now" — one thing drawn two ways
+  under two names, carried as found since 9 November; it is gone.
+  `JoinRequests` is one boxed list of `PersonRow`s (`request-card`): the
+  face, the whole name, one grey line of the facts — the sport, Under
+  18, the day they asked in the app's form (`Thu 12 Nov`, off
+  `createdAt`; the hook's `when` read "8 Nov") — and Accept · Decline as
+  the row's text actions, Accept in the sport's colour (a text action
+  that acts, since 21 November; it was ink), Decline in `t.faint`, as
+  Today's booking requests and the bell's; beside the name where it
+  fits, a line of their own under it at 320. With nothing waiting the
+  screen is the line "Nothing waiting" and no subtitle. The empty state
+  was a card with a tick in a disc and a sentence, and each request a
+  card with a 46px face, a filled STEADY Accept and an outlined Decline
+  — the one person in the app drawn as a card. Instagram's follow
+  requests are rows with Confirm · Delete beside each name; Material 3's
+  list item carries its actions in the trailing slot.
+  `scripts/e2e/new-group.cjs`, `scripts/e2e/join-requests.cjs`;
+  `boxes.cjs` (s1), (s11); `new-group.cjs` (b3), (b4), (f0), (g0), (g2),
+  (i2), (j), (k); `lists.cjs` (t); `ease.cjs` (i).
 - **One sheet title, and empty states are lines.** Every sheet's `h2`
   is `TYPE.title` (19px, the ladder's title): New group, Invite
   players, New message, Next time, the recurring Set up sheet, Your
@@ -3371,7 +3489,33 @@ seeded data and no account.
   it: beside the name while the whole name fits on its line, under it
   where it does not — a short name keeps it beside at 360 and 375, the
   long name drops it under at every width (the art direction bullet;
-  `narrow.cjs` (c1)–(c8)).
+  `narrow.cjs` (c1)–(c8)). **Since 24 November the same holds at 390**
+  (the class study found six cuts there and three more at 320). A lesson
+  row's areas and its grey line are `Facts`: each part a box of its own
+  that moves whole to the next line, its dot riding at its head in the
+  strip the clip takes, and a name or an area wider than the line wraps
+  inside itself — Saved and the archive read "Cian Murphy · Sun 22 …"
+  and "Short game · Pu…". One break inside a word is left, held for the
+  founder: a starred row at 320 gives its words 95 beside the star's
+  column, under the 106 "Showjumping" needs (the star on the poster's
+  corner would give it back). The camera's filing pill is the same, grown to
+  its words where it was held to 150 ("Saoirse · 10:30…"). A door's
+  value is `Row`'s: beside the label while both fit, whole on the line
+  under it where they do not (the player file's Recurring lessons read
+  "Tue 10:30…"); a note's first line is the one preview still cut beside
+  its label. `Row`'s caption wraps, two lines before an ellipsis. A round
+  key's word may stand in half the grid's gutter (`TILE_GAP`), so
+  "Message" is whole four across at 320. Mark it up's three inks take a
+  line of their own under the camera wherever the row cannot hold them
+  too (it needs 400, more than any phone gives it), and every tool and
+  ink answers 44 to a finger — at 320 the red and the white stood off
+  the screen. Settings › Notifications' switch is the **Push** row, its
+  sentence ("Tell me even when Nosca is closed") the caption under it,
+  as every row of that screen carries one; the header's search says
+  **Search**. `narrow.cjs` (f), (g), `sprint-3.cjs` (n), `downloads.cjs`
+  (n2), `capture.cjs` (j), `review.cjs` (m), `ease.cjs` (l1); `ease.cjs`
+  (l2) and (l3) hold a coach's Lessons as a player's Back and Data &
+  permissions' words.
 - **Rows, not cards, and one accent action a screen.** Roster, Drifting,
   Chat, Coming up, the family's people, the bell: rows with an avatar,
   a name and one grey line, each in its own box on the sport's edge

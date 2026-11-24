@@ -223,6 +223,23 @@ const litOf = (page) => page.evaluate(() => { const all = [...document.querySele
       /* the requests are on Today, not behind a fold: nothing to open */
       const t1 = await leak("coach requests"); await shot("15-coach-requests");
       check("(a) coach Today lists the player's real request", t1.includes("Cian Murphy") && t1.includes("Accept"), t1.slice(0, 200));
+      /* (a4) 24 November: the request holds its hour in the coach's Diary — a row in its
+         hour, Requested, with Today's Accept · Decline, and no plus on that hour. It was
+         on Today alone: the hour read free in the Diary and could be booked again */
+      {
+        const rq = db.bookings.find((b) => b.status === "requested");
+        const at = rq ? rq.start_time : "";
+        await tap(page, '[aria-label="Diary"]');
+        const lb = page.locator('[data-tour="cal-view"] [aria-label="List"]'); if (await lb.count()) await tap(page, '[data-tour="cal-view"] [aria-label="List"]', 700);
+        const ask = page.locator('[data-tour="agenda-ask"]');
+        const n = await ask.count();
+        const tx = n ? M.norm(await ask.first().innerText()) : "";
+        const offered = n ? await ask.first().locator('xpath=ancestor::div[contains(@class,"nsc-day")][1]').locator("button", { hasText: new RegExp(`^${at}$`) }).count() : -1;
+        await shot("15b-coach-diary-request");
+        check("(a4) the coach's Diary carries the request in its hour — the time, Cian Murphy, Requested, Accept · Decline — and that hour carries no plus",
+              n === 1 && !!at && tx === `${at} Cian Murphy Requested Accept Decline` && offered === 0, `${n} · ${tx} · offered ${offered}`);
+        await tap(page, '[aria-label="Today"]');
+      }
       const reqId = db.bookings.find((b) => b.status === "requested").id;
       await click(page, "Accept", 1500);
       const a1 = last(db.patches, "bookings");
@@ -273,7 +290,8 @@ const litOf = (page) => page.evaluate(() => { const all = [...document.querySele
       await back(page);
       await tap(page, '[aria-label="Search"]');
       /* the drill this coach actually wrote a moment ago */
-      await page.fill('input[placeholder="Lessons, drills, tips, people"]', "ladder"); await page.waitForTimeout(600);
+      /* the header's search says Search since 24 November ("Lessons, drills, tips, peopl" was cut at 390) */
+      await page.fill('input[placeholder="Search"]', "ladder"); await page.waitForTimeout(600);
       await page.locator("button", { hasText: "Ladder drill" }).first().click(); await page.waitForTimeout(1000);
       let t5 = await leak("coach practice"); await shot("20-coach-practice");
       check("(c) coach Practice lists the real roster with counts from real drills", t5.includes("Cian Murphy") && /1 of 1 done|0 of 1 done/.test(t5) && !t5.includes("Marcus Tran"), t5.slice(0, 240));
