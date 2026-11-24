@@ -2230,10 +2230,12 @@ const LEGAL = {
     ["Camera", "Needed to record lesson video in the app. Only used while the camera screen is open."],
     ["Microphone", "Needed for voice notes. Recording only starts when you tap the record button."],
     ["Photos", "Needed to pick existing clips from your library. We only read the files you choose."],
-    ["Notifications", "Used for lessons, drills, tips, messages, bookings and payments. Every category can be turned off."],
-    ["Messaging", "See the separate messaging privacy note for who can read what."],
+    /* TRUE, NOT PROMISED (24 November, the class study): there are no payments, no messaging note to open, and no
+       switch per kind of notice — the three lines said all three. A parent reads this page; it says what the app does */
+    ["Notifications", "Used for lessons, bookings, requests, drills, tips and messages. Choose as they happen, once a day or only what is urgent, or turn them off."],
+    ["Messaging", "A player's messages are read by the player and their coach. A junior's are read by the adults in their family too, who can write there for them. A message to a group goes into each member's own thread, so no family reads another's."],
     ["Sound", "A handful of short confirmation tones. Off switches it everywhere."],
-    ["Health notes", "Your coach must ask before recording injury or fitness details. You can withdraw that at any time, and the notes go with it."],
+    ["Notes on a player", "A coach's own notes on a player are the coach's alone: the player and their family never read them. A lesson's write-up is shared with the player, so it keeps injury and medical details to what the coaching needs."],
     ["Your data", "Request an export or deletion of everything tied to your account at any time."],
   ]},
   licences: { title: "Licences", updated: "Open-source software used in this app", body: [
@@ -6834,9 +6836,20 @@ function CoachProfile({ coachName, sport, reviewSummary, myReview, onSubmitRevie
    the one action, because there is genuinely nothing else to do here
    yet — an empty lesson list and a disabled diary would just be
    furniture around a single button. */
-function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedBy, onOpenFamily, familyName, onYou, onAlerts, alerts = 0 }) {
+function NoCoach({ onJoin, juvenile, initialCode, pending, onWithdraw, declinedBy, onOpenFamily, familyName, onYou, onAlerts, alerts = 0, onBack }) {
   const t = useT();
-  const top = (onYou || onAlerts) ? (
+  /* `onBack`: opened from Settings (a coach's Lessons as a player) it is a
+     pushed screen, and carries the pushed screen's Back where Screen draws
+     it — it opened with six code boxes and nothing else, and a coach who
+     tapped it to look could leave only by closing the app (24 November) */
+  const top = onBack ? (
+    <div className="shrink-0 flex items-center px-1.5" style={{ height: 46, marginTop: TOP_AIR }}>
+      <button data-tour="nocoach-back" onClick={() => { haptic(); onBack(); }} aria-label={tr("Back")} className="relative p-2 active:opacity-40">
+        <span aria-hidden="true" className="absolute" style={{ inset: -1.5 }} />
+        <ChevronLeft size={25} color={t.ink} strokeWidth={2.1} />
+      </button>
+    </div>
+  ) : (onYou || onAlerts) ? (
     <div className="shrink-0 flex items-center justify-end gap-3 px-5" style={{ height: 52 }}>
       {onAlerts && <IconBtn C={Bell} label={tr("Alerts")} count={alerts} onOpen={onAlerts} />}
       {onYou && <button onClick={() => { haptic(6); onYou(); }} className="active:opacity-50" aria-label={tr("You")}><User size={21} color={t.ink} strokeWidth={1.6} /></button>}
@@ -22165,9 +22178,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
        same screen a player uses, from the same code — their own lessons
        are then theirs, and are kept out of everything that counts what
        they have taught. */
-    body = <NoCoach juvenile={false} pending={data.myRequest} declinedBy={data.declinedBy}
-                    onWithdraw={data.cancelRequest ? () => data.cancelRequest() : null}
-                    onJoin={async (code) => { const r = await data.joinCoach(code); if (!(r && r.error)) { hapticSuccess(); chime(); done(tr("Request sent"), tr("They accept from their app")); pop(); } return r; }} />;
+    body = (
+      <SwipeBack onBack={pop}>
+        <NoCoach juvenile={false} pending={data.myRequest} declinedBy={data.declinedBy} onBack={pop}
+                 onWithdraw={data.cancelRequest ? () => data.cancelRequest() : null}
+                 onJoin={async (code) => { const r = await data.joinCoach(code); if (!(r && r.error)) { hapticSuccess(); chime(); done(tr("Request sent"), tr("They accept from their app")); pop(); } return r; }} />
+      </SwipeBack>
+    );
     bare = true;
   } else if (screen === "myLessons" && data) {
     body = <LessonLogs role="player" lessons={mineOnly(data.lessons)} pop={pop} sport={sport}
