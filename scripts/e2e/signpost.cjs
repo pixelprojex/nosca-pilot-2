@@ -271,6 +271,14 @@ const { check, summary } = M.checker("signpost");
       const down = await ps.settingsFromSite("https://first.example", async () => { throw new Error("down"); });
       const gone = await ps.settingsFromSite("https://first.example", async () => new Response("no", { status: 404 }));
       check("(p7) a first site down or missing gives nothing, and never throws", down === null && gone === null);
+      /* the address as it is usually pasted, and what counts as a database at all — the app's own site's functions were
+         given one that would not parse; a build counting that as named would write /ready.png over an app that cannot start */
+      check("(p10) an address is tidied as it is usually pasted: a bare host, a trailing slash, the REST endpoint",
+        ps.cleanUrl("abc.supabase.co") === "https://abc.supabase.co" && ps.cleanUrl(" https://abc.supabase.co/ ") === "https://abc.supabase.co"
+        && ps.cleanUrl("abc.supabase.co/rest/v1/") === "https://abc.supabase.co" && ps.cleanUrl("") === "" && ps.cleanUrl("http://localhost:54321") === "http://localhost:54321");
+      check("(p11) a database is usable only as an http(s) address that parses with a key beside it",
+        ps.usable("https://abc.supabase.co", "k") === true && ps.usable("abc.supabase.co", "k") === false && ps.usable("https://abc.supabase.co", "") === false
+        && ps.usable("https://abc.supabase.co", "  ") === false && ps.usable("ftp://abc.supabase.co", "k") === false && ps.usable("", "k") === false && ps.usable(undefined, undefined) === false);
     }
     {
       /* a build with no database at the app's own address: the person lands on the same page of the first site */
@@ -297,44 +305,36 @@ const { check, summary } = M.checker("signpost");
       check("(j2) a site that says nothing of itself is not the signpost, so a single site still sends", sp.isSignpost({}) === false && sp.isSignpost() === false);
       check("(j3) a name that merely contains the old one is not it", sp.isSignpost({ SITE_NAME: "nosca-pilot-22", URL: "https://my-nosca-pilot-2.netlify.app.example.com" }) === false);
 
-      /* the function itself: exactly one site sends (24 November) — whichever holds the keys, the app's own when both do.
-         The signpost asks the app's own site whether it is armed; rows are counted apart from that question */
+      check("(j4) the app's own site is recognised by its name, its address and the newer handler context — and the signpost is not it",
+        sp.isAppSite({ SITE_NAME: "nosca" }) === true && sp.isAppSite({ URL: "https://nosca.netlify.app" }) === true
+        && sp.isAppSite({}, { site: { name: "nosca", url: "https://nosca.netlify.app" } }) === true
+        && sp.isAppSite({ SITE_NAME: "nosca-pilot-2", URL: "https://nosca-pilot-2.netlify.app" }) === false && sp.isAppSite({}) === false);
+
+      /* the function itself: exactly one site sends (24 November) — the first site, whose keys have always sent, and
+         never the app's own, whose keys were there on the day of the move while its database address would not parse */
       const keep = { ...process.env };
-      const realFetch = global.fetch; let fetched = 0, armedAsked = 0, armed = true;
-      global.fetch = async (u) => {
-        if (String(u).endsWith("/.netlify/functions/armed")) { armedAsked += 1; return new Response(JSON.stringify({ armed }), { status: 200, headers: { "content-type": "application/json" } }); }
-        fetched += 1; return new Response("[]", { status: 200, headers: { "content-type": "application/json" } });
-      };
+      const realFetch = global.fetch; let fetched = 0;
+      global.fetch = async () => { fetched += 1; return new Response("[]", { status: 200, headers: { "content-type": "application/json" } }); };
       try {
         Object.assign(process.env, { SUPABASE_URL: "https://mock.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "k", VITE_VAPID_PUBLIC_KEY: "BPcZ0cGqVZ1W0n4oFqVY2rXl2bq0c2p8iX0b0m3mQ3bq5h8t5x0d6y1o2m3n4b5v6c7x8z9a0s1d2f3g4h5j6k", VAPID_PRIVATE_KEY: "k", VAPID_SUBJECT: "mailto:help@nosca.ie", PUSH_WEBHOOK_SECRET: "s" });
         const digest = (await import(pathToFileURL(path.join(M.ROOT, "netlify/functions/digest.mjs")).href)).default;
-        process.env.SITE_NAME = "nosca-pilot-2"; process.env.URL = "https://nosca-pilot-2.netlify.app";
-        const a = await digest(new Request("https://nosca-pilot-2.netlify.app/.netlify/functions/digest"), {});
-        const aBody = await a.json().catch(() => ({}));
-        check("(k) on the signpost, with the app's own site armed, the digest does nothing: it answers 200 skipped and reads no row", a.status === 200 && /^signpost site/.test(aBody.skipped || "") && fetched === 0 && armedAsked === 1, `${a.status} ${JSON.stringify(aBody)} · fetched ${fetched}`);
-        process.env.SITE_NAME = "nosca"; process.env.URL = "https://nosca.netlify.app";
-        const b = await digest(new Request("https://nosca.netlify.app/.netlify/functions/digest"), {});
-        const bBody = await b.json().catch(() => ({}));
-        check("(k2) on the app's own site it goes on to its work (it is not skipped)", bBody.skipped === undefined, `${b.status} ${JSON.stringify(bBody).slice(0, 160)} · fetched ${fetched}`);
-        /* the app's own site built without the keys: it says so and sends nothing, and the signpost sends in its place */
-        armed = false; fetched = 0;
-        process.env.SITE_NAME = "nosca-pilot-2"; process.env.URL = "https://nosca-pilot-2.netlify.app";
-        const c = await digest(new Request("https://nosca-pilot-2.netlify.app/.netlify/functions/digest"), {});
-        const cBody = await c.json().catch(() => ({}));
-        check("(k3) on the signpost, with the app's own site not armed, the digest goes on to its work, as (k2) does — one summary from the old address beats none", cBody.skipped === undefined && armedAsked === 2, `${c.status} ${JSON.stringify(cBody).slice(0, 160)} · asked ${armedAsked}`);
-        const held = process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.SUPABASE_SERVICE_ROLE_KEY; fetched = 0;
-        process.env.SITE_NAME = "nosca"; process.env.URL = "https://nosca.netlify.app";
-        const d = await digest(new Request("https://nosca.netlify.app/.netlify/functions/digest"), {});
-        const dBody = await d.json().catch(() => ({}));
-        check("(k4) a site without the keys says so, answers 200 and reads nothing — it was a 500 every morning on the app's own site", d.status === 200 && /no keys/.test(dBody.skipped || "") && fetched === 0, `${d.status} ${JSON.stringify(dBody)}`);
-        const armedFn = (await import(pathToFileURL(path.join(M.ROOT, "netlify/functions/armed.mjs")).href)).default;
-        const no = await (await armedFn()).json();
-        process.env.SUPABASE_SERVICE_ROLE_KEY = held;
-        const yes = await (await armedFn()).json();
-        check("(k5) armed answers whether this site holds the keys, as true or false and nothing else", no.armed === false && yes.armed === true && Object.keys(no).length === 1 && Object.keys(yes).length === 1, JSON.stringify({ no, yes }));
-        /* the signpost's question, when the app's own site does not answer: no */
-        global.fetch = async () => { throw new Error("unreachable"); };
-        check("(k6) an app site that does not answer is not armed, so the signpost sends", (await sp.appSiteArmed()) === false);
+        const run = async (site, url) => {
+          fetched = 0;
+          if (site) { process.env.SITE_NAME = site; process.env.URL = url; } else { delete process.env.SITE_NAME; delete process.env.URL; }
+          const r = await digest(new Request(`${url || "https://example.netlify.app"}/.netlify/functions/digest`), {});
+          return { status: r.status, body: await r.json().catch(() => ({})), fetched };
+        };
+        const a = await run("nosca-pilot-2", "https://nosca-pilot-2.netlify.app");
+        check("(k) on the first site the digest goes on to its work — it is not skipped", a.body.skipped === undefined, `${a.status} ${JSON.stringify(a.body).slice(0, 160)}`);
+        const b = await run("nosca", "https://nosca.netlify.app");
+        check("(k2) on the app's own site it does nothing, whatever keys it holds: it answers 200 skipped and reads no row", b.status === 200 && /^the app's own site/.test(b.body.skipped || "") && b.fetched === 0, `${b.status} ${JSON.stringify(b.body)} · fetched ${b.fetched}`);
+        const c = await run(null, null);
+        check("(k3) a single site that says nothing of itself still sends", c.body.skipped === undefined, `${c.status} ${JSON.stringify(c.body).slice(0, 160)}`);
+        delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const d = await run("nosca-pilot-2", "https://nosca-pilot-2.netlify.app");
+        check("(k4) a site without the keys says so, answers 200 and reads nothing — it was a 500", d.status === 200 && /no keys/.test(d.body.skipped || "") && d.fetched === 0, `${d.status} ${JSON.stringify(d.body)}`);
+        check("(k5) nothing asks the app's own site anything any more: no armed endpoint is shipped",
+          !fs.existsSync(path.join(M.ROOT, "netlify/functions/armed.mjs")) && sp.appSiteArmed === undefined);
       } catch (e) {
         check("(k) the digest could be run both ways", false, String(e && e.message || e));
       } finally {

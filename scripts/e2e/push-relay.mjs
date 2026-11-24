@@ -148,6 +148,10 @@ check("every urgent kind is one the database actually writes",
   check("…with its own trailing slash", projectUrl({ SUPABASE_URL: want + "/rest/v1/" }) === want);
   check("surrounding space is ignored", projectUrl({ SUPABASE_URL: "  " + want + "  " }) === want);
   check("nothing at all is an empty string, not a crash", projectUrl({}) === "" && projectUrl() === "");
+  /* 24 November: the app's own site was given an address that would not parse, and every read failed */
+  check("an address without its https:// is taken as https", projectUrl({ SUPABASE_URL: "mock.supabase.co" }) === want);
+  check("…with its REST endpoint too", projectUrl({ SUPABASE_URL: "mock.supabase.co/rest/v1/" }) === want);
+  check("an http:// address is left as it was given", projectUrl({ SUPABASE_URL: "http://localhost:54321" }) === "http://localhost:54321");
 }
 {
   const before = seen.length;

@@ -24,7 +24,10 @@
  * with its database writes — the two never send a person back and forth.
  *
  * A variable set on the site, in the shell or in a .env file wins, and
- * then none of this runs. */
+ * then none of this runs — once it is usable: the address is tidied as
+ * it is usually pasted (cleanUrl), and an address that still will not
+ * parse, or no key beside it, is no database, and the three are read
+ * here in its place. */
 
 export const FIRST_SITE = "https://nosca-pilot-2.netlify.app";
 export const APP_HOST = "nosca.netlify.app";
@@ -76,6 +79,22 @@ export async function settingsFromSite(home = FIRST_SITE, fetcher = globalThis.f
   } catch {
     return null;
   }
+}
+
+/* THE ADDRESS AS IT IS USUALLY PASTED. A trailing slash, the REST endpoint beside it on Supabase's
+   settings page, the host without its https:// (the app's own site's functions were given one that
+   would not parse, 24 November) — each is put right, the way the functions' projectUrl does. */
+export function cleanUrl(value) {
+  const v = String(value || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
+  return v && !/^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? `https://${v.replace(/^\/+/, "")}` : v;
+}
+
+/* a database the app can start on: an http(s) address that parses, and a key. Anything less is no
+   database at all — never a build that writes /ready.png and sends the first site's visitors to an app
+   that throws on its first line */
+export function usable(url, key) {
+  if (!url || !key || !String(key).trim()) return false;
+  try { return /^https?:$/.test(new URL(url).protocol); } catch { return false; }
 }
 
 /* a build with no database: its own address sends a person to the same page of the first site, before anything loads */

@@ -16,9 +16,14 @@ import { timingSafeEqual, createPrivateKey, createPublicKey } from "node:crypto"
    PGRST125 "Invalid path specified in request URL" — a message that
    says nothing about the cause, on a request nobody sees. A trailing
    slash is the same class of mistake. Both are trimmed, so the setting
-   cannot be wrong in the two ways it is usually wrong. */
-export const projectUrl = (env) =>
-  String((env && env.SUPABASE_URL) || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
+   cannot be wrong in the two ways it is usually wrong. So is the
+   address without its https:// (24 November: the app's own site was
+   given one that would not parse, and every read there failed with
+   "Failed to parse URL"): a bare host is taken as https. */
+export const projectUrl = (env) => {
+  const v = String((env && env.SUPABASE_URL) || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
+  return v && !/^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? `https://${v.replace(/^\/+/, "")}` : v;
+};
 
 export const REQUIRED = [
   "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
