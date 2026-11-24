@@ -36,8 +36,8 @@ Site.ready(function (S) {
       S.drawStripes(s.$('.st-name__pins'), { tl: tl, at: 2, duration: 58 });
       S.rise(s.$('.st-name__long'), { tl: tl, at: 46, duration: 14 });
       S.rise(s.$('.st-name__link'), { tl: tl, at: 58, duration: 10 });
-      tl.fromTo(s.$('.st-name__in'), { y: 0, scale: 1 }, { y: function () { return -s.vh() * 0.05; }, scale: 0.97, duration: 26, ease: 'power1.in' }, 74);
-      S.groundShift(s.$('.st-name__next'), { tl: tl, at: 74, duration: 26, shape: 'wedge' });
+      tl.fromTo(s.$('.st-name__in'), { y: 0, scale: 1 }, { y: function () { return -s.vh() * 0.05; }, scale: 0.97, duration: 24, ease: 'power1.in' }, 70);
+      S.groundShift(s.$('.st-name__next'), { tl: tl, at: 70, duration: 24, shape: 'wedge' });
     });
   });
 

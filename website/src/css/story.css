@@ -175,7 +175,6 @@ html:not(.motion) .st-proven__in{padding-block:clamp(96px,12vw,160px)}
 .st-climate__h{max-width:9.4em;color:var(--on-green)}
 .st-climate__steps .t-lede{max-width:20em;color:var(--on-green)}
 html:not(.motion) .st-climate__in{padding-block:clamp(56px,8vw,112px)}
-html:not(.motion) .st-climate .photo + .photo{margin-top:2px}
 
 /* ───────── 9. where it is from: the close ───────── */
 .st-close__in{align-items:center}
@@ -192,3 +191,8 @@ html.motion .st-climate{background:var(--ground-rest)}
   .st-date{font-size:clamp(84px,24vw,120px)}
   html.motion .st-built__steps>li{min-height:210px}
 }
+/* at rest (no motion) a film's photographs are pictures in the column, never three screens of picture */
+html:not(.motion) .st-stand .film__stage>.photo{aspect-ratio:16/9;max-height:78vh}
+html:not(.motion) .st-climate .film__stage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
+html:not(.motion) .st-climate .film__stage>.photo{aspect-ratio:4/5;margin:0}
+html:not(.motion) .st-climate .film__safe{grid-column:1/-1}
