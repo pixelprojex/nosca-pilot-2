@@ -1932,7 +1932,12 @@ seeded data and no account.
   by `vite.config.js` at build) and serves it only when a navigation
   fails; online, every navigation goes to Netlify, `/version.json` is
   never cached, and the hashed files under `/assets/` are immutable so
-  a cached one is never wrong. The app says `nosca:precache` to the
+  a cached one is never wrong — which is also why the worker matches its
+  copy ignoring `Vary` (`fromShell`): the copy was fetched without the
+  Origin a module script's request carries, Vite's preview varies on
+  Origin, and with no network the app's script missed its copy and the
+  app opened on a white page (`downloads.cjs` (p) failed on main for
+  this, 24 November). The app says `nosca:precache` to the
   worker on every open and the worker refreshes its copy when the
   build has changed. This is the whole difference from the app-shell
   caching this file used to refuse: a cached shell served instead of
