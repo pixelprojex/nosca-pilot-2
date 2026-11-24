@@ -201,7 +201,7 @@ p{text-wrap:pretty}
 /* the mark in gold, as on the card: the line gold on white, the pinstripe gold on the green */
 .mark--gold,.weave--gold{color:var(--rule)}
 .weave{display:block;width:var(--mark-w,48px);height:auto;overflow:visible;flex:none}
-html.motion [data-draw]:not(.is-in):not(.is-set) path{stroke-dasharray:1;stroke-dashoffset:1}
+html.motion [data-draw]:not(.is-in):not(.is-set) path,html.glide [data-draw]:not(.is-in) path{stroke-dasharray:1;stroke-dashoffset:1}
 /* the quiet motif: very large, very faint rings behind a section */
 .ringsbg{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit}
 .ringsbg .mark{position:absolute;width:var(--rings-w,min(150vw,1500px));max-width:none;left:50%;top:50%;margin:calc(var(--rings-w,min(150vw,1500px))*-.3125) 0 0 calc(var(--rings-w,min(150vw,1500px))*-.5);color:currentColor;opacity:var(--rings-o,.06)}
@@ -218,8 +218,8 @@ html.motion [data-draw]:not(.is-in):not(.is-set) path{stroke-dasharray:1;stroke-
 .pins--band{--pins-w:clamp(210px,54vw,640px);--pin-sw:.24}
 @media (min-width:520px){.pins--band{--pin-sw:.16}}
 @media (min-width:1000px){.pins--band{--pin-sw:.1}}
-html.motion [data-pins]:not(.is-in) path,html.motion [data-stripes]:not(.is-set) path{stroke-dasharray:1;stroke-dashoffset:1}
-html.motion [data-rule]:not(.is-set){transform:scaleX(0)}
+html.motion [data-pins]:not(.is-in) path,html.motion [data-stripes]:not(.is-set) path,html.glide [data-pins]:not(.is-in) path,html.glide [data-stripes]:not(.is-in) path{stroke-dasharray:1;stroke-dashoffset:1}
+html.motion [data-rule]:not(.is-set),html.glide [data-rule]:not(.is-set){transform:scaleX(0)}
 
 /* one quiet pass of light across the card as it tilts. Moved by site.js (transform only); never a glow. */
 .sheen{position:absolute;inset:-30% -80%;z-index:3;pointer-events:none;opacity:0;
@@ -427,7 +427,7 @@ html:not(.motion) .film__stage>.photo--bleed,html:not(.motion) .film__stage>.vid
 /* a headline that fills with ink line by line as the scroll passes (Site.inkFill) */
 .ink-line{position:relative;display:block}
 .ink-fill{position:absolute;left:0;top:0;right:0;color:var(--ink-full,var(--fg));pointer-events:none;-webkit-user-select:none;user-select:none;clip-path:inset(-12% 100% -24% 0%)}
-html.motion [data-ink].is-set{color:var(--fg-dim)}
+html.motion [data-ink].is-set,html.glide [data-ink]:not(.is-in){color:var(--fg-dim)}
 [data-ink="gold"]{--ink-full:var(--gold-text)}
 /* layers at different depths (Site.depth): the container is the reference, [data-z] children move */
 [data-depth]{position:relative}
@@ -567,6 +567,18 @@ html.motion [data-reveal-group]>*{opacity:0}
 html.motion [data-reveal-group].is-set>*,html.motion [data-reveal-group].is-in>*{opacity:1}
 html.motion [data-lit]:not(.is-set){opacity:.2}
 html.motion [data-rise]:not(.is-set){opacity:0}
+/* glide (a phone's own scroll): the same waiting states, each released once its piece has played */
+html.glide [data-reveal]{opacity:0}
+html.glide [data-reveal].is-set,html.glide [data-reveal].is-in{opacity:1}
+html.glide [data-reveal-group]>*{opacity:0}
+html.glide [data-reveal-group].is-set>*,html.glide [data-reveal-group].is-in>*{opacity:1}
+html.glide [data-lit]:not(.is-set):not(.is-in){opacity:.2}
+html.glide [data-rise]:not(.is-set):not(.is-in){opacity:0}
+/* a picture below the fold waits a little low and a little small, and comes to rest as it arrives. The individual
+   transform properties compose with whatever transform the picture wears, and the compositor carries them. */
+html.glide .g-wait{opacity:0;translate:0 44px;scale:.965;transition:opacity .85s cubic-bezier(.22,.7,.2,1),translate 1.35s cubic-bezier(.16,.84,.24,1),scale 1.35s cubic-bezier(.16,.84,.24,1)}
+html.glide .g-wait.g-in{opacity:1;translate:0 0;scale:1}
+html.glide .g-wait.g-now{transition:none}
 .split-line{display:block}
 .split-line-mask{padding:.1em .08em .2em;margin:-.1em -.08em -.2em}
 html.motion [data-parallax],html.motion [data-tilt]{will-change:transform}
@@ -584,5 +596,5 @@ html.motion [data-parallax],html.motion [data-tilt]{will-change:transform}
   @view-transition{navigation:none}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
-html:not(.motion) .sheen{display:none}
+html:not(.motion):not(.glide) .sheen{display:none}
 @media print{.hdr,.menu,.skip{display:none!important}}

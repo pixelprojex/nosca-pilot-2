@@ -21,12 +21,15 @@
   const libs = !!(gsap && ScrollTrigger && SplitText);
   if (!libs && W.__siteOff) W.__siteOff();
   const motion = libs && H.classList.contains('motion');
+  /* a phone or a tablet: its own scroll, and every piece plays once on its own clock as it arrives (see glideScan) */
+  const glide = libs && H.classList.contains('glide');
+  const live = motion || glide;
   const fine = mq('(hover: hover) and (pointer: fine)').matches;
   const EASE = 'power3.out';
   const SMALL = '(max-width: 719px)';
 
   const Site = W.Site = {
-    motion, fine, gsap, ScrollTrigger, SplitText, lenis: null,
+    motion, glide, live, fine, gsap, ScrollTrigger, SplitText, lenis: null,
     $, $$, clamp,
     reduced: mq('(prefers-reduced-motion: reduce)').matches,
     wide: () => W.innerWidth >= 900,
@@ -108,7 +111,7 @@
     left: { x: -44, opacity: 0 }, right: { x: 44, opacity: 0 }, down: { y: -28, opacity: 0 }
   };
   function reveal(el) {
-    if (!motion || el._rv) return; el._rv = true;
+    if (!live || el._rv) return; el._rv = true;
     const kind = el.dataset.reveal || 'rise', delay = num(el.dataset.delay, 0);
     let tween = null, seen = false, passed = false;
     const play = () => { seen = true; if (tween) tween.play(); };
@@ -138,7 +141,7 @@
     Site.inView(el, { once: true, enter: play, above: skip, margin: el.dataset.margin || '0px 0px -10% 0px' });
   }
   function revealGroup(el) {
-    if (!motion || el._rv) return; el._rv = true;
+    if (!live || el._rv) return; el._rv = true;
     const kids = $$(':scope > *', el), kind = el.dataset.revealGroup || 'rise';
     gsap.set(kids, FROM[kind] || FROM.rise); el.classList.add('is-set');
     const tween = gsap.to(kids, { x: 0, y: 0, scale: 1, opacity: 1, duration: num(el.dataset.duration, 1.05), ease: EASE, delay: num(el.dataset.delay, 0), stagger: num(el.dataset.stagger, 0.08), paused: true, clearProps: 'transform,opacity' });
@@ -234,7 +237,7 @@
 
   /* ───────── numbers that count up once ───────── */
   function counter(el) {
-    if (!motion || el._ct) return; el._ct = true;
+    if (!live || el._ct) return; el._ct = true;
     const to = num(el.dataset.count, 0), pre = el.dataset.prefix || '', suf = el.dataset.suffix || '';
     const fmt = (n) => pre + Math.round(n).toLocaleString('en-GB') + suf;
     const w = el.getBoundingClientRect().width;
@@ -283,7 +286,7 @@
   };
   /* one quiet pass of light across an element that holds a .sheen child */
   Site.sheen = function (target, o) {
-    const el = el$(target); if (!el || !motion) return null; o = o || {};
+    const el = el$(target); if (!el || !live) return null; o = o || {};
     const band = el.classList.contains('sheen') ? el : $(':scope > .sheen, :scope .sheen', el);
     if (!band) return null;
     return gsap.timeline({ paused: !!o.paused })
@@ -415,15 +418,15 @@
         gsap.killTweensOf([a, b]);
         gsap.set(b, { visibility: 'visible', zIndex: 2, opacity: 1 });
         const d = o.duration || 0.9;
-        if (mode === 'slide' && motion) { gsap.fromTo(b, { xPercent: 100 }, { xPercent: 0, duration: d, ease: 'power3.inOut', onComplete: done }); gsap.to(a, { xPercent: -28, duration: d, ease: 'power3.inOut' }); }
-        else if (mode === 'rise' && motion) gsap.fromTo(b, { yPercent: 100 }, { yPercent: 0, duration: d, ease: 'power3.out', onComplete: done });
+        if (mode === 'slide' && live) { gsap.fromTo(b, { xPercent: 100 }, { xPercent: 0, duration: d, ease: 'power3.inOut', onComplete: done }); gsap.to(a, { xPercent: -28, duration: d, ease: 'power3.inOut' }); }
+        else if (mode === 'rise' && live) gsap.fromTo(b, { yPercent: 100 }, { yPercent: 0, duration: d, ease: 'power3.out', onComplete: done });
         else gsap.fromTo(b, { opacity: 0 }, { opacity: 1, duration: d * 0.85, ease: 'power2.out', onComplete: done });
       });
     }
     const api = el._phone = { el, screens, show, next: () => show(cur + 1), warm, get index() { return cur; } };
     /* turn through the screens while it is on screen (never under Reduce Motion: everything is still) */
     const every = num(box && box.dataset.autoplay, 0);
-    if (every && gsap && motion && screens.length > 1) {
+    if (every && gsap && live && screens.length > 1) {
       let call = null;
       const tick = () => { api.next(); call = gsap.delayedCall(every, tick); };
       Site.inView(el, { threshold: 0.4, margin: '0px', enter: () => { if (!call) call = gsap.delayedCall(every, tick); }, leave: () => { if (call) { call.kill(); call = null; } } });
@@ -653,7 +656,7 @@
   function videoInView(v) {
     if (v._vid) return; v._vid = true;
     v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
-    if (!motion) { v.removeAttribute('autoplay'); v.pause(); v.controls = true; return; }
+    if (!live) { v.removeAttribute('autoplay'); v.pause(); v.controls = true; return; }
     v.loop = v.dataset.video !== 'once';
     Site.inView(v, { threshold: 0.25, margin: '0px', enter: () => { const p = v.play(); if (p && p.catch) p.catch(() => {}); }, leave: () => v.pause() });
     D.addEventListener('visibilitychange', () => { if (D.hidden) v.pause(); });
@@ -861,7 +864,7 @@
     el.addEventListener('pointerleave', () => gsap.to(el, { '--mx': '0px', '--my': '0px', duration: 0.9, ease: 'power3.out', overwrite: 'auto' }));
   }
   function sheenAuto(el) {
-    if (!motion || el._sh) return; el._sh = true;
+    if (!live || el._sh) return; el._sh = true;
     Site.inView(el, { once: true, margin: '0px 0px -20% 0px', enter: () => { const t = Site.sheen(el); if (t && t.delay) t.delay(num(el.dataset.delay, 0.3)); } });
     if (fine && !el.hasAttribute('data-tilt')) el.addEventListener('pointerenter', () => { if (!el._shT || !el._shT.isActive()) el._shT = Site.sheen(el, { duration: 1.4 }); });
   }
@@ -901,6 +904,8 @@
         const sec = e.closest('[data-header]'), said = sec ? sec.dataset.header : '';
         under = groundOf(e);
         t = NAMED[said] || under;
+        /* on a phone nothing is a full-bleed film, so the header never slides away */
+        if (glide && t === 'none') t = under;
         break;
       }
       if (hdr.dataset.theme !== t) hdr.dataset.theme = t;
@@ -993,17 +998,136 @@
     W.addEventListener('popstate', () => { if (location.hash) Site.toHash(location.hash); });
   }
 
+  /* ───────── glide: a phone's own scroll ─────────
+     On a phone or a tablet nothing is tied to the scroll. iOS moves the page on a thread of its own and a piece moved
+     by script lags it by a frame, which reads as shaking; a pinned film is gone in one flick, which is information
+     missed; a scrubbed timeline catches up after the thumb has stopped, which reads as a glitch. So there the page is
+     the finished column (the one Reduce Motion reads too) and every piece in it plays ONCE, on its own clock, as it
+     arrives: a headline's words rise, a dim headline fills with ink, a gold rule draws, the pinstripes and the mark
+     draw, a phone or a photograph comes to rest. Only transform and opacity move (a picture's through the CSS
+     individual properties, which compose with whatever transform it already wears, and run on the compositor), so
+     nothing fights the scroll. A piece the visitor jumped past (a link to #somewhere) is simply finished, and a
+     piece that cannot be made shows as it is. */
+  /* make(take, fail) builds the piece's paused tween and hands it to take(), now or once the type is in. (Never
+     through a Promise's resolve: a GSAP tween is a thenable, and a promise would wait for it to finish.) */
+  const ARRIVE = '0px 0px -8% 0px';
+  function arrive(el, make, o) {
+    if (!el || el._gl) return; el._gl = true; o = o || {};
+    let tw = null, want = 0;
+    const go = (k) => { if (want === 2) return; want = k; if (tw) { if (k === 2) tw.progress(1); else tw.play(); } };
+    const fail = (e) => { el.classList.add('is-set', 'is-in'); if (W.console && e) console.warn(e); };
+    const take = (t) => { tw = t || null; if (!tw) return; if (want === 2) tw.progress(1); else if (want === 1) tw.play(); };
+    try { make(take, fail); } catch (e) { fail(e); }
+    Site.inView(o.watch || el, { once: true, margin: o.margin || ARRIVE, enter: () => go(1), above: () => go(2) });
+  }
+  /* split once the type is in, play, and give the words back to the page when done: a line that rewraps on a turned
+     phone is the page's own line again, never a frozen split */
+  function glideSplit(el, type, play) {
+    arrive(el, (take, fail) => fontsReady.then(() => {
+      try {
+        const sp = SplitText.create(el, Object.assign({ type, linesClass: 'split-line', wordsClass: 'split-word' }, play.opts || {}));
+        const tw = play(sp);
+        tw.eventCallback('onComplete', () => { sp.revert(); el.classList.add('is-in'); if (play.done) play.done(); });
+        take(tw);
+      } catch (e) { fail(e); }
+    }));
+  }
+  function glideRise(el) {
+    const by = el.dataset.rise || 'words';
+    if (by !== 'lines') glue(el);
+    const play = (sp) => {
+      const bits = by === 'lines' ? sp.lines : sp.words;
+      gsap.set(bits, { yPercent: 118 }); el.classList.add('is-set');
+      return gsap.to(bits, { yPercent: 0, duration: 1.05, ease: 'power3.out', stagger: by === 'lines' ? 0.1 : 0.04, paused: true });
+    };
+    play.opts = { mask: 'lines' };
+    glideSplit(el, by === 'lines' ? 'lines' : 'lines,words', play);
+  }
+  function glideInk(el) {
+    const play = (sp) => {
+      const fills = sp.lines.map((ln) => { const f = D.createElement('span'); f.className = 'ink-fill'; f.setAttribute('aria-hidden', 'true'); f.innerHTML = ln.innerHTML; ln.appendChild(f); return f; });
+      gsap.set(fills, { clipPath: 'inset(-12% 100% -24% 0%)' }); el.classList.add('is-set');
+      const tl = gsap.timeline({ paused: true });
+      fills.forEach((f, i) => tl.to(f, { clipPath: 'inset(-12% 0% -24% 0%)', duration: 1, ease: 'power2.inOut' }, i * 0.34));
+      return tl;
+    };
+    play.opts = { linesClass: 'ink-line' };
+    play.done = () => { el.classList.add('is-in'); el.classList.remove('is-set'); };
+    glideSplit(el, 'lines', play);
+  }
+  function glideLit(el) {
+    glue(el);
+    const play = (sp) => {
+      gsap.set(sp.words, { opacity: num(el.dataset.litFrom, 0.16) }); el.classList.add('is-set');
+      return gsap.to(sp.words, { opacity: 1, duration: 0.8, ease: 'power1.out', stagger: 0.055, paused: true });
+    };
+    glideSplit(el, 'words', play);
+  }
+  function glideRule(el) {
+    el.classList.add('is-set');
+    arrive(el, (take) => take(gsap.fromTo(el, { scaleX: 0, transformOrigin: '0% 50%' }, { scaleX: 1, duration: 1.3, ease: 'power2.inOut', paused: true, clearProps: 'transform' })));
+  }
+  function glideStripes(el) {
+    const watch = el.classList.contains('pins') && el.parentElement ? el.parentElement : el;
+    arrive(el, (take) => take($$('.pins__w', el).length ? Site.pins(el, { stagger: 0.05 }) : Site.draw(el, { stagger: 0.14, duration: 1.6 })), { watch });
+  }
+  function glideWeave(svg) {
+    const w = Site.weave(svg); if (!w) return;
+    svg.classList.add('is-set');
+    arrive(svg, (take) => {
+      w.set(w.far(0.16), 0);
+      take(gsap.timeline({ paused: true })
+        .to(w.state, { draw: 1, duration: 1.1, ease: 'power2.inOut', onUpdate: w.render }, 0)
+        .to(w.state, { d: 12, duration: 1.6, ease: 'power3.inOut', onUpdate: w.render }, 0.55));
+    }, { margin: '0px 0px -14% 0px' });
+  }
+  function glideTurn(el) {
+    const c = Site.card(el); if (!c || !c.flip) return;
+    const back = el.classList.contains('is-back');
+    arrive(el, (take) => { const tl = gsap.timeline({ paused: true }); c.turn(tl, { at: 0, duration: 1.8, from: back ? 0 : 180, to: back ? 180 : 0, tilt: [8, -3] }); take(tl); }, { margin: '0px 0px -18% 0px' });
+  }
+  /* a picture (a phone, a screen, a photograph) comes to rest: CSS carries it (.g-in), so it composes with any
+     transform the picture already wears. Only what is below the fold when the page opens waits for its turn. */
+  function glidePictures(root) {
+    const fold = W.innerHeight * 0.9;
+    const pics = $$('.phone, .shot, figure.photo, figure.vid, [data-arrive]', root).filter((el) =>
+      !el._gl && !el.closest('[data-reveal], [data-reveal-group], .bcard, .only-motion, [data-arrive="none"]') && !(el.parentElement && el.parentElement.closest('.phone, .shot, figure.photo, figure.vid, [data-arrive]')));
+    const later = pics.filter((el) => { const r = el.getBoundingClientRect(); return r.top > fold || r.bottom < 0; });
+    later.forEach((el) => { el._gl = true; el.classList.add('g-wait'); });
+    later.forEach((el) => Site.inView(el, { once: true, margin: '0px 0px -6% 0px', enter: () => el.classList.add('g-in'), above: () => { el.classList.add('g-now', 'g-in'); } }));
+  }
+  function glideScan(root) {
+    $$('[data-reveal]', root).forEach(reveal);
+    $$('[data-reveal-group]', root).forEach(revealGroup);
+    /* on a phone no page script plays a piece, so what a film plays by hand ("manual") plays here like the rest */
+    const off = (el) => !!el.closest('.only-motion');
+    $$('[data-pins]', root).forEach((el) => { if (el._pins || off(el)) return; el._pins = true; arrive(el, (take) => take(Site.pins(el))); });
+    $$('[data-draw]', root).forEach((el) => { if (el._draw || off(el)) return; el._draw = true; arrive(el, (take) => take(Site.draw(el))); });
+    $$('[data-fan]', root).forEach((el) => { if (el._fan || off(el)) return; el._fan = true; arrive(el, (take) => take(Site.fan(el))); });
+    $$('[data-sheen]', root).forEach(sheenAuto);
+    const own = (sel, key, fn) => $$(sel, root).forEach((el) => { if (off(el)) return; fn(el); });
+    own('[data-ink]', 'ink', glideInk);
+    own('[data-rise]', 'rise', glideRise);
+    own('[data-lit]', 'lit', glideLit);
+    own('[data-rule]', 'rule', glideRule);
+    own('[data-stripes]', 'stripes', glideStripes);
+    own('[data-weave]', 'weave', glideWeave);
+    own('.bcard[data-card-turn]', 'cardTurn', glideTurn);
+    glidePictures(root);
+  }
+
   /* ───────── wire every data-attribute under a root ───────── */
   Site.scan = function (root) {
     root = root || D;
     $$('[data-phone]', root).forEach((el) => {
       const p = Site.phone(el);
-      if (motion && el.dataset.phone === 'settle' && !el._settled) { el._settled = true; const tl = phoneSettle(el); Site.inView(el, { once: true, margin: '0px 0px -16% 0px', enter: () => tl.play(), above: () => tl.progress(1) }); }
+      if (live && el.dataset.phone === 'settle' && !el._settled) { el._settled = true; el._gl = true; const tl = phoneSettle(el); Site.inView(el, { once: true, margin: '0px 0px -16% 0px', enter: () => tl.play(), above: () => tl.progress(1) }); }
       return p;
     });
     $$('video[data-video]', root).forEach(videoInView);
     if (!libs) return;
     $$('[data-count]', root).forEach(counter);
+    if (glide) { glideScan(root); return; }
     if (!motion) return;
     $$('[data-reveal]', root).forEach(reveal);
     $$('[data-reveal-group]', root).forEach(revealGroup);
