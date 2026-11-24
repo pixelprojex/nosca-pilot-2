@@ -68,7 +68,14 @@ const built = (() => { try { return JSON.parse(fs.readFileSync(path.join(distDir
       check("(a) Settings › Version reads the build's day and time", (await version.count()) === 1 && /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) · \d{1,2}:\d{2} (am|pm)$/.test(value), vt);
       const [bv, bs] = await Promise.all([version.boundingBox(), sync.boundingBox()]);
       /* the next box down: the list's own 10px between two boxes, nothing else */
-      check("(a2) Sync sits directly beneath it as the next box, one row, its glyph and a chevron and no sub", (await sync.count()) === 1 && !!bv && !!bs && near(bs.x, bv.x, 1) && near(bs.width, bv.width, 1) && bs.y - (bv.y + bv.height) >= 0 && bs.y - (bv.y + bv.height) <= 16 && M.norm(await sync.innerText()) === "Sync" && (await sync.locator("svg").count()) === 2, JSON.stringify({ bv, bs, t: (await sync.count()) ? await sync.innerText() : "" }));
+      /* 23 November: a row of words carries no icon — Sync is the word on the row's 16 inset and the chevron (a
+         refresh glyph on a green tile led it for two days), and Version above it the word and the build as its value,
+         whole, in the sub grey on the right with no chevron: it opens nothing */
+      const [lv, ls] = [await M.rowLead(page, '[data-tour="settings-version"]'), await M.rowLead(page, '[data-tour="settings-sync"]')];
+      check("(a2) Sync sits directly beneath it as the next box, one row, the word and a chevron — no glyph before it — and no sub", (await sync.count()) === 1 && !!bv && !!bs && near(bs.x, bv.x, 1) && near(bs.width, bv.width, 1) && bs.y - (bv.y + bv.height) >= 0 && bs.y - (bv.y + bv.height) <= 16 && M.norm(await sync.innerText()) === "Sync"
+        && M.plainRow(ls) && ls.inset === 16 && ls.h === 56, JSON.stringify({ bv, bs, ls, t: (await sync.count()) ? await sync.innerText() : "" }));
+      check("(a3) Version is the word and its value: the build whole on the right in the sub grey, nothing before the word and no chevron after",
+        M.plainRow(lv, { glyphs: [] }) && lv.inset === 16 && lv.value === value && !lv.valueCut && lv.valueColor === "rgb(95, 95, 101)" && lv.valueRight === 0, JSON.stringify(lv));
       await shot("01-version-sync");
 
       /* the server has this very build: Up to date, naming it */
