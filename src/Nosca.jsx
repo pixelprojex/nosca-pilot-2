@@ -23825,6 +23825,13 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
             : sheet === "attend" ? <Attendance lessons={todayList || []} roster={roster} groups={myGroups} taken={registers} chosen={attendFor}
                                             onSubmit={async (l, marks, opts) => {
                                               const n = Object.values(marks).filter((x) => x === "in").length;
+                                              /* what the toast says under Register taken, never a nought: a private
+                                                 lesson's one tap names the person and the mark ("Cian Murphy ·
+                                                 Absent" — it read "0 present"), a roll the count present, or the
+                                                 count absent when nobody came */
+                                              const said = opts && opts.replace
+                                                ? `${l.who} · ${n ? tr("Present") : tr("Absent")}`
+                                                : n ? `${n} ${tr("present")}` : `${Object.keys(marks).length} ${tr("absent")}`;
                                               if (data) {
                                                 /* the marks already carry real ids — the sheet
                                                    keys them by row, not by display name, so two
@@ -23834,11 +23841,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                                                 const res = await data.takeRegister(l.who, marks, opts);
                                                 /* the register is what was written, not what was ticked */
                                                 if (res && res.error) { hapticWarn(); say(res.error.message); return res; }
-                                                done(tr("Register taken"), `${n} ${tr("present")}`);
+                                                done(tr("Register taken"), said);
                                                 return {};
                                               }
                                               setRegisters((r) => ({ ...r, [registerKey(l.who, new Date())]: marks }));
-                                              done(tr("Register taken"), `${n} ${tr("present")}`);
+                                              done(tr("Register taken"), said);
                                               return {};
                                             }}
                                             close={() => setSheet(null)} say={say} />
