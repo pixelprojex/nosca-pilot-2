@@ -1,109 +1,167 @@
 <!--
 title: Nosca · the kit
-description: Every shared component and behaviour of Nosca's website, once.
+description: Every shared piece of Nosca's website, once, working: the card's palette and motif, the type, and the scroll-driven motion library.
 world: olive
-header: dark
+header: green
 -->
-<section class="kit-hero g-world section" data-header="dark">
-  <!-- @include pins class="pins--band" attrs="data-pins" -->
-  <div class="wrap center">
-    <!-- @include mark class="kit-mark" foil="d" attrs="data-draw" -->
-    <p class="wordmark t-gold kit-word" data-reveal="fade" data-delay=".5">NOSCA</p>
-    <h1 class="t-display" data-reveal="lines" data-delay=".2">The kit, once each.</h1>
-    <p class="t-lede" data-reveal="rise" data-delay=".5">Everything the four pages share. Scroll to see it move.</p>
-    <div class="keys" data-reveal-group data-delay=".7">
-      <a class="key key--paper" href="#keys" data-magnet>Paper key</a>
-      <a class="key key--ghost" href="#keys">Ghost key <!-- @include arrow --></a>
+
+<!-- 1. THE FIRST SCREEN IS A FILM. The card's front, drawn by the scroll: its pinstripes line by line, the mark, the
+     word. Then the page's white opens through the card's own diagonal. Built in _kit.js with Site.film. -->
+<section class="film g-green kit-open" id="open" style="--len:2.6;--len-sm:2.2" data-header="green">
+  <div class="film__stage">
+    <!-- @include pins class="kit-open__pins" -->
+    <div class="film__safe kit-open__in">
+      <!-- @include mark class="kit-open__mark" foil="d" -->
+      <p class="wordmark kit-open__word">NOSCA</p>
+      <h1 class="t-h1 kit-open__h">The kit, once&nbsp;each.</h1>
+      <p class="t-lede kit-open__p">Everything the four pages share. Turn the scroll and it plays.</p>
+    </div>
+    <div class="shift-layer g-paper kit-open__next" data-header="paper" aria-hidden="true">
+      <p class="eyebrow eyebrow--rule">Three grounds, one gold</p>
     </div>
   </div>
 </section>
 
-<section class="section g-paper sheet" id="type">
-  <div class="wrap stack" style="--stack:28px">
-    <p class="eyebrow" data-reveal>Type</p>
-    <p class="t-h1" data-reveal="lines">Coaching, linked.</p>
-    <p class="t-h2" data-reveal="words">One app for coach, player and parent.</p>
-    <p class="t-h3" data-reveal>Six sports, each in its own words.</p>
-    <p class="t-lede" data-lit>Words that light as you pass them: a coach picks up the phone mid-lesson, does one thing in seconds and puts it down.</p>
-    <p class="t-body measure" data-reveal>Body copy sits in the system face at seventeen, in the sub grey. Captions and small print never go under twelve.</p>
-    <p class="sports"><span>Golf</span> <span>Tennis</span> <span>Rowing</span> <span>Squash</span> <span>Padel</span> <span>Equestrian</span></p>
-    <p class="t-h3">Tennis <i class="sport-dot" data-sport="tennis"></i> &nbsp; Rowing <i class="sport-dot" data-sport="rowing"></i></p>
-    <hr class="rule-gold" style="width:220px">
+<!-- 2. The palette and the type -->
+<section class="section g-paper" id="type">
+  <div class="wrap">
+    <p class="eyebrow eyebrow--rule">The card is the art direction</p>
+    <div class="kit-swatches">
+      <div class="kit-sw g-green"><span class="eyebrow">Green</span><b>--ground-green</b><i>The card's front</i></div>
+      <div class="kit-sw g-paper"><span class="eyebrow">Paper</span><b>--ground-paper</b><i>The card's back</i></div>
+      <div class="kit-sw g-rest"><span class="eyebrow">Rest</span><b>--ground-rest</b><i>One quiet off-white</i></div>
+      <div class="kit-sw g-green" data-world="green"><span class="eyebrow">Green</span><b>data-world="green"</b><i>The dark card</i></div>
+    </div>
+    <hr class="rule-gold kit-gap" data-rule>
+    <div class="cols kit-gap">
+      <p class="t-numeral" style="--span:2">01</p>
+      <div style="--at:3;--span:9">
+        <h2 class="t-display" data-ink>Coaching, linked. One app for coach, player and parent.</h2>
+      </div>
+      <div style="--at:3;--span:6" class="stack">
+        <p class="t-quote" data-rise>From the Irish <i lang="ga">nascadh</i>, linking.</p>
+        <p class="t-lede" data-rise="lines">Instrument Sans is the voice. Instrument Serif speaks for the Irish word, a pull-quote and a chapter numeral, and its italic is a real one.</p>
+        <p class="t-body measure">Body copy sits in the system face at seventeen. Captions and small print never go under twelve. A headline fills with ink as the scroll passes; a line rises out of its mask.</p>
+        <p class="sports"><span>Golf</span> <span>Tennis</span> <span>Rowing</span> <span>Squash</span> <span>Padel</span> <span>Equestrian</span></p>
+      </div>
+      <div style="--at:10;--span:3" class="stack kit-side">
+        <p class="eyebrow">An eyebrow</p>
+        <p class="eyebrow eyebrow--ink">An eyebrow in ink</p>
+        <p class="t-h3">Tennis <i class="sport-dot" data-sport="tennis"></i></p>
+        <p class="t-h3">Rowing <i class="sport-dot" data-sport="rowing"></i></p>
+        <p><a class="link" href="#film">A quiet link <!-- @include arrow --></a></p>
+      </div>
+    </div>
   </div>
 </section>
 
-<section class="section section--tight g-wash" id="keys">
+<!-- 3. A FILM THAT IS ALL MARKUP: the device stays, the scroll turns the real app inside it frame by frame, the
+     captions step in time. data-film, data-step + data-frame, data-device, data-zoom, data-turn, a sequence. -->
+<section class="film g-rest" id="film" data-film style="--len:5.4;--len-sm:4.6" data-header="rest">
+  <div class="film__stage">
+    <div class="film__safe kit-film">
+      <div class="kit-film__copy">
+        <p class="eyebrow eyebrow--rule">Logging a lesson</p>
+        <div class="film__steps">
+          <div data-step data-frame="0"><p class="t-numeral">1</p><h2 class="t-h2">The coach's day.</h2><p class="t-lede">Today's lessons in order. The one on now is the card.</p></div>
+          <div data-step data-frame="1"><p class="t-numeral">2</p><h2 class="t-h2">One plus.</h2><p class="t-lede">Everything a coach does mid-lesson is behind it.</p></div>
+          <div data-step data-frame="11"><p class="t-numeral">3</p><h2 class="t-h2">Who.</h2><p class="t-lede">A face, then one page.</p></div>
+          <div data-step data-frame="19"><p class="t-numeral">4</p><h2 class="t-h2">What was worked on.</h2><p class="t-lede">A tap for each area, in the sport's own words.</p></div>
+          <div data-step data-frame="36"><p class="t-numeral">5</p><h2 class="t-h2">Logged.</h2><p class="t-lede">The lesson is written and the player is told.</p></div>
+        </div>
+      </div>
+      <!-- @include phone seq="log" seqalt="Logging a lesson in Nosca, from the coach's day to Logged" class="kit-film__phone" attrs="data-device data-zoom='tall' data-turn='-20,7,1.5'" -->
+      <i class="film__bar"><i></i></i>
+    </div>
+  </div>
+</section>
+
+<!-- 4. A photograph that settles, and layers at different depths -->
+<section class="section g-paper" id="photo">
+  <div class="wrap cols">
+    <div style="--span:4" class="stack">
+      <p class="eyebrow eyebrow--rule">A photograph settles</p>
+      <h2 class="t-h2" data-ink>Never a pop.</h2>
+      <p class="t-lede" data-rise="lines">The frame opens and the picture comes to rest as the scroll brings it in, then keeps a little drift.</p>
+    </div>
+    <figure class="photo kit-photo" style="--at:6;--span:7;--ar:1400/1010" data-settle>
+      <img src="assets/_kit-card-front.webp" width="1400" height="1010" alt="The front of the Nosca business card on a table" loading="lazy" decoding="async">
+    </figure>
+  </div>
+</section>
+
+<!-- 5. The ground changes through the card's diagonal (data-ground-shift), and inside it: depth, stripes, the rings -->
+<section class="section g-green kit-depth" id="depth" data-ground-shift data-header="green">
+  <!-- @include pins class="pins--band" attrs="data-stripes" -->
+  <div class="wrap kit-depth__in" data-depth="0.22">
+    <div class="ringsbg" data-z="-0.5"><!-- @include mark --></div>
+    <p class="eyebrow eyebrow--rule" data-z="0.1">White gives way to the green</p>
+    <h2 class="t-display kit-depth__h" data-z="0.25" data-ink>Layers move at different rates.</h2>
+    <div class="kit-depth__card" data-z="0.9"><!-- @include card world="olive" class="bcard--shadow is-back" attrs="data-tilt data-sheen" --></div>
+    <div class="kit-weave" data-z="0.5"><!-- @include weave foil="d" attrs="data-weave" label="Two rings weave into the Nosca mark" --></div>
+    <p class="t-lede" data-z="0.4">The pinstripes draw with the scroll. The rings travel in and weave.</p>
+  </div>
+</section>
+
+<!-- 6. A rail: the six sports pass sideways as the page scrolls down -->
+<section class="rail g-paper" id="rail" data-rail data-header="paper">
+  <div class="rail__stage">
+    <div class="rail__track kit-rail">
+      <div class="kit-rail__lead">
+        <p class="eyebrow eyebrow--rule">A rail</p>
+        <h2 class="t-h1">Six sports, one app.</h2>
+        <p class="t-lede">A sport's colour lives inside its own screen.</p>
+      </div>
+      <figure class="kit-sport"><div class="shot" data-rail-z="0.12"><img src="assets/coach-today-golf.webp" width="780" height="1688" alt="A golf coach's day in Nosca" loading="lazy" decoding="async"></div><figcaption data-rail-in><p class="t-h2">Golf <i class="sport-dot" data-sport="golf"></i></p><p class="t-small">Full swing, short game, on course</p></figcaption></figure>
+      <figure class="kit-sport"><div class="shot" data-rail-z="0.12"><img src="assets/coach-today-tennis.webp" width="780" height="1688" alt="A tennis coach's day in Nosca" loading="lazy" decoding="async"></div><figcaption data-rail-in><p class="t-h2">Tennis <i class="sport-dot" data-sport="tennis"></i></p><p class="t-small">Serve, return, rally, net</p></figcaption></figure>
+      <figure class="kit-sport"><div class="shot" data-rail-z="0.12"><img src="assets/coach-today-rowing.webp" width="780" height="1688" alt="A rowing coach's day in Nosca" loading="lazy" decoding="async"></div><figcaption data-rail-in><p class="t-h2">Rowing <i class="sport-dot" data-sport="rowing"></i></p><p class="t-small">Technique, rhythm, racing, erg</p></figcaption></figure>
+      <figure class="kit-sport"><div class="shot" data-rail-z="0.12"><img src="assets/coach-today-squash.webp" width="780" height="1688" alt="A squash coach's day in Nosca" loading="lazy" decoding="async"></div><figcaption data-rail-in><p class="t-h2">Squash <i class="sport-dot" data-sport="squash"></i></p><p class="t-small">Drives, volleys, front court, movement</p></figcaption></figure>
+      <figure class="kit-sport"><div class="shot" data-rail-z="0.12"><img src="assets/coach-today-padel.webp" width="780" height="1688" alt="A padel coach's day in Nosca" loading="lazy" decoding="async"></div><figcaption data-rail-in><p class="t-h2">Padel <i class="sport-dot" data-sport="padel"></i></p><p class="t-small">Net game, overheads, walls</p></figcaption></figure>
+      <figure class="kit-sport"><div class="shot" data-rail-z="0.12"><img src="assets/coach-today-equestrian.webp" width="780" height="1688" alt="A riding coach's day in Nosca" loading="lazy" decoding="async"></div><figcaption data-rail-in><p class="t-h2">Equestrian <i class="sport-dot" data-sport="equestrian"></i></p><p class="t-small">Flatwork, poles, jumping, cross-country</p></figcaption></figure>
+    </div>
+    <i class="rail__bar"><i></i></i>
+  </div>
+</section>
+
+<!-- 7. A video scrubbed by the scroll, and a second sequence on its own passage -->
+<section class="section g-rest" id="scrub">
+  <div class="wrap cols">
+    <div style="--span:4" class="stack">
+      <p class="eyebrow eyebrow--rule">Scrubbed by the scroll</p>
+      <h2 class="t-h2" data-ink>The thumb is the play head.</h2>
+      <p class="t-lede">Left, a video whose time is the scroll. Right, frames of the register drawn on a canvas.</p>
+    </div>
+    <div style="--at:6;--span:3" class="kit-scrub">
+      <div class="shot" style="--shot-w:100%"><video data-scrub-video muted playsinline preload="metadata" poster="assets/seq/plus/poster.webp" width="660" height="1428" src="assets/seq/plus/plus-scrub.mp4" aria-label="The plus sheet rising over a coach's day"></video></div>
+      <p class="t-caption">Site.scrubVideo</p>
+    </div>
+    <div style="--at:10;--span:3" class="kit-scrub">
+      <div class="shot" style="--shot-w:100%"><!-- @include seq name="register" poster="last" alt="Taking the register for a clinic in Nosca" --></div>
+      <p class="t-caption">Site.sequence</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8. The objects the pages already use: keys, the card both ways, the app's vocabulary, partner frames -->
+<section class="section section--tight g-paper" id="keys">
   <div class="wrap stack" style="--stack:26px">
-    <p class="eyebrow">Keys and links</p>
+    <p class="eyebrow eyebrow--rule">Keys and links</p>
     <div class="keys">
       <a class="key" href="#keys" data-magnet>Open Nosca</a>
       <a class="key key--paper" href="#keys" data-magnet>Add to Home Screen</a>
       <a class="key key--sm" href="#keys">Small</a>
       <a class="key key--lg" href="#keys">Large <!-- @include arrow --></a>
     </div>
-    <p><a class="link" href="#keys">A quiet link <!-- @include arrow --></a></p>
-  </div>
-</section>
-
-<section class="section g-paper" id="gold">
-  <div class="wrap">
-    <p class="eyebrow" data-reveal>The card, both worlds</p>
-    <div class="kit-cards" data-reveal-group data-stagger=".12">
-      <!-- @include card world="olive" class="bcard--shadow" attrs="data-tilt data-sheen" -->
+    <div class="kit-cards">
       <!-- @include card world="olive" class="bcard--shadow is-back" -->
       <!-- @include card world="green" class="bcard--shadow" attrs="data-tilt data-sheen" -->
-      <!-- @include card world="green" class="bcard--shadow is-back" -->
-    </div>
-  </div>
-</section>
-
-<section class="section g-world sheet" data-world="green" data-header="dark" id="rings">
-  <!-- @include pins class="pins--band" attrs="data-pins" -->
-  <div class="wrap center stack" style="--stack:30px">
-    <p class="eyebrow eyebrow--gold" data-reveal>The other world</p>
-    <p class="t-mega t-gold" data-sheen data-reveal="rise">Nosca.</p>
-    <div class="kit-weave"><!-- @include weave foil="d" attrs="data-weave" label="Two rings weave into the Nosca mark" --></div>
-    <p class="t-lede" data-reveal style="margin-inline:auto">Two rings travel in and weave as you scroll.</p>
-    <p><a class="link link--gold" href="#rings">A gold link <!-- @include arrow --></a></p>
-  </div>
-</section>
-
-<section class="section g-paper sheet" id="phone">
-  <div class="wrap">
-    <p class="eyebrow" data-reveal>The phone and the screens</p>
-    <div class="kit-phones depth">
-      <!-- @include phone screens="coach-today-golf,coach-log-golf,coach-register" alts="A golf coach's Today in Nosca||" settle="settle" attrs="data-autoplay-x" autoplay="3.2" -->
-      <!-- @include phone screens="player-progress,player-drills" alts="A player's Progress in Nosca|" mode="slide" autoplay="3.6" class="phone--light" -->
-    </div>
-    <div class="fan kit-fan" data-fan>
-      <figure class="shot"><img src="assets/coach-diary-list.webp" alt="" width="780" height="1688" loading="lazy" decoding="async"></figure>
-      <figure class="shot"><img src="assets/coach-log-golf.webp" alt="" width="780" height="1688" loading="lazy" decoding="async"></figure>
-      <figure class="shot"><img src="assets/coach-today-golf.webp" alt="" width="780" height="1688" loading="lazy" decoding="async"></figure>
-      <figure class="shot"><img src="assets/coach-register.webp" alt="" width="780" height="1688" loading="lazy" decoding="async"></figure>
-      <figure class="shot"><img src="assets/player-progress.webp" alt="" width="780" height="1688" loading="lazy" decoding="async"></figure>
-    </div>
-  </div>
-</section>
-
-<section class="scene g-wash" id="scene" style="--len:3.2" data-header="light">
-  <div class="scene__stage">
-    <div class="scene__safe kit-scene">
-      <div class="kit-scene__copy">
-        <p class="eyebrow">A pinned scene</p>
-        <div class="kit-beats">
-          <h2 class="t-h2 kit-beat">The stage stays.</h2>
-          <h2 class="t-h2 kit-beat">The scroll plays it.</h2>
-          <h2 class="t-h2 kit-beat">Then it lets go.</h2>
-        </div>
-      </div>
-      <!-- @include phone screens="coach-today-golf,coach-diary-list,coach-thread" alts="Nosca on a phone||" class="kit-scene__phone" -->
     </div>
   </div>
 </section>
 
 <section class="section g-paper hold" id="app">
   <div class="wrap">
-    <p class="eyebrow" data-reveal>The app's own vocabulary, in its club colours</p>
+    <p class="eyebrow eyebrow--rule">The app's own vocabulary, in its club colours</p>
     <div class="grid grid--3 kit-app" data-reveal-group>
       <div class="tile tile--pad app" id="kit-register">
         <p class="app-eyebrow">Thursday clinic</p>
@@ -125,7 +183,6 @@ header: dark
         <p class="app-eyebrow">Keys</p>
         <p style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px"><span class="app-key">Register</span><span class="app-key app-key--quiet">Log</span><span class="app-key app-key--danger">Call off</span></p>
         <p style="margin-top:8px;display:flex;flex-wrap:wrap;gap:10px"><span class="app-chip is-on">Chipping</span><span class="app-chip">Putting</span></p>
-        <p style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span class="app-glyph" data-club="navy"></span><span class="app-glyph" data-club="gold"></span><span class="app-glyph" data-club="plum"></span><span class="app-glyph" data-club="brick"></span><i class="swatch" data-club="court"></i><i class="swatch" data-club="river"></i><i class="swatch" data-club="sienna"></i></p>
         <div class="app-bar" style="margin-top:14px"><i style="width:68%"></i></div>
       </div>
     </div>
@@ -138,13 +195,13 @@ header: dark
   </div>
 </section>
 
-<section class="section g-wash sheet sheet--lift" id="frames">
+<section class="section g-rest sheet" id="frames">
   <div class="wrap">
-    <p class="eyebrow" data-reveal>Partner frames</p>
+    <p class="eyebrow eyebrow--rule">Frames kept for partners</p>
     <div class="pframes" style="margin-top:28px" data-reveal-group>
-      <div class="pframe" data-sheen><!-- @include mark --><i class="sheen"></i></div>
-      <div class="pframe" data-sheen><!-- @include mark --><i class="sheen"></i></div>
-      <div class="pframe" data-sheen><!-- @include mark --><i class="sheen"></i></div>
+      <div class="pframe"><!-- @include mark --></div>
+      <div class="pframe"><!-- @include mark --></div>
+      <div class="pframe"><!-- @include mark --></div>
     </div>
   </div>
 </section>
