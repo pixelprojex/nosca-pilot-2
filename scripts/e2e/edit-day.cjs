@@ -326,6 +326,87 @@ const { check, summary } = M.checker("edit-day");
       await g.ctx.close();
     }
 
+    /* ---------- (s) Settings › Setup opened again: the stored week, and only what changed ----------
+       (24 November) Reopened, Setup's Hours showed no day lit over a coach whose week was Monday to
+       Saturday, and Finish rebuilt every day from the tiles — one set of times for the whole week.
+       It opens on the week as stored now: the days that hold a time lit, every time they hold lit,
+       the length; and Finish writes only what was changed — a day off emptied, a time ticked added
+       to the days that stay on, a time unticked taken off them, each day keeping its own — never
+       the dated times nor the days away. */
+    {
+      const dbS = freshDb();
+      const FIVE = ["9:00 am", "10:00 am", "11:00 am", "4:00 pm", "5:00 pm"];
+      const av = dbS.prefs[IDS.coach].availability;
+      av.days = { 0: FIVE, 1: FIVE, 2: FIVE, 3: FIVE, 4: FIVE, 5: ["9:00 am", "10:00 am"], 6: [] };
+      av.slots = ["9:00 am", "10:00 am", "11:00 am", "12:00 pm", "4:00 pm", "5:00 pm"];
+      av.duration = 60;
+      const EXTRA = `${dayPlus(dbS, 4)}|7:00 pm`, BLOCK = `${dayPlus(dbS, 2)}|10:00 am`;
+      av.extra = [EXTRA]; av.blocked = [BLOCK]; av.away = [{ from: dayPlus(dbS, 20), to: dayPlus(dbS, 21) }];
+      const S = '[data-tour="setup"]';
+      const g = await boot("coach", dbS); const page = g.page;
+      const openSetup = async () => {
+        if (!(await page.locator('[data-tour="settings-setup"]').count())) await tap(page, '[aria-label="Your profile"]', 900);
+        await page.locator('[data-tour="settings-setup"]').first().click(); await page.waitForTimeout(900);
+      };
+      const grid = () => page.evaluate((S) => { const root = document.querySelector(S); if (!root) return null;
+        const btns = [...root.querySelectorAll("button[aria-pressed]")].map((b) => ({ t: b.textContent.trim(), on: b.getAttribute("aria-pressed") === "true" }));
+        return { days: btns.filter((b) => /^(Mo|Tu|We|Th|Fr|Sa|Su)$/.test(b.t)), len: btns.filter((b) => / min$/.test(b.t)), times: btns.filter((b) => /^\d{1,2}:\d\d [ap]m$/.test(b.t)) }; }, S);
+      const press = async (txt) => { await page.locator(`${S} button[aria-pressed]`, { hasText: new RegExp(`^${txt}$`) }).first().click(); await page.waitForTimeout(250); };
+      const finish = async () => {
+        for (let i = 0; i < 2; i++) { await page.locator(`${S} button`, { hasText: /^Continue$/ }).first().click(); await page.waitForTimeout(500); }
+        await page.locator(`${S} button`, { hasText: /^Finish$/ }).first().click(); await page.waitForTimeout(500);
+        const toast = M.norm(await page.locator("[data-toast]").first().innerText().catch(() => "")); await page.waitForTimeout(1500); return toast;
+      };
+      const week = () => JSON.stringify(hours(dbS).days);
+      const posts = () => dbS.posts.filter((x) => x.table === "preferences" && x.rows && x.rows[0] && "availability" in x.rows[0]).length;
+
+      await openSetup();
+      const G0 = await grid(); await g.shot("10-setup-reopened");
+      check("(s1) reopened, Setup's Hours opens on the stored week: Mo to Sa lit, Su not; 60 min; every time a day holds lit — 12:00 pm, in the pool on no day, not",
+        !!G0 && G0.days.filter((d) => d.on).map((d) => d.t).join() === "Mo,Tu,We,Th,Fr,Sa" && G0.len.filter((l) => l.on).map((l) => l.t).join() === "60 min"
+          && G0.times.filter((x) => x.on).map((x) => x.t).join("|") === FIVE.join("|") && G0.times.some((x) => x.t === "12:00 pm" && !x.on),
+        JSON.stringify(G0));
+      const before = week(), postsBefore = posts();
+      const t0 = await finish();
+      check("(s2) Finish on an untouched setup writes no hours — the week, the dated times and the days away exactly as they were — and says nothing was saved",
+        week() === before && posts() === postsBefore && JSON.stringify(hours(dbS).extra) === JSON.stringify([EXTRA]) && JSON.stringify(hours(dbS).blocked) === JSON.stringify([BLOCK]) && /You're set up/.test(t0) && !/saved/i.test(t0),
+        JSON.stringify({ same: week() === before, posts: posts() - postsBefore, toast: t0.slice(-80) }));
+
+      /* a time ticked and a time unticked: each day keeps its own times, changed by exactly that */
+      await openSetup();
+      await press("12:00 pm"); await press("11:00 am");
+      const t1 = await finish();
+      const d1 = hours(dbS).days;
+      const WD = ["9:00 am", "10:00 am", "12:00 pm", "4:00 pm", "5:00 pm"];
+      check("(s3) ticking 12:00 pm and unticking 11:00 am changes each day by exactly that: Monday to Friday 9, 10, 12, 4, 5 — Saturday keeps its own, 9, 10 and now 12 — Sunday still nothing",
+        [0, 1, 2, 3, 4].every((d) => JSON.stringify(d1[d]) === JSON.stringify(WD)) && JSON.stringify(d1[5]) === JSON.stringify(["9:00 am", "10:00 am", "12:00 pm"]) && (d1[6] || []).length === 0 && /Hours saved/.test(t1),
+        JSON.stringify({ d1, toast: t1.slice(-60) }));
+      check("(s3) …the dated times, the days away and the length untouched",
+        JSON.stringify(hours(dbS).extra) === JSON.stringify([EXTRA]) && JSON.stringify(hours(dbS).blocked) === JSON.stringify([BLOCK]) && (hours(dbS).away || []).length === 1 && hours(dbS).duration === 60,
+        JSON.stringify({ extra: hours(dbS).extra, blocked: hours(dbS).blocked, away: hours(dbS).away, duration: hours(dbS).duration }));
+
+      /* a day turned off is emptied, and nothing else moves */
+      await openSetup();
+      const G1 = await grid();
+      check("(s4) opened again it reads what it wrote: Mo to Sa lit, the times 9, 10, 12, 4 and 5", !!G1 && G1.days.filter((d) => d.on).map((d) => d.t).join() === "Mo,Tu,We,Th,Fr,Sa" && G1.times.filter((x) => x.on).map((x) => x.t).join("|") === WD.join("|"), JSON.stringify(G1 && { days: G1.days, times: G1.times }));
+      await press("Sa");
+      await finish();
+      const d2 = hours(dbS).days;
+      check("(s4) Saturday turned off is emptied; Monday to Friday keep their own times", (d2[5] || []).length === 0 && [0, 1, 2, 3, 4].every((d) => JSON.stringify(d2[d]) === JSON.stringify(WD)), JSON.stringify(d2));
+
+      /* the length alone */
+      await openSetup();
+      await press("45 min");
+      const wk = week();
+      const t3 = await finish();
+      check("(s5) the length changed alone writes the length alone — 45 minutes, every day as it was", hours(dbS).duration === 45 && week() === wk && /Hours saved/.test(t3), JSON.stringify({ duration: hours(dbS).duration, toast: t3.slice(-60) }));
+      /* and the Diary still offers the dated time on its date */
+      await openList(page);
+      const extraDay = await boxText(page, label(dayPlus(dbS, 4)));
+      check("(s6) the time added on one date is still offered on it after three setups", /7:00 pm/.test(extraDay), extraDay.slice(0, 120));
+      await g.ctx.close();
+    }
+
     /* ---------- (h) the harness: the same sheet, no account ---------- */
     {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });

@@ -1099,12 +1099,37 @@ seeded data and no account.
   — so the line does not move and nothing of the row above is taken
   (`hit-areas.cjs` (h), (i)).
 - **Set yourself up.** A coach is offered `CoachSetup` once — three
-  screens, hours · drills · tips, grids and rows, a body that scrolls
-  — remembered as `preferences.setup_done`, and reachable again from
-  Settings. Nobody is asked which stats they track, in either mode:
-  nothing stores the answer, and a screen that asks and forgets is
-  worse than one that never asked. It does not use `SignupShell`, whose
-  body deliberately does not scroll.
+  screens, hours · drills · tips, grids and rows, a body that scrolls —
+  remembered as `preferences.setup_done`, and reachable again from
+  Settings (`settings-setup`). Nobody is asked which stats they track,
+  in either mode: nothing stores the answer, and a screen that asks and
+  forgets is worse than one that never asked. It does not use
+  `SignupShell`, whose body deliberately does not scroll. **Opened again
+  from Settings it opens on what is stored and changes only what was
+  changed (24 November).** It opened blank whatever the coach had — no
+  day lit over a week of Monday to Saturday, none of their drills or
+  tips ticked — and Finish rebuilt every day from the tiles, one set of
+  times for the whole week, so a coach's per-day hours were flattened by
+  a setup they only meant to look at. Now (`saved`, `setupAgain`): Hours
+  lights the days that hold a time, every time any of them holds (the
+  Times grid is the pool and those times, so none is ever off the grid)
+  and the stored length; Drills ticks the library as it stands
+  (`myLibrary`, the starter twelve while nothing is stored); Tips ticks
+  the coach's tips (`myTipPrompts`), the starter lines not among them
+  after, unticked. Finish hands back what it opened on beside what is
+  chosen, and `finishSetup` writes the difference alone:
+  `weekAfterSetup` — a day turned off is emptied, a day turned on takes
+  the times ticked, a day that stays on keeps its own times less any
+  unticked plus any newly ticked (Saturday's 9 and 10 take a 12 ticked,
+  and keep no 11 they never had); the length only if it changed; a time
+  ticked that was not in the pool joins it; the dated times (`blocked`,
+  `extra`) and the days away never touched; the drills and the tips each
+  written whole only if their set changed, never emptied. An untouched
+  Finish writes nothing, and its line says only "You're set up";
+  otherwise the line says what was written ("Hours saved", "Tips saved",
+  "Hours, drills and tips saved"). The first offer after sign-up opens
+  on nothing, as it always did. `edit-day.cjs` (s1)–(s6),
+  `drill-library.cjs` (k7), (k8).
 - **One drill library, and every change to it is real.** A live
   coach's drills are `custom_drills` in their preferences — what they
   picked in setup plus what they wrote — held in `library[sport]`. The
@@ -1130,6 +1155,29 @@ seeded data and no account.
   starter drill said Removed and nothing changed, and the first drill a
   coach wrote shrank the library to that one. The harness, with no
   account, seeds the starter set in. `drill-library.cjs` (c1)–(c15).
+- **A coach's tips are a library beside the drills (24 November).**
+  The lines a coach says over and over — the Tip sheet's prompts, the
+  log's — could be changed only on Setup's third screen, and Settings'
+  search for "tip" found Setup alone. **Tips** (`settings-tips`, the row
+  straight after Drills, a live coach's; found by "tip", "prompts",
+  "say", "advice") opens `TipLibrary` (route `tipLibrary`), read as the
+  drills are: `custom_tips[sport]` on the coach's preferences, or the
+  sport's four starter lines (`TIP_PROMPTS`) while nothing is stored
+  (`myTipPrompts`) — the one list the Tip sheet (its first eight), the
+  log (its first four), Setup's Tips and the library all read. Every
+  change writes the whole list (`writeTips`), so the first line written
+  joins the four and a starter line taken off is gone; **New** and
+  **Save** as the drill library's (`tips-new`, `tips-save`, the field's
+  placeholder the noun, Tip); a swipe takes a line off, as Away's spans
+  and Saved's rows go, and the last line keeps no swipe — an empty list
+  is the starter set again; Saved and Removed only once the preferences
+  hold it; a refused write said, the line kept in the field; a line
+  already there said ("Tempo over speed is already in your tips"). It
+  was the stored tips with the starter four always after them, so a
+  starter line picked in setup stood twice on the Tip sheet under one
+  key, and no line could ever be taken off; a coach who picked lines in
+  setup reads those as their list now, as the drills they picked are
+  theirs. No SQL: the column was there. `drill-library.cjs` (k1)–(k9).
 - **A coach's sport never changes.** `profiles.sport` is what their
   invite code was handed out under. Another sport goes in
   `preferences.extra_sports`, and `activeSport` is which of them they

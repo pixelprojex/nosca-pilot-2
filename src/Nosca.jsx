@@ -2039,6 +2039,38 @@ const datedOf = (xs, c = HARNESS_CALENDAR) => (Array.isArray(xs) ? xs : []).map(
   return { m: mm, d: dd, time, iso, y: yy };
 }).filter((x) => x.m && x.d && x.time && x.y === yearOf(x.m, c));
 
+/* THE WEEK SET UP AGAIN CHANGES ONLY WHAT WAS CHANGED (24 November).
+   Setup's Hours is one row of days and one set of times; a stored week
+   can hold different times on different days. Reopened, the setup opens
+   on the days that hold a time and every time any of them holds
+   (`opened`), and this applies the difference to the week as stored: a
+   day turned off is emptied; a day turned on takes the times ticked; a
+   day that stays on keeps its own times, less any time unticked, plus
+   any time ticked that was not. Nothing changed is null — no write. It
+   rebuilt every day from the tiles, one set of times for the whole week,
+   so finishing a reopened setup flattened a coach's per-day hours. Dated
+   times (`blocked`, `extra`) and the days away are not the week's and
+   are never touched here. */
+function weekAfterSetup(stored, opened, out) {
+  const byTime = (xs) => [...new Set(xs)].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
+  const was = opened || { days: [], times: [] };
+  const days = out.days || [], times = out.times || [];
+  const added = times.filter((x) => !was.times.includes(x));
+  const removed = was.times.filter((x) => !times.includes(x));
+  const sameDays = days.length === was.days.length && days.every((d) => was.days.includes(d));
+  if (sameDays && !added.length && !removed.length) return null;
+  /* a first week, or one with every time unticked, is not a week to write */
+  if (!times.length || (!was.days.length && !days.length)) return null;
+  const week = {};
+  for (let d = 0; d < 7; d++) {
+    const had = (stored && (stored[d] || stored[String(d)])) || [];
+    if (!days.includes(d)) week[d] = [];
+    else if (was.days.includes(d) && had.length) week[d] = byTime([...had.filter((x) => !removed.includes(x)), ...added]);
+    else week[d] = byTime(times);
+  }
+  return week;
+}
+
 function openTimes(m, d, avail, blocked, mine, seedBooked, c = HARNESS_CALENDAR, extra = []) {
   if (isPast(m, d, c)) return [];
   /* A slot that started an hour ago is not free, it is over. Only the
@@ -8646,7 +8678,7 @@ function Toast({ msg }) {
        strip that swallows taps 98px above the bottom of every screen is
        exactly the kind of "button that does nothing" that gets reported. */
     <div className="absolute left-0 right-0 flex justify-center px-6" style={{ bottom: 98, pointerEvents: "none", zIndex: 90 /* above the burst (70) and the sheet: a toast under a layer is a tap that did nothing */ }}>
-      <div className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-3"
+      <div data-toast="" className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-3"
            style={{ background: t.ink, maxWidth: "100%", opacity: m ? 1 : 0,
                     transform: m ? "translateY(0)" : "translateY(12px)", transition: "opacity 200ms, transform 200ms" }}>
         {m && m.done && (
@@ -10000,7 +10032,7 @@ export const DobBox = React.forwardRef(function DobBox({ value, onChange, ph, le
    asked. What is asked is when they coach, what they set and what they
    say — the last because the thing a coach repeats is the thing they
    were retyping into every player's file. */
-function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompts = [] }) {
+function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompts = [], starterTips = [], saved = null }) {
   const t = useT();
   const L = STRINGS.en;
   /* Three screens, one question each: when you coach, what you set, what
@@ -10008,12 +10040,32 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
      does not scroll — twelve drill cards and an input did not fit, and
      the step ended somewhere under the footer. */
   const [step, setStep] = useState(0);
-  const [drills, setDrills] = useState(live ? [] : cfg.drills.slice(0, 3).map((d) => d.t));
-  const [days, setDays] = useState([]);
+  /* REOPENED, IT OPENS ON WHAT IS STORED (24 November). From Settings it
+     opened blank whatever the coach had: no day lit over a week of Monday
+     to Saturday, none of their drills or tips ticked — and Finish rebuilt
+     every day from the tiles, one set of times for the whole week. Now
+     `saved` is the week as stored (the days with any time lit, every time
+     they hold lit, the length), the drill library and the tips, all
+     ticked; Finish hands back what it opened on beside what is chosen, so
+     finishSetup changes only what was changed (weekAfterSetup). The first
+     offer, after sign-up, opens on nothing, as it always did. */
+  const opened = useMemo(() => {
+    const week = (saved && saved.days) || {};
+    const on = [0, 1, 2, 3, 4, 5, 6].filter((d) => (week[d] || week[String(d)] || []).length);
+    const held = [...new Set(on.flatMap((d) => week[d] || week[String(d)] || []))].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
+    return { days: on, times: held, dur: (saved && Number(saved.duration)) || 45,
+             drills: saved && Array.isArray(saved.drills) ? saved.drills : null, tips: saved && Array.isArray(saved.tips) ? saved.tips : null };
+  }, []);
+  const onWeek = live && opened.days.length > 0;
+  /* the times on offer are the coach's pool and every time a day holds,
+     so a time stored on a day is never a time the grid cannot show */
+  const pool = useMemo(() => [...new Set([...(slots || []), ...opened.times])].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0)), [slots]);
+  const [drills, setDrills] = useState(opened.drills ? opened.drills.slice() : live ? [] : cfg.drills.slice(0, 3).map((d) => d.t));
+  const [days, setDays] = useState(onWeek ? opened.days.slice() : []);
   /* the times start ticked — nine to nine — so Hours is the days and Next */
-  const [times, setTimes] = useState(live ? slots.slice() : []);
-  const [dur, setDur] = useState(45);
-  const [tips, setTips] = useState([]);
+  const [times, setTimes] = useState(onWeek ? opened.times.slice() : live ? slots.slice() : []);
+  const [dur, setDur] = useState(opened.dur);
+  const [tips, setTips] = useState(opened.tips ? opened.tips.slice() : []);
   const [newDrill, setNewDrill] = useState("");
   const [newTip, setNewTip] = useState("");
 
@@ -10053,7 +10105,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ background: t.page }}>
+    <div data-tour="setup" data-step={now} className="flex flex-col h-full" style={{ background: t.page }}>
       <div className="shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
       <div className="flex items-center px-1.5 shrink-0" style={{ height: 52 }}>
         {step > 0
@@ -10077,7 +10129,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
           <Label>{tr("Times")}</Label>
           {/* a grid fills its rows: five slots go three and two, not
               four and a widow */}
-          <TimeGrid cols={evenCols(slots.length)} times={slots} picked={times} onToggle={(sl) => togg(times, setTimes, sl)} />
+          <TimeGrid cols={evenCols(pool.length)} times={pool} picked={times} onToggle={(sl) => togg(times, setTimes, sl)} />
         </>)}
 
         {now === "drills" && (<>
@@ -10087,8 +10139,12 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
         </>)}
 
         {now === "tips" && (<>
-          <div className="nsc-list">
-            {[...(tipPrompts || []).slice(0, 8), ...tips.filter((n) => !(tipPrompts || []).includes(n))].map((tp) => {
+          {/* the coach's own tips first (ticked, reopened), then the
+              sport's starter lines not among them, then any written here —
+              each once: a tip picked from the starter set was in the list
+              twice, two rows with one key */}
+          <div className="nsc-list" data-tour="setup-tips">
+            {[...new Set([...(opened.tips || []), ...(tipPrompts || []).slice(0, 8), ...(starterTips || []), ...tips])].map((tp) => {
               const on = tips.includes(tp);
               return (
                 <button key={tp} aria-pressed={on} onClick={() => togg(tips, setTips, tp)}
@@ -10106,7 +10162,7 @@ function CoachSetup({ cfg, sport, slots, onDone, onSkip, live = false, tipPrompt
 
       <div className="px-7 pt-3 shrink-0" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))", borderTop: `1px solid ${HAIR(t.ink, 0.08)}` }}>
         <Button disabled={!ready}
-                onClick={() => { if (last) { hapticSuccess(); swell(); onDone({ drills, days, times, dur, tips }); }
+                onClick={() => { if (last) { hapticSuccess(); swell(); onDone({ drills, days, times, dur, tips, opened }); }
                                  else { haptic(10); soft(); setStep(step + 1); } }}>
           {last ? tr("Finish") : L.continue}
         </Button>
@@ -16706,6 +16762,76 @@ function DrillLibrary({ cfg, sport, library, addDrill, removeDrill, pop, assign,
   );
 }
 
+/* A COACH'S TIPS, AS THEIR DRILLS ARE A LIBRARY (24 November). The lines
+   a coach says over and over — the Tip sheet's and the log's prompts —
+   could be changed only on Setup's third screen, and searching Settings
+   for "tip" found Setup alone. They are `custom_tips[sport]` on the
+   coach's preferences, read as one list the way the drills are: the
+   stored list, or the sport's starter lines while nothing is stored
+   (myTipPrompts), every change written whole (writeTips) — so the first
+   line written joins the starter four rather than replacing them, and a
+   starter line removed is gone. New and Save as the drill library's; a
+   swipe takes one off, as Away's and Saved's rows go; the last tip keeps
+   no swipe, because an empty list is the starter set again. The toast
+   follows the write; a line already there is said, not saved twice. */
+function TipLibrary({ tips, addTip, removeTip, pop, say }) {
+  const t = useT();
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    const v = text.trim(); if (!v || busy) return;
+    hapticCommit();   /* felt now: iOS gives no haptic once the promise lands */
+    setBusy(true);
+    const r = await addTip(v);
+    setBusy(false);
+    if (r && r.duplicate) { hapticWarn(); say(`${r.duplicate} ${tr("is already in your tips")}`); return; }
+    if (r && r.error) return;
+    setText(""); setAdding(false); chime(); say(tr("Saved"));
+  };
+  /* a refused removal puts the row back: the swiped row hid itself, so
+     the rows are dealt again under a new key */
+  const [gen, setGen] = useState(0);
+  const remove = async (v) => {
+    setBusy(true);
+    const r = await removeTip(v);
+    setBusy(false);
+    if (r && r.error) { setGen((g) => g + 1); return; }
+    say(tr("Removed"));
+  };
+  return (
+    <SwipeBack onBack={pop}>
+      <Screen title={tr("Tips")} onBack={pop} meta={tips.length ? `${tips.length} ${tips.length === 1 ? tr("tip") : tr("tips")}` : ""}
+              right={<TextBtn quiet tour="tips-new" color={t.accent} onClick={() => { haptic(8); setAdding(!adding); }}>{adding ? tr("Cancel") : tr("New")}</TextBtn>}>
+        {adding && (
+          <div className="px-6 mb-5"><Card className="p-5">
+            <VoiceInput value={text} onChange={setText} ph={tr("Tip")} autoFocus />
+            <div className="mt-5"><Button tour="tips-save" disabled={!text.trim() || busy} onClick={save}>{tr("Save")}</Button></div>
+          </Card></div>
+        )}
+        <div className="px-6 pb-2">
+          {tips.length === 0 ? (
+            <EmptyLine>{tr("No tips yet")}</EmptyLine>
+          ) : (
+            <div className="nsc-list" data-tour="tips-list">
+              {tips.map((tp) => {
+                const row = (
+                  <div data-tip-row={tp} className="flex items-center" style={{ minHeight: 56, paddingTop: 10, paddingBottom: 10 }}>
+                    <span className="flex-1 min-w-0" style={{ ...TYPE.body, color: t.ink, overflowWrap: "break-word" }}>{tp}</span>
+                  </div>
+                );
+                return tips.length > 1
+                  ? <SwipeRow key={`${gen}|${tp}`} label={tp} deleteLabel={tr("Remove")} onDelete={() => remove(tp)}>{row}</SwipeRow>
+                  : <div key={`${gen}|${tp}`}>{row}</div>;
+              })}
+            </div>
+          )}
+        </div>
+      </Screen>
+    </SwipeBack>
+  );
+}
+
 /* Suggests drills from the library matching the lesson's focus first,
    with a "write your own" option always available underneath. */
 /* the days a drill can be for: nothing, the player's next lesson where
@@ -18211,12 +18337,15 @@ function Settings({ role, cfg, conn, brandName, myName, plan, demo, live, invite
       { label: tr("Hours"), tour: "settings-availability", onTap: () => push("availability"), keys: ["availability", "times", "slots", "week", "when"] },
       role === "coach" && { label: tr("Away"), sub: awaySub || "", tour: "settings-away", onTap: () => push("away"), keys: ["holiday", "holidays", "vacation", "off", "closed", "break", "leave", "days away", "tournament"] },
       !live && { label: tr("Roster & groups"), tour: "settings-roster", onTap: () => push("roster") },
-      live && { label: tr("Setup"), onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
+      live && { label: tr("Setup"), tour: "settings-setup", onTap: () => onSetup && onSetup(), keys: ["setup", "hours", "availability", "times", "drills", "tips"] },
       live && (hasCoach
         ? { label: tr("Lessons you've taken"), sub: coachOfMine || "", onTap: () => push("myLessons") }
         : { label: tr("Lessons as a player"), onTap: () => push("takeLessons") }),
       { label: tr("Shortcuts"), tour: "settings-shortcuts", onTap: () => push("layout"), keys: ["home", "board", "plus", "customise", "edit", "layout", "tiles"] },
       { label: tr("Drills"), tour: "settings-library", onTap: () => push("library"), keys: ["library"] },
+      /* the coach's tips beside their drills, the same kind of library — they
+         could be changed only on Setup's third screen (24 November) */
+      live && { label: tr("Tips"), tour: "settings-tips", onTap: () => push("tipLibrary"), keys: ["tip", "prompts", "say", "advice", "lines", "library"] },
       { label: tr("Lesson logs"), tour: "settings-lessonlogs", onTap: () => push("lessonLogs"), keys: ["export", "pdf", "file", "save"] },
       live && { label: tr("Downloads"), sub: downloadsSub || null, tour: "settings-downloads", onTap: () => push("saved:downloads"), keys: ["download", "offline", "saved", "phone", "storage"] },
       live && onCalendar && calendarSub && { label: tr("Calendar"), sub: calendarSub, tour: "settings-calendar", onTap: () => onCalendar(), keys: ["ical", "ics", "export", "google", "apple", "outlook", "sync", "diary", "events", "bookings", "add", "phone"] },
@@ -19993,6 +20122,8 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      if they took one, and remembered on their preferences row rather
      than in this browser. Reachable again from Settings. */
   const [setup, setSetup] = useState(false);
+  /* opened again from Settings: it opens on what is stored (CoachSetup's `saved`) */
+  const [setupAgain, setSetupAgain] = useState(false);
   const setupAsked = useRef(false);
   useEffect(() => {
     /* `role` is state and is set from the account by another effect, so
@@ -21158,6 +21289,17 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      writes the list they were looking at with the change in it
      (writeLibrary, below). */
   const myLibrary = (library[coachSport] || []).length ? library[coachSport] : ((SPORTS[coachSport] || {}).drills || []);
+  /* ONE TIP LIST, AS ONE DRILL LIBRARY (24 November): the coach's stored
+     tips for the sport, or its starter lines while nothing is stored — the
+     Tip sheet, the log, Setup's Tips and Settings › Tips all read this. It
+     was the stored tips with the starter four always after them, so a
+     starter line picked in setup stood twice on the Tip sheet, and a line
+     could never be taken off. */
+  const myTipPrompts = (() => {
+    const stored = data ? (((data.prefs || {}).custom_tips || {})[coachSport]) : null;
+    const own = [...new Set((Array.isArray(stored) ? stored : []).map((x) => String(x || "").trim()).filter(Boolean))];
+    return own.length ? own : (TIP_PROMPTS[coachSport] || []);
+  })();
   /* WHAT EACH PERSON WAS LAST LOGGED AT: the stage, the extras and the
      mount from their newest lesson, so the log opens on it and the
      coach changes it only when it has changed. Read from the tags on
@@ -21224,16 +21366,40 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
      they skipped is simply not in the patch, so nothing is overwritten
      with a default they never chose. */
   const finishSetup = async (out) => {
-    setSetup(false);
+    setSetup(false); setSetupAgain(false);
     if (!data) return;
     const patch = { setup_done: true };
     if (out) {
-      if (out.days && out.days.length && out.times && out.times.length) {
-        const week = {};
-        for (let d = 0; d < 7; d++) week[d] = out.days.includes(d) ? out.times.slice().sort((a, b) => parseTime(a) - parseTime(b)) : [];
-        patch.availability = { ...((data.prefs && data.prefs.availability) || {}), days: week, duration: out.dur || 45, slots: out.times };
+      /* reopened, only what was changed is written (weekAfterSetup, and
+         the drills and tips below): the setup opened on the stored week,
+         library and tips, and Finish on an untouched screen writes none of
+         them; the first offer writes what was picked, as it always did */
+      const opened = out.opened || { days: [], times: [], dur: 45, drills: null, tips: null };
+      const av = (data.prefs && data.prefs.availability) || {};
+      const byTime = (xs) => [...new Set(xs)].sort((a, b) => (parseTime(a) ?? 0) - (parseTime(b) ?? 0));
+      const week = weekAfterSetup(av.days || {}, opened, out);
+      if (!opened.days.length) {
+        if (week) patch.availability = { ...av, days: week, duration: out.dur || 45, slots: out.times };
+      } else {
+        const added = (out.times || []).filter((x) => !opened.times.includes(x));
+        const durChanged = (out.dur || 45) !== opened.dur;
+        if (week || durChanged) {
+          patch.availability = { ...av, ...(week ? { days: week } : {}), ...(durChanged ? { duration: out.dur || 45 } : {}),
+                                 ...(added.length ? { slots: byTime([...((av.slots && av.slots.length) ? av.slots : slots), ...added]) } : {}) };
+        }
       }
-      if (out.drills && out.drills.length) {
+      const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+      if (opened.drills) {
+        /* the library as stored, less what was unticked, plus what was
+           ticked — written whole, as every change to it is (writeLibrary),
+           and never emptied: an empty library is the starter set again */
+        if (out.drills && out.drills.length && !same(out.drills, opened.drills)) {
+          const known = SPORTS[coachSport] ? SPORTS[coachSport].drills : [];
+          const kept = myLibrary.filter((d) => out.drills.includes(d.t)).map(({ uses, ...x }) => x);
+          const fresh = out.drills.filter((n) => !kept.some((d) => d.t === n)).map((name) => known.find((d) => d.t === name) || { t: name, d: "", focus: null });
+          patch.custom_drills = { ...((data.prefs && data.prefs.custom_drills) || {}), [coachSport]: [...kept, ...fresh] };
+        }
+      } else if (out.drills && out.drills.length) {
         const known = SPORTS[coachSport] ? SPORTS[coachSport].drills : [];
         const rows = out.drills.map((name) => known.find((d) => d.t === name) || { t: name, d: "", focus: null });
         const had = (data.prefs && data.prefs.custom_drills && data.prefs.custom_drills[coachSport]) || [];
@@ -21241,7 +21407,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
         patch.custom_drills = { ...((data.prefs && data.prefs.custom_drills) || {}),
                                 [coachSport]: [...rows.filter((d) => !names.has(String(d.t).toLowerCase())), ...had] };
       }
-      if (out.tips && out.tips.length) {
+      if (opened.tips) {
+        if (out.tips && out.tips.length && !same(out.tips, opened.tips)) {
+          patch.custom_tips = { ...((data.prefs && data.prefs.custom_tips) || {}),
+                                [coachSport]: [...opened.tips.filter((x) => out.tips.includes(x)), ...out.tips.filter((x) => !opened.tips.includes(x))] };
+        }
+      } else if (out.tips && out.tips.length) {
         const had = (data.prefs && data.prefs.custom_tips && data.prefs.custom_tips[coachSport]) || [];
         patch.custom_tips = { ...((data.prefs && data.prefs.custom_tips) || {}),
                               [coachSport]: [...out.tips.filter((x) => !had.includes(x)), ...had] };
@@ -21250,7 +21421,11 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     hapticCommit();   /* felt now, not when the promise lands: iOS gives no haptic once the gesture is over */
     const res = await data.savePrefs(patch);
     if (res && res.error) { hapticWarn(); say(res.error.message); return; }
-    if (out) done(tr("You're set up"), tr("Hours, drills and tips saved"));
+    /* the line says what was written, and nothing it was not: a reopened
+       setup finished untouched saves nothing and says so by saying none */
+    const wrote = [patch.availability && "hours", patch.custom_drills && "drills", patch.custom_tips && "tips"].filter(Boolean);
+    const line = wrote.length ? `${wrote.join(", ").replace(/, ([a-z]+)$/, " and $1")} saved` : null;
+    if (out) done(tr("You're set up"), line ? line[0].toUpperCase() + line.slice(1) : undefined);
   };
 
   const say = (m) => { setToast(m); setTimeout(() => setToast(null), 1900); };
@@ -21642,6 +21817,21 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     return writeLibrary([d, ...myLibrary]);
   };
   const removeDrill = (name) => writeLibrary(myLibrary.filter((x) => x.t !== name));
+  /* the tips are written whole the same way: the list the coach is
+     looking at, with the change in it. The write is optimistic and a
+     refused one is said and read back (savePrefs reloads on an error) */
+  const writeTips = async (next) => {
+    if (!data || !account) return {};
+    const res = await data.savePrefs({ custom_tips: { ...(((data.prefs || {}).custom_tips) || {}), [coachSport]: next } });
+    if (res && res.error) { hapticWarn(); say(res.error.message || tr("Couldn't save the tips")); return res; }
+    return {};
+  };
+  const saveTip = (text) => {
+    const had = myTipPrompts.find((x) => x.toLowerCase() === String(text).toLowerCase());
+    if (had) return Promise.resolve({ duplicate: had });
+    return writeTips([text, ...myTipPrompts]);
+  };
+  const removeTip = (text) => (myTipPrompts.length > 1 ? writeTips(myTipPrompts.filter((x) => x !== text)) : Promise.resolve({ error: { message: tr("Keep one tip") } }));
   const bumpUses = (names) => setLibrary((l) => ({
     ...l, [coachSport]: (l[coachSport] || []).map((d) => (names.includes(d.t) ? { ...d, uses: (d.uses || 0) + 1 } : d)),
   }));
@@ -22271,6 +22461,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
   } else if (screen === "branding") { body = <Branding swatch={swatch} setSwatch={setSwatch} clubName={brandName} setClubName={setBrandName} nouns={cfg.nouns} pop={pop} say={say} live={!!data}
                                                    onSave={data ? async (club) => { const res = await data.updateProfile({ club }); if (!(res && res.error) && onProfileChanged) await onProfileChanged(); return res; } : null} />;
   } else if (screen === "library") { body = <DrillLibrary cfg={cfg} sport={coachSport} library={myLibrary} addDrill={saveDrill} removeDrill={removeDrill} pop={pop} assign={openAssignDrills} say={say} />;
+  } else if (screen === "tipLibrary") { body = <TipLibrary tips={myTipPrompts} addTip={saveTip} removeTip={removeTip} pop={pop} say={say} />;
   } else if (screen === "away") { body = <AwayScreen ranges={awayRanges} onChange={writeAway} booked={mySeedBooked} isoOf={isoOf} pop={pop} say={say}
                                                    onCallOff={(day) => { if (!day) return; setCallOffFor({ m: day.m, d: day.d }); setSheet("weather"); }} />;
   } else if (screen === "availability" || screen.startsWith("availability:")) { body = <Availability startDay={screen.includes(":") ? Number(screen.split(":")[1]) : null} avail={myAvail} setAvail={writeAvail} slots={slots} setSlots={(v) => { setSlots(v); if (data) data.saveAvailability({ ...(liveHours || {}), slots: v }); }} duration={duration} setDuration={(d) => { setDuration(d); if (data) data.saveAvailability({ ...(liveHours || {}), duration: d }); }} pop={pop} say={say} />;
@@ -22651,7 +22842,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
                             activeProfileId={activeProfileId} onSwitch={switchProfile} go={go} push={push} right={navRight} photos={avatars} say={say} />;
   } else if (screen === "tips") { body = <TipsHistory cfg={cfg} tips={myTips} pop={pop} />;
   } else if (screen === "you") { body = <Settings defaultView={defaultView} onDefaultView={setDefaultView} onSync={syncBuild} reminderOn={reminderOn} reminderTime={reminderTime} reminderOpts={reminderOpts} onReminderTime={setReminderTime} drillCount={role === "coach" ? 0 : (myPractice || []).length} downloadsSub={downloads.totals.count ? `${downloads.totals.count} ${downloads.totals.count === 1 ? tr("lesson") : tr("lessons")} · ${fmtBytes(downloads.totals.bytes)}` : null}
-                          calendarSub={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()} onCalendar={addToCalendar} awaySub={role === "coach" ? awaySub : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => setSetup(true)} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
+                          calendarSub={(() => { const n = data ? calendarEvents().length : 0; return n ? `${n} ${n === 1 ? tr("lesson") : tr("lessons")}` : null; })()} onCalendar={addToCalendar} awaySub={role === "coach" ? awaySub : null} demo={demo} live={!!data} inviteCode={inviteShown} role={role} cfg={cfg} conn={conn} brandName={brandName} myName={myName} plan={plan} onTour={() => setTour(true)} onSetup={() => { setSetupAgain(true); setSetup(true); }} onPhoto={() => setSheet("photo")} onMainSport={() => setSheet("mainSport")}
                           avatar={myAvatar} familyName={data && data.family ? data.family.displayName : null} hasCoach={data ? data.hasCoach : true} hasDependants={!!(data && (data.dependants || []).length)} coachOfMine={data ? data.coachName : null}
                           multiSport={conns.filter((c) => c.profileId === activeProfileId).length > 1}
                           mainLabel={(SPORTS[mainSport[activeProfileId] || (conns.find((c) => c.profileId === activeProfileId) || {}).sport] || {}).label || ""}
@@ -22725,7 +22916,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
     );
     body = {
       today:     coachToday,
-      log:       <Wizard onQueueTake={queueWizardTake} library={myLibrary} tipPrompts={data ? [...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])] : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
+      log:       <Wizard onQueueTake={queueWizardTake} library={myLibrary} tipPrompts={data ? myTipPrompts : null} livePlayers={data ? data.roster : freshAccount ? [] : ROSTER} askReview={prefs.askForReview !== false} lessonCounts={data ? Object.fromEntries((data.roster || []).map((r) => [r.id, r.lessons])) : null} cfg={cfg} onSaveDrill={saveDrill} sport={coachSport} prefill={prefill} groups={myGroups} captured={captured} setCaptured={setCaptured} say={say} onAnnotate={(a) => push("annotate:" + a)}
                          lastFor={lastFor} todayIds={(todayList || []).map((b) => b.playerId || (data ? null : seedId(b.who))).filter(Boolean)} todayBookings={todayList || []} liveNow={liveNow}
                          recent={recentForLog} recentMounts={recentMounts} pinnedToday={data ? null : { y: calendar.year, m: todayMD.m, d: todayMD.d }}
                          onAddPlayer={() => setSheet("invite")}
@@ -22972,7 +23163,12 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
           {setup && !tour && data && (
             <div className="absolute inset-0" style={{ zIndex: 66, background: theme.page }}>
               <CoachSetup live cfg={cfg} sport={coachSport} slots={slots}
-                          tipPrompts={[...(((data.prefs || {}).custom_tips || {})[coachSport] || []), ...(TIP_PROMPTS[coachSport] || [])]}
+                          tipPrompts={myTipPrompts} starterTips={TIP_PROMPTS[coachSport] || []}
+                          /* from Settings it opens on what is stored — the week, the
+                             library, the tips — and Finish changes only what changed;
+                             the first offer after sign-up opens on nothing */
+                          saved={setupAgain ? { days: (liveHours || {}).days || {}, duration: (liveHours || {}).duration || null,
+                                                drills: myLibrary.map((d) => d.t), tips: myTipPrompts } : null}
                           onDone={finishSetup} onSkip={() => finishSetup(null)} />
             </div>
           )}
@@ -23086,7 +23282,7 @@ export default function Nosca({ demo: demoProp, account, onSignOut, data, onJoin
               : sheet === "delete" ? <DeleteBody onCancel={() => setSheet(null)} say={(m) => { setSheet(null); say(m); }} />
               : sheet === "assign" ? <AssignBody livePlayers={data ? data.roster.map((r) => r.name) : null} cfg={cfg} library={myLibrary} preset={assignTo ? assignTo.name : null} focusHint={assignFocus} onAssign={doAssignDrills} onSaveDrill={saveDrill} close={() => setSheet(null)}
                                                   dueOn={data ? !!data.drillsDue : true} nextLesson={assignTo ? nextLessonIsoFor(assignTo) : null} />
-              : sheet === "tip" ? <TipBody prompts={[...(data ? (((data.prefs || {}).custom_tips || {})[coachSport] || []) : []), ...(TIP_PROMPTS[coachSport] || [])].slice(0, 8)}
+              : sheet === "tip" ? <TipBody prompts={myTipPrompts.slice(0, 8)}
                                             onSet={doSetTip} close={() => setSheet(null)} />
               : sheet === "import" ? <ImportRoster noun={cfg.noun} nouns={cfg.nouns} code={data && data.inviteCode} 
                                                     close={() => setSheet(null)} say={say} />
