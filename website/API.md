@@ -1,169 +1,382 @@
-# Nosca's website: the foundation's API
+# Nosca's website: the foundation's contract
 
-One page. Read BRIEF.md first; this says how to build on the shared kit. See it all working: `dist/_kit.html`
-(source `src/pages/_kit.html`, `src/css/_kit.css`, `src/js/_kit.js` are the worked examples).
+Read `BRIEF.md` first (the founder's words and this round's direction). This file says how to build a page on
+the shared kit. Every piece below is on one page, working: build with `--kit` and open `_kit.html`
+(source `src/pages/_kit.html`, `src/css/_kit.css`, `src/js/_kit.js` — copy the patterns, not the class names).
 
-## Build and serve
+## Build, serve, look
 
 ```
-node build.mjs                 # src/ -> dist/   (prints warnings for absolute URLs and placeholders)
-node build.mjs --watch         # rebuild on change
-cd dist && python3 -m http.server <your port> --bind 127.0.0.1
+node website/build.mjs                          # src/ -> website/dist/, with the kit page
+node website/build.mjs --out <dir>              # a release build (no kit page, no _files)
+node website/build.mjs --out <dir> --kit        # the same, keeping the kit page
+node website/build.mjs --watch
+cd <dir> && python3 -m http.server <port> --bind 127.0.0.1
+
+PLAYWRIGHT_MODULE=$(npm root -g)/playwright node website/tools/cap.cjs --dist <dir> --out <shots> \
+     --pages index,story --widths 1440,768,390,320 --mode on|off|nojs --frames 40 --port <port>
 ```
-The build never deletes; it overwrites what changed. A page whose source does not exist is skipped.
+`cap.cjs` prints one JSON line a page and width (console errors, failed requests, sideways scroll, text under
+12px, dead pictures). `--mode on --frames N` wheels down the page and saves N viewport stills: read them as a
+contact sheet before you hand a scene in. The build warns about absolute URLs and anything that looks like a placeholder.
 
 ## Files, and who may touch what
 
 ```
-src/partials/shell.html header.html footer.html defs.html card.html qr.html ticks.html arrow.html   (foundation)
-src/css/site.css   src/js/site.js   build.mjs                                                        (foundation)
-src/pages/<page>.html   src/css/<page>.css   src/js/<page>.js                                         (the page's engineer)
+src/partials/*   src/css/site.css   src/js/site.js   build.mjs   fonts/   vendor/   BRIEF.md API.md KEYS.md   (foundation)
+src/css/palette.css                                   (written by scripts/club-palette.py; nobody edits it)
+src/pages/<page>.html   src/css/<page>.css   src/js/<page>.js   assets/<page>-*                               (the page's engineer)
+assets/photo/ (MANIFEST.json, CREDITS.md)             (the imagery engineer)
+assets/seq/<name>/ (frames + manifest.json)           (foundation; made by tools/seq/)
 ```
-Page engineers edit ONLY their page's three files (and may add images under `assets/` with their page's
-name as a prefix). Need something shared? Build it in your page's files, prefix its classes with your page
-(`pd-…`, `st-…`), and say so in your report. Never rename or restyle a shared class from page CSS in a way
-that changes it elsewhere; scope overrides under your page: `[data-page="product"] .phone{…}`.
+A page engineer edits only the page's three files. Need something shared? Build it in the page's files with the
+page's prefix (`hm-`, `pd-`, `st-`, `pt-`) and say so in the report. Never restyle a shared class globally:
+scope it, `[data-page="story"] .phone{…}`.
 
 ## A page
 
-`src/pages/product.html` starts with one comment, then the sections (no `<html>`, `<head>`, header or footer;
-the shell adds them, and `css/product.css` / `js/product.js` are linked when those files exist):
+`src/pages/story.html` is one comment, then sections. The shell adds `<html>`, the head, the header and the footer,
+and links `css/story.css` / `js/story.js` when they exist.
 
 ```html
 <!--
-title: Product · Nosca
+title: Story · Nosca
 description: One or two plain sentences.
-world: olive            (olive | green: the ground of the footer, the menu and .g-world)
-header: paper           (what the header stands on at the top: paper | light | dark | world)
+world: olive            (olive | green: which card's green --ground-green is on this page. Story is green.)
+header: green           (the ground the header stands on before the first scroll: paper | rest | green)
 -->
-<section class="section g-paper" id="…"> <div class="wrap"> … </div> </section>
+<section class="film g-green" id="top" …> … </section>
+<section class="section g-paper" id="…"><div class="wrap"> … </div></section>
 ```
-Build syntax: `<!-- @include NAME key="value" -->`, `{{appUrl}} {{installUrl}} {{contactEmail}} {{year}}`
-(`{{key|fallback}}`), and `<!-- @if contactEmail --> … <!-- @else --> … <!-- @endif -->` (also `@if !key`).
-Every URL relative: `product.html#coach`, `assets/x.webp`, `./` for Home.
+Template: `<!-- @include NAME key="value" -->` · `{{appUrl}} {{installUrl}} {{contactEmail}} {{year}}`
+(`{{key|fallback}}`) · `<!-- @if contactEmail --> … <!-- @else --> … <!-- @endif -->` (`@if !key` too; not nested).
+Every URL relative: `product.html#coach`, `assets/x.webp`, `./` for Home. When `contactEmail` is empty no address shows.
 
-Includes: `mark` (class, foil="1" on white / foil="d" on a dark ground, label, attrs) · `weave` (same) ·
-`pins` (class, attrs) · `phone` (screens="coach-today-golf,coach-log-golf" alts="First alt|" mode="fade|slide|rise"
-autoplay="3.2" settle="settle" class attrs eager="1") · `card` (world="olive|green" class attrs) · `qr` · `ticks`
-(the 45 cycle days) · `arrow` (the small arrow for keys and links). `attrs="…"` is copied onto the root element.
+| include | gives |
+|---|---|
+| `mark` (`class`, `foil="1"` gold, `label`, `attrs`) | the woven mark, two drawable paths. `--mark-w` sizes it, `color` colours it; `foil` makes it the ground's gold |
+| `weave` (same) | two whole rings that travel and weave (`data-weave`, `Site.weave`) |
+| `pins` (`class`, `attrs`) | the card's two pinstripe wedges, absolutely filling a `position:relative` parent. `.pins--tr` / `.pins--bl` show one wedge; `--pins-w` its width, `--pin-sw` the stripe weight |
+| `phone` (`screens="a,b,c"` `alts="First|…"` `mode="fade|slide|rise|push"` `seq="log"` `seqalt` `poster="0|last|N"` `autoplay="3.2"` `settle="settle"` `class` `attrs` `eager="1"`) | the drawn phone with its screens stacked (780×1688 stills from `assets/`), or with an image sequence as its first screen |
+| `seq` (`name="log"` `alt` `poster="0|last|N"` `class` `attrs` `eager`) | an image sequence outside a phone: the poster `<img>` and everything `Site.sequence` needs |
+| `photo` (`name` `alt` `class` `attrs` `sizes` `focus` `credit="1"` `eager="1"`) | `<figure class="photo">` from `assets/photo/MANIFEST.json`: width, height, srcset, the alt and the picture's own dark tone behind it while it loads. The build fails, naming the photograph, when it is not in the manifest |
+| `card` (`world="olive|green"` `class` `attrs` `weave="1"` `pinsattrs` `frontattrs`) | the business card, both faces. `--card-w` sizes it; `.is-back` shows the back; `.bcard--shadow` lays it on a table |
+| `qr` · `ticks` · `arrow` | the install code · the 45 cycle days · the small arrow for keys and links |
 
-## Motion: the one rule
+## The one rule of motion
 
-Write the FINISHED page in HTML and CSS. Entrance states belong under `html.motion` (set only when site.js
-runs and the visitor allows motion; absent with reduced motion, short landscape viewports, no JS or a failed
-script). `Site.motion` is the same switch in JS. Animate transform and opacity only.
+**Write the finished page in HTML and CSS.** Every caption, every picture, in a plain column. Anything that hides,
+offsets or pins lives under `html.motion`, a class that exists only while `site.js` is running and the visitor
+allows motion. With JavaScript off, a failed script, Reduce Motion or a very short landscape screen, the page is
+whole and still. `.only-rest` shows only without motion (a still for a scene), `.only-motion` only with it.
+Animate **transform, opacity and clip-path only**. Pins are `position: sticky` (never ScrollTrigger `pin`), so
+nothing jumps when one starts or ends.
 
-## Tokens (CSS custom properties)
+## Colour: the card is the art direction
 
-`--olive --olive-deep --green --green-deep` · `--world --world-deep` (the page's world) · `--gold --gold-hi
---gold-lo --pin` · `--on-dark --on-dark-2` · `--paper --ink --sub --faint --trace --hair --edge --ledge --wash
---table` · `--app --app-deep --app-tint` (the app's ONE green) · `--danger` (Call off only) · `--golf … --equestrian`
-(only for `.sport-dot` and inside screenshots) · `--display --text` · `--ease` · `--gut --hdr-h --r-sheet`.
-Inside a ground: `--bg --fg --fg-2 --fg-3 --line`.
+Three grounds and no fourth. A section says which it stands on, and its words follow.
 
-Colour discipline: white, the greys, the world's ground, gold. There is no coloured ground and no sport-coloured
-key, heading or tile. The app's vocabulary is green only.
+| class | token | value | what |
+|---|---|---|---|
+| `.g-green` | `--ground-green` (`--ground-green-deep`) | `#4F5B29` (`#3E4820`); `#123C30` (`#0A251D`) under `data-world="green"` | the card's front. The olive card's ground is CMYK 50/30/85/45 in `scripts/business-card.py` and measures `#505D27` in the print preview; the dark card is the brand's bottle green |
+| `.g-paper` | `--ground-paper` | `#FFFFFF` | the card's back |
+| `.g-rest` | `--ground-rest` | `#F6F4EE` | one quiet warm off-white, for rest (the table the card lies on in the preview is `#ECE9E3`) |
 
-## Layout and type
+Gold is **a line, a numeral, a small-caps eyebrow, a hairline**. Never a fill, a gradient or a glow.
+
+| token | value | for |
+|---|---|---|
+| `--gold-line` | `#C2A24C` | rules, the mark and pinstripes on white or rest. A line, never words |
+| `--gold-pin` | `#CDB065` | pinstripes, rules and the mark on the green |
+| `--gold-text-on-white` | `#85651A` | gold words on paper or rest: an eyebrow, a numeral |
+| `--gold-text-on-green` | `#E9CF7E` | gold words on the green: NOSCA, an eyebrow, a numeral |
+| `--ink --sub --faint --trace --hair --edge --ledge` | `#1C1C1E #5F5F65 #6E6E73 #AEAEB2 #EBEBF0 #E2E2E7 #D9D9DE` | the app's own greys |
+| `--on-green --on-green-2` | `#F4F6F3 #DADED2` | words on the green |
+
+Inside any ground use `--bg --fg --fg-2 --fg-3 --fg-dim --line --rule --gold-text --focus`: they are already the
+right ones for that ground (`.c-2`, `.c-3` are the two greys as classes; `--gold-text` is the gold words may take
+there, `--rule` the gold a line takes there).
+
+Measured contrast (WCAG) of every pair that is sanctioned for words. Use no other pair.
+
+| words | on paper | on rest | on olive green | on dark green |
+|---|---|---|---|---|
+| `--ink` | 17.0 | 15.5 | no | no |
+| `--sub` | 6.3 | 5.8 | no | no |
+| `--faint` (small print) | 5.1 | 4.6 | no | no |
+| `--gold-text-on-white` | 5.4 | 4.9 | no | no |
+| `--on-green` | no | no | 6.8 | 11.3 |
+| `--on-green-2` | no | no | 5.4 | 9.0 |
+| `--gold-text-on-green` | no | no | 4.8 | 8.0 |
+| white | no | no | 7.3 | 12.3 |
+
+Lines only, never words: `--gold-line` (2.5 on paper, 2.2 on rest), `--gold-pin` (3.5 on olive, 5.8 on dark),
+`--trace`, `--hair`, `--edge`.
+
+**The six sports' colours** (`--golf --tennis --rowing --squash --padel --equestrian`, the app's own values from
+`palette.css`) appear only inside their own sport's moment, and mostly inside the phone's screen, where the
+screenshots already carry them. Outside a screen the one permitted mark is `.sport-dot[data-sport]` beside the
+sport's name. No sport-coloured ground, band, panel, heading or key. The club colours (`--club-*`, `data-club`)
+are for vignettes of the app (`.app …`, `KEYS.md`) and nothing else. Fewer colours on screen at once, everywhere.
+
+Retired, kept as aliases so nothing breaks, **do not write them in new work**: `--olive --green --world
+--world-deep --gold --gold-hi --gold-lo --gold-deep --pin --on-dark --on-dark-2 --paper --table --wash`(as a ground),
+`.g-world` (= `.g-green`), `.g-wash` `.g-table` (= `.g-rest`), `.t-gold`'s gradient (it is flat now), the
+`#g-foil` gradients (flat), `.panel`'s pale tint (it is the rest ground), `data-header="dark|world|light"`.
+
+## Type
+
+Instrument Sans is the voice (`--display`), set large and tight. Instrument Serif (`--serif`, OFL, self-hosted,
+with a true italic) speaks only in the few editorial moments. Body copy is the system face (`--text`) at 17.
+Each web font has a fallback face cut with `size-adjust` and its own ascent and descent, so nothing moves when it lands.
+
+| class | size (320 → 1920) | for |
+|---|---|---|
+| `.t-mega` | 84 → 340, 600, −0.055em | one word a page: Nosca. |
+| `.t-display` | 46 → 152 | a page's first headline |
+| `.t-h1` | 40 → 104 | a film's or a chapter's headline |
+| `.t-h2` | 31 → 68 | a caption's headline |
+| `.t-h3` | 22 → 32 | a small heading |
+| `.t-lede` | 19 → 26, in `--fg-2` | the sentence under a headline (max 30em) |
+| `.t-body` `.t-small` `.t-caption` | 17 · 14 · 13 | nothing under 12 |
+| `.eyebrow` | 13, small capitals at .22em, in the ground's gold | the card's small caps. `.eyebrow--rule` leads with a gold rule; `.eyebrow--ink` is grey |
+| `.wordmark` | tracked .42em | NOSCA |
+| `.t-quote` | serif 30 → 72 | a pull-quote; `<i>` inside is the true italic |
+| `.t-numeral` | serif italic 44 → 96, gold | a chapter numeral: `01`, `2` |
+| `.t-serif` | the serif at the current size | a word or a line |
+| `<i lang="ga">nascadh</i>` | the serif's italic, a touch larger | a word in Irish, set apart as the foreign word it is. Always mark it up so |
+
+`h1 h2 h3` balance; `p` wraps pretty. `.measure` is 34em. `.nw` keeps words together. `.sports` (spans) is the six
+sports line with its dots. `.t-gold` is flat gold in the ground's `--gold-text` (large type, numerals, eyebrows only).
+
+## Layout
 
 | class | what |
 |---|---|
-| `.wrap` `.wrap--narrow` `.wrap--wide` | centred column with gutters (1160 / 760 / 1440) |
-| `.section` `.section--tight` | vertical rhythm |
-| `.g-paper` `.g-wash` `.g-table` `.g-world` | grounds; words follow (`.c-2`, `.c-3` for the greys). `data-world="green"` on any element switches the world beneath it |
-| `.sheet` (`.sheet--lift`) | round shoulders, lies over the section before it |
-| `.hold` | the section stays at its end while the next slides over it and it recedes a little (`data-hold="still"` to hold without receding, `data-hold="0.94"` for the scale) |
-| `.grid .grid--2/3/4` `.stack` (`--stack`) `.center` `.measure` `.keys` | utilities |
-| `.t-mega .t-display .t-h1 .t-h2 .t-h3 .t-lede .t-body .t-small .t-caption .eyebrow .wordmark` | the type scale (display face; body in the system face). Nothing under 12px |
-| `.t-gold` | foil gradient text: large display type only. Do not put `data-reveal="lines|words"` on it (use `rise`); add `data-sheen` for a light across it |
-| `.sports` (spans) · `.sport-dot[data-sport]` · `.rule-gold` | the six sports line, the one permitted dot of a sport's colour, a gold rule |
-| `data-header="dark|light|paper|world"` on a section | what the fixed header stands on while that section is under it (`dark`/`light` are see-through, for pinned scenes and heroes) |
+| `.wrap` `.wrap--narrow` `.wrap--wide` | a centred column with gutters (1160 / 760 / 1440; the gutter is `--gut`) |
+| `.section` `.section--tight` | vertical rhythm: 96 → 208 of air above and below (56 → 112) |
+| `.cols` | the editorial grid: twelve columns on a desk, four on a phone (where every child takes the full row). Place a child off-centre with `style="--at:3;--span:6"`. This is how asymmetry is made: do not centre everything |
+| `.grid .grid--2/3/4` `.stack` (`--stack`) `.center` `.keys` | utilities |
+| `.rule-gold` (`--hair`) | the card's gold rule; add `data-rule` and it draws from its left end with the scroll |
+| `.sheet` (`.sheet--lift`, `.sheet--over`) | a section with round shoulders lying over the one before; `--over` slides right over the film or `.hold` before it, which stays pinned one more screen |
+| `.hold` | the section stays at its end while the next slides over it and it recedes a little (`data-hold="still"`, `data-hold="0.94"`). It stays under everything after it, the footer included |
+| `data-header="paper|rest|green|none"` on a section | the header is **solid**, the colour of the ground under its foot, closed by a gold hairline. With no attribute it reads the section's own ground. `none` slides it away while a full-bleed film plays (it returns on focus) |
+| `data-world="green"` on any element | the dark card's green for `.g-green` beneath it |
 
 ## Objects
 
-- **Keys** `<a class="key">` (world colour) · `.key--paper` (white, on any ground) · `.key--ghost` (on the world's ground)
-  · `.key--sm` `.key--lg`. They sink on press. `data-magnet` adds the pull on a desk.
-- **Link** `<a class="link">Words <!-- @include arrow --></a>` (`.link--gold` on the world's ground).
-- **Mark** `<!-- @include mark class="…" -->` sized by `--mark-w`, coloured by `color`. `data-draw` draws it in.
-  Large and faint behind a section: `<div class="ringsbg"><!-- @include mark --></div>` (`--rings-w`, `--rings-o`).
-- **Pinstripes** `<!-- @include pins class="pins--band" attrs="data-pins" -->` inside a `position:relative` ground;
-  `data-pins` draws them line by line. Size with `--pins-w`, weight with `--pin-sw` (viewBox units).
-- **Phone** `<!-- @include phone screens="a,b,c" alts="…||" -->`; width `--phone-w`. `.phone--light` for a silver
-  frame. Put phones in a `.depth` parent for perspective.
-- **Shot** `<figure class="shot"><img …></figure>` (width `--shot-w`); a `.fan` of them with `data-fan` fans out.
-- **Card** `<!-- @include card world="olive" class="bcard--shadow" attrs="data-tilt data-sheen" -->`; width `--card-w`;
-  `.is-back` shows the back; turn it with `gsap.to(card.querySelector('.bcard__flip'), {rotationY: 180})`.
-- **Tile** `.tile` (`--pad`, `--wash`, `--lift`) · **Partner frame** `<div class="pframe" data-sheen><!-- @include mark --><i class="sheen"></i></div>` in `.pframes` · **Stat** `.stats > .stat > .stat__n[data-count] + .stat__l`.
-- **The app's vocabulary** (wrap in `.app`): `.app-card .app-list .app-row .app-row__t .app-name .app-sub .app-time
-  .app-eyebrow .app-title .app-face .app-key (--quiet --danger --wide, .is-down) .app-tick(.is-on) .app-bubble(--mine)
-  .app-thread .app-label .app-dot .app-bar>i .app-chip(.is-on) .app-star`.
+- **Keys** `<a class="key">` (the card's green, white words) · `.key--paper` (white, on any ground) · `.key--ghost`
+  (an outline, on the green) · `.key--sm` `.key--lg`. They sink on press. `data-magnet` adds the pull on a desk.
+- **Link** `<a class="link">Words <!-- @include arrow --></a>` (`.link--gold` takes the ground's gold).
+- **Mark** `<!-- @include mark foil="1" class="…" -->`, large and faint behind a section:
+  `<div class="ringsbg"><!-- @include mark --></div>` (`--rings-w`, `--rings-o`).
+- **Pinstripes** `<!-- @include pins attrs="data-stripes" -->` in a `position:relative` ground. `.pins--band` is the
+  size for a full-width band.
+- **Phone** `<!-- @include phone … -->`, width `--phone-w`; `.phone--light` a silver frame; `.phone--flat` no cast shadow.
+  Give its parent `.depth` for perspective.
+- **Shot** `<figure class="shot"><img …></figure>` (`--shot-w`): a screen outside the phone, on the app's ledge.
+- **Card** `<!-- @include card world="olive" class="bcard--shadow" -->`.
+- **Photograph** `<!-- @include photo name="…" attrs="data-settle" -->` or by hand `<figure class="photo" style="--ar:3/2;--focus:50% 30%"><img width height alt loading="lazy"></figure>`.
+  `.photo--tall` 4/5 · `.photo--wide` 21/9 · `.photo--square` · `.photo--bleed` a full screen · `.photo--veil` lays one even
+  veil of the deep green over it so `--on-green` words hold 4.5:1 (`--veil:.42`; never a gradient). `.credit` is the small line under one.
+- **Partner frame** `<div class="pframe"><!-- @include mark --></div>` in `.pframes`: paper, one gold hairline, the mark faint. No shadow.
+- **Stat** `.stats > .stat > .stat__n[data-count] + .stat__l`. Only the numbers BRIEF §2 gives.
+- **The app's vocabulary** for a vignette (wrap in `.app`, colours per `KEYS.md`): `.app-card .app-list .app-row
+  .app-row__t .app-name .app-sub .app-time .app-eyebrow .app-title .app-face .app-glyph .app-key (--quiet --danger --wide,
+  .is-down) .app-tick(.is-on) .app-bubble(--mine) .app-thread .app-label .app-dot .app-bar>i .app-chip(.is-on) .app-star`,
+  on a `.tile` (`--pad`). `data-club="navy"` picks a club colour for what is inside.
 
-## Behaviours by attribute (site.js wires them on load; `Site.scan(root)` for anything added later)
+## The motion library
 
-| attribute | does |
+The scroll is a film reel the visitor turns by hand. Every piece is **scrubbed**: it moves exactly as far as the
+thumb has. Each takes the same two ways of being driven:
+
+```
+{ tl, at, duration }                 inside a film: positions and durations run 0 to 100 over the film
+{ start, end, scrub, trigger }       on its own passage through the screen (the default; the attribute does this)
+```
+Attributes are wired on load (`Site.scan(root)` for anything added later). A piece standing on a pinned stage
+(a film's or a rail's) is left to that film or rail: drive it from the film's timeline. `="manual"` on any
+attribute leaves the piece to your script.
+
+### Site.film — a pinned scene the scroll plays
+
+```html
+<section class="film g-rest" id="log" data-film style="--len:5.4;--len-sm:4.6" data-header="rest">
+  <div class="film__stage">                       <!-- sticky, one screen tall (100lvh), clips -->
+    <div class="film__safe hm-log">               <!-- the 100svh box that is always visible: lay the scene out here -->
+      <div class="film__steps">                   <!-- captions: a column at rest; with motion they share one place and take turns -->
+        <div data-step data-frame="0"><p class="t-numeral">1</p><h2 class="t-h2">The coach's day.</h2><p class="t-lede">…</p></div>
+        <div data-step data-frame="11"> … </div>
+      </div>
+      <!-- @include phone seq="log" seqalt="…" attrs="data-device data-zoom='tall' data-turn='-20,7,1.5'" -->
+      <i class="film__bar"><i></i></i>            <!-- the fine gold line of progress -->
+    </div>
+  </div>
+</section>
+```
+`data-film` builds all of that with no script. `--len` is the film's length in screens (`--len-sm` on a phone, else
+four fifths of `--len`). What the markup says:
+
+| in a film | does |
 |---|---|
-| `data-reveal="lines|words|chars|rise|fade|scale|left|right|down"` | enters once when it comes into view (`data-delay`, `data-duration`, `data-stagger`) |
-| `data-reveal-group="rise"` | its children enter one after another (`data-stagger`) |
-| `data-lit` | words light from dim to full as the element crosses the screen (`data-lit-start`, `data-lit-end`) |
-| `data-parallax="0.15"` | drifts against the scroll (fraction of a screen; negative reverses) |
-| `data-count="1500" data-suffix="+"` | counts up once; write the final text in the HTML |
-| `data-pins` · `data-draw` · `data-fan` | draw / fan on entering (`="manual"` to drive it yourself) |
-| `data-weave` | on an `@include weave`: the two rings travel in and weave as it crosses the screen |
-| `data-sheen` | one sweep of light on entering and on hover; on `.t-gold` it moves the gradient |
-| `data-tilt="7"` · `data-magnet` | pointer tilt with the sheen · magnetic pull (fine pointers only) |
-| `data-phone="settle"` | the phone's slow 3D settle on entering |
-| `data-screens="fade|slide|rise" data-autoplay="3.2"` | on `.phone__screen`: turn through the screens while in view |
+| `[data-step]` (or `data-step="20,45"` for its own range) | captions take turns, evenly over the film (after the zoom's lead). The section carries `data-at="<index>"` |
+| `[data-step-mark]` | the nth one gets `.is-on` while the nth step plays (a chapter list, dots) |
+| `[data-device]` on a phone (`="fade|slide|rise|push"`, `data-swap="4.4"`) | its screens change with the steps |
+| `data-zoom="bleed|tall|1.8"` (`data-zoom-len="16"`, `data-zoom-wide="tall"`) | the phone's screen fills the stage (or stands a screen tall), then draws back into its frame over the first 16 of the film. A 660px frame at full bleed on a desk is soft: name a gentler start for 900 and up |
+| `data-turn="ry,rx,rz"` (`data-turn-to="ry,rx,rz"`) | it turns in 3D into rest (or from one pose to another across the whole film) |
+| a `[data-sequence]` (the phone's `seq`) | runs frame for frame with the steps: each step's `data-frame` is the frame the sequence stands on as that step begins |
+| `[data-scrub-video]` | its time runs with the film |
+| `.film__bar > i` | fills |
+| `data-span="16,100"` | where the steps begin and end |
+| `data-unpin="sm"` | on a phone this film does not pin: it is the plain column (`.only-rest` shows, `.only-motion` hides) |
 
-## JS (`Site`, after `Site.ready`)
+With script, when the scene needs more (`Site.ready` runs before the markup films are built, so yours wins):
 
 ```js
-Site.ready(function (S) {            // S === Site; runs after the engine is up, with or without motion
-  // a pinned, scrubbed scene:  <section class="scene" style="--len:4"><div class="scene__stage"><div class="scene__safe">…
-  S.scene('#coach', function (tl, s) {          // tl runs 0 → 100 over the section; ease 'none', duration 10 by default
-    S.beats(tl, s.$$('.caption'), [[0, 30], [32, 64], [66, 100]]);   // captions take turns
-    S.screens(tl, s.$('.phone'), [30, 64]);                          // crossfade the phone's screens at 30 and 64
-    tl.fromTo(s.$('.thing'), { y: 80, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 12, ease: 'power2.out' }, 20);
-  }, { rest: function (s) { /* optional: runs instead when motion is off */ } });
-
-  // a live vignette: plays (and loops) only while on screen; HTML shows the finished picture
-  S.vignette('#register', function (tl, el) { tl.set(ticks, { className: 'app-tick' }, 0); … });
+Site.ready(function (S) {
+  S.film('#open', function (tl, s) {                          // tl: 0 → 100, ease 'none', duration 10 by default
+    S.drawStripes(s.$('.pins'), { tl: tl, at: 0, duration: 52 });
+    tl.fromTo(s.$('.hm-lock'), { y: 0 }, { y: function () { return -s.vh() * 0.06; }, duration: 60 }, 0);
+    S.groundShift(s.$('.shift-layer'), { tl: tl, at: 56, duration: 44, shape: 'wedge' });
+  }, { rest: function (s) { /* runs instead when motion is off */ } });
 });
 ```
-| helper | returns / does |
+`s`: `el stage $(q) $$(q) vw() vh() lvh() steps at(i)`. Options: `scrub` (0.9) `start` `end` `span` `unpin` `rest`
+`onToggle(active)` `onUpdate(progress)`. The section has `.is-live` while it plays and `.is-built` once made.
+Use function values (`y: () => …`) for anything measured: the timeline is rebuilt on resize. Two things do not
+survive that rebuild, so keep them in CSS under `html.motion`: a CSS custom property set with `gsap.set` before the
+film, and the start state of a timeline nested inside it (put tweens straight on `tl`). `Site.scene` is the same
+stage without the conveniences (the older name; `Site.beats(tl, els, ranges)` and `Site.screens(tl, phone, positions)` still work).
+
+### Site.device — the phone in a film
+
+`var d = Site.device(phone)` is `Site.phone(phone)` (`show(i) next() warm() screens index`) with three things a timeline plays:
+`d.swap(tl, [30, 60], { mode, duration })` the screens change inside it · `d.turn(tl, { from: [ry, rx, rz], to: [0, 0, 0], at, duration })`
+it turns · `d.zoom(tl, { from: 'bleed' | 'tall' | 1.8, at, duration, wide })` its screen fills the stage and draws back.
+Outside a film: `data-phone="settle"` is the slow 3D settle on entering; `data-screens` + `data-autoplay="3.2"` on
+`.phone__screen` turn through the screens while in view (the `phone` include writes both).
+
+### Site.sequence — frames of the real app on a canvas, drawn by scroll
+
+`<!-- @include seq name="register" alt="…" -->` (or the phone's `seq`). On its own it plays over its passage
+through the screen (`data-start`, `data-end`); in a markup film it follows the steps. By hand:
+`var q = Site.sequence(el, { tl, at, duration })` or `q.keys(tl, [[0, 0], [40, q.at(18)], [100, 1]])` (at timeline
+position 40 it stands on frame 18); `q.p = 0…1`, `q.frame(i)`, `q.frames`. Frames load when it nears the screen, a
+coarse pass first so a fast scroll always has a near frame. The `<img>` is the poster and the no-JS picture.
+
+| sequence | frames | size | marks in its manifest (first, last frame) |
+|---|---|---|---|
+| `log` | 58 | 0.8 MB | home 0 · plus 1–10 · who 11–18 · page 19–27 · chipping 28–31 · putting 32–35 · logged 36–57 |
+| `register` | 36 | 1.1 MB | home 0 · peek 1–7 · open 8–15 · six marks 16–33 (the fourth is Absent) · submit 34–35 |
+| `feed` | 29 | 0.5 MB | first 0 · to the second lesson 1–14 · to the third 15–28 (a player's feed; the clips are the test suite's synthetic clip) |
+
+All are 660 × 1428, shot from a mock build of the real app (`tools/seq/seq-*.cjs`, then `seq-encode.py`; they
+need the stills harness in the scratchpad, see each file's first line). Ask the foundation for another.
+
+### Site.scrubVideo — a video whose time is the scroll
+
+`<video data-scrub-video muted playsinline preload="metadata" poster width height src>` or
+`Site.scrubVideo(video, { tl, at, duration })`. It never plays, so it is silent and still off screen. Encode with
+a keyframe every frame or two (`ffmpeg -g 2 -an -movflags +faststart`). `assets/seq/plus/plus-scrub.mp4` is the
+plus sheet rising (1.1 MB). `video[data-video]` is the other kind: it plays muted and inline while on screen and
+pauses the moment it is not (`="once"` does not loop).
+
+### Site.inkFill — a headline fills with ink line by line
+
+`<h2 class="t-display" data-ink>` (`data-ink="gold"` fills in gold). The dim line stays (`--fg-dim`); a full-ink
+copy of each line opens over it from the left. `Site.inkFill(el, { tl, at, duration })` in a film.
+
+### Site.rise — words rising out of their line's mask
+
+`<p class="t-quote" data-rise>` (words) · `data-rise="lines"`. `Site.rise(el, { by, tl, at, duration })`.
+`data-lit` is the quieter cousin: words light from dim to full as the paragraph crosses the screen.
+
+### Site.depth — layers at different rates
+
+`<div data-depth="0.18"> <figure data-z="-0.6"> <h2 data-z="0.3"> … </div>`. `data-z` is how far forward a layer
+stands (1 moves a whole range against the scroll, −1 with it); the range is `data-depth` of a screen;
+`data-z-scale="0.06"` lets a far layer breathe. `data-parallax="0.15"` is one element drifting on its own.
+
+### Site.drawStripes — the card's gold drawing itself
+
+`data-stripes` on a `pins` include (the wedges draw line by line behind their edge) · `data-rule` on a
+`.rule-gold` (from its left end) · or any svg whose paths carry `pathLength="1"` (the mark, a diagram).
+`Site.drawStripes(el, { tl, at, duration })`. (`data-pins` and `data-draw` are the time-based draws on entering.)
+
+### Site.groundShift — one ground giving way to another
+
+On a section: `<section class="section g-green" data-ground-shift>`. Its ground arrives as the card's diagonal:
+a wedge of it, closed by the gold edge, rises out of the section before and levels as the section reaches the
+top. Nothing is pinned. A plain section before it is given a foot as tall as the wedge (`data-shift-lead="0.5"`
+of a screen), so the wedge crosses air; after a film, a rail or a `.hold` it crosses that scene's last frame.
+In a film: `<div class="shift-layer g-paper" aria-hidden="true">…</div>` on the stage and
+`Site.groundShift(layer, { tl, at, duration, shape: 'wedge' | 'rise' | 'iris' })` opens it over the stage through a clip-path.
+
+### Site.rail — a horizontal passage on vertical scroll
+
+```html
+<section class="rail g-paper" id="sports" data-rail data-header="paper">
+  <div class="rail__stage"><div class="rail__track hm-sports"> …items… </div><i class="rail__bar"><i></i></i></div>
+</section>
+```
+At rest the track is a plain column (or your grid). With motion the section is as tall as the track is wide, so
+the thumb's travel down is the track's travel across. Inside it `[data-settle]` photographs open as they come in,
+`[data-rail-z="0.12"]` layers drift at their own rate, `[data-rail-in]` items rise in. `--rail-gap`, `--rail-pad`;
+`data-rail="1.4"` slows it. `data-unpin="sm"`: on a phone it is the phone's own sideways swipe, snapping item to
+item. `Site.rail(el, function (tween, r) { … })` hands you `r.containerAnimation` (and `r.items r.track r.stage r.dist()`)
+for anything else that should happen as an item passes.
+
+### Site.settle — a photograph that settles
+
+`<figure class="photo" data-settle>`: the frame opens through a clip-path (`data-settle="9% 7% 9% 7%"`, or `none`)
+and the picture comes to rest from a slow scale, then keeps a little drift for as long as it is on screen. Never a
+pop. `Site.settle(figure, { tl, at, duration, open, scale })`.
+
+### Site.card — the business card
+
+`Site.card(card).turn(tl, { at, duration, from: 0, to: 180, tilt: [rx, rz] })` turns it over in a film, with one
+pass of light across the arriving face. `<div class="bcard is-back" data-card-turn>` (through the include:
+`class="is-back" attrs="data-card-turn"`) turns from its front to its back on its own passage.
+
+### The rest
+
+| attribute / call | does |
 |---|---|
-| `Site.motion` `Site.fine` `Site.reduced` `Site.wide()` | switches |
-| `Site.scene(el, build, {scrub, start, end, rest, onToggle, onUpdate})` | the timeline; the section gets `.is-live` while it plays. Height is `--len` screens; the stage is sticky (never use ScrollTrigger `pin`) |
-| `Site.beats(tl, els, ranges, {y, fade})` · `Site.screens(tl, phone, positions)` | scrubbed captions · scrubbed screens |
-| `Site.vignette(el, build, {loop, repeatDelay, soft, threshold})` | a paused-until-seen looping timeline |
-| `Site.inView(el, {enter, leave, above, once, margin, threshold})` | an IntersectionObserver |
-| `Site.phone(el)` → `{show(i), next(), screens, index}` · `Site.settle(el, opts)` | phone control · the settle timeline (paused) |
-| `Site.fan(el, {spread, rot, drop, shrink, stagger})` | the fan timeline (paused) |
-| `Site.pins(el)` · `Site.draw(el)` · `Site.sheen(el)` | paused timelines / a tween for gold |
-| `Site.weave(svg)` → `{state:{d, draw}, render(), set(d, draw), far()}` | the rings: `d` is the distance between centres (12 is the mark); tween `state` and call `render` in `onUpdate` |
-| `Site.split(el, 'lines'|'words'|'chars')` | a SplitText instance |
-| `Site.svh()` `Site.lvh()` `Site.refresh()` `Site.fonts` (promise) `Site.lenis` `Site.gsap` `Site.ScrollTrigger` | plumbing |
+| `data-weave` on a `weave` include · `Site.weave(svg)` → `{ state: { d, draw }, render(), set(d, draw), far() }` | the two rings travel in and weave as it crosses the screen (`d` is the distance between centres; 12 is the mark) |
+| `data-count="1500" data-suffix="+"` | counts up once; write the final text in the HTML |
+| `data-tilt="7"` · `data-magnet` · `data-sheen` | pointer tilt with one pass of light · magnetic pull · one pass of light on entering (fine pointers; nothing may depend on hover) |
+| `Site.vignette(el, build, { loop, repeatDelay, soft, threshold })` | a small looping timeline that plays only while on screen; the HTML shows the finished picture. The restart never blanks the tile |
+| `Site.inView(el, { enter, leave, above, once, margin, threshold })` | an IntersectionObserver |
+| `Site.fan(el)` · `data-fan` | `.shot`s in a `.fan` fanning out |
+| `data-reveal="lines|words|rise|fade|…"` · `data-reveal-group` | a timed entrance. **Not for headlines, sections or pictures any more**: an entrance that only fades up is the tell this round removes. Keep it for small print inside a tile, if at all |
+| `Site.motion` `Site.fine` `Site.reduced` `Site.wide()` `Site.small()` | switches |
+| `Site.svh()` `Site.lvh()` `Site.refresh()` `Site.fonts` `Site.toHash('#id')` `Site.header.refresh()` `Site.lenis` `Site.gsap` `Site.ScrollTrigger` `Site.split(el, type)` | plumbing |
 
-## Rules
+## Rules that keep it holding
 
-- Pinned scenes: use `.scene` + `Site.scene` (sticky + scrub). Size things inside a stage in `svh`; the stage itself
-  is `100lvh` and `.scene__safe` is the `100svh` box that is always visible. Give scenes `data-header="light"` or `"dark"`.
-- Shorter scenes on a phone: override `--len` in your page CSS under a media query.
-- Images: `width`/`height` always, `loading="lazy"` below the fold, `alt` on the first of a stack and `alt=""` on the rest.
-- Copy: BRIEF §2. No placeholders; an empty fact means the element is left out (`@if`).
-- Check before you report: `scrollWidth === innerWidth` at 320/390/768/1440, console clean, reduced motion and no JS complete.
+- **Every section has a scroll-linked behaviour; each long page has at least three pinned films; the first screen
+  of each page is one.** One idea per screen of scroll.
+- Size things on a stage in `svh` (`min(60vw, calc((100svh - var(--hdr-h) - 110px) / 2.2))` for a phone); the stage
+  is `100lvh`, `.film__safe` the `100svh` that always shows. Keep clear of the header (`--hdr-h`, 56 / 64).
+- A film must not trap the thumb on a phone: shorter there (`--len-sm`), or `data-unpin="sm"`.
+- Pictures: `width` and `height` always, `loading="lazy"` below the fold, `alt` on the first of a stack and
+  `alt=""` on the rest. Video: `muted playsinline`, never autoplaying off screen.
+- Lines are split only once the fonts are in, and re-split on resize; do not put `data-ink` and `data-rise` on one element.
+- Anchors land clear of the header (`scroll-padding-top`, Lenis's offset, and `Site.toHash` once films have set the page's length).
+- Safari: no `scroll-timeline`, no `animation-timeline`; `lvh`/`svh` are written with a `vh` fallback before them.
+- Before you report, with `cap.cjs`: no console errors, no failed requests, no sideways scroll at 320 / 390 / 768 /
+  1440 / 1920, nothing under 12px, `--mode off` and `--mode nojs` whole, and every film watched frame by frame.
 
-## Changes — 23 Nov, 05:10 UTC (the lead architect)
+## Fixed this round (the loose ends from round one)
 
-- `src/css/palette.css` is new and loads before `site.css` on every page (the shell links it). Variables only, owned by the
-  lead architect, never edited by a page: for each of the twenty club colours `--club-<name>` (deep), `--club-<name>-tint`
-  (its pale), `--club-<name>-lip` (the pale's ledge), `--club-<name>-mid` (its cloth tone, for a dark ground) and
-  `--club-<name>-ink` (what is drawn on the pale). Names: fairway olive bottle lawn court petrol river navy steel aubergine
-  indigo plum claret sienna rust saddle chestnut gold slate brick. Use the variables; never paste a hex (the values may be retuned).
-- The rule (BRIEF §3, "THE LIGHTER HALF"): what acts is deep; what labels is pale with the deep as its ink; the page feels light;
-  never a deep club colour on a dark ground (gold, white, `-mid`, `-tint` there).
-
-## Changes — 23 Nov (Home and Partners)
-
-- `site.js`, `Site.weave` only: while the two rings are apart the LEFT ring now draws whole (its dash pattern is one turn long); it used to stop at half a ring and jump whole when the rings touched. Nothing else in the foundation changed; every class and helper works as before.
-- Two things found and NOT changed in the foundation (worked round in `index.*` / `partners.*`; the same fix belongs in every page): (1) `.sheen` and `.phone__sheen > b` rest on a percentage `translate3d` in CSS, GSAP reads it back as pixels, so every `xPercent` sweep (`Site.sheen`, `data-sheen`, `data-tilt`, `Site.settle`'s glass) stops at the element's left edge instead of crossing it: run `gsap.set('.sheen, .phone__sheen > b', { x: 0 })` once, as `index.js` and `partners.js` do. (2) `card.html` hands the card's `class` on to the `qr` include inside it, so a class with layout of its own (`.hero__card`) also lands on the QR code: write such rules as `.bcard.<class>`.
-- For anyone building a scene (`Site.scene`): ScrollTrigger puts a scene's timeline back and rebuilds it on every refresh, and two start states do not survive that: a CSS custom property set with `gsap.set` before the scene, and the start state of a timeline nested inside it (`tl.add(Site.fan(…))`). Put both in CSS under `html.motion` instead (Home does: the first chapter chip's `--on`, the fan's hidden screens). And `Site.vignette`'s default "soft" restart cuts a tile's contents to nothing before fading them back: pass `{ soft: false }` and let the scene put itself back gently.
+- The sheen rested on a percentage translate that GSAP read back as pixels, so every pass of light stopped at the
+  element's left edge (`Site.sheen`, `data-sheen`, `data-tilt`, the phone's glass). It rests on no transform now;
+  the `gsap.set('.sheen …', { x: 0 })` in page scripts is no longer needed (and harmless).
+- `Site.vignette`'s soft restart blanked a tile. It is off unless asked for (`soft: true`), and then only dips.
+- The card partial handed its `class` on to the QR code inside it. It does not.
+- `.hold` stacked over later sections and the footer. It is under everything after it and stops painting once covered.
+- Lenis anchors landed under the header; a page opened on `#id` landed short once films lengthened it. Both land clear.
+- The header was 97% white and ghosted over content. It is solid, on the ground beneath it, closed by a gold hairline.
+- `<i lang="ga">` had no style. It is the serif's true italic.
+- Gold was a gradient (`.t-gold`, `#g-foil`). It is one flat metal.
