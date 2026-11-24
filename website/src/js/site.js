@@ -462,7 +462,9 @@
       o = Object.assign({ from: 'bleed', at: 0, duration: 18, ease: 'power2.inOut' }, o || {});
       const geo = () => {
         const st = stageOf(), sw = st ? st.clientWidth : W.innerWidth, sh = Site.svh(), bw = box.offsetWidth || 1, bh = box.offsetHeight || 1;
-        const s = o.from === 'bleed' ? Math.max(sw / bw, sh / bh) * 1.1 : o.from === 'tall' ? sh / bh : (+o.from || 1.6);
+        /* a 660px frame filling a desk's screen is soft: data-zoom-wide="tall" (or o.wide) names a gentler start from 900 up */
+        const wide = W.innerWidth >= 900 && (o.wide || el.dataset.zoomWide), from = wide ? (isNaN(+wide) ? wide : +wide) : o.from;
+        const s = from === 'bleed' ? Math.max(sw / bw, sh / bh) * 1.1 : from === 'tall' ? sh / bh : (+from || 1.6);
         const c = st ? offs(el, st) : { x: el.getBoundingClientRect().left, y: 0 };
         return { s, x: sw / 2 - (c.x + el.offsetWidth / 2), y: st ? sh / 2 - (c.y + el.offsetHeight / 2) : 0 };
       };
