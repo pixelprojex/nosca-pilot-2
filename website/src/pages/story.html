@@ -1,237 +1,226 @@
 <!--
 title: The story · Nosca
-description: Nosca is an anglicised spelling of the Irish word nascadh, which means linking. How one coaching app for coach, player and parent was built, tested and piloted in Ireland.
+description: Nosca is an anglicised spelling of the Irish word nascadh, which means linking. Why it exists, how it was made and where it is from.
 world: green
-header: dark
+header: green
 -->
-<section class="scene g-world st-hero" id="top" data-header="dark">
-  <div class="scene__stage">
-    <!-- @include pins class="pins--band st-hero__pins" attrs="data-pins" -->
-    <i class="st-hero__dim" aria-hidden="true"></i>
-    <div class="scene__safe st-hero__safe">
-      <div class="st-hero__title">
-        <p class="eyebrow eyebrow--gold" data-reveal="fade" data-delay=".5">The story</p>
-        <h1 class="t-mega t-gold st-hero__name" data-sheen data-reveal="rise" data-delay=".15" data-duration="1.4">Nosca.</h1>
-        <p class="st-hero__sub" data-reveal="rise" data-delay=".5">From the Irish <i lang="ga">nascadh</i>, linking.</p>
+
+<!-- ═════════════ THE NAME · the first screen is a film ═════════════
+     The dark card's front at the size of a screen. Two gold rings stand apart at its edges; the scroll brings
+     them in until each passes through the other, the pinstripes draw in the corners, the long form of the name
+     rises under it. Then the white of the page opens through the card's own diagonal. -->
+<section class="film g-green st-name" id="top" style="--len:3;--len-sm:2.3" data-header="green">
+  <div class="film__stage">
+    <!-- @include pins class="st-name__pins" -->
+    <div class="film__safe st-name__in">
+      <p class="eyebrow st-name__eye">The story</p>
+      <div class="st-name__rings"><!-- @include weave foil="1" class="st-name__weave" label="Two rings, each passing through the other: the Nosca mark" --></div>
+      <h1 class="st-name__h"><span class="st-name__a">From the Irish</span> <span class="st-name__b"><i lang="ga">nascadh</i>,</span> <span class="st-name__c">linking.</span></h1>
+      <div class="st-name__more">
+        <p class="st-name__long">Nosca is an anglicised spelling of the Irish word <i lang="ga">nascadh</i>, which means linking.</p>
+        <p class="st-name__link">A coach, a player and a family, linked.</p>
       </div>
-      <div class="st-hero__object">
-        <i class="st-hero__shadow" aria-hidden="true"></i>
-        <!-- @include card world="green" weave="1" class="st-card" pinsattrs="data-pins='manual'" -->
-      </div>
-      <div class="st-hero__caps">
-        <p class="st-cap">An anglicised spelling of the Irish word <i lang="ga">nascadh</i>, which means linking.</p>
-        <p class="st-cap">Two rings, each passing through the other.</p>
-        <p class="st-cap">A coach, a player and a family, linked.</p>
-      </div>
-      <p class="st-hero__cue" aria-hidden="true"><span>Scroll</span><i></i></p>
     </div>
+    <div class="shift-layer g-paper st-name__next" data-header="paper" aria-hidden="true"></div>
   </div>
 </section>
 
-<section class="scene g-paper sheet sheet--over st-moment" id="moment" data-header="light">
-  <div class="scene__stage">
-    <div class="scene__safe st-moment__safe">
+<!-- ═════════════ ONE MOMENT ═════════════
+     The sentence every coach screen is judged against fills with ink a phrase at a time, and the phone does what
+     each phrase says: it is picked up, the register is taken in seconds, it is put down. -->
+<section class="film g-paper st-moment" id="moment" style="--len:4;--len-sm:3" data-header="paper">
+  <i class="st-thread" aria-hidden="true"></i><i class="st-knot" aria-hidden="true"></i>
+  <div class="film__stage">
+    <div class="film__safe st-moment__in">
       <div class="st-moment__copy">
-        <p class="eyebrow">One moment</p>
-        <h2 class="st-moment__line"><span class="st-ph">A coach picks up the phone mid-lesson,</span> <span class="st-ph">does one thing in seconds</span> <span class="st-ph">and puts it down.</span></h2>
+        <p class="eyebrow eyebrow--rule">One moment</p>
+        <h2 class="st-moment__h"><span class="st-ph">A coach picks up the phone mid-lesson,</span> <span class="st-ph">does one thing in seconds</span> <span class="st-ph">and puts it down.</span></h2>
         <p class="t-lede st-moment__judge">Every coach screen is judged against it.</p>
       </div>
-      <div class="st-moment__phone depth">
-        <!-- @include phone screens="coach-today-golf,coach-log-golf,coach-today-golf" alts="A golf coach's day in Nosca, with the live lesson marked|Logging a lesson on one page|" class="st-moment__ph" -->
+      <div class="st-moment__dev depth">
+        <!-- @include phone seq="register" poster="24" seqalt="Taking the register in Nosca: the lesson opened from the coach's day, each player marked, the register sent" class="st-moment__phone" -->
       </div>
     </div>
   </div>
 </section>
 
-<section class="scene g-paper sheet sheet--over sheet--lift st-built" id="built" data-header="light">
-  <div class="scene__stage">
-    <div class="ringsbg st-built__rings" aria-hidden="true"><!-- @include mark --></div>
-    <div class="scene__safe st-built__safe">
-      <header class="st-built__head wrap wrap--wide">
-        <p class="eyebrow" data-reveal>2 Sep to 21 Nov 2026</p>
-        <h2 class="t-h2" data-reveal="lines">How it was built.</h2>
-      </header>
-      <div class="st-built__view">
-        <ol class="st-track">
-          <li class="st-stop">
-            <p class="st-stop__date"><span>2 Sep</span><small>2026</small></p>
-            <p class="st-stop__fact">The first commit.</p>
-          </li>
-          <li class="st-stop">
-            <p class="st-stop__date"><span>19 Sep</span></p>
-            <p class="st-stop__fact">Rebuilt around one behaviour.</p>
-          </li>
-          <li class="st-stop">
-            <p class="st-stop__date"><span>29 Sep</span></p>
-            <p class="st-stop__fact">Daily development cycles begin.</p>
-          </li>
-          <li class="st-stop st-stop--cycles">
-            <p class="st-stop__date"><span>Every morning</span></p>
-            <div class="st-cycles">
-              <p class="st-verbs"><span>Research.</span> <span>Build.</span> <span>Test.</span> <span>Ship.</span></p>
-              <!-- @include ticks -->
-              <p class="st-cycles__meta"><b class="st-cycles__n">45</b> <span class="st-cycles__what">development cycles <small>29 Sep to 20 Nov</small></span></p>
-            </div>
-          </li>
-          <li class="st-stop">
-            <p class="st-stop__date"><span>13 Nov</span></p>
-            <p class="st-stop__fact">The visual sprint.</p>
-          </li>
-          <li class="st-stop st-stop--shot">
-            <p class="st-stop__date"><span>21 Nov</span></p>
-            <p class="st-stop__fact">The app redrawn in white, with each sport's own colour.</p>
-            <figure class="shot st-stop__shot"><img src="assets/coach-today-golf.webp" alt="Nosca's Today screen, white with the sport's colour on its keys" width="780" height="1688" loading="lazy" decoding="async"></figure>
-          </li>
-        </ol>
-      </div>
-      <div class="st-built__rail wrap wrap--wide" aria-hidden="true"><span class="st-rail"><i></i></span><p><span>2 Sep</span><span>21 Nov</span></p></div>
+<!-- ═════════════ WHAT WE STAND FOR · a photograph as the film's ground ═════════════ -->
+<section class="film g-green st-stand" id="stand" data-film style="--len:2.8;--len-sm:2.2" data-header="none">
+  <div class="film__stage">
+    <!-- @include photo name="golf-mist-2" class="photo--bleed photo--veil st-stand__pic" attrs="data-settle='none'" sizes="100vw" -->
+    <div class="film__safe st-stand__in">
+      <p class="eyebrow eyebrow--rule">What we stand for</p>
+      <h2 class="st-stand__words">
+        <span class="st-w" data-ink data-at="6" data-len="22">Professional.</span>
+        <span class="st-w" data-ink data-at="32" data-len="20">Curated.</span>
+        <span class="st-w" data-ink data-at="56" data-len="22">Specialist.</span>
+      </h2>
     </div>
   </div>
 </section>
 
-<section class="section g-paper sheet st-proven" id="proven">
+<!-- the four things it holds to: the white comes back through the card's diagonal -->
+<section class="section g-paper st-hold" id="principles" data-ground-shift data-header="paper">
+  <i class="st-thread" aria-hidden="true"></i>
   <div class="wrap">
-    <div class="st-panel st-panel--straw">
-      <div class="st-proven__copy">
-        <p class="eyebrow" data-reveal>Before each release</p>
-        <h2 class="t-h2" data-reveal="lines">Proven before it ships.</h2>
-        <p class="st-proven__n" data-reveal="fade"><span data-count="1500" data-suffix="+" data-duration="2.2">1,500+</span></p>
-        <p class="st-proven__l" data-reveal>automated checks drive the app as a coach, a player, a parent and a junior.</p>
-        <p class="t-body st-proven__p" data-reveal>A crawl taps every control and fails on any that does nothing.</p>
-      </div>
-      <div class="st-crawl app" id="crawl" role="img" aria-label="An illustration of the crawl: every control on the coach's plus sheet is tapped in turn, and each one answers" data-reveal="scale">
-        <i class="st-crawl__grab" aria-hidden="true"></i>
-        <div class="st-tiles">
-          <div class="st-tile st-tile--lead"><span class="st-tile__g"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="st-tile__w">Log a lesson</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-fairway-mid);--o:var(--club-fairway-on);--ml:var(--club-fairway-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7.5"/></svg></span><span class="st-tile__w">Register</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-navy-mid);--o:var(--club-navy-on);--ml:var(--club-navy-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12" rx="3"/><circle cx="12" cy="13" r="3.2"/><path d="M9 7l1.2-2h3.6L15 7"/></svg></span><span class="st-tile__w">Capture</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-gold);--o:var(--club-gold-on);--ml:var(--club-gold-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><path d="M12 4l2.3 4.9 5.2.7-3.8 3.7.9 5.3L12 16.1l-4.6 2.5.9-5.3-3.8-3.7 5.2-.7z"/></svg></span><span class="st-tile__w">Tip</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-plum-mid);--o:var(--club-plum-on);--ml:var(--club-plum-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><path d="M9.5 7H19M9.5 12H19M9.5 17H19M5 7h.01M5 12h.01M5 17h.01"/></svg></span><span class="st-tile__w">Drills</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-olive-mid);--o:var(--club-olive-on);--ml:var(--club-olive-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.2"/><path d="M4 19c.6-3.2 3-5 6-5s5.4 1.8 6 5M18.5 7v5M16 9.5h5"/></svg></span><span class="st-tile__w">Add player</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-bottle-mid);--o:var(--club-bottle-on);--ml:var(--club-bottle-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="3"/><circle cx="16.6" cy="10" r="2.4"/><path d="M3.5 19c.5-3 2.6-4.6 5.5-4.6s5 1.6 5.5 4.6M16 14.6c2.4 0 4 1.4 4.6 4"/></svg></span><span class="st-tile__w">New group</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-brick-mid);--o:var(--club-brick-on);--ml:var(--club-brick-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="3"/><path d="M8 3.5v4M16 3.5v4M9.6 10.8l4.8 4.8M14.4 10.8l-4.8 4.8"/></svg></span><span class="st-tile__w">Call off</span><i class="st-tile__ok"></i></div>
-          <div class="st-tile" style="--m:var(--club-saddle-mid);--o:var(--club-saddle-on);--ml:var(--club-saddle-mid-lip)"><span class="st-tile__g"><svg viewBox="0 0 24 24"><path d="M6 20V4.5M6 5h11l-2.4 3.8L17 12.5H6"/></svg></span><span class="st-tile__w">Competition</span><i class="st-tile__ok"></i></div>
-        </div>
-        <div class="st-crawl__sum">
-          <span class="app-bar st-crawl__bar"><i></i></span>
-          <p><b class="st-crawl__n">9</b> of 9 controls answer</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section g-paper st-words" id="sports">
-  <div class="wrap">
-    <div class="st-head">
-      <p class="eyebrow" data-reveal>Six sports</p>
-      <h2 class="t-h1" data-reveal="lines">Every sport in its own words.</h2>
-      <p class="t-lede" data-reveal data-delay=".15">Terms and levels are verified against each sport's governing body. Never invented.</p>
-    </div>
-    <ul class="st-sports" data-reveal-group data-stagger=".07">
-      <li class="st-sport" style="--d:var(--club-fairway);--m:var(--club-fairway-mid);--ml:var(--club-fairway-mid-lip);--o:var(--club-fairway-on);--t:var(--club-fairway-tint)">
-        <p class="st-sport__tone"><i aria-hidden="true"></i><span>Fairway</span></p>
-        <h3 class="st-sport__name">Golf</h3>
-        <p class="st-sport__words"><span>Full swing</span><span>Short game</span><span>On course</span></p>
-        <p class="st-sport__levels"><b>Levels</b> Handicap Index</p>
+    <ol class="cols st-princ" data-depth="0.07">
+      <li class="st-p" style="--span:5" data-z="0">
+        <p class="t-numeral" aria-hidden="true">1</p>
+        <hr class="rule-gold rule-gold--hair" data-rule>
+        <h3 class="t-h3" data-rise="lines">Coach and player, side by side.</h3>
+        <p class="t-body">Both see the same lesson. A gap between them is a fault, and we fix it.</p>
       </li>
-      <li class="st-sport" style="--d:var(--club-court);--m:var(--club-court-mid);--ml:var(--club-court-mid-lip);--o:var(--club-court-on);--t:var(--club-court-tint)">
-        <p class="st-sport__tone"><i aria-hidden="true"></i><span>Court</span></p>
-        <h3 class="st-sport__name">Tennis</h3>
-        <p class="st-sport__words"><span>Serve</span><span>Return</span><span>Rally</span><span>Net</span></p>
-        <p class="st-sport__levels"><b>Levels</b> Red, Orange, Green and Yellow ball, then WTN</p>
+      <li class="st-p st-p--low" style="--at:8;--span:5" data-z="0.5">
+        <p class="t-numeral" aria-hidden="true">2</p>
+        <hr class="rule-gold rule-gold--hair" data-rule>
+        <h3 class="t-h3" data-rise="lines">Fewer taps.</h3>
+        <p class="t-body">Every step has to earn its place.</p>
       </li>
-      <li class="st-sport" style="--d:var(--club-river);--m:var(--club-river-mid);--ml:var(--club-river-mid-lip);--o:var(--club-river-on);--t:var(--club-river-tint)">
-        <p class="st-sport__tone"><i aria-hidden="true"></i><span>River</span></p>
-        <h3 class="st-sport__name">Rowing</h3>
-        <p class="st-sport__words"><span>Technique</span><span>Rhythm</span><span>Racing</span><span>Erg</span></p>
-        <p class="st-sport__levels"><b>Levels</b> J13 to J18, Novice to Senior</p>
+      <li class="st-p" style="--span:5" data-z="0">
+        <p class="t-numeral" aria-hidden="true">3</p>
+        <hr class="rule-gold rule-gold--hair" data-rule>
+        <h3 class="t-h3" data-rise="lines">The coach's own words.</h3>
+        <p class="t-body">Every note, tip and reply is theirs, typed or spoken.</p>
       </li>
-      <li class="st-sport" style="--d:var(--club-sienna);--m:var(--club-sienna-mid);--ml:var(--club-sienna-mid-lip);--o:var(--club-sienna-on);--t:var(--club-sienna-tint)">
-        <p class="st-sport__tone"><i aria-hidden="true"></i><span>Sienna</span></p>
-        <h3 class="st-sport__name">Squash</h3>
-        <p class="st-sport__words"><span>Drives</span><span>Volleys</span><span>Front court</span><span>Movement</span></p>
-        <p class="st-sport__levels"><b>Levels</b> The ball's dot</p>
+      <li class="st-p st-p--low" style="--at:8;--span:5" data-z="0.5">
+        <p class="t-numeral" aria-hidden="true">4</p>
+        <hr class="rule-gold rule-gold--hair" data-rule>
+        <h3 class="t-h3" data-rise="lines">Nothing pretends.</h3>
+        <p class="t-body">Every button does what it says, or it is not there.</p>
       </li>
-      <li class="st-sport" style="--d:var(--club-aubergine);--m:var(--club-aubergine-mid);--ml:var(--club-aubergine-mid-lip);--o:var(--club-aubergine-on);--t:var(--club-aubergine-tint)">
-        <p class="st-sport__tone"><i aria-hidden="true"></i><span>Aubergine</span></p>
-        <h3 class="st-sport__name">Padel</h3>
-        <p class="st-sport__words"><span>Net game</span><span>Overheads</span><span>Walls</span></p>
-        <p class="st-sport__levels"><b>Levels</b> 0 to 7</p>
-      </li>
-      <li class="st-sport" style="--d:var(--club-claret);--m:var(--club-claret-mid);--ml:var(--club-claret-mid-lip);--o:var(--club-claret-on);--t:var(--club-claret-tint)">
-        <p class="st-sport__tone"><i aria-hidden="true"></i><span>Claret</span></p>
-        <h3 class="st-sport__name">Equestrian</h3>
-        <p class="st-sport__words"><span>Flatwork</span><span>Poles</span><span>Jumping</span><span>Cross-country</span></p>
-        <p class="st-sport__levels"><b>Levels</b> Pony Club tests and riding-school stages</p>
-      </li>
-    </ul>
-    <p class="t-caption st-sports__note" data-reveal>Each sport keeps a colour of its own, drawn from one family.</p>
-  </div>
-</section>
-
-<!-- the dark band holds while the white sheet slides over it; the wrapper lets it go once the sheet has passed -->
-<div class="st-pair">
-<section class="section g-world sheet hold st-stand" id="stand" data-header="dark">
-  <!-- @include pins class="pins--band" attrs="data-pins" -->
-  <div class="ringsbg st-stand__rings" aria-hidden="true"><!-- @include mark attrs="data-parallax='0.16' data-draw" --></div>
-  <div class="wrap">
-    <p class="eyebrow eyebrow--gold" data-reveal>What we stand for</p>
-    <h2 class="st-stand__words"><span class="t-gold st-word">Professional.</span> <span class="t-gold st-word">Curated.</span> <span class="t-gold st-word">Specialist.</span></h2>
-  </div>
-</section>
-
-<section class="section g-paper sheet st-ethos" id="ethos">
-  <div class="wrap">
-    <ol class="st-principles" data-reveal-group data-stagger=".09">
-      <li class="st-principle"><span class="st-principle__n" aria-hidden="true">1</span><h3 class="t-h3">Coach and player, side by side.</h3><p class="t-body">Both see the same lesson. A gap between them is a fault, and we fix it.</p></li>
-      <li class="st-principle"><span class="st-principle__n" aria-hidden="true">2</span><h3 class="t-h3">Fewer taps.</h3><p class="t-body">Every step has to earn its place.</p></li>
-      <li class="st-principle"><span class="st-principle__n" aria-hidden="true">3</span><h3 class="t-h3">The coach's own words.</h3><p class="t-body">Every note, tip and reply is theirs, typed or spoken.</p></li>
-      <li class="st-principle"><span class="st-principle__n" aria-hidden="true">4</span><h3 class="t-h3">Nothing pretends.</h3><p class="t-body">Every button does what it says, or it is not there.</p></li>
     </ol>
+  </div>
+</section>
 
-    <div class="stats st-stats" data-reveal-group data-stagger=".1">
-      <div class="stat"><p class="stat__n" data-count="6">6</p><p class="stat__l">sports in one app</p></div>
-      <div class="stat"><p class="stat__n" data-count="4">4</p><p class="stat__l">roles: coach, player, parent and junior</p></div>
-      <div class="stat"><p class="stat__n" data-count="45">45</p><p class="stat__l">development cycles, 29 Sep to 20 Nov 2026</p></div>
-      <div class="stat"><p class="stat__n" data-count="150" data-suffix="+">150+</p><p class="stat__l">updates since September</p></div>
+<!-- ═════════════ HOW IT WAS BUILT ═════════════
+     Only the dates the record holds. A fine gold line runs from the first commit to the redraw; as it passes
+     29 Sep the 45 cycle days light one by one, and the date beside it steps in time. -->
+<section class="film g-rest st-built" id="built" data-film data-span="0,100" style="--len:4.6;--len-sm:3.4" data-header="rest">
+  <i class="st-thread" aria-hidden="true"></i><i class="st-knot" aria-hidden="true"></i>
+  <div class="film__stage">
+    <div class="film__safe st-built__in">
+      <p class="eyebrow eyebrow--rule st-built__eye">How it was built</p>
+      <ol class="film__steps st-built__steps">
+        <li data-step="0,15"><p class="st-date">2 Sep <span>2026</span></p><p class="st-fact">The first commit.</p></li>
+        <li data-step="15,29"><p class="st-date">19 Sep</p><p class="st-fact">Rebuilt around one behaviour.</p></li>
+        <li data-step="29,57"><p class="st-date">29 Sep</p><p class="st-fact">Daily development cycles begin. Every morning: research, build, test, ship.</p></li>
+        <li data-step="57,71"><p class="st-date">13 Nov</p><p class="st-fact">The visual sprint.</p></li>
+        <li data-step="71,85"><p class="st-date">21 Nov</p><p class="st-fact">The app redrawn in white, with each sport's own colour.</p></li>
+        <li data-step="85,100"><p class="st-date">45</p><p class="st-fact">development cycles, from 29 Sep to 20 Nov.</p></li>
+      </ol>
+      <div class="st-axis" aria-hidden="true">
+        <i class="st-axis__line"><i class="st-axis__fill"></i></i>
+        <div class="st-axis__ticks"><!-- @include ticks --></div>
+        <i class="st-axis__pt" style="--p:0"><b></b></i>
+        <i class="st-axis__pt" style="--p:21.25"><b></b></i>
+        <i class="st-axis__pt" style="--p:33.75"><b></b></i>
+        <i class="st-axis__pt" style="--p:90"><b></b></i>
+        <i class="st-axis__pt" style="--p:100"><b></b></i>
+        <span class="st-axis__l st-axis__l--a" style="--p:0">2 Sep</span>
+        <span class="st-axis__l st-axis__l--m" style="--p:33.75">29 Sep</span>
+        <span class="st-axis__l st-axis__l--m" style="--p:90">13 Nov</span>
+        <span class="st-axis__l st-axis__l--z" style="--p:100">21 Nov</span>
+      </div>
     </div>
+  </div>
+</section>
 
-    <div class="st-panel st-panel--sage st-climate" id="climate">
-      <div class="ringsbg st-climate__rings" aria-hidden="true"><!-- @include mark attrs="data-parallax='-0.12' data-draw" --></div>
-      <div class="st-climate__copy">
-        <p class="eyebrow" data-reveal>Climate</p>
-        <h2 class="t-h2" data-reveal="lines">We support climate action.</h2>
-        <ul class="st-facts" data-reveal-group data-stagger=".12">
-          <li><i aria-hidden="true"></i><span>Lesson notes, registers and reports are digital, never paper.</span></li>
-          <li><i aria-hidden="true"></i><span>A weather call-off tells everyone affected before they travel.</span></li>
+<!-- ═════════════ PROVEN BEFORE IT SHIPS ═════════════
+     The crawl, drawn on the coach's plus sheet: a fine gold line finds each control in turn, and each one answers. -->
+<section class="film g-paper st-proven" id="proven" style="--len:3.4;--len-sm:2.6" data-header="paper">
+  <i class="st-thread" aria-hidden="true"></i>
+  <div class="film__stage">
+    <div class="film__safe st-proven__in">
+      <div class="st-proven__copy">
+        <p class="eyebrow eyebrow--rule">Before each release</p>
+        <h2 class="t-h1 st-proven__h" data-ink="manual">Proven before it&nbsp;ships.</h2>
+        <p class="st-proven__n"><span class="t-numeral">1,500+</span> <span class="st-proven__l">automated checks drive the app as a coach, a player, a parent and a junior.</span></p>
+        <p class="t-body st-proven__crawl">A crawl taps every control and fails on any that does nothing.</p>
+      </div>
+      <figure class="st-crawl" role="img" aria-label="An illustration of the crawl: each control on the coach's plus sheet is found in turn, and each one answers">
+        <div class="shot st-crawl__shot">
+          <img src="assets/coach-plus-golf.webp" width="780" height="1688" alt="" loading="lazy" decoding="async">
+          <i class="st-ring" style="--x:6.2;--y:31.3;--w:87.6;--h:7.4"></i>
+          <i class="st-ring" style="--x:6.2;--y:42.4;--w:42.3;--h:10.6"></i>
+          <i class="st-ring" style="--x:51.5;--y:42.4;--w:42.3;--h:10.6"></i>
+          <i class="st-ring" style="--x:6.2;--y:54.7;--w:42.3;--h:10.6"></i>
+          <i class="st-ring" style="--x:51.5;--y:54.7;--w:42.3;--h:10.6"></i>
+          <i class="st-ring" style="--x:6.2;--y:67.1;--w:42.3;--h:10.6"></i>
+          <i class="st-ring" style="--x:51.5;--y:67.1;--w:42.3;--h:10.6"></i>
+          <i class="st-ring" style="--x:6.2;--y:79.4;--w:42.3;--h:10.6"></i>
+          <i class="st-ring" style="--x:51.5;--y:79.4;--w:42.3;--h:10.6"></i>
+          <i class="st-ring st-ring--word" style="--x:42.6;--y:92.2;--w:14.8;--h:3.6"></i>
+        </div>
+        <figcaption class="st-crawl__sum"><i class="st-crawl__bar"><i></i></i><span><b class="st-crawl__n">10</b> of 10 controls answer</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ EVERY SPORT IN ITS OWN WORDS ═════════════
+     The family shown once, small, as a tailor's swatch card; beside it each sport's words and levels on fine rules. -->
+<section class="section g-rest st-sports" id="sports" data-header="rest">
+  <i class="st-thread" aria-hidden="true"></i>
+  <div class="wrap cols">
+    <div class="st-sports__head" style="--span:5">
+      <p class="eyebrow eyebrow--rule">Six sports</p>
+      <h2 class="t-h1" data-ink>Every sport in its own&nbsp;words.</h2>
+      <p class="t-lede" data-rise="lines">Levels and terms are the ones each sport's governing body uses. Never invented.</p>
+      <div class="st-swatch" role="img" aria-label="The six sports' colours in Nosca, one family: golf fairway, tennis court, rowing river, squash sienna, padel aubergine, equestrian claret">
+        <p class="st-swatch__top"><span class="wordmark">NOSCA</span><span>One family</span></p>
+        <ul class="st-swatch__chips" aria-hidden="true">
+          <li style="--c:var(--golf)"><i></i><b>Golf</b><span>Fairway</span></li>
+          <li style="--c:var(--tennis)"><i></i><b>Tennis</b><span>Court</span></li>
+          <li style="--c:var(--rowing)"><i></i><b>Rowing</b><span>River</span></li>
+          <li style="--c:var(--squash)"><i></i><b>Squash</b><span>Sienna</span></li>
+          <li style="--c:var(--padel)"><i></i><b>Padel</b><span>Aubergine</span></li>
+          <li style="--c:var(--equestrian)"><i></i><b>Equestrian</b><span>Claret</span></li>
         </ul>
       </div>
-      <div class="st-told app" id="told" role="img" aria-label="An illustration: a coach chooses Weather and presses Call off, and three people each receive the notice that their lesson is called off">
-        <div class="st-told__act"><span class="st-opt is-on">Weather</span><span class="st-calloff"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="3"/><path d="M8 3.5v4M16 3.5v4M9.6 10.8l4.8 4.8M14.4 10.8l-4.8 4.8"/></svg>Call off</span></div>
-        <div class="app-card app-row st-note"><span class="app-face st-face" style="--m:var(--club-fairway-mid);--o:var(--club-fairway-on)">CM</span><span class="app-row__t"><span class="app-name">Lesson called off</span><span class="app-sub st-line"><span><b>Weather</b><b>Sat 28 Nov 9:00 am</b></span></span></span></div>
-        <div class="app-card app-row st-note"><span class="app-face st-face" style="--m:var(--club-navy-mid);--o:var(--club-navy-on)">SK</span><span class="app-row__t"><span class="app-name">Lesson called off</span><span class="app-sub st-line"><span><b>Weather</b><b>Sat 28 Nov 10:00 am</b></span></span></span></div>
-        <div class="app-card app-row st-note"><span class="app-face st-face" style="--m:var(--club-plum-mid);--o:var(--club-plum-on)">EK</span><span class="app-row__t"><span class="app-name">Lesson called off</span><span class="app-sub st-line"><span><b>Weather</b><b>Sat 28 Nov 11:00 am</b></span></span></span></div>
+    </div>
+    <dl class="st-table" style="--at:7;--span:6">
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Golf</dt><dd>Full swing, short game, on course</dd><dd class="st-lv">Handicap Index</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Tennis</dt><dd>Serve, return, rally, net</dd><dd class="st-lv">Red, Orange, Green and Yellow ball, then WTN</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Rowing</dt><dd>Technique, rhythm, racing, erg</dd><dd class="st-lv">J13 to J18, Novice to Senior</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Squash</dt><dd>Drives, volleys, front court, movement</dd><dd class="st-lv">The ball's dot</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Padel</dt><dd>Net game, overheads, walls</dd><dd class="st-lv">Levels 0 to 7</dd></div>
+      <div class="st-row"><hr class="rule-gold rule-gold--hair" data-rule><dt>Equestrian</dt><dd>Flatwork, poles, jumping, cross-country</dd><dd class="st-lv">Pony Club tests and riding-school stages</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ═════════════ CLIMATE · three photographs settle one after another ═════════════ -->
+<section class="film g-green st-climate" id="climate" data-span="36,100" style="--len:3.8;--len-sm:2.9" data-header="none">
+  <div class="film__stage">
+    <!-- @include photo name="golf-fairway-1" class="photo--bleed photo--veil st-climate__pic" sizes="100vw" -->
+    <!-- @include photo name="rowing-crew-2" class="photo--bleed photo--veil st-climate__pic" sizes="100vw" -->
+    <!-- @include photo name="equestrian-school-2" class="photo--bleed photo--veil st-climate__pic" sizes="100vw" -->
+    <div class="film__safe st-climate__in">
+      <p class="eyebrow eyebrow--rule">Climate</p>
+      <h2 class="t-h1 st-climate__h">We support climate action.</h2>
+      <div class="film__steps st-climate__steps">
+        <p class="t-lede" data-step>Lesson notes, registers and reports are digital, never paper.</p>
+        <p class="t-lede" data-step>A weather call-off tells everyone affected before they travel.</p>
       </div>
     </div>
   </div>
 </section>
-</div>
 
-<section class="section g-paper st-close" id="ireland">
-  <div class="wrap st-close__in">
-    <div class="st-close__copy">
-      <p class="eyebrow" data-reveal>The pilot</p>
-      <h2 class="t-h1" data-reveal="lines">Made in Ireland.</h2>
-      <p class="t-lede" data-reveal data-delay=".15">The pilot is in Ireland, in English.</p>
-      <div class="keys" data-reveal-group data-delay=".25">
+<!-- ═════════════ WHERE IT IS FROM · the close ═════════════
+     The rest ground rises through the diagonal; the dark card turns from its front to its back as it comes in. -->
+<section class="section g-rest st-close" id="ireland" data-ground-shift data-header="rest">
+  <div class="wrap cols st-close__in">
+    <div class="st-close__copy" style="--span:5">
+      <p class="eyebrow eyebrow--rule">Where it is from</p>
+      <h2 class="t-display st-close__h" data-ink>Made in Ireland.</h2>
+      <p class="t-lede" data-rise="lines">The pilot is in Ireland, in English.</p>
+      <div class="keys st-close__keys">
         <a class="key key--lg" href="{{appUrl}}" rel="noopener" data-magnet>Open Nosca <!-- @include arrow --></a>
-        <a class="key key--paper key--lg st-key--pale" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>
+        <a class="key key--paper key--lg" href="{{installUrl}}" rel="noopener" data-magnet>Add to Home Screen</a>
       </div>
     </div>
-    <div class="st-table">
-      <div class="st-deal st-deal--front"><!-- @include card world="green" class="bcard--shadow st-close__front" attrs="data-sheen" --></div>
-      <div class="st-deal st-deal--back"><!-- @include card world="green" class="bcard--shadow is-back st-close__card" attrs="data-tilt='5'" --></div>
+    <div class="st-close__card" style="--at:7;--span:6">
+      <!-- @include card world="green" class="bcard--shadow is-back st-card" attrs="data-card-turn data-start='top 96%' data-end='center 50%'" -->
     </div>
   </div>
 </section>
