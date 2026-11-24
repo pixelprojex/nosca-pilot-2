@@ -94,45 +94,55 @@ const SHADE = Array.from({ length: 26 }, (_, i) => {
 /* when the green side has come round: the foil is drawn from then */
 const FRONT = TURN.delay + Math.round(TURN.ms * 0.36);
 
-function InstallCard() {
+/* THE TWO CARDS (24 November). The founder hands out two designs: the
+   deep green with the gold pinstripes in two corners, and the olive —
+   the same white back, the same code. Both are laid on the paper, the
+   deep green in front and the olive behind it, so whichever was scanned
+   is the card on the screen; each comes over from its white side in its
+   turn. The deep green is the press's own render of its ground
+   (scripts/business-card.py's GREEN, CMYK 0.85/0.35/0.55/0.60), the
+   olive the app's own CLUB.olive. */
+const CARD_GREEN = "#183D3A";
+const CARD_GAP = 240;   /* the second card turns this long after the first */
+function OneCard({ ground, id, wait, style }) {
+  const foil = `url(#ins-foil-${id})`;
   return (
-    <div data-tour="install-card" role="img" aria-label={tr("The Nosca card: two woven rings and NOSCA in gold on olive green, with gold pinstripes in two corners")}
-         className="ins-card relative mx-auto" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, perspective: 900, transform: "rotate(-3deg)", animation: "insFade 260ms ease-out backwards" }}>
+    <div data-card={id} className="absolute" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, perspective: 900, ...style }}>
       {/* what the card rests on: a soft shadow that stays on the paper while the card turns */}
       <span aria-hidden="true" className="absolute" style={{ left: "4%", right: "4%", top: "16%", bottom: "3%", borderRadius: 14, boxShadow: "0 16px 26px -6px rgba(26,32,14,0.34), 0 6px 10px -3px rgba(26,32,14,0.22)",
-                                                              animation: `insShade ${TURN.ms}ms linear ${TURN.delay}ms backwards` }} />
-      <div aria-hidden="true" className="absolute inset-0" style={{ transformStyle: "preserve-3d", animation: `insTurn ${TURN.ms}ms cubic-bezier(${TURN.curve.join(",")}) ${TURN.delay}ms backwards` }}>
+                                                              animation: `insShade ${TURN.ms}ms linear ${TURN.delay + wait}ms backwards` }} />
+      <div aria-hidden="true" data-flip="" className="absolute inset-0" style={{ transformStyle: "preserve-3d", animation: `insTurn ${TURN.ms}ms cubic-bezier(${TURN.curve.join(",")}) ${TURN.delay + wait}ms backwards` }}>
         {/* the front */}
         <div style={{ ...face, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)" }}>
           <svg viewBox={`0 0 ${CARD_W} ${CARD_H}`} width="100%" height="100%" style={{ display: "block" }} focusable="false">
             <defs>
-              <linearGradient id="ins-foil" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={CARD_W} y2={CARD_H}>
+              <linearGradient id={`ins-foil-${id}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={CARD_W} y2={CARD_H}>
                 {FOIL.map(([o, c]) => <stop key={o} offset={o} stopColor={c} />)}
               </linearGradient>
             </defs>
-            <rect width={CARD_W} height={CARD_H} fill={CLUB.olive} />
-            <g fill="none" stroke="url(#ins-foil)">
+            <rect width={CARD_W} height={CARD_H} fill={ground} />
+            <g fill="none" stroke={foil}>
               {/* the wedges' gold edges, then the pinstripes out from them one after another */}
-              <path d="M39.85 0L84 30.52" pathLength="1" strokeWidth="0.5" style={draw(520, FRONT + 20)} />
-              <path d="M44.15 55L0 24.48" pathLength="1" strokeWidth="0.5" style={draw(520, FRONT + 20)} />
-              {STRIPES.map((d, i) => <path key={d} d={d} pathLength="1" strokeWidth="0.4" style={draw(460, FRONT + 150 + i * 14)} />)}
+              <path d="M39.85 0L84 30.52" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
+              <path d="M44.15 55L0 24.48" pathLength="1" strokeWidth="0.5" style={draw(520, (FRONT + wait) + 20)} />
+              {STRIPES.map((d, i) => <path key={d} d={d} pathLength="1" strokeWidth="0.4" style={draw(460, (FRONT + wait) + 150 + i * 14)} />)}
               {/* the mark, 22 mm wide and centred, arriving whole: drawn ring after ring it read for a beat as a wink */}
-              <g transform="translate(31 17.5) scale(0.55)" strokeWidth="2.75" strokeLinecap="round" style={{ animation: `insFade 640ms ease-out ${FRONT + 260}ms backwards` }}>
+              <g transform="translate(31 17.5) scale(0.55)" strokeWidth="2.75" strokeLinecap="round" style={{ animation: `insFade 640ms ease-out ${(FRONT + wait) + 260}ms backwards` }}>
                 <path d={RING_L} />
                 <path d={RING_R} />
               </g>
             </g>
-            <text data-tour="wordmark" x={CARD_W / 2 + TRACK / 2} y="36.72" textAnchor="middle" fill="url(#ins-foil)"
-                  style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 500, letterSpacing: TRACK, animation: `insFade 520ms ease-out ${FRONT + 700}ms backwards` }}>NOSCA</text>
+            <text data-tour="wordmark" x={CARD_W / 2 + TRACK / 2} y="36.72" textAnchor="middle" fill={foil}
+                  style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 500, letterSpacing: TRACK, animation: `insFade 520ms ease-out ${(FRONT + wait) + 700}ms backwards` }}>NOSCA</text>
           </svg>
         </div>
         {/* the back, the side that was scanned: seen only as the card turns over */}
         <div style={{ ...face, transform: "rotateY(180deg)", boxShadow: "inset 0 0 0 1px rgba(20,24,18,0.10)" }}>
           <svg viewBox={`0 0 ${CARD_W} ${CARD_H}`} width="100%" height="100%" style={{ display: "block" }} focusable="false">
             <rect width={CARD_W} height={CARD_H} fill="#FFFFFF" />
-            <g transform="translate(6 6) scale(0.275)" fill="none" stroke="url(#ins-foil)" strokeWidth="2.75" strokeLinecap="round"><path d={RING_L} /><path d={RING_R} /></g>
-            <text data-tour="wordmark" x={78 + TRACK} y="10.7" textAnchor="end" fill="url(#ins-foil)" style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 400, letterSpacing: TRACK }}>NOSCA</text>
-            <rect x="6" y="16.25" width="72" height="0.5" rx="0.25" fill="url(#ins-foil)" />
+            <g transform="translate(6 6) scale(0.275)" fill="none" stroke={foil} strokeWidth="2.75" strokeLinecap="round"><path d={RING_L} /><path d={RING_R} /></g>
+            <text data-tour="wordmark" x={78 + TRACK} y="10.7" textAnchor="end" fill={foil} style={{ fontFamily: ui, fontSize: 3.53, fontWeight: 400, letterSpacing: TRACK }}>NOSCA</text>
+            <rect x="6" y="16.25" width="72" height="0.5" rx="0.25" fill={foil} />
             {/* the card's own words, as printed (a picture of the card: its words are drawn at the card's scale, not read as the page's) */}
             {BACK_WORDS.map((w) => (
               <text key={w.text} data-drawn="" x={w.x} y={w.y} textAnchor={w.end ? "end" : "start"} fill={w.fill}
@@ -142,6 +152,15 @@ function InstallCard() {
           </svg>
         </div>
       </div>
+    </div>
+  );
+}
+function InstallCard() {
+  return (
+    <div data-tour="install-card" role="img" aria-label={tr("The two Nosca cards: two woven rings and NOSCA in gold, one on deep green and one on olive green, each with gold pinstripes in two corners")}
+         className="ins-card relative mx-auto" style={{ aspectRatio: `${CARD_W} / ${CARD_H}`, animation: "insFade 260ms ease-out backwards" }}>
+      <OneCard id="olive" ground={CLUB.olive} wait={0} style={{ left: 0, top: 0, width: "70%", transform: "rotate(-7deg)", zIndex: 1 }} />
+      <OneCard id="green" ground={CARD_GREEN} wait={CARD_GAP} style={{ right: 0, bottom: 0, width: "70%", transform: "rotate(2.5deg)", zIndex: 2 }} />
     </div>
   );
 }

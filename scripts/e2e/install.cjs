@@ -178,6 +178,17 @@ const openSettings = async (page) => {
         .map((el) => `${el.textContent.trim().slice(0, 24)} @ ${getComputedStyle(el).fontSize}`));
       const drawn = await page.evaluate(() => { const c = document.querySelector('[data-tour="install-card"]'); return c ? { role: c.getAttribute("role"), words: Array.from(c.querySelectorAll("text")).map((x) => x.textContent) } : null; });
       check("(a) nothing on the page under 12px — bar the wordmark and the words drawn on the picture of the card, which is one image with its own label", small.length === 0 && !!drawn && drawn.role === "img", small.join(", "));
+      /* THE TWO CARDS (24 November): the founder hands out the deep green and the olive, so both lie on the page — the
+         deep green in front, the olive behind it — each its own ground, each with its mark where a finger can see it */
+      const pair = await page.evaluate(() => {
+        const one = (id) => { const c = document.querySelector(`[data-card="${id}"]`); if (!c) return null;
+          const rect = c.querySelector("svg rect"), mark = c.querySelector("svg g[transform] path"), r = c.getBoundingClientRect(), m = mark ? mark.getBoundingClientRect() : null;
+          const hit = m ? document.elementFromPoint(m.left + m.width * 0.3, m.top + m.height / 2) : null;
+          return { ground: rect ? rect.getAttribute("fill") : null, w: Math.round(r.width), markSeen: !!hit && c.contains(hit), z: Number(getComputedStyle(c).zIndex) }; };
+        return { green: one("green"), olive: one("olive"), n: document.querySelectorAll("[data-card]").length };
+      });
+      check("(a3) the page lays both cards the founder hands out — the deep green in front, the olive behind it — each on its own ground, each mark in sight",
+        pair.n === 2 && !!pair.green && !!pair.olive && pair.green.ground === "#183D3A" && /^#4F5B29$/i.test(pair.olive.ground) && pair.green.z > pair.olive.z && pair.green.markSeen && pair.olive.markSeen && pair.green.w > 150 && pair.olive.w > 150, JSON.stringify(pair));
       check("(a) the card's back carries its own words, as printed — no grey bars standing in for them", !!drawn && drawn.words.includes("Coaching, linked.") && drawn.words.includes("Scan to start") && drawn.words.some((x) => /Golf · Tennis/.test(x)), JSON.stringify(drawn));
       /* the gold is a line's and a detail's; where it is read — a numeral, Change — it measures 4.5:1 on the paper */
       const gold = await page.evaluate(() => {
@@ -537,10 +548,12 @@ const openSettings = async (page) => {
         return page.evaluate(() => {
           const op = (el) => { let o = 1; for (let n = el; n && n.nodeType === 1; n = n.parentElement) o *= parseFloat(getComputedStyle(n).opacity); return o; };
           const stepsEls = Array.from(document.querySelectorAll("[data-ins-step]"));
-          const card = document.querySelector('[data-tour="install-card"]'), flip = card.children[1];
+          /* both cards: each one's turn, where it comes over from its white side */
+          const card = document.querySelector('[data-tour="install-card"]'), flips = Array.from(card.querySelectorAll("[data-flip]"));
           const stripes = Array.from(card.querySelectorAll("svg path")).map((el) => parseFloat(getComputedStyle(el).strokeDashoffset) || 0);
+          const turns = flips.map((f) => getComputedStyle(f).transform), still = turns.length === 2 && turns.every((x) => x === "none" || /matrix\(1, 0, 0, 1, 0, 0\)/.test(x));
           return { running: document.getAnimations().filter((a) => a.playState === "running" || a.pending).length, faint: stepsEls.filter((el) => op(el) < 0.999).length, steps: stepsEls.length,
-                   turn: getComputedStyle(flip).transform, undrawn: stripes.filter((v) => v > 0.001).length, h1: op(document.querySelector("h1")), word: op(card.querySelector('[data-tour="wordmark"]')) };
+                   turn: still ? "none" : turns.join(" | "), undrawn: stripes.filter((v) => v > 0.001).length, h1: op(document.querySelector("h1")), word: op(card.querySelector('[data-tour="wordmark"]')) };
         });
       };
       const a = await boot({ ua: IOS27, reduce: true });

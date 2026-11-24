@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { readFileSync } from "node:fs";
+import { FIRST_SITE, settingsFromSite, forwardScript } from "./scripts/public-settings.mjs";
 
 /* THE BUILD KNOWS WHEN IT WAS MADE. The time is stamped into the bundle
    (Settings › Version reads it) and written to /version.json beside
@@ -29,6 +30,15 @@ const SHELL_EXTRAS = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-
    may not; a missing one is the catch-all's index.html, which no <img>
    takes for a picture. */
 const READY = "ready.png";
+/* A BUILD WITH NO DATABASE NEVER SHOWS A BLANK PAGE AT THE APP'S OWN
+   ADDRESS: it forwards that address to the first site, where the app
+   works (scripts/public-settings.mjs). */
+const forwardUnlessConfigured = (configured) => ({
+  name: "nosca-forward-unconfigured",
+  transformIndexHtml(html) {
+    return configured ? html : html.replace(/<head>/i, (head) => head + "\n    " + forwardScript());
+  },
+});
 const buildStamp = (env) => ({
   name: "nosca-build-stamp",
   generateBundle(_, bundle) {
@@ -40,7 +50,29 @@ const buildStamp = (env) => ({
   },
 });
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react(), buildStamp({ ...loadEnv(mode, process.cwd(), "VITE_"), ...process.env })],
-  define: { "import.meta.env.VITE_BUILD_TIME": JSON.stringify(BUILT) },
-}));
+/* OFF FOR ONE RELEASE. The first site's live page, until this release is on it, hops every page to the
+   app's own address the moment /ready.png loads there — a Home Screen app into a sheet of browser, signed
+   out. So the app's own site writes /ready.png only from the release after the one that puts the safe hop
+   on the first site, never in the same one, whichever site's deploy finishes first. */
+const READ_FIRST_SITE = false;
+
+export default defineConfig(async ({ mode, command }) => {
+  const files = loadEnv(mode, process.cwd(), "VITE_");
+  /* A NETLIFY BUILD THAT NAMES NO DATABASE reads the three public settings from the first site's live
+     app (scripts/public-settings.mjs) and takes them whole, or not at all; set into process.env, they
+     reach the bundle by Vite's own VITE_ prefix. A build that names its own — the site's variables, the
+     e2e mock, a .env file — reads nothing, and neither does a build off Netlify or `vite` on a laptop. */
+  if (READ_FIRST_SITE && command === "build" && process.env.NETLIFY === "true" && !process.env.VITE_SUPABASE_URL && !files.VITE_SUPABASE_URL) {
+    const read = await settingsFromSite(FIRST_SITE);
+    if (read) for (const [k, v] of Object.entries(read)) if (!process.env[k] && !files[k]) process.env[k] = v;
+    console.log(read
+      ? `nosca: no database named — the public settings were read from ${FIRST_SITE}`
+      : `nosca: no database named, and none could be read from ${FIRST_SITE} — this build sends its own address there`);
+  }
+  const env = { ...files, ...process.env };
+  const configured = !!(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY);
+  return {
+    plugins: [react(), buildStamp(env), forwardUnlessConfigured(configured)],
+    define: { "import.meta.env.VITE_BUILD_TIME": JSON.stringify(BUILT) },
+  };
+});

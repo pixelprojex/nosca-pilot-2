@@ -21,13 +21,62 @@
          localhost are other hosts and stay where they are. Change either
          name here and in netlify/functions/lib/signpost.mjs together;
          scripts/e2e/signpost.cjs plays a scanned card, both ways. -->
+    <!-- THE MOVE IS SEAMLESS (24 November). An app on a Home Screen is
+         left where it is: iOS opens another address inside it as a sheet of
+         browser, so it would bounce out on every open — it keeps working at
+         the address it was added from. A browser tab carries the person
+         across signed in: their session goes in the address's fragment the
+         way Supabase's own email links carry one (the app reads it with
+         detectSessionInUrl and clears it at once), but only while its access
+         token has two minutes and more to run, so neither side refreshes it
+         on the way; and the copy here is cleared as the tab goes, or this
+         address would later hand over, or refresh, a token the app's own
+         address has since rotated, and Supabase revokes the whole sign-in
+         when a used token comes back.
+         What is handed on is the page AS IT WAS OPENED, read before the app
+         below runs: the app starts while the picture is asked for, and
+         tidies its own address as it does (a join code, a notification's
+         screen) — a slow answer handed on the tidied page, the code gone.
+         An email link's own sign-in (a password reset, a confirmation) is
+         taken out of this address before the app can read it, and handed
+         on whole: read here, it was kept as a copy and cleared from the
+         address, and a slow answer then handed the copy on as a plain
+         sign-in — a reset that never reached "set a new password", and a
+         copy left here to be refreshed against the new address's. If the
+         new address does not answer, the link goes back in the address and
+         the page opens on it again, once (signpost=stay), and the app here
+         takes it as it always did. -->
     <script>
       (function (l) {
         if (l.hostname !== "nosca-pilot-2.netlify.app") return;
+        if (navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches)) return;
+        if (/(^|[#&])signpost=stay(&|$)/.test(l.hash)) return;
         var to = "https://nosca.netlify.app", over = false, probe = new Image();
-        probe.onload = function () { if (!over) { over = true; l.replace(to + l.pathname + l.search + l.hash); } };
-        probe.onerror = function () { over = true; };
-        setTimeout(function () { over = true; }, 4000);
+        var page = l.pathname + l.search, hash = l.hash;
+        var link = /(^|[#&])(access_token|error_description|error)=/.test(hash);
+        if (link) { try { history.replaceState(history.state, "", page); } catch (e) {} }
+        var carry = function () {
+          if (link) return "";
+          try {
+            var s = JSON.parse(localStorage.getItem("nosca.auth") || "null");
+            var left = s && s.expires_at ? s.expires_at - Math.round(Date.now() / 1000) : 0;
+            if (!s || !s.access_token || !s.refresh_token || left < 120) return "";
+            return "#access_token=" + encodeURIComponent(s.access_token) + "&refresh_token=" + encodeURIComponent(s.refresh_token) +
+                   "&expires_in=" + left + "&expires_at=" + s.expires_at + "&token_type=bearer&type=signpost";
+          } catch (e) { return ""; }
+        };
+        var stay = function () {
+          if (over) return; over = true;
+          if (link) { try { history.replaceState(history.state, "", page + hash + "&signpost=stay"); l.reload(); } catch (e) {} }
+        };
+        probe.onload = function () {
+          if (over) return; over = true;
+          var hand = carry();
+          if (hand) { try { localStorage.removeItem("nosca.auth"); } catch (e) {} }
+          l.replace(to + page + (hand || hash));
+        };
+        probe.onerror = stay;
+        setTimeout(stay, 4000);
         probe.src = to + "/ready.png?signpost=" + Date.now();
       })(location);
     </script>

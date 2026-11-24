@@ -17,9 +17,12 @@ import { BrandLoader } from "./lib/brandmark.jsx";
  * src/pages, so nothing built so far has been discarded.
  */
 
+/* the word itself, never four letters inside another: a session handed
+   across in the fragment (index.html, the move to the app's own address)
+   is a long token, and "demo" inside it opened the design harness */
 const isDemoUrl = () => typeof window !== "undefined" && (
-  window.location.search.includes("demo")
-  || window.location.hash.includes("demo")
+  /[?&]demo(=|&|$)/.test(window.location.search)
+  || /^#demo(&|=|$)/.test(window.location.hash)
   || window.location.pathname.replace(/\/+$/, "").endsWith("/demo")
 );
 
