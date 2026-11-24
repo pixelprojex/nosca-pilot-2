@@ -9,13 +9,16 @@
    page that only says where it was reached — so what is checked is
    where a phone ends up, not what a string in a file says.
 
-   The hop is made only once the new address has answered: the old
-   page first asks it for a picture every build ships, and anything
-   but a picture — a login wall in front of the site (which is what
-   Netlify's site protection puts there, and what the new site had on
-   the day of the move), the site down, no network — leaves the person
-   on the old address, which still carries the whole app. So the new
-   host is played three ways here: well, behind a wall, and gone.
+   The hop is made only once the new address WORKS: the old page first
+   asks it for /ready.png, a picture only a build given its database
+   writes (vite.config.js), and anything but a picture — a build made
+   without its Supabase settings (whose app is a blank page: the new
+   site went public that way on 24 November and every scanned card was
+   sent to it), a login wall in front of the site (Netlify's site
+   protection, which the new site had on the day of the move), the site
+   down, no network — leaves the person on the old address, which still
+   carries the whole app. So the new host is played four ways here:
+   well, built without its settings, behind a wall, and gone.
 
    Also here, because the same two names decide it: the daily digest
    (a scheduled function Netlify runs on both sites) sends from the
@@ -37,7 +40,10 @@ const { check, summary } = M.checker("signpost");
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   try {
     /* a phone that scans the card: the old host is the local build, the new host a page that says where it was reached */
-    const PROBE = fs.readFileSync(path.join(distDir, "icons", "icon-192.png"));
+    /* the picture a build given its database writes: this build was given the mock's */
+    const READY = path.join(distDir, "ready.png");
+    check("(r) a build given its database writes /ready.png, and it is a picture", fs.existsSync(READY) && fs.readFileSync(READY).slice(1, 4).toString() === "PNG");
+    const PROBE = fs.existsSync(READY) ? fs.readFileSync(READY) : Buffer.alloc(0);
     const visit = async (url, { wait = 2500, fresh = "well" } = {}) => {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
       const page = await ctx.newPage();
@@ -61,11 +67,14 @@ const { check, summary } = M.checker("signpost");
       await ctx.route(`http://deploy-preview-156--${OLD}/**`, (r) => local(r, asked.old));
       await ctx.route(`https://${NEW}/**`, (r) => {
         const u = new URL(r.request().url());
-        asked.fresh.push(u.pathname + (u.pathname.startsWith("/icons/") ? "" : u.search));
+        asked.fresh.push(u.pathname + (u.pathname === "/ready.png" ? "" : u.search));
         if (fresh === "gone") return r.abort("connectionrefused");
         /* Netlify's site protection: a 401 and a page of script, whatever was asked for */
         if (fresh === "wall") return r.fulfill({ status: 401, contentType: "text/html", body: `<!doctype html><title>Login Redirect</title><p>login</p>` });
+        /* a build with no database settings has every other file, the icons too, and no /ready.png: the catch-all answers it with index.html */
+        if (fresh === "bare" && u.pathname === "/ready.png") return r.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><title>Nosca</title><div id="root"></div>` });
         if (u.pathname === "/icons/icon-192.png") return r.fulfill({ status: 200, contentType: "image/png", body: PROBE });
+        if (u.pathname === "/ready.png") return r.fulfill({ status: 200, contentType: "image/png", body: PROBE });
         return r.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><title>new</title><p id="at">reached</p>` });
       });
       await page.goto(url, { waitUntil: "domcontentloaded" }).catch(() => {});
@@ -83,7 +92,7 @@ const { check, summary } = M.checker("signpost");
       /* a browser's preload scanner may fetch the bundle while the hop is under way; what matters is that the
          page asked of the old address was the card's, and that the new address was asked for the same page once */
       check("(a2) the old address was asked for the card's page first; the new address for its picture, and then for that same page, once",
-        v.asked.old[0] === "/install" && v.asked.fresh[0] === "/icons/icon-192.png" && v.asked.fresh.filter((p) => p === "/install").length === 1, `old ${JSON.stringify(v.asked.old.slice(0, 4))} · new ${JSON.stringify(v.asked.fresh)}`);
+        v.asked.old[0] === "/install" && v.asked.fresh[0] === "/ready.png" && v.asked.fresh.filter((p) => p === "/install").length === 1, `old ${JSON.stringify(v.asked.old.slice(0, 4))} · new ${JSON.stringify(v.asked.fresh)}`);
       await v.page.screenshot({ path: path.join(outDir, "01-card.png") });
       await v.ctx.close();
     }
@@ -114,8 +123,15 @@ const { check, summary } = M.checker("signpost");
       const v = await visit(`http://${OLD}/install`, { wait: 6500, fresh: "wall" });
       const guide = await v.page.locator('[data-tour="install-open"]').count();
       check("(w) a login wall in front of the new address: the card stays on the old one, and the guide is on the page", v.at === `http://${OLD}/install` && guide === 1 && v.rootLen > 0, `${v.at} · guide ${guide} · root ${v.rootLen}`);
-      check("(w2) the new address was asked for its picture and for nothing else", v.asked.fresh.length >= 1 && v.asked.fresh.every((p) => p === "/icons/icon-192.png"), JSON.stringify(v.asked.fresh));
+      check("(w2) the new address was asked for its picture and for nothing else", v.asked.fresh.length >= 1 && v.asked.fresh.every((p) => p === "/ready.png"), JSON.stringify(v.asked.fresh));
       await v.page.screenshot({ path: path.join(outDir, "03-wall-stays.png") });
+      await v.ctx.close();
+    }
+    {
+      /* 24 November: the new site public, built without its Supabase settings — its icons load, its app is a blank page */
+      const v = await visit(`http://${OLD}/install`, { wait: 6500, fresh: "bare" });
+      const guide = await v.page.locator('[data-tour="install-open"]').count();
+      check("(w5) the new address built without its database settings: the card stays on the old one, and the guide is on the page", v.at === `http://${OLD}/install` && guide === 1 && v.rootLen > 0 && v.asked.fresh.every((p) => p === "/ready.png"), `${v.at} · guide ${guide} · asked ${JSON.stringify(v.asked.fresh)}`);
       await v.ctx.close();
     }
     {

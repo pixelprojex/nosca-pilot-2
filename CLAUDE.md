@@ -2574,16 +2574,23 @@ seeded data and no account.
   scanned card lands on `/install` at the address the app is then added
   to a Home Screen from (an installed app lives at the address it was
   added from, so the guide should not be followed on the old one). It
-  hops only once the new address has ANSWERED: it first asks it for a
-  picture every build ships (`/icons/icon-192.png` — a picture loads
-  across sites where a fetch may not), and anything but a picture
-  leaves the person on the old address, which still carries the whole
-  app. On the day of the move the new site stood behind Netlify's
-  site protection — a 401 "Login Redirect" for everyone but the
-  founder's own signed-in browser — and a blind hop would have sent
-  every printed card to a login wall; now a card can never land on a
-  dead page, and the hop switches itself on, with no deploy, the
-  moment the new address is well. Only
+  hops only once the new address WORKS: it first asks it for
+  `/ready.png`, a picture only a build given its Supabase address and
+  key writes (`vite.config.js`; a picture loads across sites where a
+  fetch may not, and a missing one is the catch-all's index.html, which
+  no `<img>` takes), and anything but a picture leaves the person on the
+  old address, which still carries the whole app. On the day of the
+  move the new site stood behind Netlify's site protection — a 401
+  "Login Redirect" for everyone but the founder's own signed-in browser;
+  the next morning it went public built WITHOUT its environment, so its
+  app threw "supabaseUrl is required" on a blank page while its icons
+  loaded — and the first probe, a picture every build ships
+  (`/icons/icon-192.png`), sent every scanned card there for the half
+  hour it took to see it. A card can never land on a dead page now, and
+  the hop switches itself on, with no deploy here, the moment the new
+  site is built with its settings. A Netlify variable reaches a Vite
+  build only when it is scoped to Builds and was set before the build
+  ran: a variable added later needs Trigger deploy. Only
   that exact host hops: a deploy preview, a branch deploy and localhost
   are other hosts and stay where they are. `netlify/functions/lib/
   signpost.mjs` names the two, and `digest.mjs` does nothing on the
@@ -2592,7 +2599,7 @@ seeded data and no account.
   called by address (the database's `push_url`) and answers on whichever
   site that names. `scripts/business-card.py`'s `--site` default stays
   the OLD address — it is the printed code; never "correct" it.
-  `website/site.config.json` carries the new one. A real domain, when
+  `website/site.config.json` names the app and the guide by relative address (`../`, `../install`) — the site lives inside the app's own deploy, so its Open Nosca can never point at an address that is not answering (for an hour it named the new site while that stood behind a login wall). A real domain, when
   there is one, is added to the app's own site and the two names in
   `index.html` and `signpost.mjs` change together.
   `scripts/e2e/signpost.cjs` plays a scanned card.
