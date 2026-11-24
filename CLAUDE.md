@@ -199,7 +199,8 @@ seeded data and no account.
     `Button`'s `dangerQuiet` (Just decline, the step before a password,
     EditDay's Call off, the arrangement's End, Delete permanently), the
     manager's End, a player's Cancel beside Reschedule, the coach's
-    block's Cancel, the download sheet's Cancel and Remove, Saved's
+    block's Cancel, a request's Decline beside Accept in the Calendar
+    view (`cal-decline`), the download sheet's Cancel and Remove, Saved's
     Remove all — is the brick's pale ringed in its ledge on a ledge a step
     toward the brick, the word in the brick (6:1). It was the sport's
     pale with a red word, a mint key saying a red thing. A function key

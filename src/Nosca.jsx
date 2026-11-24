@@ -8330,7 +8330,9 @@ function AskBlock({ item, duration, delay = 0, onAccept, onDecline }) {
         {item.note && <p data-tour="cal-ask-note" className="mt-3" style={{ ...TYPE.small, color: t.sub, overflowWrap: "break-word" }}>{item.note}</p>}
         {(onAccept || onDecline) && (
           <div className="flex gap-2.5 mt-4">
-            {onDecline && <button data-tour="cal-decline" onClick={() => { haptic(9); onDecline(item); }} className="flex-1 n-key" style={{ ...key, color: t.ink }}>{tr("Decline")}</button>}
+            {/* Decline is the red quiet key, as a player's Cancel is beside Reschedule: the brick's pale,
+                the word in the brick (the class study) — it opens the decline sheet, whose Just decline is the same */}
+            {onDecline && <button data-tour="cal-decline" onClick={() => { haptic(9); onDecline(item); }} className="flex-1 n-key" style={{ ...key, ...redKey(t) }}>{tr("Decline")}</button>}
             {onAccept && <button data-tour="cal-accept" onClick={() => { hapticCommit(); onAccept(item); }} className="flex-1 n-key" style={{ ...key, color: t.accent }}>{tr("Accept")}</button>}
           </div>
         )}
