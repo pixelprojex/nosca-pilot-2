@@ -148,7 +148,7 @@ html.motion .pd-ch--prog .pd-dev__x>.phone{scale:.86}
   html.motion .pd-ch--pl .pd-dev{order:-1}
   html.motion .pd-ch--pr .pd-ch__copy{justify-self:end}
   html.motion .pd-ch--pl .pd-ch__copy{justify-self:start}
-  html.motion .pd-ch--prog .pd-level{top:12%;width:calc(var(--phone-w,280px)*2.1);margin-left:calc(var(--phone-w,280px)*-1.05)}
+  html.motion .pd-ch--prog .pd-level{top:12%;left:0;width:calc(var(--phone-w,280px)*2.7);margin-left:calc(var(--phone-w,280px)*-1.32)}
 }
 /* the family: three phones in one place, parting into a fan */
 html.motion .pd-fan{position:relative;width:var(--phone-w,280px);transform-style:preserve-3d}

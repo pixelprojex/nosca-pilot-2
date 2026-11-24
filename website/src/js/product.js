@@ -29,11 +29,13 @@ Site.ready(function (S) {
         if (h) S.rise(h, Object.assign({ by: 'words' }, ent));
         if (p) S.rise(p, Object.assign({ by: 'lines' }, ent, { start: 'top 66%', end: 'top 0%' }));
       } else {
-        if (h) S.rise(h, { by: 'words', tl: tl, at: r[0] - 0.8, duration: 9 });
-        if (p) S.rise(p, { by: 'lines', tl: tl, at: r[0] + 2.2, duration: 9 });
+        /* it stands the moment the caption before has gone, so the words are never away while a screen changes */
+        tl.fromTo(st, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, immediateRender: false }, r[0] - 1.8);
+        if (h) S.rise(h, { by: 'words', tl: tl, at: r[0] - 1.8, duration: 9 });
+        if (p) S.rise(p, { by: 'lines', tl: tl, at: r[0] + 1.2, duration: 9 });
       }
       if (r[1] < 100) tl.fromTo(st, { clipPath: 'inset(-40% -12% -40% -12%)', y: 0 },
-        { clipPath: 'inset(-40% -12% 140% -12%)', y: function () { return -s.vh() * 0.035; }, duration: 3.8, ease: 'power1.in', immediateRender: false }, r[1] - 5);
+        { clipPath: 'inset(-40% -12% 140% -12%)', y: function () { return -s.vh() * 0.035; }, duration: 2.8, ease: 'power1.in', immediateRender: false }, r[1] - 4.6);
     });
   }
   /* ── the camera: while a caption stands, the screen it is about is pushed in on (data-cam="x y scale") ── */
