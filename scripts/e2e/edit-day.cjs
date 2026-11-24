@@ -230,6 +230,19 @@ const { check, summary } = M.checker("edit-day");
     for (const el of await page.locator('[data-tour="editday-times"] [data-time]').all()) { await el.dispatchEvent("click"); await page.waitForTimeout(120); }
     const tappedTxt = await sheetText(page);
     check("(d0) a tap on each time outside Edit sets no kind and writes nothing", !/Group only|Private only|\bGroup\b|\bPrivate\b/.test(tappedTxt) && JSON.stringify(hours()) === before, tappedTxt.slice(0, 160));
+    /* (d0b) 24 November: Cian's request for 7:30 holds its hour on the sheet as a booking does — carrying who and
+       Requested, and no minus in Edit: the time is not taken from under the ask. The coach answers it (Decline, from the
+       Diary's row for it) and the hour is the coach's to take off again — the day below is emptied then */
+    await tap(page, '[data-tour="editday-edit"]', 500);
+    const held = page.locator('[data-tour="editday-times"] [data-time="7:30 am"]');
+    const heldTxt = (await held.count()) ? M.norm(await held.first().innerText()) : "";
+    check("(d0b) the requested 7:30 am is held on the sheet: a tile carrying Cian Murphy and Requested, with no minus in Edit",
+          (await held.count()) === 1 && (await held.first().getAttribute("data-requested")) === "1" && heldTxt === "7:30 am Cian Murphy Requested" && (await page.locator('[data-tour="editday-times"] [aria-label="Remove 7:30 am"]').count()) === 0,
+          heldTxt || "no tile");
+    await closeSheet(page);
+    await dayBox(page, "Tomorrow").locator('[data-tour="agenda-ask"] [data-tour="agenda-decline"]').first().dispatchEvent("click"); await page.waitForTimeout(900);
+    await page.locator("[data-sheet] button", { hasText: /^Just decline$/ }).first().click(); await page.waitForTimeout(1500);
+    await openEdit(page, "Tomorrow");
     await tap(page, '[data-tour="editday-edit"]', 500);
     for (let i = 0; i < 12 && (await page.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').count()); i++) {
       await page.locator('[data-tour="editday-times"] button[aria-label^="Remove "]').first().dispatchEvent("click"); await page.waitForTimeout(450);

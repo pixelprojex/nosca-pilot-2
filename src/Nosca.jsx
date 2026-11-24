@@ -4115,7 +4115,11 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
   const gone = (h) => timeGone(day.m, day.d, h, calendar);
   const offered = away ? [] : [...new Set([...weekly, ...added])].filter((h) => !off.includes(h) && !gone(h)).sort(byTime);
   const bookedAt = (h) => (day.booked || []).find((b) => b.time === h);
-  /* a booked time is a tile whatever the hours say, carrying who */
+  /* a booked time is a tile whatever the hours say, carrying who — and a
+     time somebody has asked for is held the same way, carrying who and
+     Requested (24 November: the coach's Diary holds a request in its
+     hour), so no minus takes it off from under the ask: the request is
+     answered first */
   const tiles = [...new Set([...offered, ...(day.booked || []).map((b) => b.time)])].sort(byTime);
   const free = tiles.filter((h) => !bookedAt(h));
   const addable = away ? [] : HALF_HOURS.filter((h) => !tiles.includes(h) && !gone(h));
@@ -4162,6 +4166,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
                 reads in the sheet's sub; "10:00–10:45 am" wrapped at 320 */}
             <span className="block" style={FIG}>{h}</span>
             {bk && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.faint, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" }}>{bk.who}</span>}
+            {bk && bk.status === "requested" && <span className="block w-full px-1.5" style={{ ...TYPE.caption, fontWeight: 400, color: t.sub }}>{tr("Requested")}</span>}
           </>);
           if (editing && !bk) return (
             <button key={h} data-time={h} onClick={() => removeTime(h)} aria-label={`${tr("Remove")} ${h}`}
@@ -4174,7 +4179,7 @@ function EditDay({ day, duration, avail, blocked = [], extra = [], writeDay, onE
             </button>
           );
           return (
-            <div key={h} data-time={h} data-booked={bk ? "1" : undefined} className="flex flex-col items-center justify-center text-center" style={face}>{inner}</div>
+            <div key={h} data-time={h} data-booked={bk ? "1" : undefined} data-requested={bk && bk.status === "requested" ? "1" : undefined} className="flex flex-col items-center justify-center text-center" style={{ ...face, ...(bk && bk.status === "requested" ? { paddingTop: 6, paddingBottom: 6 } : null) }}>{inner}</div>
           );
         })}
         {!editing && addable.length > 0 && (

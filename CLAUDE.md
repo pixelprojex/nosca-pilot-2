@@ -1928,11 +1928,15 @@ seeded data and no account.
   decline). The hour is held: no plus on it, the free count leaves it
   out ("1 booked · 3 free", never the request as booked), the Free times
   skip it, the month grid and the ticker mark the day, and the per-day
-  sheet carries it as a booked tile with no minus. On the Calendar view
+  sheet carries it as a booked time is carried — a tile with who on it,
+  and Requested under (`data-requested`), no minus in Edit: the request
+  is answered before its hour is taken off. On the Calendar view
   a day with only a request reads no "Nothing booked", and its Call off
   row stays the lessons' (the call-off itself still takes a request
   with the day's lessons); a day with no hours but a request is a day.
-  `offer-times.cjs` (q1)–(q8), `diary.cjs` (a4).
+  `offer-times.cjs` (q1)–(q8), `diary.cjs` (a4), `edit-day.cjs` (d0b)
+  — whose emptied day (d1) is emptied once the request on it has been
+  declined from the Diary.
 - **All lessons is its own row on the coach's home, never under
   Actions.** The archive is not a chore; `today-archive` sits in a box
   of its own under the Actions list, carrying the count.
