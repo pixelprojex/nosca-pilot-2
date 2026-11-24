@@ -782,6 +782,52 @@ seeded data and no account.
   founder wanted it back immediately. The loader was the brand green
   with a grey ring, then paper with a ring, then paper with the mark;
   the founder wanted it gone, not redesigned.
+- **The splash's rings are larger and bolder, and its animation is
+  exactly as it was (23 November).** The founder, of the opening: "I
+  love the animation, but I think you might need to enlarge the rings a
+  small bit, as they just look a little bit small and timid almost. I
+  want something a bit more bold … keep the animation the exact same … a
+  bit more sporty, a bit more energetic … keep the classy
+  professionalism." So `Splash` moves as it did — every keyframe, every
+  delay and duration of `T`, the haptics, the hold (5.4 s before a
+  sport, 4 s inside one, 700 ms to lift) and the tap that skips it are
+  untouched — and only what it is drawn at changed. `MARK_W` is the
+  mark's box across, 192 at the mark's own 40:25 shape (148 by 92
+  before), so the rings stand 150px across where they were 113; `WEIGHT`
+  is 2 of the mark's 40 units for the rings, the link and its travelling
+  dash (1.6 before: 9.6px on the screen for 5.9; the header's mark
+  carries 2.75). The ripples are born at about the mark's width and went
+  with it (`RIPPLE` 246 for 190). The orbit and the pool are the
+  column's, not the mark's: they turn and glow about the middle of the
+  whole column, which grew 1.18 times (225 tall to 265), so `ORBIT` is
+  272 for 230 and `POOL` 448 under a blur of 142 for 380 under 120 — the
+  orbit passes behind the top of the rings and its foot stops over the
+  line under the rule; carried at the mark's 1.3 its foot ran through
+  the letters of "COACHING THAT CARRIES" and the pool washed a 320
+  screen flat. The wordmark grew a touch so the mark does not dwarf it —
+  `WORD` 23 at 500 (20 at 400), 40 under the mark (34); `RULE` 64 by 1
+  (54), 28 under the word (26) — and the line under the rule and Made in
+  Ireland are as they were. Tried beside it at 320, 375 and 430 wide:
+  180 at 2.1 was still slight on the big phone, 208 took more than half
+  of a 320 screen and began to shout, 192 at 2.2 made the link a slab
+  and closed the eye between the rings. Nothing crowds at 320: apart,
+  before they join, the rings stand 51px inside each edge, and the word
+  at its loosest 0.62em is inside both. Reduce Motion still lands on the
+  settled mark. `BrandLoader` and the header's mark are not part of
+  this. This supersedes only the splash's old sizes, which lived in the
+  code and nowhere in this file. `scripts/e2e/splash.cjs` holds it — the
+  eleven keyframes to the character, all sixteen animations' delay,
+  length, count and fill for the brand and for a sport, the sizes, the
+  orbit's place, the column's order and gutters, the hold, the skip and
+  Reduce Motion — and writes the four moments (the rings drawing,
+  converged, the wordmark in, settled) for the brand, golf, tennis and
+  equestrian at the three widths; it joins the scripts named under
+  "Before every push". On the near-black ground of a sport's opening the
+  light is the sport's CLOTH tone (`lightsOf(cfg.theme.accent)[2]`):
+  once the sports took their traditional colours the deep lead on near-
+  black barely showed — the link, the rule, the ripples and the pool
+  were all but gone on golf and tennis — and a dark page takes the cloth
+  tone by the colour study's own rule.
 - **One mark.** `brandmark.jsx` owns the two rings, because the gate in
   App.jsx renders before Nosca.jsx exists. The rings weave — each is
   broken by a gap where the other passes over — so nothing is knocked
@@ -2516,6 +2562,63 @@ seeded data and no account.
   MOO foils both sides or neither. The README there is the order, and
   `public/card/` serves the files at `/card/` for a phone (copy them
   there after a re-run). `scripts/e2e/install.cjs`.
+- **Two Netlify sites, one repository; the first address is a signpost
+  (23 November).** The business cards are printed, and the code on them
+  opens `nosca-pilot-2.netlify.app/install` for good — so that site is
+  never renamed and never deleted: a rename frees the name for anybody
+  and every card in a pocket dies. The app lives at `nosca.netlify.app`,
+  a second Netlify site built from this repository and the same branch
+  with the same environment. `index.html` carries one inline script
+  ahead of the bundle that sends any page of the old host to the same
+  page of the new, the path, the query and the fragment kept — so a
+  scanned card lands on `/install` at the address the app is then added
+  to a Home Screen from (an installed app lives at the address it was
+  added from, so the guide should not be followed on the old one). It
+  hops only once the new address WORKS: it first asks it for
+  `/ready.png`, a picture only a build given its Supabase address and
+  key writes (`vite.config.js`; a picture loads across sites where a
+  fetch may not, and a missing one is the catch-all's index.html, which
+  no `<img>` takes), and anything but a picture leaves the person on the
+  old address, which still carries the whole app. On the day of the
+  move the new site stood behind Netlify's site protection — a 401
+  "Login Redirect" for everyone but the founder's own signed-in browser;
+  the next morning it went public built WITHOUT its environment, so its
+  app threw "supabaseUrl is required" on a blank page while its icons
+  loaded — and the first probe, a picture every build ships
+  (`/icons/icon-192.png`), sent every scanned card there for the half
+  hour it took to see it. A card can never land on a dead page now, and
+  the hop switches itself on, with no deploy here, the moment the new
+  site is built with its settings. A Netlify variable reaches a Vite
+  build only when it is scoped to Builds and was set before the build
+  ran: a variable added later needs Trigger deploy. Only
+  that exact host hops: a deploy preview, a branch deploy and localhost
+  are other hosts and stay where they are. `netlify/functions/lib/
+  signpost.mjs` names the two, and `digest.mjs` does nothing on the
+  signpost — Netlify runs a scheduled function on both sites, and
+  everyone on "Once a day" would be sent two summaries. The relay is
+  called by address (the database's `push_url`) and answers on whichever
+  site that names. `scripts/business-card.py`'s `--site` default stays
+  the OLD address — it is the printed code; never "correct" it.
+  `website/site.config.json` names the app and the guide by relative address (`../`, `../install`) — the site lives inside the app's own deploy, so its Open Nosca can never point at an address that is not answering (for an hour it named the new site while that stood behind a login wall). A real domain, when
+  there is one, is added to the app's own site and the two names in
+  `index.html` and `signpost.mjs` change together.
+  `scripts/e2e/signpost.cjs` plays a scanned card.
+- **The website is `website/`, shipped inside the same deploy at
+  `/about/`.** Home, Product, Story and Partners, static pages built by
+  `website/build.mjs` (plain Node, relative URLs; a page whose name
+  starts with `_` is the kit and is not shipped); `npm run build` is
+  `vite build && node website/build.mjs --out dist/about`, so a deploy
+  that builds the app builds the site. Its pictures of the app are
+  stills of the real app from a mock build (`website/assets`), its
+  colours are the app's own (`website/src/css/palette.css`, written by
+  `scripts/club-palette.py`), and its words say only what this file
+  establishes — the name line is "From the Irish nascadh, linking."
+  `website/BRIEF.md` is the founder's words for it, `API.md` the
+  foundation's contract. It is reached from the app by **About Nosca**:
+  a quiet line under Sign in on the landing page (`auth-about`) and the
+  first row of Settings' Support group (`settings-about`, found by
+  "website", "story", "partners", "name"), both `openAbout()` — `/about/`
+  in a new tab. `install.cjs` (a2), (f2).
 - **Away is a span of days on the coach's hours, and no diary offers a
   time on them.** Settings › Away (`settings-away`, a coach only, found
   by "holiday", "vacation", "off", "closed"; its `sub` the next span

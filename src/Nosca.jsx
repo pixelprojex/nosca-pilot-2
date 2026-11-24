@@ -2447,7 +2447,13 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
      arc, the rule) and never a word, because the sport accents sit
      between 4:1 and 5:1 on their own ink and small tracked type has no
      business being the thing that tests it. */
-  const accent = branded ? BRAND_PAPER : cfg.theme.accent;
+  /* On the near-black ground the sport's light is its CLOTH tone — what
+     the colour is on a dark page (the club colours' own rule). The deep
+     lead on near-black barely showed: the link, the rule, the ripples
+     and the pool were all but gone on golf and tennis once the sports
+     took their traditional colours, and the opening lost the life the
+     founder asked to have more of ("more bold … sporty … energetic"). */
+  const accent = branded ? BRAND_PAPER : lightsOf(cfg.theme.accent)[2];
   const bg = branded ? BRAND_COLOUR : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 
@@ -2462,6 +2468,43 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
   const T = branded
     ? { r1: 350, r2: 800, join: 1750, link: 2150, word: 2800, rule: 3300, sub: 3700, foot: 4200 }
     : { r1: 250, r2: 600, join: 1350, link: 1700, word: 2200, rule: 2600, sub: 2950, foot: 3350 };
+  /* THE RINGS, LARGER AND BOLDER — AND NOTHING ELSE (23 November).
+
+     The founder, of this opening: "I love the animation, but I think you
+     might need to enlarge the rings a small bit, as they just look a
+     little bit small and timid almost. I want something a bit more bold
+     … keep the animation the exact same … a bit more sporty, a bit more
+     energetic … keep the classy professionalism."
+
+     So no keyframe, delay, duration, haptic or hold above or below is
+     touched: the sequence is the one that was loved. Two numbers say
+     what it is drawn at. MARK_W is the mark's box across (148 until
+     now, so the rings are 1.3 times as wide: 150px of a phone's width
+     where they were 113), and WEIGHT the rings' stroke in the mark's
+     own 40-unit box (1.6 until now — 6px on the screen, 9.6 now; the
+     mark in the header carries 2.75) — the link and its travelling dash
+     are the rings' weight, as they always were. The ripples are born at
+     about the mark's width, so RIPPLE goes with it, 190 to 246. The
+     wordmark and its rule grow by less (WORD 20 → 23 at 500, RULE 54 →
+     64, the air between them a few points more), enough that the mark
+     does not dwarf them and little enough that nothing crowds at 320.
+
+     The orbit and the pool are the column's, not the mark's. They turn
+     and glow about the middle of the whole column — the orbit behind
+     the top of the rings, its foot just clear over the line under the
+     rule — and the column grew by less than the mark did (225 tall to
+     265, 1.18 times), so ORBIT goes from 230 to 272 and POOL from 380
+     to 448 under a blur of 142 for 120. Carried at the mark's 1.3 the
+     orbit's foot ran through the letters of "COACHING THAT CARRIES",
+     and the pool washed a 320 screen to its edges and lost its depth.
+
+     Tried beside it, at 320, 375 and 430 wide: 180 at 2.1 was still
+     slight on the big phone; 208 took more than half of a 320 screen
+     and began to shout; 192 at 2.2 made the link a slab and closed the
+     eye between the rings. scripts/e2e/splash.cjs holds the sizes and
+     the sequence. */
+  const MARK_W = 192, WEIGHT = 2, RIPPLE = Math.round(190 * (MARK_W / 148));
+  const WORD = 23, RULE = 64, ORBIT = 272, POOL = 448, POOL_BLUR = 142;
 
   return (
     <button onClick={() => { haptic(8); setLeaving(true); setTimeout(() => onDone && onDone(), 400); }}
@@ -2471,53 +2514,54 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
             aria-label={tr("Skip")}>
 
       {/* slow colour pool */}
-      <span className="absolute rounded-full" style={{ width: 380, height: 380, background: accent, filter: "blur(120px)",
+      <span className="absolute rounded-full" style={{ width: POOL, height: POOL, background: accent, filter: `blur(${POOL_BLUR}px)`,
                      opacity: branded ? 0.2 : 0.28, animation: "glow 6s ease-in-out infinite" }} />
 
       {/* ripples pushing out from where the rings meet */}
       {[0, 1, 2].map((i) => (
         <span key={i} className="absolute rounded-full" aria-hidden="true"
-              style={{ width: 190, height: 190, border: `1px solid ${accent}`, opacity: 0,
+              style={{ width: RIPPLE, height: RIPPLE, border: `1px solid ${accent}`, opacity: 0,
                        animation: `ripple 3.6s cubic-bezier(.2,.6,.3,1) ${T.link + i * 900}ms infinite` }} />
       ))}
 
       {/* a slow orbiting dashed ring behind everything */}
-      <svg className="absolute" width={230} height={230} viewBox="0 0 100 100" aria-hidden="true"
+      <svg className="absolute" width={ORBIT} height={ORBIT} viewBox="0 0 100 100" aria-hidden="true"
            style={{ opacity: 0.16, animation: `orbit 26s linear ${T.r1}ms infinite` }}>
         <circle cx="50" cy="50" r="42" fill="none" stroke={accent} strokeWidth="0.4"
                 strokeDasharray="3 7" strokeLinecap="round" />
       </svg>
 
-      <div style={{ position: "relative", animation: `breathe 5s ease-in-out ${T.link}ms infinite` }}>
-        <svg width={148} height={92} viewBox="0 0 40 25" style={{ overflow: "visible" }} aria-label={BRAND}>
+      <div data-splash="mark" style={{ position: "relative", animation: `breathe 5s ease-in-out ${T.link}ms infinite` }}>
+        {/* the box is the mark's own shape, 40 by 25, so MARK_W is the whole of its size */}
+        <svg width={MARK_W} height={MARK_W * 0.625} viewBox="0 0 40 25" style={{ overflow: "visible" }} aria-label={BRAND}>
           {/* the rings draw, then slide together into their linked position */}
           <g style={{ "--from": "-7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <circle cx="14" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
+            <circle cx="14" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={WEIGHT} strokeLinecap="round"
                     style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
                              animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r1}ms forwards` }} />
           </g>
           <g style={{ "--from": "7px", animation: `converge 900ms cubic-bezier(.32,.72,0,1) ${T.join}ms both` }}>
-            <circle cx="26" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={1.6} strokeLinecap="round"
+            <circle cx="26" cy="12.5" r={R} fill="none" stroke="#F4F6F3" strokeWidth={WEIGHT} strokeLinecap="round"
                     style={{ "--len": CIRC, strokeDasharray: CIRC, strokeDashoffset: CIRC,
                              animation: `draw 1250ms cubic-bezier(.35,0,.15,1) ${T.r2}ms forwards` }} />
           </g>
           {/* the link, drawn last, then a travelling dash that keeps running */}
-          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke={accent} strokeWidth={1.6} strokeLinecap="round"
+          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke={accent} strokeWidth={WEIGHT} strokeLinecap="round"
                 style={{ "--len": ARC, strokeDasharray: ARC, strokeDashoffset: ARC,
                          animation: `draw 850ms cubic-bezier(.35,0,.15,1) ${T.link}ms forwards` }} />
           {/* Starts fully transparent. Without this it parks a white
               segment at the top of the arc for the whole delay — which
               reads as a stray floating line between the rings. */}
-          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke="#FFFFFF" strokeWidth={1.6} strokeLinecap="round"
+          <path d="M19.6 5.7 A 8.6 8.6 0 0 1 19.6 19.3" fill="none" stroke="#FFFFFF" strokeWidth={WEIGHT} strokeLinecap="round"
                 style={{ strokeDasharray: "4 104", strokeDashoffset: 0, opacity: 0,
                          animation: `dashRun 2.6s linear ${T.link + 900}ms infinite` }} />
         </svg>
       </div>
 
-      <div style={{ position: "relative", fontFamily: display, fontSize: 20, color: "#F4F6F3", marginTop: 34,
+      <div data-splash="word" style={{ position: "relative", fontFamily: display, fontSize: WORD, fontWeight: 500, color: "#F4F6F3", marginTop: 40,
                     opacity: 0, animation: `tighten 1200ms cubic-bezier(.32,.72,0,1) ${T.word}ms forwards` }}>{BRAND}</div>
 
-      <div style={{ position: "relative", width: 54, height: 1, background: accent, marginTop: 26,
+      <div data-splash="rule" style={{ position: "relative", width: RULE, height: 1, background: accent, marginTop: 28,
                     transformOrigin: "center", transform: "scaleX(0)",
                     animation: `trackFill 950ms cubic-bezier(.35,0,.15,1) ${T.rule}ms forwards` }} />
 

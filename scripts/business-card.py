@@ -288,6 +288,10 @@ def preview(out, ground_name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(HERE, "..", "docs", "brand", "business-card"))
+    # THE PRINTED CODE. The cards went to print with this address in their code and it cannot be
+    # changed: it is the site's first address, kept alive as a signpost that sends every page on to the
+    # app's own address (index.html). Never "correct" this default to the new address — a reprint
+    # would carry a code the cards in people's pockets do not.
     ap.add_argument("--site", default="https://nosca-pilot-2.netlify.app")
     ap.add_argument("--ground", default="olive", choices=["green", "olive"])
     ap.add_argument("--no-preview", action="store_true")

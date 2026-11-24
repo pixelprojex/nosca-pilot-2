@@ -3,6 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- THE SIGNPOST. The printed business cards carry the site's first
+         address in their code, and ink cannot be changed. That address is
+         a signpost now: whatever page of it is opened, the same page of
+         the app's own address opens instead (the card's /install above
+         all — an app added to a Home Screen lives at the address it was
+         added from) — but only once that address WORKS. The hop first
+         asks it for /ready.png, a picture only a build given its database
+         writes (vite.config.js); a picture loads across sites where a
+         fetch may not, and anything but a picture (a build without its
+         Supabase settings, the site down, a login wall in front of it, no
+         network) leaves the person on this address, which still carries
+         the whole app.
+         So a card can never land on a dead page, and the hop switches
+         itself on, with no deploy, the moment the new address is well.
+         Only this one host hops; a deploy preview, a branch deploy and
+         localhost are other hosts and stay where they are. Change either
+         name here and in netlify/functions/lib/signpost.mjs together;
+         scripts/e2e/signpost.cjs plays a scanned card, both ways. -->
+    <script>
+      (function (l) {
+        if (l.hostname !== "nosca-pilot-2.netlify.app") return;
+        var to = "https://nosca.netlify.app", over = false, probe = new Image();
+        probe.onload = function () { if (!over) { over = true; l.replace(to + l.pathname + l.search + l.hash); } };
+        probe.onerror = function () { over = true; };
+        setTimeout(function () { over = true; }, 4000);
+        probe.src = to + "/ready.png?signpost=" + Date.now();
+      })(location);
+    </script>
     <title>Nosca</title>
     <!-- the paper, not the brand: a phone paints the status bar and the browser chrome
          with it, and a green or cream band above a white app read as a blank strip -->
