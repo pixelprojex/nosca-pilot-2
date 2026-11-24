@@ -15429,9 +15429,22 @@ function RosterPlayer({ name, tip, stage, sportTool, seriesFor, onRecurring, pop
   /* The count and the last date belong to the block below, which says
      them in a size you can read walking; repeating them up here was the
      same two facts twice in one screenful. */
-  const meta = live
+  const metaText = live
     ? [stage, r.junior ? tr("Under 18") : null].filter(Boolean).join(" · ")
     : stage || "";
+  /* THE LEVEL IS THE DOOR TO PROGRESS (24 November). The line under the
+     name says where the player stands ("HI 18.4"); a tap on it opens how
+     they got there — the same Progress the file's own row opens. The
+     line in the sub grey with a chevron after it, reaching 44 to a finger
+     without moving a pixel (the reach paints nothing). No level, no door. */
+  const meta = stage ? (
+    <button data-tour="player-level" onClick={() => { haptic(6); soft(); push("progress:" + (r.id || name)); }}
+            className="relative inline-flex items-center gap-1 text-left active:opacity-50" style={{ ...TYPE.lede, color: t.sub }}>
+      <span aria-hidden="true" className="absolute" style={{ top: -12, bottom: -12, left: -8, right: -8 }} />
+      <span>{metaText}</span>
+      <ChevronRight size={13} color={t.trace || t.faint} strokeWidth={2} className="shrink-0" />
+    </button>
+  ) : metaText;
 
   return (
     <SwipeBack onBack={pop}>

@@ -3121,8 +3121,12 @@ seeded data and no account.
   screen on both sides, and it stores nothing.** `ProgressScreen`
   (route `progress` for your own, `progress:<id>` for a player's) is
   reached from the first foot row of the coach's player file
-  (`player-progress`), from the profile pill's switcher for a player
-  (`sheet-progress`), and from the child's screen for a parent
+  (`player-progress`) and from the level under the name on that file
+  (`player-level`, 24 November: "HI 18.4" in the sub grey with a
+  chevron after it, 44 to a finger without moving a pixel; no level, no
+  door; the file's four keys and its last five lessons as they were —
+  `progress.cjs` (g2)–(g7)), from the profile pill's switcher for a
+  player (`sheet-progress`), and from the child's screen for a parent
   (`kid-progress`). `progressOf()` reads the lessons: the level over
   time as one hand-drawn SVG line (`LevelLine`) where the sport's stage
   is a number (HI, WTN, a padel level — the number behind the stage tag
