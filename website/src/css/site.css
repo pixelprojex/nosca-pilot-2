@@ -398,8 +398,8 @@ html.motion .rail__track>*{flex:none}
 
 /* a photograph that settles: the frame opens and the picture comes to rest as the scroll brings it in. Never a pop.
    Set --ar (its shape) and --focus (object-position); width and height on the <img> still, so nothing shifts. */
-.photo{position:relative;display:block;margin:0;overflow:hidden;aspect-ratio:var(--ar,3/2);background:var(--ground-rest);border-radius:var(--photo-r,0)}
-.g-green .photo,.g-world .photo{background:var(--ground-green-deep)}
+.photo{position:relative;display:block;margin:0;overflow:hidden;aspect-ratio:var(--ar,3/2);background:var(--tone,var(--photo-bg,var(--ground-rest)));border-radius:var(--photo-r,0)}
+.g-green .photo,.g-world .photo{--photo-bg:var(--ground-green-deep)}
 .photo>img,.photo>picture,.photo>picture>img,.photo>video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--focus,50% 50%);display:block}
 .photo--bleed{width:100%;aspect-ratio:auto;height:100vh;height:100svh;min-height:420px}
 .photo--tall{--ar:4/5} .photo--wide{--ar:21/9} .photo--square{--ar:1/1}

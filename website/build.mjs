@@ -82,7 +82,8 @@ const GEN = {
     const alt = a.alt !== undefined ? a.alt : (e.alt || '');
     const focus = a.focus || e.focus || e.position;
     const credit = a.credit && (e.credit || e.by || e.author) ? `<figcaption class="photo__credit">${esc(typeof (e.credit || e.by || e.author) === 'string' ? (e.credit || e.by || e.author) : '')}</figcaption>` : '';
-    const fig = `<figure class="photo${a.class ? ' ' + a.class : ''}" style="${w && h ? `--ar:${w}/${h};` : ''}${focus ? `--focus:${esc(focus)};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
+    const tone = /^#[0-9a-f]{3,8}$/i.test(e.dominant || e.tone || '') ? (e.dominant || e.tone) : '';
+    const fig = `<figure class="photo${a.class ? ' ' + a.class : ''}" style="${w && h ? `--ar:${w}/${h};` : ''}${focus ? `--focus:${esc(focus)};` : ''}${tone ? `--tone:${tone};` : ''}"${a.attrs ? ' ' + a.attrs : ''}>` +
       `<img src="${src}"${srcset}${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''} alt="${esc(alt)}" decoding="async"${a.eager ? ' fetchpriority="high"' : ' loading="lazy"'}></figure>`;
     return credit ? `<div class="photo-wrap">${fig}${credit}</div>` : fig;
   },

@@ -365,11 +365,15 @@
     el.classList.add('is-shift');
     const fill = apron.firstChild, edge = apron.lastChild;
     let lead = 0, width = 0;
+    /* a plain section before it is given a foot as tall as the wedge, so the wedge crosses air and never the
+       section's words; a film, a rail or a held section keeps its own height and the wedge crosses its last frame */
+    const fixed = prev.matches('.film, .scene, .rail, .hold');
     const size = () => {
       width = el.offsetWidth || W.innerWidth;
-      /* the card's wedge runs at 34.7 degrees; never more than six tenths of a screen ahead */
-      lead = Math.round(Math.min(width * 0.6915, Site.svh() * num(el.dataset.shiftLead, 0.6)));
+      /* the card's wedge runs at 34.7 degrees; never more than half a screen ahead (data-shift-lead="0.5") */
+      lead = Math.round(Math.min(width * 0.6915, Site.svh() * num(el.dataset.shiftLead, 0.5)));
       apron.style.height = lead + 'px';
+      if (!fixed) { prev.style.paddingBottom = ''; if ((parseFloat(getComputedStyle(prev).paddingBottom) || 0) < lead + 24) prev.style.paddingBottom = (lead + 24) + 'px'; }
     };
     const render = (p) => {
       const q = 1 - clamp(p, 0, 1), top = (1 - q) * 100;
@@ -499,6 +503,34 @@
     });
     return (el._settle = r.tl);
   };
+
+  /* ───────── the business card as an object ─────────
+     c = Site.card(card)   c.turn(tl, { at, duration, from: 0, to: 180, tilt: [rx, rz] })  it turns over in a film
+     <div class="bcard" data-card-turn> turns from its front to its back on its own passage through the screen.
+     A pass of light crosses the face that is arriving (never a glow), if the card carries its .sheen. */
+  Site.card = function (target) {
+    const el = el$(target); if (!el) return null; if (el._card) return el._card;
+    const flip = $('.bcard__flip', el), front = $('.bcard__front', el), back = $('.bcard__back', el);
+    const api = el._card = {
+      el, flip, front, back,
+      turn(tl, o) {
+        o = Object.assign({ at: 0, duration: 24, from: 0, to: 180, tilt: [0, 0], ease: 'power2.inOut', sheen: true }, o || {});
+        if (!gsap || !flip) return api;
+        tl.fromTo(flip, { rotationY: o.from, rotationX: o.tilt[0] || 0, rotationZ: o.tilt[1] || 0 }, { rotationY: o.to, rotationX: 0, rotationZ: 0, duration: o.duration, ease: o.ease }, o.at);
+        const face = (o.to / 180) % 2 ? back : front, band = o.sheen && face ? $('.sheen', face) : null;
+        if (band) tl.set(band, { opacity: 1 }, o.at + o.duration * 0.5).fromTo(band, { x: 0, xPercent: -46 }, { xPercent: 46, duration: o.duration * 0.6, ease: 'power1.inOut' }, o.at + o.duration * 0.5).set(band, { opacity: 0 }, o.at + o.duration * 1.12);
+        return api;
+      }
+    };
+    return api;
+  };
+  function cardTurn(el) {
+    if (!motion || el._ct) return; el._ct = true;
+    const c = Site.card(el); if (!c || !c.flip) return;
+    const back = el.classList.contains('is-back');   /* it ends on the face the markup shows */
+    const tl = gsap.timeline({ defaults: { ease: 'none' }, scrollTrigger: { trigger: el, start: el.dataset.start || 'top 92%', end: el.dataset.end || 'center 52%', scrub: 0.9 } });
+    c.turn(tl, { at: 0, duration: 100, from: back ? 0 : 180, to: back ? 180 : 0, tilt: [8, -3] });
+  }
 
   /* ───────── screens as cards: fan, deal ───────── */
   Site.fan = function (target, o) {
@@ -941,6 +973,7 @@
     own('[data-ground-shift]', 'groundShift', (el) => Site.groundShift(el));
     own('[data-sequence]', 'drive', (el) => Site.sequence(el));
     own('[data-scrub-video]', 'drive', (el) => Site.scrubVideo(el));
+    own('.bcard[data-card-turn]', 'cardTurn', cardTurn);
   };
   /* films and rails that are all markup; a page's script gets to them first (Site.ready runs before this) */
   function stages(root) {
