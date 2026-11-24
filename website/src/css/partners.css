@@ -57,10 +57,17 @@ html.motion .pt-open .bcard__rule{transform-origin:0 50%}
 .pt-film__copy .t-lede{margin-top:10px;max-width:21em}
 .pt-film__phone{--phone-w:min(64vw,300px)}
 html:not(.motion) .pt-film{padding-block:clamp(72px,10vw,128px)}
-/* at rest the phone comes after the words on a phone-sized screen */
-html:not(.motion) .pt-coach .pt-film__phone{order:1}
+/* at rest each caption carries its screen, two to a row past a phone's width; the phone is for the film */
+.pt-rest{--shot-w:min(100%,220px);order:-1;margin:0 0 20px}
+html:not(.motion) .pt-film__copy{max-width:none}
+html:not(.motion) .pt-film .film__steps>[data-step]{display:flex;flex-direction:column;min-width:0}
+html:not(.motion) .pt-film__copy .t-h2{font-size:clamp(24px,2.4vw,32px);line-height:1.12;letter-spacing:-.02em}
+html:not(.motion) .pt-film__copy .t-lede{font-size:17px}
+@media (min-width:720px){html:not(.motion) .pt-film .film__steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:56px clamp(28px,4vw,64px)}}
+@media (min-width:1100px){html:not(.motion) .pt-film .film__steps{grid-template-columns:repeat(4,minmax(0,1fr))}}
 html.motion .pt-film{grid-template-rows:auto minmax(0,1fr)}
-html.motion .pt-coach .pt-film__phone{order:1}
+html.motion .pt-coach .pt-film__dev{order:1}
+html.motion .pt-film__dev{display:grid;place-items:center;align-self:start}
 html.motion .pt-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 300px)/2.2));--phone-w:min(60vw,calc((100svh - var(--hdr-h) - 300px)/2.2));align-self:start}
 @media (max-width:719px){
   html.motion .pt-film__copy .film__steps>[data-step]{min-height:146px}
@@ -70,7 +77,9 @@ html.motion .pt-film__phone{--phone-w:min(60vw,calc((100vh - var(--hdr-h) - 300p
 }
 @media (min-width:720px){
   .pt-film{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,6vw,110px)}
-  html:not(.motion) .pt-coach .pt-film__phone,html.motion .pt-coach .pt-film__phone{order:0}
+  html:not(.motion) .pt-film{grid-template-columns:minmax(0,1fr)}
+  html.motion .pt-coach .pt-film__dev{order:0}
+  html.motion .pt-film__dev{align-self:center}
   .pt-coach .pt-film__copy{justify-self:start}
   html.motion .pt-film{grid-template-rows:minmax(0,1fr)}
   html.motion .pt-film__phone{--phone-w:min(40vw,340px,calc((100vh - var(--hdr-h) - 110px)/2.2));--phone-w:min(40vw,340px,calc((100svh - var(--hdr-h) - 110px)/2.2));align-self:center}
