@@ -2448,7 +2448,13 @@ function Splash({ onDone, replayKey, sport, roleLabel }) {
      arc, the rule) and never a word, because the sport accents sit
      between 4:1 and 5:1 on their own ink and small tracked type has no
      business being the thing that tests it. */
-  const accent = branded ? BRAND_PAPER : cfg.theme.accent;
+  /* On the near-black ground the sport's light is its CLOTH tone — what
+     the colour is on a dark page (the club colours' own rule). The deep
+     lead on near-black barely showed: the link, the rule, the ripples
+     and the pool were all but gone on golf and tennis once the sports
+     took their traditional colours, and the opening lost the life the
+     founder asked to have more of ("more bold … sporty … energetic"). */
+  const accent = branded ? BRAND_PAPER : lightsOf(cfg.theme.accent)[2];
   const bg = branded ? BRAND_COLOUR : cfg.theme.ink;
   const [leaving, setLeaving] = useState(false);
 

@@ -782,6 +782,52 @@ seeded data and no account.
   founder wanted it back immediately. The loader was the brand green
   with a grey ring, then paper with a ring, then paper with the mark;
   the founder wanted it gone, not redesigned.
+- **The splash's rings are larger and bolder, and its animation is
+  exactly as it was (23 November).** The founder, of the opening: "I
+  love the animation, but I think you might need to enlarge the rings a
+  small bit, as they just look a little bit small and timid almost. I
+  want something a bit more bold … keep the animation the exact same … a
+  bit more sporty, a bit more energetic … keep the classy
+  professionalism." So `Splash` moves as it did — every keyframe, every
+  delay and duration of `T`, the haptics, the hold (5.4 s before a
+  sport, 4 s inside one, 700 ms to lift) and the tap that skips it are
+  untouched — and only what it is drawn at changed. `MARK_W` is the
+  mark's box across, 192 at the mark's own 40:25 shape (148 by 92
+  before), so the rings stand 150px across where they were 113; `WEIGHT`
+  is 2 of the mark's 40 units for the rings, the link and its travelling
+  dash (1.6 before: 9.6px on the screen for 5.9; the header's mark
+  carries 2.75). The ripples are born at about the mark's width and went
+  with it (`RIPPLE` 246 for 190). The orbit and the pool are the
+  column's, not the mark's: they turn and glow about the middle of the
+  whole column, which grew 1.18 times (225 tall to 265), so `ORBIT` is
+  272 for 230 and `POOL` 448 under a blur of 142 for 380 under 120 — the
+  orbit passes behind the top of the rings and its foot stops over the
+  line under the rule; carried at the mark's 1.3 its foot ran through
+  the letters of "COACHING THAT CARRIES" and the pool washed a 320
+  screen flat. The wordmark grew a touch so the mark does not dwarf it —
+  `WORD` 23 at 500 (20 at 400), 40 under the mark (34); `RULE` 64 by 1
+  (54), 28 under the word (26) — and the line under the rule and Made in
+  Ireland are as they were. Tried beside it at 320, 375 and 430 wide:
+  180 at 2.1 was still slight on the big phone, 208 took more than half
+  of a 320 screen and began to shout, 192 at 2.2 made the link a slab
+  and closed the eye between the rings. Nothing crowds at 320: apart,
+  before they join, the rings stand 51px inside each edge, and the word
+  at its loosest 0.62em is inside both. Reduce Motion still lands on the
+  settled mark. `BrandLoader` and the header's mark are not part of
+  this. This supersedes only the splash's old sizes, which lived in the
+  code and nowhere in this file. `scripts/e2e/splash.cjs` holds it — the
+  eleven keyframes to the character, all sixteen animations' delay,
+  length, count and fill for the brand and for a sport, the sizes, the
+  orbit's place, the column's order and gutters, the hold, the skip and
+  Reduce Motion — and writes the four moments (the rings drawing,
+  converged, the wordmark in, settled) for the brand, golf, tennis and
+  equestrian at the three widths; it joins the scripts named under
+  "Before every push". On the near-black ground of a sport's opening the
+  light is the sport's CLOTH tone (`lightsOf(cfg.theme.accent)[2]`):
+  once the sports took their traditional colours the deep lead on near-
+  black barely showed — the link, the rule, the ripples and the pool
+  were all but gone on golf and tennis — and a dark page takes the cloth
+  tone by the colour study's own rule.
 - **One mark.** `brandmark.jsx` owns the two rings, because the gate in
   App.jsx renders before Nosca.jsx exists. The rings weave — each is
   broken by a gap where the other passes over — so nothing is knocked
