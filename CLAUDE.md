@@ -1115,7 +1115,7 @@ seeded data and no account.
   span away, the arrangements running ("1 running"), nothing on Call off
   (its word the red), the confirmed lessons ahead ("3 lessons") —
   nothing where there is nothing, never a nought, and Add to phone
-  calendar not there with nothing to add, as Settings › Calendar is not.
+  calendar not there with nothing to add, as Settings › Add to phone calendar is not.
   The List's Recurring lessons foot stays. `scripts/e2e/diary-manage.cjs`.
 - **The mark sits top-left on every root screen, as tall as the icons
   across from it.** `Screen` puts `Mark` (`HEADER_MARK`: 36 wide at a
@@ -1681,7 +1681,7 @@ seeded data and no account.
   block, so a clinic never stands in for the person's own lesson that
   day — with the group's name where Cancel and Reschedule are (a member
   cannot call off everyone's clinic; Not going takes them out of that
-  one session, below), Settings › Calendar ("Lesson · Saturday clinic ·
+  one session, below), Settings › Add to phone calendar ("Lesson · Saturday clinic ·
   Niamh Byrne", a parent's "Lesson · Saoirse · …"), and the family's
   Coming up, which lists only the household's — it listed every group
   slot of the child's coach the policy lets a parent read — and names
@@ -1733,7 +1733,7 @@ seeded data and no account.
   reader can name: a member who said Not going and then left the coach
   keeps a row the coach can read and is counted nowhere).
   A member out is not reminded the evening before, and the session
-  leaves their Settings › Calendar and the family's Coming up. No
+  leaves their Settings › Add to phone calendar and the family's Coming up. No
   reason, no Maybe, no deadline, no nagging: the field offers them
   (Teamer's reason for admins, TeamSnap's Maybe, Heja's reminders) and
   a one-coach pilot needs the no. The hook probes the table
@@ -3127,8 +3127,10 @@ seeded data and no account.
   route falls back to the lesson's own `who` when it is opened with no
   name (the thread's card, the bell), so the page still reads Sent by
   Cian. `scripts/e2e/clip-reply.cjs`; behaviour.sql 8d.
-- **Lessons go into the phone's calendar from Settings › Calendar.**
-  The row (`settings-calendar`, found by "ical", "export", "sync")
+- **Lessons go into the phone's calendar from Settings › Add to phone calendar.**
+  The row (`settings-calendar`, found by "ical", "export", "sync"; it
+  read "Calendar" until the coach's Diary Manage sheet named the same
+  thing "Add to phone calendar" — one name per thing)
   carries the count of confirmed bookings ahead and is not there when
   there are none — never a nought. A tap hands out one iCalendar file
   (`icsOf`, `shareTextFile`: the share sheet where there is one, else a

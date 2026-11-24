@@ -74,7 +74,7 @@ const events = (ics) => (ics.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || []).map
       const { ctx, page, text, shot } = await boot("coach");
       await openSettings(page);
       const row = page.locator('[data-tour="settings-calendar"]');
-      check("(a) Settings carries a Calendar row counting the confirmed lessons ahead — three, not the one asked for nor the one gone", (await row.count()) === 1 && /Calendar/.test(await row.innerText()) && /3 lessons/.test(await row.innerText()), (await row.count()) ? await row.innerText() : (await text()).slice(0, 200));
+      check("(a) Settings carries an Add to phone calendar row (the Diary's Manage says the same words) counting the confirmed lessons ahead — three, not the one asked for nor the one gone", (await row.count()) === 1 && /Add to phone calendar/.test(await row.innerText()) && /3 lessons/.test(await row.innerText()), (await row.count()) ? await row.innerText() : (await text()).slice(0, 200));
       await shot("01-coach-settings");
       const { dl, ics, name } = await fetchIcs(page);
       const evs = events(ics);
