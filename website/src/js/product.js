@@ -55,6 +55,7 @@ Site.ready(function (S) {
 
   /* ── the first screen ── */
   S.film('#top', function (tl, s) {
+    captions(tl, s);
     var dev = s.$('.pd-top__dev'), copy = s.$('.pd-top__copy'), roles = s.$('.pd-roles');
     var fade = s.$$('.pd-top__copy > .eyebrow, .pd-top__h, .pd-top__lede');
     /* a desk: the phone rises into its column. A phone: the headline lifts away under the header and the phone with it,
